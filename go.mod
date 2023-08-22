@@ -8,7 +8,6 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/eapache/go-resiliency v1.2.0
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
-	github.com/emicklei/go-restful v2.15.0+incompatible // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-openapi/errors v0.20.2
@@ -32,7 +31,7 @@ require (
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/kubeflow/pipelines/api v0.0.0-20230331215358-758c91f76784
 	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20230404213301-bd9f74e34de6
-	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20220118175555-e78ed557ddcb
+	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/minio/minio-go/v6 v6.0.57

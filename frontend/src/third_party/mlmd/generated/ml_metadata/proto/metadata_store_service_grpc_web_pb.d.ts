@@ -64,6 +64,13 @@ export class MetadataStoreServiceClient {
                response: ml_metadata_proto_metadata_store_service_pb.PutExecutionResponse) => void
   ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.PutExecutionResponse>;
 
+  putLineageSubgraph(
+    request: ml_metadata_proto_metadata_store_service_pb.PutLineageSubgraphRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.PutLineageSubgraphResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.PutLineageSubgraphResponse>;
+
   putContexts(
     request: ml_metadata_proto_metadata_store_service_pb.PutContextsRequest,
     metadata: grpcWeb.Metadata | undefined,
@@ -253,6 +260,48 @@ export class MetadataStoreServiceClient {
                response: ml_metadata_proto_metadata_store_service_pb.GetEventsByArtifactIDsResponse) => void
   ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetEventsByArtifactIDsResponse>;
 
+  getArtifactsByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetArtifactsByExternalIdsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.GetArtifactsByExternalIdsResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetArtifactsByExternalIdsResponse>;
+
+  getExecutionsByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetExecutionsByExternalIdsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.GetExecutionsByExternalIdsResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetExecutionsByExternalIdsResponse>;
+
+  getContextsByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetContextsByExternalIdsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.GetContextsByExternalIdsResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetContextsByExternalIdsResponse>;
+
+  getArtifactTypesByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetArtifactTypesByExternalIdsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.GetArtifactTypesByExternalIdsResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetArtifactTypesByExternalIdsResponse>;
+
+  getExecutionTypesByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetExecutionTypesByExternalIdsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.GetExecutionTypesByExternalIdsResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetExecutionTypesByExternalIdsResponse>;
+
+  getContextTypesByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetContextTypesByExternalIdsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.GetContextTypesByExternalIdsResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetContextTypesByExternalIdsResponse>;
+
   getContextsByArtifact(
     request: ml_metadata_proto_metadata_store_service_pb.GetContextsByArtifactRequest,
     metadata: grpcWeb.Metadata | undefined,
@@ -281,6 +330,20 @@ export class MetadataStoreServiceClient {
                response: ml_metadata_proto_metadata_store_service_pb.GetChildrenContextsByContextResponse) => void
   ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetChildrenContextsByContextResponse>;
 
+  getParentContextsByContexts(
+    request: ml_metadata_proto_metadata_store_service_pb.GetParentContextsByContextsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.GetParentContextsByContextsResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetParentContextsByContextsResponse>;
+
+  getChildrenContextsByContexts(
+    request: ml_metadata_proto_metadata_store_service_pb.GetChildrenContextsByContextsRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.GetChildrenContextsByContextsResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetChildrenContextsByContextsResponse>;
+
   getArtifactsByContext(
     request: ml_metadata_proto_metadata_store_service_pb.GetArtifactsByContextRequest,
     metadata: grpcWeb.Metadata | undefined,
@@ -301,6 +364,13 @@ export class MetadataStoreServiceClient {
     callback: (err: grpcWeb.RpcError,
                response: ml_metadata_proto_metadata_store_service_pb.GetLineageGraphResponse) => void
   ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetLineageGraphResponse>;
+
+  getLineageSubgraph(
+    request: ml_metadata_proto_metadata_store_service_pb.GetLineageSubgraphRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: ml_metadata_proto_metadata_store_service_pb.GetLineageSubgraphResponse) => void
+  ): grpcWeb.ClientReadableStream<ml_metadata_proto_metadata_store_service_pb.GetLineageSubgraphResponse>;
 
 }
 
@@ -348,6 +418,11 @@ export class MetadataStoreServicePromiseClient {
     request: ml_metadata_proto_metadata_store_service_pb.PutExecutionRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<ml_metadata_proto_metadata_store_service_pb.PutExecutionResponse>;
+
+  putLineageSubgraph(
+    request: ml_metadata_proto_metadata_store_service_pb.PutLineageSubgraphRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.PutLineageSubgraphResponse>;
 
   putContexts(
     request: ml_metadata_proto_metadata_store_service_pb.PutContextsRequest,
@@ -484,6 +559,36 @@ export class MetadataStoreServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<ml_metadata_proto_metadata_store_service_pb.GetEventsByArtifactIDsResponse>;
 
+  getArtifactsByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetArtifactsByExternalIdsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetArtifactsByExternalIdsResponse>;
+
+  getExecutionsByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetExecutionsByExternalIdsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetExecutionsByExternalIdsResponse>;
+
+  getContextsByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetContextsByExternalIdsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetContextsByExternalIdsResponse>;
+
+  getArtifactTypesByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetArtifactTypesByExternalIdsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetArtifactTypesByExternalIdsResponse>;
+
+  getExecutionTypesByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetExecutionTypesByExternalIdsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetExecutionTypesByExternalIdsResponse>;
+
+  getContextTypesByExternalIds(
+    request: ml_metadata_proto_metadata_store_service_pb.GetContextTypesByExternalIdsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetContextTypesByExternalIdsResponse>;
+
   getContextsByArtifact(
     request: ml_metadata_proto_metadata_store_service_pb.GetContextsByArtifactRequest,
     metadata?: grpcWeb.Metadata
@@ -504,6 +609,16 @@ export class MetadataStoreServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<ml_metadata_proto_metadata_store_service_pb.GetChildrenContextsByContextResponse>;
 
+  getParentContextsByContexts(
+    request: ml_metadata_proto_metadata_store_service_pb.GetParentContextsByContextsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetParentContextsByContextsResponse>;
+
+  getChildrenContextsByContexts(
+    request: ml_metadata_proto_metadata_store_service_pb.GetChildrenContextsByContextsRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetChildrenContextsByContextsResponse>;
+
   getArtifactsByContext(
     request: ml_metadata_proto_metadata_store_service_pb.GetArtifactsByContextRequest,
     metadata?: grpcWeb.Metadata
@@ -518,6 +633,11 @@ export class MetadataStoreServicePromiseClient {
     request: ml_metadata_proto_metadata_store_service_pb.GetLineageGraphRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<ml_metadata_proto_metadata_store_service_pb.GetLineageGraphResponse>;
+
+  getLineageSubgraph(
+    request: ml_metadata_proto_metadata_store_service_pb.GetLineageSubgraphRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<ml_metadata_proto_metadata_store_service_pb.GetLineageSubgraphResponse>;
 
 }
 

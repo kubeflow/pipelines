@@ -15,6 +15,8 @@ var jspb = require('google-protobuf');
 var goog = jspb;
 var global = Function('return this')();
 
+var google_protobuf_field_mask_pb = require('google-protobuf/google/protobuf/field_mask_pb.js');
+goog.object.extend(proto, google_protobuf_field_mask_pb);
 var ml_metadata_proto_metadata_store_pb = require('../../ml_metadata/proto/metadata_store_pb.js');
 goog.object.extend(proto, ml_metadata_proto_metadata_store_pb);
 goog.exportSymbol('proto.ml_metadata.ArtifactAndType', null, global);
@@ -26,12 +28,16 @@ goog.exportSymbol('proto.ml_metadata.GetArtifactByTypeAndNameRequest', null, glo
 goog.exportSymbol('proto.ml_metadata.GetArtifactByTypeAndNameResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactTypeRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactTypeResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetArtifactTypesByExternalIdsRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.GetArtifactTypesByExternalIdsResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactTypesByIDRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactTypesByIDResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactTypesRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactTypesResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactsByContextRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactsByContextResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetArtifactsByExternalIdsRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.GetArtifactsByExternalIdsResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactsByIDRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactsByIDResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactsByTypeRequest', null, global);
@@ -42,10 +48,15 @@ goog.exportSymbol('proto.ml_metadata.GetArtifactsRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetArtifactsResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetChildrenContextsByContextRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetChildrenContextsByContextResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetChildrenContextsByContextsRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.GetChildrenContextsByContextsResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextByTypeAndNameRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextByTypeAndNameResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextTypeRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextTypeResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetContextTypesByExternalIdsRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.GetContextTypesByExternalIdsResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextTypesByIDRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextTypesByIDResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextTypesRequest', null, global);
@@ -54,6 +65,8 @@ goog.exportSymbol('proto.ml_metadata.GetContextsByArtifactRequest', null, global
 goog.exportSymbol('proto.ml_metadata.GetContextsByArtifactResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextsByExecutionRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextsByExecutionResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetContextsByExternalIdsRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.GetContextsByExternalIdsResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextsByIDRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextsByIDResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetContextsByTypeRequest', null, global);
@@ -68,12 +81,16 @@ goog.exportSymbol('proto.ml_metadata.GetExecutionByTypeAndNameRequest', null, gl
 goog.exportSymbol('proto.ml_metadata.GetExecutionByTypeAndNameResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionTypeRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionTypeResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetExecutionTypesByExternalIdsRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.GetExecutionTypesByExternalIdsResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionTypesByIDRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionTypesByIDResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionTypesRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionTypesResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionsByContextRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionsByContextResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetExecutionsByExternalIdsRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.GetExecutionsByExternalIdsResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionsByIDRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionsByIDResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionsByTypeRequest', null, global);
@@ -82,8 +99,13 @@ goog.exportSymbol('proto.ml_metadata.GetExecutionsRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetExecutionsResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetLineageGraphRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetLineageGraphResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetLineageSubgraphRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.GetLineageSubgraphResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.GetParentContextsByContextRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.GetParentContextsByContextResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetParentContextsByContextsRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.GetParentContextsByContextsResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild', null, global);
 goog.exportSymbol('proto.ml_metadata.PutArtifactTypeRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.PutArtifactTypeResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.PutArtifactsRequest', null, global);
@@ -105,6 +127,10 @@ goog.exportSymbol('proto.ml_metadata.PutExecutionTypeRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.PutExecutionTypeResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.PutExecutionsRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.PutExecutionsResponse', null, global);
+goog.exportSymbol('proto.ml_metadata.PutLineageSubgraphRequest', null, global);
+goog.exportSymbol('proto.ml_metadata.PutLineageSubgraphRequest.EventEdge', null, global);
+goog.exportSymbol('proto.ml_metadata.PutLineageSubgraphRequest.Options', null, global);
+goog.exportSymbol('proto.ml_metadata.PutLineageSubgraphResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.PutParentContextsRequest', null, global);
 goog.exportSymbol('proto.ml_metadata.PutParentContextsResponse', null, global);
 goog.exportSymbol('proto.ml_metadata.PutTypesRequest', null, global);
@@ -507,6 +533,90 @@ if (goog.DEBUG && !COMPILED) {
    * @override
    */
   proto.ml_metadata.PutExecutionResponse.displayName = 'proto.ml_metadata.PutExecutionResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.PutLineageSubgraphRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.PutLineageSubgraphRequest.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.PutLineageSubgraphRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.PutLineageSubgraphRequest.displayName = 'proto.ml_metadata.PutLineageSubgraphRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ml_metadata.PutLineageSubgraphRequest.EventEdge, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.displayName = 'proto.ml_metadata.PutLineageSubgraphRequest.EventEdge';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ml_metadata.PutLineageSubgraphRequest.Options, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.PutLineageSubgraphRequest.Options.displayName = 'proto.ml_metadata.PutLineageSubgraphRequest.Options';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.PutLineageSubgraphResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.PutLineageSubgraphResponse.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.PutLineageSubgraphResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.PutLineageSubgraphResponse.displayName = 'proto.ml_metadata.PutLineageSubgraphResponse';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1137,6 +1247,258 @@ if (goog.DEBUG && !COMPILED) {
    * @override
    */
   proto.ml_metadata.GetContextTypesResponse.displayName = 'proto.ml_metadata.GetContextTypesResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetArtifactsByExternalIdsRequest.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetArtifactsByExternalIdsRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetArtifactsByExternalIdsRequest.displayName = 'proto.ml_metadata.GetArtifactsByExternalIdsRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetArtifactsByExternalIdsResponse.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetArtifactsByExternalIdsResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetArtifactsByExternalIdsResponse.displayName = 'proto.ml_metadata.GetArtifactsByExternalIdsResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetExecutionsByExternalIdsRequest.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetExecutionsByExternalIdsRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetExecutionsByExternalIdsRequest.displayName = 'proto.ml_metadata.GetExecutionsByExternalIdsRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetExecutionsByExternalIdsResponse.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetExecutionsByExternalIdsResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetExecutionsByExternalIdsResponse.displayName = 'proto.ml_metadata.GetExecutionsByExternalIdsResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetContextsByExternalIdsRequest.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetContextsByExternalIdsRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetContextsByExternalIdsRequest.displayName = 'proto.ml_metadata.GetContextsByExternalIdsRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetContextsByExternalIdsResponse.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetContextsByExternalIdsResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetContextsByExternalIdsResponse.displayName = 'proto.ml_metadata.GetContextsByExternalIdsResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetArtifactTypesByExternalIdsRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.displayName = 'proto.ml_metadata.GetArtifactTypesByExternalIdsRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetArtifactTypesByExternalIdsResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.displayName = 'proto.ml_metadata.GetArtifactTypesByExternalIdsResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetExecutionTypesByExternalIdsRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.displayName = 'proto.ml_metadata.GetExecutionTypesByExternalIdsRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetExecutionTypesByExternalIdsResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.displayName = 'proto.ml_metadata.GetExecutionTypesByExternalIdsResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetContextTypesByExternalIdsRequest.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetContextTypesByExternalIdsRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetContextTypesByExternalIdsRequest.displayName = 'proto.ml_metadata.GetContextTypesByExternalIdsRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetContextTypesByExternalIdsResponse.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetContextTypesByExternalIdsResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetContextTypesByExternalIdsResponse.displayName = 'proto.ml_metadata.GetContextTypesByExternalIdsResponse';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1904,6 +2266,132 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
+proto.ml_metadata.GetParentContextsByContextsRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetParentContextsByContextsRequest.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetParentContextsByContextsRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetParentContextsByContextsRequest.displayName = 'proto.ml_metadata.GetParentContextsByContextsRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ml_metadata.GetParentContextsByContextsResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetParentContextsByContextsResponse.displayName = 'proto.ml_metadata.GetParentContextsByContextsResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.displayName = 'proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetChildrenContextsByContextsRequest.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetChildrenContextsByContextsRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetChildrenContextsByContextsRequest.displayName = 'proto.ml_metadata.GetChildrenContextsByContextsRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ml_metadata.GetChildrenContextsByContextsResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetChildrenContextsByContextsResponse.displayName = 'proto.ml_metadata.GetChildrenContextsByContextsResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.repeatedFields_, null);
+};
+goog.inherits(proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.displayName = 'proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
 proto.ml_metadata.GetArtifactsByContextRequest = function(opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
@@ -2019,6 +2507,48 @@ if (goog.DEBUG && !COMPILED) {
    * @override
    */
   proto.ml_metadata.GetLineageGraphResponse.displayName = 'proto.ml_metadata.GetLineageGraphResponse';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetLineageSubgraphRequest = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ml_metadata.GetLineageSubgraphRequest, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetLineageSubgraphRequest.displayName = 'proto.ml_metadata.GetLineageSubgraphRequest';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_metadata.GetLineageSubgraphResponse = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+};
+goog.inherits(proto.ml_metadata.GetLineageSubgraphResponse, jspb.Message);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_metadata.GetLineageSubgraphResponse.displayName = 'proto.ml_metadata.GetLineageSubgraphResponse';
 }
 
 
@@ -2836,7 +3366,9 @@ proto.ml_metadata.PutArtifactsRequest.toObject = function(includeInstance, msg) 
   var f, obj = {
     artifactsList: jspb.Message.toObjectList(msg.getArtifactsList(),
     ml_metadata_proto_metadata_store_pb.Artifact.toObject, includeInstance),
-    options: (f = msg.getOptions()) && proto.ml_metadata.PutArtifactsRequest.Options.toObject(includeInstance, f)
+    options: (f = msg.getOptions()) && proto.ml_metadata.PutArtifactsRequest.Options.toObject(includeInstance, f),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f),
+    updateMask: (f = msg.getUpdateMask()) && google_protobuf_field_mask_pb.FieldMask.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2883,6 +3415,16 @@ proto.ml_metadata.PutArtifactsRequest.deserializeBinaryFromReader = function(msg
       reader.readMessage(value,proto.ml_metadata.PutArtifactsRequest.Options.deserializeBinaryFromReader);
       msg.setOptions(value);
       break;
+    case 3:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    case 4:
+      var value = new google_protobuf_field_mask_pb.FieldMask;
+      reader.readMessage(value,google_protobuf_field_mask_pb.FieldMask.deserializeBinaryFromReader);
+      msg.setUpdateMask(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -2926,6 +3468,22 @@ proto.ml_metadata.PutArtifactsRequest.serializeBinaryToWriter = function(message
       2,
       f,
       proto.ml_metadata.PutArtifactsRequest.Options.serializeBinaryToWriter
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      3,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+  f = message.getUpdateMask();
+  if (f != null) {
+    writer.writeMessage(
+      4,
+      f,
+      google_protobuf_field_mask_pb.FieldMask.serializeBinaryToWriter
     );
   }
 };
@@ -3154,6 +3712,80 @@ proto.ml_metadata.PutArtifactsRequest.prototype.hasOptions = function() {
 };
 
 
+/**
+ * optional TransactionOptions transaction_options = 3;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutArtifactsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 3));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutArtifactsRequest} returns this
+*/
+proto.ml_metadata.PutArtifactsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 3, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutArtifactsRequest} returns this
+ */
+proto.ml_metadata.PutArtifactsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutArtifactsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 3) != null;
+};
+
+
+/**
+ * optional google.protobuf.FieldMask update_mask = 4;
+ * @return {?proto.google.protobuf.FieldMask}
+ */
+proto.ml_metadata.PutArtifactsRequest.prototype.getUpdateMask = function() {
+  return /** @type{?proto.google.protobuf.FieldMask} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_field_mask_pb.FieldMask, 4));
+};
+
+
+/**
+ * @param {?proto.google.protobuf.FieldMask|undefined} value
+ * @return {!proto.ml_metadata.PutArtifactsRequest} returns this
+*/
+proto.ml_metadata.PutArtifactsRequest.prototype.setUpdateMask = function(value) {
+  return jspb.Message.setWrapperField(this, 4, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutArtifactsRequest} returns this
+ */
+proto.ml_metadata.PutArtifactsRequest.prototype.clearUpdateMask = function() {
+  return this.setUpdateMask(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutArtifactsRequest.prototype.hasUpdateMask = function() {
+  return jspb.Message.getField(this, 4) != null;
+};
+
+
 
 /**
  * List of repeated fields within this message type.
@@ -3348,7 +3980,8 @@ proto.ml_metadata.PutArtifactTypeRequest.toObject = function(includeInstance, ms
     canAddFields: (f = jspb.Message.getBooleanField(msg, 2)) == null ? undefined : f,
     canOmitFields: (f = jspb.Message.getBooleanField(msg, 5)) == null ? undefined : f,
     canDeleteFields: (f = jspb.Message.getBooleanField(msg, 3)) == null ? undefined : f,
-    allFieldsMatch: jspb.Message.getBooleanFieldWithDefault(msg, 4, true)
+    allFieldsMatch: jspb.Message.getBooleanFieldWithDefault(msg, 4, true),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -3405,6 +4038,11 @@ proto.ml_metadata.PutArtifactTypeRequest.deserializeBinaryFromReader = function(
     case 4:
       var value = /** @type {boolean} */ (reader.readBool());
       msg.setAllFieldsMatch(value);
+      break;
+    case 6:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
       break;
     default:
       reader.skipField();
@@ -3469,6 +4107,14 @@ proto.ml_metadata.PutArtifactTypeRequest.serializeBinaryToWriter = function(mess
     writer.writeBool(
       4,
       f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      6,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
     );
   }
 };
@@ -3652,6 +4298,43 @@ proto.ml_metadata.PutArtifactTypeRequest.prototype.clearAllFieldsMatch = functio
  */
 proto.ml_metadata.PutArtifactTypeRequest.prototype.hasAllFieldsMatch = function() {
   return jspb.Message.getField(this, 4) != null;
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 6;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutArtifactTypeRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 6));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutArtifactTypeRequest} returns this
+*/
+proto.ml_metadata.PutArtifactTypeRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 6, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutArtifactTypeRequest} returns this
+ */
+proto.ml_metadata.PutArtifactTypeRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutArtifactTypeRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 6) != null;
 };
 
 
@@ -3843,7 +4526,9 @@ proto.ml_metadata.PutExecutionsRequest.prototype.toObject = function(opt_include
 proto.ml_metadata.PutExecutionsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     executionsList: jspb.Message.toObjectList(msg.getExecutionsList(),
-    ml_metadata_proto_metadata_store_pb.Execution.toObject, includeInstance)
+    ml_metadata_proto_metadata_store_pb.Execution.toObject, includeInstance),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f),
+    updateMask: (f = msg.getUpdateMask()) && google_protobuf_field_mask_pb.FieldMask.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -3885,6 +4570,16 @@ proto.ml_metadata.PutExecutionsRequest.deserializeBinaryFromReader = function(ms
       reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Execution.deserializeBinaryFromReader);
       msg.addExecutions(value);
       break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    case 3:
+      var value = new google_protobuf_field_mask_pb.FieldMask;
+      reader.readMessage(value,google_protobuf_field_mask_pb.FieldMask.deserializeBinaryFromReader);
+      msg.setUpdateMask(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -3920,6 +4615,22 @@ proto.ml_metadata.PutExecutionsRequest.serializeBinaryToWriter = function(messag
       1,
       f,
       ml_metadata_proto_metadata_store_pb.Execution.serializeBinaryToWriter
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+  f = message.getUpdateMask();
+  if (f != null) {
+    writer.writeMessage(
+      3,
+      f,
+      google_protobuf_field_mask_pb.FieldMask.serializeBinaryToWriter
     );
   }
 };
@@ -3960,6 +4671,80 @@ proto.ml_metadata.PutExecutionsRequest.prototype.addExecutions = function(opt_va
  */
 proto.ml_metadata.PutExecutionsRequest.prototype.clearExecutionsList = function() {
   return this.setExecutionsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutExecutionsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutExecutionsRequest} returns this
+*/
+proto.ml_metadata.PutExecutionsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutExecutionsRequest} returns this
+ */
+proto.ml_metadata.PutExecutionsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutExecutionsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+/**
+ * optional google.protobuf.FieldMask update_mask = 3;
+ * @return {?proto.google.protobuf.FieldMask}
+ */
+proto.ml_metadata.PutExecutionsRequest.prototype.getUpdateMask = function() {
+  return /** @type{?proto.google.protobuf.FieldMask} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_field_mask_pb.FieldMask, 3));
+};
+
+
+/**
+ * @param {?proto.google.protobuf.FieldMask|undefined} value
+ * @return {!proto.ml_metadata.PutExecutionsRequest} returns this
+*/
+proto.ml_metadata.PutExecutionsRequest.prototype.setUpdateMask = function(value) {
+  return jspb.Message.setWrapperField(this, 3, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutExecutionsRequest} returns this
+ */
+proto.ml_metadata.PutExecutionsRequest.prototype.clearUpdateMask = function() {
+  return this.setUpdateMask(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutExecutionsRequest.prototype.hasUpdateMask = function() {
+  return jspb.Message.getField(this, 3) != null;
 };
 
 
@@ -4157,7 +4942,8 @@ proto.ml_metadata.PutExecutionTypeRequest.toObject = function(includeInstance, m
     canAddFields: (f = jspb.Message.getBooleanField(msg, 2)) == null ? undefined : f,
     canOmitFields: (f = jspb.Message.getBooleanField(msg, 5)) == null ? undefined : f,
     canDeleteFields: (f = jspb.Message.getBooleanField(msg, 3)) == null ? undefined : f,
-    allFieldsMatch: jspb.Message.getBooleanFieldWithDefault(msg, 4, true)
+    allFieldsMatch: jspb.Message.getBooleanFieldWithDefault(msg, 4, true),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -4214,6 +5000,11 @@ proto.ml_metadata.PutExecutionTypeRequest.deserializeBinaryFromReader = function
     case 4:
       var value = /** @type {boolean} */ (reader.readBool());
       msg.setAllFieldsMatch(value);
+      break;
+    case 6:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
       break;
     default:
       reader.skipField();
@@ -4278,6 +5069,14 @@ proto.ml_metadata.PutExecutionTypeRequest.serializeBinaryToWriter = function(mes
     writer.writeBool(
       4,
       f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      6,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
     );
   }
 };
@@ -4461,6 +5260,43 @@ proto.ml_metadata.PutExecutionTypeRequest.prototype.clearAllFieldsMatch = functi
  */
 proto.ml_metadata.PutExecutionTypeRequest.prototype.hasAllFieldsMatch = function() {
   return jspb.Message.getField(this, 4) != null;
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 6;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutExecutionTypeRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 6));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutExecutionTypeRequest} returns this
+*/
+proto.ml_metadata.PutExecutionTypeRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 6, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutExecutionTypeRequest} returns this
+ */
+proto.ml_metadata.PutExecutionTypeRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutExecutionTypeRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 6) != null;
 };
 
 
@@ -4652,7 +5488,8 @@ proto.ml_metadata.PutEventsRequest.prototype.toObject = function(opt_includeInst
 proto.ml_metadata.PutEventsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     eventsList: jspb.Message.toObjectList(msg.getEventsList(),
-    ml_metadata_proto_metadata_store_pb.Event.toObject, includeInstance)
+    ml_metadata_proto_metadata_store_pb.Event.toObject, includeInstance),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -4694,6 +5531,11 @@ proto.ml_metadata.PutEventsRequest.deserializeBinaryFromReader = function(msg, r
       reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Event.deserializeBinaryFromReader);
       msg.addEvents(value);
       break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -4729,6 +5571,14 @@ proto.ml_metadata.PutEventsRequest.serializeBinaryToWriter = function(message, w
       1,
       f,
       ml_metadata_proto_metadata_store_pb.Event.serializeBinaryToWriter
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
     );
   }
 };
@@ -4769,6 +5619,43 @@ proto.ml_metadata.PutEventsRequest.prototype.addEvents = function(opt_value, opt
  */
 proto.ml_metadata.PutEventsRequest.prototype.clearEventsList = function() {
   return this.setEventsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutEventsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutEventsRequest} returns this
+*/
+proto.ml_metadata.PutEventsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutEventsRequest} returns this
+ */
+proto.ml_metadata.PutEventsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutEventsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
 };
 
 
@@ -4917,7 +5804,8 @@ proto.ml_metadata.PutExecutionRequest.toObject = function(includeInstance, msg) 
     proto.ml_metadata.PutExecutionRequest.ArtifactAndEvent.toObject, includeInstance),
     contextsList: jspb.Message.toObjectList(msg.getContextsList(),
     ml_metadata_proto_metadata_store_pb.Context.toObject, includeInstance),
-    options: (f = msg.getOptions()) && proto.ml_metadata.PutExecutionRequest.Options.toObject(includeInstance, f)
+    options: (f = msg.getOptions()) && proto.ml_metadata.PutExecutionRequest.Options.toObject(includeInstance, f),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -4973,6 +5861,11 @@ proto.ml_metadata.PutExecutionRequest.deserializeBinaryFromReader = function(msg
       var value = new proto.ml_metadata.PutExecutionRequest.Options;
       reader.readMessage(value,proto.ml_metadata.PutExecutionRequest.Options.deserializeBinaryFromReader);
       msg.setOptions(value);
+      break;
+    case 5:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
       break;
     default:
       reader.skipField();
@@ -5033,6 +5926,14 @@ proto.ml_metadata.PutExecutionRequest.serializeBinaryToWriter = function(message
       4,
       f,
       proto.ml_metadata.PutExecutionRequest.Options.serializeBinaryToWriter
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      5,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
     );
   }
 };
@@ -5272,7 +6173,8 @@ proto.ml_metadata.PutExecutionRequest.Options.prototype.toObject = function(opt_
  */
 proto.ml_metadata.PutExecutionRequest.Options.toObject = function(includeInstance, msg) {
   var f, obj = {
-    reuseContextIfAlreadyExist: (f = jspb.Message.getBooleanField(msg, 1)) == null ? undefined : f
+    reuseContextIfAlreadyExist: (f = jspb.Message.getBooleanField(msg, 1)) == null ? undefined : f,
+    reuseArtifactIfAlreadyExistByExternalId: (f = jspb.Message.getBooleanField(msg, 2)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -5313,6 +6215,10 @@ proto.ml_metadata.PutExecutionRequest.Options.deserializeBinaryFromReader = func
       var value = /** @type {boolean} */ (reader.readBool());
       msg.setReuseContextIfAlreadyExist(value);
       break;
+    case 2:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setReuseArtifactIfAlreadyExistByExternalId(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -5346,6 +6252,13 @@ proto.ml_metadata.PutExecutionRequest.Options.serializeBinaryToWriter = function
   if (f != null) {
     writer.writeBool(
       1,
+      f
+    );
+  }
+  f = /** @type {boolean} */ (jspb.Message.getField(message, 2));
+  if (f != null) {
+    writer.writeBool(
+      2,
       f
     );
   }
@@ -5385,6 +6298,42 @@ proto.ml_metadata.PutExecutionRequest.Options.prototype.clearReuseContextIfAlrea
  */
 proto.ml_metadata.PutExecutionRequest.Options.prototype.hasReuseContextIfAlreadyExist = function() {
   return jspb.Message.getField(this, 1) != null;
+};
+
+
+/**
+ * optional bool reuse_artifact_if_already_exist_by_external_id = 2;
+ * @return {boolean}
+ */
+proto.ml_metadata.PutExecutionRequest.Options.prototype.getReuseArtifactIfAlreadyExistByExternalId = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 2, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ml_metadata.PutExecutionRequest.Options} returns this
+ */
+proto.ml_metadata.PutExecutionRequest.Options.prototype.setReuseArtifactIfAlreadyExistByExternalId = function(value) {
+  return jspb.Message.setField(this, 2, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ml_metadata.PutExecutionRequest.Options} returns this
+ */
+proto.ml_metadata.PutExecutionRequest.Options.prototype.clearReuseArtifactIfAlreadyExistByExternalId = function() {
+  return jspb.Message.setField(this, 2, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutExecutionRequest.Options.prototype.hasReuseArtifactIfAlreadyExistByExternalId = function() {
+  return jspb.Message.getField(this, 2) != null;
 };
 
 
@@ -5535,6 +6484,43 @@ proto.ml_metadata.PutExecutionRequest.prototype.clearOptions = function() {
  */
 proto.ml_metadata.PutExecutionRequest.prototype.hasOptions = function() {
   return jspb.Message.getField(this, 4) != null;
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 5;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutExecutionRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 5));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutExecutionRequest} returns this
+*/
+proto.ml_metadata.PutExecutionRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 5, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutExecutionRequest} returns this
+ */
+proto.ml_metadata.PutExecutionRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutExecutionRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 5) != null;
 };
 
 
@@ -5801,6 +6787,1130 @@ proto.ml_metadata.PutExecutionResponse.prototype.clearContextIdsList = function(
  * @private {!Array<number>}
  * @const
  */
+proto.ml_metadata.PutLineageSubgraphRequest.repeatedFields_ = [1,2,3,4];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.PutLineageSubgraphRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    executionsList: jspb.Message.toObjectList(msg.getExecutionsList(),
+    ml_metadata_proto_metadata_store_pb.Execution.toObject, includeInstance),
+    artifactsList: jspb.Message.toObjectList(msg.getArtifactsList(),
+    ml_metadata_proto_metadata_store_pb.Artifact.toObject, includeInstance),
+    contextsList: jspb.Message.toObjectList(msg.getContextsList(),
+    ml_metadata_proto_metadata_store_pb.Context.toObject, includeInstance),
+    eventEdgesList: jspb.Message.toObjectList(msg.getEventEdgesList(),
+    proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.toObject, includeInstance),
+    options: (f = msg.getOptions()) && proto.ml_metadata.PutLineageSubgraphRequest.Options.toObject(includeInstance, f),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.PutLineageSubgraphRequest;
+  return proto.ml_metadata.PutLineageSubgraphRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.Execution;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Execution.deserializeBinaryFromReader);
+      msg.addExecutions(value);
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.Artifact;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Artifact.deserializeBinaryFromReader);
+      msg.addArtifacts(value);
+      break;
+    case 3:
+      var value = new ml_metadata_proto_metadata_store_pb.Context;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Context.deserializeBinaryFromReader);
+      msg.addContexts(value);
+      break;
+    case 4:
+      var value = new proto.ml_metadata.PutLineageSubgraphRequest.EventEdge;
+      reader.readMessage(value,proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.deserializeBinaryFromReader);
+      msg.addEventEdges(value);
+      break;
+    case 5:
+      var value = new proto.ml_metadata.PutLineageSubgraphRequest.Options;
+      reader.readMessage(value,proto.ml_metadata.PutLineageSubgraphRequest.Options.deserializeBinaryFromReader);
+      msg.setOptions(value);
+      break;
+    case 6:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.PutLineageSubgraphRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExecutionsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.Execution.serializeBinaryToWriter
+    );
+  }
+  f = message.getArtifactsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.Artifact.serializeBinaryToWriter
+    );
+  }
+  f = message.getContextsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      3,
+      f,
+      ml_metadata_proto_metadata_store_pb.Context.serializeBinaryToWriter
+    );
+  }
+  f = message.getEventEdgesList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      4,
+      f,
+      proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.serializeBinaryToWriter
+    );
+  }
+  f = message.getOptions();
+  if (f != null) {
+    writer.writeMessage(
+      5,
+      f,
+      proto.ml_metadata.PutLineageSubgraphRequest.Options.serializeBinaryToWriter
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      6,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    executionIndex: (f = jspb.Message.getField(msg, 1)) == null ? undefined : f,
+    artifactIndex: (f = jspb.Message.getField(msg, 2)) == null ? undefined : f,
+    event: (f = msg.getEvent()) && ml_metadata_proto_metadata_store_pb.Event.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.PutLineageSubgraphRequest.EventEdge;
+  return proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {number} */ (reader.readInt32());
+      msg.setExecutionIndex(value);
+      break;
+    case 2:
+      var value = /** @type {number} */ (reader.readInt32());
+      msg.setArtifactIndex(value);
+      break;
+    case 3:
+      var value = new ml_metadata_proto_metadata_store_pb.Event;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Event.deserializeBinaryFromReader);
+      msg.setEvent(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = /** @type {number} */ (jspb.Message.getField(message, 1));
+  if (f != null) {
+    writer.writeInt32(
+      1,
+      f
+    );
+  }
+  f = /** @type {number} */ (jspb.Message.getField(message, 2));
+  if (f != null) {
+    writer.writeInt32(
+      2,
+      f
+    );
+  }
+  f = message.getEvent();
+  if (f != null) {
+    writer.writeMessage(
+      3,
+      f,
+      ml_metadata_proto_metadata_store_pb.Event.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * optional int32 execution_index = 1;
+ * @return {number}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.getExecutionIndex = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.setExecutionIndex = function(value) {
+  return jspb.Message.setField(this, 1, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.clearExecutionIndex = function() {
+  return jspb.Message.setField(this, 1, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.hasExecutionIndex = function() {
+  return jspb.Message.getField(this, 1) != null;
+};
+
+
+/**
+ * optional int32 artifact_index = 2;
+ * @return {number}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.getArtifactIndex = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.setArtifactIndex = function(value) {
+  return jspb.Message.setField(this, 2, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.clearArtifactIndex = function() {
+  return jspb.Message.setField(this, 2, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.hasArtifactIndex = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+/**
+ * optional Event event = 3;
+ * @return {?proto.ml_metadata.Event}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.getEvent = function() {
+  return /** @type{?proto.ml_metadata.Event} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.Event, 3));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.Event|undefined} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge} returns this
+*/
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.setEvent = function(value) {
+  return jspb.Message.setWrapperField(this, 3, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.clearEvent = function() {
+  return this.setEvent(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.EventEdge.prototype.hasEvent = function() {
+  return jspb.Message.getField(this, 3) != null;
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.PutLineageSubgraphRequest.Options.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest.Options} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    reuseContextIfAlreadyExist: (f = jspb.Message.getBooleanField(msg, 1)) == null ? undefined : f,
+    reuseArtifactIfAlreadyExistByExternalId: (f = jspb.Message.getBooleanField(msg, 2)) == null ? undefined : f
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.Options}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.PutLineageSubgraphRequest.Options;
+  return proto.ml_metadata.PutLineageSubgraphRequest.Options.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest.Options} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.Options}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setReuseContextIfAlreadyExist(value);
+      break;
+    case 2:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setReuseArtifactIfAlreadyExistByExternalId(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.PutLineageSubgraphRequest.Options.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest.Options} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = /** @type {boolean} */ (jspb.Message.getField(message, 1));
+  if (f != null) {
+    writer.writeBool(
+      1,
+      f
+    );
+  }
+  f = /** @type {boolean} */ (jspb.Message.getField(message, 2));
+  if (f != null) {
+    writer.writeBool(
+      2,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional bool reuse_context_if_already_exist = 1;
+ * @return {boolean}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.getReuseContextIfAlreadyExist = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 1, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.Options} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.setReuseContextIfAlreadyExist = function(value) {
+  return jspb.Message.setField(this, 1, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.Options} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.clearReuseContextIfAlreadyExist = function() {
+  return jspb.Message.setField(this, 1, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.hasReuseContextIfAlreadyExist = function() {
+  return jspb.Message.getField(this, 1) != null;
+};
+
+
+/**
+ * optional bool reuse_artifact_if_already_exist_by_external_id = 2;
+ * @return {boolean}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.getReuseArtifactIfAlreadyExistByExternalId = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 2, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.Options} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.setReuseArtifactIfAlreadyExistByExternalId = function(value) {
+  return jspb.Message.setField(this, 2, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.Options} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.clearReuseArtifactIfAlreadyExistByExternalId = function() {
+  return jspb.Message.setField(this, 2, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.Options.prototype.hasReuseArtifactIfAlreadyExistByExternalId = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+/**
+ * repeated Execution executions = 1;
+ * @return {!Array<!proto.ml_metadata.Execution>}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.getExecutionsList = function() {
+  return /** @type{!Array<!proto.ml_metadata.Execution>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.Execution, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.Execution>} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+*/
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.setExecutionsList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.Execution=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.Execution}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.addExecutions = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_metadata.Execution, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.clearExecutionsList = function() {
+  return this.setExecutionsList([]);
+};
+
+
+/**
+ * repeated Artifact artifacts = 2;
+ * @return {!Array<!proto.ml_metadata.Artifact>}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.getArtifactsList = function() {
+  return /** @type{!Array<!proto.ml_metadata.Artifact>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.Artifact, 2));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.Artifact>} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+*/
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.setArtifactsList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 2, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.Artifact=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.Artifact}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.addArtifacts = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 2, opt_value, proto.ml_metadata.Artifact, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.clearArtifactsList = function() {
+  return this.setArtifactsList([]);
+};
+
+
+/**
+ * repeated Context contexts = 3;
+ * @return {!Array<!proto.ml_metadata.Context>}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.getContextsList = function() {
+  return /** @type{!Array<!proto.ml_metadata.Context>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.Context, 3));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.Context>} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+*/
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.setContextsList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 3, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.Context=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.Context}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.addContexts = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 3, opt_value, proto.ml_metadata.Context, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.clearContextsList = function() {
+  return this.setContextsList([]);
+};
+
+
+/**
+ * repeated EventEdge event_edges = 4;
+ * @return {!Array<!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge>}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.getEventEdgesList = function() {
+  return /** @type{!Array<!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge>} */ (
+    jspb.Message.getRepeatedWrapperField(this, proto.ml_metadata.PutLineageSubgraphRequest.EventEdge, 4));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge>} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+*/
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.setEventEdgesList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 4, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest.EventEdge}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.addEventEdges = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 4, opt_value, proto.ml_metadata.PutLineageSubgraphRequest.EventEdge, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.clearEventEdgesList = function() {
+  return this.setEventEdgesList([]);
+};
+
+
+/**
+ * optional Options options = 5;
+ * @return {?proto.ml_metadata.PutLineageSubgraphRequest.Options}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.getOptions = function() {
+  return /** @type{?proto.ml_metadata.PutLineageSubgraphRequest.Options} */ (
+    jspb.Message.getWrapperField(this, proto.ml_metadata.PutLineageSubgraphRequest.Options, 5));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.PutLineageSubgraphRequest.Options|undefined} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+*/
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.setOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 5, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.clearOptions = function() {
+  return this.setOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.hasOptions = function() {
+  return jspb.Message.getField(this, 5) != null;
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 6;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 6));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+*/
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 6, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutLineageSubgraphRequest} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutLineageSubgraphRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 6) != null;
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.repeatedFields_ = [1,2,3];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.PutLineageSubgraphResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.PutLineageSubgraphResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    executionIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    artifactIdsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+    contextIdsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse}
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.PutLineageSubgraphResponse;
+  return proto.ml_metadata.PutLineageSubgraphResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.PutLineageSubgraphResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse}
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var values = /** @type {!Array<number>} */ (reader.isDelimited() ? reader.readPackedInt64() : [reader.readInt64()]);
+      for (var i = 0; i < values.length; i++) {
+        msg.addExecutionIds(values[i]);
+      }
+      break;
+    case 2:
+      var values = /** @type {!Array<number>} */ (reader.isDelimited() ? reader.readPackedInt64() : [reader.readInt64()]);
+      for (var i = 0; i < values.length; i++) {
+        msg.addArtifactIds(values[i]);
+      }
+      break;
+    case 3:
+      var values = /** @type {!Array<number>} */ (reader.isDelimited() ? reader.readPackedInt64() : [reader.readInt64()]);
+      for (var i = 0; i < values.length; i++) {
+        msg.addContextIds(values[i]);
+      }
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.PutLineageSubgraphResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.PutLineageSubgraphResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExecutionIdsList();
+  if (f.length > 0) {
+    writer.writePackedInt64(
+      1,
+      f
+    );
+  }
+  f = message.getArtifactIdsList();
+  if (f.length > 0) {
+    writer.writePackedInt64(
+      2,
+      f
+    );
+  }
+  f = message.getContextIdsList();
+  if (f.length > 0) {
+    writer.writePackedInt64(
+      3,
+      f
+    );
+  }
+};
+
+
+/**
+ * repeated int64 execution_ids = 1;
+ * @return {!Array<number>}
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.getExecutionIdsList = function() {
+  return /** @type {!Array<number>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<number>} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.setExecutionIdsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
+};
+
+
+/**
+ * @param {number} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.addExecutionIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.clearExecutionIdsList = function() {
+  return this.setExecutionIdsList([]);
+};
+
+
+/**
+ * repeated int64 artifact_ids = 2;
+ * @return {!Array<number>}
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.getArtifactIdsList = function() {
+  return /** @type {!Array<number>} */ (jspb.Message.getRepeatedField(this, 2));
+};
+
+
+/**
+ * @param {!Array<number>} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.setArtifactIdsList = function(value) {
+  return jspb.Message.setField(this, 2, value || []);
+};
+
+
+/**
+ * @param {number} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.addArtifactIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.clearArtifactIdsList = function() {
+  return this.setArtifactIdsList([]);
+};
+
+
+/**
+ * repeated int64 context_ids = 3;
+ * @return {!Array<number>}
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.getContextIdsList = function() {
+  return /** @type {!Array<number>} */ (jspb.Message.getRepeatedField(this, 3));
+};
+
+
+/**
+ * @param {!Array<number>} value
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.setContextIdsList = function(value) {
+  return jspb.Message.setField(this, 3, value || []);
+};
+
+
+/**
+ * @param {number} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.addContextIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.PutLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.PutLineageSubgraphResponse.prototype.clearContextIdsList = function() {
+  return this.setContextIdsList([]);
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
 proto.ml_metadata.PutTypesRequest.repeatedFields_ = [1,2,3];
 
 
@@ -5843,7 +7953,8 @@ proto.ml_metadata.PutTypesRequest.toObject = function(includeInstance, msg) {
     canAddFields: (f = jspb.Message.getBooleanField(msg, 4)) == null ? undefined : f,
     canOmitFields: (f = jspb.Message.getBooleanField(msg, 7)) == null ? undefined : f,
     canDeleteFields: (f = jspb.Message.getBooleanField(msg, 5)) == null ? undefined : f,
-    allFieldsMatch: jspb.Message.getBooleanFieldWithDefault(msg, 6, true)
+    allFieldsMatch: jspb.Message.getBooleanFieldWithDefault(msg, 6, true),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -5910,6 +8021,11 @@ proto.ml_metadata.PutTypesRequest.deserializeBinaryFromReader = function(msg, re
     case 6:
       var value = /** @type {boolean} */ (reader.readBool());
       msg.setAllFieldsMatch(value);
+      break;
+    case 8:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
       break;
     default:
       reader.skipField();
@@ -5990,6 +8106,14 @@ proto.ml_metadata.PutTypesRequest.serializeBinaryToWriter = function(message, wr
     writer.writeBool(
       6,
       f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      8,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
     );
   }
 };
@@ -6250,6 +8374,43 @@ proto.ml_metadata.PutTypesRequest.prototype.clearAllFieldsMatch = function() {
  */
 proto.ml_metadata.PutTypesRequest.prototype.hasAllFieldsMatch = function() {
   return jspb.Message.getField(this, 6) != null;
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 8;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutTypesRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 8));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutTypesRequest} returns this
+*/
+proto.ml_metadata.PutTypesRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 8, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutTypesRequest} returns this
+ */
+proto.ml_metadata.PutTypesRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutTypesRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 8) != null;
 };
 
 
@@ -6549,7 +8710,8 @@ proto.ml_metadata.PutContextTypeRequest.toObject = function(includeInstance, msg
     canAddFields: (f = jspb.Message.getBooleanField(msg, 2)) == null ? undefined : f,
     canOmitFields: (f = jspb.Message.getBooleanField(msg, 5)) == null ? undefined : f,
     canDeleteFields: (f = jspb.Message.getBooleanField(msg, 3)) == null ? undefined : f,
-    allFieldsMatch: jspb.Message.getBooleanFieldWithDefault(msg, 4, true)
+    allFieldsMatch: jspb.Message.getBooleanFieldWithDefault(msg, 4, true),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -6606,6 +8768,11 @@ proto.ml_metadata.PutContextTypeRequest.deserializeBinaryFromReader = function(m
     case 4:
       var value = /** @type {boolean} */ (reader.readBool());
       msg.setAllFieldsMatch(value);
+      break;
+    case 6:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
       break;
     default:
       reader.skipField();
@@ -6670,6 +8837,14 @@ proto.ml_metadata.PutContextTypeRequest.serializeBinaryToWriter = function(messa
     writer.writeBool(
       4,
       f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      6,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
     );
   }
 };
@@ -6853,6 +9028,43 @@ proto.ml_metadata.PutContextTypeRequest.prototype.clearAllFieldsMatch = function
  */
 proto.ml_metadata.PutContextTypeRequest.prototype.hasAllFieldsMatch = function() {
   return jspb.Message.getField(this, 4) != null;
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 6;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutContextTypeRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 6));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutContextTypeRequest} returns this
+*/
+proto.ml_metadata.PutContextTypeRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 6, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutContextTypeRequest} returns this
+ */
+proto.ml_metadata.PutContextTypeRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutContextTypeRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 6) != null;
 };
 
 
@@ -7044,7 +9256,9 @@ proto.ml_metadata.PutContextsRequest.prototype.toObject = function(opt_includeIn
 proto.ml_metadata.PutContextsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     contextsList: jspb.Message.toObjectList(msg.getContextsList(),
-    ml_metadata_proto_metadata_store_pb.Context.toObject, includeInstance)
+    ml_metadata_proto_metadata_store_pb.Context.toObject, includeInstance),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f),
+    updateMask: (f = msg.getUpdateMask()) && google_protobuf_field_mask_pb.FieldMask.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -7086,6 +9300,16 @@ proto.ml_metadata.PutContextsRequest.deserializeBinaryFromReader = function(msg,
       reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Context.deserializeBinaryFromReader);
       msg.addContexts(value);
       break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    case 3:
+      var value = new google_protobuf_field_mask_pb.FieldMask;
+      reader.readMessage(value,google_protobuf_field_mask_pb.FieldMask.deserializeBinaryFromReader);
+      msg.setUpdateMask(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -7121,6 +9345,22 @@ proto.ml_metadata.PutContextsRequest.serializeBinaryToWriter = function(message,
       1,
       f,
       ml_metadata_proto_metadata_store_pb.Context.serializeBinaryToWriter
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+  f = message.getUpdateMask();
+  if (f != null) {
+    writer.writeMessage(
+      3,
+      f,
+      google_protobuf_field_mask_pb.FieldMask.serializeBinaryToWriter
     );
   }
 };
@@ -7161,6 +9401,80 @@ proto.ml_metadata.PutContextsRequest.prototype.addContexts = function(opt_value,
  */
 proto.ml_metadata.PutContextsRequest.prototype.clearContextsList = function() {
   return this.setContextsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutContextsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutContextsRequest} returns this
+*/
+proto.ml_metadata.PutContextsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutContextsRequest} returns this
+ */
+proto.ml_metadata.PutContextsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutContextsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+/**
+ * optional google.protobuf.FieldMask update_mask = 3;
+ * @return {?proto.google.protobuf.FieldMask}
+ */
+proto.ml_metadata.PutContextsRequest.prototype.getUpdateMask = function() {
+  return /** @type{?proto.google.protobuf.FieldMask} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_field_mask_pb.FieldMask, 3));
+};
+
+
+/**
+ * @param {?proto.google.protobuf.FieldMask|undefined} value
+ * @return {!proto.ml_metadata.PutContextsRequest} returns this
+*/
+proto.ml_metadata.PutContextsRequest.prototype.setUpdateMask = function(value) {
+  return jspb.Message.setWrapperField(this, 3, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutContextsRequest} returns this
+ */
+proto.ml_metadata.PutContextsRequest.prototype.clearUpdateMask = function() {
+  return this.setUpdateMask(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutContextsRequest.prototype.hasUpdateMask = function() {
+  return jspb.Message.getField(this, 3) != null;
 };
 
 
@@ -7364,7 +9678,8 @@ proto.ml_metadata.PutAttributionsAndAssociationsRequest.toObject = function(incl
     attributionsList: jspb.Message.toObjectList(msg.getAttributionsList(),
     ml_metadata_proto_metadata_store_pb.Attribution.toObject, includeInstance),
     associationsList: jspb.Message.toObjectList(msg.getAssociationsList(),
-    ml_metadata_proto_metadata_store_pb.Association.toObject, includeInstance)
+    ml_metadata_proto_metadata_store_pb.Association.toObject, includeInstance),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -7411,6 +9726,11 @@ proto.ml_metadata.PutAttributionsAndAssociationsRequest.deserializeBinaryFromRea
       reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Association.deserializeBinaryFromReader);
       msg.addAssociations(value);
       break;
+    case 3:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -7454,6 +9774,14 @@ proto.ml_metadata.PutAttributionsAndAssociationsRequest.serializeBinaryToWriter 
       2,
       f,
       ml_metadata_proto_metadata_store_pb.Association.serializeBinaryToWriter
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      3,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
     );
   }
 };
@@ -7532,6 +9860,43 @@ proto.ml_metadata.PutAttributionsAndAssociationsRequest.prototype.addAssociation
  */
 proto.ml_metadata.PutAttributionsAndAssociationsRequest.prototype.clearAssociationsList = function() {
   return this.setAssociationsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 3;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutAttributionsAndAssociationsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 3));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutAttributionsAndAssociationsRequest} returns this
+*/
+proto.ml_metadata.PutAttributionsAndAssociationsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 3, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutAttributionsAndAssociationsRequest} returns this
+ */
+proto.ml_metadata.PutAttributionsAndAssociationsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutAttributionsAndAssociationsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 3) != null;
 };
 
 
@@ -7676,7 +10041,8 @@ proto.ml_metadata.PutParentContextsRequest.prototype.toObject = function(opt_inc
 proto.ml_metadata.PutParentContextsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     parentContextsList: jspb.Message.toObjectList(msg.getParentContextsList(),
-    ml_metadata_proto_metadata_store_pb.ParentContext.toObject, includeInstance)
+    ml_metadata_proto_metadata_store_pb.ParentContext.toObject, includeInstance),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -7718,6 +10084,11 @@ proto.ml_metadata.PutParentContextsRequest.deserializeBinaryFromReader = functio
       reader.readMessage(value,ml_metadata_proto_metadata_store_pb.ParentContext.deserializeBinaryFromReader);
       msg.addParentContexts(value);
       break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -7753,6 +10124,14 @@ proto.ml_metadata.PutParentContextsRequest.serializeBinaryToWriter = function(me
       1,
       f,
       ml_metadata_proto_metadata_store_pb.ParentContext.serializeBinaryToWriter
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
     );
   }
 };
@@ -7793,6 +10172,43 @@ proto.ml_metadata.PutParentContextsRequest.prototype.addParentContexts = functio
  */
 proto.ml_metadata.PutParentContextsRequest.prototype.clearParentContextsList = function() {
   return this.setParentContextsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.PutParentContextsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.PutParentContextsRequest} returns this
+*/
+proto.ml_metadata.PutParentContextsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.PutParentContextsRequest} returns this
+ */
+proto.ml_metadata.PutParentContextsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.PutParentContextsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
 };
 
 
@@ -8889,6 +11305,7 @@ proto.ml_metadata.GetArtifactsByIDRequest.prototype.toObject = function(opt_incl
 proto.ml_metadata.GetArtifactsByIDRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     artifactIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    populateArtifactTypes: jspb.Message.getBooleanFieldWithDefault(msg, 3, false),
     transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
   };
 
@@ -8932,6 +11349,10 @@ proto.ml_metadata.GetArtifactsByIDRequest.deserializeBinaryFromReader = function
         msg.addArtifactIds(values[i]);
       }
       break;
+    case 3:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setPopulateArtifactTypes(value);
+      break;
     case 2:
       var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
       reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
@@ -8970,6 +11391,13 @@ proto.ml_metadata.GetArtifactsByIDRequest.serializeBinaryToWriter = function(mes
   if (f.length > 0) {
     writer.writeRepeatedInt64(
       1,
+      f
+    );
+  }
+  f = /** @type {boolean} */ (jspb.Message.getField(message, 3));
+  if (f != null) {
+    writer.writeBool(
+      3,
       f
     );
   }
@@ -9022,6 +11450,42 @@ proto.ml_metadata.GetArtifactsByIDRequest.prototype.clearArtifactIdsList = funct
 
 
 /**
+ * optional bool populate_artifact_types = 3;
+ * @return {boolean}
+ */
+proto.ml_metadata.GetArtifactsByIDRequest.prototype.getPopulateArtifactTypes = function() {
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 3, false));
+};
+
+
+/**
+ * @param {boolean} value
+ * @return {!proto.ml_metadata.GetArtifactsByIDRequest} returns this
+ */
+proto.ml_metadata.GetArtifactsByIDRequest.prototype.setPopulateArtifactTypes = function(value) {
+  return jspb.Message.setField(this, 3, value);
+};
+
+
+/**
+ * Clears the field making it undefined.
+ * @return {!proto.ml_metadata.GetArtifactsByIDRequest} returns this
+ */
+proto.ml_metadata.GetArtifactsByIDRequest.prototype.clearPopulateArtifactTypes = function() {
+  return jspb.Message.setField(this, 3, undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetArtifactsByIDRequest.prototype.hasPopulateArtifactTypes = function() {
+  return jspb.Message.getField(this, 3) != null;
+};
+
+
+/**
  * optional TransactionOptions transaction_options = 2;
  * @return {?proto.ml_metadata.TransactionOptions}
  */
@@ -9064,7 +11528,7 @@ proto.ml_metadata.GetArtifactsByIDRequest.prototype.hasTransactionOptions = func
  * @private {!Array<number>}
  * @const
  */
-proto.ml_metadata.GetArtifactsByIDResponse.repeatedFields_ = [1];
+proto.ml_metadata.GetArtifactsByIDResponse.repeatedFields_ = [1,2];
 
 
 
@@ -9098,7 +11562,9 @@ proto.ml_metadata.GetArtifactsByIDResponse.prototype.toObject = function(opt_inc
 proto.ml_metadata.GetArtifactsByIDResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
     artifactsList: jspb.Message.toObjectList(msg.getArtifactsList(),
-    ml_metadata_proto_metadata_store_pb.Artifact.toObject, includeInstance)
+    ml_metadata_proto_metadata_store_pb.Artifact.toObject, includeInstance),
+    artifactTypesList: jspb.Message.toObjectList(msg.getArtifactTypesList(),
+    ml_metadata_proto_metadata_store_pb.ArtifactType.toObject, includeInstance)
   };
 
   if (includeInstance) {
@@ -9140,6 +11606,11 @@ proto.ml_metadata.GetArtifactsByIDResponse.deserializeBinaryFromReader = functio
       reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Artifact.deserializeBinaryFromReader);
       msg.addArtifacts(value);
       break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.ArtifactType;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.ArtifactType.deserializeBinaryFromReader);
+      msg.addArtifactTypes(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -9175,6 +11646,14 @@ proto.ml_metadata.GetArtifactsByIDResponse.serializeBinaryToWriter = function(me
       1,
       f,
       ml_metadata_proto_metadata_store_pb.Artifact.serializeBinaryToWriter
+    );
+  }
+  f = message.getArtifactTypesList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.ArtifactType.serializeBinaryToWriter
     );
   }
 };
@@ -9215,6 +11694,44 @@ proto.ml_metadata.GetArtifactsByIDResponse.prototype.addArtifacts = function(opt
  */
 proto.ml_metadata.GetArtifactsByIDResponse.prototype.clearArtifactsList = function() {
   return this.setArtifactsList([]);
+};
+
+
+/**
+ * repeated ArtifactType artifact_types = 2;
+ * @return {!Array<!proto.ml_metadata.ArtifactType>}
+ */
+proto.ml_metadata.GetArtifactsByIDResponse.prototype.getArtifactTypesList = function() {
+  return /** @type{!Array<!proto.ml_metadata.ArtifactType>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.ArtifactType, 2));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.ArtifactType>} value
+ * @return {!proto.ml_metadata.GetArtifactsByIDResponse} returns this
+*/
+proto.ml_metadata.GetArtifactsByIDResponse.prototype.setArtifactTypesList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 2, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.ArtifactType=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.ArtifactType}
+ */
+proto.ml_metadata.GetArtifactsByIDResponse.prototype.addArtifactTypes = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 2, opt_value, proto.ml_metadata.ArtifactType, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetArtifactsByIDResponse} returns this
+ */
+proto.ml_metadata.GetArtifactsByIDResponse.prototype.clearArtifactTypesList = function() {
+  return this.setArtifactTypesList([]);
 };
 
 
@@ -11732,6 +14249,2208 @@ proto.ml_metadata.GetContextTypesResponse.prototype.addContextTypes = function(o
  * @return {!proto.ml_metadata.GetContextTypesResponse} returns this
  */
 proto.ml_metadata.GetContextTypesResponse.prototype.clearContextTypesList = function() {
+  return this.setContextTypesList([]);
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetArtifactsByExternalIdsRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetArtifactsByExternalIdsRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    externalIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsRequest}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetArtifactsByExternalIdsRequest;
+  return proto.ml_metadata.GetArtifactsByExternalIdsRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetArtifactsByExternalIdsRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsRequest}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.addExternalIds(value);
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetArtifactsByExternalIdsRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetArtifactsByExternalIdsRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExternalIdsList();
+  if (f.length > 0) {
+    writer.writeRepeatedString(
+      1,
+      f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated string external_ids = 1;
+ * @return {!Array<string>}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.getExternalIdsList = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.setExternalIdsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
+};
+
+
+/**
+ * @param {string} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.addExternalIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.clearExternalIdsList = function() {
+  return this.setExternalIdsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsRequest} returns this
+*/
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetArtifactsByExternalIdsResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetArtifactsByExternalIdsResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    artifactsList: jspb.Message.toObjectList(msg.getArtifactsList(),
+    ml_metadata_proto_metadata_store_pb.Artifact.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsResponse}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetArtifactsByExternalIdsResponse;
+  return proto.ml_metadata.GetArtifactsByExternalIdsResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetArtifactsByExternalIdsResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsResponse}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.Artifact;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Artifact.deserializeBinaryFromReader);
+      msg.addArtifacts(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetArtifactsByExternalIdsResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetArtifactsByExternalIdsResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getArtifactsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.Artifact.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated Artifact artifacts = 1;
+ * @return {!Array<!proto.ml_metadata.Artifact>}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.prototype.getArtifactsList = function() {
+  return /** @type{!Array<!proto.ml_metadata.Artifact>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.Artifact, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.Artifact>} value
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsResponse} returns this
+*/
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.prototype.setArtifactsList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.Artifact=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.Artifact}
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.prototype.addArtifacts = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_metadata.Artifact, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetArtifactsByExternalIdsResponse} returns this
+ */
+proto.ml_metadata.GetArtifactsByExternalIdsResponse.prototype.clearArtifactsList = function() {
+  return this.setArtifactsList([]);
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetExecutionsByExternalIdsRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetExecutionsByExternalIdsRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    externalIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsRequest}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetExecutionsByExternalIdsRequest;
+  return proto.ml_metadata.GetExecutionsByExternalIdsRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetExecutionsByExternalIdsRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsRequest}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.addExternalIds(value);
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetExecutionsByExternalIdsRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetExecutionsByExternalIdsRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExternalIdsList();
+  if (f.length > 0) {
+    writer.writeRepeatedString(
+      1,
+      f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated string external_ids = 1;
+ * @return {!Array<string>}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.getExternalIdsList = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.setExternalIdsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
+};
+
+
+/**
+ * @param {string} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.addExternalIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.clearExternalIdsList = function() {
+  return this.setExternalIdsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsRequest} returns this
+*/
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetExecutionsByExternalIdsResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetExecutionsByExternalIdsResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    executionsList: jspb.Message.toObjectList(msg.getExecutionsList(),
+    ml_metadata_proto_metadata_store_pb.Execution.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsResponse}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetExecutionsByExternalIdsResponse;
+  return proto.ml_metadata.GetExecutionsByExternalIdsResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetExecutionsByExternalIdsResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsResponse}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.Execution;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Execution.deserializeBinaryFromReader);
+      msg.addExecutions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetExecutionsByExternalIdsResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetExecutionsByExternalIdsResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExecutionsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.Execution.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated Execution executions = 1;
+ * @return {!Array<!proto.ml_metadata.Execution>}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.prototype.getExecutionsList = function() {
+  return /** @type{!Array<!proto.ml_metadata.Execution>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.Execution, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.Execution>} value
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsResponse} returns this
+*/
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.prototype.setExecutionsList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.Execution=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.Execution}
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.prototype.addExecutions = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_metadata.Execution, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetExecutionsByExternalIdsResponse} returns this
+ */
+proto.ml_metadata.GetExecutionsByExternalIdsResponse.prototype.clearExecutionsList = function() {
+  return this.setExecutionsList([]);
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetContextsByExternalIdsRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetContextsByExternalIdsRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    externalIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsRequest}
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetContextsByExternalIdsRequest;
+  return proto.ml_metadata.GetContextsByExternalIdsRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetContextsByExternalIdsRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsRequest}
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.addExternalIds(value);
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetContextsByExternalIdsRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetContextsByExternalIdsRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExternalIdsList();
+  if (f.length > 0) {
+    writer.writeRepeatedString(
+      1,
+      f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated string external_ids = 1;
+ * @return {!Array<string>}
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.getExternalIdsList = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.setExternalIdsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
+};
+
+
+/**
+ * @param {string} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.addExternalIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.clearExternalIdsList = function() {
+  return this.setExternalIdsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsRequest} returns this
+*/
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetContextsByExternalIdsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetContextsByExternalIdsResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetContextsByExternalIdsResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    contextsList: jspb.Message.toObjectList(msg.getContextsList(),
+    ml_metadata_proto_metadata_store_pb.Context.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsResponse}
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetContextsByExternalIdsResponse;
+  return proto.ml_metadata.GetContextsByExternalIdsResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetContextsByExternalIdsResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsResponse}
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.Context;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Context.deserializeBinaryFromReader);
+      msg.addContexts(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetContextsByExternalIdsResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetContextsByExternalIdsResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getContextsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.Context.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated Context contexts = 1;
+ * @return {!Array<!proto.ml_metadata.Context>}
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.prototype.getContextsList = function() {
+  return /** @type{!Array<!proto.ml_metadata.Context>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.Context, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.Context>} value
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsResponse} returns this
+*/
+proto.ml_metadata.GetContextsByExternalIdsResponse.prototype.setContextsList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.Context=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.Context}
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.prototype.addContexts = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_metadata.Context, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetContextsByExternalIdsResponse} returns this
+ */
+proto.ml_metadata.GetContextsByExternalIdsResponse.prototype.clearContextsList = function() {
+  return this.setContextsList([]);
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    externalIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetArtifactTypesByExternalIdsRequest;
+  return proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.addExternalIds(value);
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExternalIdsList();
+  if (f.length > 0) {
+    writer.writeRepeatedString(
+      1,
+      f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated string external_ids = 1;
+ * @return {!Array<string>}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.getExternalIdsList = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.setExternalIdsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
+};
+
+
+/**
+ * @param {string} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.addExternalIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.clearExternalIdsList = function() {
+  return this.setExternalIdsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest} returns this
+*/
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetArtifactTypesByExternalIdsResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    artifactTypesList: jspb.Message.toObjectList(msg.getArtifactTypesList(),
+    ml_metadata_proto_metadata_store_pb.ArtifactType.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsResponse}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetArtifactTypesByExternalIdsResponse;
+  return proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetArtifactTypesByExternalIdsResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsResponse}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.ArtifactType;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.ArtifactType.deserializeBinaryFromReader);
+      msg.addArtifactTypes(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetArtifactTypesByExternalIdsResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getArtifactTypesList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.ArtifactType.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated ArtifactType artifact_types = 1;
+ * @return {!Array<!proto.ml_metadata.ArtifactType>}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.prototype.getArtifactTypesList = function() {
+  return /** @type{!Array<!proto.ml_metadata.ArtifactType>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.ArtifactType, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.ArtifactType>} value
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsResponse} returns this
+*/
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.prototype.setArtifactTypesList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.ArtifactType=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.ArtifactType}
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.prototype.addArtifactTypes = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_metadata.ArtifactType, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetArtifactTypesByExternalIdsResponse} returns this
+ */
+proto.ml_metadata.GetArtifactTypesByExternalIdsResponse.prototype.clearArtifactTypesList = function() {
+  return this.setArtifactTypesList([]);
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    externalIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetExecutionTypesByExternalIdsRequest;
+  return proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.addExternalIds(value);
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExternalIdsList();
+  if (f.length > 0) {
+    writer.writeRepeatedString(
+      1,
+      f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated string external_ids = 1;
+ * @return {!Array<string>}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.getExternalIdsList = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.setExternalIdsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
+};
+
+
+/**
+ * @param {string} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.addExternalIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.clearExternalIdsList = function() {
+  return this.setExternalIdsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest} returns this
+*/
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetExecutionTypesByExternalIdsResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    executionTypesList: jspb.Message.toObjectList(msg.getExecutionTypesList(),
+    ml_metadata_proto_metadata_store_pb.ExecutionType.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsResponse}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetExecutionTypesByExternalIdsResponse;
+  return proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetExecutionTypesByExternalIdsResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsResponse}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.ExecutionType;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.ExecutionType.deserializeBinaryFromReader);
+      msg.addExecutionTypes(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetExecutionTypesByExternalIdsResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExecutionTypesList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.ExecutionType.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated ExecutionType execution_types = 1;
+ * @return {!Array<!proto.ml_metadata.ExecutionType>}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.prototype.getExecutionTypesList = function() {
+  return /** @type{!Array<!proto.ml_metadata.ExecutionType>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.ExecutionType, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.ExecutionType>} value
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsResponse} returns this
+*/
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.prototype.setExecutionTypesList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.ExecutionType=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.ExecutionType}
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.prototype.addExecutionTypes = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_metadata.ExecutionType, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetExecutionTypesByExternalIdsResponse} returns this
+ */
+proto.ml_metadata.GetExecutionTypesByExternalIdsResponse.prototype.clearExecutionTypesList = function() {
+  return this.setExecutionTypesList([]);
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetContextTypesByExternalIdsRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetContextTypesByExternalIdsRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    externalIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsRequest}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetContextTypesByExternalIdsRequest;
+  return proto.ml_metadata.GetContextTypesByExternalIdsRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetContextTypesByExternalIdsRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsRequest}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {string} */ (reader.readString());
+      msg.addExternalIds(value);
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetContextTypesByExternalIdsRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetContextTypesByExternalIdsRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getExternalIdsList();
+  if (f.length > 0) {
+    writer.writeRepeatedString(
+      1,
+      f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated string external_ids = 1;
+ * @return {!Array<string>}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.getExternalIdsList = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.setExternalIdsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
+};
+
+
+/**
+ * @param {string} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.addExternalIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.clearExternalIdsList = function() {
+  return this.setExternalIdsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsRequest} returns this
+*/
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsRequest} returns this
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetContextTypesByExternalIdsResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetContextTypesByExternalIdsResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    contextTypesList: jspb.Message.toObjectList(msg.getContextTypesList(),
+    ml_metadata_proto_metadata_store_pb.ContextType.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsResponse}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetContextTypesByExternalIdsResponse;
+  return proto.ml_metadata.GetContextTypesByExternalIdsResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetContextTypesByExternalIdsResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsResponse}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.ContextType;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.ContextType.deserializeBinaryFromReader);
+      msg.addContextTypes(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetContextTypesByExternalIdsResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetContextTypesByExternalIdsResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getContextTypesList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.ContextType.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated ContextType context_types = 1;
+ * @return {!Array<!proto.ml_metadata.ContextType>}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.prototype.getContextTypesList = function() {
+  return /** @type{!Array<!proto.ml_metadata.ContextType>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.ContextType, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.ContextType>} value
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsResponse} returns this
+*/
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.prototype.setContextTypesList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.ContextType=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.ContextType}
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.prototype.addContextTypes = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_metadata.ContextType, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetContextTypesByExternalIdsResponse} returns this
+ */
+proto.ml_metadata.GetContextTypesByExternalIdsResponse.prototype.clearContextTypesList = function() {
   return this.setContextTypesList([]);
 };
 
@@ -18866,6 +23585,1010 @@ proto.ml_metadata.GetChildrenContextsByContextResponse.prototype.clearContextsLi
 
 
 
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetParentContextsByContextsRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetParentContextsByContextsRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    contextIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsRequest}
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetParentContextsByContextsRequest;
+  return proto.ml_metadata.GetParentContextsByContextsRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetParentContextsByContextsRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsRequest}
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var values = /** @type {!Array<number>} */ (reader.isDelimited() ? reader.readPackedInt64() : [reader.readInt64()]);
+      for (var i = 0; i < values.length; i++) {
+        msg.addContextIds(values[i]);
+      }
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetParentContextsByContextsRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetParentContextsByContextsRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getContextIdsList();
+  if (f.length > 0) {
+    writer.writePackedInt64(
+      1,
+      f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated int64 context_ids = 1;
+ * @return {!Array<number>}
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.getContextIdsList = function() {
+  return /** @type {!Array<number>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<number>} value
+ * @return {!proto.ml_metadata.GetParentContextsByContextsRequest} returns this
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.setContextIdsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
+};
+
+
+/**
+ * @param {number} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.GetParentContextsByContextsRequest} returns this
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.addContextIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsRequest} returns this
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.clearContextIdsList = function() {
+  return this.setContextIdsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.GetParentContextsByContextsRequest} returns this
+*/
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsRequest} returns this
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetParentContextsByContextsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetParentContextsByContextsResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetParentContextsByContextsResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    contextsMap: (f = msg.getContextsMap()) ? f.toObject(includeInstance, proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.toObject) : []
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsResponse}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetParentContextsByContextsResponse;
+  return proto.ml_metadata.GetParentContextsByContextsResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetParentContextsByContextsResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsResponse}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 2:
+      var value = msg.getContextsMap();
+      reader.readMessage(value, function(message, reader) {
+        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readInt64, jspb.BinaryReader.prototype.readMessage, proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.deserializeBinaryFromReader, 0, new proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild());
+         });
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetParentContextsByContextsResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetParentContextsByContextsResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getContextsMap(true);
+  if (f && f.getLength() > 0) {
+    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeInt64, jspb.BinaryWriter.prototype.writeMessage, proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.serializeBinaryToWriter);
+  }
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    parentContextsList: jspb.Message.toObjectList(msg.getParentContextsList(),
+    ml_metadata_proto_metadata_store_pb.Context.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild;
+  return proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.Context;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Context.deserializeBinaryFromReader);
+      msg.addParentContexts(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getParentContextsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.Context.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated Context parent_contexts = 1;
+ * @return {!Array<!proto.ml_metadata.Context>}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.prototype.getParentContextsList = function() {
+  return /** @type{!Array<!proto.ml_metadata.Context>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.Context, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.Context>} value
+ * @return {!proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild} returns this
+*/
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.prototype.setParentContextsList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.Context=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.Context}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.prototype.addParentContexts = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_metadata.Context, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild} returns this
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild.prototype.clearParentContextsList = function() {
+  return this.setParentContextsList([]);
+};
+
+
+/**
+ * map<int64, ParentContextsPerChild> contexts = 2;
+ * @param {boolean=} opt_noLazyCreate Do not create the map if
+ * empty, instead returning `undefined`
+ * @return {!jspb.Map<number,!proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild>}
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.prototype.getContextsMap = function(opt_noLazyCreate) {
+  return /** @type {!jspb.Map<number,!proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild>} */ (
+      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
+      proto.ml_metadata.GetParentContextsByContextsResponse.ParentContextsPerChild));
+};
+
+
+/**
+ * Clears values from the map. The map will be non-null.
+ * @return {!proto.ml_metadata.GetParentContextsByContextsResponse} returns this
+ */
+proto.ml_metadata.GetParentContextsByContextsResponse.prototype.clearContextsMap = function() {
+  this.getContextsMap().clear();
+  return this;};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetChildrenContextsByContextsRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetChildrenContextsByContextsRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    contextIdsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsRequest}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetChildrenContextsByContextsRequest;
+  return proto.ml_metadata.GetChildrenContextsByContextsRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetChildrenContextsByContextsRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsRequest}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var values = /** @type {!Array<number>} */ (reader.isDelimited() ? reader.readPackedInt64() : [reader.readInt64()]);
+      for (var i = 0; i < values.length; i++) {
+        msg.addContextIds(values[i]);
+      }
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetChildrenContextsByContextsRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetChildrenContextsByContextsRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getContextIdsList();
+  if (f.length > 0) {
+    writer.writePackedInt64(
+      1,
+      f
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated int64 context_ids = 1;
+ * @return {!Array<number>}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.getContextIdsList = function() {
+  return /** @type {!Array<number>} */ (jspb.Message.getRepeatedField(this, 1));
+};
+
+
+/**
+ * @param {!Array<number>} value
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsRequest} returns this
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.setContextIdsList = function(value) {
+  return jspb.Message.setField(this, 1, value || []);
+};
+
+
+/**
+ * @param {number} value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsRequest} returns this
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.addContextIds = function(value, opt_index) {
+  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsRequest} returns this
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.clearContextIdsList = function() {
+  return this.setContextIdsList([]);
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsRequest} returns this
+*/
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsRequest} returns this
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetChildrenContextsByContextsResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetChildrenContextsByContextsResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    contextsMap: (f = msg.getContextsMap()) ? f.toObject(includeInstance, proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.toObject) : []
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsResponse}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetChildrenContextsByContextsResponse;
+  return proto.ml_metadata.GetChildrenContextsByContextsResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetChildrenContextsByContextsResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsResponse}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 2:
+      var value = msg.getContextsMap();
+      reader.readMessage(value, function(message, reader) {
+        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readInt64, jspb.BinaryReader.prototype.readMessage, proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.deserializeBinaryFromReader, 0, new proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent());
+         });
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetChildrenContextsByContextsResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetChildrenContextsByContextsResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getContextsMap(true);
+  if (f && f.getLength() > 0) {
+    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeInt64, jspb.BinaryWriter.prototype.writeMessage, proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.serializeBinaryToWriter);
+  }
+};
+
+
+
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.repeatedFields_ = [1];
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    childrenContextsList: jspb.Message.toObjectList(msg.getChildrenContextsList(),
+    ml_metadata_proto_metadata_store_pb.Context.toObject, includeInstance)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent;
+  return proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.Context;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.Context.deserializeBinaryFromReader);
+      msg.addChildrenContexts(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getChildrenContextsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.Context.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * repeated Context children_contexts = 1;
+ * @return {!Array<!proto.ml_metadata.Context>}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.prototype.getChildrenContextsList = function() {
+  return /** @type{!Array<!proto.ml_metadata.Context>} */ (
+    jspb.Message.getRepeatedWrapperField(this, ml_metadata_proto_metadata_store_pb.Context, 1));
+};
+
+
+/**
+ * @param {!Array<!proto.ml_metadata.Context>} value
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent} returns this
+*/
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.prototype.setChildrenContextsList = function(value) {
+  return jspb.Message.setRepeatedWrapperField(this, 1, value);
+};
+
+
+/**
+ * @param {!proto.ml_metadata.Context=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.ml_metadata.Context}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.prototype.addChildrenContexts = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_metadata.Context, opt_index);
+};
+
+
+/**
+ * Clears the list making it empty but non-null.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent} returns this
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent.prototype.clearChildrenContextsList = function() {
+  return this.setChildrenContextsList([]);
+};
+
+
+/**
+ * map<int64, ChildrenContextsPerParent> contexts = 2;
+ * @param {boolean=} opt_noLazyCreate Do not create the map if
+ * empty, instead returning `undefined`
+ * @return {!jspb.Map<number,!proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent>}
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.prototype.getContextsMap = function(opt_noLazyCreate) {
+  return /** @type {!jspb.Map<number,!proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent>} */ (
+      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
+      proto.ml_metadata.GetChildrenContextsByContextsResponse.ChildrenContextsPerParent));
+};
+
+
+/**
+ * Clears values from the map. The map will be non-null.
+ * @return {!proto.ml_metadata.GetChildrenContextsByContextsResponse} returns this
+ */
+proto.ml_metadata.GetChildrenContextsByContextsResponse.prototype.clearContextsMap = function() {
+  this.getContextsMap().clear();
+  return this;};
+
+
+
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -20181,6 +25904,410 @@ proto.ml_metadata.GetLineageGraphResponse.prototype.clearSubgraph = function() {
  * @return {boolean}
  */
 proto.ml_metadata.GetLineageGraphResponse.prototype.hasSubgraph = function() {
+  return jspb.Message.getField(this, 1) != null;
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetLineageSubgraphRequest.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetLineageSubgraphRequest} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    lineageSubgraphQueryOptions: (f = msg.getLineageSubgraphQueryOptions()) && ml_metadata_proto_metadata_store_pb.LineageSubgraphQueryOptions.toObject(includeInstance, f),
+    readMask: (f = msg.getReadMask()) && google_protobuf_field_mask_pb.FieldMask.toObject(includeInstance, f),
+    transactionOptions: (f = msg.getTransactionOptions()) && ml_metadata_proto_metadata_store_pb.TransactionOptions.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetLineageSubgraphRequest}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetLineageSubgraphRequest;
+  return proto.ml_metadata.GetLineageSubgraphRequest.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetLineageSubgraphRequest} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetLineageSubgraphRequest}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.LineageSubgraphQueryOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.LineageSubgraphQueryOptions.deserializeBinaryFromReader);
+      msg.setLineageSubgraphQueryOptions(value);
+      break;
+    case 3:
+      var value = new google_protobuf_field_mask_pb.FieldMask;
+      reader.readMessage(value,google_protobuf_field_mask_pb.FieldMask.deserializeBinaryFromReader);
+      msg.setReadMask(value);
+      break;
+    case 2:
+      var value = new ml_metadata_proto_metadata_store_pb.TransactionOptions;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.TransactionOptions.deserializeBinaryFromReader);
+      msg.setTransactionOptions(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetLineageSubgraphRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetLineageSubgraphRequest} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getLineageSubgraphQueryOptions();
+  if (f != null) {
+    writer.writeMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.LineageSubgraphQueryOptions.serializeBinaryToWriter
+    );
+  }
+  f = message.getReadMask();
+  if (f != null) {
+    writer.writeMessage(
+      3,
+      f,
+      google_protobuf_field_mask_pb.FieldMask.serializeBinaryToWriter
+    );
+  }
+  f = message.getTransactionOptions();
+  if (f != null) {
+    writer.writeMessage(
+      2,
+      f,
+      ml_metadata_proto_metadata_store_pb.TransactionOptions.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * optional LineageSubgraphQueryOptions lineage_subgraph_query_options = 1;
+ * @return {?proto.ml_metadata.LineageSubgraphQueryOptions}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.getLineageSubgraphQueryOptions = function() {
+  return /** @type{?proto.ml_metadata.LineageSubgraphQueryOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.LineageSubgraphQueryOptions, 1));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.LineageSubgraphQueryOptions|undefined} value
+ * @return {!proto.ml_metadata.GetLineageSubgraphRequest} returns this
+*/
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.setLineageSubgraphQueryOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 1, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetLineageSubgraphRequest} returns this
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.clearLineageSubgraphQueryOptions = function() {
+  return this.setLineageSubgraphQueryOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.hasLineageSubgraphQueryOptions = function() {
+  return jspb.Message.getField(this, 1) != null;
+};
+
+
+/**
+ * optional google.protobuf.FieldMask read_mask = 3;
+ * @return {?proto.google.protobuf.FieldMask}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.getReadMask = function() {
+  return /** @type{?proto.google.protobuf.FieldMask} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_field_mask_pb.FieldMask, 3));
+};
+
+
+/**
+ * @param {?proto.google.protobuf.FieldMask|undefined} value
+ * @return {!proto.ml_metadata.GetLineageSubgraphRequest} returns this
+*/
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.setReadMask = function(value) {
+  return jspb.Message.setWrapperField(this, 3, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetLineageSubgraphRequest} returns this
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.clearReadMask = function() {
+  return this.setReadMask(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.hasReadMask = function() {
+  return jspb.Message.getField(this, 3) != null;
+};
+
+
+/**
+ * optional TransactionOptions transaction_options = 2;
+ * @return {?proto.ml_metadata.TransactionOptions}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.getTransactionOptions = function() {
+  return /** @type{?proto.ml_metadata.TransactionOptions} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.TransactionOptions, 2));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.TransactionOptions|undefined} value
+ * @return {!proto.ml_metadata.GetLineageSubgraphRequest} returns this
+*/
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.setTransactionOptions = function(value) {
+  return jspb.Message.setWrapperField(this, 2, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetLineageSubgraphRequest} returns this
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.clearTransactionOptions = function() {
+  return this.setTransactionOptions(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetLineageSubgraphRequest.prototype.hasTransactionOptions = function() {
+  return jspb.Message.getField(this, 2) != null;
+};
+
+
+
+
+
+if (jspb.Message.GENERATE_TO_OBJECT) {
+/**
+ * Creates an object representation of this proto.
+ * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
+ * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+ * For the list of reserved names please see:
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @return {!Object}
+ */
+proto.ml_metadata.GetLineageSubgraphResponse.prototype.toObject = function(opt_includeInstance) {
+  return proto.ml_metadata.GetLineageSubgraphResponse.toObject(opt_includeInstance, this);
+};
+
+
+/**
+ * Static version of the {@see toObject} method.
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
+ * @param {!proto.ml_metadata.GetLineageSubgraphResponse} msg The msg instance to transform.
+ * @return {!Object}
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetLineageSubgraphResponse.toObject = function(includeInstance, msg) {
+  var f, obj = {
+    lineageSubgraph: (f = msg.getLineageSubgraph()) && ml_metadata_proto_metadata_store_pb.LineageGraph.toObject(includeInstance, f)
+  };
+
+  if (includeInstance) {
+    obj.$jspbMessageInstance = msg;
+  }
+  return obj;
+};
+}
+
+
+/**
+ * Deserializes binary data (in protobuf wire format).
+ * @param {jspb.ByteSource} bytes The bytes to deserialize.
+ * @return {!proto.ml_metadata.GetLineageSubgraphResponse}
+ */
+proto.ml_metadata.GetLineageSubgraphResponse.deserializeBinary = function(bytes) {
+  var reader = new jspb.BinaryReader(bytes);
+  var msg = new proto.ml_metadata.GetLineageSubgraphResponse;
+  return proto.ml_metadata.GetLineageSubgraphResponse.deserializeBinaryFromReader(msg, reader);
+};
+
+
+/**
+ * Deserializes binary data (in protobuf wire format) from the
+ * given reader into the given message object.
+ * @param {!proto.ml_metadata.GetLineageSubgraphResponse} msg The message object to deserialize into.
+ * @param {!jspb.BinaryReader} reader The BinaryReader to use.
+ * @return {!proto.ml_metadata.GetLineageSubgraphResponse}
+ */
+proto.ml_metadata.GetLineageSubgraphResponse.deserializeBinaryFromReader = function(msg, reader) {
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = new ml_metadata_proto_metadata_store_pb.LineageGraph;
+      reader.readMessage(value,ml_metadata_proto_metadata_store_pb.LineageGraph.deserializeBinaryFromReader);
+      msg.setLineageSubgraph(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
+  }
+  return msg;
+};
+
+
+/**
+ * Serializes the message to binary data (in protobuf wire format).
+ * @return {!Uint8Array}
+ */
+proto.ml_metadata.GetLineageSubgraphResponse.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  proto.ml_metadata.GetLineageSubgraphResponse.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+
+
+/**
+ * Serializes the given message to binary data (in protobuf wire
+ * format), writing to the given BinaryWriter.
+ * @param {!proto.ml_metadata.GetLineageSubgraphResponse} message
+ * @param {!jspb.BinaryWriter} writer
+ * @suppress {unusedLocalVariables} f is only used for nested messages
+ */
+proto.ml_metadata.GetLineageSubgraphResponse.serializeBinaryToWriter = function(message, writer) {
+  var f = undefined;
+  f = message.getLineageSubgraph();
+  if (f != null) {
+    writer.writeMessage(
+      1,
+      f,
+      ml_metadata_proto_metadata_store_pb.LineageGraph.serializeBinaryToWriter
+    );
+  }
+};
+
+
+/**
+ * optional LineageGraph lineage_subgraph = 1;
+ * @return {?proto.ml_metadata.LineageGraph}
+ */
+proto.ml_metadata.GetLineageSubgraphResponse.prototype.getLineageSubgraph = function() {
+  return /** @type{?proto.ml_metadata.LineageGraph} */ (
+    jspb.Message.getWrapperField(this, ml_metadata_proto_metadata_store_pb.LineageGraph, 1));
+};
+
+
+/**
+ * @param {?proto.ml_metadata.LineageGraph|undefined} value
+ * @return {!proto.ml_metadata.GetLineageSubgraphResponse} returns this
+*/
+proto.ml_metadata.GetLineageSubgraphResponse.prototype.setLineageSubgraph = function(value) {
+  return jspb.Message.setWrapperField(this, 1, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.ml_metadata.GetLineageSubgraphResponse} returns this
+ */
+proto.ml_metadata.GetLineageSubgraphResponse.prototype.clearLineageSubgraph = function() {
+  return this.setLineageSubgraph(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.ml_metadata.GetLineageSubgraphResponse.prototype.hasLineageSubgraph = function() {
   return jspb.Message.getField(this, 1) != null;
 };
 

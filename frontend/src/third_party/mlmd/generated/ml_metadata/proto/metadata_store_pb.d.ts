@@ -1,5 +1,6 @@
 import * as jspb from 'google-protobuf'
 
+import * as google_protobuf_any_pb from 'google-protobuf/google/protobuf/any_pb';
 import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
 import * as google_protobuf_descriptor_pb from 'google-protobuf/google/protobuf/descriptor_pb';
 
@@ -37,6 +38,14 @@ export class Value extends jspb.Message {
   hasStructValue(): boolean;
   clearStructValue(): Value;
 
+  getProtoValue(): google_protobuf_any_pb.Any | undefined;
+  setProtoValue(value?: google_protobuf_any_pb.Any): Value;
+  hasProtoValue(): boolean;
+  clearProtoValue(): Value;
+
+  getBoolValue(): boolean;
+  setBoolValue(value: boolean): Value;
+
   getValueCase(): Value.ValueCase;
 
   serializeBinary(): Uint8Array;
@@ -53,6 +62,8 @@ export namespace Value {
     doubleValue: number,
     stringValue: string,
     structValue?: google_protobuf_struct_pb.Struct.AsObject,
+    protoValue?: google_protobuf_any_pb.Any.AsObject,
+    boolValue: boolean,
   }
 
   export enum ValueCase { 
@@ -61,6 +72,8 @@ export namespace Value {
     DOUBLE_VALUE = 2,
     STRING_VALUE = 3,
     STRUCT_VALUE = 4,
+    PROTO_VALUE = 5,
+    BOOL_VALUE = 6,
   }
 }
 
@@ -80,6 +93,9 @@ export class Artifact extends jspb.Message {
   getUri(): string;
   setUri(value: string): Artifact;
 
+  getExternalId(): string;
+  setExternalId(value: string): Artifact;
+
   getPropertiesMap(): jspb.Map<string, Value>;
   clearPropertiesMap(): Artifact;
 
@@ -94,6 +110,11 @@ export class Artifact extends jspb.Message {
 
   getLastUpdateTimeSinceEpoch(): number;
   setLastUpdateTimeSinceEpoch(value: number): Artifact;
+
+  getSystemMetadata(): google_protobuf_any_pb.Any | undefined;
+  setSystemMetadata(value?: google_protobuf_any_pb.Any): Artifact;
+  hasSystemMetadata(): boolean;
+  clearSystemMetadata(): Artifact;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Artifact.AsObject;
@@ -110,11 +131,13 @@ export namespace Artifact {
     typeId: number,
     type: string,
     uri: string,
+    externalId: string,
     propertiesMap: Array<[string, Value.AsObject]>,
     customPropertiesMap: Array<[string, Value.AsObject]>,
     state: Artifact.State,
     createTimeSinceEpoch: number,
     lastUpdateTimeSinceEpoch: number,
+    systemMetadata?: google_protobuf_any_pb.Any.AsObject,
   }
 
   export enum State { 
@@ -123,6 +146,8 @@ export namespace Artifact {
     LIVE = 2,
     MARKED_FOR_DELETION = 3,
     DELETED = 4,
+    ABANDONED = 5,
+    REFERENCE = 6,
   }
 }
 
@@ -138,6 +163,9 @@ export class ArtifactType extends jspb.Message {
 
   getDescription(): string;
   setDescription(value: string): ArtifactType;
+
+  getExternalId(): string;
+  setExternalId(value: string): ArtifactType;
 
   getPropertiesMap(): jspb.Map<string, PropertyType>;
   clearPropertiesMap(): ArtifactType;
@@ -159,6 +187,7 @@ export namespace ArtifactType {
     name: string,
     version: string,
     description: string,
+    externalId: string,
     propertiesMap: Array<[string, PropertyType]>,
     baseType: ArtifactType.SystemDefinedBaseType,
   }
@@ -190,6 +219,11 @@ export class Event extends jspb.Message {
   getMillisecondsSinceEpoch(): number;
   setMillisecondsSinceEpoch(value: number): Event;
 
+  getSystemMetadata(): google_protobuf_any_pb.Any | undefined;
+  setSystemMetadata(value?: google_protobuf_any_pb.Any): Event;
+  hasSystemMetadata(): boolean;
+  clearSystemMetadata(): Event;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Event.AsObject;
   static toObject(includeInstance: boolean, msg: Event): Event.AsObject;
@@ -205,6 +239,7 @@ export namespace Event {
     path?: Event.Path.AsObject,
     type: Event.Type,
     millisecondsSinceEpoch: number,
+    systemMetadata?: google_protobuf_any_pb.Any.AsObject,
   }
 
   export class Path extends jspb.Message {
@@ -267,6 +302,7 @@ export namespace Event {
     OUTPUT = 4,
     INTERNAL_INPUT = 5,
     INTERNAL_OUTPUT = 6,
+    PENDING_OUTPUT = 7,
   }
 }
 
@@ -283,6 +319,9 @@ export class Execution extends jspb.Message {
   getType(): string;
   setType(value: string): Execution;
 
+  getExternalId(): string;
+  setExternalId(value: string): Execution;
+
   getLastKnownState(): Execution.State;
   setLastKnownState(value: Execution.State): Execution;
 
@@ -298,6 +337,11 @@ export class Execution extends jspb.Message {
   getLastUpdateTimeSinceEpoch(): number;
   setLastUpdateTimeSinceEpoch(value: number): Execution;
 
+  getSystemMetadata(): google_protobuf_any_pb.Any | undefined;
+  setSystemMetadata(value?: google_protobuf_any_pb.Any): Execution;
+  hasSystemMetadata(): boolean;
+  clearSystemMetadata(): Execution;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Execution.AsObject;
   static toObject(includeInstance: boolean, msg: Execution): Execution.AsObject;
@@ -312,11 +356,13 @@ export namespace Execution {
     name: string,
     typeId: number,
     type: string,
+    externalId: string,
     lastKnownState: Execution.State,
     propertiesMap: Array<[string, Value.AsObject]>,
     customPropertiesMap: Array<[string, Value.AsObject]>,
     createTimeSinceEpoch: number,
     lastUpdateTimeSinceEpoch: number,
+    systemMetadata?: google_protobuf_any_pb.Any.AsObject,
   }
 
   export enum State { 
@@ -342,6 +388,9 @@ export class ExecutionType extends jspb.Message {
 
   getDescription(): string;
   setDescription(value: string): ExecutionType;
+
+  getExternalId(): string;
+  setExternalId(value: string): ExecutionType;
 
   getPropertiesMap(): jspb.Map<string, PropertyType>;
   clearPropertiesMap(): ExecutionType;
@@ -373,6 +422,7 @@ export namespace ExecutionType {
     name: string,
     version: string,
     description: string,
+    externalId: string,
     propertiesMap: Array<[string, PropertyType]>,
     inputType?: ArtifactStructType.AsObject,
     outputType?: ArtifactStructType.AsObject,
@@ -402,6 +452,9 @@ export class ContextType extends jspb.Message {
   getDescription(): string;
   setDescription(value: string): ContextType;
 
+  getExternalId(): string;
+  setExternalId(value: string): ContextType;
+
   getPropertiesMap(): jspb.Map<string, PropertyType>;
   clearPropertiesMap(): ContextType;
 
@@ -422,6 +475,7 @@ export namespace ContextType {
     name: string,
     version: string,
     description: string,
+    externalId: string,
     propertiesMap: Array<[string, PropertyType]>,
     baseType: ContextType.SystemDefinedBaseType,
   }
@@ -444,6 +498,9 @@ export class Context extends jspb.Message {
   getType(): string;
   setType(value: string): Context;
 
+  getExternalId(): string;
+  setExternalId(value: string): Context;
+
   getPropertiesMap(): jspb.Map<string, Value>;
   clearPropertiesMap(): Context;
 
@@ -455,6 +512,11 @@ export class Context extends jspb.Message {
 
   getLastUpdateTimeSinceEpoch(): number;
   setLastUpdateTimeSinceEpoch(value: number): Context;
+
+  getSystemMetadata(): google_protobuf_any_pb.Any | undefined;
+  setSystemMetadata(value?: google_protobuf_any_pb.Any): Context;
+  hasSystemMetadata(): boolean;
+  clearSystemMetadata(): Context;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Context.AsObject;
@@ -470,10 +532,12 @@ export namespace Context {
     name: string,
     typeId: number,
     type: string,
+    externalId: string,
     propertiesMap: Array<[string, Value.AsObject]>,
     customPropertiesMap: Array<[string, Value.AsObject]>,
     createTimeSinceEpoch: number,
     lastUpdateTimeSinceEpoch: number,
+    systemMetadata?: google_protobuf_any_pb.Any.AsObject,
   }
 }
 
@@ -953,6 +1017,93 @@ export namespace SqliteMetadataSourceConfig {
   }
 }
 
+export class PostgreSQLDatabaseConfig extends jspb.Message {
+  getHost(): string;
+  setHost(value: string): PostgreSQLDatabaseConfig;
+
+  getHostaddr(): string;
+  setHostaddr(value: string): PostgreSQLDatabaseConfig;
+
+  getPort(): string;
+  setPort(value: string): PostgreSQLDatabaseConfig;
+
+  getUser(): string;
+  setUser(value: string): PostgreSQLDatabaseConfig;
+
+  getPassword(): string;
+  setPassword(value: string): PostgreSQLDatabaseConfig;
+
+  getPassfile(): string;
+  setPassfile(value: string): PostgreSQLDatabaseConfig;
+
+  getDbname(): string;
+  setDbname(value: string): PostgreSQLDatabaseConfig;
+
+  getSkipDbCreation(): boolean;
+  setSkipDbCreation(value: boolean): PostgreSQLDatabaseConfig;
+
+  getSsloption(): PostgreSQLDatabaseConfig.SSLOptions | undefined;
+  setSsloption(value?: PostgreSQLDatabaseConfig.SSLOptions): PostgreSQLDatabaseConfig;
+  hasSsloption(): boolean;
+  clearSsloption(): PostgreSQLDatabaseConfig;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): PostgreSQLDatabaseConfig.AsObject;
+  static toObject(includeInstance: boolean, msg: PostgreSQLDatabaseConfig): PostgreSQLDatabaseConfig.AsObject;
+  static serializeBinaryToWriter(message: PostgreSQLDatabaseConfig, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): PostgreSQLDatabaseConfig;
+  static deserializeBinaryFromReader(message: PostgreSQLDatabaseConfig, reader: jspb.BinaryReader): PostgreSQLDatabaseConfig;
+}
+
+export namespace PostgreSQLDatabaseConfig {
+  export type AsObject = {
+    host: string,
+    hostaddr: string,
+    port: string,
+    user: string,
+    password: string,
+    passfile: string,
+    dbname: string,
+    skipDbCreation: boolean,
+    ssloption?: PostgreSQLDatabaseConfig.SSLOptions.AsObject,
+  }
+
+  export class SSLOptions extends jspb.Message {
+    getSslmode(): string;
+    setSslmode(value: string): SSLOptions;
+
+    getSslcert(): string;
+    setSslcert(value: string): SSLOptions;
+
+    getSslkey(): string;
+    setSslkey(value: string): SSLOptions;
+
+    getSslpassword(): string;
+    setSslpassword(value: string): SSLOptions;
+
+    getSslrootcert(): string;
+    setSslrootcert(value: string): SSLOptions;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): SSLOptions.AsObject;
+    static toObject(includeInstance: boolean, msg: SSLOptions): SSLOptions.AsObject;
+    static serializeBinaryToWriter(message: SSLOptions, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): SSLOptions;
+    static deserializeBinaryFromReader(message: SSLOptions, reader: jspb.BinaryReader): SSLOptions;
+  }
+
+  export namespace SSLOptions {
+    export type AsObject = {
+      sslmode: string,
+      sslcert: string,
+      sslkey: string,
+      sslpassword: string,
+      sslrootcert: string,
+    }
+  }
+
+}
+
 export class MigrationOptions extends jspb.Message {
   getEnableUpgradeMigration(): boolean;
   setEnableUpgradeMigration(value: boolean): MigrationOptions;
@@ -1009,6 +1160,11 @@ export class ConnectionConfig extends jspb.Message {
   hasSqlite(): boolean;
   clearSqlite(): ConnectionConfig;
 
+  getPostgresql(): PostgreSQLDatabaseConfig | undefined;
+  setPostgresql(value?: PostgreSQLDatabaseConfig): ConnectionConfig;
+  hasPostgresql(): boolean;
+  clearPostgresql(): ConnectionConfig;
+
   getRetryOptions(): RetryOptions | undefined;
   setRetryOptions(value?: RetryOptions): ConnectionConfig;
   hasRetryOptions(): boolean;
@@ -1029,6 +1185,7 @@ export namespace ConnectionConfig {
     fakeDatabase?: FakeDatabaseConfig.AsObject,
     mysql?: MySQLDatabaseConfig.AsObject,
     sqlite?: SqliteMetadataSourceConfig.AsObject,
+    postgresql?: PostgreSQLDatabaseConfig.AsObject,
     retryOptions?: RetryOptions.AsObject,
   }
 
@@ -1037,6 +1194,7 @@ export namespace ConnectionConfig {
     FAKE_DATABASE = 1,
     MYSQL = 2,
     SQLITE = 3,
+    POSTGRESQL = 5,
   }
 }
 
@@ -1287,6 +1445,9 @@ export namespace ListOperationNextPageToken {
 }
 
 export class TransactionOptions extends jspb.Message {
+  getTag(): string;
+  setTag(value: string): TransactionOptions;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): TransactionOptions.AsObject;
   static toObject(includeInstance: boolean, msg: TransactionOptions): TransactionOptions.AsObject;
@@ -1297,6 +1458,7 @@ export class TransactionOptions extends jspb.Message {
 
 export namespace TransactionOptions {
   export type AsObject = {
+    tag: string,
   }
 }
 
@@ -1310,6 +1472,9 @@ export class LineageGraphQueryOptions extends jspb.Message {
   setStopConditions(value?: LineageGraphQueryOptions.BoundaryConstraint): LineageGraphQueryOptions;
   hasStopConditions(): boolean;
   clearStopConditions(): LineageGraphQueryOptions;
+
+  getMaxNodeSize(): number;
+  setMaxNodeSize(value: number): LineageGraphQueryOptions;
 
   getQueryNodesCase(): LineageGraphQueryOptions.QueryNodesCase;
 
@@ -1325,6 +1490,7 @@ export namespace LineageGraphQueryOptions {
   export type AsObject = {
     artifactsOptions?: ListOperationOptions.AsObject,
     stopConditions?: LineageGraphQueryOptions.BoundaryConstraint.AsObject,
+    maxNodeSize: number,
   }
 
   export class BoundaryConstraint extends jspb.Message {
@@ -1360,10 +1526,80 @@ export namespace LineageGraphQueryOptions {
   }
 }
 
+export class LineageSubgraphQueryOptions extends jspb.Message {
+  getStartingArtifacts(): LineageSubgraphQueryOptions.StartingNodes | undefined;
+  setStartingArtifacts(value?: LineageSubgraphQueryOptions.StartingNodes): LineageSubgraphQueryOptions;
+  hasStartingArtifacts(): boolean;
+  clearStartingArtifacts(): LineageSubgraphQueryOptions;
+
+  getStartingExecutions(): LineageSubgraphQueryOptions.StartingNodes | undefined;
+  setStartingExecutions(value?: LineageSubgraphQueryOptions.StartingNodes): LineageSubgraphQueryOptions;
+  hasStartingExecutions(): boolean;
+  clearStartingExecutions(): LineageSubgraphQueryOptions;
+
+  getMaxNumHops(): number;
+  setMaxNumHops(value: number): LineageSubgraphQueryOptions;
+
+  getDirection(): LineageSubgraphQueryOptions.Direction;
+  setDirection(value: LineageSubgraphQueryOptions.Direction): LineageSubgraphQueryOptions;
+
+  getStartingNodesCase(): LineageSubgraphQueryOptions.StartingNodesCase;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): LineageSubgraphQueryOptions.AsObject;
+  static toObject(includeInstance: boolean, msg: LineageSubgraphQueryOptions): LineageSubgraphQueryOptions.AsObject;
+  static serializeBinaryToWriter(message: LineageSubgraphQueryOptions, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): LineageSubgraphQueryOptions;
+  static deserializeBinaryFromReader(message: LineageSubgraphQueryOptions, reader: jspb.BinaryReader): LineageSubgraphQueryOptions;
+}
+
+export namespace LineageSubgraphQueryOptions {
+  export type AsObject = {
+    startingArtifacts?: LineageSubgraphQueryOptions.StartingNodes.AsObject,
+    startingExecutions?: LineageSubgraphQueryOptions.StartingNodes.AsObject,
+    maxNumHops: number,
+    direction: LineageSubgraphQueryOptions.Direction,
+  }
+
+  export class StartingNodes extends jspb.Message {
+    getFilterQuery(): string;
+    setFilterQuery(value: string): StartingNodes;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): StartingNodes.AsObject;
+    static toObject(includeInstance: boolean, msg: StartingNodes): StartingNodes.AsObject;
+    static serializeBinaryToWriter(message: StartingNodes, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): StartingNodes;
+    static deserializeBinaryFromReader(message: StartingNodes, reader: jspb.BinaryReader): StartingNodes;
+  }
+
+  export namespace StartingNodes {
+    export type AsObject = {
+      filterQuery: string,
+    }
+  }
+
+
+  export enum Direction { 
+    DIRECTION_UNSPECIFIED = 0,
+    UPSTREAM = 1,
+    DOWNSTREAM = 2,
+    BIDIRECTIONAL = 3,
+  }
+
+  export enum StartingNodesCase { 
+    STARTING_NODES_NOT_SET = 0,
+    STARTING_ARTIFACTS = 1,
+    STARTING_EXECUTIONS = 2,
+  }
+}
+
 export enum PropertyType { 
   UNKNOWN = 0,
   INT = 1,
   DOUBLE = 2,
   STRING = 3,
   STRUCT = 4,
+  PROTO = 5,
+  BOOLEAN = 6,
 }
