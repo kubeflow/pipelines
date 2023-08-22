@@ -20,9 +20,7 @@ from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
 
-_IMAGE_URI = 'gcr.io/model-evaluation-dev/llm_eval:navekshasood-test'
-# TODO(b/290838262): Update the image URI to point to
-# us-docker.pkg.dev/vertex-evaluation/public/llm:va.b before we launch.
+_IMAGE_URI = 'us-docker.pkg.dev/vertex-evaluation/public/llm:v0.3'
 
 
 @container_component
