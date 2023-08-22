@@ -359,9 +359,8 @@ github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a h1:A4wNiqeKqU56Zht
 github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/emicklei/go-restful v2.9.5+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
+github.com/emicklei/go-restful v2.12.0+incompatible h1:SIvoTSbsMEwuM3dzFirLwKc4BH6VXP5CNf+G1FfJVr4=
 github.com/emicklei/go-restful v2.12.0+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
-github.com/emicklei/go-restful v2.15.0+incompatible h1:8KpYO/Xl/ZudZs5RNOEhWMBY4hmzlZhhRd9cu+jrZP4=
-github.com/emicklei/go-restful v2.15.0+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/emicklei/go-restful/v3 v3.8.0 h1:eCZ8ulSerjdAiaNpF7GxXIE7ZCMo1moN1qX+S609eVw=
 github.com/emicklei/go-restful/v3 v3.8.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/emirpasic/gods v1.12.0/go.mod h1:YfzfFFoVP/catgzJb4IKIqXjX78Ha8FMSDh3ymbK86o=
@@ -938,8 +937,8 @@ github.com/kubeflow/pipelines/api v0.0.0-20230331215358-758c91f76784 h1:ZVCoqnKn
 github.com/kubeflow/pipelines/api v0.0.0-20230331215358-758c91f76784/go.mod h1:T7TOQB36gGe97yUdfVAnYK5uuT0+uQbLNHDUHxYkmE4=
 github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20230404213301-bd9f74e34de6 h1:ApWW5ZH45ruvQCmkp7RewHlPKGwqBNSSRxEHGJFiAOA=
 github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20230404213301-bd9f74e34de6/go.mod h1:CJkKr356RlpZP/gQRuHf3Myrn1qJtoUVe4EMCmtwarg=
-github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20220118175555-e78ed557ddcb h1:i0RzcKBlfGHueIwrUlKB+AvVZPuMUJIYe1g8nvhwgbo=
-github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20220118175555-e78ed557ddcb/go.mod h1:chIDffBaVQ/asNl1pTTdbAymYcuBKf8BR3YtSP+3FEU=
+github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800 h1:YAW+X9xCW8Yq5tQaBBQaLTNU9CJj8Nr7lx1+k66ZHJ0=
+github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800/go.mod h1:chIDffBaVQ/asNl1pTTdbAymYcuBKf8BR3YtSP+3FEU=
 github.com/labstack/echo v3.2.1+incompatible/go.mod h1:0INS7j/VjnFxD4E2wkz67b8cVwCLbBmJyDaka6Cmk1s=
 github.com/labstack/gommon v0.2.7/go.mod h1:/tj9csK2iPSBvn+3NLM9e52usepMtrd5ilFYA+wQNJ4=
 github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 h1:SOEGU9fKiNWd/HOJuq6+3iTQz8KNCLtVX6idSoTLdUw=

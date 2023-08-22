@@ -30,6 +30,14 @@ Make sure the generated files are as expected. Update clients as described below
 
 Make sure you have installed tools and packages in [grpc golang prerequisites](https://grpc.io/docs/languages/go/quickstart/#prerequisites).
 
+NOTE: The versions for tools are important, following is a record for when the version combination works successfully.
+
+```bash
+apt install -y protobuf-compiler=3.15.8
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
+```
+
 #### Command
 
 ```bash
