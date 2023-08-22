@@ -23,7 +23,7 @@ TYPE_CHECK = True
 import os
 
 # compile-time only dependencies
-if os.environ.get('_RUNTIME', 'false') != 'true':
+if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     # make `from kfp import components` and `from kfp import dsl` valid;
     # related to namespace packaging issue
     from kfp import components  # noqa: keep unused import

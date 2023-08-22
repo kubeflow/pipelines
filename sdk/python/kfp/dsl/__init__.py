@@ -226,7 +226,7 @@ Example:
 """
 
 # compile-time only dependencies
-if os.environ.get('_RUNTIME', 'false') != 'true':
+if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.component_decorator import component
     from kfp.dsl.container_component_decorator import container_component
     from kfp.dsl.for_loop import Collected

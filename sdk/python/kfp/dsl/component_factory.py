@@ -104,7 +104,7 @@ if ! [ -x "$(command -v pip)" ]; then
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
 fi
 
-PIP_DISABLE_PIP_VERSION_CHECK=1 _RUNTIME=true python3 -m pip install --quiet \
+PIP_DISABLE_PIP_VERSION_CHECK=1 _KFP_RUNTIME=true python3 -m pip install --quiet \
     --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
 '''
 
