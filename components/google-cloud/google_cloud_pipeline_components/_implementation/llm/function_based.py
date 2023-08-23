@@ -160,7 +160,7 @@ def resolve_reference_model_metadata(
     large_model_reference: str,
     reference_model_path: Optional[str] = None,
 ) -> NamedTuple(
-    'BaseModelMetadata',
+    'Outputs',
     large_model_reference=str,
     reference_model_path=str,
     reward_model_reference=str,
@@ -181,75 +181,160 @@ def resolve_reference_model_metadata(
   Raises:
     ValueError: if no metadata exists for the given base model.
   """
+  reference_model_metadata = NamedTuple(
+      'ReferenceModelMetadata',
+      large_model_reference=str,
+      reference_model_path=str,
+      reward_model_reference=str,
+      reward_model_path=str,
+      is_supported=bool,
+  )
 
-  # TODO(latture): Move this logic to a container component and use
-  #                PredefinedModels enum to resolve model paths.
+  reference_models = {
+      't5-small': reference_model_metadata(
+          large_model_reference='T5_SMALL',
+          reference_model_path=(
+              'gs://t5-data/pretrained_models/t5x/flan_t5_small/'
+          ),
+          reward_model_reference='T5_SMALL',
+          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_small',
+          is_supported=True,
+      ),
+      't5-large': reference_model_metadata(
+          large_model_reference='T5_LARGE',
+          reference_model_path=(
+              'gs://t5-data/pretrained_models/t5x/flan_t5_large/'
+          ),
+          reward_model_reference='T5_LARGE',
+          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_large',
+          is_supported=True,
+      ),
+      't5-xl': reference_model_metadata(
+          large_model_reference='T5_XL',
+          reference_model_path='gs://t5-data/pretrained_models/t5x/flan_t5_xl/',
+          reward_model_reference='T5_XL',
+          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xl',
+          is_supported=True,
+      ),
+      't5-xxl': reference_model_metadata(
+          large_model_reference='T5_XXL',
+          reference_model_path=(
+              'gs://t5-data/pretrained_models/t5x/flan_t5_xxl/'
+          ),
+          reward_model_reference='T5_XXL',
+          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xxl',
+          is_supported=True,
+      ),
+      'palm-tiny': reference_model_metadata(
+          large_model_reference='PALM_TINY',
+          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_palm_tiny/',
+          reward_model_reference='PALM_TINY',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_palm_tiny/',
+          is_supported=False,
+      ),
+      'gecko': reference_model_metadata(
+          large_model_reference='GECKO',
+          reference_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_gecko/'
+          ),
+          reward_model_reference='GECKO',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_gecko_pretrain/',
+          is_supported=False,
+      ),
+      'otter': reference_model_metadata(
+          large_model_reference='OTTER',
+          reference_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter/'
+          ),
+          reward_model_reference='OTTER',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          is_supported=False,
+      ),
+      'bison': reference_model_metadata(
+          large_model_reference='BISON',
+          reference_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
+          reward_model_reference='OTTER',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          is_supported=False,  # Deprecated: Use text-bision@001 instead.
+      ),
+      'text-bison@001': reference_model_metadata(
+          large_model_reference='BISON',
+          reference_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
+          reward_model_reference='OTTER',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          is_supported=True,
+      ),
+      'elephant': reference_model_metadata(
+          large_model_reference='ELEPHANT',
+          reference_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_elephant/'
+          ),
+          reward_model_reference='OTTER',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          is_supported=False,
+      ),
+      'llama-2-7b': reference_model_metadata(
+          large_model_reference='LLAMA_2_7B',
+          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',
+          reward_model_reference='LLAMA_2_7B',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',
+          is_supported=True,
+      ),
+      'llama-2-13b': reference_model_metadata(
+          large_model_reference='LLAMA_2_13B',
+          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',
+          reward_model_reference='LLAMA_2_13B',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',
+          is_supported=True,
+      ),
+      'llama-2-7b-chat': reference_model_metadata(
+          large_model_reference='LLAMA_2_7B_CHAT',
+          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b_chat/',
+          reward_model_reference='LLAMA_2_7B_CHAT',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b_chat/',
+          is_supported=True,
+      ),
+      'llama-2-13b-chat': reference_model_metadata(
+          large_model_reference='LLAMA_2_13B_CHAT',
+          reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b_chat/',
+          reward_model_reference='LLAMA_2_13B_CHAT',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b_chat/',
+          is_supported=True,
+      ),
+  }
+
+  reference_model_key = large_model_reference.lower().replace('_', '-')
+  if reference_model_key not in reference_models:
+    supported_models = [
+        k for k, v in reference_models.items() if v.is_supported
+    ]
+    raise ValueError(
+        f'Unknown reference model {large_model_reference}.'
+        ' large_model_reference must be one of'
+        f' {sorted(supported_models)}.'
+    )
+
+  reference_model = reference_models[reference_model_key]
+
   outputs = NamedTuple(
-      'BaseModelMetadata',
+      'Outputs',
       large_model_reference=str,
       reference_model_path=str,
       reward_model_reference=str,
       reward_model_path=str,
   )
-  reference_model_key = large_model_reference.upper().replace('-', '_')
-  predefined_model_paths = {
-      'PALM_TINY': (
-          'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_palm_tiny/'
-      ),
-      'GECKO': 'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_gecko/',
-      'OTTER': 'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter/',
-      'BISON': 'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/',
-      'ELEPHANT': (
-          'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_elephant/'
-      ),
-      'T5_SMALL': 'gs://t5-data/pretrained_models/t5x/flan_t5_small/',
-      'T5_LARGE': 'gs://t5-data/pretrained_models/t5x/flan_t5_large/',
-      'T5_XL': 'gs://t5-data/pretrained_models/t5x/flan_t5_xl/',
-      'T5_XXL': 'gs://t5-data/pretrained_models/t5x/flan_t5_xxl/',
-  }
-  predefined_reward_model_paths = {
-      'PALM_TINY': (
-          'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_palm_tiny'
-      ),
-      'GECKO': 'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_gecko_pretrain',
-      'OTTER': 'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain',
-      'ELEPHANT': (
-          'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_elephant/'
-      ),
-      'T5_SMALL': 'gs://t5-data/pretrained_models/t5x/t5_1_1_small',
-      'T5_LARGE': 'gs://t5-data/pretrained_models/t5x/t5_1_1_large',
-      'T5_XL': 'gs://t5-data/pretrained_models/t5x/t5_1_1_xl',
-      'T5_XXL': 'gs://t5-data/pretrained_models/t5x/t5_1_1_xxl',
-  }
-
-  if reference_model_key not in predefined_model_paths:
-    raise ValueError(
-        f'No metadata found for `{reference_model_key}`. '
-        f'Base model must be one of {list(predefined_model_paths.keys())}.'
-    )
-
-  # Mapping from base model to its corresponding reward model.
-  reference_model_to_reward_model = {
-      'PALM_TINY': 'PALM_TINY',
-      'GECKO': 'GECKO',
-      'OTTER': 'OTTER',
-      'BISON': 'OTTER',
-      'ELEPHANT': 'ELEPHANT',
-      'T5_SMALL': 'T5_SMALL',
-      'T5_LARGE': 'T5_LARGE',
-      'T5_XL': 'T5_XL',
-      'T5_XXL': 'T5_XXL',
-  }
-
-  reward_model_key = reference_model_to_reward_model[reference_model_key]
 
   return outputs(
-      large_model_reference=reference_model_key,
+      large_model_reference=reference_model.large_model_reference,
       reference_model_path=(
-          reference_model_path or predefined_model_paths[reference_model_key]
+          reference_model_path or reference_model.reference_model_path
       ),
-      reward_model_reference=reward_model_key,
-      reward_model_path=predefined_reward_model_paths[reward_model_key],
+      reward_model_reference=reference_model.reward_model_reference,
+      reward_model_path=reference_model.reward_model_path,
   )
 
 
