@@ -18,7 +18,7 @@ import sys
 import ml_metadata
 from time import sleep
 from ml_metadata.proto import metadata_store_pb2
-from ml_metadata.metadata_store import metadata_store
+from ml_metadata.metadata_store import metadata_store, ListOptions
 from ipaddress import ip_address, IPv4Address 
 
 def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
@@ -175,7 +175,7 @@ def get_context_by_name(
     store,
     context_name: str,
 ) -> metadata_store_pb2.Context:
-    matching_contexts = [context for context in store.get_contexts() if context.name == context_name]
+    matching_contexts = store.get_contexts(ListOptions(filter_query=f'name="{context_name}"'))
     assert len(matching_contexts) <= 1
     if len(matching_contexts) == 0:
         raise ValueError('Context with name "{}" was not found'.format(context_name))
