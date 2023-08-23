@@ -1,0 +1,150 @@
+# PIPELINE DEFINITION
+# Name: my-pipeline
+# Description: Sample pipeline for dataflow python job.
+components:
+  comp-dataflow-python:
+    executorLabel: exec-dataflow-python
+    inputDefinitions:
+      parameters:
+        args:
+          defaultValue: []
+          description: 'The list of args to pass to the Python file. Can include additional
+
+            parameters for the Dataflow Runner.'
+          isOptional: true
+          parameterType: LIST
+        location:
+          defaultValue: us-central1
+          description: 'Location of the Dataflow job. If not set, defaults to
+
+            ``''us-central1''``.'
+          isOptional: true
+          parameterType: STRING
+        project:
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to create the Dataflow job. Defaults to the project
+            in which the PipelineJob is run.
+          isOptional: true
+          parameterType: STRING
+        python_module_path:
+          description: The GCS path to the Python file to run.
+          parameterType: STRING
+        requirements_file_path:
+          defaultValue: ''
+          description: The GCS path to the pip requirements file.
+          isOptional: true
+          parameterType: STRING
+        temp_location:
+          description: 'A GCS path for Dataflow to stage temporary job
+
+            files created during the execution of the pipeline.'
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        gcp_resources:
+          description: 'Serialized gcp_resources proto tracking the Dataflow job.
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          parameterType: STRING
+  comp-wait-gcp-resources:
+    executorLabel: exec-wait-gcp-resources
+    inputDefinitions:
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        gcp_resources:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-dataflow-python:
+      container:
+        args:
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --python_module_path
+        - '{{$.inputs.parameters[''python_module_path'']}}'
+        - --temp_location
+        - '{{$.inputs.parameters[''temp_location'']}}'
+        - --requirements_file_path
+        - '{{$.inputs.parameters[''requirements_file_path'']}}'
+        - --args
+        - '{{$.inputs.parameters[''args'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.dataflow.dataflow_launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.0
+    exec-wait-gcp-resources:
+      container:
+        args:
+        - --type
+        - Wait
+        - --project
+        - ''
+        - --location
+        - ''
+        - --payload
+        - '{{$.inputs.parameters[''gcp_resources'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.wait_gcp_resources.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.0
+pipelineInfo:
+  description: Sample pipeline for dataflow python job.
+  name: my-pipeline
+root:
+  dag:
+    tasks:
+      dataflow-python:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-dataflow-python
+        inputs:
+          parameters:
+            location:
+              runtimeValue:
+                constant: us-central1
+            project:
+              runtimeValue:
+                constant: '186556260430'
+            python_module_path:
+              runtimeValue:
+                constant: gs://cjmccarthy-managed-pipelines-test/foo.py
+            requirements_file_path:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/samples/dataflow/wc/requirements.txt
+            temp_location:
+              runtimeValue:
+                constant: gs://cjmccarthy-managed-pipelines-test/dest
+        taskInfo:
+          name: dataflow-python
+      wait-gcp-resources:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-wait-gcp-resources
+        dependentTasks:
+        - dataflow-python
+        inputs:
+          parameters:
+            gcp_resources:
+              taskOutputParameter:
+                outputParameterKey: gcp_resources
+                producerTask: dataflow-python
+        taskInfo:
+          name: wait-gcp-resources
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.1.2
