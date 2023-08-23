@@ -46,9 +46,9 @@ def infer_pipeline(
 
   Args:
     large_model_reference: Name of the base model. Supported values are
-      ``BISON``, ``T5_SMALL``, ``T5_LARGE``, ``T5_XL``, and ``T5_XXL``.
-      ``BISON`` and ``T5_SMALL`` are supported in ``us-central1` and
-      ``europe-west4``. ``T5_LARGE``, ``T5_XL`` and ``T5_XXL`` are only
+      ``text-bison@001``, ``t5-small``, ``t5-large``, ``t5-xl`` and ``t5-xxl``.
+      ``text-bison@001`` and ``t5-small`` are supported in ``us-central1` and
+      ``europe-west4``. ``t5-large``, ``t5-xl`` and ``t5-xxl`` are only
       supported in ``europe-west4``.
     model_checkpoint: Cloud storage path to the model checkpoint.
     prompt_dataset: Cloud storage path to an unlabled prompt dataset used for
