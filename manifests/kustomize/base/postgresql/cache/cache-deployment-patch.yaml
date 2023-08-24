@@ -2,22 +2,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cache-server
-  labels:
-    app: cache-server
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: cache-server
   template:
-    metadata:
-      labels:
-        app: cache-server
     spec:
       containers:
       - name: server
-        image: gcr.io/ml-pipeline/cache-server:dummy
         env:
+          - $patch: replace
           - name: DEFAULT_CACHE_STALENESS
             valueFrom:
               configMapKeyRef:
@@ -49,21 +40,21 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: pipeline-install-config
-                key: postgresDbHost
+                key: postgresHost
           - name: DBCONFIG_PORT
             valueFrom:
               configMapKeyRef:
                 name: pipeline-install-config
-                key: postgresDbPort
+                key: postgresPort
           - name: DBCONFIG_USER
             valueFrom:
               secretKeyRef:
-                name: postgres-secret
+                name: postgres-secret-extended
                 key: username
           - name: DBCONFIG_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: postgres-secret
+                name: postgres-secret-extended
                 key: password
           - name: NAMESPACE_TO_WATCH
             valueFrom:
@@ -82,16 +73,3 @@ spec:
                "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
                "--listen_port=$(WEBHOOK_PORT)",
               ]
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8443
-          name: webhook-api
-        volumeMounts:
-        - name: webhook-tls-certs
-          mountPath: /etc/webhook/certs
-          readOnly: true
-      volumes:
-      - name: webhook-tls-certs
-        secret:
-          secretName: webhook-server-tls
-      serviceAccountName: kubeflow-pipelines-cache

@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubeflow
+
+bases:
+- ../../base
+resources:
+- metadata-db-pvc.yaml
+- metadata-db-deployment.yaml
+- metadata-db-service.yaml
+
+patchesStrategicMerge:
+- patches/metadata-grpc-deployment.yaml
+
+configMapGenerator:
+- name: metadata-postgres-db-parameters
+  envs:
+  - params.env
+secretGenerator:
+- name: metadata-postgres-db-secrets
+  envs:
+  - secrets.env
+generatorOptions:
+  disableNameSuffixHash: true
+
+images:
+- name: postgres
+  newName: postgres
+  newTag: 14.7-alpine3.17
+
+vars:
+- name: MLMD_DB_HOST
+  objref:
+    kind: Service
+    name: metadata-postgres-db
+    apiVersion: v1
+  fieldref:
+    fieldpath: metadata.name
