@@ -19,3 +19,5 @@ markComment: >
 closeComment: >
   This issue has been automatically closed because it has not had recent
   activity. Please comment "/reopen" to reopen it.
+# Learn more about operations: https://github.com/actions/stale#operations-per-run.
+operations-per-run: 200
