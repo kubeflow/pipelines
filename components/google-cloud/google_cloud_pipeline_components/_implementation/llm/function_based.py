@@ -57,7 +57,7 @@ def resolve_machine_spec(
     return outputs(
         machine_type='cloud-tpu',
         accelerator_type='TPU_V3',
-        accelerator_count=32,
+        accelerator_count=64,
     )
   elif location in gpu_regions:
     return outputs(
