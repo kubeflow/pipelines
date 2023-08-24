@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from typing import List
 import unittest
 
@@ -26,6 +27,13 @@ from kfp.dsl.types.artifact_types import Model
 from kfp.dsl.types.type_annotations import OutputPath
 
 
+def strip_kfp_version(command: List[str]) -> List[str]:
+    return [
+        re.sub(r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp', c)
+        for c in command
+    ]
+
+
 class TestGetPackagesToInstallCommand(unittest.TestCase):
 
     def test_with_no_user_packages_to_install(self):
@@ -34,10 +42,12 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         command = component_factory._get_packages_to_install_command(
             packages_to_install=packages_to_install)
 
-        self.assertEqual(command, [
-            'sh', '-c',
-            '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==2.1.2\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
-        ])
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==2.1.2\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
+            ]))
 
     def test_with_no_user_packages_to_install_and_install_kfp_false(self):
         packages_to_install = []
@@ -56,10 +66,12 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             kfp_package_path='git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python'
         )
 
-        self.assertEqual(command, [
-            'sh', '-c',
-            '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python\' && "$0" "$@"\n'
-        ])
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python\' && "$0" "$@"\n'
+            ]))
 
     def test_with_no_user_packages_to_install_and_kfp_package_path_and_install_kfp_false(
             self):
@@ -82,10 +94,12 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             install_kfp_package=False,
         )
 
-        self.assertEqual(command, [
-            'sh', '-c',
-            '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'sklearn\' && "$0" "$@"\n'
-        ])
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'sklearn\' && "$0" "$@"\n'
+            ]))
 
     def test_with_no_user_packages_to_install_and_kfp_package_path_and_target_image(
             self):
@@ -116,10 +130,12 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         command = component_factory._get_packages_to_install_command(
             packages_to_install=packages_to_install)
 
-        self.assertEqual(command, [
-            'sh', '-c',
-            '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'package1\' \'package2\' \'kfp==2.1.2\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
-        ])
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'package1\' \'package2\' \'kfp==2.1.2\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
+            ]))
 
     def test_with_packages_to_install_with_pip_index_url(self):
         packages_to_install = ['package1', 'package2']
@@ -130,10 +146,12 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             pip_index_urls=pip_index_urls,
         )
 
-        self.assertEqual(command, [
-            'sh', '-c',
-            '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'package1\' \'package2\' \'kfp==2.1.2\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
-        ])
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'package1\' \'package2\' \'kfp==2.1.2\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
+            ]))
 
 
 class TestInvalidParameterName(unittest.TestCase):
