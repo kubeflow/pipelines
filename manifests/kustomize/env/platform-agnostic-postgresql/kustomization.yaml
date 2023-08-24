@@ -3,7 +3,7 @@ kind: Kustomization
 
 bases:
   - ../../base/installs/generic/postgres
-  - ../../base/metadata/base
+  - ../../base/metadata/overlays/postgres
   - ../../third-party/argo/installs/namespace
   - ../../third-party/minio/base
   - ../../third-party/postgresql/base

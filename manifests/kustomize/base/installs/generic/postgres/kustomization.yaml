@@ -2,12 +2,12 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: kubeflow
 bases:
-- ../../../pipeline/postgres
-- ../../../cache/postgres
+- ../../../postgresql/pipeline
+- ../../../postgresql/cache
 - ../../../cache-deployer
 resources:
 - pipeline-install-config.yaml
-- postgres-secret.yaml
+- postgres-secret-extended.yaml
 vars:
 - name: kfp-namespace
   objref:
