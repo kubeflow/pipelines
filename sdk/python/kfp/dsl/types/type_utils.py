@@ -20,7 +20,6 @@ from typing import Any, Callable, Dict, Optional, Type, Union
 import warnings
 
 import kfp
-from kfp.dsl import structures
 from kfp.dsl import task_final_status
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
@@ -231,7 +230,7 @@ def _get_type_string_from_component_argument(
 def verify_type_compatibility(
     given_value: Union['pipeline_channel.PipelineChannel', str, bool, int,
                        float, dict, list],
-    expected_spec: Union[structures.InputSpec, structures.OutputSpec],
+    expected_spec: Union['structures.InputSpec', 'structures.OutputSpec'],
     error_message_prefix: str,
     checks_input: bool = True,
     raise_on_error: bool = True,

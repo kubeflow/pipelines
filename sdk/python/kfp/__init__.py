@@ -20,6 +20,12 @@ __version__ = '2.1.2'
 
 TYPE_CHECK = True
 
-from kfp import components
-from kfp import dsl
-from kfp.client import Client
+import os
+
+# compile-time only dependencies
+if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
+    # make `from kfp import components` and `from kfp import dsl` valid;
+    # related to namespace packaging issue
+    from kfp import components  # noqa: keep unused import
+    from kfp import dsl  # noqa: keep unused import
+    from kfp.client import Client  # noqa: keep unused import

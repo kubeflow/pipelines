@@ -14,31 +14,13 @@ compose pipelines."""
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# runtime dependencies
 __all__ = [
-    'component',
-    'container_component',
-    'pipeline',
-    'importer',
-    'ContainerSpec',
-    'Condition',
-    'ExitHandler',
-    'ParallelFor',
-    'Collected',
     'Input',
     'Output',
     'InputPath',
     'OutputPath',
-    'IfPresentPlaceholder',
-    'ConcatPlaceholder',
     'PipelineTaskFinalStatus',
-    'PIPELINE_JOB_NAME_PLACEHOLDER',
-    'PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER',
-    'PIPELINE_JOB_ID_PLACEHOLDER',
-    'PIPELINE_TASK_NAME_PLACEHOLDER',
-    'PIPELINE_TASK_ID_PLACEHOLDER',
-    'PIPELINE_ROOT_PLACEHOLDER',
-    'PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER',
-    'PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER',
     'Artifact',
     'ClassificationMetrics',
     'Dataset',
@@ -47,29 +29,18 @@ __all__ = [
     'Metrics',
     'Model',
     'SlicedClassificationMetrics',
-    'PipelineTask',
+    'PIPELINE_JOB_NAME_PLACEHOLDER',
+    'PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER',
+    'PIPELINE_JOB_ID_PLACEHOLDER',
+    'PIPELINE_TASK_NAME_PLACEHOLDER',
+    'PIPELINE_TASK_ID_PLACEHOLDER',
+    'PIPELINE_ROOT_PLACEHOLDER',
+    'PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER',
+    'PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER',
 ]
+import os
 
-try:
-    from typing import Annotated
-except ImportError:
-    from typing_extensions import Annotated
-
-from typing import TypeVar
-
-from kfp.dsl.component_decorator import component
-from kfp.dsl.container_component_decorator import container_component
-from kfp.dsl.for_loop import Collected
-from kfp.dsl.importer_node import importer
-from kfp.dsl.pipeline_context import pipeline
-from kfp.dsl.pipeline_task import PipelineTask
-from kfp.dsl.placeholders import ConcatPlaceholder
-from kfp.dsl.placeholders import IfPresentPlaceholder
-from kfp.dsl.structures import ContainerSpec
 from kfp.dsl.task_final_status import PipelineTaskFinalStatus
-from kfp.dsl.tasks_group import Condition
-from kfp.dsl.tasks_group import ExitHandler
-from kfp.dsl.tasks_group import ParallelFor
 from kfp.dsl.types.artifact_types import Artifact
 from kfp.dsl.types.artifact_types import ClassificationMetrics
 from kfp.dsl.types.artifact_types import Dataset
@@ -83,8 +54,14 @@ from kfp.dsl.types.type_annotations import InputPath
 from kfp.dsl.types.type_annotations import OutputAnnotation
 from kfp.dsl.types.type_annotations import OutputPath
 
-# hack: constants and custom type generics have to be defined here to be captured by autodoc and autodocsumm used in ./docs/conf.py
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
 
+from typing import TypeVar
+
+# hack: constants and custom type generics have to be defined here to be captured by autodoc and autodocsumm used in ./docs/conf.py
 PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
 """A placeholder used to obtain a pipeline job name within a task at pipeline runtime.
 
@@ -247,3 +224,32 @@ Example:
         producer_task = artifact_producer()
         artifact_consumer(model=producer_task.output)
 """
+
+# compile-time only dependencies
+if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
+    from kfp.dsl.component_decorator import component
+    from kfp.dsl.container_component_decorator import container_component
+    from kfp.dsl.for_loop import Collected
+    from kfp.dsl.importer_node import importer
+    from kfp.dsl.pipeline_context import pipeline
+    from kfp.dsl.pipeline_task import PipelineTask
+    from kfp.dsl.placeholders import ConcatPlaceholder
+    from kfp.dsl.placeholders import IfPresentPlaceholder
+    from kfp.dsl.structures import ContainerSpec
+    from kfp.dsl.tasks_group import Condition
+    from kfp.dsl.tasks_group import ExitHandler
+    from kfp.dsl.tasks_group import ParallelFor
+    __all__.extend([
+        'component',
+        'container_component',
+        'pipeline',
+        'importer',
+        'ContainerSpec',
+        'Condition',
+        'ExitHandler',
+        'ParallelFor',
+        'Collected',
+        'IfPresentPlaceholder',
+        'ConcatPlaceholder',
+        'PipelineTask',
+    ])
