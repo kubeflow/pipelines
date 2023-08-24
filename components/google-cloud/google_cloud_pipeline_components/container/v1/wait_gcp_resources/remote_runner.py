@@ -24,7 +24,8 @@ from google_cloud_pipeline_components.container.utils import execution_context
 
 from google.protobuf.json_format import Parse
 
-_POLLING_INTERVAL_IN_SECONDS = 20
+# _POLLING_INTERVAL_IN_SECONDS = 20
+_POLLING_INTERVAL_IN_SECONDS = 40
 _CONNECTION_ERROR_RETRY_LIMIT = 5
 
 _JOB_SUCCESSFUL_STATES = ['JOB_STATE_DONE']
