@@ -35,3 +35,5 @@ jobs:
         stale-issue-label: 'lifecycle/stale'
         exempt-issue-labels: lifecycle/frozen
         exempt-pr-labels: lifecycle/frozen
+        # Learn more about operations: https://github.com/actions/stale#operations-per-run.
+        operations-per-run: 200
