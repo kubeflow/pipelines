@@ -27,66 +27,63 @@ import { Breadcrumb, ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from 'src/Css';
 import { KeyValue } from 'src/lib/StaticGraphParser';
-import { formatDateString, enabledDisplayStringV2 } from 'src/lib/Utils';
+import { formatDateString, enabledDisplayStringV2, errorToMessage } from 'src/lib/Utils';
 import { triggerDisplayString } from 'src/lib/TriggerUtils';
 
-function getInitialToolbarState(
-  recurringRun: V2beta1RecurringRun,
-  props: PageProps,
-  Refresh: () => void,
-): ToolbarProps {
-  const buttons = new Buttons(props, Refresh);
-  return {
-    actions: buttons
-      .cloneRecurringRun(() => (recurringRun ? [recurringRun.recurring_run_id!] : []), true)
-      .refresh(Refresh)
-      .enableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
-      .disableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
-      // .delete(
-      //   () => (recurringRun ? [recurringRun.recurring_run_id!] : []),
-      //   'recurring run config',
-      //   this._deleteCallback.bind(this),
-      //   true /* useCurrentResource */,
-      // )
-      .getToolbarActionMap(),
-    breadcrumbs: [],
-    pageTitle: '',
-  };
-}
-
 export function RecurringRunDetailsV2FC(props: PageProps) {
+  const { updateBanner, updateToolbar } = props;
   const [refresh, setRefresh] = useState(true);
   const [toolbarState, setToolbarState] = useState<ToolbarProps>();
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
   const Refresh = () => setRefresh(refreshed => !refreshed);
 
-  const { data: recurringRun, refetch: refetchRecurringRun } = useQuery<V2beta1RecurringRun, Error>(
+  const { data: recurringRun, refetch: refetchRecurringRun } = useQuery<
+    V2beta1RecurringRun | undefined,
+    Error
+  >(
     ['recurringRun'],
     async () => {
-      if (!recurringRunId) {
-        throw new Error('Recurring run ID is missing');
+      try {
+        return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        updateBanner({
+          additionalInfo: errorMessage ? errorMessage : undefined,
+          message:
+            `Error: failed to retrieve recurring run: ${recurringRunId}.` +
+            (errorMessage ? ' Click Details for more information.' : ''),
+          mode: 'error',
+        });
+        return;
       }
-      return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
     { enabled: !!recurringRunId, staleTime: 0, cacheTime: 0 },
   );
 
   const experimentId = recurringRun?.experiment_id!;
-  const { data: experiment } = useQuery<V2beta1Experiment, Error>(
+  const { data: experiment } = useQuery<V2beta1Experiment | undefined, Error>(
     ['experiment'],
     async () => {
-      if (!experimentId) {
-        throw new Error('Experiment ID is missing');
+      try {
+        return await Apis.experimentServiceApiV2.getExperiment(experimentId);
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        updateBanner({
+          additionalInfo: errorMessage ? errorMessage : undefined,
+          message:
+            `Error: failed to retrieve this recurring run's experiment.` +
+            (errorMessage ? ' Click Details for more information.' : ''),
+          mode: 'warning',
+        });
+        return;
       }
-      return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
     { enabled: !!experimentId, staleTime: 0 },
   );
 
   useEffect(() => {
-    if (recurringRun) {
-      setToolbarState(getInitialToolbarState(recurringRun, props, Refresh));
-    }
+    setToolbarState(getInitialToolbarState());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recurringRun]);
 
   useEffect(() => {
@@ -97,7 +94,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
         recurringRun?.status !== V2beta1RecurringRunStatus.ENABLED;
       toolbarState.pageTitle = recurringRun?.display_name!;
       toolbarState.breadcrumbs = getBreadcrumbs(experiment);
-      props.updateToolbar(toolbarState);
+      updateToolbar(toolbarState);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolbarState, experiment, recurringRun]);
@@ -106,7 +103,27 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     refetchRecurringRun();
   }, [refresh, refetchRecurringRun]);
 
-  const deleteCallback = (selectedIds: string[], success: boolean) => {
+  const getInitialToolbarState = (): ToolbarProps => {
+    const buttons = new Buttons(props, Refresh);
+    return {
+      actions: buttons
+        .cloneRecurringRun(() => (recurringRun ? [recurringRun.recurring_run_id!] : []), true)
+        .refresh(Refresh)
+        .enableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
+        .disableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
+        .delete(
+          () => (recurringRun ? [recurringRun.recurring_run_id!] : []),
+          'recurring run config',
+          deleteCallback,
+          true /* useCurrentResource */,
+        )
+        .getToolbarActionMap(),
+      breadcrumbs: [],
+      pageTitle: '',
+    };
+  };
+
+  const deleteCallback = (_: string[], success: boolean) => {
     if (success) {
       const breadcrumbs = props.toolbarProps.breadcrumbs;
       const previousPage = breadcrumbs.length
@@ -187,14 +204,4 @@ function getRunParameters(recurringRun: V2beta1RecurringRun): Array<KeyValue<str
   ]);
 
   return parameters;
-}
-
-function deleteCallback(selectedIds: string[], success: boolean, props: PageProps) {
-  if (success) {
-    const breadcrumbs = props.toolbarProps.breadcrumbs;
-    const previousPage = breadcrumbs.length
-      ? breadcrumbs[breadcrumbs.length - 1].href
-      : RoutePage.EXPERIMENTS;
-    props.history.push(previousPage);
-  }
 }
