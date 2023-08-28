@@ -15,6 +15,8 @@
 
 from typing import Optional
 
+from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
 from kfp.dsl import Output
@@ -22,7 +24,6 @@ from kfp.dsl import Output
 
 @dsl.container_component
 def tabular_dataset_create(
-    project: str,
     display_name: str,
     dataset: Output[VertexDataset],
     location: Optional[str] = 'us-central1',
@@ -30,33 +31,24 @@ def tabular_dataset_create(
     bq_source: Optional[str] = None,
     labels: Optional[dict] = {},
     encryption_spec_key_name: Optional[str] = None,
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """
-  Creates a new tabular dataset.
+  """Creates a new tabular `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_.
+
   Args:
-      display_name (String):
-          Required. The user-defined name of the Dataset.
+      display_name: The user-defined name of the Dataset.
           The name can be up to 128 characters long and can be consist
           of any UTF-8 characters.
-      gcs_source (Union[str, Sequence[str]]):
+      gcs_source:
           Google Cloud Storage URI(-s) to the
           input file(s). May contain wildcards. For more
           information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          examples:
-              str: "gs://bucket/file.csv"
-              Sequence[str]: ["gs://bucket/file1.csv", "gs://bucket/file2.csv"]
-      bq_source (String):
-          BigQuery URI to the input table.
-          example:
-              "bq://project.dataset.table_name"
-      project (String):
-          Required. project to retrieve dataset from.
-      location (String):
-          Optional location to retrieve dataset from.
-      labels (JsonObject):
-          Optional. Labels with user-defined metadata to organize your Tensorboards.
+          For example, ``"gs://bucket/file.csv"`` or ``["gs://bucket/file1.csv", "gs://bucket/file2.csv"]``.
+      bq_source: BigQuery URI to the input table. For example, "bq://project.dataset.table_name".
+      location: Optional location to retrieve Dataset from.
+      labels: Labels with user-defined metadata to organize your Tensorboards.
           Label keys and values can be no longer than 64 characters
           (Unicode codepoints), can only contain lowercase letters, numeric
           characters, underscores and dashes. International characters are allowed.
@@ -65,28 +57,27 @@ def tabular_dataset_create(
           See https://goo.gl/xmQnxf for more information and examples of labels.
           System reserved label keys are prefixed with "aiplatform.googleapis.com/"
           and are immutable.
-      encryption_spec_key_name (Optional[String]):
-          Optional. The Cloud KMS resource identifier of the customer
-          managed encryption key used to protect the dataset. Has the
+      encryption_spec_key_name: The Cloud KMS resource identifier of the customer
+          managed encryption key used to protect the Dataset. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
           The key needs to be in the same region as where the compute
           resource is created.
           If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
-          Overrides encryption_spec_key_name set in aiplatform.init.
-  Returns:
-      tabular_dataset (TabularDataset):
-          Instantiated representation of the managed tabular dataset resource.
+          Overrides ``encryption_spec_key_name`` set in ``aiplatform.init``.
+      project: Project to retrieve Dataset from. Defaults to the project in which the PipelineJob is run.
 
+  Returns:
+      dataset: Instantiated representation of the managed tabular Dataset resource.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'TabularDataset',
           '--method_name',

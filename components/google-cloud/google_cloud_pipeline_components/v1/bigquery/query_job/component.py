@@ -14,6 +14,8 @@
 
 from typing import Dict, List
 
+from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -24,7 +26,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_query_job(
-    project: str,
     destination_table: Output[BQTable],
     gcp_resources: OutputPath(str),
     query: str = '',
@@ -33,40 +34,34 @@ def bigquery_query_job(
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery query job and waits for it to finish.
 
   Args:
-      project (str):
-        Required. Project to run the BigQuery query job.
-      location (Optional[str]):
-        Location for creating the BigQuery job. If not
+      location: Location for creating the BigQuery job. If not
         set, default to `US` multi-region.  For more details, see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      query (str):
-        Required. SQL query text to execute. Only standard SQL is
+      query: SQL query text to execute. Only standard SQL is
         supported.  If query are both specified in here and in
         job_configuration_query, the value in here will override the other
         one.
-      query_parameters (Optional[Sequence]):
-        jobs.query parameters for
+      query_parameters: jobs.query parameters for
         standard SQL queries.  If query_parameters are both specified in here
         and in job_configuration_query, the value in here will override the
         other one.
-      job_configuration_query (Optional[dict]):
-        A json formatted string
+      job_configuration_query: A json formatted string
         describing the rest of the job configuration.  For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels (Optional[dict]):
-        The labels associated with this job. You can
+      labels: The labels associated with this job. You can
         use these to organize and group your jobs. Label keys and values can
         be no longer than 63 characters, can only containlowercase letters,
         numeric characters, underscores and dashes. International characters
         are allowed. Label values are optional. Label keys must start with a
         letter and each label in the list must have a different key.
         Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-      encryption_spec_key_name(Optional[List[str]]):
+      encryption_spec_key_name:
         Describes the Cloud
         KMS encryption key that will be used to protect destination
         BigQuery table. The BigQuery Service Account associated with your
@@ -74,22 +69,21 @@ def bigquery_query_job(
         encryption_spec_key_name are both specified in here and in
         job_configuration_query, the value in here will override the other
         one.
+      project: Project to run the BigQuery query job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      destination_table (google.BQTable):
-        Describes the table where the query results should be stored.
+      destination_table: Describes the table where the query results should be stored.
         This property must be set for large results that exceed the maximum
         response size.
         For queries that produce anonymous (cached) results, this field will
         be populated by BigQuery.
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the BigQuery job.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
           For more details, see
           https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',

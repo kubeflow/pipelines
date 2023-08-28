@@ -59,6 +59,7 @@ const css = stylesheet({
     fontSize: 12,
     minHeight: 16,
     paddingLeft: 0,
+    marginRight: 0,
   },
   cardContent: {
     color: color.secondaryText,
@@ -90,7 +91,7 @@ const css = stylesheet({
     color: '#0d652d',
   },
   recurringRunsCard: {
-    width: 158,
+    width: 270,
   },
   recurringRunsDialog: {
     minWidth: 600,
@@ -170,7 +171,17 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                 elevation={0}
               >
                 <div>
-                  <div className={css.cardTitle}>Recurring run configs</div>
+                  <div className={css.cardTitle}>
+                    <span>Recurring run configs</span>
+                    <Button
+                      className={css.cardBtn}
+                      id='manageExperimentRecurringRunsBtn'
+                      disableRipple={true}
+                      onClick={() => this.setState({ recurringRunsManagerOpen: true })}
+                    >
+                      Manage
+                    </Button>
+                  </div>
                   <div
                     className={classes(
                       css.cardContent,
@@ -179,14 +190,6 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                   >
                     {activeRecurringRunsCount + ' active'}
                   </div>
-                  <Button
-                    className={css.cardBtn}
-                    id='manageExperimentRecurringRunsBtn'
-                    disableRipple={true}
-                    onClick={() => this.setState({ recurringRunsManagerOpen: true })}
-                  >
-                    Manage
-                  </Button>
                 </div>
               </Paper>
               <Paper

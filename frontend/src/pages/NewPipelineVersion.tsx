@@ -424,9 +424,10 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
           {/* Fill pipeline version code source url */}
           <Input
             id='pipelineVersionCodeSource'
-            label='Code Source (optional)'
+            label='Code Source'
             multiline={true}
             onChange={this.handleChange('codeSourceUrl')}
+            required={false}
             value={codeSourceUrl}
             variant='outlined'
           />
@@ -636,7 +637,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         if (!pipelineName) {
           throw new Error('Pipeline name is required');
         }
-        this._isValidName(pipelineName!, 'Pipeline name');
       } else {
         if (!pipeline) {
           throw new Error('Pipeline is required');
@@ -654,22 +654,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       this.setState({ validationError: '' });
     } catch (err) {
       this.setState({ validationError: err.message });
-    }
-  }
-
-  private _isValidName(name: string, title: string): void {
-    if (name.length > 100) {
-      throw new Error(title + ' must contain no more than 100 characters');
-    }
-    if (
-      !name
-        .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
-        ?.includes(name)
-    ) {
-      throw new Error(
-        title +
-          " must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
-      );
     }
   }
 

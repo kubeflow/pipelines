@@ -27,7 +27,7 @@ components:
       parameters:
         status:
           isOptional: true
-          parameterType: STRUCT
+          parameterType: TASK_FINAL_STATUS
         user_input:
           parameterType: STRING
   comp-print-op:
@@ -92,4 +92,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.16
+sdkVersion: kfp-2.0.0-rc.2

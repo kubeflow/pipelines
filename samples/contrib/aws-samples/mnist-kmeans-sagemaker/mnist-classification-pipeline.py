@@ -17,11 +17,12 @@ sagemaker_process_op = components.load_component_from_file(
 sagemaker_train_op = components.load_component_from_file(
     "../../../../components/aws/sagemaker/TrainingJob/component.yaml"
 )
-sagemaker_model_op = components.load_component_from_file(
-    "../../../../components/aws/sagemaker/model/component.yaml"
+sagemaker_Model_op = components.load_component_from_file("../../../../components/aws/sagemaker/Modelv2/component.yaml")
+sagemaker_EndpointConfig_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/EndpointConfig/component.yaml"
 )
-sagemaker_deploy_op = components.load_component_from_file(
-    "../../../../components/aws/sagemaker/deploy/component.yaml"
+sagemaker_Endpoint_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/Endpoint/component.yaml"
 )
 sagemaker_batch_transform_op = components.load_component_from_file(
     "../../../../components/aws/sagemaker/batch_transform/component.yaml"
@@ -56,6 +57,28 @@ def training_input(input_name, s3_uri):
         "ChannelName": input_name,
         "DataSource": {"S3DataSource": {"S3Uri": s3_uri, "S3DataType": "S3Prefix"}},
     }
+
+
+def model_input(train_image, model_artifact_url):
+    return {
+        "containerHostname": "mnist-kmeans",
+        "image": train_image,
+        "mode": "SingleModel",
+        "modelDataURL": model_artifact_url,
+    }
+
+
+def get_production_variants(model_name):
+    return [
+    {
+        "initialInstanceCount": 1,
+        "initialVariantWeight": 1,
+        "instanceType": "ml.t2.medium",
+        "modelName": model_name,
+        "variantName": "mnist-kmeans-sample",
+        "volumeSizeInGB": 5,
+    }
+]
 
 
 @dsl.pipeline(
@@ -184,22 +207,28 @@ def mnist_classification(role_arn="", bucket_name=""):
         training.outputs["model_artifacts"]
     ).output
 
-    create_model = sagemaker_model_op(
+    Model = sagemaker_Model_op(
         region=region,
-        model_name=trainingJobName + "-model",
-        image=train_image,
-        model_artifact_url=model_artifact_url,
-        role=role_arn,
+        execution_role_arn=role_arn,
+        primary_container=model_input(train_image, model_artifact_url),
+    )
+    model_name =  Model.outputs["sagemaker_resource_name"]
+    EndpointConfig = sagemaker_EndpointConfig_op(
+        region=region,
+        production_variants=get_production_variants(model_name),
     )
 
-    sagemaker_deploy_op(
+    endpoint_config_name = EndpointConfig.outputs["sagemaker_resource_name"]
+
+    Endpoint = sagemaker_Endpoint_op(
         region=region,
-        model_name_1=create_model.output,
+        endpoint_config_name=endpoint_config_name,
     )
+
 
     sagemaker_batch_transform_op(
         region=region,
-        model_name=create_model.output,
+        model_name=model_name,
         instance_type=instance_type,
         batch_strategy="MultiRecord",
         input_location=f"s3://{bucket_name}/mnist_kmeans_example/input",

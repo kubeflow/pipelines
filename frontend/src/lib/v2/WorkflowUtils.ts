@@ -13,7 +13,13 @@
 // limitations under the License.
 import jsyaml from 'js-yaml';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
-import { ComponentSpec, PipelineSpec, PlatformSpec } from 'src/generated/pipeline_spec';
+import {
+  ComponentSpec,
+  PipelineDeploymentConfig,
+  PipelineDeploymentConfig_ExecutorSpec,
+  PipelineSpec,
+  PlatformSpec,
+} from 'src/generated/pipeline_spec';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
@@ -63,12 +69,12 @@ export function isTemplateV2(templateString: string): boolean {
 
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
-  const pipelineSpecYAML = getPipelineDefFromYaml(template);
-  const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecYAML);
-  if (!ts_pipelinespec.root || !ts_pipelinespec.pipelineInfo || !ts_pipelinespec.deploymentSpec) {
+  const pipelineSpecDef = getPipelineDefFromYaml(template);
+  const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecDef);
+  if (!pipelineSpec.root || !pipelineSpec.pipelineInfo || !pipelineSpec.deploymentSpec) {
     throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
   }
-  return ts_pipelinespec;
+  return pipelineSpec;
 
   // Archive: The following is used by protobuf.js.
   // const message = ml_pipelines.PipelineSpec.fromObject(pipelineJob['pipelineSpec']);
@@ -79,8 +85,8 @@ export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
 }
 
 export function convertYamlToPlatformSpec(template: string) {
-  const platformSpecYaml = getPlatformDefFromYaml(template);
-  const platformSpec = PlatformSpec.fromJSON(platformSpecYaml || '');
+  const platformSpecDef = getPlatformDefFromYaml(template);
+  const platformSpec = PlatformSpec.fromJSON(platformSpecDef || '');
   return Object.keys(platformSpec.platforms).length !== 0 ? platformSpec : undefined;
 }
 
@@ -110,13 +116,23 @@ export function isPipelineSpec(templateString: string) {
 // the `container` object for its image, command, arguments, etc.
 export function getContainer(componentSpec: ComponentSpec, templateString: string) {
   const executionLabel = componentSpec?.executorLabel;
-
-  const jsonTemplate = getPipelineDefFromYaml(templateString);
-  const deploymentSpec = jsonTemplate['deploymentSpec'];
-
-  const executorsMap = deploymentSpec['executors'];
-  if (!executorsMap || !executionLabel) {
+  if (!executionLabel) {
     return null;
   }
-  return executorsMap?.[executionLabel]?.['container'];
+
+  const pipelineSpecDef = getPipelineDefFromYaml(templateString);
+  const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecDef);
+  const deploymentSpecObj = pipelineSpec?.deploymentSpec;
+  if (!deploymentSpecObj) {
+    return null;
+  }
+
+  const deploymentSpec = PipelineDeploymentConfig.fromJSON(deploymentSpecObj);
+  const executorsObj = deploymentSpec?.executors;
+  if (!executorsObj) {
+    return null;
+  }
+
+  const executorSpec = PipelineDeploymentConfig_ExecutorSpec.fromJSON(executorsObj[executionLabel]);
+  return executorSpec ? executorSpec.container : null;
 }

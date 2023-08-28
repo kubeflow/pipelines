@@ -15,6 +15,7 @@
 
 from typing import Optional
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp import dsl
@@ -75,73 +76,64 @@ def automl_forecasting_training_job(
     additional_experiments: Optional[list] = None,
 ):
   # fmt: off
-  """
-    Runs the training job and returns a model.
+  """Runs the training job and returns a model.
+
   If training on a Vertex AI dataset, you can use one of the following split configurations:
-      Data fraction splits:
-      Any of ``training_fraction_split``, ``validation_fraction_split`` and
-      ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
-      the provided ones sum to less than 1, the remainder is assigned to sets as
-      decided by Vertex AI. If none of the fractions are set, by default roughly 80%
-      of data will be used for training, 10% for validation, and 10% for test.
-      Predefined splits:
-      Assigns input data to training, validation, and test sets based on the value of a provided key.
-      If using predefined splits, ``predefined_split_column_name`` must be provided.
-      Supported only for tabular Datasets.
-      Timestamp splits:
-      Assigns input data to training, validation, and test sets
-      based on a provided timestamps. The youngest data pieces are
-      assigned to training set, next to validation set, and the oldest
-      to the test set.
-      Supported only for tabular Datasets.
+
+  Data fraction splits:
+  Any of ``training_fraction_split``, ``validation_fraction_split`` and
+  ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
+  the provided ones sum to less than 1, the remainder is assigned to sets as
+  decided by Vertex AI. If none of the fractions are set, by default roughly 80%
+  of data will be used for training, 10% for validation, and 10% for test.
+  Predefined splits:
+  Assigns input data to training, validation, and test sets based on the value of a provided key.
+  If using predefined splits, ``predefined_split_column_name`` must be provided.
+  Supported only for tabular Datasets.
+  Timestamp splits:
+  Assigns input data to training, validation, and test sets
+  based on a provided timestamps. The youngest data pieces are
+  assigned to training set, next to validation set, and the oldest
+  to the test set.
+
+  Supported only for tabular Datasets.
+
   Args:
-      dataset (google.VertexDataset):
-          Required. The dataset within the same Project from which data will be used to train the Model. The
+      dataset: The dataset within the same Project from which data will be used to train the Model. The
           Dataset must use schema compatible with Model being trained,
           and what is compatible should be described in the used
           TrainingPipeline's [training_task_definition]
           [google.cloud.aiplatform.v1beta1.TrainingPipeline.training_task_definition].
           For time series Datasets, all their data is exported to
           training, to pick and choose from.
-      target_column (String):
-          Required. Name of the column that the Model is to predict values for. This
+      target_column: Name of the column that the Model is to predict values for. This
           column must be unavailable at forecast.
-      time_column (String):
-          Required. Name of the column that identifies time order in the time series.
+      time_column: Name of the column that identifies time order in the time series.
           This column must be available at forecast.
-      time_series_identifier_column (String):
-          Required. Name of the column that identifies the time series.
-      unavailable_at_forecast_columns (JsonArray):
-          Required. Column names of columns that are unavailable at forecast.
+      time_series_identifier_column: Name of the column that identifies the time series.
+      unavailable_at_forecast_columns: Column names of columns that are unavailable at forecast.
           Each column contains information for the given entity (identified by the
           [time_series_identifier_column]) that is unknown before the forecast
           (e.g. population of a city in a given year, or weather on a given day).
-      available_at_forecast_columns (JsonArray):
-          Required. Column names of columns that are available at forecast.
+      available_at_forecast_columns: Column names of columns that are available at forecast.
           Each column contains information for the given entity (identified by the
           [time_series_identifier_column]) that is known at forecast.
-      forecast_horizon: (Integer):
-          Required. The amount of time into the future for which forecasted values for the target are
+      forecast_horizon:
+          The amount of time into the future for which forecasted values for the target are
           returned. Expressed in number of units defined by the [data_granularity_unit] and
           [data_granularity_count] field. Inclusive.
-      data_granularity_unit (String):
-          Required. The data granularity unit. Accepted values are ``minute``,
+      data_granularity_unit: The data granularity unit. Accepted values are ``minute``,
           ``hour``, ``day``, ``week``, ``month``, ``year``.
-      data_granularity_count (Integer):
-          Required. The number of data granularity units between data points in the training
+      data_granularity_count: The number of data granularity units between data points in the training
           data. If [data_granularity_unit] is `minute`, can be 1, 5, 10, 15, or 30. For all other
           values of [data_granularity_unit], must be 1.
-      training_fraction_split (Float):
-          Optional. The fraction of the input data that is to be used to train
+      training_fraction_split: The fraction of the input data that is to be used to train
           the Model. This is ignored if Dataset is not provided.
-      validation_fraction_split (Float):
-          Optional. The fraction of the input data that is to be used to validate
+      validation_fraction_split: The fraction of the input data that is to be used to validate
           the Model. This is ignored if Dataset is not provided.
-      test_fraction_split (Float):
-          Optional. The fraction of the input data that is to be used to evaluate
+      test_fraction_split: The fraction of the input data that is to be used to evaluate
           the Model. This is ignored if Dataset is not provided.
-      predefined_split_column_name (String):
-          Optional. The key is a name of one of the Dataset's data
+      predefined_split_column_name: The key is a name of one of the Dataset's data
           columns. The value of the key (either the label's value or
           value in the column) must be one of {``TRAIN``,
           ``VALIDATE``, ``TEST``}, and it defines to which set the
@@ -149,8 +141,7 @@ def automl_forecasting_training_job(
           key is not present or has an invalid value, that piece is
           ignored by the pipeline.
           Supported only for tabular and time series Datasets.
-      timestamp_split_column_name (String):
-          Optional. The key is a name of one of the Dataset's data
+      timestamp_split_column_name: The key is a name of one of the Dataset's data
           columns. The value of the key values of the key (the values in
           the column) must be in RFC 3339 `date-time` format, where
           `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a
@@ -159,52 +150,42 @@ def automl_forecasting_training_job(
           Supported only for tabular and time series Datasets.
           This parameter must be used with training_fraction_split,
           validation_fraction_split, and test_fraction_split.
-      weight_column (String):
-          Optional. Name of the column that should be used as the weight column.
+      weight_column: Name of the column that should be used as the weight column.
           Higher values in this column give more importance to the row
           during Model training. The column must have numeric values between 0 and
           10000 inclusively, and 0 value means that the row is ignored.
           If the weight column field is not set, then all rows are assumed to have
           equal weight of 1.
-      time_series_attribute_columns (JsonArray):
-          Optional. Column names that should be used as attribute columns.
+      time_series_attribute_columns: Column names that should be used as attribute columns.
           Each column is constant within a time series.
-      context_window (Integer):
-          Optional. The amount of time into the past training and prediction data is used for
+      context_window: The amount of time into the past training and prediction data is used for
           model training and prediction respectively. Expressed in number of units defined by the
           [data_granularity_unit] and [data_granularity_count] fields. When not provided uses the
           default value of 0 which means the model sets each series context window to be 0 (also
           known as "cold start"). Inclusive.
-      export_evaluated_data_items (Boolean):
-          Whether to export the test set predictions to a BigQuery table.
+      export_evaluated_data_items: Whether to export the test set predictions to a BigQuery table.
           If False, then the export is not performed.
-      export_evaluated_data_items_bigquery_destination_uri (String):
-          Optional. URI of desired destination BigQuery table for exported test set predictions.
+      export_evaluated_data_items_bigquery_destination_uri: URI of desired destination BigQuery table for exported test set predictions.
           Expected format:
           ``bq://<project_id>:<dataset_id>:<table>``
           If not specified, then results are exported to the following auto-created BigQuery
           table:
           ``<project_id>:export_evaluated_examples_<model_name>_<yyyy_MM_dd'T'HH_mm_ss_SSS'Z'>.evaluated_examples``
           Applies only if [export_evaluated_data_items] is True.
-      export_evaluated_data_items_override_destination (Boolean):
-          Whether to override the contents of [export_evaluated_data_items_bigquery_destination_uri],
+      export_evaluated_data_items_override_destination: Whether to override the contents of [export_evaluated_data_items_bigquery_destination_uri],
           if the table exists, for exported test set predictions. If False, and the
           table exists, then the training job will fail.
           Applies only if [export_evaluated_data_items] is True and
           [export_evaluated_data_items_bigquery_destination_uri] is specified.
-      quantiles (JsonArray):
-          Quantiles to use for the `minimize-quantile-loss`
+      quantiles: Quantiles to use for the `minimize-quantile-loss`
           [AutoMLForecastingTrainingJob.optimization_objective]. This argument is required in
           this case.
           Accepts up to 5 quantiles in the form of a double from 0 to 1, exclusive.
           Each quantile must be unique.
-      validation_options (String):
-          Validation options for the data validation component. The available options are:
-          "fail-pipeline" - (default), will validate against the validation and fail the pipeline
-                            if it fails.
+      validation_options: Validation options for the data validation component. The available options are:
+          "fail-pipeline" - (default), will validate against the validation and fail the pipeline if it fails.
           "ignore-validation" - ignore the results of the validation and continue the pipeline
-      budget_milli_node_hours (Integer):
-          Optional. The train budget of creating this Model, expressed in milli node
+      budget_milli_node_hours: The train budget of creating this Model, expressed in milli node
           hours i.e. 1,000 value in this field means 1 node hour.
           The training cost of the model will not exceed this budget. The final
           cost will be attempted to be close to the budget, though may end up
@@ -215,13 +196,11 @@ def automl_forecasting_training_job(
           Model for the given training set, the training won't be attempted and
           will error.
           The minimum value is 1000 and the maximum is 72000.
-      model_display_name (String):
-          Optional. If the script produces a managed Vertex AI Model. The display name of
+      model_display_name: If the script produces a managed Vertex AI Model. The display name of
           the Model. The name can be up to 128 characters long and can be consist
           of any UTF-8 characters.
           If not provided upon creation, the job's display_name is used.
-      model_labels (JsonObject):
-          Optional. The labels with user-defined metadata to
+      model_labels: The labels with user-defined metadata to
           organize your Models.
           Label keys and values can be no longer than 64
           characters (Unicode codepoints), can only
@@ -230,17 +209,14 @@ def automl_forecasting_training_job(
           are allowed.
           See https://goo.gl/xmQnxf for more information
           and examples of labels.
-      model_id (String):
-          Optional. The ID to use for the Model produced by this job,
+      model_id: The ID to use for the Model produced by this job,
           which will become the final component of the model resource name.
           This value may be up to 63 characters, and valid characters
           are `[a-z0-9_-]`. The first character cannot be a number or hyphen.
-      parent_model (String):
-          Optional. The resource name or model ID of an existing model.
+      parent_model: The resource name or model ID of an existing model.
           The new model uploaded by this job will be a version of `parent_model`.
           Only set this field when training a new version of an existing model.
-      is_default_version (Boolean):
-          Optional. When set to True, the newly uploaded model version will
+      is_default_version: When set to True, the newly uploaded model version will
           automatically have alias "default" included. Subsequent uses of
           the model produced by this job without a version specified will
           use this "default" version.
@@ -248,16 +224,13 @@ def automl_forecasting_training_job(
           Actions targeting the model version produced by this job will need
           to specifically reference this version by ID or alias.
           New model uploads, i.e. version 1, will always be "default" aliased.
-      model_version_aliases (JsonArray):
-          Optional. User provided version aliases so that the model version
+      model_version_aliases: User provided version aliases so that the model version
           uploaded by this job can be referenced via alias instead of
           auto-generated version ID. A default version alias will be created
           for the first version of the model.
           The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
-      model_version_description (String):
-         Optional. The description of the model version being uploaded by this job.
-      hierarchy_group_columns (JsonArray):
-          Optional. A list of time series attribute column names that
+      model_version_description: The description of the model version being uploaded by this job.
+      hierarchy_group_columns: A list of time series attribute column names that
           define the time series hierarchy. Only one level of hierarchy is
           supported, ex. ``region`` for a hierarchy of stores or
           ``department`` for a hierarchy of products. If multiple columns
@@ -265,30 +238,23 @@ def automl_forecasting_training_job(
           values, ex. (``blue``, ``large``) for ``color`` and ``size``, up
           to 5 columns are accepted. If no group columns are specified,
           all time series are considered to be part of the same group.
-      hierarchy_group_total_weight (Float):
-          Optional. The weight of the loss for predictions aggregated over
+      hierarchy_group_total_weight: The weight of the loss for predictions aggregated over
           time series in the same hierarchy group.
-      hierarchy_temporal_total_weight (Float):
-          Optional. The weight of the loss for predictions aggregated over
+      hierarchy_temporal_total_weight: The weight of the loss for predictions aggregated over
           the horizon for a single time series.
-      hierarchy_group_temporal_total_weight (Float):
-          Optional. The weight of the loss for predictions aggregated over
+      hierarchy_group_temporal_total_weight: The weight of the loss for predictions aggregated over
           both the horizon and time series in the same hierarchy group.
-      window_column (String):
-          Optional. Name of the column that should be used to filter input
+      window_column: Name of the column that should be used to filter input
           rows. The column should contain either booleans or string
           booleans; if the value of the row is True, generate a sliding
           window from that row.
-      window_stride_length (Integer):
-          Optional. Step length used to generate input examples. Every
+      window_stride_length: Step length used to generate input examples. Every
           ``window_stride_length`` rows will be used to generate a sliding
           window.
-      window_max_count (Integer):
-          Optional. Number of rows that should be used to generate input
+      window_max_count: Number of rows that should be used to generate input
           examples. If the total row count is larger than this number, the
           input data will be randomly sampled to hit the count.
-      holiday_regions (JsonArray):
-          Optional. The geographical regions to use when creating holiday
+      holiday_regions: The geographical regions to use when creating holiday
           features. This option is only allowed when data_granularity_unit
           is ``day``. Acceptable values can come from any of the following
           levels:
@@ -299,22 +265,18 @@ def automl_forecasting_training_job(
               EMEA: Europe, the Middle East and Africa
               LAC: Latin America and the Caribbean
             Third level: countries from ISO 3166-1 Country codes.
-      display_name (String):
-          Required. The user-defined name of this TrainingPipeline.
-      optimization_objective (String):
-          Optional. Objective function the model is to be optimized towards.
+      display_name: The user-defined name of this TrainingPipeline.
+      optimization_objective: Objective function the model is to be optimized towards.
           The training process creates a Model that optimizes the value of the objective
           function over the validation set. The supported optimization objectives:
           "minimize-rmse" (default) - Minimize root-mean-squared error (RMSE).
           "minimize-mae" - Minimize mean-absolute error (MAE).
           "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
           "minimize-rmspe" - Minimize root-mean-squared percentage error (RMSPE).
-          "minimize-wape-mae" - Minimize the combination of weighted absolute percentage error (WAPE)
-                                and mean-absolute-error (MAE).
+          "minimize-wape-mae" - Minimize the combination of weighted absolute percentage error (WAPE) and mean-absolute-error (MAE).
           "minimize-quantile-loss" - Minimize the quantile loss at the defined quantiles.
                                      (Set this objective to build quantile forecasts.)
-      column_specs (JsonObject):
-          Optional. Alternative to column_transformations where the keys of the dict
+      column_specs: Alternative to column_transformations where the keys of the dict
           are column names and their respective values are one of
           AutoMLTabularTrainingJob.column_data_types.
           When creating transformation for BigQuery Struct column, the column
@@ -324,8 +286,8 @@ def automl_forecasting_training_job(
           ignored by the training, except for the targetColumn, which should have
           no transformations defined on.
           Only one of column_transformations or column_specs should be passed.
-      column_transformations (List[Dict[str, Dict[str, str]]]):
-          Optional. Transformations to apply to the input columns (i.e. columns other
+      column_transformations:
+          Transformations to apply to the input columns (i.e. columns other
           than the targetColumn). Each transformation may produce multiple
           result values from the column's value, and all are used for training.
           When creating transformation for BigQuery Struct column, the column
@@ -336,12 +298,9 @@ def automl_forecasting_training_job(
           no transformations defined on.
           Only one of column_transformations or column_specs should be passed.
           Consider using column_specs as column_transformations will be deprecated eventually.
-      project (String):
-          Required. project to retrieve dataset from.
-      location (String):
-          Optional location to retrieve dataset from.
-      labels (JsonObject):
-          Optional. The labels with user-defined metadata to
+      project: Project to retrieve dataset from.
+      location: Optional location to retrieve dataset from.
+      labels: The labels with user-defined metadata to
           organize TrainingPipelines.
           Label keys and values can be no longer than 64
           characters (Unicode codepoints), can only
@@ -350,8 +309,7 @@ def automl_forecasting_training_job(
           are allowed.
           See https://goo.gl/xmQnxf for more information
           and examples of labels.
-      training_encryption_spec_key_name (Optional[String]):
-          Optional. The Cloud KMS resource identifier of the customer
+      training_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the training pipeline. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
@@ -361,8 +319,7 @@ def automl_forecasting_training_job(
           Note: Model trained by this TrainingPipeline is also secured
           by this key if ``model_to_upload`` is not set separately.
           Overrides encryption_spec_key_name set in aiplatform.init.
-      model_encryption_spec_key_name (Optional[String]):
-          Optional. The Cloud KMS resource identifier of the customer
+      model_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the model. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
@@ -370,21 +327,20 @@ def automl_forecasting_training_job(
           resource is created.
           If set, the trained Model will be secured by this key.
           Overrides encryption_spec_key_name set in aiplatform.init.
-      additional_experiments (List[str]):
-          Optional. Additional experiment flags for the time series forcasting training.
+      additional_experiments: Additional experiment flags for the time series forcasting training.
+
   Returns:
       model: The trained Vertex AI Model resource or None if training did not
           produce a Vertex AI Model.
-
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'AutoMLForecastingTrainingJob',
           '--method_name',
@@ -414,7 +370,7 @@ def automl_forecasting_training_job(
           '--method.data_granularity_count',
           data_granularity_count,
           '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           dsl.IfPresentPlaceholder(
               input_name='optimization_objective',
               then=['--init.optimization_objective', optimization_objective],

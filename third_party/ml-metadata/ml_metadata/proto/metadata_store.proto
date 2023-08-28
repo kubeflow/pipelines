@@ -16,6 +16,7 @@ syntax = "proto2";
 
 package ml_metadata;
 
+import "google/protobuf/any.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/descriptor.proto";
 
@@ -36,11 +37,13 @@ message Value {
     double double_value = 2;
     string string_value = 3;
     google.protobuf.Struct struct_value = 4;
+    google.protobuf.Any proto_value = 5;
+    bool bool_value = 6;
   }
 }
 
 message Artifact {
-  // Output only. The globally unique server generated id of the artifact.
+  // Output only. The unique server generated id of the artifact.
   optional int64 id = 1;
   // The client provided name of the artifact. This field is optional. If set,
   // it must be unique among all the artifacts of the same artifact type within
@@ -54,6 +57,9 @@ message Artifact {
   // The uniform resource identifier of the physical artifact.
   // May be empty if there is no physical artifact.
   optional string uri = 3;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all artifacts within a database instance.
+  optional string external_id = 11;
   // Properties of the artifact.
   // Properties must be specified in the ArtifactType.
   map<string, Value> properties = 4;
@@ -71,6 +77,17 @@ message Artifact {
     MARKED_FOR_DELETION = 3;
     // A state indicating that the artifact has been deleted.
     DELETED = 4;
+    // A state indicating that the artifact has been abandoned, which may be
+    // due to a failed or cancelled execution.
+    ABANDONED = 5;
+    // A state indicating that the artifact is a reference artifact. At
+    // execution start time, the orchestrator produces an output artifact for
+    // each output key with state PENDING. However, for an intermediate
+    // artifact, this first artifact's state will be REFERENCE. Intermediate
+    // artifacts emitted during a component's execution will copy the REFERENCE
+    // artifact's attributes. At the end of an execution, the artifact state
+    // should remain REFERENCE instead of being changed to LIVE.
+    REFERENCE = 6;
   }
 
   // The state of the artifact known to the system.
@@ -80,6 +97,9 @@ message Artifact {
   // Output only. Last update time of the artifact since epoch in millisecond
   // since epoch.
   optional int64 last_update_time_since_epoch = 10;
+
+  // Output only.
+  optional google.protobuf.Any system_metadata = 12;
 }
 
 // The list of supported property value types.
@@ -88,7 +108,11 @@ enum PropertyType {
   INT = 1;
   DOUBLE = 2;
   STRING = 3;
+  // Prefer to use `PROTO` to store structed data since this option has
+  // inefficient database storage usage.
   STRUCT = 4;
+  PROTO = 5;
+  BOOLEAN = 6;
 }
 
 message ArtifactType {
@@ -101,6 +125,10 @@ message ArtifactType {
   optional string version = 4;
   // An optional description about the type.
   optional string description = 5;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all artifact types within a database
+  // instance.
+  optional string external_id = 7;
   // The schema of the type.
   // Properties are always optional in the artifact.
   // Properties of an artifact type can be expanded but not contracted (i.e.,
@@ -156,40 +184,57 @@ message ArtifactType {
 //       type:DECLARED_OUTPUT,
 //       path:{step:[{"key":"my_result"}]}
 //   }
-// Other event types include INPUT/OUTPUT and INTERNAL_INPUT/_OUTPUT.
+//
+// Other event types include INPUT/OUTPUT, INTERNAL_INPUT/_OUTPUT and
+// PENDING_OUTPUT:
+//
 // * The INPUT/OUTPUT is an event that actually reads/writes an artifact by an
 //   execution. The input/output artifacts may not declared in the signature,
 //   For example, the trainer may output multiple caches of the parameters
 //   (as an OUTPUT), then finally write the SavedModel as a DECLARED_OUTPUT.
+//
 // * The INTERNAL_INPUT/_OUTPUT are event types which are only meaningful to
 //   an orchestration system to keep track of the details for later debugging.
 //   For example, a fork happened conditioning on an artifact, then an execution
-//   is triggered, such fork implementating may need to log the read and write
+//   is triggered, such fork implementing may need to log the read and write
 //   of artifacts and may not be worth displaying to the users.
 //
-// For instance, in the above example,
+//   For instance, in the above example,
 //
-//   my_result = my_execution({"data":[3,7],"schema":8})
+//     my_result = my_execution({"data":[3,7],"schema":8})
 //
-// there is another execution (id: 15), which represents a `garbage_collection`
-// step in an orchestration system
+//   there is another execution (id: 15), which represents a
+//   `garbage_collection` step in an orchestration system
 //
-//   gc_result = garbage_collection(my_result)
+//     gc_result = garbage_collection(my_result)
 //
-// that cleans `my_result` if needed. The details should be invisible to the
-// end users and lineage tracking. The orchestrator can emit following events:
+//   that cleans `my_result` if needed. The details should be invisible to the
+//   end users and lineage tracking. The orchestrator can emit following events:
 //
-//   {
-//       artifact_id: 15,
-//       execution_id: 15,
-//       type:INTERNAL_INPUT,
-//   }
-//   {
-//       artifact_id:16,  // New artifact containing the GC job result.
-//       execution_id: 15,
-//       type:INTERNAL_OUTPUT,
-//       path:{step:[{"key":"gc_result"}]}
-//   }
+//     {
+//         artifact_id: 15,
+//         execution_id: 15,
+//         type:INTERNAL_INPUT,
+//     }
+//     {
+//         artifact_id:16,  // New artifact containing the GC job result.
+//         execution_id: 15,
+//         type:INTERNAL_OUTPUT,
+//         path:{step:[{"key":"gc_result"}]}
+//     }
+//
+// * The PENDING_OUTPUT event is used to indicate that an artifact is
+//   tentatively associated with an active execution which has not yet been
+//   finalized. For example, an orchestration system can register output
+//   artifacts of a running execution with PENDING_OUTPUT events to indicate
+//   the output artifacts the execution is expected to produce. When the
+//   execution is finished, the final set of output artifacts can be associated
+//   with the exeution using OUTPUT events, and any unused artifacts which were
+//   previously registered with PENDING_OUTPUT events can be updated to set
+//   their Artifact.State to ABANDONED.
+//
+// Events are unique of the same
+// (artifact_id, execution_id, type) combination within a metadata store.
 message Event {
   // A simple path (e.g. {step{key:"foo"}}) can name an artifact in the context
   // of an execution.
@@ -216,6 +261,7 @@ message Event {
     OUTPUT = 4;           // An output of the execution.
     INTERNAL_INPUT = 5;   // An internal input of the execution.
     INTERNAL_OUTPUT = 6;  // An internal output of the execution.
+    PENDING_OUTPUT = 7;   // A pending output of the execution.
   }
   // The artifact id is required for an event, and should refer to an
   // existing artifact.
@@ -230,10 +276,13 @@ message Event {
   // Time the event occurred
   // Epoch is Jan 1, 1970, UTC
   optional int64 milliseconds_since_epoch = 5;
+
+  // Output only.
+  optional google.protobuf.Any system_metadata = 6;
 }
 
 message Execution {
-  // Output only. The globally unique server generated id of the execution.
+  // Output only. The unique server generated id of the execution.
   optional int64 id = 1;
   // The client provided name of the execution. This field is optional. If set,
   // it must be unique among all the executions of the same execution type
@@ -245,6 +294,9 @@ message Execution {
   optional int64 type_id = 2;
   // Output only. The name of an ExecutionType.
   optional string type = 7;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all executions within a database instance.
+  optional string external_id = 10;
   // The state of the Execution. The state transitions are
   //   NEW -> RUNNING -> COMPLETE | CACHED | FAILED | CANCELED
   // CACHED means the execution is skipped due to cached results.
@@ -272,6 +324,9 @@ message Execution {
   optional int64 create_time_since_epoch = 8;
   // Output only. Last update time of the execution in millisecond since epoch.
   optional int64 last_update_time_since_epoch = 9;
+
+  // Output only.
+  optional google.protobuf.Any system_metadata = 11;
 }
 
 message ExecutionType {
@@ -284,6 +339,10 @@ message ExecutionType {
   optional string version = 6;
   // An optional description about the type.
   optional string description = 7;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all execution types within a database
+  // instance.
+  optional string external_id = 9;
   // The schema of the type.
   // Properties are always optional in the execution.
   map<string, PropertyType> properties = 3;
@@ -335,6 +394,10 @@ message ContextType {
   optional string version = 4;
   // An optional description about the type.
   optional string description = 5;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all context types within a database
+  // instance.
+  optional string external_id = 7;
   // The schema of the type, e.g., name: string, owner: string
   // Properties are always optional in the context.
   // Properties of an context type can be expanded but not contracted (i.e.,
@@ -354,7 +417,7 @@ message ContextType {
 }
 
 message Context {
-  // Output Only. The globally unique server generated id of the context.
+  // Output Only. The unique server generated id of the context.
   optional int64 id = 1;
   // The client provided name of the context. It must be unique within a
   // database instance.
@@ -364,6 +427,9 @@ message Context {
   optional int64 type_id = 2;
   // Output only. The name of a ContextType.
   optional string type = 6;
+  // The external id that come from the clients’ system. This field is optional.
+  // If set, it must be unique among all contexts within a virtual database.
+  optional string external_id = 9;
   // Values of the properties, which must be specified in the ContextType.
   map<string, Value> properties = 4;
   // User provided custom properties which are not defined by its type.
@@ -372,6 +438,9 @@ message Context {
   optional int64 create_time_since_epoch = 7;
   // Output only. Last update time of the context in millisecond since epoch.
   optional int64 last_update_time_since_epoch = 8;
+
+  // Output only system metadata.
+  optional google.protobuf.Any system_metadata = 10;
 }
 
 // the Attribution edges between Context and Artifact instances.
@@ -534,7 +603,7 @@ message MySQLDatabaseConfig {
   optional string host = 1;
   // The TCP Port number that the MYSQL server accepts connections on.
   // If unspecified, the default MYSQL port (3306) is used.
-  optional uint32 port = 2;
+  optional int64 port = 2;
   // The database to connect to. Must be specified.
   // After connecting to the MYSQL server, this database is created if not
   // already present unless skip_db_creation is set.
@@ -609,6 +678,71 @@ message SqliteMetadataSourceConfig {
   optional ConnectionMode connection_mode = 2;
 }
 
+// A config contains the parameters when using with PostgreSQLMetadatSource.
+// Next index: 10
+message PostgreSQLDatabaseConfig {
+  // Name of host to connect to. If the host name starts with /, it is taken as
+  // a Unix-domain socket in the abstract namespace.
+  optional string host = 1;
+
+  // Numeric IP address of host to connect to. If this field is provided, `host`
+  // field is ignored.
+  optional string hostaddr = 2;
+
+  // Port number to connect to at the server host, or socket file name extension
+  // for Unix-domain connections.
+  optional string port = 3;
+
+  // PostgreSQL user name to connect as. Defaults to be the same as the
+  // operating system name of the user running the application.
+  optional string user = 4;
+
+  // Password to be used if the server demands password authentication.
+  optional string password = 5;
+
+  // Specifies the name of the file used to store passwords.
+  optional string passfile = 6;
+
+  // The database name. Defaults to be the same as the user name.
+  optional string dbname = 7;
+
+  // A config to skip the database creation if not exist when connecting the
+  // db instance. It is useful when the db creation is handled by an admin
+  // process, while the lib user should not issue db creation clauses.
+  optional bool skip_db_creation = 8;
+
+  message SSLOptions {
+    // disable, allow, verify-ca, verify-full, etc. Reference:
+    // https://www.postgresql.org/docs/current/libpq-connect.html
+    optional string sslmode = 1;
+
+    // This parameter specifies the file name of the client SSL certificate,
+    // replacing the default ~/.postgresql/postgresql.crt. This parameter is
+    // ignored if an SSL connection is not made.
+    optional string sslcert = 2;
+
+    // This parameter specifies the location for the secret key used for the
+    // client certificate. It can either specify a file name that will be used
+    // instead of the default ~/.postgresql/postgresql.key, this parameter is
+    // ignored if an SSL connection is not made.
+    optional string sslkey = 3;
+
+    // This parameter specifies the password for the secret key specified in
+    // sslkey, allowing client certificate private keys to be stored in
+    // encrypted form on disk even when interactive passphrase input is not
+    // practical.
+    optional string sslpassword = 4;
+
+    // This parameter specifies the name of a file containing SSL certificate
+    // authority (CA) certificate(s). If the file exists, the server's
+    // certificate will be verified to be signed by one of these authorities.
+    // The default is ~/.postgresql/root.crt.
+    optional string sslrootcert = 5;
+  }
+
+  optional SSLOptions ssloption = 9;
+}
+
 
 message MigrationOptions {
   // If not set, by default the upgrade migration is disabled. MLMD only
@@ -647,6 +781,10 @@ message ConnectionConfig {
     FakeDatabaseConfig fake_database = 1;
     MySQLDatabaseConfig mysql = 2;
     SqliteMetadataSourceConfig sqlite = 3;
+
+    // PostgreSQL database connection config.
+    PostgreSQLDatabaseConfig postgresql = 5;
+
   }
 
   // Options for overwriting the default retry setting when MLMD transactions
@@ -672,7 +810,7 @@ message MetadataStoreClientConfig {
   optional string host = 1;
   // The TCP Port number that the gRPC server accepts connections on.
   // Must be specified.
-  optional uint32 port = 2;
+  optional int64 port = 2;
 
   message SSLConfig {
     // The PEM-encoded private key as a byte string, or Empty if no private key
@@ -757,12 +895,14 @@ message ListOperationOptions {
   optional string next_page_token = 3;
 
   // A boolean expression in SQL syntax that is used to specify the conditions
-  // on nodes' attributes and 1-hop neighborhood.
+  // on node attributes and directly connected assets.
   //
   // In the current implementation, filtering Artifact/Execution/Context with
   // the following attributes and neighborhood is supported:
   //
-  // Attributes: id:int64, type_id:int64, type:string, uri:string, name: string,
+  // Attributes:
+  //     id:int64, type_id:int64, type:string,
+  //     uri:string, name: string, external_id: string,
   //     create_time_since_epoch:int64, last_update_time_since_epoch:int64
   //     state:ENUM (Artifact only) last_known_state:ENUM (Execution only)
   //
@@ -772,6 +912,7 @@ message ListOperationOptions {
   //           custom_properties.$name ($name is the custom property name)
   //   attributes: the following attributes can be used
   //      int_value: int64, double_value: double, string_value: string
+  //      bool_value: bool
   //
   // - Context (for Artifact and Execution):
   //   syntax: contexts_$alias ($alias can be [0-9A-Za-z_])
@@ -799,6 +940,7 @@ message ListOperationOptions {
   //    - type = 'my_type_name'
   //    - name = 'foo'
   //    - type = 'bar' AND name LIKE 'foo%'
+  //    - external_id = 'my_external_id'
   //    - NOT(create_time_since_epoch < 1 OR last_update_time_since_epoch < 1)
   //
   // b) to filter artifacts' uri
@@ -809,10 +951,12 @@ message ListOperationOptions {
   // c) to filter artifact's state or execution's last_known_state
   //    - state = LIVE
   //    - state IS NULL
+  //    - state IN (PENDING, LIVE)
   //    - last_known_state = RUNNING
   //    - last_known_state != RUNNING
+  //    - last_known_state NOT IN (FAILED, CANCELED)
   //
-  // d) to filter nodes having a specific context
+  // d) to filter nodes having a specific context, artifact, or execution
   //    - contexts_a.id = 5
   //    - contexts_a.type = 'RunContext'
   //    - contexts_a.name = 'my_run'
@@ -820,6 +964,29 @@ message ListOperationOptions {
   //    - contexts_a.last_update_time_since_epoch = 1626761453
   //    To filter nodes with conditions on multiple contexts:
   //    - contexts_a.name = 'my_run' AND contexts_b.name = 'my_pipeline'
+  //    To filter context with artifacts:
+  //    - artifacts_a.id = 5
+  //    - artifacts_a.type = 'Dataset'
+  //    - artifacts_a.name = 'my_dataset'
+  //    - artifacts_a.uri = 'exact_path_string'
+  //    - artifacts_a.state = LIVE
+  //    - artifacts_a.state IN (PENDING, LIVE)
+  //    - artifacts_a.external_id = "my_external_id"
+  //    - artifacts_a.create_time_since_epoch = 1626761453
+  //    - artifacts_a.last_update_time_since_epoch = 1626761453
+  //    To filter contexts with conditions on multiple artifacts:
+  //    - artifacts_a.name = 'my_run' AND artifacts_b.name = 'my_pipeline'
+  //    To filter context with executions:
+  //    - executions_a.id = 5
+  //    - executions_a.type = 'Dataset'
+  //    - executions_a.name = 'my_dataset'
+  //    - executions_a.last_known_state = RUNNING
+  //.   - executions_a.last_known_state IN (NEW, RUNNING)
+  //    - executions_a.external_id = "my_external_id"
+  //    - executions_a.create_time_since_epoch = 1626761453
+  //    - executions_a.last_update_time_since_epoch = 1626761453
+  //    To filter contexts with conditions on multiple executions:
+  //    - executions_a.name = 'my_run' AND executions_b.name = 'my_pipeline'
   //
   // e) to filter nodes condition on their properties
   //    - properties.accuracy.double_value > 0.95
@@ -828,7 +995,7 @@ message ListOperationOptions {
   //    other than [0-9A-Za-z_], then the name need to be backquoted,
   //    e.g.,
   //    - properties.`my property`.int_value > 0
-  //    - custom_properties.`my:custom.property`.string_value = 'foo'
+  //    - custom_properties.`my:custom.property`.bool_value = true
   //
   // f) complex query to filter both node attributes and neighborhood
   //    - type = 'DataSet' AND
@@ -846,7 +1013,7 @@ message ListOperationOptions {
   //    - events_0.milliseconds_since_epoch = 1
   //    to filter Executions on Events
   //    - events_0.artifact_id = 1
-  //    - events_0.type = INPUT
+  //    - events_0.type IN (INPUT, INTERNAL_INPUT)
   //    - events_0.milliseconds_since_epoch = 1
   // TODO(b/145945460) Support filtering on event step fields.
   optional string filter_query = 4;
@@ -877,48 +1044,190 @@ message ListOperationNextPageToken {
   // the same order_by field value.
   // This field is currently only set whe order_by field is LAST_UPDATE_TIME.
   repeated int64 listed_ids = 4;
+
 }
 
 // Options for transactions.
 // Note: This is under development. Clients should not use it.
 message TransactionOptions {
   extensions 1000 to max;
+
+  // Transaction tag for debug use only.
+  optional string tag = 1;
 }
 
 
-// The query options for list lineage graph operation. It allows specifying the
-// `query_nodes` of interests and the `stop_conditions` when querying a
-// lineage graph. The query option is used for exporting provenance information
-// from a source MLMD instance.
+// TODO(b/283852485): Deprecate GetLineageGraph API after migration to
+// GetLineageSubgraph API.
+// The query options for `get_lineage_graph` operation.
+// `query_nodes` is a list of nodes of interest.
+// Currently only artifacts are supported as `query_nodes`.
+// `stop_conditions` defines the filtering rules when querying a lineage graph.
+// `max_node_size` defines the total number of artifacts and executions returned
+// in the subgraph.
 message LineageGraphQueryOptions {
-  // A query to specify the nodes of interests.
+  // A query to specify the nodes of interest.
+  // `ListOperationOptions.max_result_size` sets the maximum number of nodes to
+  // begin with the graph search.
   // TODO(b/178491112) Support query_nodes for Executions.
   oneof query_nodes {
     ListOperationOptions artifacts_options = 1;
   }
 
-  // Boundary conditions to stop the traversal when return the `subgraph`.
+  // Filtering conditions for retrieving the lineage graph.
   message BoundaryConstraint {
-    // The maximum number of hops from the `query_nodes` to traverse. It should
-    // be non-negative. When zero, only the `query_nodes` are returned.
+    // The maximum number of hops from the `query_nodes` to traverse.
+    // A hop is defined as a jump to the next node following the path of
+    // node -> event -> next_node.
+    // For example, in the lineage graph a_1 -> e_1 -> a_2:
+    // a_2 is 2 hops away from a_1, and e_1 is 1 hop away from a_1.
+    // `max_num_hops` should be non-negative.
+    // When its value is set to 0, only the `query_nodes` are returned.
     optional int64 max_num_hops = 1;
 
-    // Conditions for the boundary node in the returned the subgraph.
-    // Please refer to ListOperationOptions.filter_query for the syntax.
-    // If set, it stops traversing further at the artifacts that do not satisfy
-    // `boundary_artifacts` and exclude them from the returned subgraph.
-    // For example, to look for the models related to a DataSet and ignore
-    // other artifacts derived from the DataSet:
-    //   "type = 'DataSet' OR type = 'TransformGraph' OR type = 'Model'"
+    // Filtering conditions for retrieving the lineage graph.
+    // Please refer to `ListOperationOptions.filter_query` for the syntax.
+    //
+    // If set, the `boundary_artifacts` defines which artifacts to keep in the
+    // returned lineage graph during the graph search.
+    // Artifacts that do not satisfy the `boundary_artifacts` are filtered out,
+    // and the subgraphs starting at them will be pruned.
+    // If not set, no artifacts will be filtered out.
+    // Taking the following lineage graph as example:
+    // (`a` represents an Artifact, `e` represents an Execution, each arrow
+    // represents a hop.)
+    //  a_0   a_1     a_3
+    //   |      \   /     \
+    //  \/      \/ \/     \/
+    //  e_0      e_1      e_3
+    //                   /   \
+    //                  \/   \/
+    //        a_2     a_4     a_5
+    //           \   /
+    //           \/ \/
+    //            e_2
+    // To query all the upstream and downstream nodes 3 hops away from a_4,
+    // while excluding the upstream subgraph starting at a_3, then
+    // `stop_conditions` can be set as:
+    // {
+    //   max_num_hops: 3
+    //   boundary_artifacts: 'id != 3'
+    // }
+    // With the `stop_conditions`, {a_3, e_1, a_1, a_0, e_0} will be filtered
+    // out.
+    // The returned lineage graph looks like:
+    //                    e_3
+    //                   /   \
+    //                  \/   \/
+    //        a_2     a_4     a_5
+    //           \   /
+    //           \/ \/
+    //            e_2
     optional string boundary_artifacts = 2;
-    // If set, it stops traversing further at the executions that do not satisfy
-    // `boundary_executions` and exclude them from the returned subgraph.
-    // For example, two trainers may be connected due to the shared datasets,
-    // to exclude other trainers except a particular one (e.g., id = 5):
-    //   "type != 'Trainer' OR (type = 'Trainer' AND id = 5)"
+    // If set, the `boundary_executions` defines which executions to keep in the
+    // returned lineage graph during the graph search.
+    // Executions that do not satisfy the `boundary_executions` are filtered out
+    // and the subgraphs starting at them will be pruned.
+    // If not set, no executions will be filtered out.
+    // In the example above, to query for all the upstream and downstream nodes
+    // 3 hops away from a_4, while excluding the upstream subgraph and the
+    // downstream subgraph starting at e_3, then `stop_conditions` can be set as
+    // {
+    //   max_num_hops: 3
+    //   boundary_executions: 'id != 3'
+    // }
+    // With the `stop_conditions`, {e_3, a_5, a_3, e_1, a_1, a_0, e_0} will be
+    // filtered out.
+    // The returned lineage graph looks like:
+    //        a_2     a_4
+    //           \   /
+    //           \/ \/
+    //            e_2
+    // However, for the following graph:
+    //  a_0   a_1     a_3
+    //   |      \   /     \
+    //  \/      \/ \/     \/
+    //  e_0      e_1      e_3
+    //              \    /   \
+    //               \/ \/   \/
+    //        a_2     a_4     a_5
+    //           \   /
+    //           \/ \/
+    //            e_2
+    // With the same `stop_conditions`, only {e_3, a_5, a_0, e_0} will be
+    // filtered out.
+    // The returned lineage graph looks like:
+    //       a_1     a_3
+    //          \   /
+    //          \/ \/
+    //           e_1
+    //              \
+    //               \/
+    //        a_2     a_4
+    //           \   /
+    //           \/ \/
+    //            e_2
     optional string boundary_executions = 3;
   }
 
-  // A constraint option to define the boundary of the returned subgraph.
+  // A constraint option to define the filtering rules when querying a lineage
+  // graph.
   optional BoundaryConstraint stop_conditions = 2;
+
+  // Maximum total number of artifacts and executions in the whole returned
+  // lineage graph.
+  // If set to 0 or below, all related nodes will be returned without any
+  // number limitation.
+  // The number counts toward Artifacts and Executions. Nothing else considered.
+  //
+  // NOTE: There is no pagination supported.
+  optional int64 max_node_size = 3 [default = 20];
+}
+
+// The query options for lineage graph tracing from a list of interested nodes.
+message LineageSubgraphQueryOptions {
+  // `starting_nodes` is a list of nodes of interest to start graph tracing.
+  // NOTE: The maximum number of starting nodes is 100 at most.
+  message StartingNodes {
+    // `filter_query` is a boolean expression in SQL syntax that is used to
+    // specify the conditions on starting nodes.
+    // Please refer to ListOperationOptions.filter_query for more details.
+    optional string filter_query = 1;
+  }
+
+  oneof starting_nodes {
+    StartingNodes starting_artifacts = 1;
+    StartingNodes starting_executions = 2;
+  }
+
+  // The maximum number of hops from the `starting_nodes` to traverse.
+  // A hop is defined as a jump to the next node following the path of
+  // node -> event -> next_node.
+  // For example, in the lineage graph a_1 -> e_1 -> a_2:
+  // a_2 is 2 hops away from a_1, and e_1 is 1 hop away from a_1.
+  // `max_num_hops` should be non-negative.
+  // When its value is set to 0, only the `starting_nodes` are returned.
+  optional int64 max_num_hops = 3;
+
+  enum Direction {
+    // Direction is by defult DIRECTION_UNSPECIFIED, which is equivalent to
+    // BIDIRECTIONAL.
+    DIRECTION_UNSPECIFIED = 0;
+    // Indicates tracing the lineage graph by hops in upstream direction.
+    UPSTREAM = 1;
+    // Indicates tracing the lineage graph by hops in downstream direction.
+    DOWNSTREAM = 2;
+    // Indicates tracing the lineage graph in both directions.
+    BIDIRECTIONAL = 3;
+  }
+  // The direction of lineage graph tracing, which means the direction of all
+  // hops in the tracing.
+  //   An UPSTREAM hop means an expansion following the path of
+  //     execution -> output_event -> artifact or
+  //     artifact -> input_event -> execution
+  //   A DOWNSTREAM hop means an expansion following the path of
+  //     execution -> input_event -> artifact or
+  //     artifact -> output_event -> execution
+  // Please refer to `Direction` for more details.
+  optional Direction direction = 4;
 }

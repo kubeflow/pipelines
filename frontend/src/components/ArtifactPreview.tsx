@@ -23,6 +23,7 @@ import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { stylesheet } from 'typestyle';
 import Banner from './Banner';
 import { ValueComponentProps } from './DetailsTable';
+import { logger } from 'src/lib/Utils';
 
 const css = stylesheet({
   root: {
@@ -64,7 +65,11 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
 }) => {
   let storage: StoragePath | undefined;
   if (value) {
-    storage = WorkflowParser.parseStoragePath(value);
+    try {
+      storage = WorkflowParser.parseStoragePath(value);
+    } catch (error) {
+      logger.error(error);
+    }
   }
 
   const { isSuccess, isError, data, error } = useQuery<string, Error>(
@@ -75,7 +80,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
 
   if (!storage) {
     return (
-      <Banner message={'Can not retrieve storage path from artifact uri: ' + value} mode='error' />
+      <Banner message={'Can not retrieve storage path from artifact uri: ' + value} mode='info' />
     );
   }
 

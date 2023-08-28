@@ -1,0 +1,505 @@
+{
+  "version" : 0.0,
+  "features" : [ {
+    "name" : "Churn",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Account Length",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "VMail Message",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Day Mins",
+    "inferred_type" : "Fractional",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Day Calls",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Eve Mins",
+    "inferred_type" : "Fractional",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Eve Calls",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Night Mins",
+    "inferred_type" : "Fractional",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Night Calls",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Intl Mins",
+    "inferred_type" : "Fractional",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Intl Calls",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "CustServ Calls",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_AK",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_AL",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_AR",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_AZ",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_CA",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_CO",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_CT",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_DC",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_DE",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_FL",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_GA",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_HI",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_IA",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_ID",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_IL",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_IN",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_KS",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_KY",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_LA",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_MA",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_MD",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_ME",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_MI",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_MN",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_MO",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_MS",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_MT",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_NC",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_ND",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_NE",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_NH",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_NJ",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_NM",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_NV",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_NY",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_OH",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_OK",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_OR",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_PA",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_RI",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_SC",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_SD",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_TN",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_TX",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_UT",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_VA",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_VT",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_WA",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_WI",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_WV",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "State_WY",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Area Code_408",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Area Code_415",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Area Code_510",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Int'l Plan_no",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "Int'l Plan_yes",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "VMail Plan_no",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  }, {
+    "name" : "VMail Plan_yes",
+    "inferred_type" : "Integral",
+    "completeness" : 1.0,
+    "num_constraints" : {
+      "is_non_negative" : true
+    }
+  } ],
+  "monitoring_config" : {
+    "evaluate_constraints" : "Enabled",
+    "emit_metrics" : "Enabled",
+    "datatype_check_threshold" : 1.0,
+    "domain_content_threshold" : 1.0,
+    "distribution_constraints" : {
+      "perform_comparison" : "Enabled",
+      "comparison_threshold" : 0.1,
+      "comparison_method" : "Robust"
+    }
+  }
+}

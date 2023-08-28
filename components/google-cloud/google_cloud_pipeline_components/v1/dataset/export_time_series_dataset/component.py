@@ -14,6 +14,8 @@
 
 from typing import Optional
 
+from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
 from kfp.dsl import Input
@@ -22,18 +24,17 @@ from kfp.dsl import Output
 
 @dsl.container_component
 def time_series_dataset_export(
-    project: str,
     dataset: Input[VertexDataset],
     output_dir: str,
     exported_dataset: Output[VertexDataset],
     location: Optional[str] = 'us-central1',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """
-  Exports data to output dir to GCS.
+  """Exports `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_ to a GCS output directory.
+
   Args:
-      output_dir (String):
-          Required. The Google Cloud Storage location where the output is to
+      output_dir: The Google Cloud Storage location where the output is to
           be written to. In the given directory a new directory will be
           created with name:
           ``export-data-<dataset-display-name>-<timestamp-of-export-call>``
@@ -45,23 +46,20 @@ def time_series_dataset_export(
           schema.yaml will be created to describe the output format.
           If the uri doesn't end with '/', a '/' will be automatically
           appended. The directory is created if it doesn't exist.
-      project (String):
-          Required. project to retrieve dataset from.
-      location (String):
-          Optional location to retrieve dataset from.
-  Returns:
-      exported_files (Sequence[str]):
-          All of the files that are exported in this export operation.
+      location: Optional location to retrieve Datasetfrom.
+      project: Project to retrieve Datasetfrom. Defaults to the project in which the PipelineJob is run.
 
+  Returns:
+      exported_dataset: All of the files that are exported in this export operation.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'TimeSeriesDataset',
           '--method_name',
@@ -69,7 +67,7 @@ def time_series_dataset_export(
       ],
       args=[
           '--init.dataset_name',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           '--init.project',
           project,
           '--init.location',

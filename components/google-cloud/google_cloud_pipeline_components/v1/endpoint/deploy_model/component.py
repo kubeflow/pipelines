@@ -14,6 +14,7 @@
 
 from typing import Dict
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp.dsl import ConcatPlaceholder
@@ -44,22 +45,19 @@ def model_deploy(
     explanation_parameters: Dict[str, str] = {},
 ):
   # fmt: off
-  """Deploys a Google Cloud Vertex Model to the Endpoint, creating a DeployedModel within it.
+  """`Deploys <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel>`_ a Google Cloud Vertex Model to an `Endpoint <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_ creating a
+  `DeployedModel <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#deployedmodel>`_ within it.
 
-  For more details, see
-  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel.
+  See the `deploy Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/deployModel>`_ method for more information.
 
   Args:
-      model (google.VertexModel):
-        Required. The model to be deployed.
-      endpoint (google.VertexEndpoint):
-        Required. The endpoint to be deployed
+      model: The model to be deployed.
+      endpoint: The Endpoint to be deployed
         to.
-      deployed_model_display_name (Optional[str]):
-        The display name of the
+      deployed_model_display_name: The display name of the
         DeployedModel. If not provided upon creation, the Model's display_name
         is used.
-      traffic_split (Optional[Dict[str, int]]):
+      traffic_split:
         A map from a DeployedModel's
         ID to the percentage of this Endpoint's traffic that should be
         forwarded to that DeployedModel.  If this field is non-empty, then the
@@ -68,30 +66,21 @@ def model_deploy(
         actual ID of the new DeployedModel will be filled in its place by this
         method. The traffic percentage values must add up to 100.  If this
         field is empty, then the Endpoint's trafficSplit is not updated.
-      dedicated_resources_machine_type (Optional[str]):
-        The specification of a
+      dedicated_resources_machine_type: The specification of a
         single machine used by the prediction.  This field is required if
-        `automatic_resources_min_replica_count` is not specified.  For more
-        details, see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources.
-      dedicated_resources_accelerator_type (Optional[str]):
-        Hardware
-        accelerator type. Must also set accelerator_count if used. See
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
-          for available options.  This field is required if
-          `dedicated_resources_machine_type` is specified.
-      dedicated_resources_accelerator_count (Optional[int]):
-        The number of
+        ``automatic_resources_min_replica_count`` is not specified.  See `more information <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources>`_.
+      dedicated_resources_accelerator_type: Hardware
+        accelerator type. Must also set accelerator_count if used. See `available options <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType>`_.  This field is required if
+        ``dedicated_resources_machine_type`` is specified.
+      dedicated_resources_accelerator_count: The number of
         accelerators to attach to a worker replica.
-      dedicated_resources_min_replica_count (Optional[int]):
-        The minimum
+      dedicated_resources_min_replica_count: The minimum
         number of machine replicas this DeployedModel will be always deployed
         on. This value must be greater than or equal to 1. If traffic against
         the DeployedModel increases, it may dynamically be deployed onto more
         replicas, and as traffic decreases, some of these extra replicas may
         be freed.
-      dedicated_resources_max_replica_count (Optional[int]):
-        The maximum
+      dedicated_resources_max_replica_count: The maximum
         number of replicas this deployed model may the larger value of
         min_replica_count or 1 will be used. If value provided is smaller than
         min_replica_count, it will automatically be increased to be
@@ -102,17 +91,15 @@ def model_deploy(
         guaranteed (barring service outages). If traffic against the deployed
         model increases beyond what its replicas at maximum may handle, a
         portion of the traffic will be dropped. If this value is not provided,
-        will use dedicated_resources_min_replica_count as the default value.
-      automatic_resources_min_replica_count (Optional[int]):
-        The minimum
+        will use ``dedicated_resources_min_replica_count`` as the default value.
+      automatic_resources_min_replica_count: The minimum
         number of replicas this DeployedModel will be always deployed on. If
         traffic against it increases, it may dynamically be deployed onto more
-        replicas up to automatic_resources_max_replica_count, and as traffic
+        replicas up to ``automatic_resources_max_replica_count``, and as traffic
         decreases, some of these extra replicas may be freed. If the requested
         value is too large, the deployment will error.  This field is required
-        if `dedicated_resources_machine_type` is not specified.
-      automatic_resources_max_replica_count (Optional[int]):
-        The maximum
+        if ``dedicated_resources_machine_type`` is not specified.
+      automatic_resources_max_replica_count: The maximum
         number of replicas this DeployedModel may be deployed on when the
         traffic against it increases. If the requested value is too large, the
         deployment will error, but if deployment succeeds then the ability to
@@ -122,48 +109,35 @@ def model_deploy(
         dropped. If this value is not provided, a no upper bound for scaling
         under heavy traffic will be assume, though Vertex AI may be unable to
         scale beyond certain replica number.
-      service_account (Optional[str]):
-        The service account that the
+      service_account: The service account that the
         DeployedModel's container runs as. Specify the email address of the
         service account. If this service account is not specified, the
         container runs as a service account that doesn't have access to the
         resource project.  Users deploying the Model must have the
-        `iam.serviceAccounts.actAs` permission on this service account.
-      disable_container_logging (Optional[bool]):
-        For custom-trained Models
+        ``iam.serviceAccounts.actAs`` permission on this service account.
+      disable_container_logging: For custom-trained Models
         and AutoML Tabular Models, the container of the DeployedModel
         instances will send stderr and stdout streams to Stackdriver Logging
         by default. Please note that the logs incur cost, which are subject to
         Cloud Logging pricing.  User can disable container logging by setting
         this flag to true.
-      enable_access_logging (Optional[bool]):
-        These logs are like standard
+      enable_access_logging: These logs are like standard
         server access logs, containing information like timestamp and latency
         for each prediction request.  Note that Stackdriver logs may incur a
         cost, especially if your project receives prediction requests at a
         high queries per second rate (QPS). Estimate your costs before
         enabling this option.
-      explanation_metadata (Optional[dict]):
-        Metadata describing the Model's
-        input and output for explanation.  For more details, see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
-      explanation_parameters (Optional[dict]):
-        Parameters that configure
-        explaining information of the Model's predictions.  For more details,
-        see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+      explanation_metadata: Metadata describing the Model's
+        input and output for explanation. See `more information <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata>`_.
+      explanation_parameters: Parameters that configure
+        explaining information of the Model's predictions. See `more information <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata>`_.
 
   Returns:
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the deploy model's long
-          running operation.
-
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the deploy Model's long-running operation.
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',
@@ -177,13 +151,13 @@ def model_deploy(
           ConcatPlaceholder([
               '{',
               '"endpoint": "',
-              "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
+              endpoint.metadata['resourceName'],
               '"',
               ', "traffic_split": ',
               traffic_split,
               ', "deployed_model": {',
               '"model": "',
-              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+              model.metadata['resourceName'],
               '"',
               ', "dedicated_resources": {',
               '"machine_spec": {',

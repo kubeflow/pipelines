@@ -14,8 +14,9 @@
 """Module for supporting Google Vertex AI Custom Training Job Op."""
 
 import copy
-import logging
-from typing import Callable, Dict, Optional, Sequence
+import textwrap
+from typing import Callable, Dict, List, Optional
+import warnings
 
 from google_cloud_pipeline_components.v1.custom_job import component
 from kfp import components
@@ -23,33 +24,33 @@ import yaml
 
 from google.protobuf import json_format
 
-_EXECUTOR_PLACEHOLDER = '{{$}}'
-# Executor replacement is used as executor content needs to be jsonified before
-# injection into the payload, since payload is already a JSON serialized string.
-_EXECUTOR_PLACEHOLDER_REPLACEMENT = '{{$.json_escape[1]}}'
-
 
 def _replace_executor_placeholder(
-    container_input: Sequence[str],
-) -> Sequence[str]:
+    container_input: List[str],
+) -> List[str]:
   """Replace executor placeholder in container command or args.
 
   Args:
-    container_input: Container command or args
+    container_input: Container command or args.
 
   Returns:
-    container input with executor placeholder replaced.
+    container_input with executor placeholder replaced.
   """
+  # Executor replacement is used as executor content needs to be jsonified before
+  # injection into the payload, since payload is already a JSON serialized string.
+  EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
+  JSON_ESCAPED_EXECUTOR_INPUT_PLACEHOLDER = '{{$.json_escape[1]}}'
   return [
-      _EXECUTOR_PLACEHOLDER_REPLACEMENT
-      if input == _EXECUTOR_PLACEHOLDER
-      else input
-      for input in container_input
+      JSON_ESCAPED_EXECUTOR_INPUT_PLACEHOLDER
+      if cmd_part == EXECUTOR_INPUT_PLACEHOLDER
+      else cmd_part
+      for cmd_part in container_input
   ]
 
 
+# keep identical to CustomTrainingJobOp
 def create_custom_training_job_from_component(
-    component_spec: Callable,  # pylint: disable=g-bare-generic
+    component_spec: Callable,
     display_name: str = '',
     replica_count: int = 1,
     machine_type: str = 'n1-standard-4',
@@ -64,106 +65,102 @@ def create_custom_training_job_from_component(
     encryption_spec_key_name: str = '',
     tensorboard: str = '',
     enable_web_access: bool = False,
-    reserved_ip_ranges: Optional[Sequence[str]] = None,
-    nfs_mounts: Optional[Sequence[Dict[str, str]]] = None,
+    reserved_ip_ranges: Optional[List[str]] = None,
+    nfs_mounts: Optional[List[Dict[str, str]]] = None,
     base_output_directory: str = '',
     labels: Optional[Dict[str, str]] = None,
-) -> Callable:  # pylint: disable=g-bare-generic
-  """Create a component spec that runs a custom training in Vertex AI.
+) -> Callable:
+  """Convert a KFP component into Vertex AI `custom training job <https://cloud.google.com/vertex-ai/docs/training/create-custom-job>`_ using the `CustomJob <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs>`_ API.
 
-  This utility converts a given component to a CustomTrainingJobOp that runs a
-  custom training in Vertex AI. This simplifies the creation of custom training
-  jobs. All Inputs and Outputs of the supplied component will be copied over to
-  the constructed training job.
+  This utility converts a `KFP component
+  <https://www.kubeflow.org/docs/components/pipelines/v2/components/>`_
+  provided to ``component_spec`` into ``CustomTrainingJobOp`` component. Your
+  components inputs, outputs, and logic are carried over, with additional
+  `CustomJob
+  <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec>`_
+  parameters exposed.
 
   Note that this utility constructs a ClusterSpec where the master and all the
   workers use the same spec, meaning all disk/machine spec related parameters
-  will apply to all replicas. This is suitable for use cases such as training
-  with MultiWorkerMirroredStrategy or Mirrored Strategy.
+  will apply to all replicas. This is suitable for uses cases such as executing
+  a training component over multiple replicas with `MultiWorkerMirroredStrategy
+  <https://www.tensorflow.org/api_docs/python/tf/distribute/MultiWorkerMirroredStrategy>`_
+  or `MirroredStrategy
+  <https://www.tensorflow.org/api_docs/python/tf/distribute/MirroredStrategy>`_.
 
-  This component does not support Vertex AI Python training application.
-
-  For more details on Vertex AI Training service, please refer to
-  https://cloud.google.com/vertex-ai/docs/training/create-custom-job
+  See `Create custom training jobs
+  <https://cloud.google.com/vertex-ai/docs/training/create-custom-job>`_ for
+  more information.
 
   Args:
-    component_spec: The task (ContainerOp) object to run as Vertex AI custom
-      job.
-    display_name (Optional[str]): The name of the custom job. If not provided
-      the component_spec.name will be used instead.
-    replica_count (Optional[int]): The count of instances in the cluster. One
-      replica always counts towards the master in worker_pool_spec[0] and the
-      remaining replicas will be allocated in worker_pool_spec[1]. For more
-      details see
-      https://cloud.google.com/vertex-ai/docs/training/distributed-training#configure_a_distributed_training_job.
-    machine_type (Optional[str]): The type of the machine to run the custom job.
-      The default value is "n1-standard-4".  For more details about this input
-      config, see
-      https://cloud.google.com/vertex-ai/docs/training/configure-compute#machine-types.
-    accelerator_type (Optional[str]): The type of accelerator(s) that may be
-      attached to the machine as per accelerator_count.  For more details about
-      this input config, see
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype.
-    accelerator_count (Optional[int]): The number of accelerators to attach to
-      the machine. Defaults to 1 if accelerator_type is set.
-    boot_disk_type (Optional[str]): Type of the boot disk (default is "pd-ssd").
-      Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or
-      "pd-standard" (Persistent Disk Hard Disk Drive). boot_disk_type is set as
-      a static value and cannot be changed as a pipeline parameter.
-    boot_disk_size_gb (Optional[int]): Size in GB of the boot disk (default is
-      100GB). boot_disk_size_gb is set as a static value and cannot be changed
-      as a pipeline parameter.
-    timeout (Optional[str]): The maximum job running time. The default is 7
-      days. A duration in seconds with up to nine fractional digits, terminated
-      by 's', for example: "3.5s".
-    restart_job_on_worker_restart (Optional[bool]): Restarts the entire
-      CustomJob if a worker gets restarted. This feature can be used by
-      distributed training jobs that are not resilient to workers leaving and
-      joining a job.
-    service_account (Optional[str]): Sets the default service account for
-      workload run-as account. The service account running the pipeline
-      (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
-      submitting jobs must have act-as permission on this run-as account. If
-      unspecified, the Vertex AI Custom Code Service
-      Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
+    component_spec: A KFP component.
+    display_name: The name of the CustomJob. If not provided the component's
+      name will be used instead.
+    replica_count: The count of instances in the cluster. One replica always
+      counts towards the master in worker_pool_spec[0] and the remaining
+      replicas will be allocated in worker_pool_spec[1]. See `more information.
+      <https://cloud.google.com/vertex-ai/docs/training/distributed-training#configure_a_distributed_training_job>`_
+    machine_type: The type of the machine to run the CustomJob. The default
+      value is "n1-standard-4". See `more information
+      <https://cloud.google.com/vertex-ai/docs/training/configure-compute#machine-types>`_.
+    accelerator_type: The type of accelerator(s) that may be attached to the
+      machine per ``accelerator_count``. See `more information
+      <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype>`_.
+    accelerator_count: The number of accelerators to attach to the machine.
+      Defaults to 1 if ``accelerator_type`` is set.
+    boot_disk_type: Type of the boot disk (default is "pd-ssd"). Valid values:
+      "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent
+      Disk Hard Disk Drive). boot_disk_type is set as a static value and cannot
+      be changed as a pipeline parameter.
+    boot_disk_size_gb: Size in GB of the boot disk (default is 100GB).
+      ``boot_disk_size_gb`` is set as a static value and cannot be changed as a
+      pipeline parameter.
+    timeout: The maximum job running time. The default is 7 days. A duration in
+      seconds with up to nine fractional digits, terminated by 's', for example:
+      "3.5s".
+    restart_job_on_worker_restart: Restarts the entire CustomJob if a worker
+      gets restarted. This feature can be used by distributed training jobs that
+      are not resilient to workers leaving and joining a job.
+    service_account: Sets the default service account for workload run-as
+      account. The `service account
+      <https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account>`_
+      running the pipeline submitting jobs must have act-as permission on this
+      run-as account. If unspecified, the Vertex AI Custom Code `Service Agent
+      <https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents>`_
       for the CustomJob's project.
-    network (Optional[str]): The full name of the Compute Engine network to
-      which the job should be peered. For example,
-      projects/12345/global/networks/myVPC. Format is of the form
-      projects/{project}/global/networks/{network}. Where {project} is a project
-      number, as in 12345, and {network} is a network name. Private services
-      access must already be configured for the network. If left unspecified,
-      the job is not peered with any network.
-    encryption_spec_key_name (Optional[str]): Customer-managed encryption key
-      options for the CustomJob. If this is set, then all resources created by
-      the CustomJob will be encrypted with the provided encryption key.
-    tensorboard (Optional[str]): The name of a Vertex AI Tensorboard resource to
-      which this CustomJob will upload Tensorboard logs.
-    enable_web_access (Optional[bool]): Whether you want Vertex AI to enable
-      [interactive shell
-      access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
-      to training containers. If set to `true`, you can access interactive
-      shells at the URIs given by [CustomJob.web_access_uris][].
-    reserved_ip_ranges (Optional[Sequence[str]]): A list of names for the
-      reserved ip ranges under the VPC network that can be used for this job. If
-      set, we will deploy the job within the provided ip ranges. Otherwise, the
-      job will be deployed to any ip ranges under the provided VPC network.
-    nfs_mounts (Optional[Sequence[Dict]]): A list of NFS mount specs in Json
-      dict format. nfs_mounts is set as a static value and cannot be changed as
-      a pipeline parameter. For API spec, see
-      https://cloud.devsite.corp.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount
-        For more details about mounting NFS for CustomJob, see
-      https://cloud.devsite.corp.google.com/vertex-ai/docs/training/train-nfs-share
-    base_output_directory (Optional[str]): The Cloud Storage location to store
-      the output of this CustomJob or HyperparameterTuningJob. see below for
-      more details:
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
-    labels (Optional[Dict[str, str]]): The labels with user-defined metadata to
-      organize CustomJobs. See https://goo.gl/xmQnxf for more information.
+    network: The full name of the Compute Engine network to which the job should
+      be peered. For example, ``projects/12345/global/networks/myVPC``. Format
+      is of the form ``projects/{project}/global/networks/{network}``. Where
+      ``{project}`` is a project number, as in ``12345``, and ``{network}`` is a
+      network name. Private services access must already be configured for the
+      network. If left unspecified, the job is not peered with any network.
+    encryption_spec_key_name: Customer-managed encryption key options for the
+      CustomJob. If this is set, then all resources created by the CustomJob
+      will be encrypted with the provided encryption key.
+    tensorboard: The name of a Vertex AI Tensorboard resource to which this
+      CustomJob will upload Tensorboard logs.
+    enable_web_access: Whether you want Vertex AI to enable `interactive shell
+      access
+      <https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell>`_
+      to training containers. If ``True``, you can access interactive shells at
+      the URIs given by [CustomJob.web_access_uris][].
+    reserved_ip_ranges: A list of names for the reserved IP ranges under the VPC
+      network that can be used for this job. If set, we will deploy the job
+      within the provided IP ranges. Otherwise, the job will be deployed to any
+      IP ranges under the provided VPC network.
+    nfs_mounts: A list of `NfsMount
+      <https://cloud.devsite.corp.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount>`_
+      resource specs in Json dict format. For more details about mounting NFS
+      for CustomJob, see `Mount an NFS share for custom training
+      <https://cloud.devsite.corp.google.com/vertex-ai/docs/training/train-nfs-share>`_.
+    base_output_directory: The Cloud Storage location to store the output of
+      this CustomJob or HyperparameterTuningJob. See `more information
+      <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination>`_.
+    labels: The labels with user-defined metadata to organize the CustomJob. See
+      `more information <https://goo.gl/xmQnxf>`_.
 
   Returns:
-    A Custom Job component operator corresponding to the input component
-    operator.
+    A KFP component with CustomJob specification applied.
   """
   # This function constructs a Custom Job component based on the input
   # component, by performing a 3-way merge of the inputs/outputs of the
@@ -199,32 +196,28 @@ def create_custom_training_job_from_component(
   # After adding the appropriate description and the name, the new component
   # is returned.
 
-  custom_training_job_dict = json_format.MessageToDict(
+  cj_pipeline_spec = json_format.MessageToDict(
       component.custom_training_job.pipeline_spec
   )
+  user_pipeline_spec = json_format.MessageToDict(component_spec.pipeline_spec)
 
-  input_component_spec_dict = json_format.MessageToDict(
-      component_spec.pipeline_spec
-  )
-  component_spec_container = list(
-      input_component_spec_dict['deploymentSpec']['executors'].values()
+  user_component_container = list(
+      user_pipeline_spec['deploymentSpec']['executors'].values()
   )[0]['container']
 
-  # Construct worker_pool_spec
   worker_pool_spec = {
       'machine_spec': {'machine_type': machine_type},
       'replica_count': 1,
       'container_spec': {
-          'image_uri': component_spec_container['image'],
+          'image_uri': user_component_container['image'],
+          'command': _replace_executor_placeholder(
+              user_component_container.get('command', [])
+          ),
+          'args': _replace_executor_placeholder(
+              user_component_container.get('args', [])
+          ),
       },
   }
-  worker_pool_spec['container_spec']['command'] = _replace_executor_placeholder(
-      component_spec_container.get('command', [])
-  )
-  worker_pool_spec['container_spec']['args'] = _replace_executor_placeholder(
-      component_spec_container.get('args', [])
-  )
-
   if accelerator_type:
     worker_pool_spec['machine_spec']['accelerator_type'] = accelerator_type
     worker_pool_spec['machine_spec']['accelerator_count'] = accelerator_count
@@ -234,7 +227,7 @@ def create_custom_training_job_from_component(
         'boot_disk_size_gb': boot_disk_size_gb,
     }
   if nfs_mounts:
-    worker_pool_spec['nfs_mounts'] = nfs_mounts.copy()
+    worker_pool_spec['nfs_mounts'] = nfs_mounts
 
   worker_pool_specs = [worker_pool_spec]
 
@@ -243,139 +236,74 @@ def create_custom_training_job_from_component(
     additional_worker_pool_spec['replica_count'] = replica_count - 1
     worker_pool_specs.append(additional_worker_pool_spec)
 
-  # Retrieve the custom job input/output parameters
-  custom_training_job_dict_components = custom_training_job_dict['components']
-  custom_training_job_comp_key = list(
-      custom_training_job_dict_components.keys()
-  )[0]
-  custom_training_job_comp_val = custom_training_job_dict_components[
-      custom_training_job_comp_key
-  ]
-  custom_job_input_params = custom_training_job_comp_val['inputDefinitions'][
-      'parameters'
-  ]
-  custom_job_output_params = custom_training_job_comp_val['outputDefinitions'][
-      'parameters'
+  # get the component spec for both components
+  cj_component_spec_key = list(cj_pipeline_spec['components'].keys())[0]
+  cj_component_spec = cj_pipeline_spec['components'][cj_component_spec_key]
+
+  user_component_spec_key = list(user_pipeline_spec['components'].keys())[0]
+  user_component_spec = user_pipeline_spec['components'][
+      user_component_spec_key
   ]
 
-  # Insert input arguments into custom_job_input_params as default values
-  custom_job_input_params['display_name']['defaultValue'] = (
-      display_name or component_spec.component_spec.name
-  )
-  custom_job_input_params['worker_pool_specs'][
-      'defaultValue'
-  ] = worker_pool_specs
-  custom_job_input_params['timeout']['defaultValue'] = timeout
-  custom_job_input_params['restart_job_on_worker_restart'][
-      'defaultValue'
-  ] = restart_job_on_worker_restart
-  custom_job_input_params['service_account']['defaultValue'] = service_account
-  custom_job_input_params['tensorboard']['defaultValue'] = tensorboard
-  custom_job_input_params['enable_web_access'][
-      'defaultValue'
-  ] = enable_web_access
-  custom_job_input_params['network']['defaultValue'] = network
-  custom_job_input_params['reserved_ip_ranges']['defaultValue'] = (
-      reserved_ip_ranges or []
-  )
-  custom_job_input_params['base_output_directory'][
-      'defaultValue'
-  ] = base_output_directory
-  custom_job_input_params['labels']['defaultValue'] = labels or {}
-  custom_job_input_params['encryption_spec_key_name'][
-      'defaultValue'
-  ] = encryption_spec_key_name
-
-  # Merge with the input/output parameters from the input component.
-  input_component_spec_comp_val = list(
-      input_component_spec_dict['components'].values()
-  )[0]
-  custom_job_input_params = {
-      **(
-          input_component_spec_comp_val.get('inputDefinitions', {}).get(
-              'parameters', {}
-          )
-      ),
-      **custom_job_input_params,
-  }
-  custom_job_output_params = {
-      **(
-          input_component_spec_comp_val.get('outputDefinitions', {}).get(
-              'parameters', {}
-          )
-      ),
-      **custom_job_output_params,
+  # add custom job defaults based on user-provided args
+  custom_job_param_defaults = {
+      'display_name': display_name or component_spec.component_spec.name,
+      'worker_pool_specs': worker_pool_specs,
+      'timeout': timeout,
+      'restart_job_on_worker_restart': restart_job_on_worker_restart,
+      'service_account': service_account,
+      'tensorboard': tensorboard,
+      'enable_web_access': enable_web_access,
+      'network': network,
+      'reserved_ip_ranges': reserved_ip_ranges or [],
+      'base_output_directory': base_output_directory,
+      'labels': labels or {},
+      'encryption_spec_key_name': encryption_spec_key_name,
   }
 
-  # Copy merged input/output parameters to custom_training_job_dict
-  # Using copy.deepcopy here to avoid anchors and aliases in the produced
-  # YAML as a result of pointing to the same dict.
-  custom_training_job_dict['root']['inputDefinitions']['parameters'] = (
-      copy.deepcopy(custom_job_input_params)
-  )
-  custom_training_job_dict['components'][custom_training_job_comp_key][
-      'inputDefinitions'
-  ]['parameters'] = copy.deepcopy(custom_job_input_params)
-  custom_training_job_tasks_key = list(
-      custom_training_job_dict['root']['dag']['tasks'].keys()
-  )[0]
-  custom_training_job_dict['root']['dag']['tasks'][
-      custom_training_job_tasks_key
-  ]['inputs']['parameters'] = {
-      **(
-          list(input_component_spec_dict['root']['dag']['tasks'].values())[0]
-          .get('inputs', {})
-          .get('parameters', {})
-      ),
-      **(
-          custom_training_job_dict['root']['dag']['tasks'][
-              custom_training_job_tasks_key
-          ]['inputs']['parameters']
-      ),
-  }
-  custom_training_job_dict['components'][custom_training_job_comp_key][
-      'outputDefinitions'
-  ]['parameters'] = custom_job_output_params
+  for param_name, default_value in custom_job_param_defaults.items():
+    cj_component_spec['inputDefinitions']['parameters'][param_name][
+        'defaultValue'
+    ] = default_value
 
-  # Retrieve the input/output artifacts from the input component.
-  custom_job_input_artifacts = input_component_spec_comp_val.get(
+  # merge parameters from user component into the customjob component
+  cj_component_spec['inputDefinitions']['parameters'].update(
+      user_component_spec.get('inputDefinitions', {}).get('parameters', {})
+  )
+  cj_component_spec['outputDefinitions']['parameters'].update(
+      user_component_spec.get('outputDefinitions', {}).get('parameters', {})
+  )
+  # use artifacts from user component
+  ## assign artifacts, not update, since customjob has no artifact outputs
+  cj_component_spec['inputDefinitions']['artifacts'] = user_component_spec.get(
       'inputDefinitions', {}
   ).get('artifacts', {})
-  custom_job_output_artifacts = input_component_spec_comp_val.get(
+  cj_component_spec['outputDefinitions']['artifacts'] = user_component_spec.get(
       'outputDefinitions', {}
   ).get('artifacts', {})
 
-  # Copy input/output artifacts from the input component to
-  # custom_training_job_dict
-  if custom_job_input_artifacts:
-    custom_training_job_dict['root']['inputDefinitions']['artifacts'] = (
-        copy.deepcopy(custom_job_input_artifacts)
-    )
-    custom_training_job_dict['components'][custom_training_job_comp_key][
-        'inputDefinitions'
-    ]['artifacts'] = copy.deepcopy(custom_job_input_artifacts)
-    custom_training_job_dict['root']['dag']['tasks'][
-        custom_training_job_tasks_key
-    ]['inputs']['artifacts'] = {
-        **(
-            list(input_component_spec_dict['root']['dag']['tasks'].values())[0]
-            .get('inputs', {})
-            .get('artifacts', {})
-        ),
-        **(
-            custom_training_job_dict['root']['dag']['tasks'][
-                custom_training_job_tasks_key
-            ]['inputs'].get('artifacts', {})
-        ),
-    }
-  if custom_job_output_artifacts:
-    custom_training_job_dict['components'][custom_training_job_comp_key][
-        'outputDefinitions'
-    ]['artifacts'] = custom_job_output_artifacts
+  # copy the input definitions to the root, which will have an identical interface for a single-step pipeline
+  cj_pipeline_spec['root']['inputDefinitions'] = copy.deepcopy(
+      cj_component_spec['inputDefinitions']
+  )
+  cj_pipeline_spec['root']['outputDefinitions'] = copy.deepcopy(
+      cj_component_spec['outputDefinitions']
+  )
 
-  # Create new component from component IR YAML
-  custom_training_job_yaml = yaml.safe_dump(custom_training_job_dict)
-  new_component = components.load_component_from_text(custom_training_job_yaml)
+  # update the customjob task with the user inputs
+  cj_task_key = list(cj_pipeline_spec['root']['dag']['tasks'].keys())[0]
+  user_task_key = list(user_pipeline_spec['root']['dag']['tasks'].keys())[0]
+
+  cj_pipeline_spec['root']['dag']['tasks'][cj_task_key]['inputs'].update(
+      user_pipeline_spec['root']['dag']['tasks'][user_task_key].get(
+          'inputs', {}
+      )
+  )
+
+  # reload the pipelinespec as a component using KFP
+  new_component = components.load_component_from_text(
+      yaml.safe_dump(cj_pipeline_spec)
+  )
 
   # Copy the component name and description
   # TODO(b/262360354): The inner .component_spec.name is needed here as that is
@@ -384,25 +312,21 @@ def create_custom_training_job_from_component(
   new_component.component_spec.name = component_spec.component_spec.name
 
   if component_spec.description:
-    # TODO(chavoshi) Add support for docstring parsing.
-    component_description = 'A custom job that wraps '
-    component_description += (
-        f'{component_spec.component_spec.name}.\n\nOriginal component'
-    )
-    component_description += (
-        f' description:\n{component_spec.description}\n\nCustom'
-    )
-    component_description += ' Job wrapper description:\n'
-    component_description += component.custom_training_job.description
+    component_description = textwrap.dedent(f"""
+    A CustomJob that wraps {component_spec.component_spec.name}.
 
+    Original component description:
+    {component_spec.description}
+
+    Custom Job wrapper description:
+    {component.custom_training_job.description}
+    """)
     new_component.description = component_description
 
   return new_component
 
 
-# This alias points to the old "create_custom_training_job_op_from_component" to
-# avoid potential user breakage.
-def create_custom_training_job_op_from_component(*args, **kwargs) -> Callable:  # pylint: disable=g-bare-generic
+def create_custom_training_job_op_from_component(*args, **kwargs) -> Callable:
   """Deprecated.
 
   Please use create_custom_training_job_from_component instead.
@@ -412,12 +336,14 @@ def create_custom_training_job_op_from_component(*args, **kwargs) -> Callable:  
     **kwargs: Keyword arguments for create_custom_training_job_from_component.
 
   Returns:
-    A Custom Job component operator corresponding to the input component
-    operator.
+    A KFP component with CustomJob features applied.
   """
 
-  logging.warning(
-      'Deprecated. Please use create_custom_training_job_from_component'
-      ' instead.'
+  warnings.warn(
+      f'{create_custom_training_job_op_from_component.__name__!r} is'
+      ' deprecated. Please use'
+      f' {create_custom_training_job_from_component.__name__!r} instead.',
+      DeprecationWarning,
   )
+
   return create_custom_training_job_from_component(*args, **kwargs)

@@ -17,11 +17,11 @@ import collections
 from copy import deepcopy
 from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
-from kfp.components import for_loop
-from kfp.components import pipeline_channel
-from kfp.components import pipeline_context
-from kfp.components import pipeline_task
-from kfp.components import tasks_group
+from kfp.dsl import for_loop
+from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_context
+from kfp.dsl import pipeline_task
+from kfp.dsl import tasks_group
 
 GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
@@ -654,6 +654,9 @@ def get_dependencies(
             uncommon_upstream_groups.remove(
                 upstream_task.name
             )  # because a task's `upstream_groups` contains the task's name
+
+            # TODO: this logic can be simplified: the logic to check for consumption from a task in an upstream
+            # Condition and ExitHandler should be the same and can be unified with the ParallelFor checks
             if uncommon_upstream_groups:
                 dependent_group = group_name_to_group.get(
                     uncommon_upstream_groups[0], None)
@@ -668,26 +671,48 @@ def get_dependencies(
                         f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} A downstream task cannot depend on an upstream task within a dsl.{dependent_group.__class__.__name__} context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl.{for_loop.Collected.__name__}. Found task {task.name} which depends on upstream task {upstream_task.name} within an uncommon dsl.{dependent_group.__class__.__name__} context.'
                     )
 
-            # ParralelFor Nested Check
-            # if there is a parrallelFor group type in the upstream parents tasks and there also exists a parallelFor in the uncommon_ancestors of downstream: this means a nested for loop exists in the DAG
-            # only check when upstream_task is a PipelineTask, since checking
-            # for TasksGroup results in catching dsl.Collected cases.
+            # tasks in a deeper part of a nested ParallelFor cannot depend directly on a task in a shallower part of the nested ParallelFor
+            # to check for this we need to know that:
+            # - the upstream task has at least one ParallelFor parent group
+            # - the downstream task has at least one ParallelFor parent group uncommon to the upstream task
+            # - the downstream consumes from the upstream or has an explicit dependency (.after) on it (a dependency transitively via the parent task group doesn't satisfy the error condition, since the ParallelFor should be permitted to iterate over the upstreams list output)
             if isinstance(upstream_task, pipeline_task.PipelineTask):
                 upstream_parent_tasks = task_name_to_parent_groups[
                     upstream_task.name]
 
-                for group in downstream_groups:
+                downstream_parallelfor_parents = [
+                    group_name_to_group.get(group, None)
+                    for group in downstream_groups
                     if isinstance(
-                            group_name_to_group.get(group, None),
-                            tasks_group.ParallelFor):
-                        for parent_task in upstream_parent_tasks:
-                            if isinstance(
-                                    group_name_to_group.get(parent_task, None),
-                                    tasks_group.ParallelFor):
+                        group_name_to_group.get(group, None),
+                        tasks_group.ParallelFor)
+                ]
+                downstream_in_parallelfor = bool(downstream_parallelfor_parents)
 
-                                raise InvalidTopologyException(
-                                    f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}.'
-                                )
+                upstream_parallelfor_parents = [
+                    parent_group for parent_group in upstream_parent_tasks
+                    if isinstance(
+                        group_name_to_group.get(parent_group, None),
+                        tasks_group.ParallelFor)
+                ]
+                upstream_in_parallelfor = bool(upstream_parallelfor_parents)
+
+                downstream_consumes_from_upstream = bool([
+                    inp.name
+                    for inp in task._task_spec.inputs.values()
+                    if isinstance(inp, pipeline_channel.PipelineChannel) and
+                    inp.name == upstream_task.name
+                ])
+
+                after_called_on_upstream = upstream_task.name in task._run_after
+
+                if downstream_in_parallelfor and upstream_in_parallelfor and (
+                        downstream_consumes_from_upstream or
+                        after_called_on_upstream):
+
+                    raise InvalidTopologyException(
+                        f'{ILLEGAL_CROSS_DAG_ERROR_PREFIX} Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {downstream_parallelfor_parents[0]} is nested in {upstream_parallelfor_parents[0]}.'
+                    )
 
             dependencies[downstream_groups[0]].add(upstream_groups[0])
 

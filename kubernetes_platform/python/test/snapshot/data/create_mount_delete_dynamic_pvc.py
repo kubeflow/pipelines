@@ -38,7 +38,7 @@ def consumer() -> str:
 def my_pipeline():
     pvc1 = kubernetes.CreatePVC(
         pvc_name_suffix='-my-pvc',
-        access_modes=['ReadWriteMany'],
+        access_modes=['ReadWriteOnce'],
         size='5Mi',
         storage_class_name='standard',
     )

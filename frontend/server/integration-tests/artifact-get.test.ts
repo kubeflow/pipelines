@@ -438,11 +438,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get(`/artifacts/get?source=volume&bucket=notexist&key=content`)
-        .expect(
-          404,
-          'Failed to open volume://notexist/content, Cannot find file "volume://notexist/content" in pod "ml-pipeline-ui": volume "notexist" not configured',
-          done,
-        );
+        .expect(404, 'Failed to open volume.', done);
     });
 
     it('responds error with a not exist volume mount path if source=volume', done => {
@@ -485,11 +481,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get(`/artifacts/get?source=volume&bucket=artifact&key=notexist/config`)
-        .expect(
-          404,
-          'Failed to open volume://artifact/notexist/config, Cannot find file "volume://artifact/notexist/config" in pod "ml-pipeline-ui": volume "artifact" not mounted or volume "artifact" with subPath (which is prefix of notexist/config) not mounted',
-          done,
-        );
+        .expect(404, 'Failed to open volume.', done);
     });
 
     it('responds error with a not exist volume mount artifact if source=volume', done => {
@@ -529,11 +521,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
-        .expect(
-          500,
-          "Failed to open volume://artifact/subartifact/notxist.csv: Error: ENOENT: no such file or directory, stat '/foo/bar/notxist.csv'",
-          done,
-        );
+        .expect(500, 'Failed to open volume.', done);
     });
   });
 

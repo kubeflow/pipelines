@@ -28,9 +28,11 @@ type V2beta1PipelineVersion struct {
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty"`
 
 	// Optional input field. Short description of the pipeline version.
+	// This is ignored in CreatePipelineAndVersion API.
 	Description string `json:"description,omitempty"`
 
 	// Required input field. Pipeline version name provided by user.
+	// This is ignored in CreatePipelineAndVersion API.
 	DisplayName string `json:"display_name,omitempty"`
 
 	// In case any error happens retrieving a pipeline version field, only
@@ -41,10 +43,11 @@ type V2beta1PipelineVersion struct {
 
 	// Input. Required. The URL to the source of the pipeline version.
 	// This is required when creating the pipeine version through
-	// CreatePipelineVersion API.
+	// CreatePipelineVersion or CreatePipelineAndVersion API.
 	PackageURL *V2beta1URL `json:"package_url,omitempty"`
 
 	// Required input field. Unique ID of the parent pipeline.
+	// This is ignored in CreatePipelineAndVersion API.
 	PipelineID string `json:"pipeline_id,omitempty"`
 
 	// Output. The pipeline spec for the pipeline version.

@@ -18,8 +18,7 @@ import importlib
 import os
 import types
 
-from setuptools import find_packages
-from setuptools import setup
+import setuptools
 
 relative_directory = os.path.relpath(os.path.dirname(os.path.abspath(__file__)))
 GCPC_DIR_NAME = "google_cloud_pipeline_components"
@@ -36,7 +35,11 @@ loader.exec_module(version)
 with open("README.md") as fp:
   _GCPC_LONG_DESCRIPTION = fp.read()
 
-setup(
+yaml_data = glob.glob(relative_data_path + "/**/*.yaml", recursive=True)
+json_data = glob.glob(
+    relative_data_path + "/**/automl/**/*.json", recursive=True
+)
+setuptools.setup(
     name="google-cloud-pipeline-components",
     version=version.__version__,
     description=(
@@ -69,6 +72,7 @@ setup(
             "sphinx-immaterial==0.9.0",
             "sphinx-rtd-theme==1.0.0",
             "m2r2==0.3.2",
+            "sphinx-notfound-page==0.8.3",
         ],
     },
     include_package_data=True,
@@ -77,9 +81,17 @@ setup(
         # Pin google-api-core version for the bug fixing in 1.31.5
         # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
         "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
-        "kfp>=2.0.0b10",
+        "kfp>=2.0.0b10,<3.0.0",
         "google-cloud-aiplatform>=1.14.0,<2",
     ],
+    project_urls={
+        "User Documentation": "https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction",
+        "Reference Documentation": (
+            "https://google-cloud-pipeline-components.readthedocs.io/"
+        ),
+        "Source": "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
+        "Release Notes": "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/RELEASE.md",
+    },
     dependency_links=[],
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -104,16 +116,11 @@ setup(
     package_dir={
         GCPC_DIR_NAME: os.path.join(relative_directory, GCPC_DIR_NAME)
     },
-    packages=find_packages(where=relative_directory, include="*"),
+    packages=setuptools.find_packages(where=relative_directory, include="*"),
     package_data={
         GCPC_DIR_NAME: [
             x.replace(relative_data_path + "/", "")
-            for x in glob.glob(
-                relative_data_path + "/**/*.yaml", recursive=True
-            )
-            + glob.glob(
-                relative_data_path + "/**/automl/**/*.json", recursive=True
-            )
+            for x in yaml_data + json_data
         ]
     },
 )

@@ -11,36 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline BigQuery components."""
+"""Create and execute machine learning models via SQL using `Google Cloud BigQuery ML <https://cloud.google.com/bigquery/docs/bqml-introduction>`_."""
 
-import os
-
-from .create_model import component as create_model_component
-from .detect_anomalies_model import component as detect_anomalies_model_component
-from .drop_model import component as drop_model_component
-from .evaluate_model import component as evaluate_model_component
-from .explain_forecast_model import component as explain_forecast_model_component
-from .explain_predict_model import component as explain_predict_model
-from .export_model import component as export_model_component
-from .feature_importance import component as feature_importance_component
-from .forecast_model import component as forecast_model_component
-from .global_explain import component as global_explain_component
-from .ml_advanced_weights import component as ml_advanced_weights_component
-from .ml_arima_coefficients import component as ml_arima_coefficients_component
-from .ml_arima_evaluate import component as ml_arima_evaluate_component
-from .ml_centroids import component as ml_centroids_component
-from .ml_confusion_matrix import component as ml_confusion_matrix_component
-from .ml_feature_info import component as ml_feature_info_component
-from .ml_principal_component_info import component as ml_principal_component_info_component
-from .ml_principal_components import component as ml_principal_components_component
-from .ml_recommend import component as ml_recommend_component
-from .ml_reconstruction_loss import component as ml_reconstruction_loss_component
-from .ml_roc_curve import component as ml_roc_curve_component
-from .ml_training_info import component as ml_training_info_component
-from .ml_trial_info import component as ml_trial_info_component
-from .ml_weights import component as ml_weights_component
-from .predict_model import component as predict_model_component
-from .query_job import component as query_job_component
+from google_cloud_pipeline_components.v1.bigquery.create_model.component import bigquery_create_model_job as BigqueryCreateModelJobOp
+from google_cloud_pipeline_components.v1.bigquery.detect_anomalies_model.component import bigquery_detect_anomalies_job as BigqueryDetectAnomaliesModelJobOp
+from google_cloud_pipeline_components.v1.bigquery.drop_model.component import bigquery_drop_model_job as BigqueryDropModelJobOp
+from google_cloud_pipeline_components.v1.bigquery.evaluate_model.component import bigquery_evaluate_model_job as BigqueryEvaluateModelJobOp
+from google_cloud_pipeline_components.v1.bigquery.explain_forecast_model.component import bigquery_explain_forecast_model_job as BigqueryExplainForecastModelJobOp
+from google_cloud_pipeline_components.v1.bigquery.explain_predict_model.component import bigquery_explain_predict_model_job as BigqueryExplainPredictModelJobOp
+from google_cloud_pipeline_components.v1.bigquery.export_model.component import bigquery_export_model_job as BigqueryExportModelJobOp
+from google_cloud_pipeline_components.v1.bigquery.feature_importance.component import bigquery_ml_feature_importance_job as BigqueryMLFeatureImportanceJobOp
+from google_cloud_pipeline_components.v1.bigquery.forecast_model.component import bigquery_forecast_model_job as BigqueryForecastModelJobOp
+from google_cloud_pipeline_components.v1.bigquery.global_explain.component import bigquery_ml_global_explain_job as BigqueryMLGlobalExplainJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_advanced_weights.component import bigquery_ml_advanced_weights_job as BigqueryMLAdvancedWeightsJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_arima_coefficients.component import bigquery_ml_arima_coefficients as BigqueryMLArimaCoefficientsJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_arima_evaluate.component import bigquery_ml_arima_evaluate_job as BigqueryMLArimaEvaluateJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_centroids.component import bigquery_ml_centroids_job as BigqueryMLCentroidsJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_confusion_matrix.component import bigquery_ml_confusion_matrix_job as BigqueryMLConfusionMatrixJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_feature_info.component import bigquery_ml_feature_info_job as BigqueryMLFeatureInfoJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_principal_component_info.component import bigquery_ml_principal_component_info_job as BigqueryMLPrincipalComponentInfoJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_principal_components.component import bigquery_ml_principal_components_job as BigqueryMLPrincipalComponentsJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_recommend.component import bigquery_ml_recommend_job as BigqueryMLRecommendJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_reconstruction_loss.component import bigquery_ml_reconstruction_loss_job as BigqueryMLReconstructionLossJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_roc_curve.component import bigquery_ml_roc_curve_job as BigqueryMLRocCurveJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_training_info.component import bigquery_ml_training_info_job as BigqueryMLTrainingInfoJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_trial_info.component import bigquery_ml_trial_info_job as BigqueryMLTrialInfoJobOp
+from google_cloud_pipeline_components.v1.bigquery.ml_weights.component import bigquery_ml_weights_job as BigqueryMLWeightsJobOp
+from google_cloud_pipeline_components.v1.bigquery.predict_model.component import bigquery_predict_model_job as BigqueryPredictModelJobOp
+from google_cloud_pipeline_components.v1.bigquery.query_job.component import bigquery_query_job as BigqueryQueryJobOp
 
 __all__ = [
     'BigqueryCreateModelJobOp',
@@ -70,62 +68,3 @@ __all__ = [
     'BigqueryPredictModelJobOp',
     'BigqueryQueryJobOp',
 ]
-
-BigqueryCreateModelJobOp = create_model_component.bigquery_create_model_job
-BigqueryDetectAnomaliesModelJobOp = (
-    detect_anomalies_model_component.bigquery_detect_anomalies_job
-)
-BigqueryDropModelJobOp = drop_model_component.bigquery_drop_model_job
-BigqueryEvaluateModelJobOp = (
-    evaluate_model_component.bigquery_evaluate_model_job
-)
-BigqueryExplainForecastModelJobOp = (
-    explain_forecast_model_component.bigquery_explain_forecast_model_job
-)
-BigqueryExplainPredictModelJobOp = (
-    explain_predict_model.bigquery_explain_predict_model_job
-)
-BigqueryExportModelJobOp = export_model_component.bigquery_export_model_job
-BigqueryForecastModelJobOp = (
-    forecast_model_component.bigquery_forecast_model_job
-)
-BigqueryMLAdvancedWeightsJobOp = (
-    ml_advanced_weights_component.bigquery_ml_advanced_weights_job
-)
-BigqueryMLArimaCoefficientsJobOp = (
-    ml_arima_coefficients_component.bigquery_ml_arima_coefficients
-)
-BigqueryMLArimaEvaluateJobOp = (
-    ml_arima_evaluate_component.bigquery_ml_arima_evaluate_job
-)
-BigqueryMLCentroidsJobOp = ml_centroids_component.bigquery_ml_centroids_job
-BigqueryMLConfusionMatrixJobOp = (
-    ml_confusion_matrix_component.bigquery_ml_confusion_matrix_job
-)
-BigqueryMLFeatureImportanceJobOp = (
-    feature_importance_component.bigquery_ml_feature_importance_job
-)
-BigqueryMLFeatureInfoJobOp = (
-    ml_feature_info_component.bigquery_ml_feature_info_job
-)
-BigqueryMLGlobalExplainJobOp = (
-    global_explain_component.bigquery_ml_global_explain_job
-)
-BigqueryMLPrincipalComponentInfoJobOp = (
-    ml_principal_component_info_component.bigquery_ml_principal_component_info_job
-)
-BigqueryMLPrincipalComponentsJobOp = (
-    ml_principal_components_component.bigquery_ml_principal_components_job
-)
-BigqueryMLRecommendJobOp = ml_recommend_component.bigquery_ml_recommend_job
-BigqueryMLReconstructionLossJobOp = (
-    ml_reconstruction_loss_component.bigquery_ml_reconstruction_loss_job
-)
-BigqueryMLRocCurveJobOp = ml_roc_curve_component.bigquery_ml_roc_curve_job
-BigqueryMLTrainingInfoJobOp = (
-    ml_training_info_component.bigquery_ml_training_info_job
-)
-BigqueryMLTrialInfoJobOp = ml_trial_info_component.bigquery_ml_trial_info_job
-BigqueryMLWeightsJobOp = ml_weights_component.bigquery_ml_weights_job
-BigqueryPredictModelJobOp = predict_model_component.bigquery_predict_model_job
-BigqueryQueryJobOp = query_job_component.bigquery_query_job

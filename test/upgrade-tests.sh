@@ -73,7 +73,8 @@ COMMIT_SHA="$(git rev-parse HEAD)"
 GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${COMMIT_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${COMMIT_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
-LATEST_RELEASED_TAG=$(git tag --sort=v:refname | tail -1)
+# exclude SDK release tags
+LATEST_RELEASED_TAG=$(git tag --sort=v:refname | grep -v "sdk-" | tail -1)
 
 # Configure `time` command output format.
 TIMEFORMAT="[test-timing] It took %lR."

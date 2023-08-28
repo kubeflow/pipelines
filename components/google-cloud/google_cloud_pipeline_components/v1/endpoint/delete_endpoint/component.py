@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
-from google_cloud_pipeline_components.types.artifact_types import VertexModel
-from kfp.dsl import Input
-from kfp.dsl import OutputPath
 from kfp import dsl
+from kfp.dsl import Input
 
 
 @dsl.container_component
@@ -27,23 +25,19 @@ def endpoint_delete(
     gcp_resources: dsl.OutputPath(str),
 ):
   # fmt: off
-  """
-  Deletes a Google Cloud Vertex Endpoint.
-  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete.
+  """`Deletes <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete>`_ a Google Cloud Vertex `Endpoint <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_.
+
+  See the `Endpoint delete <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete>`_ method for more information.
 
   Args:
-      endpoint (google.VertexEndpoint):
-          Required. The endpoint to be deleted.
+      endpoint: The Endpoint to be deleted.
 
   Returns:
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the delete endpoint's long running operation.
-
-          For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the delete Endpoint's long-running operation.
   """
   # fmt: on
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',
@@ -57,7 +51,7 @@ def endpoint_delete(
           dsl.ConcatPlaceholder([
               '{',
               '"endpoint": "',
-              "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
+              endpoint.metadata['resourceName'],
               '"',
               '}',
           ]),

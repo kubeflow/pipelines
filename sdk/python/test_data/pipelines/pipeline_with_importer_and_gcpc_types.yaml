@@ -21,7 +21,6 @@ components:
           artifactType:
             schemaTitle: google.VertexDataset
             schemaVersion: 0.0.1
-defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
     exec-consumer-op:
@@ -73,4 +72,4 @@ root:
         taskInfo:
           name: importer
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.16
+sdkVersion: kfp-2.0.0-rc.2

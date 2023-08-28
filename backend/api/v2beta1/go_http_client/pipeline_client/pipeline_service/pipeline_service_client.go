@@ -54,6 +54,35 @@ func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.C
 }
 
 /*
+CreatePipelineAndVersion creates a new pipeline and a new pipeline version in a single transaction
+*/
+func (a *Client) CreatePipelineAndVersion(params *CreatePipelineAndVersionParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineAndVersionOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCreatePipelineAndVersionParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CreatePipelineAndVersion",
+		Method:             "POST",
+		PathPattern:        "/apis/v2beta1/pipelines/create",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &CreatePipelineAndVersionReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CreatePipelineAndVersionOK), nil
+
+}
+
+/*
 CreatePipelineVersion adds a pipeline version to the specified pipeline ID
 */
 func (a *Client) CreatePipelineVersion(params *CreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineVersionOK, error) {

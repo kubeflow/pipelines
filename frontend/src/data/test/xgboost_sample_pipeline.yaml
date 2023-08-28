@@ -198,7 +198,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-defaultPipelineRoot: dummy_root
+defaultPipelineRoot: minio://dummy_root
 deploymentSpec:
   executors:
     exec-chicago-taxi-trips-dataset:

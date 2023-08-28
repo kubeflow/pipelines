@@ -31,17 +31,17 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
-from kfp.components import graph_component
-from kfp.components import pipeline_task
-from kfp.components import yaml_component
-from kfp.components.types import type_utils
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
+from kfp.dsl import graph_component
 from kfp.dsl import Input
 from kfp.dsl import Model
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
+from kfp.dsl import pipeline_task
 from kfp.dsl import PipelineTaskFinalStatus
+from kfp.dsl import yaml_component
+from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
@@ -152,18 +152,6 @@ class TestCompilePipeline(parameterized.TestCase):
             with open(target_json_file, 'r') as f:
                 f.read()
 
-    def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
-
-        with self.assertRaisesRegex(
-                AttributeError,
-                "module 'kfp.dsl' has no attribute 'graph_component'"):
-
-            @dsl.graph_component
-            def flip_coin_graph_component():
-                flip = flip_coin_op()
-                with dsl.Condition(flip.output == 'heads'):
-                    flip_coin_graph_component()
-
     def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
         upstream_op = components.load_component_from_text("""
@@ -192,7 +180,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 ' type "system.Model@0.0.1" cannot be paired with InputValuePlaceholder.'
         ):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline():
                 downstream_op(model=upstream_op().output)
 
@@ -213,7 +201,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 TypeError,
                 ' type "String" cannot be paired with InputPathPlaceholder.'):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: str):
                 component_op(text=text)
 
@@ -222,7 +210,7 @@ class TestCompilePipeline(parameterized.TestCase):
         with self.assertRaisesRegex(ValueError,
                                     'Task is missing from pipeline.'):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: str):
                 pass
 
@@ -243,7 +231,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 TypeError,
                 ' type "Float" cannot be paired with InputUriPlaceholder.'):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline(value: float):
                 component_op(value=value)
 
@@ -264,7 +252,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 TypeError,
                 ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
 
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            @dsl.pipeline(name='test-pipeline')
             def my_pipeline():
                 component_op()
 
@@ -646,6 +634,28 @@ implementation:
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(text: bool):
                 print_op()
+
+    def test_task_final_status_parameter_type_is_used(self):
+        # previously compiled to STRUCT type, so checking that this is updated
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.component
+        def exit_comp(status: dsl.PipelineTaskFinalStatus):
+            print(status)
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = exit_comp()
+            with dsl.ExitHandler(exit_task=exit_task):
+                identity(string='hi')
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.components['comp-exit-comp']
+            .input_definitions.parameters['status'].parameter_type,
+            pipeline_spec_pb2.ParameterType.TASK_FINAL_STATUS)
 
     def test_compile_parallel_for_with_valid_parallelism(self):
 
@@ -1414,7 +1424,7 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
                         print_op(message='Inside second exit handler.')
 
 
-class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
+class TestBooleanInputCompiledCorrectly(unittest.TestCase):
     # test with default = True, may have false test successes due to protocol buffer boolean default of False
     def test_python_component(self):
 
@@ -1546,6 +1556,27 @@ class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
         self.assertEqual(
             pipeline_spec.root.input_definitions.parameters['boolean']
             .default_value.bool_value, True)
+
+    def test_constant_passed_to_component(self):
+
+        @dsl.component
+        def comp(boolean1: bool, boolean2: bool) -> bool:
+            return boolean1
+
+        @dsl.pipeline
+        def my_pipeline():
+            comp(boolean1=True, boolean2=False)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(my_pipeline, pipeline_spec_path)
+            pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
+        self.assertTrue(
+            pipeline_spec.root.dag.tasks['comp'].inputs.parameters['boolean1']
+            .runtime_value.constant.bool_value)
+        self.assertFalse(
+            pipeline_spec.root.dag.tasks['comp'].inputs.parameters['boolean2']
+            .runtime_value.constant.bool_value)
 
 
 # helper component defintions for the ValidLegalTopologies tests
@@ -1778,6 +1809,64 @@ class TestValidLegalTopologies(unittest.TestCase):
                 package_path = os.path.join(tempdir, 'pipeline.yaml')
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_inner_parallelfor_can_iter_over_upstream_output(self):
+
+        @dsl.component
+        def str_to_list(string: str) -> List:
+            return [string]
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(['a', 'b', 'c']) as itema:
+                t1 = str_to_list(string=itema)
+                with dsl.ParallelFor(t1.output) as itemb:
+                    identity(string=itemb)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_permitted_nested_parallelfor_complex(self):
+
+        @dsl.component
+        def str_to_list(string: str) -> List:
+            return [string]
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.pipeline
+        def my_pipeline():
+
+            # for-loop-2
+            with dsl.ParallelFor(['a', 'b', 'c']) as itema:
+                t1 = str_to_list(string=itema)
+                t2 = str_to_list(string=itema)
+
+                sequential_task1 = identity(string=itema)
+                identity(string=sequential_task1.output)
+
+                # for-loop-3
+                with dsl.ParallelFor(t1.output) as itemb:
+                    t3 = str_to_list(string=itema)
+                    with dsl.ParallelFor(t3.output) as itemc:
+                        identity(string=itemc)
+                    with dsl.ParallelFor(t2.output) as itemd:
+                        identity(string=itemd)
+                with dsl.ParallelFor(t2.output) as iteme:
+                    identity(string=iteme)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
 
     def test_downstream_in_condition_nested_in_a_for_loop(self):
 

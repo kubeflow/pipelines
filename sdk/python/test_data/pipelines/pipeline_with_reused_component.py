@@ -23,7 +23,7 @@ add_op = components.load_component_from_file(
     str(test_data_dir / 'add_component.yaml'))
 
 
-@dsl.pipeline(name='add-pipeline', pipeline_root='dummy_root')
+@dsl.pipeline(name='add-pipeline')
 def my_pipeline(
     a: int = 2,
     b: int = 5,

@@ -81,10 +81,15 @@ export function composePodLogsStreamHandler<T = Stream>(
  * Returns a stream containing the pod logs using kubernetes api.
  * @param podName name of the pod.
  * @param namespace namespace of the pod (uses the same namespace as the server if not provided).
+ * @param containerName container's name of the pod, the default value is 'main'.
  */
-export async function getPodLogsStreamFromK8s(podName: string, namespace?: string) {
+export async function getPodLogsStreamFromK8s(
+  podName: string,
+  namespace?: string,
+  containerName: string = 'main',
+) {
   const stream = new PassThrough();
-  stream.end(await getPodLogs(podName, namespace));
+  stream.end(await getPodLogs(podName, namespace, containerName));
   console.log(`Getting logs for pod:${podName} in namespace ${namespace}.`);
   return stream;
 }

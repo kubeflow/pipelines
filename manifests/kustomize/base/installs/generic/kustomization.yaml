@@ -45,4 +45,4 @@ vars:
   fieldref:
     fieldpath: data.defaultPipelineRoot
 configurations:
-- params.yaml
+ - params.yaml

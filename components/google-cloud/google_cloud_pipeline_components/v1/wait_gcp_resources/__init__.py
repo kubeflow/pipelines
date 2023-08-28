@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline wait GCP resource component."""
+"""Wait on the completion of GCP resources spawned from an upstream pipeline component."""
 
 from google_cloud_pipeline_components.v1.wait_gcp_resources.component import wait_gcp_resources as WaitGcpResourcesOp
 

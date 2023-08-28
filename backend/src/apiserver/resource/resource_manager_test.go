@@ -98,9 +98,6 @@ func createPipelineVersion(pipelineId string, name string, description string, u
 	if err != nil {
 		spec = pipelineSpec
 	} else {
-		if tmpl.IsV2() {
-			tmpl.OverrideV2PipelineName(name, namespace)
-		}
 		paramsJSON, _ = tmpl.ParametersJSON()
 		spec = string(tmpl.Bytes())
 	}
@@ -664,12 +661,12 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 		// expected
 		pipelineName string
 	}{
-		{name: "v2-compat", namespace: "", pipelineName: "pipeline/v2-compat"},
-		{name: "pipe3", namespace: "", pipelineName: "pipeline/pipe3"},
-		{name: "pipeline2", namespace: "kubeflow", pipelineName: "namespace/kubeflow/pipeline/pipeline2"},
-		{name: "abcd", namespace: "user", pipelineName: "namespace/user/pipeline/abcd"},
-		{name: "v2-spec1", namespace: "", template: v2SpecHelloWorld, pipelineName: "pipeline/v2-spec1"},
-		{name: "v2-spec2", namespace: "user", template: v2SpecHelloWorld, pipelineName: "namespace/user/pipeline/v2-spec2"},
+		{name: "v2-compat", namespace: "", pipelineName: "two-step-pipeline"},
+		{name: "pipe3", namespace: "", pipelineName: "two-step-pipeline"},
+		{name: "pipeline2", namespace: "kubeflow", pipelineName: "two-step-pipeline"},
+		{name: "abcd", namespace: "user", pipelineName: "two-step-pipeline"},
+		{name: "v2-spec1", namespace: "", template: v2SpecHelloWorld, pipelineName: "hello-world"},
+		{name: "v2-spec2", namespace: "user", template: v2SpecHelloWorld, pipelineName: "hello-world"},
 	}
 	for _, test := range tests {
 		testClone := test
@@ -3579,7 +3576,7 @@ spec:
   arguments:
     parameters:
     - {name: pipeline-root, value: ''}
-    - {name: pipeline-name, value: pipeline/two_step_pipeline}
+    - {name: pipeline-name, value: two-step-pipeline}
   serviceAccountName: pipeline-runner
 `
 
@@ -4093,6 +4090,6 @@ root:
           name: comp-hello-world
         taskInfo:
           name: hello-world
-schemaVersion: 2.0.0
+schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `

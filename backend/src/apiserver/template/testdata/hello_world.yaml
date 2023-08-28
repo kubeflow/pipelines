@@ -45,12 +45,12 @@ root:
         inputs:
           parameters:
             text:
-              componentInputParameter: text
+              componentInputParameter: y
         taskInfo:
           name: hello-world
   inputDefinitions:
     parameters:
-      text:
+      y:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5

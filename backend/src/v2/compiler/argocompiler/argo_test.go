@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -77,6 +78,22 @@ func Test_argo_compiler(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
+
+			// mask the driver launcher image hash to maintain test stability
+			for _, template := range wf.Spec.Templates {
+				if template.Container != nil && strings.Contains(template.Container.Image, "kfp-driver") {
+					template.Container.Image = "gcr.io/ml-pipeline/kfp-driver"
+				}
+				if template.Container != nil && strings.Contains(template.Container.Image, "kfp-launcher") {
+					template.Container.Image = "gcr.io/ml-pipeline/kfp-launcher"
+				}
+				for i := range template.InitContainers {
+					if strings.Contains(template.InitContainers[i].Image, "kfp-launcher") {
+						template.InitContainers[i].Image = "gcr.io/ml-pipeline/kfp-launcher"
+					}
+				}
+			}
+
 			var expected wfapi.Workflow
 			err = yaml.Unmarshal(argoYAML, &expected)
 			if err != nil {

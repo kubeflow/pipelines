@@ -17,6 +17,7 @@ syntax = "proto2";
 
 package ml_metadata;
 
+import "google/protobuf/field_mask.proto";
 import "ml_metadata/proto/metadata_store.proto";
 
 // An artifact and type pair. Part of an artifact struct.
@@ -69,6 +70,94 @@ message PutArtifactsRequest {
 
   // Additional options to change the behavior of the method.
   optional Options options = 2;
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 3;
+
+  // FieldMask for artifacts in the PUT update
+  // If `artifact.id` is not specified, it means a new artifact will be created
+  // and `update_mask` will not be applied to the creation.
+  // If `update_mask` is empty, update the artifacts as a whole.
+  // If `update_mask` is not empty, only update fields or properties specified
+  // in `update_mask`.
+  // Example request protos:
+  // 1. Examples that update `properties` / `custom_properties`:
+  //   1.1 Add a <'key', 'val'> pair into `custom_properties`:
+  //      {
+  //        artifacts {
+  //          id: 1234
+  //          type_id: 5678
+  //          custom_properties {
+  //            key: "key"
+  //            value: {
+  //              string_value: "val"
+  //            }
+  //          }
+  //        }
+  //        update_mask {
+  //          paths: "custom_properties.key"
+  //        }
+  //      }
+  //   1.2 Set `custom_properties['key'].bool_value` to true:
+  //      {
+  //        artifacts {
+  //          id: 1234
+  //          type_id: 5678
+  //          custom_properties {
+  //            key: "key"
+  //            value: {
+  //              bool_value: true
+  //            }
+  //          }
+  //        }
+  //        update_mask {
+  //          paths: "custom_properties.key"
+  //        }
+  //      }
+  //   1.3 Delete the complete <'key', 'val'> pair from `custom_properties`:
+  //      {
+  //        artifacts {
+  //          id: 1234
+  //          type_id: 5678
+  //          custom_properties {}
+  //        }
+  //        update_mask {
+  //          paths: "custom_properties.key"
+  //        }
+  //      }
+  // 2. Examples that update fields such as `uri`, `external_id`, etc:
+  //   2.1 Update `external_id` field:
+  //      {
+  //        artifacts {
+  //          id: 1234
+  //          type_id: 5678
+  //          external_id: "new_value"
+  //        }
+  //        update_mask {
+  //          paths: "external_id"
+  //        }
+  //      }
+  //   2.2 Set `uri` field:
+  //      {
+  //        artifacts {
+  //          id: 1234
+  //          type_id: 5678
+  //          uri: "set_value"
+  //        }
+  //        update_mask {
+  //          paths: "uri"
+  //        }
+  //      }
+  // If `paths: "properties"` or `paths: "custom_properties"` are added to
+  // `update_mask`, the key-level updates will be ignored and we only perform
+  // field-level updates on the all `properties`/`custom_properties`.
+  // For example:
+  //   If the mask is: {"properties", "properties.key1"}, the field path
+  //   "properties.key1" will be ignored and all `properties` will be updated.
+  //   (Do not suggest)
+  //   If the mask is {"properties", "external_id"}, all
+  //   `properties` and field `external_id` will be updated. (Do not suggest)
+  optional google.protobuf.FieldMask update_mask = 4;
 }
 
 message PutArtifactsResponse {
@@ -97,6 +186,9 @@ message PutArtifactTypeRequest {
   // Deprecated fields.
   optional bool can_delete_fields = 3 [deprecated = true];
   optional bool all_fields_match = 4 [default = true, deprecated = true];
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 6;
 }
 
 message PutArtifactTypeResponse {
@@ -106,6 +198,46 @@ message PutArtifactTypeResponse {
 
 message PutExecutionsRequest {
   repeated Execution executions = 1;
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+
+  // FieldMask for executions in the PUT update
+  // If `execution.id` is not specified, it means a new execution will be
+  // created and `update_mask` will not be applied to the creation.
+  // If `update_mask` is empty, update the executions as a whole.
+  // If `update_mask` is not empty, only update fields or properties specified
+  // in `update_mask`.
+  // Example request protos:
+  //   1. Add a <'key', 'val'> pair into `custom_properties`:
+  //      {
+  //        executions {
+  //          id: 1234
+  //          type_id: 5678
+  //          custom_properties {
+  //            key: "key"
+  //            value: {
+  //              string_value: "val"
+  //            }
+  //          }
+  //        }
+  //        update_mask {
+  //          paths: "custom_properties.key"
+  //        }
+  //      }
+  //   2. Set `last_known_state` field:
+  //      {
+  //        executions {
+  //          id: 1234
+  //          type_id: 5678
+  //          last_known_state: CACHED
+  //        }
+  //        update_mask {
+  //          paths: "last_known_state"
+  //        }
+  //      }
+  // Please refer to `PutArtifactsRequest` for more details.
+  optional google.protobuf.FieldMask update_mask = 3;
 }
 
 message PutExecutionsResponse {
@@ -134,6 +266,9 @@ message PutExecutionTypeRequest {
   // Deprecated fields.
   optional bool can_delete_fields = 3 [deprecated = true];
   optional bool all_fields_match = 4 [default = true, deprecated = true];
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 6;
 }
 
 message PutExecutionTypeResponse {
@@ -143,6 +278,9 @@ message PutExecutionTypeResponse {
 
 message PutEventsRequest {
   repeated Event events = 1;
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message PutEventsResponse {}
@@ -165,9 +303,19 @@ message PutExecutionRequest {
   message Options {
     // When there's a race to publish executions with a new context with the
     // same context.name, by default there'll be one writer succeeds and
-    // the rest of the writers returning AlreadyExists errors. If set the field,
-    // the failed writer will reuse the stored context in the transaction.
+    // the rest of the writers returning AlreadyExists errors. If set to true,
+    // the API will reuse the stored context in the transaction and perform
+    // an update.
     optional bool reuse_context_if_already_exist = 1;
+
+    // When there's a race to publish executions with a new artifact with the
+    // same artifact.external_id, by default there'll be one writer succeeds and
+    // the rest of the writers returning AlreadyExists errors.
+    // If set to true and an Artifact has non-empty external_id,
+    // the API will reuse the stored artifact in the transaction and
+    // perform an update. Otherwise, it will fall back to relying on `id` field
+    // to decide if it's update (if `id` exists) or insert (if `id` is empty).
+    optional bool reuse_artifact_if_already_exist_by_external_id = 2;
   }
   // The execution that produces many artifact and event pairs.
   optional Execution execution = 1;
@@ -182,6 +330,9 @@ message PutExecutionRequest {
   repeated Context contexts = 3;
   // Additional options to change the behavior of the method.
   optional Options options = 4;
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 5;
 }
 
 message PutExecutionResponse {
@@ -193,6 +344,51 @@ message PutExecutionResponse {
   // A list of context ids index-aligned with `contexts` in the
   // PutExecutionRequest.
   repeated int64 context_ids = 3;
+}
+
+message PutLineageSubgraphRequest {
+  repeated Execution executions = 1;
+  repeated Artifact artifacts = 2;
+  repeated Context contexts = 3;
+
+  message EventEdge {
+    // Index in the array of executions.
+    optional int32 execution_index = 1;
+    // Index in the array of artifacts.
+    optional int32 artifact_index = 2;
+    optional Event event = 3;
+  }
+  repeated EventEdge event_edges = 4;
+
+  message Options {
+    // When there's a race to publish executions with a new context with the
+    // same context.name, by default there'll be one writer succeeds and
+    // the rest of the writers returning AlreadyExists errors. If set to true,
+    // the API will reuse the stored context in the transaction and perform
+    // an update.
+    optional bool reuse_context_if_already_exist = 1;
+
+    // When there's a race to publish executions with a new artifact with the
+    // same artifact.external_id, by default there'll be one writer succeeds and
+    // the rest of the writers returning AlreadyExists errors.
+    // If set to true and an Artifact has non-empty external_id,
+    // the API will reuse the stored artifact in the transaction and
+    // perform an update. Otherwise, it will fall back to relying on `id` field
+    // to decide if it's update (if `id` exists) or insert (if `id` is empty).
+    optional bool reuse_artifact_if_already_exist_by_external_id = 2;
+  }
+  optional Options options = 5;
+
+  optional TransactionOptions transaction_options = 6;
+}
+
+message PutLineageSubgraphResponse {
+  // A list of execution ids index-aligned with `executions` in the request
+  repeated int64 execution_ids = 1 [packed = true];
+  // A list of artifact ids index-aligned with `artifacts` in the request
+  repeated int64 artifact_ids = 2 [packed = true];
+  // A list of context ids index-aligned with `contexts` in the request
+  repeated int64 context_ids = 3 [packed = true];
 }
 
 message PutTypesRequest {
@@ -214,6 +410,9 @@ message PutTypesRequest {
   // Deprecated fields.
   optional bool can_delete_fields = 5 [deprecated = true];
   optional bool all_fields_match = 6 [default = true, deprecated = true];
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 8;
 }
 
 message PutTypesResponse {
@@ -246,6 +445,9 @@ message PutContextTypeRequest {
   // Deprecated fields.
   optional bool can_delete_fields = 3 [deprecated = true];
   optional bool all_fields_match = 4 [default = true, deprecated = true];
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 6;
 }
 
 message PutContextTypeResponse {
@@ -255,6 +457,46 @@ message PutContextTypeResponse {
 
 message PutContextsRequest {
   repeated Context contexts = 1;
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+
+  // FieldMask for contexts in the PUT update
+  // If `context.id` is not specified, it means a new context will be
+  // created and `update_mask` will not be applied to the creation.
+  // If `update_mask` is empty, update the contexts as a whole.
+  // If `update_mask` is not empty, only update fields or properties specified
+  // in `update_mask`.
+  // Example request protos:
+  //   1. Add a <'key', 'val'> pair into `custom_properties`:
+  //      {
+  //        contexts {
+  //          id: 1234
+  //          type_id: 5678
+  //          custom_properties {
+  //            key: "key"
+  //            value: {
+  //              string_value: "val"
+  //            }
+  //          }
+  //        }
+  //        update_mask {
+  //          paths: "custom_properties.key"
+  //        }
+  //      }
+  //   2. Set `name` field:
+  //      {
+  //        contexts {
+  //          id: 1234
+  //          type_id: 5678
+  //          name: "set_name"
+  //        }
+  //        update_mask {
+  //          paths: "name"
+  //        }
+  //      }
+  // Please refer to `PutArtifactsRequest` for more details.
+  optional google.protobuf.FieldMask update_mask = 3;
 }
 
 message PutContextsResponse {
@@ -265,12 +507,18 @@ message PutContextsResponse {
 message PutAttributionsAndAssociationsRequest {
   repeated Attribution attributions = 1;
   repeated Association associations = 2;
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 3;
 }
 
 message PutAttributionsAndAssociationsResponse {}
 
 message PutParentContextsRequest {
   repeated ParentContext parent_contexts = 1;
+
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
 }
 
 message PutParentContextsResponse {}
@@ -283,6 +531,12 @@ message GetArtifactsByTypeRequest {
   // Currently supports:
   //   1. Field to order the results.
   //   2. Page size.
+  // If set, the request will
+  //   first fetch all artifacts with specified `type_name` and `type_version`,
+  //   then order by a specifield field
+  //   finally find the correct page and return #Artifacts of the page size.
+  // Higher-level APIs may only use the functionalies partially.
+  // Please reference the API documentation for the API behaviors.
   optional ListOperationOptions options = 3;
   // Options regarding transactions.
   optional TransactionOptions transaction_options = 4;
@@ -312,23 +566,37 @@ message GetArtifactByTypeAndNameResponse {
 message GetArtifactsByIDRequest {
   // A list of artifact ids to retrieve.
   repeated int64 artifact_ids = 1;
+  // An option to populate all the ArtifactTypes in the response.
+  // If true, returns retrieved Artifacts and their artifact types, which can be
+  // matched by type_ids.
+  // If false, returns only the retrieved Artifacts.
+  // Example request proto:
+  //   {
+  //     artifact_ids: 101,
+  //     populate_artifact_types: true,
+  //   }
+  //   The response will contain an artifact with id = 101 and an artifact type
+  //   with id = artifact.type_id().
+  optional bool populate_artifact_types = 3 [default = false];
   // Options regarding transactions.
   optional TransactionOptions transaction_options = 2;
 }
 
 message GetArtifactsByIDResponse {
   // Artifacts with matching ids.
-  // This is not index-aligned: if an id is not found, it is not
+  // This is not index-aligned: if an id is not found, it is not returned.
   repeated Artifact artifacts = 1;
+  // ArtifactTypes populated with matching type_ids owned by `artifacts`.
+  // This is not index-aligned: if a type_id is not found, it is not returned.
+  repeated ArtifactType artifact_types = 2;
 }
 
 // Request to retrieve Artifacts using List options.
 // If option is not specified then all Artifacts are returned.
 message GetArtifactsRequest {
   // Specify options.
-  // Currently supports:
-  //   1. Field to order the results.
-  //   2. Page size.
+  // Please refer to the documentation of ListOperationOptions for the supported
+  // functionalities.
   optional ListOperationOptions options = 1;
   // Options regarding transactions.
   optional TransactionOptions transaction_options = 2;
@@ -360,9 +628,8 @@ message GetArtifactsByURIResponse {
 // If option is not specified then all Executions are returned.
 message GetExecutionsRequest {
   // Specify options.
-  // Currently supports:
-  //   1. Field to order the results.
-  //   2. Page size.
+  // Please refer to the documentation of ListOperationOptions for the supported
+  // functionalities.
   optional ListOperationOptions options = 1;
   // Options regarding transactions.
   optional TransactionOptions transaction_options = 2;
@@ -417,6 +684,66 @@ message GetContextTypesResponse {
   repeated ContextType context_types = 1;
 }
 
+message GetArtifactsByExternalIdsRequest {
+  repeated string external_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+}
+
+message GetArtifactsByExternalIdsResponse {
+  repeated Artifact artifacts = 1;
+}
+
+message GetExecutionsByExternalIdsRequest {
+  repeated string external_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+}
+
+message GetExecutionsByExternalIdsResponse {
+  repeated Execution executions = 1;
+}
+
+message GetContextsByExternalIdsRequest {
+  repeated string external_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+}
+
+message GetContextsByExternalIdsResponse {
+  repeated Context contexts = 1;
+}
+
+message GetArtifactTypesByExternalIdsRequest {
+  repeated string external_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+}
+
+message GetArtifactTypesByExternalIdsResponse {
+  repeated ArtifactType artifact_types = 1;
+}
+
+message GetExecutionTypesByExternalIdsRequest {
+  repeated string external_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+}
+
+message GetExecutionTypesByExternalIdsResponse {
+  repeated ExecutionType execution_types = 1;
+}
+
+message GetContextTypesByExternalIdsRequest {
+  repeated string external_ids = 1;
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+}
+
+message GetContextTypesByExternalIdsResponse {
+  repeated ContextType context_types = 1;
+}
+
 message GetExecutionsByTypeRequest {
   optional string type_name = 1;
   // If not set, it looks for the type with type_name with default type_version.
@@ -425,6 +752,12 @@ message GetExecutionsByTypeRequest {
   // Currently supports:
   //   1. Field to order the results.
   //   2. Page size.
+  // If set, the request will
+  //   first fetch all executions with specified `type_name` and `type_version`,
+  //   then order by a specifield field
+  //   finally find the correct page and return #Executions of the page size.
+  // Higher-level APIs may only use the functionalies partially.
+  // Please reference the API documentation for the API behaviors.
   optional ListOperationOptions options = 3;
   // Options regarding transactions.
   optional TransactionOptions transaction_options = 4;
@@ -552,9 +885,8 @@ message GetContextTypesByIDResponse {
 // If option is not specified then all Contexts are returned.
 message GetContextsRequest {
   // Specify options.
-  // Currently supports:
-  //   1. Field to order the results.
-  //   2. Page size.
+  // Please refer to the documentation of ListOperationOptions for the supported
+  // functionalities.
   optional ListOperationOptions options = 1;
   // Options regarding transactions.
   optional TransactionOptions transaction_options = 2;
@@ -575,6 +907,12 @@ message GetContextsByTypeRequest {
   // Currently supports:
   //   1. Field to order the results.
   //   2. Page size.
+  // If set, the request will
+  //   first fetch all contexts with specified `type_name` and `type_version`,
+  //   then order by a specifield field
+  //   finally find the correct page and return #Contexts of the page size.
+  // Higher-level APIs may only use the functionalies partially.
+  // Please reference the API documentation for the API behaviors.
   optional ListOperationOptions options = 2;
   // If not set, it looks for the type with type_name and options with default
   // type_version.
@@ -657,6 +995,32 @@ message GetChildrenContextsByContextResponse {
   repeated Context contexts = 1;
 }
 
+message GetParentContextsByContextsRequest {
+  repeated int64 context_ids = 1 [packed = true];
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+}
+
+message GetParentContextsByContextsResponse {
+  message ParentContextsPerChild {
+    repeated Context parent_contexts = 1;
+  }
+  map<int64, ParentContextsPerChild> contexts = 2;
+}
+
+message GetChildrenContextsByContextsRequest {
+  repeated int64 context_ids = 1 [packed = true];
+  // Options regarding transactions.
+  optional TransactionOptions transaction_options = 2;
+}
+
+message GetChildrenContextsByContextsResponse {
+  message ChildrenContextsPerParent {
+    repeated Context children_contexts = 1;
+  }
+  map<int64, ChildrenContextsPerParent> contexts = 2;
+}
+
 message GetArtifactsByContextRequest {
   optional int64 context_id = 1;
 
@@ -700,8 +1064,10 @@ message GetExecutionsByContextResponse {
 }
 
 
-// A lineage query request to specify the query nodes of interests and the
-// boundary conditions for the returned graph.
+// TODO(b/283852485): Deprecate GetLineageGraph API after migration to
+// GetLineageSubgraph API.
+// A lineage query request to specify the query nodes of interest and the
+// boundary conditions for pruning the returned graph.
 message GetLineageGraphRequest {
   optional LineageGraphQueryOptions options = 1;
   // Options regarding transactions.
@@ -713,6 +1079,44 @@ message GetLineageGraphRequest {
 message GetLineageGraphResponse {
   optional LineageGraph subgraph = 1;
 }
+
+message GetLineageSubgraphRequest {
+  // Query options for lineage graph tracing from a list of interested
+  // nodes.
+  // A lineage subgraph without node details (e.g., external_id, properties)
+  // will be returned. Please refer to `LineageSubgraphQueryOptions` for more
+  // details.
+  optional LineageSubgraphQueryOptions lineage_subgraph_query_options = 1;
+  // `read_mask` contains user specified paths of fields that should be included
+  // in the returned lineage subgraph.
+  //   Supported field paths are: 'artifacts', 'executions', 'contexts',
+  //   'artifact_types', 'execution_types', 'context_types', and 'events'.
+  //   TODO(b/283852485): Include 'associations' or 'attributions' in the
+  //     returned graph.
+  //   If 'artifacts', 'executions', or 'contexts' is specified in `read_mask`,
+  //     the dehydrated nodes will be included.
+  //     Note: A dehydrated node means a node containing only its id and no
+  //     other information. User should call GetNodesByID or other APIs to get
+  //     node details later on.
+  //   If 'artifact_types', 'execution_types', or 'context_types' is specified
+  //     in `read_mask`, all the node types will be included.
+  //   If 'events' is specified in `read_mask`, the events will be included.
+  //   If `read_mask` is not set, the API will return all the fields in
+  //     the returned graph.
+  //   Note: Only paths of fields in LineageGraph message are supported. Paths
+  //   of fields in the submessage, such as "artifacts.id", "contexts.name" are
+  //   not acknowledged.
+  optional google.protobuf.FieldMask read_mask = 3;
+  optional TransactionOptions transaction_options = 2;
+}
+
+message GetLineageSubgraphResponse {
+  // A lineage subgraph of MLMD nodes and relations retrieved from lineage
+  // graph tracing.
+  optional LineageGraph lineage_subgraph = 1;
+}
+
+
 
 // LINT.IfChange
 service MetadataStoreService {
@@ -787,6 +1191,10 @@ service MetadataStoreService {
   // For new artifacts, type must be specified.
   // For old artifacts, type must be unchanged or unspecified.
   //
+  // It is not guaranteed that the created or updated artifacts will share the
+  // same `create_time_since_epoch` or `last_update_time_since_epoch`
+  // timestamps.
+  //
   // Args:
   //   artifacts: A list of artifacts to insert or update.
   //
@@ -801,6 +1209,10 @@ service MetadataStoreService {
   // For new executions, type must be specified.
   // For old executions, type must be unchanged or unspecified.
   //
+  // It is not guaranteed that the created or updated executions will share the
+  // same `create_time_since_epoch` or `last_update_time_since_epoch`
+  // timestamps.
+  //
   // Args:
   //   executions: A list of executions to insert or update.
   //
@@ -813,6 +1225,10 @@ service MetadataStoreService {
   //
   // The execution_id and artifact_id must already exist.
   // Once created, events cannot be modified.
+  // AlreadyExists error will be raised if duplicated events are found.
+  //
+  // It is not guaranteed that the created or updated events will share the
+  // same `milliseconds_since_epoch` timestamps.
   //
   // Args:
   //   events: A list of events to insert or update.
@@ -824,9 +1240,16 @@ service MetadataStoreService {
   // input/output Event. The `contexts` describe the associations of the
   // execution and the attributions of the artifacts.
   //
-  // If an execution_id, artifact_id or context_id is specified, it is an
-  // update, otherwise it does an insertion. For insertion, type must be
-  // specified.
+  // If an execution_id is specified, it is an update on the corresponding
+  // execution, otherwise it does an insertion.
+  // For insertion, type must be specified. Same rule applies to artifacts
+  // and contexts in the request. Corresponding errors may raised. For example:
+  // AlreadyExists error will be raised if duplicated executions, artifacts
+  // or events are found.
+  //
+  // It is not guaranteed that the created or updated executions, artifacts,
+  // contexts and events will share the same `create_time_since_epoch`,
+  // `last_update_time_since_epoch`, or `milliseconds_since_epoch` timestamps.
   //
   // Args:
   //   execution: An execution to insert or update.
@@ -838,12 +1261,48 @@ service MetadataStoreService {
   //   with the input.
   rpc PutExecution(PutExecutionRequest) returns (PutExecutionResponse) {}
 
+  // Inserts or updates a lineage subgraph (i.e. a collection of event edges
+  // and its executions, artifacts, and related contexts) atomically. The
+  // `event_edges` include an Event and the indices of the corresponding
+  // execution and artifact from the input list of executions and artifacts. The
+  // `contexts` describe the associations of the Execution and the attributions
+  // of the Artifact.
+  //
+  // If an execution_id is specified, it is an update on the corresponding
+  // Execution, otherwise it does an insertion. For insertion, type must be
+  // specified. These rules apply to Artifacts and Contexts as well.
+  // Corresponding errors may be raised. For example: AlreadyExists error will
+  // be raised if duplicated executions, artifacts, or events are found.
+  //
+  // It is not guaranteed that the created or updated executions, artifacts,
+  // contexts and events will share the same `create_time_since_epoch`,
+  // `last_update_time_since_epoch`, or `milliseconds_since_epoch` timestamps.
+  //
+  // Args:
+  //   executions: A list of executions to insert or update.
+  //   artifacts: A list of artifacts to insert or update.
+  //   contexts: A list of contexts to insert and/or create associations and
+  //       attributions with.
+  //   event_edges: A list of events to insert with the indices of the
+  //       corresponding execution and artifact from the input lists of
+  //       executions and artifacts.
+  //
+  // Returns:
+  //   Lists of execution, artifact, and context ids index-aligned with the
+  //   inputs.
+  rpc PutLineageSubgraph(PutLineageSubgraphRequest)
+      returns (PutLineageSubgraphResponse) {}
+
   // Inserts or updates contexts in database and returns a list of context ids.
   //
   // If an context_id is specified for a context, it is an update.
   // If an context_id is unspecified, it will insert a new context.
   // For new contexts, type must be specified.
   // For old contexts, type must be unchanged or unspecified.
+  //
+  // It is not guaranteed that the created or updated contexts will share the
+  // same `create_time_since_epoch` or `last_update_time_since_epoch`
+  // timestamps.
   //
   // Args:
   //   contexts: A list of contexts to insert or update.
@@ -986,6 +1445,30 @@ service MetadataStoreService {
   rpc GetEventsByArtifactIDs(GetEventsByArtifactIDsRequest)
       returns (GetEventsByArtifactIDsResponse) {}
 
+  // Gets all the artifacts with matching external ids.
+  rpc GetArtifactsByExternalIds(GetArtifactsByExternalIdsRequest)
+      returns (GetArtifactsByExternalIdsResponse) {}
+
+  // Gets all the artifacts with matching external ids.
+  rpc GetExecutionsByExternalIds(GetExecutionsByExternalIdsRequest)
+      returns (GetExecutionsByExternalIdsResponse) {}
+
+  // Gets all the artifacts with matching external ids.
+  rpc GetContextsByExternalIds(GetContextsByExternalIdsRequest)
+      returns (GetContextsByExternalIdsResponse) {}
+
+  // Gets all the artifacts with matching external ids.
+  rpc GetArtifactTypesByExternalIds(GetArtifactTypesByExternalIdsRequest)
+      returns (GetArtifactTypesByExternalIdsResponse) {}
+
+  // Gets all the artifacts with matching external ids.
+  rpc GetExecutionTypesByExternalIds(GetExecutionTypesByExternalIdsRequest)
+      returns (GetExecutionTypesByExternalIdsResponse) {}
+
+  // Gets all the artifacts with matching external ids.
+  rpc GetContextTypesByExternalIds(GetContextTypesByExternalIdsRequest)
+      returns (GetContextTypesByExternalIdsResponse) {}
+
 
   // Gets all context that an artifact is attributed to.
   rpc GetContextsByArtifact(GetContextsByArtifactRequest)
@@ -1003,6 +1486,15 @@ service MetadataStoreService {
   rpc GetChildrenContextsByContext(GetChildrenContextsByContextRequest)
       returns (GetChildrenContextsByContextResponse) {}
 
+  // Batch getting all the parent contexts that a list of contexts are related.
+  rpc GetParentContextsByContexts(GetParentContextsByContextsRequest)
+      returns (GetParentContextsByContextsResponse) {}
+
+  // Batch getting all the children contexts that a list of contexts are
+  // related.
+  rpc GetChildrenContextsByContexts(GetChildrenContextsByContextsRequest)
+      returns (GetChildrenContextsByContextsResponse) {}
+
   // Gets all direct artifacts that a context attributes to.
   rpc GetArtifactsByContext(GetArtifactsByContextRequest)
       returns (GetArtifactsByContextResponse) {}
@@ -1012,10 +1504,21 @@ service MetadataStoreService {
       returns (GetExecutionsByContextResponse) {}
 
 
+  // TODO(b/283852485): Deprecate GetLineageGraph API after migration to
+  // GetLineageSubgraph API.
   // The transaction performs a constrained transitive closure and returns a
   // lineage subgraph satisfying the conditions and constraints specified in
   // the GetLineageGraphRequest.
   rpc GetLineageGraph(GetLineageGraphRequest)
       returns (GetLineageGraphResponse) {}
+
+  // Gets a lineage subgraph by performing graph traversal from a list of
+  // interested nodes.
+  // A lineage subgraph without node details (e.g., external_id, properties)
+  // will be returned.
+  rpc GetLineageSubgraph(GetLineageSubgraphRequest)
+      returns (GetLineageSubgraphResponse) {}
+
+
 }
 // LINT.ThenChange(../metadata_store/metadata_store_service_interface.h)

@@ -26,26 +26,28 @@ import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
 import { classes, stylesheet } from 'typestyle';
-import Banner, { BannerProps } from '../components/Banner';
-import { commonCss } from '../Css';
-import { Deployments, KFP_FLAGS } from '../lib/Flags';
-import Page404 from '../pages/404';
+import Banner, { BannerProps } from 'src/components/Banner';
+import { commonCss } from 'src/Css';
+import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
+import Page404 from 'src/pages/404';
 import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
-} from '../pages/AllExperimentsAndArchive';
-import AllRecurringRunsList from '../pages/AllRecurringRunsList';
-import AllRunsAndArchive, { AllRunsAndArchiveTab } from '../pages/AllRunsAndArchive';
-import ArtifactDetails from '../pages/ArtifactDetails';
-import ArtifactList from '../pages/ArtifactList';
-import ExecutionDetails from '../pages/ExecutionDetails';
-import ExecutionList from '../pages/ExecutionList';
-import ExperimentDetails from '../pages/ExperimentDetails';
-import { GettingStarted } from '../pages/GettingStarted';
-import NewExperiment from '../pages/NewExperiment';
-import NewPipelineVersion from '../pages/NewPipelineVersion';
-import NewRunSwitcher from '../pages/NewRunSwitcher';
-import PipelineDetails from '../pages/PipelineDetails';
-import PrivateAndSharedPipelines, { PrivateAndSharedTab } from '../pages/PrivateAndSharedPipelines';
+} from 'src/pages/AllExperimentsAndArchive';
+import AllRecurringRunsList from 'src/pages/AllRecurringRunsList';
+import AllRunsAndArchive, { AllRunsAndArchiveTab } from 'src/pages/AllRunsAndArchive';
+import ArtifactDetails from 'src/pages/ArtifactDetails';
+import ArtifactListSwitcher from 'src/pages/ArtifactListSwitcher';
+import ExecutionDetails from 'src/pages/ExecutionDetails';
+import ExecutionListSwitcher from 'src/pages/ExecutionListSwitcher';
+import ExperimentDetails from 'src/pages/ExperimentDetails';
+import { GettingStarted } from 'src/pages/GettingStarted';
+import NewExperiment from 'src/pages/NewExperiment';
+import NewPipelineVersion from 'src/pages/NewPipelineVersion';
+import NewRunSwitcher from 'src/pages/NewRunSwitcher';
+import PipelineDetails from 'src/pages/PipelineDetails';
+import PrivateAndSharedPipelines, {
+  PrivateAndSharedTab,
+} from 'src/pages/PrivateAndSharedPipelines';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
 import SideNav from './SideNav';
 import Toolbar, { ToolbarProps } from './Toolbar';
@@ -180,9 +182,9 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
       path: RoutePage.ARCHIVED_EXPERIMENTS,
       view: AllExperimentsAndArchiveTab.ARCHIVE,
     },
-    { path: RoutePage.ARTIFACTS, Component: ArtifactList },
+    { path: RoutePage.ARTIFACTS, Component: ArtifactListSwitcher },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
-    { path: RoutePage.EXECUTIONS, Component: ExecutionList },
+    { path: RoutePage.EXECUTIONS, Component: ExecutionListSwitcher },
     { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
     {
       Component: AllExperimentsAndArchive,

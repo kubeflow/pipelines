@@ -17,7 +17,7 @@ import argparse
 import os
 import sys
 from typing import Dict, Any
-from . import dataflow_python_job_remote_runner
+from google_cloud_pipeline_components.container.v1.dataflow import dataflow_python_job_remote_runner
 
 
 def _make_parent_dirs_and_return_path(file_path: str):

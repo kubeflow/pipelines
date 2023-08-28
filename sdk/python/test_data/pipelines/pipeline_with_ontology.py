@@ -29,7 +29,6 @@ training_op = components.load_component_from_file(
 
 @dsl.pipeline(
     name='two-step-pipeline-with-ontology',
-    pipeline_root='dummy_root',
     description='A linear two-step pipeline with artifact ontology types.')
 def my_pipeline(input_location: str = 'gs://test-bucket/pipeline_root',
                 optimizer: str = 'sgd',

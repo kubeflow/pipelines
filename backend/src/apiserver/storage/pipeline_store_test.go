@@ -1904,61 +1904,60 @@ func TestUpdatePipelineVersionStatusError(t *testing.T) {
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
-var v2SpecHelloWorld = `
-components:
-  comp-hello-world:
-    executorLabel: exec-hello-world
-    inputDefinitions:
-      parameters:
-        text:
-          type: STRING
-deploymentSpec:
-  executors:
-    exec-hello-world:
-      container:
-        args:
-        - "--text"
-        - "{{$.inputs.parameters['text']}}"
-        command:
-        - sh
-        - "-ec"
-        - |
-          program_path=$(mktemp)
-          printf "%s" "$0" > "$program_path"
-          python3 -u "$program_path" "$@"
-        - |
-          def hello_world(text):
-              print(text)
-              return text
-
-          import argparse
-          _parser = argparse.ArgumentParser(prog='Hello world', description='')
-          _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
-          _parsed_args = vars(_parser.parse_args())
-
-          _outputs = hello_world(**_parsed_args)
-        image: python:3.7
-pipelineInfo:
-  name: hello-world
-root:
-  dag:
-    tasks:
-      hello-world:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-hello-world
-        inputs:
-          parameters:
-            text:
-              componentInputParameter: text
-        taskInfo:
-          name: hello-world
+var v2SpecHelloWorld = `components:
+comp-hello-world:
+  executorLabel: exec-hello-world
   inputDefinitions:
-    parameters:
-      text:
-        type: STRING
-schemaVersion: 2.0.0
+	parameters:
+	  param1:
+		parameterType: STRING
+deploymentSpec:
+executors:
+  exec-hello-world:
+	container:
+	  args:
+	  - "--param1"
+	  - "{{$.inputs.parameters['param1']}}"
+	  command:
+	  - sh
+	  - "-ec"
+	  - |
+		program_path=$(mktemp)
+		printf "%s" "$0" > "$program_path"
+		python3 -u "$program_path" "$@"
+	  - |
+		def hello_world(param1):
+			print(param1)
+			return param1
+
+		import argparse
+		_parser = argparse.ArgumentParser(prog='Hello world', description='')
+		_parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+		_parsed_args = vars(_parser.parse_args())
+
+		_outputs = hello_world(**_parsed_args)
+	  image: python:3.7
+pipelineInfo:
+name: hello-world
+root:
+dag:
+  tasks:
+	hello-world:
+	  cachingOptions:
+		enableCache: true
+	  componentRef:
+		name: comp-hello-world
+	  inputs:
+		parameters:
+		  param1:
+			componentInputParameter: param1
+	  taskInfo:
+		name: hello-world
+inputDefinitions:
+  parameters:
+	param1:
+	  parameterType: STRING
+schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
 var v1SpecHelloWorld = `

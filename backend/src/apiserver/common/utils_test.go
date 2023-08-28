@@ -17,6 +17,8 @@ package common
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseResourceIdsFromFullName(t *testing.T) {
@@ -173,6 +175,74 @@ func TestParseResourceIdsFromFullName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ParseResourceIdsFromFullName(tt.args.p); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseResourceIdsFromFullName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_validatePipelineName(t *testing.T) {
+	tests := []struct {
+		name         string
+		pipelineName string
+		wantErr      bool
+		errMsg       string
+	}{
+		{
+			"Valid - starts with letter",
+			"pipeline-name123",
+			false,
+			"",
+		},
+		{
+			"Valid - starts with number",
+			"2nd-valid-nam3",
+			false,
+			"",
+		},
+		{
+			"Valid - ends with dash",
+			"pipeline-name-",
+			false,
+			"",
+		},
+		{
+			"Invalid - too long",
+			"more than  128 characters more than  128 characters more than  128 characters more than  128 characters more than  128 characters",
+			true,
+			"pipeline's name must contain no more than 128 characters",
+		},
+		{
+			"Invalid - empty",
+			"",
+			true,
+			"pipeline's name cannot be empty",
+		},
+		{
+			"Invalid - starts with a dash",
+			"-pipeline-name",
+			true,
+			"pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters",
+		},
+		{
+			"Invalid - has a capital letter",
+			"pipeline-nAme",
+			true,
+			"pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters",
+		},
+		{
+			"Invalid - has a special character",
+			"pipeline-$name",
+			true,
+			"pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := ValidatePipelineName(tt.pipelineName); tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
 			}
 		})
 	}

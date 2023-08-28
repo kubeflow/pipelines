@@ -12,10 +12,9 @@
 Please see the [Google Cloud Pipeline Components user guide](https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction).
 
 ### API documentation
-Please see the [Google Cloud Pipeline Components API reference documentation](https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-1.0.41/).
+Please see the [Google Cloud Pipeline Components API reference documentation](https://google-cloud-pipeline-components.readthedocs.io/).
 
 ### Release details
-
 For details about previous and upcoming releases, please see the [release notes](https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/RELEASE.md).
 
 ## Examples
@@ -37,32 +36,8 @@ For details about previous and upcoming releases, please see the [release notes]
 
 ### Install latest release
 
-Use the following command to install Google Cloud Pipeline Components from PyPI.
+Use the following command to install Google Cloud Pipeline Components from [PyPI](https://pypi.org/project/google-cloud-pipeline-components/).
 
 ```shell
 pip install -U google-cloud-pipeline-components
-```
-
-### Install from source
-
-Use the following commands to install Google Cloud Pipeline Components from [GitHub](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud).
-
-```shell
-git clone https://github.com/kubeflow/pipelines.git
-pip install pipelines/components/google-cloud/.
-```
-
-### Build the package from source and install
-
-Use the following commands build Google Cloud Pipeline Components from the source code and install the package.
-
-```shell
-source_root=$(pwd)
-
-git clone https://github.com/kubeflow/pipelines.git
-cd pipelines/components/google-cloud
-python setup.py bdist_wheel clean
-
-WHEEL_FILE=$(find "$source_root/pipelines/components/google-cloud/dist/" -name "google_cloud_pipeline_components*.whl")
-pip3 install --upgrade $WHEEL_FILE
 ```

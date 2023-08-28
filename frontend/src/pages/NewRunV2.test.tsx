@@ -113,7 +113,7 @@ describe('NewRunV2', () => {
       pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
       pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
     },
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
   };
@@ -129,7 +129,7 @@ describe('NewRunV2', () => {
       pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
       pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
     },
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
   };
@@ -142,7 +142,7 @@ describe('NewRunV2', () => {
     run_id: 'test-clone-sdk-run-id',
     display_name: 'Run of v2-xgboost-ilbo',
     pipeline_spec: v2XGPipelineSpec,
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
   };
@@ -155,7 +155,7 @@ describe('NewRunV2', () => {
     run_id: 'test-clone-sdk-run-id',
     display_name: 'Clone of Run of v2-xgboost-ilbo',
     pipeline_spec: v2XGPipelineSpec,
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     scheduled_at: new Date('2022-08-12T20:58:23.000Z'),
     state: V2beta1RuntimeState.SUCCEEDED,
   };
@@ -169,7 +169,7 @@ describe('NewRunV2', () => {
       pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
     },
     recurring_run_id: TEST_RECURRING_RUN_ID,
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
@@ -185,7 +185,7 @@ describe('NewRunV2', () => {
       pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
     },
     recurring_run_id: 'test-clone-ui-recurring-run-id',
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
@@ -198,7 +198,7 @@ describe('NewRunV2', () => {
     display_name: 'Run of v2-xgboost-ilbo',
     pipeline_spec: v2XGPipelineSpec,
     recurring_run_id: TEST_RECURRING_RUN_ID,
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
@@ -211,7 +211,7 @@ describe('NewRunV2', () => {
     display_name: 'Clone of Run of v2-xgboost-ilbo',
     pipeline_spec: v2XGPipelineSpec,
     recurring_run_id: 'test-clone-sdk-recurring-run-id',
-    runtime_config: { parameters: { intParam: 123 } },
+    runtime_config: { parameters: { intParam: 123 }, pipeline_root: 'gs://dummy_pipeline_root' },
     trigger: {
       periodic_schedule: { interval_second: '3600' },
     },
@@ -238,6 +238,25 @@ describe('NewRunV2', () => {
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
+
+  // For creating new run with no pipeline is selected (enter from run list)
+  function generatePropsNoPipelineDef(eid: string | null): PageProps {
+    return {
+      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      location: {
+        pathname: RoutePage.NEW_RUN,
+        search: eid ? `?${QUERY_PARAMS.experimentId}=${eid}` : `?${QUERY_PARAMS.experimentId}=`,
+      } as any,
+      match: '' as any,
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
+      updateBanner: updateBannerSpy,
+      updateDialog: updateDialogSpy,
+      updateSnackbar: updateSnackbarSpy,
+      updateToolbar: updateToolbarSpy,
+    };
+  }
+
+  // For creating new run with pipeine definition (enter from pipeline details)
   function generatePropsNewRun(
     pid = ORIGINAL_TEST_PIPELINE_ID,
     vid = ORIGINAL_TEST_PIPELINE_VERSION_ID,
@@ -256,6 +275,8 @@ describe('NewRunV2', () => {
       updateToolbar: updateToolbarSpy,
     };
   }
+
+  // For clone run process
   function generatePropsClonedRun(): PageProps {
     return {
       history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
@@ -366,6 +387,43 @@ describe('NewRunV2', () => {
   });
 
   describe('redirect to different new run page', () => {
+    it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...generatePropsNoPipelineDef(null)} />
+        </CommonTestWrapper>,
+      );
+
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      // choose button for pipeline version is diabled if no pipeline is selected
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+
+      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+      screen.getByText('A pipeline must be selected');
+    });
+
+    it(
+      'shows experiment name in new run v2 if experiment is selected' +
+        '(enter from experiment details)',
+      async () => {
+        const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+        getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
+
+        render(
+          <CommonTestWrapper>
+            <NewRunSwitcher {...generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id)} />
+          </CommonTestWrapper>,
+        );
+
+        await waitFor(() => {
+          expect(getExperimentSpy).toHaveBeenCalled();
+        });
+
+        screen.getByDisplayValue(NEW_EXPERIMENT.display_name);
+        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+      },
+    );
+
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
       jest
         .spyOn(features, 'isFeatureEnabled')
@@ -496,7 +554,7 @@ describe('NewRunV2', () => {
               pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
               pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
             },
-            runtime_config: { parameters: {}, pipeline_root: undefined },
+            runtime_config: { parameters: {}, pipeline_root: 'minio://dummy_root' },
             service_account: '',
           }),
         );
@@ -570,6 +628,10 @@ describe('NewRunV2', () => {
       });
 
       screen.getByDisplayValue(NEW_TEST_PIPELINE_NAME);
+
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      // choose button for pipeline version is enabled after pipeline is selected
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
     });
   });
 
@@ -955,7 +1017,10 @@ describe('NewRunV2', () => {
               pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
               pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
             },
-            runtime_config: { parameters: { intParam: 123 } },
+            runtime_config: {
+              parameters: { intParam: 123 },
+              pipeline_root: 'gs://dummy_pipeline_root',
+            },
             service_account: '',
           }),
         );
@@ -997,7 +1062,10 @@ describe('NewRunV2', () => {
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
             pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-            runtime_config: { parameters: { intParam: 123 } },
+            runtime_config: {
+              parameters: { intParam: 123 },
+              pipeline_root: 'gs://dummy_pipeline_root',
+            },
             service_account: '',
           }),
         );
@@ -1044,7 +1112,10 @@ describe('NewRunV2', () => {
               pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
               pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
             },
-            runtime_config: { parameters: { intParam: 123 } },
+            runtime_config: {
+              parameters: { intParam: 123 },
+              pipeline_root: 'gs://dummy_pipeline_root',
+            },
             trigger: {
               periodic_schedule: { interval_second: '3600' },
             },
@@ -1096,7 +1167,10 @@ describe('NewRunV2', () => {
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
             pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-            runtime_config: { parameters: { intParam: 123 } },
+            runtime_config: {
+              parameters: { intParam: 123 },
+              pipeline_root: 'gs://dummy_pipeline_root',
+            },
             trigger: {
               periodic_schedule: { interval_second: '3600' },
             },

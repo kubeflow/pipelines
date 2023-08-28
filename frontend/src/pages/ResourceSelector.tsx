@@ -33,6 +33,7 @@ export interface BaseResource {
   description?: string;
   name?: string;
   error?: string;
+  namespace?: string;
 }
 
 export interface ResourceSelectorProps extends RouteComponentProps {
@@ -41,7 +42,7 @@ export interface ResourceSelectorProps extends RouteComponentProps {
   emptyMessage: string;
   filterLabel: string;
   initialSortColumn: any;
-  selectionChanged: (resource: BaseResource) => void;
+  selectionChanged: (selectedId: string) => void;
   title?: string;
   toolbarActionMap?: ToolbarActionMap;
   updateDialog: (dialogProps: DialogProps) => void;
@@ -77,6 +78,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
         {title && <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />}
 
         <CustomTable
+          isCalledByV1={true}
           columns={columns}
           rows={rows}
           selectedIds={selectedIds}
@@ -106,13 +108,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
       logger.error(`${selectedIds.length} resources were selected somehow`, selectedIds);
       return;
     }
-    const selected = this.state.resources.find(r => r.id === selectedIds[0]);
-    if (selected) {
-      this.props.selectionChanged(selected);
-    } else {
-      logger.error(`Somehow no resource was found with ID: ${selectedIds[0]}`);
-      return;
-    }
+    this.props.selectionChanged(selectedIds[0]);
     this.setStateSafe({ selectedIds });
   }
 

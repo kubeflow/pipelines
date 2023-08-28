@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Google Cloud Pipeline Components."""
-from .version import __version__
+from google_cloud_pipeline_components.version import __version__

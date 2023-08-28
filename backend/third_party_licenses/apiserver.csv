@@ -61,7 +61,7 @@ github.com/klauspost/cpuid,https://github.com/klauspost/cpuid/blob/v1.3.1/LICENS
 github.com/klauspost/pgzip,https://github.com/klauspost/pgzip/blob/v1.2.5/LICENSE,MIT
 github.com/kubeflow/pipelines/api/v2alpha1/go,https://github.com/kubeflow/pipelines/blob/758c91f76784/api/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/backend,https://github.com/kubeflow/pipelines/blob/HEAD/LICENSE,Apache-2.0
-github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata,https://github.com/kubeflow/pipelines/blob/e78ed557ddcb/third_party/ml-metadata/LICENSE,Apache-2.0
+github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata,https://github.com/kubeflow/pipelines/blob/e1f0c010f800/third_party/ml-metadata/LICENSE,Apache-2.0
 github.com/lann/builder,https://github.com/lann/builder/blob/47ae307949d0/LICENSE,MIT
 github.com/lann/ps,https://github.com/lann/ps/blob/62de8c46ede0/LICENSE,MIT
 github.com/lestrrat-go/strftime,https://github.com/lestrrat-go/strftime/blob/v1.0.4/LICENSE,MIT
@@ -104,12 +104,12 @@ github.com/valyala/fasttemplate,https://github.com/valyala/fasttemplate/blob/v1.
 go.mongodb.org/mongo-driver,https://github.com/mongodb/mongo-go-driver/blob/v1.8.2/LICENSE,Apache-2.0
 go.opencensus.io,https://github.com/census-instrumentation/opencensus-go/blob/v0.23.0/LICENSE,Apache-2.0
 gocloud.dev,https://github.com/google/go-cloud/blob/v0.22.0/LICENSE,Apache-2.0
-golang.org/x/crypto,https://cs.opensource.google/go/x/crypto/+/86341886:LICENSE,BSD-3-Clause
-golang.org/x/net,https://cs.opensource.google/go/x/net/+/27dd8689:LICENSE,BSD-3-Clause
+golang.org/x/crypto,https://cs.opensource.google/go/x/crypto/+/v0.9.0:LICENSE,BSD-3-Clause
+golang.org/x/net,https://cs.opensource.google/go/x/net/+/v0.10.0:LICENSE,BSD-3-Clause
 golang.org/x/oauth2,https://cs.opensource.google/go/x/oauth2/+/d3ed0bb2:LICENSE,BSD-3-Clause
-golang.org/x/sys,https://cs.opensource.google/go/x/sys/+/a9b59b02:LICENSE,BSD-3-Clause
-golang.org/x/term,https://cs.opensource.google/go/x/term/+/03fcf44c:LICENSE,BSD-3-Clause
-golang.org/x/text,https://cs.opensource.google/go/x/text/+/v0.3.7:LICENSE,BSD-3-Clause
+golang.org/x/sys,https://cs.opensource.google/go/x/sys/+/v0.8.0:LICENSE,BSD-3-Clause
+golang.org/x/term,https://cs.opensource.google/go/x/term/+/v0.8.0:LICENSE,BSD-3-Clause
+golang.org/x/text,https://cs.opensource.google/go/x/text/+/v0.9.0:LICENSE,BSD-3-Clause
 golang.org/x/time/rate,https://cs.opensource.google/go/x/time/+/90d013bb:LICENSE,BSD-3-Clause
 golang.org/x/xerrors,https://cs.opensource.google/go/x/xerrors/+/5ec99f83:LICENSE,BSD-3-Clause
 google.golang.org/api,https://github.com/googleapis/google-api-go-client/blob/v0.70.0/LICENSE,BSD-3-Clause
@@ -124,7 +124,7 @@ gopkg.in/jcmturner/dnsutils.v1,https://github.com/jcmturner/dnsutils/blob/v1.0.1
 gopkg.in/jcmturner/gokrb5.v5,https://github.com/jcmturner/gokrb5/blob/v5.3.0/LICENSE,Apache-2.0
 gopkg.in/jcmturner/rpc.v0/ndr,https://github.com/jcmturner/rpc/blob/v0.0.2/LICENSE,Apache-2.0
 gopkg.in/yaml.v2,https://github.com/go-yaml/yaml/blob/v2.4.0/LICENSE,Apache-2.0
-gopkg.in/yaml.v3,https://github.com/go-yaml/yaml/blob/496545a6307b/LICENSE,MIT
+gopkg.in/yaml.v3,https://github.com/go-yaml/yaml/blob/v3.0.1/LICENSE,MIT
 k8s.io/api,https://github.com/kubernetes/api/blob/v0.24.3/LICENSE,Apache-2.0
 k8s.io/apimachinery/pkg,https://github.com/kubernetes/apimachinery/blob/v0.24.3/LICENSE,Apache-2.0
 k8s.io/apimachinery/third_party/forked/golang,https://github.com/kubernetes/apimachinery/blob/v0.24.3/third_party/forked/golang/LICENSE,BSD-3-Clause

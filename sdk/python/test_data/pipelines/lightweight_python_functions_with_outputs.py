@@ -67,7 +67,7 @@ def output_named_tuple(
     return output(scalar, metrics, model)
 
 
-@dsl.pipeline(pipeline_root='dummy_root', name='functions-with-outputs')
+@dsl.pipeline(name='functions-with-outputs')
 def pipeline(first_message: str, second_message: str, first_number: int,
              second_number: int):
     concat_op = concat_message(first=first_message, second=second_message)

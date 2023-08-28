@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-__version__ = "2.0.0-beta.1"
+__version__ = "2.0.1"
 
 # import apis into sdk package
 from kfp_server_api.api.auth_service_api import AuthServiceApi
@@ -47,6 +47,7 @@ from kfp_server_api.models.protobuf_any import ProtobufAny
 from kfp_server_api.models.protobuf_null_value import ProtobufNullValue
 from kfp_server_api.models.recurring_run_mode import RecurringRunMode
 from kfp_server_api.models.v2beta1_artifact_list import V2beta1ArtifactList
+from kfp_server_api.models.v2beta1_create_pipeline_and_version_request import V2beta1CreatePipelineAndVersionRequest
 from kfp_server_api.models.v2beta1_cron_schedule import V2beta1CronSchedule
 from kfp_server_api.models.v2beta1_experiment import V2beta1Experiment
 from kfp_server_api.models.v2beta1_experiment_storage_state import V2beta1ExperimentStorageState

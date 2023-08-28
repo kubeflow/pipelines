@@ -22,8 +22,8 @@ from typing import Callable, Dict, Optional
 
 import click
 from kfp import compiler
-from kfp.components import base_component
-from kfp.components import graph_component
+from kfp.dsl import base_component
+from kfp.dsl import graph_component
 
 
 def is_pipeline_func(func: Callable) -> bool:

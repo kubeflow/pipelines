@@ -41,14 +41,13 @@ describe('ArtifactPreview', () => {
     screen.getByText('Can not retrieve storage path from artifact uri: null');
   });
 
-  it('handles empty artifact', () => {
-    expect(() => {
-      render(
-        <CommonTestWrapper>
-          <ArtifactPreview value={'i am random path'} />
-        </CommonTestWrapper>,
-      );
-    }).toThrow(new Error('Unsupported storage path: i am random path'));
+  it('handles unsupported path artifact', () => {
+    render(
+      <CommonTestWrapper>
+        <ArtifactPreview value={'i am random path'} />
+      </CommonTestWrapper>,
+    );
+    screen.getByText('Can not retrieve storage path from artifact uri: i am random path');
   });
 
   it('handles invalid artifact: no bucket', async () => {

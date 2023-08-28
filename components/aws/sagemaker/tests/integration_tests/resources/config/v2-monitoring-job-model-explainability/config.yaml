@@ -1,0 +1,33 @@
+PipelineDefinition: resources/definition/model_explainability_job_defi_v2_pipeline.py
+TestName: v2-model-explainability-job-definition
+Timeout: 4000
+Plural: modelexplainabilityjobdefinitions
+JobInputName: model_explainability_job_input
+ModelImage: ((XGBOOST_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-xgboost:0.90-1-cpu-py3
+ModelUrl: s3://((DATA_BUCKET))/model-monitor/xgboost-churn-model.tar.gz
+EndpointCapture: s3://((DATA_BUCKET))/model-monitor/endpoint_capture
+Arguments:
+  region: ((REGION))
+  model_explainability_app_specification:
+    imageURI: ((MODEL_MONITOR_IMAGE)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-model-monitor-analyzer
+    configURI: s3://((DATA_BUCKET))/model-monitor/baselining/model_explainability/analysis_config.json
+  model_explainability_job_input:
+    endpointInput:
+      localPath: "/opt/ml/processing/input/endpoint"
+      s3InputMode: File
+      s3DataDistributionType: FullyReplicated
+      probabilityThresholdAttribute: 0.8
+  model_explainability_job_output_config:
+    monitoringOutputs:
+    - s3Output:
+        localPath: /opt/ml/processing/output
+        s3URI: s3://((DATA_BUCKET))/model-monitor/reports/model-explainability-job-definition/
+        s3UploadMode: Continuous
+  job_resources:
+    clusterConfig:
+      instanceCount: 1
+      instanceType: ml.m5.large
+      volumeSizeInGB: 30
+  role_arn: ((SAGEMAKER_ROLE_ARN))
+  stopping_condition:
+    maxRuntimeInSeconds: 3600

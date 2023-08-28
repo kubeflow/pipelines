@@ -37,7 +37,6 @@ components:
           artifactType:
             schemaTitle: system.Model
             schemaVersion: 0.0.1
-defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
     exec-ingestion:
@@ -112,4 +111,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.16
+sdkVersion: kfp-2.0.0-rc.2

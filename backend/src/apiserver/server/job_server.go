@@ -25,7 +25,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -88,24 +87,21 @@ func (s *JobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, 
 	}
 	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(job.ExperimentId, job.Namespace)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a run due to invalid experimentId and namespace combination")
+		return nil, util.Wrapf(err, "Failed to create a recurring run due to invalid experimentId and namespace combination")
+	}
+	if common.IsMultiUserMode() && namespace == "" {
+		return nil, util.NewInvalidInputError("Recurring run cannot have an empty namespace in multi-user mode")
 	}
 	job.ExperimentId = experimentId
 	job.Namespace = namespace
-	// Validate authorization
-	if common.IsMultiUserMode() {
-		if job.Namespace == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Recurring run cannot have an empty namespace in multi-user mode"), "Failed to create a recurring run due to empty namespace")
-		}
-		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Namespace: job.Namespace,
-			Verb:      common.RbacResourceVerbCreate,
-			Resource:  common.RbacResourceTypeJobs,
-			Name:      job.DisplayName,
-		}
-		if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
-			return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
-		}
+	// Check authorization
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: job.Namespace,
+		Verb:      common.RbacResourceVerbCreate,
+		Name:      job.DisplayName,
+	}
+	if err := s.canAccessJob(ctx, "", resourceAttributes); err != nil {
+		return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
 	}
 	return s.resourceManager.CreateJob(ctx, job)
 }
@@ -244,7 +240,7 @@ func (s *JobServer) EnableJob(ctx context.Context, request *apiv1beta1.EnableJob
 }
 
 func (s *JobServer) disableJob(ctx context.Context, jobId string) error {
-	err := s.canAccessJob(ctx, jobId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbEnable})
+	err := s.canAccessJob(ctx, jobId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDisable})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
@@ -403,33 +399,34 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttr
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
-
-	if len(jobID) > 0 {
+	if jobID != "" {
 		job, err := s.resourceManager.GetJob(jobID)
 		if err != nil {
-			return util.Wrap(err, "Failed to authorize with the job ID")
+			return util.Wrap(err, "failed to authorize with the recurring run ID")
 		}
-		if len(resourceAttributes.Namespace) == 0 {
-			if len(job.Namespace) == 0 {
-				return util.NewInternalServerError(
-					errors.New("Empty namespace"),
-					"The job doesn't have a valid namespace",
-				)
+		if s.resourceManager.IsEmptyNamespace(job.Namespace) {
+			experiment, err := s.resourceManager.GetExperiment(job.ExperimentId)
+			if err != nil {
+				return util.NewInternalServerError(err, "recurring run %v has an empty namespace and the parent experiment %v could not be fetched", jobID, job.ExperimentId)
 			}
+			resourceAttributes.Namespace = experiment.Namespace
+		} else {
 			resourceAttributes.Namespace = job.Namespace
 		}
-		if len(resourceAttributes.Name) == 0 {
+		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = job.DisplayName
 		}
 	}
-
+	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+		return util.NewInvalidInputError("a recurring run cannot have an empty namespace in multi-user mode")
+	}
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion
 	resourceAttributes.Resource = common.RbacResourceTypeJobs
 
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API")
+		return util.Wrap(err, "failed to authorize with API")
 	}
 	return nil
 }

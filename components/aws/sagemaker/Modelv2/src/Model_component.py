@@ -44,8 +44,8 @@ class SageMakerModelComponent(SageMakerComponent):
         ############GENERATED SECTION BELOW############
 
         self.job_name = spec.inputs.model_name = (
-            spec.inputs.model_name  # todo: need customize
-            if spec.inputs.model_name  # todo: need customize
+            spec.inputs.model_name
+            if spec.inputs.model_name
             else SageMakerComponent._generate_unique_timestamped_id(prefix="model")
         )
 

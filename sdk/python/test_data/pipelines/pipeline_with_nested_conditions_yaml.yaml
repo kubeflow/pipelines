@@ -240,7 +240,6 @@ components:
       parameters:
         msg:
           parameterType: STRING
-defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
     exec-flip-coin:
@@ -348,4 +347,4 @@ root:
         taskInfo:
           name: flip-coin
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.16
+sdkVersion: kfp-2.0.0-rc.2

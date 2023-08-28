@@ -43,20 +43,40 @@ For the purposes of this demonstration, all resources will be created in the us-
 2. In the Kubeflow Pipelines UI, upload this compiled pipeline specification (the *.tar.gz* file) and click on create run.
 3. Provide the sagemaker execution `role_arn` you created and `bucket_name` you created as pipeline inputs.
 4. Once the pipeline completes, you can go to `batch_transform_output` to check your batch prediction results.
-You will also have an model endpoint in service. Refer to [Prediction section](#Prediction) below to run predictions aganist your deployed model aganist the endpoint. Please remember to [clean up the endpoint](https://docs.aws.amazon.com/sagemaker/latest/dg/realtime-endpoints-delete-resources.html).
-
+You will also have an model endpoint in service. Refer to [Prediction section](#Prediction) below to run predictions aganist your deployed model aganist the endpoint.
 
 ## Prediction
 
-1. Find your endpoint name either by:
-    - Opening SageMaker [console](https://us-east-1.console.aws.amazon.com/sagemaker/home?region=us-east-1#/endpoints),  or
-    - Clicking the `sagemaker-deploy-model-endpoint_name` under `Output artifacts` of `SageMaker - Deploy Model` component of the pipeline run
-
+1. Find your endpoint name by:
+    - Checking the `sagemaker_resource_name` field under Output artifacts of the Endpoint component in the pipeline run.
+    ```
+      export ENDPOINT_NAME=
+    ```
 2. Setup AWS credentials with `sagemaker:InvokeEndpoint` access. [Sample commands](https://sagemaker.readthedocs.io/en/v1.60.2/kubernetes/using_amazon_sagemaker_components.html#configure-permissions-to-run-predictions)
 4. Run the script below to invoke the endpoint
   ```
-    python invoke_endpoint.py <ENDPOINT-NAME>
+    python invoke_endpoint.py $ENDPOINT_NAME
   ```
+
+## Cleaning up the endpoint
+
+You can find the model/endpoint configuration name in the `sagemaker_resource_name` field under Output artifacts of the EndpointConfig/Model component in the pipeline run.
+
+```
+export ENDPOINT_CONFIG_NAME=
+export MODEL_NAME=
+```
+To delete all the endpoint resources use:
+
+Note: The namespace for the standard kubeflow installation is "kubeflow". For multi-tenant installations the namespace is located at the left in the navigation bar.
+
+```
+export MY_KUBEFLOW_NAMESPACE=
+
+kubectl delete endpoint $ENDPOINT_NAME -n $MY_KUBEFLOW_NAMESPACE
+kubectl delete endpointconfig $ENDPOINT_CONFIG_NAME -n $MY_KUBEFLOW_NAMESPACE
+kubectl delete model $MODEL_NAME -n $MY_KUBEFLOW_NAMESPACE
+```
 
 ## Components source
 
@@ -66,11 +86,15 @@ Hyperparameter Tuning:
 Training: 
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/TrainingJob/src)
 
-Model creation:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/model/src)
 
-Endpoint Deployment:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/deploy/src)
+Endpoint:
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/Endpoint/src)
+
+Endpoint Config:
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/EndpointConfig/src)
+
+Model:
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/Modelv2/src)
 
 Batch Transformation:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/batch_transform/src)

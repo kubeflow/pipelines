@@ -16,26 +16,26 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import { NewRun } from './NewRun';
-import TestUtils from '../TestUtils';
+import { NewRun } from 'src/pages/NewRun';
+import TestUtils from 'src/TestUtils';
 import { shallow, ShallowWrapper, ReactWrapper, mount } from 'enzyme';
-import { PageProps } from './Page';
-import { Apis } from '../lib/Apis';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ApiExperiment, ApiListExperimentsResponse } from '../apis/experiment';
+import { PageProps } from 'src/pages/Page';
+import { Apis } from 'src/lib/Apis';
+import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
+import { ApiExperiment, ApiListExperimentsResponse } from 'src/apis/experiment';
 import {
   ApiListPipelinesResponse,
   ApiListPipelineVersionsResponse,
   ApiPipeline,
   ApiPipelineVersion,
-} from '../apis/pipeline';
-import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
+} from 'src/apis/pipeline';
+import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from 'src/apis/run';
 import { MemoryRouter } from 'react-router';
-import { logger } from '../lib/Utils';
-import { NamespaceContext } from '../lib/KubeflowClient';
+import { logger } from 'src/lib/Utils';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { ApiFilter, PredicateOp } from '../apis/filter';
-import { ApiExperimentStorageState } from '../apis/experiment';
+import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import { ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiJob } from 'src/apis/job';
 
 class TestNewRun extends NewRun {
@@ -590,6 +590,10 @@ describe('NewRun', () => {
       const expectedPipeline = await screen.findByText(newPipeline.name);
       fireEvent.click(expectedPipeline);
 
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
       const usePipelineButton = screen.getByText('Use this pipeline');
       fireEvent.click(usePipelineButton);
 
@@ -598,6 +602,41 @@ describe('NewRun', () => {
       await screen.findByDisplayValue((content, _) =>
         content.startsWith(`Run of ${newPipelineVersion.name}`),
       );
+    });
+
+    it('enables choose button for pipeline version after pipeline is uploaded from selector', async () => {
+      const uploadPipelineSpy = jest
+        .spyOn(Apis, 'uploadPipeline')
+        .mockImplementation(() => MOCK_PIPELINE);
+      render(<NewRun {...(generateProps() as any)} />);
+
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      // Choose button is disabled in the beginning
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+
+      const choosePipelineBtn = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineBtn); // Open pipeline selector
+
+      const uploadPipelineBtn = screen.getByText('Upload pipeline');
+      fireEvent.click(uploadPipelineBtn); // Open upload pipeline dialog
+
+      // mock drop file from local.
+      const uploadFile = await screen.findByText(/File/);
+      const file = new File(['file contents'], 'test-pipeline.yaml', { type: 'text/yaml' });
+      Object.defineProperty(uploadFile, 'files', {
+        value: [file],
+      });
+      fireEvent.drop(uploadFile);
+
+      const uploadBtn = await screen.findByText('Upload');
+      expect(uploadBtn.closest('button')?.disabled).toEqual(false);
+      fireEvent.click(uploadBtn);
+
+      await waitFor(() => {
+        expect(uploadPipelineSpy).toHaveBeenCalled();
+      });
+
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
     });
 
     it('does not set the pipeline from the selector modal when cancelled', async () => {
@@ -633,6 +672,32 @@ describe('NewRun', () => {
       expect(tree.state('pipelineName')).toEqual(oldPipeline.name);
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
       await TestUtils.flushPromises();
+    });
+
+    it('enables choose button for pipeline version after clicking cancel in selector', async () => {
+      tree = shallow(<TestNewRun {...generateProps()} />);
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${
+        QUERY_PARAMS.pipelineVersionId
+      }=${MOCK_PIPELINE.default_version!.id}`;
+      render(<NewRun {...props} />);
+
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      // Choose button is enabled in the beginning
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
+
+      const choosePipelineBtn = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineBtn); // Open pipeline selector
+
+      const cancelBtn = screen.getAllByText('Cancel')[0];
+      fireEvent.click(cancelBtn);
+
+      // Choose button is still enabled after clicking Cancel in selector
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
     });
   });
 
@@ -713,6 +778,10 @@ describe('NewRun', () => {
       const expectedPipeline = await screen.findByText(newPipeline.name);
       fireEvent.click(expectedPipeline);
 
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
       const usePipelineButton = screen.getByText('Use this pipeline');
       fireEvent.click(usePipelineButton);
 
@@ -728,6 +797,10 @@ describe('NewRun', () => {
 
       const expectedPipelineVersion = await screen.findByText(latestPipelineVersion.name);
       fireEvent.click(expectedPipelineVersion);
+
+      await waitFor(() => {
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+      });
 
       const usePipelineVersionBtn = screen.getByText('Use this pipeline version');
       fireEvent.click(usePipelineVersionBtn);
@@ -1610,6 +1683,10 @@ describe('NewRun', () => {
       const expectedPipeline = await screen.findByText(pipelineWithParams.name);
       fireEvent.click(expectedPipeline);
 
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
       const usePipelineButton = screen.getByText('Use this pipeline');
       fireEvent.click(usePipelineButton);
 
@@ -1625,34 +1702,62 @@ describe('NewRun', () => {
     });
 
     it('trims whitespace from the pipeline params', async () => {
-      tree = mount(
-        <MemoryRouter>
-          <TestNewRun {...generateProps()} />
-        </MemoryRouter>,
-      );
-      await TestUtils.flushPromises();
-      const instance = tree.find(TestNewRun).instance() as TestNewRun;
-      fillRequiredFields(instance);
+      tree = shallow(<TestNewRun {...generateProps()} />);
 
-      // Select a pipeline with parameters
-      const pipeline = newMockPipeline();
+      const pipelineWithParams = newMockPipeline();
       const pipelineVersionWithParams = newMockPipeline();
       pipelineVersionWithParams.id = 'pipeline-version-with-params';
       pipelineVersionWithParams.parameters = [
         { name: 'param-1', value: '  whitespace on either side  ' },
         { name: 'param-2', value: 'value 2' },
       ];
-      getPipelineSpy.mockImplementationOnce(() => pipeline);
+
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+      const listPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+      listPipelineSpy.mockImplementation(() => {
+        const response: ApiListPipelinesResponse = {
+          pipelines: [pipelineWithParams],
+          total_size: 1,
+        };
+        return response;
+      });
+
+      render(
+        <CommonTestWrapper>
+          <NewRun
+            {...generateProps()}
+            namespace=''
+            existingPipelineId=''
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId=''
+            handlePipelineVersionIdChange={jest.fn()}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const choosePipelineButton = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineButton);
+
+      getPipelineSpy.mockImplementationOnce(() => pipelineWithParams);
       getPipelineVersionSpy.mockImplementationOnce(() => pipelineVersionWithParams);
-      instance.setState({ unconfirmedSelectedPipeline: pipeline });
-      instance.setState({ unconfirmedSelectedPipelineVersion: pipelineVersionWithParams });
-      instance._pipelineSelectorClosed(true);
-      instance._pipelineVersionSelectorClosed(true);
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
-      await TestUtils.flushPromises();
+
+      const expectedPipeline = await screen.findByText(pipelineWithParams.name);
+      fireEvent.click(expectedPipeline);
+
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
+      const usePipelineButton = screen.getByText('Use this pipeline');
+      fireEvent.click(usePipelineButton);
+
+      await waitFor(() => {
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+      });
+
+      const startNewRunBtn = screen.getByText('Start');
+      fireEvent.click(startNewRunBtn);
 
       expect(startRunSpy).toHaveBeenCalledTimes(1);
       expect(startRunSpy).toHaveBeenLastCalledWith(

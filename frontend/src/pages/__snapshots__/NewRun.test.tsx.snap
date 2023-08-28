@@ -301,6 +301,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      id="runNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -308,9 +309,11 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      id="descriptionInput"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -369,8 +372,9 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -786,6 +790,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      id="runNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -793,9 +798,11 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      id="descriptionInput"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -854,8 +861,9 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -916,7 +924,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -1271,6 +1279,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      id="runNameInput"
       label="Recurring run config name"
       onChange={[Function]}
       required={true}
@@ -1278,9 +1287,11 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      id="descriptionInput"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -1339,8 +1350,9 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -1419,7 +1431,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -1774,6 +1786,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      id="runNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -1781,9 +1794,11 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      id="descriptionInput"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -1842,8 +1857,9 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -1904,7 +1920,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -2259,6 +2275,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      id="runNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -2266,9 +2283,11 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      id="descriptionInput"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -2327,8 +2346,9 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -2742,6 +2762,7 @@ exports[`NewRun renders the new run page 1`] = `
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      id="runNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -2749,9 +2770,11 @@ exports[`NewRun renders the new run page 1`] = `
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      id="descriptionInput"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -2810,8 +2833,9 @@ exports[`NewRun renders the new run page 1`] = `
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -2872,7 +2896,7 @@ exports[`NewRun renders the new run page 1`] = `
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -3227,6 +3251,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      id="runNameInput"
       label="Recurring run config name"
       onChange={[Function]}
       required={true}
@@ -3234,9 +3259,11 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      id="descriptionInput"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -3295,8 +3322,9 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -3375,7 +3403,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>
@@ -3730,6 +3758,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      id="runNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -3737,9 +3766,11 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      id="descriptionInput"
+      label="Description"
       multiline={true}
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -3798,8 +3829,9 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="Service Account"
       onChange={[Function]}
+      required={false}
       value=""
       variant="outlined"
     />
@@ -3860,7 +3892,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           }
         }
       >
-        A pipeline version must be selected
+        A pipeline must be selected
       </div>
     </div>
   </div>

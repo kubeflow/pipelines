@@ -31,6 +31,7 @@ import (
 
 type PipelineInterface interface {
 	Create(params *params.CreatePipelineParams) (*model.V2beta1Pipeline, error)
+	CreatePipelineAndVersion(params *params.CreatePipelineAndVersionParams) (*model.V2beta1Pipeline, error)
 	Get(params *params.GetPipelineParams) (*model.V2beta1Pipeline, error)
 	Delete(params *params.DeletePipelineParams) error
 	//GetTemplate(params *params.GetTemplateParams) (template.Template, error)
@@ -93,6 +94,29 @@ func (c *PipelineClient) Create(parameters *params.CreatePipelineParams) (*model
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create pipeline. Params: '%v'", parameters),
 			fmt.Sprintf("Failed to create pipeline '%v'", parameters.Body.DisplayName))
+	}
+
+	return response.Payload, nil
+}
+
+func (c *PipelineClient) CreatePipelineAndVersion(parameters *params.CreatePipelineAndVersionParams) (*model.V2beta1Pipeline,
+	error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
+	defer cancel()
+
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.CreatePipelineAndVersion(parameters, c.authInfoWriter)
+	if err != nil {
+		if defaultError, ok := err.(*params.CreatePipelineAndVersionDefault); ok {
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
+		} else {
+			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to create pipeline and version. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to create pipeline and version '%v'", parameters.Body.Pipeline.DisplayName))
 	}
 
 	return response.Payload, nil

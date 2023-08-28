@@ -72,7 +72,8 @@ const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): JSX.Element | n
         columns={props.pipelineSelectorColumns}
         emptyMessage='No pipelines found. Upload a pipeline and then try again.'
         initialSortColumn={PipelineSortKeys.CREATED_AT}
-        selectionChanged={(selectedPipeline: ApiPipeline) => {
+        selectionChanged={async (selectedId: string) => {
+          const selectedPipeline = await Apis.pipelineServiceApi.getPipeline(selectedId);
           setUnconfirmedSelectedPipeline(selectedPipeline);
         }}
       />

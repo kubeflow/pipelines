@@ -18,21 +18,22 @@ import logging
 import os
 from os import path
 import re
-import sys
 import time
 from typing import Optional
 
+from google.api_core import client_options
 from google.api_core import gapic_v1
 import google.auth
 import google.auth.transport.requests
 from google.cloud import aiplatform
 from google.cloud.aiplatform_v1.types import job_state as gca_job_state
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util, json_util
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import requests
-from ...utils import execution_context
-from .utils import json_util, error_util
 
 from google.protobuf import json_format
+
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5
@@ -72,16 +73,16 @@ class JobRemoteRunner:
     self.project = project
     self.location = location
     self.gcp_resources = gcp_resources
-    self.client_options = {
-        'api_endpoint': location + '-aiplatform.googleapis.com'
-    }
+    self.client_options = client_options.ClientOptions(
+        api_endpoint=location + '-aiplatform.googleapis.com'
+    )
     self.client_info = gapic_v1.client_info.ClientInfo(
         user_agent='google-cloud-pipeline-components'
     )
     self.job_client = aiplatform.gapic.JobServiceClient(
         client_options=self.client_options, client_info=self.client_info
     )
-    self.job_uri_prefix = f"https://{self.client_options['api_endpoint']}/v1/"
+    self.job_uri_prefix = f'https://{self.client_options.api_endpoint}/v1/'
     self.poll_job_name = ''
 
   def check_if_job_exists(self) -> Optional[str]:
@@ -169,13 +170,17 @@ class JobRemoteRunner:
             self.job_client = aiplatform.gapic.JobServiceClient(
                 self.client_options, self.client_info
             )
+            logging.info(
+                'Waiting for %s seconds for next poll.',
+                _POLLING_INTERVAL_IN_SECONDS,
+            )
+            time.sleep(_POLLING_INTERVAL_IN_SECONDS)
+            continue
           else:
             # TODO(ruifang) propagate the error.
-            """Exit with an internal error code."""
+            # Exit with an internal error code.
             error_util.exit_with_internal_error(
-                'Request failed after %s retries.'.format(
-                    _CONNECTION_ERROR_RETRY_LIMIT
-                )
+                f'Request failed after {_CONNECTION_ERROR_RETRY_LIMIT} retries.'
             )
 
         if get_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:

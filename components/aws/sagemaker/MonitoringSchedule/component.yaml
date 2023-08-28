@@ -1,0 +1,93 @@
+name: "Sagemaker - MonitoringSchedule"
+description: Create MonitoringSchedule
+inputs:
+  - {
+      name: region,
+      type: String,
+      description: "The region to use for the training job",
+    }
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: monitoring_schedule_config,
+      type: JsonObject,
+      default: '{}',
+      description: "The configuration object that specifies the monitoring schedule and defines the monitoring job.",
+    }
+  - {
+      name: monitoring_schedule_name,
+      type: String,
+      default: '',
+      description: "The name of the monitoring schedule.",
+    }
+  - {
+      name: tags,
+      type: JsonArray,
+      default: '[]',
+      description: "(Optional) An array of key-value pairs.",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+outputs:
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: ack_resource_metadata,
+      type: JsonObject,
+      description: "All CRs managed by ACK have a common `Status.",
+    }
+  - {
+      name: conditions,
+      type: JsonArray,
+      description: "All CRS managed by ACK have a common `Status.",
+    }
+  - {
+      name: creation_time,
+      type: String,
+      description: "The time at which the monitoring job was created.",
+    }
+  - {
+      name: failure_reason,
+      type: String,
+      description: "A string, up to one KB in size, that contains the reason a monitoring job failed, if it failed.",
+    }
+  - {
+      name: last_modified_time,
+      type: String,
+      description: "The time at which the monitoring job was last modified.",
+    }
+  - {
+      name: last_monitoring_execution_summary,
+      type: JsonObject,
+      description: "Describes metadata on the last execution to run, if there was one.",
+    }
+  - {
+      name: monitoring_schedule_status,
+      type: String,
+      description: "The status of an monitoring job.",
+    }
+  - {
+      name: sagemaker_resource_name,
+      type: String,
+      description: "Resource name on Sagemaker",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+implementation:
+  container:
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.3.0
+    command: [python3]
+    args:
+      - MonitoringSchedule/src/MonitoringSchedule_component.py
+      - --region
+      - { inputValue: region }
+      ###########################GENERATED SECTION BELOW############################
+      - --monitoring_schedule_config
+      - { inputValue: monitoring_schedule_config }
+      - --monitoring_schedule_name
+      - { inputValue: monitoring_schedule_name }
+      - --tags
+      - { inputValue: tags }
+      
+      ###########################GENERATED SECTION ABOVE############################
+

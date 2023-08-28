@@ -121,6 +121,33 @@ func Test_GetPipeline(t *testing.T) {
 	}
 }
 
+func Test_GetPipeline_Twice(t *testing.T) {
+	t.Skip("Temporarily disable the test that requires cluster connection.")
+
+	fatalIf := func(err error) {
+		if err != nil {
+			debug.PrintStack()
+			t.Fatal(err)
+		}
+	}
+
+	ctx := context.Background()
+	runUuid, err := uuid.NewRandom()
+	fatalIf(err)
+	runId := runUuid.String()
+	client, err := metadata.NewClient(testMlmdServerAddress, testMlmdServerPort)
+	fatalIf(err)
+
+	pipeline, err := client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource, pipelineRoot)
+	fatalIf(err)
+	// The second call to GetPipeline won't fail because it avoid inserting to MLMD again.
+	samePipeline, err := client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource, pipelineRoot)
+	fatalIf(err)
+	if (pipeline.GetCtxID() != samePipeline.GetCtxID()) {
+		t.Errorf("Expect pipeline context ID %d, actual is %d", pipeline.GetCtxID(), samePipeline.GetCtxID())
+	}
+}
+
 func Test_GetPipelineFromExecution(t *testing.T) {
 	t.Skip("Temporarily disable the test that requires cluster connection.")
 

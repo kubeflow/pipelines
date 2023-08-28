@@ -15,8 +15,8 @@
 import json
 from typing import Optional
 
+from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
@@ -105,9 +105,9 @@ def upload_model(
           f'@{upload_model_lro["response"]["model_version_id"]}'
       )
 
-    vertex_model = VertexModel(
+    vertex_model = VertexModel.create(
         'model', vertex_uri_prefix + model_resource_name, model_resource_name
     )
-    artifact_util.update_output_artifacts(executor_input, [vertex_model])
+    artifact_utils.update_output_artifacts(executor_input, [vertex_model])
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])

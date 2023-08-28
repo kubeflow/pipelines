@@ -1,4 +1,97 @@
-## Current Version 2.0.0b4.dev (Still in Development)
+## Upcoming release
+
+## Release 2.3.0
+* Add `preview.llm.infer_pipeline` and `preview.llm.rlhf_pipeline`
+* Add `automl_tabular_tabnet_trainer` and `automl_tabular_wide_and_deep_trainer` to `preview.automl.tabular` and `v1.automl.tabular`
+* Minor feature additions to AutoML components
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 2.2.0
+* Add `preview.model_evaluation.evaluation_llm_classification_pipeline.evaluation_llm_classification_pipeline`
+* Change AutoML Vision Error Analysis pipeline names (`v1.model_evaluation.vision_model_error_analysis_pipeline' and 'v1.model_evaluation.evaluated_annotation_pipeline')
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 2.1.1
+* Add `preview.model_evaluation.FeatureAttributionGraphComponentOp` pipeline
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 2.1.0
+* Add AutoML tabular and forecasting components to `preview` namespace
+* Fix bug where `parent_model` parameter of `ModelUploadOp` ignored
+* Fix circular import bug for model evaluation components
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 2.0.0
+
+Google Cloud Pipeline Components v2 is generally available!
+
+### Structure
+* Use `v1` for [GA offerings](https://cloud.google.com/terms/service-terms)
+* Create `preview` namespace for [pre-GA offerings](https://cloud.google.com/terms/service-terms) (previously `experimental`)
+* Remove `experimental` namespace
+
+### Major changes
+* Migrate many components to the [`v1` GA namespace](https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.0.0/)
+* Migrate components to the [`preview` namespace]()
+  * `preview.model_evaluation.ModelEvaluationFeatureAttributionOp`
+  * `preview.model_evaluation.DetectModelBiasOp`
+  * `preview.model_evaluation.DetectDataBiasOp`
+  * `preview.dataflow.DataflowFlexTemplateJobOp`
+* Add many new components:
+  * `v1.dataflow.DataflowFlexTemplateJobOp`
+  * `v1.model.evaluation.vision_model_error_analysis_pipeline`
+  * `v1.model.evaluation.evaluated_annotation_pipeline`
+  * `v1.model.evaluation.evaluation_automl_tabular_feature_attribution_pipeline`
+  * `v1.model.evaluation.evaluation_automl_tabular_pipeline`
+  * `v1.model.evaluation.evaluation_automl_unstructure_data_pipeline`
+  * `v1.model.evaluation.evaluation_feature_attribution_pipeline`
+* Make GCPC artifacts usable in user-defined KFP SDK Python components ([Containerized Python Components](https://www.kubeflow.org/docs/components/pipelines/v2/components/containerized-python-components/) recommended)
+
+### Runtime
+* Change runtime base image to `marketplace.gcr.io/google/ubuntu2004`
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+### Dependencies
+* Depend on KFP SDK v2 (GCPC v2 is not compatible with KFP v1)
+* Set `google-api-core<1.34.0` to avoid 900s timeout
+* Remove `google-cloud-notebooks` and `google-cloud-storage` dependencies
+
+### Documentation
+* Refresh GCPC v2 reference documentation
+
+### Other
+* Assorted minor component interface changes
+* Assorted bug fixes
+* Change `force_direct_runner` flag to `force_direct_runner_mode` in experimental evaluation components to allow users to choose the runner of the evaluation pipeline
+* Support upload model with pipeline job id in UploadModel GCPC component
+* Change default value of `prediction_score_column` for AutoML Forecasting & Regression components to `prediction.value`
+* Change `dataflow_disk_size` parameter to `dataflow_disk_size_gb` in all model evaluation components
+* Remove `aiplatform.CustomContainerTrainingJobRunOp` and `aiplatform.CustomPythonPackageTrainingJobRunOp` components
+
+### Upcoming changes
+* Additional migrations from the 1.x.x's `experimental` namespace to the `v1` and `preview` namespaces
+
+## Release 2.0.0b5
+* Fix experimental evaluation component runtime bugs
+* Add model evaluation pipelines:
+  * `v1.model.evaluation.vision_model_error_analysis_pipeline`
+  * `v1.model.evaluation.evaluated_annotation_pipeline`
+  * `v1.model.evaluation.evaluation_automl_tabular_feature_attribution_pipeline`
+  * `v1.model.evaluation.evaluation_automl_tabular_pipeline`
+  * `v1.model.evaluation.evaluation_automl_unstructure_data_pipeline`
+  * `v1.model.evaluation.evaluation_feature_attribution_pipeline`
+* Make GCPC artifacts usable in user-defined KFP SDK Python Components and add documentation
+* Change `force_direct_runner` flag to `force_direct_runner_mode` in experimental evaluation components to allow users to choose the runner of the evaluation pipeline
+* Add experimental AutoML Forecasting Seq2Seq and Temporal Fusion Transformer pipelines
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 2.0.0b4
+* GCPC v2 reference documentation improvements
+* Change GCPC base image to `marketplace.gcr.io/google/ubuntu2004`
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+* Fix dataset components
+* Fix payload sanitation bug in `google_cloud_pipeline_components.v1.batch_predict_job.ModelBatchPredictOp`
+* Assorted experimental component bug fixes (note: experimental namespace will be removed in a future pre-release)
 
 ## Release 2.0.0b3
 * Support sparse layer masking feature selection for `experimental.automl.tabular` classification/regression components
@@ -23,7 +116,36 @@
 * Experimental components that are not fully tested (e.g. AutoML, Model Evaluation) are excluded for now, will be added in future releases
 * Even though the GCPC package's version is v2, the components under v1 folder have no interface change, so the those components' version remain as v1, decoupled from package version.
 
+## Release 1.0.44
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 1.0.43
+* Patch 5de4d78: unpin google-api-core version
+
 ## Release 1.0.42
+* Patch cb7d9a8: Update import_model_evaluation so models with 100+ labels will not import confusion matrices at every threshold
+
+## Release 1.0.41
+* Add data-filter-split feature back to the ImageTrainingJob component
+
+## Release 1.0.40
+* Change base image to ubuntu OS
+* Set google-api-core<1.34.0 to avoid 900s timeout
+
+## Release 1.0.39
+* Fix AutoML Table pipeline failing on importing model evaluation metrics
+
+## Release 1.0.38
+* Fix default value issue in bigquery query API
+
+## Release 1.0.36
+* Cherrypick e358dee2f8d5c01580438ee54988f01fc3f16a7c and snap a new release
+
+## Release 1.0.35
+* Fix images for BQML components
+
+## Release 1.0.34
+* Cherrypick d1f1ee9f2bbd09df7ea6ab51b21f07ba5f86c871 and snap a new release
 
 ## Release 1.0.33
 * Fix aiplatform & v1 batch predict job to work with KFP v2
@@ -255,7 +377,7 @@
 ## Release 1.0.2
 * Dataproc Serverless components v1.0 launch.
 * Bump google-cloud-aiplatform version
-* Fix HP Tuning documentation, fixes ##7460
+* Fix HP Tuning documentation, fixes #7460
 * Use feature ranking and selected features in AutoML Tables stage 1 tuning component.
 * Update distill_skip_evaluation_pipeline for performance improvement.
 
@@ -362,4 +484,4 @@
 
 ## First release
 
-*   Initial release of the Python SDK with data and model management operations for Image, Text, Tabular, and Video Data.
+*   Initial release of the Python SDK with data and model managemnet operations for Image, Text, Tabular, and Video Data.

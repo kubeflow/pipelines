@@ -15,6 +15,7 @@
 
 from typing import Optional
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp import dsl
@@ -40,42 +41,40 @@ def automl_video_training_job(
     model_labels: Optional[dict] = None,
 ):
   # fmt: off
-  """
-    Runs the AutoML Video training job and returns a model.
+  """Runs the AutoML Video training job and returns a model.
+
   If training on a Vertex AI dataset, you can use one of the following split configurations:
-      Data fraction splits:
-      ``training_fraction_split``, and ``test_fraction_split`` may optionally
-      be provided, they must sum to up to 1. If none of the fractions are set,
-      by default roughly 80% of data will be used for training, and 20% for test.
-      Data filter splits:
-      Assigns input data to training, validation, and test sets
-      based on the given filters, data pieces not matched by any
-      filter are ignored. Currently only supported for Datasets
-      containing DataItems.
-      If any of the filters in this message are to match nothing, then
-      they can be set as '-' (the minus sign).
-      Supported only for unstructured Datasets.
+
+  Data fraction splits:
+  ``training_fraction_split``, and ``test_fraction_split`` may optionally
+  be provided, they must sum to up to 1. If none of the fractions are set,
+  by default roughly 80% of data will be used for training, and 20% for test.
+  Data filter splits:
+  Assigns input data to training, validation, and test sets
+  based on the given filters, data pieces not matched by any
+  filter are ignored. Currently only supported for Datasets
+  containing DataItems.
+  If any of the filters in this message are to match nothing, then
+  they can be set as '-' (the minus sign).
+
+  Supported only for unstructured Datasets.
+
   Args:
-      dataset (datasets.VideoDataset):
-          Required. The dataset within the same Project from which data will be used to train the Model. The
+      dataset: The dataset within the same Project from which data will be used to train the Model. The
           Dataset must use schema compatible with Model being trained,
           and what is compatible should be described in the used
           TrainingPipeline's [training_task_definition]
           [google.cloud.aiplatform.v1beta1.TrainingPipeline.training_task_definition].
           For tabular Datasets, all their data is exported to
           training, to pick and choose from.
-      training_fraction_split (Float):
-          Optional. The fraction of the input data that is to be used to train
+      training_fraction_split: The fraction of the input data that is to be used to train
           the Model. This is ignored if Dataset is not provided.
-      test_fraction_split (Float):
-          Optional. The fraction of the input data that is to be used to evaluate
+      test_fraction_split: The fraction of the input data that is to be used to evaluate
           the Model. This is ignored if Dataset is not provided.
-      model_display_name (String):
-          Optional. The display name of the managed Vertex AI Model. The name
+      model_display_name: The display name of the managed Vertex AI Model. The name
           can be up to 128 characters long and can be consist of any UTF-8
           characters. If not provided upon creation, the job's display_name is used.
-      model_labels (JsonObject):
-          Optional. The labels with user-defined metadata to
+      model_labels: The labels with user-defined metadata to
           organize your Models.
           Label keys and values can be no longer than 64
           characters (Unicode codepoints), can only
@@ -84,20 +83,13 @@ def automl_video_training_job(
           are allowed.
           See https://goo.gl/xmQnxf for more information
           and examples of labels.
-      display_name (String):
-          Required. The user-defined name of this TrainingPipeline.
-      prediction_type (String):
-          The type of prediction the Model is to produce, one of:
-              "classification" - A video classification model classifies shots
-                  and segments in your videos according to your own defined labels.
-              "object_tracking" - A video object tracking model detects and tracks
-                  multiple objects in shots and segments. You can use these
-                  models to track objects in your videos according to your
-                  own pre-defined, custom labels.
-              "action_recognition" - A video action reconition model pinpoints
-                  the location of actions with short temporal durations (~1 second).
+      display_name: The user-defined name of this TrainingPipeline.
+      prediction_type: The type of prediction the Model is to produce, one of:
+              "classification" - A video classification model classifies shots and segments in your videos according to your own defined labels.
+              "object_tracking" - A video object tracking model detects and tracks multiple objects in shots and segments. You can use these models to track objects in your videos according to your own pre-defined, custom labels.
+              "action_recognition" - A video action reconition model pinpoints the location of actions with short temporal durations (~1 second).
       model_type: str = "CLOUD"
-          Required. One of the following:
+          One of the following:
               "CLOUD" - available for "classification", "object_tracking" and "action_recognition"
                   A Model best tailored to be used within Google Cloud,
                   and which cannot be exported.
@@ -120,12 +112,9 @@ def automl_video_training_job(
                   A model that trades off quality for low latency, to be
                   exported (see ModelService.ExportModel) and used on an
                   NVIDIA Jetson device.
-      project (String):
-          Required. project to retrieve dataset from.
-      location (String):
-          Optional location to retrieve dataset from.
-      labels (JsonObject):
-          Optional. The labels with user-defined metadata to
+      project: Project to retrieve dataset from.
+      location: Optional location to retrieve dataset from.
+      labels: The labels with user-defined metadata to
           organize TrainingPipelines.
           Label keys and values can be no longer than 64
           characters (Unicode codepoints), can only
@@ -134,8 +123,7 @@ def automl_video_training_job(
           are allowed.
           See https://goo.gl/xmQnxf for more information
           and examples of labels.
-      training_encryption_spec_key_name (Optional[String]):
-          Optional. The Cloud KMS resource identifier of the customer
+      training_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the training pipeline. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
@@ -145,8 +133,7 @@ def automl_video_training_job(
           Note: Model trained by this TrainingPipeline is also secured
           by this key if ``model_to_upload`` is not set separately.
           Overrides encryption_spec_key_name set in aiplatform.init.
-      model_encryption_spec_key_name (Optional[String]):
-          Optional. The Cloud KMS resource identifier of the customer
+      model_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the model. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
@@ -154,19 +141,19 @@ def automl_video_training_job(
           resource is created.
           If set, the trained Model will be secured by this key.
           Overrides encryption_spec_key_name set in aiplatform.init.
+
   Returns:
       model: The trained Vertex AI Model resource or None if training did not
           produce a Vertex AI Model.
-
   """
-  # fmt: on
+  # fmt`:` on
 
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'AutoMLVideoTrainingJob',
           '--method_name',
@@ -186,7 +173,7 @@ def automl_video_training_job(
           '--init.model_type',
           model_type,
           '--method.dataset',
-          "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}",
+          dataset.metadata['resourceName'],
           dsl.IfPresentPlaceholder(
               input_name='training_encryption_spec_key_name',
               then=[

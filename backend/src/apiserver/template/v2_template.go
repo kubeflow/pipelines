@@ -16,7 +16,10 @@ package template
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
@@ -27,7 +30,7 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
-	goyaml "gopkg.in/yaml.v2"
+	goyaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -43,11 +46,11 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
+		return nil, util.NewInternalServerError(err, "Failed marshal pipeline spec to json")
 	}
 	spec := &structpb.Struct{}
 	if err := protojson.Unmarshal(bytes, spec); err != nil {
-		return nil, util.Wrap(err, "Failed to parse pipeline spec")
+		return nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
 	}
 
 	job.PipelineSpec = spec
@@ -58,7 +61,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 	if err = t.validatePipelineJobInputs(job); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job inputs: %s", err.Error()))
+		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
 
 	// Pick out Kubernetes platform configs
@@ -78,7 +81,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	// runtime. i.e using ENV var
 	executionSpec, err := util.NewExecutionSpecFromInterface(util.ArgoWorkflow, obj)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "not Workflow struct")
+		return nil, util.NewInternalServerError(err, "error creating execution spec")
 	}
 	// Overwrite namespace from the job object
 	if modelJob.Namespace != "" {
@@ -97,7 +100,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "converting model trigger to crd trigger failed")
 	}
 
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
@@ -125,31 +128,42 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 }
 
 func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
-	var spec pipelinespec.PipelineSpec
 	var v2Spec V2Spec
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
+
+		err := decoder.Decode(&value)
 		// Break at end of file
-		if decoder.Decode(&value) != nil {
+		if errors.Is(err, io.EOF) {
 			break
 		}
-		valueBytes, err := goyaml.Marshal(value)
+		if value == nil {
+			continue
+		}
+		if err != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to decode yaml document: %s", err.Error()))
+		}
+		valueBytes, err := goyaml.Marshal(&value)
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to marshal this yaml document: %s", err.Error()))
 		}
-		if isPipelineSpec(valueBytes) {
+		if isPipelineSpec(value) {
 			// Pick out the yaml document with pipeline spec
 			if v2Spec.spec != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "multiple pipeline specs provided")
 			}
-			pipelineSpecJson, err := yaml.YAMLToJSON(valueBytes)
+			jsonData, err := json.Marshal(value)
 			if err != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("cannot convert v2 pipeline spec to json format: %s", err.Error()))
 			}
-			err = protojson.Unmarshal(pipelineSpecJson, &spec)
+			var spec pipelinespec.PipelineSpec
+			err = protojson.Unmarshal(jsonData, &spec)
 			if err != nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
+			}
+			if spec.GetSchemaVersion() != SCHEMA_VERSION_2_1_0 {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("KFP only supports schema version 2.1.0, but the pipeline spec has version %s", spec.GetSchemaVersion()))
 			}
 			if spec.GetPipelineInfo().GetName() == "" {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: name is empty")
@@ -248,20 +262,20 @@ func (t *V2Spec) ParametersJSON() (string, error) {
 func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
+		return nil, util.NewInternalServerError(err, "Failed to marshal pipeline spec to json")
 	}
 	spec := &structpb.Struct{}
 	if err := protojson.Unmarshal(bytes, spec); err != nil {
-		return nil, util.Wrap(err, "Failed to parse pipeline spec")
+		return nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
 	}
 	job := &pipelinespec.PipelineJob{PipelineSpec: spec}
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelRun.RuntimeConfig)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert to PipelineJob RuntimeConfig")
+		return nil, util.NewInternalServerError(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 	if err = t.validatePipelineJobInputs(job); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("invalid pipeline job inputs: %s", err.Error()))
+		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
 	// Pick out Kubernetes platform configs
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
@@ -277,7 +291,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	}
 	executionSpec, err := util.NewExecutionSpecFromInterface(util.ArgoWorkflow, obj)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "not Workflow struct")
+		return nil, util.Wrap(err, "Error creating execution spec")
 	}
 	// Overwrite namespace from the run object
 	if modelRun.Namespace != "" {
@@ -328,7 +342,10 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 			for name, _ := range requiredParams {
 				requiredParamNames = append(requiredParamNames, name)
 			}
-			return fmt.Errorf("pipeline requiring input has no paramater(s) provided. Need parameter(s): %s", strings.Join(requiredParamNames, ", "))
+			return util.NewInvalidInputError(
+				"pipeline requiring input has no paramater(s) provided. Need parameter(s): %s",
+				strings.Join(requiredParamNames, ", "),
+			)
 		} else {
 			// both required parameters and inputs are empty
 			return nil
@@ -340,37 +357,44 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 		if input, ok := runtimeConfig.GetParameterValues()[name]; !ok {
 			// If the parameter is optional, or there is a default value, it's ok to not have a user input
 			if !param.GetIsOptional() && param.GetDefaultValue() == nil {
-				return fmt.Errorf("parameter %s is not optional, yet has neither default value nor user provided value", name)
+				return util.NewInvalidInputError("parameter %s is not optional, yet has neither default value "+
+					"nor user provided value", name)
 			}
 		} else {
 			// Verify the parameter type is correct
 			switch param.GetParameterType() {
 			case pipelinespec.ParameterType_PARAMETER_TYPE_ENUM_UNSPECIFIED:
-				return fmt.Errorf("input parameter %s has unspecified type", name)
+				return util.NewInvalidInputError(fmt.Sprintf("input parameter %s has unspecified type", name))
 			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
 				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
-					return fmt.Errorf("input parameter %s requires type double or integer, but the parameter value is not of number value type", name)
+					return util.NewInvalidInputError("input parameter %s requires type double or integer, "+
+						"but the parameter value is not of number value type", name)
 				}
 			case pipelinespec.ParameterType_STRING:
 				if _, ok := input.GetKind().(*structpb.Value_StringValue); !ok {
-					return fmt.Errorf("input parameter %s requires type string, but the input parameter is not of string value type", name)
+					return util.NewInvalidInputError("input parameter %s requires type string, but the "+
+						"input parameter is not of string value type", name)
 				}
 			case pipelinespec.ParameterType_BOOLEAN:
 				if _, ok := input.GetKind().(*structpb.Value_BoolValue); !ok {
-					return fmt.Errorf("input parameter %s requires type bool, but the input parameter is not of bool value type", name)
+					return util.NewInvalidInputError("input parameter %s requires type bool, but the input "+
+						"parameter is not of bool value type", name)
 				}
 			case pipelinespec.ParameterType_LIST:
 				if _, ok := input.GetKind().(*structpb.Value_ListValue); !ok {
-					return fmt.Errorf("input parameter %s requires type list, but the input parameter is not of list value type", name)
+					return util.NewInvalidInputError("input parameter %s requires type list, but the input "+
+						"parameter is not of list value type", name)
 				}
 			case pipelinespec.ParameterType_STRUCT:
 				if _, ok := input.GetKind().(*structpb.Value_StructValue); !ok {
-					return fmt.Errorf("input parameter %s requires type struct, but the input parameter is not of struct value type", name)
+					return util.NewInvalidInputError("input parameter %s requires type struct, but the input "+
+						"parameter is not of struct value type", name)
 				}
 			case pipelinespec.ParameterType_TASK_FINAL_STATUS:
-				return fmt.Errorf("input parameter %s requires type TASK_FINAL_STATUS, which is invalid for root component", name)
+				return util.NewInvalidInputError("input parameter %s requires type TASK_FINAL_STATUS, which is "+
+					"invalid for root component", name)
 			default:
-				return fmt.Errorf("input parameter %s requires type unknown", name)
+				return util.NewInvalidInputError("input parameter %s requires type unknown", name)
 			}
 		}
 	}
@@ -383,7 +407,8 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 		}
 	}
 	if len(extraParams) > 0 {
-		return fmt.Errorf("parameter(s) provided are not required by pipeline: %s", strings.Join(extraParams, ", "))
+		return util.NewInvalidInputError("parameter(s) provided are not required by pipeline: %s",
+			strings.Join(extraParams, ", "))
 	}
 
 	return nil

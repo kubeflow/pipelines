@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
 from typing import Dict, Optional
+
+from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
+from kfp import dsl
 from kfp.dsl import Output
 
 
 @dsl.container_component
 def image_dataset_create(
-    project: str,
     display_name: str,
     dataset: Output[VertexDataset],
     location: Optional[str] = 'us-central1',
@@ -29,33 +31,27 @@ def image_dataset_create(
     import_schema_uri: Optional[str] = None,
     labels: Optional[Dict[str, str]] = {},
     encryption_spec_key_name: Optional[str] = None,
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """
-  Creates a new image dataset and optionally imports data into dataset
-  when source and import_schema_uri are passed.
+  """Creates a new image `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_ and optionally imports data into Dataset when
+  ``source`` and ``import_schema_uri`` are passed.
 
   Args:
-      display_name (String):
-          Required. The user-defined name of the Dataset.
+      display_name: The user-defined name of the Dataset.
           The name can be up to 128 characters long and can be consist
           of any UTF-8 characters.
-      gcs_source (Union[str, Sequence[str]]):
+      gcs_source:
           Google Cloud Storage URI(-s) to the
           input file(s). May contain wildcards. For more
           information on wildcards, see
           https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          examples:
-              str: "gs://bucket/file.csv"
-              Sequence[str]: ["gs://bucket/file1.csv", "gs://bucket/file2.csv"]
-      import_schema_uri (String):
-          Points to a YAML file stored on Google Cloud
+          For example, ``"gs://bucket/file.csv"`` or ``["gs://bucket/file1.csv", "gs://bucket/file2.csv"]``.
+      import_schema_uri: Points to a YAML file stored on Google Cloud
           Storage describing the import format. Validation will be
           done against the schema. The schema is defined as an
-          `OpenAPI 3.0.2 Schema
-          Object <https://tinyurl.com/y538mdwt>`.
-      data_item_labels (JsonObject):
-          Labels that will be applied to newly imported DataItems. If
+          `OpenAPI 3.0.2 Schema Object <https://tinyurl.com/y538mdwt>`_.
+      data_item_labels: Labels that will be applied to newly imported DataItems. If
           an identical DataItem as one being imported already exists
           in the Dataset, then these labels will be appended to these
           of the already existing one, and if labels with identical
@@ -67,14 +63,9 @@ def image_dataset_create(
           if their content bytes are identical (e.g. image bytes or
           pdf bytes). These labels will be overridden by Annotation
           labels specified inside index file refenced by
-          ``import_schema_uri``,
-          e.g. jsonl file.
-      project (String):
-          Required. project to retrieve dataset from.
-      location (String):
-          Optional location to retrieve dataset from.
-      labels (JsonObject):
-          Optional. Labels with user-defined metadata to organize your Tensorboards.
+          ``import_schema_uri``, e.g. jsonl file.
+      location: Optional location to retrieve Dataset from.
+      labels: Labels with user-defined metadata to organize your Tensorboards.
           Label keys and values can be no longer than 64 characters
           (Unicode codepoints), can only contain lowercase letters, numeric
           characters, underscores and dashes. International characters are allowed.
@@ -83,26 +74,26 @@ def image_dataset_create(
           See https://goo.gl/xmQnxf for more information and examples of labels.
           System reserved label keys are prefixed with "aiplatform.googleapis.com/"
           and are immutable.
-      encryption_spec_key_name (Optional[String]):
-          Optional. The Cloud KMS resource identifier of the customer
-          managed encryption key used to protect the dataset. Has the
+      encryption_spec_key_name: The Cloud KMS resource identifier of the customer
+          managed encryption key used to protect the Dataset. Has the
           form:
           ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
           The key needs to be in the same region as where the compute
           resource is created.
           If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
-          Overrides encryption_spec_key_name set in aiplatform.init.
+          Overrides ``encryption_spec_key_name`` set in ``aiplatform.init``.
+      project: Project to retrieve Dataset from. Defaults to the project in which the PipelineJob is run.
+
   Returns:
-      dataset (google.VertexDataset):
-          Instantiated representation of the managed image dataset resource.
+      dataset: Instantiated representation of the managed image Dataset resource.
   """
   # fmt: on
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-m',
-          'google_cloud_pipeline_components.container.aiplatform.remote_runner',
+          'google_cloud_pipeline_components.container.v1.aiplatform.remote_runner',
           '--cls_name',
           'ImageDataset',
           '--method_name',

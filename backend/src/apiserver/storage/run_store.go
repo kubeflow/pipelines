@@ -93,9 +93,6 @@ type RunStoreInterface interface {
 	// Creates a new metric entry.
 	CreateMetric(metric *model.RunMetric) (err error)
 
-	// Fetches metrics for a given run.
-	GetMetrics(runId string) ([]*model.RunMetric, error)
-
 	// Terminates a run.
 	TerminateRun(runId string) error
 }
@@ -793,28 +790,6 @@ func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, err
 				Payload:     payload,
 			},
 		)
-	}
-	return metrics, nil
-}
-
-// TODO(gkcalat): consider removing this if we no longer support separate metrics API in v2beta1 API.
-// Fetches run metrics for a given run id.
-func (s *RunStore) GetMetrics(runId string) ([]*model.RunMetric, error) {
-	sql, args, err := sq.Select(runMetricsColumns...).
-		From("run_metrics").
-		Where(sq.Eq{"RunUUID": runId}).
-		ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
-	}
-	r, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
-	}
-	defer r.Close()
-	metrics, err := s.scanRowsToRunMetrics(r)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run metrics: %v", err.Error())
 	}
 	return metrics, nil
 }

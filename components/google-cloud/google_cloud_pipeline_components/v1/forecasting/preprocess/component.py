@@ -27,8 +27,7 @@ def forecasting_preprocessing(
     location: Optional[str] = 'US',
 ):
   # fmt: off
-  """
-  Preprocesses BigQuery tables for training or prediction.
+  """Preprocesses BigQuery tables for training or prediction.
 
   Creates a BigQuery table for training or prediction based on the input tables.
   For training, a primary table is required. Optionally, you can include some
@@ -36,19 +35,14 @@ def forecasting_preprocessing(
   used in the training, plus a plan table.
 
   Args:
-    project (String):
-        The GCP project id that runs the pipeline.
-    input_tables (JsonArray):
-        Serialized Json array that specifies input BigQuery tables and specs.
-    preprocessing_bigquery_dataset (String):
-        Optional BigQuery dataset to save the preprocessing result BigQuery table.
+    project: The GCP project id that runs the pipeline.
+    input_tables: Serialized Json array that specifies input BigQuery tables and specs.
+    preprocessing_bigquery_dataset: Optional BigQuery dataset to save the preprocessing result BigQuery table.
         If not present, a new dataset will be created by the component.
-    location (String):
-        Optional location for the BigQuery data, default is US.
+    location: Optional location for the BigQuery data, default is US.
 
   Returns:
-    preprocess_metadata (JsonObject)
-
+    preprocess_metadata
   """
   # fmt: on
 

@@ -14,6 +14,8 @@
 
 from typing import Dict, List
 
+from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -24,54 +26,47 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_drop_model_job(
-    project: str,
     model: Input[BQMLModel],
     gcp_resources: OutputPath(str),
     location: str = 'us-central1',
     query_parameters: List[str] = [],
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery drop model job and waits for it to finish.
 
   Args:
-      project (str):
-        Required. Project to run BigQuery model drop job.
-      location (Optional[str]):
-        Location of the job to drop the BigQuery
+      location: Location of the job to drop the BigQuery
         model. If not set, default to `US` multi-region.  For more details,
         see
         https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model (google.BQMLModel):
-        Required. BigQuery ML model to drop.
-      query_parameters (Optional[Sequence]):
-        Query parameters for standard SQL queries.
+      model: BigQuery ML model to drop.
+      query_parameters: Query parameters for standard SQL queries.
         If query_parameters are both specified in here
         and in job_configuration_query, the value in here will override the
         other one.
-      job_configuration_query (Optional[dict]):
-        A json formatted string
+      job_configuration_query: A json formatted string
         describing the rest of the job configuration. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels (Optional[dict]):
-        The labels associated with this job. You can
+      labels: The labels associated with this job. You can
         use these to organize and group your jobs. Label keys and values can
         be no longer than 63 characters, can only containlowercase letters,
         numeric characters, underscores and dashes. International characters
         are allowed. Label values are optional. Label keys must start with a
         letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+      project: Project to run BigQuery model drop job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      gcp_resources (str):
-        Serialized gcp_resources proto tracking the BigQuery job.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
         For more details, see
         https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',
@@ -87,11 +82,11 @@ def bigquery_drop_model_job(
           location,
           '--model_name',
           ConcatPlaceholder([
-              "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+              model.metadata['projectId'],
               '.',
-              "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+              model.metadata['datasetId'],
               '.',
-              "{{$.inputs.artifacts['model'].metadata['modelId']}}",
+              model.metadata['modelId'],
           ]),
           '--payload',
           ConcatPlaceholder([

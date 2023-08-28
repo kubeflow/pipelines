@@ -1,3 +1,4 @@
+import json
 import os
 import utils
 import pytest
@@ -75,3 +76,11 @@ def compile_run_monitor_pipeline(
 def terminate_run(client, run_id):
     client.runs.terminate_run(run_id)
     wait_for_job_status(client, run_id, 30, "failed")
+
+
+def get_output_ack_resource_metadata(output_files, step_name):
+    return json.loads(
+        utils.read_from_file_in_tar(
+            output_files[step_name]["ack_resource_metadata"]
+        ).replace("'", '"')
+    )

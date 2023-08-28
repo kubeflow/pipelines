@@ -14,6 +14,7 @@
 
 from typing import Dict
 
+from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp import dsl
@@ -29,16 +30,15 @@ def model_undeploy(
     traffic_split: Dict[str, str] = {},
 ):
   # fmt: off
-  """
-  Undeploys a Google Cloud Vertex DeployedModel within the Endpoint.
-  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel.
+  """`Undeploys <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel>`_ a Google Cloud Vertex `DeployedModel <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#deployedmodel>`_ within an `Endpoint <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_.
+
+  See the `undeploy Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel>`_ method for more information.
+
 
   Args:
-      model (google.VertexModel):
-          Required. The model that was deployed to the Endpoint.
-      endpoint (google.VertexEndpoint):
-          Required. The endpoint for the DeployedModel to be undeployed from.
-      traffic_split (Optional[Dict[str, int]]):
+      model: The model that was deployed to the Endpoint.
+      endpoint: The Endpoint for the DeployedModel to be undeployed from.
+      traffic_split:
           If this field is provided, then the Endpoint's trafficSplit will be overwritten with it.
           If last DeployedModel is being undeployed from the Endpoint, the
           [Endpoint.traffic_split] will always end up empty when this call returns.
@@ -46,14 +46,11 @@ def model_undeploy(
           assigned to it when this method executes, or if this field unassigns any traffic to it.
 
   Returns:
-      gcp_resources (str):
-          Serialized gcp_resources proto tracking the undeploy model's long running operation.
-
-          For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the undeploy Model's long-running operation.
   """
   # fmt: on
   return dsl.ContainerSpec(
-      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b1',
+      image=_image.GCPC_IMAGE_TAG,
       command=[
           'python3',
           '-u',
@@ -67,10 +64,10 @@ def model_undeploy(
           dsl.ConcatPlaceholder([
               '{',
               '"endpoint": "',
-              "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}",
+              endpoint.metadata['resourceName'],
               '"',
               ', "model": "',
-              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+              model.metadata['resourceName'],
               '"',
               ', "traffic_split": ',
               traffic_split,

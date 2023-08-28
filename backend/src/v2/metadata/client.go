@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -75,6 +75,25 @@ var (
 		Name: proto.String(ImporterExecutionTypeName),
 	}
 )
+
+type ClientInterface interface {
+	GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string) (*Pipeline, error)
+	GetDAG(ctx context.Context, executionID int64) (*DAG, error)
+	PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error
+	CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error)
+	PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error)
+	GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error)
+	GetExecution(ctx context.Context, id int64) (*Execution, error)
+	GetPipelineFromExecution(ctx context.Context, id int64) (*Pipeline, error)
+	GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline) (executionsMap map[string]*Execution, err error)
+	GetEventsByArtifactIDs(ctx context.Context, artifactIds []int64) ([]*pb.Event, error)
+	GetArtifactName(ctx context.Context, artifactId int64) (string, error)
+	GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact, error)
+	GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string]*OutputArtifact, error)
+	RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error)
+	GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error)
+	FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error)
+}
 
 // Client is an MLMD service client.
 type Client struct {
@@ -261,6 +280,31 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace
 		return nil, err
 	}
 
+	// Detect whether such parent-child relationship exists.
+	resParents, err := c.svc.GetParentContextsByContext(ctx, &pb.GetParentContextsByContextRequest{
+		ContextId: runContext.Id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	parents := resParents.GetContexts()
+	if len(parents) > 1 {
+		return nil, fmt.Errorf("Current run context has more than 1 parent context: %v", parents)
+	}
+	if len(parents) == 1 {
+		// Parent-child context alredy exists.
+		if parents[0].GetId() != pipelineContext.GetId() {
+			return nil, fmt.Errorf("Parent context ID %d of current run is different from expected: %d",
+				parents[0].GetId(),
+				pipelineContext.GetId())
+		}
+		return &Pipeline{
+			pipelineCtx:    pipelineContext,
+			pipelineRunCtx: runContext,
+		}, nil
+	}
+
+	// Insert ParentContext relationship if doesn't exist.
 	err = c.putParentContexts(ctx, &pb.PutParentContextsRequest{
 		ParentContexts: []*pb.ParentContext{{
 			ChildId:  runContext.Id,

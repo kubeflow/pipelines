@@ -202,7 +202,7 @@ function TaskNodeDetail({
             )}
             {!logsBannerMessage && (
               <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
-                <LogViewer logLines={(logsDetails || '').split('\n')} />
+                <LogViewer logLines={(logsDetails || '').split(/[\r\n]+/)} />
               </div>
             )}
           </div>
@@ -430,7 +430,7 @@ function ArtifactInfo({
       <div>
         <DetailsTable<string>
           key={`artifact-url`}
-          title='Artifact URL'
+          title='Artifact URI'
           fields={getArtifactParamList([linkedArtifact], artifactTypeName)}
           valueComponent={ArtifactPreview}
           valueComponentProps={{
@@ -474,7 +474,7 @@ function SubDAGNodeDetail({
       <div className={commonCss.page}>
         <div className={padding(20, 'blr')}>
           <Button variant='contained' onClick={onSubDagOpenClick}>
-            Open Workflow
+            Open Sub-DAG
           </Button>
         </div>
         <MD2Tabs

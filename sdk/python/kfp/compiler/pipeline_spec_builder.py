@@ -24,16 +24,16 @@ from google.protobuf import json_format
 from google.protobuf import struct_pb2
 import kfp
 from kfp.compiler import compiler_utils
-from kfp.components import for_loop
-from kfp.components import pipeline_channel
-from kfp.components import pipeline_context
-from kfp.components import pipeline_task
-from kfp.components import placeholders
-from kfp.components import structures
-from kfp.components import tasks_group
-from kfp.components import utils
-from kfp.components.types import artifact_types
-from kfp.components.types import type_utils
+from kfp.dsl import for_loop
+from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_context
+from kfp.dsl import pipeline_task
+from kfp.dsl import placeholders
+from kfp.dsl import structures
+from kfp.dsl import tasks_group
+from kfp.dsl import utils
+from kfp.dsl.types import artifact_types
+from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
@@ -61,12 +61,13 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     Raises:
         ValueError if the given value is not one of the parameter types.
     """
-    if isinstance(value, str):
+    # bool check must be above (int, float) check because bool is a subclass of int so isinstance(True, int) == True
+    if isinstance(value, bool):
+        return struct_pb2.Value(bool_value=value)
+    elif isinstance(value, str):
         return struct_pb2.Value(string_value=value)
     elif isinstance(value, (int, float)):
         return struct_pb2.Value(number_value=value)
-    elif isinstance(value, bool):
-        return struct_pb2.Value(bool_value=value)
     elif isinstance(value, dict):
         return struct_pb2.Value(
             struct_value=struct_pb2.Struct(
@@ -319,11 +320,13 @@ def build_component_spec_for_exit_task(
     Returns:
         A ComponentSpec object for the exit task.
     """
-    return build_component_spec_for_task(task=task, is_exit_task=True)
+    return build_component_spec_for_task(
+        task=task, is_compiled_component=False, is_exit_task=True)
 
 
 def build_component_spec_for_task(
     task: pipeline_task.PipelineTask,
+    is_compiled_component: bool,
     is_exit_task: bool = False,
 ) -> pipeline_spec_pb2.ComponentSpec:
     """Builds ComponentSpec for a pipeline task.
@@ -337,7 +340,7 @@ def build_component_spec_for_task(
     """
     for input_name, input_spec in (task.component_spec.inputs or {}).items():
         if not is_exit_task and type_utils.is_task_final_status_type(
-                input_spec.type):
+                input_spec.type) and not is_compiled_component:
             raise ValueError(
                 f'PipelineTaskFinalStatus can only be used in an exit task. Parameter {input_name} of a non exit task has type PipelineTaskFinalStatus.'
             )
@@ -359,7 +362,7 @@ def _build_component_spec_from_component_spec_structure(
         # Special handling for PipelineTaskFinalStatus first.
         if type_utils.is_task_final_status_type(input_spec.type):
             component_spec.input_definitions.parameters[
-                input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
+                input_name].parameter_type = pipeline_spec_pb2.ParameterType.TASK_FINAL_STATUS
             component_spec.input_definitions.parameters[
                 input_name].is_optional = True
             if input_spec.description:
@@ -1076,6 +1079,7 @@ def build_spec_by_group(
     group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
     name_to_for_loop_group: Mapping[str, tasks_group.ParallelFor],
     platform_spec: pipeline_spec_pb2.PlatformSpec,
+    is_compiled_component: bool,
 ) -> None:
     """Generates IR spec given a TasksGroup.
 
@@ -1130,16 +1134,16 @@ def build_spec_by_group(
         is_parent_component_root = (group_component_spec == pipeline_spec.root)
 
         if isinstance(subgroup, pipeline_task.PipelineTask):
-
             subgroup_task_spec = build_task_spec_for_task(
                 task=subgroup,
                 parent_component_inputs=group_component_spec.input_definitions,
                 tasks_in_current_dag=tasks_in_current_dag,
             )
             task_name_to_task_spec[subgroup.name] = subgroup_task_spec
-
             subgroup_component_spec = build_component_spec_for_task(
-                task=subgroup)
+                task=subgroup,
+                is_compiled_component=is_compiled_component,
+            )
             task_name_to_component_spec[subgroup.name] = subgroup_component_spec
 
             if subgroup_component_spec.executor_label:
@@ -1709,6 +1713,7 @@ def create_pipeline_spec(
             group_name_to_parent_groups=group_name_to_parent_groups,
             name_to_for_loop_group=name_to_for_loop_group,
             platform_spec=platform_spec,
+            is_compiled_component=False,
         )
 
     build_exit_handler_groups_recursively(
@@ -1765,7 +1770,7 @@ def convert_pipeline_outputs_to_dict(
 
 def write_pipeline_spec_to_file(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-    pipeline_description: str,
+    pipeline_description: Union[str, None],
     platform_spec: pipeline_spec_pb2.PlatformSpec,
     package_path: str,
 ) -> None:
@@ -1812,14 +1817,6 @@ def write_pipeline_spec_to_file(
 
 def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                                         pipeline_description: str) -> str:
-    map_parameter_types = {
-        'NUMBER_INTEGER': int.__name__,
-        'NUMBER_DOUBLE': float.__name__,
-        'STRING': str.__name__,
-        'BOOLEAN': bool.__name__,
-        'LIST': list.__name__,
-        'STRUCT': dict.__name__
-    }
 
     map_headings = {
         'inputDefinitions': '# Inputs:',
@@ -1839,8 +1836,9 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                     'parameters', {}).items():
                 data = {}
                 data['name'] = parameter_name
-                data['parameterType'] = map_parameter_types[
-                    parameter_body['parameterType']]
+                data[
+                    'parameterType'] = type_utils.IR_TYPE_TO_COMMENT_TYPE_STRING[
+                        parameter_body['parameterType']]
                 if 'defaultValue' in signature['parameters'][parameter_name]:
                     data['defaultValue'] = signature['parameters'][
                         parameter_name]['defaultValue']

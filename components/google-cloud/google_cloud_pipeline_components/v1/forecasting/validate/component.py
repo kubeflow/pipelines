@@ -25,8 +25,7 @@ def forecasting_validation(
     location: Optional[str] = 'US',
 ):
   # fmt: off
-  """
-  Validates BigQuery tables for training or prediction.
+  """Validates BigQuery tables for training or prediction.
 
   Validates BigQuery tables for training or prediction based on predefined
   requirements. For training, a primary table is required. Optionally, you
@@ -34,16 +33,9 @@ def forecasting_validation(
   the tables that were used in the training, plus a plan table.
 
   Args:
-    input_tables (JsonArray):
-        Serialized Json array that specifies input BigQuery tables and specs.
-    validation_theme (String):
-        Theme to use for validating the BigQuery tables. Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
-    location (String):
-        Optional location for the BigQuery data, default is US.
-
-  Returns:
-    None
-
+    input_tables: Serialized Json array that specifies input BigQuery tables and specs.
+    validation_theme: Theme to use for validating the BigQuery tables. Acceptable values are FORECASTING_TRAINING and FORECASTING_PREDICTION.
+    location: Optional location for the BigQuery data, default is US.
   """
   # fmt: on
 

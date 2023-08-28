@@ -565,9 +565,10 @@ func TestListRecurringRuns_MultiUser(t *testing.T) {
 
 	expectedRecurringRunsList := []*apiv2beta1.RecurringRun{expectedRecurringRun}
 
+	// List API should fail in multi-user mode for empty requests
 	actualRecurringRunsList, err := server.ListRecurringRuns(ctx, &apiv2beta1.ListRecurringRunsRequest{})
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(actualRecurringRunsList.RecurringRuns))
+	assert.NotNil(t, err)
+	assert.Nil(t, actualRecurringRunsList)
 
 	actualRecurringRunsList2, err := server.ListRecurringRuns(ctx, &apiv2beta1.ListRecurringRunsRequest{
 		ExperimentId: experiment.UUID,
@@ -769,11 +770,11 @@ func TestListJobs_Multiuser(t *testing.T) {
 			expectedJobsEmpty,
 		},
 		{
-			"Valid - no filter",
+			"Invalid - empty request",
 			&apiv1beta1.ListJobsRequest{},
-			false,
-			"",
-			expectedJobsEmpty,
+			true,
+			"a recurring run cannot have an empty namespace in multi-user mode",
+			nil,
 		},
 		{
 			"Inalid - invalid filter type",

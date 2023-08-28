@@ -1,6 +1,7 @@
 {
   "name": "pipelines-frontend",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "private": true,
   "dependencies": {
     "@craco/craco": "^6.2.0",
@@ -148,6 +149,9 @@
     "typescript": "^3.8.3",
     "webpack-bundle-analyzer": "^3.6.1",
     "yaml": "^2.2.2"
+  },
+  "resolutions": {
+    "workbox-webpack-plugin": "6.6.0"
   },
   "homepage": "./",
   "jest": {

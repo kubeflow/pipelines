@@ -32,7 +32,7 @@ from google.protobuf import json_format
 from kfp import compiler
 from kfp.client import auth
 from kfp.client import set_volume_credentials
-from kfp.components import base_component
+from kfp.dsl import base_component
 from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
 import yaml
@@ -156,7 +156,7 @@ class Client:
     ) -> None:
         """Create a new instance of kfp client."""
         warnings.warn(
-            'This client only works with Kubeflow Pipeline v2.0.0-beta.1 '
+            'This client only works with Kubeflow Pipeline v2.0.0-beta.2 '
             'and later versions.',
             category=FutureWarning)
 
@@ -1370,8 +1370,8 @@ class Client:
         if isinstance(timeout, datetime.timedelta):
             timeout = timeout.total_seconds()
         is_valid_token = False
-        while (state is None or state.lower()
-               not in ['succeeded', 'failed', 'skipped', 'error']):
+        finish_states = ['succeeded', 'failed', 'skipped', 'error']
+        while True:
             try:
                 get_run_response = self._run_api.get_run(run_id=run_id)
                 is_valid_token = True
@@ -1390,8 +1390,9 @@ class Client:
             logging.info('Waiting for the job to complete...')
             if elapsed_time > timeout:
                 raise TimeoutError('Run timeout')
+            if state is not None and state.lower() in finish_states:
+                return get_run_response
             time.sleep(sleep_duration)
-        return get_run_response
 
     def upload_pipeline(
         self,
@@ -1416,7 +1417,7 @@ class Client:
         if pipeline_name is None:
             pipeline_doc = _extract_pipeline_yaml(pipeline_package_path)
             pipeline_name = pipeline_doc.pipeline_spec.pipeline_info.name
-        validate_pipeline_resource_name(pipeline_name)
+        validate_pipeline_display_name(pipeline_name)
         response = self._upload_api.upload_pipeline(
             pipeline_package_path,
             name=pipeline_name,
@@ -1621,12 +1622,10 @@ def _add_generated_apis(
     target_struct.api_models = models_struct
 
 
-def validate_pipeline_resource_name(name: str) -> None:
-    REGEX = r'[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'
-
-    if re.fullmatch(REGEX, name) is None:
+def validate_pipeline_display_name(name: str) -> None:
+    if not name or name.isspace():
         raise ValueError(
-            f'Invalid pipeline name: "{name}". Pipeline name must conform to the regex: "{REGEX}".'
+            f'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'
         )
 
 

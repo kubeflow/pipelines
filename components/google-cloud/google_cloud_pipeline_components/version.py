@@ -11,6 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Contains the version string of Google Cloud Pipeline Components."""
+"""Google Cloud Pipeline Components version."""
 
-__version__ = "2.0.0b3.dev"
+__version__ = "2.3.0"

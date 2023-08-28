@@ -1,0 +1,27 @@
+run:
+  timeout: 30m
+  skip-files:
+  - "api\\*.go$"
+  - "backend\\api\\*.go"
+
+issues:
+  max-same-issues: 0
+
+linters:
+  disable-all: true
+  enable: # please keep this alphabetized
+    - gocritic
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - stylecheck
+    - unused
+
+linters-settings: # please keep this alphabetized
+  misspell:
+    locale: US
+  staticcheck:
+    checks:
+      - "all"

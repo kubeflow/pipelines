@@ -33,6 +33,7 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: bucketName
+        # relic variables
         - name: DBCONFIG_USER
           valueFrom:
             secretKeyRef:
@@ -58,11 +59,44 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: dbPort
+        # end of relic variables
         - name: DBCONFIG_CONMAXLIFETIME
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
               key: ConMaxLifeTime
+        - name: DB_DRIVER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbType
+        # MySQL Config
+        - name: DBCONFIG_MYSQLCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+        - name: DBCONFIG_MYSQLCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        - name: DBCONFIG_MYSQLCONFIG_DBNAME
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: pipelineDb
+        - name: DBCONFIG_MYSQLCONFIG_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: mysqlHost
+        - name: DBCONFIG_MYSQLCONFIG_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: mysqlPort
+        # end of MySQL Config
         - name: OBJECTSTORECONFIG_ACCESSKEY
           valueFrom:
             secretKeyRef:

@@ -4,6 +4,8 @@ import utils
 from utils import kfp_client_utils
 from utils import ack_utils
 from utils import sagemaker_utils
+from utils import minio_utils
+
 import json
 
 
@@ -23,10 +25,9 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         utils.replace_placeholders(
             os.path.join(test_file_dir, "config.yaml"),
             os.path.join(download_dir, "config.yaml"),
-            shallow_canary=True
+            shallow_canary=True,
         )
     )
-    k8s_client = ack_utils.k8s_client()
     input_model_name = utils.generate_random_string(10) + "-v2-model"
     input_endpoint_config_name = (
         utils.generate_random_string(10) + "-v2-endpoint-config"
@@ -50,7 +51,7 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         ] = input_model_name
 
     try:
-        _, _, _ = kfp_client_utils.compile_run_monitor_pipeline(
+        _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
             kfp_client,
             experiment_id,
             test_params["PipelineDefinition"],
@@ -61,10 +62,68 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         )
 
         endpoint_describe = ack_utils._get_resource(
-            k8s_client, input_endpoint_name, "endpoints"
+            input_endpoint_name, "endpoints"
         )
 
-        endpoint_describe["status"]["endpointStatus"] == "InService"
+        outputs = {
+            "sagemaker-endpoint": [
+                "endpoint_status",
+                "sagemaker_resource_name",
+                "ack_resource_metadata",
+            ],
+            "sagemaker-endpointconfig": [
+                "sagemaker_resource_name",
+                "ack_resource_metadata",
+            ],
+            "sagemaker-model": [
+                "sagemaker_resource_name",
+                "ack_resource_metadata",
+            ]
+        }
+
+        DESIRED_COMPONENT_STATUS = "InService"
+
+        # Get output data
+        output_files = minio_utils.artifact_download_iterator(
+            workflow_json, outputs, download_dir
+        )
+
+        output_endpoint_status = utils.read_from_file_in_tar(
+            output_files["sagemaker-endpoint"]["endpoint_status"]
+        )
+
+        output_ack_resource_metadata_endpoint = kfp_client_utils.get_output_ack_resource_metadata(
+            output_files, "sagemaker-endpoint"
+        )
+
+        output_ack_resource_metadata_endpoint_config = kfp_client_utils.get_output_ack_resource_metadata(
+            output_files, "sagemaker-endpointconfig"
+        )
+
+        output_ack_resource_metadata_model = kfp_client_utils.get_output_ack_resource_metadata(
+            output_files, "sagemaker-model"
+        )
+
+        output_endpoint_name = utils.read_from_file_in_tar(
+            output_files["sagemaker-endpoint"]["sagemaker_resource_name"]
+        )
+
+        output_endpoint_config_name = utils.read_from_file_in_tar(
+            output_files["sagemaker-endpointconfig"]["sagemaker_resource_name"]
+        )
+
+        output_model_name = utils.read_from_file_in_tar(
+            output_files["sagemaker-model"]["sagemaker_resource_name"]
+        )
+
+        assert (
+            endpoint_describe["status"]["endpointStatus"]
+            == output_endpoint_status
+            == DESIRED_COMPONENT_STATUS
+        )
+        assert output_endpoint_name in output_ack_resource_metadata_endpoint["arn"]
+        assert output_endpoint_config_name in output_ack_resource_metadata_endpoint_config["arn"]
+        assert output_model_name in output_ack_resource_metadata_model["arn"]
 
         # Verify that the update was successful by checking that the endpoint config name is the same as the second one.
         if "ExpectedEndpointConfig" in test_params.keys():
@@ -82,11 +141,11 @@ def test_create_v2_endpoint(kfp_client, experiment_id, boto3_session, test_file_
         )
         utils.remove_dir(download_dir)
     finally:
-        ack_utils._delete_resource(k8s_client, input_endpoint_name, "endpoints")
+        ack_utils._delete_resource(input_endpoint_name, "endpoints")
         ack_utils._delete_resource(
-            k8s_client, input_endpoint_config_name, "endpointconfigs"
+            input_endpoint_config_name, "endpointconfigs"
         )
-        ack_utils._delete_resource(k8s_client, input_model_name, "models")
+        ack_utils._delete_resource(input_model_name, "models")
 
 
 @pytest.mark.v2
@@ -99,7 +158,6 @@ def test_terminate_v2_endpoint(kfp_client, experiment_id):
             os.path.join(download_dir, "config.yaml"),
         )
     )
-    k8s_client = ack_utils.k8s_client()
     input_model_name = utils.generate_random_string(10) + "-v2-model"
     input_endpoint_config_name = (
         utils.generate_random_string(10) + "-v2-endpoint-config"
@@ -121,7 +179,6 @@ def test_terminate_v2_endpoint(kfp_client, experiment_id):
             "running",
         )
         assert ack_utils.wait_for_condition(
-            k8s_client,
             input_endpoint_name,
             ack_utils.does_endpoint_exist,
             wait_periods=12,
@@ -129,7 +186,6 @@ def test_terminate_v2_endpoint(kfp_client, experiment_id):
         )
         kfp_client_utils.terminate_run(kfp_client, run_id)
         assert ack_utils.wait_for_condition(
-            k8s_client,
             input_endpoint_name,
             ack_utils.is_endpoint_deleted,
             wait_periods=20,
@@ -137,6 +193,6 @@ def test_terminate_v2_endpoint(kfp_client, experiment_id):
         )
     finally:
         ack_utils._delete_resource(
-            k8s_client, input_endpoint_config_name, "endpointconfigs"
+            input_endpoint_config_name, "endpointconfigs"
         )
-        ack_utils._delete_resource(k8s_client, input_model_name, "models")
+        ack_utils._delete_resource(input_model_name, "models")

@@ -1,9 +1,13 @@
 {
   "DBConfig": {
-    "DriverName": "mysql",
-    "DataSourceName": "",
-    "DBName": "mlpipeline",
-    "GroupConcatMaxLen": "4194304",
+    "MySQLConfig": {
+      "DataSourceName": "",
+      "DBName": "mlpipeline",
+      "GroupConcatMaxLen": "4194304"
+    },
+    "PostgreSQLConfig": {
+      "DBName": "mlpipeline"
+    },
     "ConMaxLifeTime": "120s"
   },
   "ObjectStoreConfig": {
@@ -12,6 +16,7 @@
     "BucketName": "mlpipeline",
     "PipelinePath": "pipelines"
   },
+  "DBDriverName": "mysql",
   "ARCHIVE_CONFIG_LOG_FILE_NAME": "main.log",
   "ARCHIVE_CONFIG_LOG_PATH_PREFIX": "/artifacts",
   "InitConnectionTimeout": "6m",

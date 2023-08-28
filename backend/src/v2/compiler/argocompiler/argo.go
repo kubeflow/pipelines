@@ -116,8 +116,8 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		driverImage:   "gcr.io/ml-pipeline-test/kfp-driver@sha256:2d29f9f385e68e21cc7ed61b76304c881361b39f8c7e1e4c4d6f6401a97d1685",
-		launcherImage: "gcr.io/ml-pipeline-test/kfp-launcher-v2@sha256:f47f50553c1385032d0056e066699818a00377639f7032626637278aa9241e2e",
+		driverImage:   "gcr.io/ml-pipeline/kfp-driver@sha256:0ce9bf20ac9cbb21e84ff0762d5ae508d21e9c85fde2b14b51363bd1b8cd7528",
+		launcherImage: "gcr.io/ml-pipeline/kfp-launcher@sha256:80cf120abd125db84fa547640fd6386c4b2a26936e0c2b04a7d3634991a850a4",
 		job:           job,
 		spec:          spec,
 		executors:     deploy.GetExecutors(),

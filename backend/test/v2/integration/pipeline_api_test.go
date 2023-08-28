@@ -118,28 +118,30 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
-	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body: &model.V2beta1Pipeline{DisplayName: "sequential"},
-	})
-	require.Nil(t, err)
-	assert.Equal(t, "sequential", sequentialPipeline.DisplayName)
-	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(
-		&params.CreatePipelineVersionParams{
-			PipelineID: sequentialPipeline.PipelineID,
-			Body: &model.V2beta1PipelineVersion{
-				DisplayName: "sequential-v1",
-				Description: "1st version of sequential pipeline",
-				PipelineID:  sequentialPipeline.PipelineID,
+	sequentialPipeline, err := s.pipelineClient.CreatePipelineAndVersion(&params.CreatePipelineAndVersionParams{
+		Body: &model.V2beta1CreatePipelineAndVersionRequest{
+			Pipeline: &model.V2beta1Pipeline{
+				DisplayName: "sequential",
+				Description: "sequential pipeline",
+			},
+			PipelineVersion: &model.V2beta1PipelineVersion{
 				PackageURL: &model.V2beta1URL{
 					PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/v2/sequential.yaml",
 				},
 			},
-		})
+		},
+	})
 	require.Nil(t, err)
-	assert.Equal(t, "sequential-v1", sequentialPipelineVersion.DisplayName)
-	assert.Equal(t, "1st version of sequential pipeline", sequentialPipelineVersion.Description)
-	assert.Equal(t, sequentialPipeline.PipelineID, sequentialPipelineVersion.PipelineID)
-	assert.Equal(t, "https://storage.googleapis.com/ml-pipeline-dataset/v2/sequential.yaml", sequentialPipelineVersion.PackageURL.PipelineURL)
+	assert.Equal(t, "sequential", sequentialPipeline.DisplayName)
+	assert.Equal(t, "sequential pipeline", sequentialPipeline.Description)
+	sequentialPipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{PipelineID: sequentialPipeline.PipelineID})
+	require.Nil(t, err)
+	assert.Equal(t, 1, totalSize)
+	assert.Equal(t, 1, len(sequentialPipelineVersions))
+	assert.Equal(t, "sequential", sequentialPipelineVersions[0].DisplayName)
+	assert.Equal(t, "sequential pipeline", sequentialPipelineVersions[0].Description)
+	assert.Equal(t, sequentialPipeline.PipelineID, sequentialPipelineVersions[0].PipelineID)
+	assert.Equal(t, "https://storage.googleapis.com/ml-pipeline-dataset/v2/sequential.yaml", sequentialPipelineVersions[0].PackageURL.PipelineURL)
 
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)

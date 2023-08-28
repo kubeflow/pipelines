@@ -4,11 +4,19 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components) or [Dockerhub](https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components). New releases after v1.1.1 will be using the public ECR repository
 
 ---------------------------------------------
-** Change log for version 2.2.1 **
+**Change log for version 2.3.0**
+
+- Introducing SageMaker Model Monitor components v2. This release includes [Monitoring Schedule](./MonitoringSchedule/), [DataQualityJobDefinition](./DataQualityJobDefinition/), [ModelQualityJobDefinition](./ModelQualityJobDefinition/), [ModelExplainabilityJobDefinition](./ModelExplainabilityJobDefinition/), [ModelBiasJobDefinition](./ModelBiasJobDefinition/).
+
+> Pull request : [#9253](https://github.com/kubeflow/pipelines/pull/9253), [#9368](https://github.com/kubeflow/pipelines/pull/9368)
+
+Note: [#9253](https://github.com/kubeflow/pipelines/pull/9253) was merged accidentally with image pointing to an unofficial repository. Please do not pin to the commit corresponding to this PR.
+
+**Change log for version 2.2.1**
 - Fix: Path issue with git clone on macbook. Directory name for version 2 of Model component has been updated from `components/aws/sagemaker/Model` to `components/aws/sagemaker/Modelv2`.
 > Pull request : [#9331](https://github.com/kubeflow/pipelines/pull/9331) 
 
-** Change log for version 2.2.0 **
+**Change log for version 2.2.0**
 
 - Introducing SageMaker Hosting components v2. This release includes [Model](./Model/), [EndpointConfig](./EndpointConfig/), [Endpoint](./Endpoint/).
 > Pull request : [#9243](https://github.com/kubeflow/pipelines/pull/9243)

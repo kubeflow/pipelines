@@ -17,7 +17,6 @@
 import jsyaml from 'js-yaml';
 import React from 'react';
 import { isSafari } from 'src/lib/Utils';
-import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
 import Editor from './Editor';
 
 interface PipelineSpecTabContentProps {
@@ -29,11 +28,13 @@ const editorHeightWidth = isSafari() ? '640px' : '100%';
 export function PipelineSpecTabContent(props: PipelineSpecTabContentProps) {
   return (
     <Editor
-      value={
-        isTemplateV2(props.templateString)
-          ? jsyaml.safeDump(jsyaml.safeLoad(props.templateString || ''))
-          : props.templateString || ''
-      } // Use safeLoad and then safeDump to make sure the v2 PipelineSpec is in Yaml Form.
+      value={jsyaml.safeDump(jsyaml.safeLoad(props.templateString || ''))}
+      // Render the yaml-formatted string in <PipelineSpecTabContent>
+      // V1(JSON-formatted):
+      //    safeLoad() convert templateString to object first,
+      //    safeDump() changes the object to yaml-formatted string
+      // V2(YAML-formatted):
+      //    Still yaml format after safeLoad() and safeDump().
       height={editorHeightWidth}
       width={editorHeightWidth}
       mode='yaml'

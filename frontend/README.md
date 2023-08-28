@@ -176,8 +176,22 @@ If a file in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/m
 
 * Add `protoc` ([download](https://github.com/protocolbuffers/protobuf/releases)) to your system
   PATH
+  
+  ```bash
+  # Example:
+  apt install -y protobuf-compiler=3.15.8
+  ```
+
 * Add `protoc-gen-grpc-web` ([download](https://github.com/grpc/grpc-web/releases)) to your system
   PATH
+
+  ```bash
+  # Example:
+  curl -LO https://github.com/grpc/grpc-web/releases/download/1.4.2/protoc-gen-grpc-web-1.4.2-linux-x86_64
+  mv protoc-gen-grpc-web-1.4.2-linux-x86_64 /usr/local/bin/protoc-gen-grpc-web
+  chmod +x /usr/local/bin/protoc-gen-grpc-web
+  ```
+
 * Replace `metadata_store.proto` and `metadata_store_service.proto` proto files with target mlmd version by running
 
   ```bash

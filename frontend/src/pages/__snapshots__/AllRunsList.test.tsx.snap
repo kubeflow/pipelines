@@ -26,7 +26,7 @@ exports[`AllRunsList renders all runs 1`] = `
             "disabledTitle": "Select at least one resource to archive",
             "id": "archiveBtn",
             "title": "Archive",
-            "tooltip": "Archive",
+            "tooltip": "Archive selected run(s)",
           },
           "cloneRun": Object {
             "action": [Function],

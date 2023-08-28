@@ -17,10 +17,8 @@ import logging
 
 import google.auth
 import google.auth.transport.requests
+from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.container.v1.bigquery.utils import bigquery_util
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
-from google_cloud_pipeline_components.types.artifact_types import BQMLModel
-import requests
 
 
 def bigquery_ml_feature_info_job(
@@ -92,7 +90,7 @@ def bigquery_ml_feature_info_job(
   query_results = bigquery_util.get_query_results(
       project, job_id, location, creds
   )
-  artifact_util.update_output_artifact(
+  artifact_utils.update_output_artifact(
       executor_input,
       'feature_info',
       '',

@@ -1,4 +1,4 @@
 Endpoint
 ==========================
 
-.. automodule:: google_cloud_pipeline_components.v1.endpoint
+.. automodule:: v1.endpoint

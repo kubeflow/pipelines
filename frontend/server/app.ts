@@ -131,6 +131,7 @@ function createUIServer(options: UIConfigs) {
     '/artifacts/*',
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
+      allowedDomain: options.artifacts.allowedDomain,
       namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
     }),
   );
@@ -193,7 +194,11 @@ function createUIServer(options: UIConfigs) {
       }),
     );
   } else {
-    registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
+    registerHandler(
+      app.get,
+      '/k8s/pod/logs',
+      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
+    );
   }
 
   if (options.artifacts.streamLogsFromServerApi) {
@@ -215,7 +220,11 @@ function createUIServer(options: UIConfigs) {
       }),
     );
   } else {
-    registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
+    registerHandler(
+      app.get,
+      '/k8s/pod/logs',
+      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
+    );
   }
 
   /** Pod info */

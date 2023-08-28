@@ -15,8 +15,11 @@
 package template
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"time"
@@ -28,6 +31,7 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"google.golang.org/protobuf/encoding/protojson"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	goyaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -42,6 +46,8 @@ const (
 	argoGroup       = "argoproj.io/"
 	argoVersion     = "argoproj.io/v1alpha1"
 	argoK8sResource = "Workflow"
+
+	SCHEMA_VERSION_2_1_0 = "2.1.0"
 )
 
 var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
@@ -56,11 +62,32 @@ func inferTemplateFormat(template []byte) TemplateType {
 		return Unknown
 	case isArgoWorkflow(template):
 		return V1
-	case isPipelineSpec(template):
+	case isV2Spec(template):
 		return V2
 	default:
 		return Unknown
 	}
+}
+
+// isV2Spec returns whether template contains api/v2alpha1/PipelineSpec format.
+func isV2Spec(template []byte) bool {
+	decoder := goyaml.NewDecoder(bytes.NewReader(template))
+	for {
+		var value map[string]interface{}
+
+		err := decoder.Decode(&value)
+		// Break at end of file
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if value == nil {
+			continue
+		}
+		if isPipelineSpec(value) {
+			return true
+		}
+	}
+	return false
 }
 
 // isArgoWorkflow returns whether template is in argo workflow spec format.
@@ -74,13 +101,13 @@ func isArgoWorkflow(template []byte) bool {
 }
 
 // isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
-func isPipelineSpec(template []byte) bool {
-	var spec pipelinespec.PipelineSpec
-	templateJson, err := yaml.YAMLToJSON(template)
+func isPipelineSpec(value map[string]interface{}) bool {
+	jsonData, err := json.Marshal(value)
 	if err != nil {
 		return false
 	}
-	err = protojson.Unmarshal(templateJson, &spec)
+	var spec pipelinespec.PipelineSpec
+	err = protojson.Unmarshal(jsonData, &spec)
 	return err == nil && spec.GetPipelineInfo().GetName() != "" && spec.GetRoot() != nil
 }
 
@@ -109,11 +136,6 @@ type RunWorkflowOptions struct {
 	RunAt int64
 }
 
-func NewFromString(s string) (Template, error) {
-	bytes := []byte(s)
-	return New(bytes)
-}
-
 func New(bytes []byte) (Template, error) {
 	format := inferTemplateFormat(bytes)
 	switch format {
@@ -134,7 +156,7 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 	if modelRuntimeConfig.Parameters != "" {
 		err := json.Unmarshal([]byte(modelRuntimeConfig.Parameters), parameters)
 		if err != nil {
-			return nil, err
+			return nil, util.NewInternalServerError(err, "error unmarshalling model runtime config parameters")
 		}
 	}
 	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
@@ -155,12 +177,12 @@ func stringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter
 	}
 	err := json.Unmarshal([]byte(modelParams), &parameters)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInternalServerError(err, "error unmarshalling model parameters")
 	}
 	for name, value := range parameters {
 		valueBytes, err := value.MarshalJSON()
 		if err != nil {
-			return nil, err
+			return nil, util.NewInternalServerError(err, "error marshalling model parameters")
 		}
 		swParam := scheduledworkflow.Parameter{
 			Name:  name,
@@ -183,7 +205,7 @@ func stringArrayToCRDParameters(modelParameters string) ([]scheduledworkflow.Par
 	}
 	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInternalServerError(err, "error unmarshalling model parameters")
 	}
 	for _, param := range paramsMapList {
 		desiredParams = append(desiredParams, scheduledworkflow.Parameter{Name: (*param)["name"], Value: (*param)["value"]})
@@ -199,7 +221,7 @@ func modelToParametersMap(modelParameters string) (map[string]string, error) {
 	}
 	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInternalServerError(err, "error unmarshalling model parameters")
 	}
 	for _, param := range paramsMapList {
 		desiredParamsMap[(*param)["name"]] = (*param)["value"]

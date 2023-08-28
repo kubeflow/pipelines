@@ -11,18 +11,68 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Components private utilities."""
+"""Private utilities for component authoring."""
 
 import copy
 import json
 import re
-from typing import Any, List
+from typing import Any, Callable, Dict, List, Optional
+
+from google_cloud_pipeline_components import _image
+from kfp import components
+from kfp import dsl
+# do not follow this pattern!
+# we should not depend on non-public modules of the KFP SDK!
+from kfp.components import placeholders
 
 from google.protobuf import json_format
-from kfp import components
+
+
 # note: this is a slight dependency on KFP SDK implementation details
 # other code should not similarly depend on the stability of kfp.placeholders
-from kfp.components import placeholders
+DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX = "output__"
+
+
+def build_serverless_customjob_container_spec(
+    *,
+    project: str,
+    location: str,
+    custom_job_payload: Dict[str, Any],
+    gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+) -> dsl.ContainerSpec:
+  """Builds a container spec that launches a custom job.
+
+  Args:
+    project: Project to run the job in.
+    location: Location to run the job in.
+    custom_job_payload: Payload to pass to the custom job. This dictionary is
+      serialized and passed as the custom job ``--payload``.
+    gcp_resources: GCP resources that can be used to track the job.
+
+  Returns:
+    Container spec that launches a custom job with the specified payload.
+  """
+  return dsl.ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
+      command=[
+          "python3",
+          "-u",
+          "-m",
+          "google_cloud_pipeline_components.container.v1.custom_job.launcher",
+      ],
+      args=[
+          "--type",
+          "CustomJob",
+          "--payload",
+          container_component_dumps(custom_job_payload),
+          "--project",
+          project,
+          "--location",
+          location,
+          "--gcp_resources",
+          gcp_resources,
+      ],
+  )
 
 
 def container_component_dumps(obj: Any) -> Any:
@@ -92,11 +142,21 @@ def container_component_dumps(obj: Any) -> Any:
   return unquote_nonstring_placeholders(json_string, string_fields)
 
 
-def gcpc_output_name_converter(original_name: str, new_name: str):
+def gcpc_output_name_converter(
+    new_name: str,
+    original_name: Optional[str] = None,
+) -> Callable[["BaseComponent"], "BaseComponent"]:  # pytype: disable=name-error
   """Replace the output with original_name with a new_name in a component decorated with an @dsl.container_component decorator.
 
   Enables authoring components that have an input and output with the same
   key/name.
+
+  Args:
+    new_name: The new name for the output.
+    original_name: The original name of the output.
+
+  Returns:
+    A decorator that takes modifies a component in place.
 
   Example usage:
 
@@ -113,6 +173,11 @@ def gcpc_output_name_converter(original_name: str, new_name: str):
             args=[output__param],
         )
   """
+  original_name = (
+      original_name
+      if original_name is not None
+      else DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX + new_name
+  )
 
   def converter(comp):
     def get_modified_pipeline_spec(
@@ -198,8 +263,8 @@ def gcpc_output_name_converter(original_name: str, new_name: str):
             )
 
       def replace_output_name_in_executor(
-          command: list,
-          args: list,
+          command: List[str],
+          args: List[str],
           original_name: str,
           new_name: str,
       ):
@@ -251,7 +316,7 @@ def gcpc_output_name_converter(original_name: str, new_name: str):
 
       return pipeline_spec
 
-    return components.load_component_from_text(
+    reloaded_component = components.load_component_from_text(
         json_format.MessageToJson(
             get_modified_pipeline_spec(
                 comp.pipeline_spec,
@@ -260,5 +325,8 @@ def gcpc_output_name_converter(original_name: str, new_name: str):
             )
         )
     )
+    reloaded_component.__doc__ = comp.pipeline_func.__doc__
+    reloaded_component.__annotations__ = comp.pipeline_func.__annotations__
+    return reloaded_component
 
   return converter

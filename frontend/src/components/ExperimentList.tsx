@@ -93,7 +93,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
           filterLabel='Filter experiments'
-          emptyMessage='No experiments found. Click "Create experiment" to start.'
+          emptyMessage='No archived experiments found.'
         />
       </div>
     );

@@ -1386,25 +1386,6 @@ func TestParseMetrics(t *testing.T) {
 	assert.Equal(t, expectedModelRunMetrics, parsedMetrics)
 }
 
-func TestGetMetrics(t *testing.T) {
-	db, runStore := initializeRunStore()
-	defer db.Close()
-
-	metric := &model.RunMetric{
-		RunUUID:     "1",
-		NodeID:      "node1",
-		Name:        "acurracy",
-		NumberValue: 0.77,
-		Format:      "PERCENTAGE",
-	}
-	runStore.CreateMetric(metric)
-
-	metric.Payload = "{\"RunUUID\":\"1\",\"NodeID\":\"node1\",\"Name\":\"acurracy\",\"NumberValue\":0.77,\"Format\":\"PERCENTAGE\",\"Payload\":\"\"}"
-	getMetrics, err := runStore.GetMetrics("1")
-	assert.Nil(t, err)
-	assert.Equal(t, metric, getMetrics[0])
-}
-
 func TestParseRuntimeConfig(t *testing.T) {
 	expectedRuntimeConfig := model.RuntimeConfig{
 		Parameters:   `[{"name":"param2","value":"world1"}]`,

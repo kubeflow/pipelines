@@ -196,11 +196,17 @@ describe('NewExperiment', () => {
     );
   });
 
-  it('includes pipeline ID in NewRun page query params if present', async () => {
+  it('includes pipeline ID and version ID in NewRun page query params if present', async () => {
     const experimentId = 'test-exp-id-1';
     createExperimentSpy.mockImplementation(() => ({ experiment_id: experimentId }));
 
     const pipelineId = 'some-pipeline-id';
+    const pipelineVersionId = 'version-id';
+    const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      pipeline_versions: [{ pipeline_version_id: pipelineVersionId }],
+    }));
+
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.pipelineId}=${pipelineId}`;
     tree = shallow(<NewExperiment {...(props as any)} />);
@@ -211,12 +217,14 @@ describe('NewExperiment', () => {
 
     tree.find('#createExperimentBtn').simulate('click');
     await createExperimentSpy;
+    await listPipelineVersionsSpy;
     await TestUtils.flushPromises();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN +
         `?experimentId=${experimentId}` +
         `&pipelineId=${pipelineId}` +
+        `&pipelineVersionId=${pipelineVersionId}` +
         `&firstRunInExperiment=1`,
     );
   });

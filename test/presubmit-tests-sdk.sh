@@ -24,12 +24,10 @@ python3 -m pip install $(grep 'pytest-xdist==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest-cov==' sdk/python/requirements-dev.txt)
 python3 -m pip install --upgrade protobuf
 
-pushd "$source_root/sdk/python"
-python3 -m pip install -e .
-popd # Changing the current directory to the repo root for correct coverall paths
+python3 -m pip install sdk/python
 
 # TODO: remove deprecated dependency; then remove --ignore arg
-pytest sdk/python/kfp --ignore=sdk/python/kfp/deprecated --cov=kfp 
+pytest sdk/python/kfp --ignore=sdk/python/kfp/deprecated --cov=kfp
 
 set +x
 # export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)
