@@ -26,8 +26,8 @@ _IMAGE_URI = 'us-docker.pkg.dev/vertex-evaluation/public/llm:v0.3'
 @container_component
 def llm_information_retrieval_preprocessor(
     gcp_resources: OutputPath(str),
-    batch_prediction_query_gcs_source: OutputPath(list),
-    batch_prediction_corpus_gcs_source: OutputPath(list),
+    predictions_query_gcs_source: OutputPath(list),
+    predictions_corpus_gcs_source: OutputPath(list),
     embedding_retrieval_gcs_source: OutputPath(str),
     project: str,
     location: str,
@@ -103,10 +103,10 @@ def llm_information_retrieval_preprocessor(
   Returns:
       gcp_resources (str):
         Serialized gcp_resources proto tracking the custom job.
-      batch_prediction_query_gcs_source (list):
+      predictions_query_gcs_source (list):
         The GCS directory to save preprocessed query data to run batch
         prediction.
-      batch_prediction_corpus_gcs_source (list):
+      predictions_corpus_gcs_source (list):
         The GCS directory to save preprocessed corpus data to run batch
         prediction.
       embedding_retrieval_gcs_source (str):
@@ -129,8 +129,8 @@ def llm_information_retrieval_preprocessor(
               f'--golden_docs_gcs_source={golden_docs_gcs_source}',
               f'--root_dir={PIPELINE_ROOT_PLACEHOLDER}',
               f'--gcp_resources={gcp_resources}',
-              f'--batch_prediction_query_gcs_source={batch_prediction_query_gcs_source}',
-              f'--batch_prediction_corpus_gcs_source={batch_prediction_corpus_gcs_source}',
+              f'--predictions_query_gcs_source={predictions_query_gcs_source}',
+              f'--predictions_corpus_gcs_source={predictions_corpus_gcs_source}',
               f'--embedding_retrieval_gcs_source={embedding_retrieval_gcs_source}',
               f'--runner={runner}',
               f'--dataflow_service_account={dataflow_service_account}',
