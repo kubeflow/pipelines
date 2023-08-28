@@ -20,7 +20,6 @@ import fs from 'fs';
 import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
-import RecurringRunDetailsV2FC from 'src/pages/FunctionalComponent/RecurringRunDetailsV2FC';
 import TestUtils from 'src/TestUtils';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -98,12 +97,8 @@ describe('RecurringRunDetailsV2FC', () => {
     };
 
     jest.clearAllMocks();
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
-      if (featureKey === features.FeatureKey.V2_ALPHA) {
-        return true;
-      }
-      return false;
-    });
+    // mock both v2_alpha and functional feature keys are enable.
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
 
     getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
     getPipelineVersionSpy.mockImplementation(() => testPipelineVersion);

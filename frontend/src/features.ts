@@ -7,6 +7,7 @@ export interface Feature {
 export enum FeatureKey {
   V2 = 'v2', // Please start using V2_ALPHA instead of V2, because we have switched to V2_ALPHA as V2 feature is enabled by default.
   V2_ALPHA = 'v2_alpha',
+  FUNCTIONAL = 'functional',
 }
 
 const FEATURE_V2 = {
@@ -21,7 +22,13 @@ const FEATURE_V2_ALPHA = {
   active: true,
 };
 
-const features: Feature[] = [FEATURE_V2, FEATURE_V2_ALPHA];
+const FEATURE_FUNCTIONAL = {
+  name: FeatureKey.FUNCTIONAL,
+  description: 'Use functional component',
+  active: false,
+};
+
+const features: Feature[] = [FEATURE_V2, FEATURE_V2_ALPHA, FEATURE_FUNCTIONAL];
 
 declare global {
   var __FEATURE_FLAGS__: string;
