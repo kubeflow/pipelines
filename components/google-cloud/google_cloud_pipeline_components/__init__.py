@@ -13,3 +13,5 @@
 # limitations under the License.
 """Google Cloud Pipeline Components."""
 from google_cloud_pipeline_components.version import __version__
+
+print('foo')
