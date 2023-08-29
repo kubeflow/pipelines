@@ -113,7 +113,7 @@ export function ExperimentDetailsFC(props: PageProps) {
   const [runListToolbarProps, setRunListToolbarProps] = useState<ToolbarProps>({
     actions: getRunInitialToolBarButtons(props, Refresh, selectedIds).getToolbarActionMap(),
     breadcrumbs: [],
-    pageTitle: 'Runssss',
+    pageTitle: 'Runs',
     topLevelToolbar: false,
   });
   const [runStorageState, setRunStorageState] = useState(V2beta1RunStorageState.AVAILABLE);
@@ -121,13 +121,22 @@ export function ExperimentDetailsFC(props: PageProps) {
 
   const experimentId = props.match.params[RouteParams.experimentId];
 
-  const { data: experiment } = useQuery<V2beta1Experiment, Error>(
+  const { data: experiment } = useQuery<V2beta1Experiment | undefined, Error>(
     ['experiment', experimentId],
     async () => {
-      if (!experimentId) {
-        throw new Error('Experiment ID is missing');
+      try {
+        return await Apis.experimentServiceApiV2.getExperiment(experimentId);
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        updateBanner({
+          additionalInfo: errorMessage ? errorMessage : undefined,
+          message:
+            `Error: failed to retrieve experiment: ${experimentId}.` +
+            (errorMessage ? ' Click Details for more information.' : ''),
+          mode: 'error',
+        });
+        return;
       }
-      return Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
     { enabled: !!experimentId, staleTime: Infinity },
   );
@@ -135,22 +144,34 @@ export function ExperimentDetailsFC(props: PageProps) {
   const description = experiment?.description || '';
 
   const { data: recurringRunList, refetch: refetchRecurringRun } = useQuery<
-    V2beta1RecurringRun[],
+    V2beta1RecurringRun[] | undefined,
     Error
   >(
     ['recurring_run_list'],
     async () => {
-      const listRecurringRunsResponse = await Apis.recurringRunServiceApi.listRecurringRuns(
-        undefined,
-        100,
-        '',
-        undefined,
-        undefined,
-        experimentId,
-      );
-      return listRecurringRunsResponse.recurringRuns ?? [];
+      try {
+        const listRecurringRunsResponse = await Apis.recurringRunServiceApi.listRecurringRuns(
+          undefined,
+          100,
+          '',
+          undefined,
+          undefined,
+          experimentId,
+        );
+        return listRecurringRunsResponse.recurringRuns ?? [];
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        updateBanner({
+          additionalInfo: errorMessage ? errorMessage : undefined,
+          message:
+            `Error: failed to retrieve recurring runs for experiment: ${experimentId}.` +
+            (errorMessage ? ' Click Details for more information.' : ''),
+          mode: 'warning',
+        });
+        return;
+      }
     },
-    {},
+    { enabled: !!experimentId, staleTime: 0, cacheTime: 0 },
   );
 
   useEffect(() => {
