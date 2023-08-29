@@ -37,7 +37,7 @@ import { errorToMessage, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 const css = stylesheet({
   card: {
@@ -113,7 +113,7 @@ export function ExperimentDetailsFC(props: PageProps) {
   const [runListToolbarProps, setRunListToolbarProps] = useState<ToolbarProps>({
     actions: getRunInitialToolBarButtons(props, Refresh, selectedIds).getToolbarActionMap(),
     breadcrumbs: [],
-    pageTitle: 'Runs',
+    pageTitle: 'Runssss',
     topLevelToolbar: false,
   });
   const [runStorageState, setRunStorageState] = useState(V2beta1RunStorageState.AVAILABLE);
@@ -134,6 +134,25 @@ export function ExperimentDetailsFC(props: PageProps) {
 
   const description = experiment?.description || '';
 
+  const { data: recurringRunList, refetch: refetchRecurringRun } = useQuery<
+    V2beta1RecurringRun[],
+    Error
+  >(
+    ['recurring_run_list'],
+    async () => {
+      const listRecurringRunsResponse = await Apis.recurringRunServiceApi.listRecurringRuns(
+        undefined,
+        100,
+        '',
+        undefined,
+        undefined,
+        experimentId,
+      );
+      return listRecurringRunsResponse.recurringRuns ?? [];
+    },
+    {},
+  );
+
   useEffect(() => {
     if (experiment) {
       setToolbarState(getInitialToolbarState(experiment, props, Refresh));
@@ -147,6 +166,18 @@ export function ExperimentDetailsFC(props: PageProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolbarState]);
+
+  useEffect(() => {
+    if (recurringRunList) {
+      setActiveRecurringRunsCount(
+        recurringRunList.filter(rr => rr.status === V2beta1RecurringRunStatus.ENABLED).length,
+      );
+    }
+  }, [recurringRunList]);
+
+  useEffect(() => {
+    refetchRecurringRun();
+  }, [refresh, refetchRecurringRun]);
 
   const showPageError = async (message: string, error: Error | undefined) => {
     const errorMessage = await errorToMessage(error);
