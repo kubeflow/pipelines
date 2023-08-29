@@ -16,3 +16,4 @@
 These components correspond to the v1 Vertex AI API
 (https://cloud.google.com/vertex-ai/docs/reference#versions).
 """
+print('foo')
