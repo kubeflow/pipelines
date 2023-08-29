@@ -34,49 +34,28 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
   const [refresh, setRefresh] = useState(true);
   const [toolbarState, setToolbarState] = useState<ToolbarProps>();
+  const [getRecurringRunErrMsg, setGetRecurringRunErrMsg] = useState<string>('');
+  const [getExperimentErrMsg, setGetExperimentErrMsg] = useState<string>('');
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
   const Refresh = () => setRefresh(refreshed => !refreshed);
 
-  const { data: recurringRun, refetch: refetchRecurringRun } = useQuery<
-    V2beta1RecurringRun | undefined,
-    Error
-  >(
-    ['recurringRun'],
+  const {
+    data: recurringRun,
+    error: getRecurringRunError,
+    refetch: refetchRecurringRun,
+  } = useQuery<V2beta1RecurringRun, Error>(
+    ['recurringRun', recurringRunId],
     async () => {
-      try {
-        return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        updateBanner({
-          additionalInfo: errorMessage ? errorMessage : undefined,
-          message:
-            `Error: failed to retrieve recurring run: ${recurringRunId}.` +
-            (errorMessage ? ' Click Details for more information.' : ''),
-          mode: 'error',
-        });
-        return;
-      }
+      return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
     { enabled: !!recurringRunId, staleTime: 0, cacheTime: 0 },
   );
 
   const experimentId = recurringRun?.experiment_id!;
-  const { data: experiment } = useQuery<V2beta1Experiment | undefined, Error>(
+  const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>(
     ['experiment'],
     async () => {
-      try {
-        return await Apis.experimentServiceApiV2.getExperiment(experimentId);
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        updateBanner({
-          additionalInfo: errorMessage ? errorMessage : undefined,
-          message:
-            `Error: failed to retrieve this recurring run's experiment.` +
-            (errorMessage ? ' Click Details for more information.' : ''),
-          mode: 'warning',
-        });
-        return;
-      }
+      return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
     { enabled: !!experimentId, staleTime: 0 },
   );
@@ -85,6 +64,44 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     setToolbarState(getInitialToolbarState());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recurringRun]);
+
+  useEffect(() => {
+    if (getRecurringRunError) {
+      (async () => {
+        const errorMessage = await errorToMessage(getRecurringRunError);
+        setGetRecurringRunErrMsg(errorMessage);
+      })();
+    }
+
+    if (getExperimentError) {
+      (async () => {
+        const errorMessage = await errorToMessage(getExperimentError);
+        setGetExperimentErrMsg(errorMessage);
+      })();
+    }
+  }, [getRecurringRunError, getExperimentError]);
+
+  useEffect(() => {
+    if (getRecurringRunErrMsg) {
+      updateBanner({
+        additionalInfo: getRecurringRunErrMsg ? getRecurringRunErrMsg : undefined,
+        message:
+          `Error: failed to retrieve recurring run: ${recurringRunId}.` +
+          (getRecurringRunErrMsg ? ' Click Details for more information.' : ''),
+        mode: 'error',
+      });
+    }
+
+    if (getExperimentErrMsg) {
+      updateBanner({
+        additionalInfo: getExperimentErrMsg ? getExperimentErrMsg : undefined,
+        message:
+          `Error: failed to retrieve this recurring run's experiment.` +
+          (getExperimentErrMsg ? ' Click Details for more information.' : ''),
+        mode: 'warning',
+      });
+    }
+  }, [getRecurringRunErrMsg, getExperimentErrMsg]);
 
   useEffect(() => {
     if (toolbarState) {
@@ -101,7 +118,18 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
 
   useEffect(() => {
     refetchRecurringRun();
-  }, [refresh, refetchRecurringRun]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh]);
+
+  const deleteCallback = (_: string[], success: boolean) => {
+    if (success) {
+      const breadcrumbs = props.toolbarProps.breadcrumbs;
+      const previousPage = breadcrumbs.length
+        ? breadcrumbs[breadcrumbs.length - 1].href
+        : RoutePage.EXPERIMENTS;
+      props.history.push(previousPage);
+    }
+  };
 
   const getInitialToolbarState = (): ToolbarProps => {
     const buttons = new Buttons(props, Refresh);
@@ -121,16 +149,6 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
       breadcrumbs: [],
       pageTitle: '',
     };
-  };
-
-  const deleteCallback = (_: string[], success: boolean) => {
-    if (success) {
-      const breadcrumbs = props.toolbarProps.breadcrumbs;
-      const previousPage = breadcrumbs.length
-        ? breadcrumbs[breadcrumbs.length - 1].href
-        : RoutePage.EXPERIMENTS;
-      props.history.push(previousPage);
-    }
   };
 
   return (
@@ -156,14 +174,14 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
 
 function getBreadcrumbs(experiment?: V2beta1Experiment): Breadcrumb[] {
   const breadcrumbs: Breadcrumb[] = [];
-  if (experiment) {
+  if (experiment && experiment.experiment_id) {
     breadcrumbs.push(
       { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
       {
-        displayName: experiment.display_name!,
+        displayName: experiment.display_name || 'Unknown experiment name',
         href: RoutePage.EXPERIMENT_DETAILS.replace(
           ':' + RouteParams.experimentId,
-          experiment.experiment_id!,
+          experiment.experiment_id,
         ),
       },
     );

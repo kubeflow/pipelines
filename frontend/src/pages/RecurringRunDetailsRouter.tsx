@@ -24,7 +24,7 @@ import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { PageProps } from './Page';
 import RecurringRunDetails from './RecurringRunDetails';
 import RecurringRunDetailsV2 from './RecurringRunDetailsV2';
-import { RecurringRunDetailsV2FC } from 'src/pages/FunctionalComponent/RecurringRunDetailsV2FC';
+import { RecurringRunDetailsV2FC } from 'src/pages/functional_components/RecurringRunDetailsV2FC';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 
 // This is a router to determine whether to show V1 or V2 recurring run details page.
@@ -78,7 +78,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   if (getRecurringRunSuccess && v2RecurringRun && templateString) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
     if (isV2Pipeline) {
-      return isFeatureEnabled(FeatureKey.FUNCTIONAL) ? (
+      return isFeatureEnabled(FeatureKey.FUNCTIONAL_COMPONENT) ? (
         <RecurringRunDetailsV2FC {...props} />
       ) : (
         <RecurringRunDetailsV2 {...props} />
