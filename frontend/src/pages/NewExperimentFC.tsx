@@ -22,7 +22,6 @@ import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
@@ -49,10 +48,10 @@ type NewExperimentFCProps = ExperimentProps & PageProps;
 export function NewExperimentFC(props: NewExperimentFCProps) {
   const urlParser = new URLParser(props);
   const { namespace, updateDialog, updateSnackbar, updateToolbar } = props;
-  const [description, setDescription] = useState<string>();
-  const [experimentName, setExperimentName] = useState<string>();
-  const [isbeingCreated, setIsBeingCreated] = useState<boolean>();
-  const [errorMessage, setErrorMessage] = useState<string>();
+  const [description, setDescription] = useState<string>('');
+  const [experimentName, setExperimentName] = useState<string>('');
+  const [isbeingCreated, setIsBeingCreated] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
 
   useEffect(() => {
