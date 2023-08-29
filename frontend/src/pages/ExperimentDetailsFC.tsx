@@ -182,7 +182,7 @@ export function ExperimentDetailsFC(props: PageProps) {
 
   useEffect(() => {
     if (toolbarState) {
-      toolbarState.pageTitle = experiment?.display_name!;
+      toolbarState.pageTitle = experiment?.display_name || experimentId;
       updateToolbar(toolbarState);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

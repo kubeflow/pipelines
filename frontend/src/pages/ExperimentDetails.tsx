@@ -436,8 +436,8 @@ const EnhancedExperimentDetails: React.FC<PageProps> = props => {
     return <Redirect to={RoutePage.EXPERIMENTS} />;
   }
 
-  return <ExperimentDetails {...props} />;
-  // return <ExperimentDetailsFC {...props} />;
+  // return <ExperimentDetails {...props} />;
+  return <ExperimentDetailsFC {...props} />;
 };
 
 export default EnhancedExperimentDetails;
