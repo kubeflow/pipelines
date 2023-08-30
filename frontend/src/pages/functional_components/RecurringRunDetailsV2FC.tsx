@@ -33,9 +33,16 @@ import { triggerDisplayString } from 'src/lib/TriggerUtils';
 export function RecurringRunDetailsV2FC(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
   const [refresh, setRefresh] = useState(true);
-  const [toolbarState, setToolbarState] = useState<ToolbarProps>();
   const [getRecurringRunErrMsg, setGetRecurringRunErrMsg] = useState<string>('');
   const [getExperimentErrMsg, setGetExperimentErrMsg] = useState<string>('');
+
+  // Related to Api Response
+  const [experimentName, setExperimentName] = useState<string>();
+  const [experimentIdFromApi, setExperimentIdFromApi] = useState<string>();
+  const [recurringRunName, setRecurringRunName] = useState<string>();
+  const [recurringRunIdFromApi, setRecurringRunIdFromApi] = useState<string>();
+  const [recurringRunStatus, setRecurringRunStatus] = useState<V2beta1RecurringRunStatus>();
+
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
   const Refresh = () => setRefresh(refreshed => !refreshed);
 
@@ -46,24 +53,46 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
   } = useQuery<V2beta1RecurringRun, Error>(
     ['recurringRun', recurringRunId],
     async () => {
-      return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
+      const recurringRun = await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
+      setRecurringRunName(recurringRun.display_name);
+      setRecurringRunStatus(recurringRun.status);
+      setRecurringRunIdFromApi(recurringRun.recurring_run_id);
+
+      return recurringRun;
     },
     { enabled: !!recurringRunId, staleTime: 0, cacheTime: 0 },
   );
 
   const experimentId = recurringRun?.experiment_id!;
-  const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>(
+  const { error: getExperimentError } = useQuery<void, Error>(
     ['experiment'],
     async () => {
-      return await Apis.experimentServiceApiV2.getExperiment(experimentId);
+      const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
+      setExperimentName(experiment.display_name);
+      setExperimentIdFromApi(experiment.experiment_id);
+      // The logic related to experiment is done in useQuery, so no need to return.
     },
     { enabled: !!experimentId, staleTime: 0 },
   );
 
   useEffect(() => {
-    setToolbarState(getInitialToolbarState());
+    const toolbarState = getInitialToolbarState();
+
+    toolbarState.actions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
+      recurringRunStatus === V2beta1RecurringRunStatus.ENABLED;
+    toolbarState.actions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
+      recurringRunStatus !== V2beta1RecurringRunStatus.ENABLED;
+    toolbarState.pageTitle = recurringRunName || recurringRunIdFromApi || 'Unknown recurring run';
+    toolbarState.breadcrumbs = getBreadcrumbs(experimentIdFromApi, experimentName);
+    updateToolbar(toolbarState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recurringRun]);
+  }, [
+    recurringRunIdFromApi,
+    recurringRunName,
+    recurringRunStatus,
+    experimentName,
+    experimentIdFromApi,
+  ]);
 
   useEffect(() => {
     if (getRecurringRunError) {
@@ -103,19 +132,6 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getRecurringRunErrMsg, getExperimentErrMsg]);
-
-  useEffect(() => {
-    if (toolbarState) {
-      toolbarState.actions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
-        recurringRun?.status === V2beta1RecurringRunStatus.ENABLED;
-      toolbarState.actions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
-        recurringRun?.status !== V2beta1RecurringRunStatus.ENABLED;
-      toolbarState.pageTitle = recurringRun?.display_name!;
-      toolbarState.breadcrumbs = getBreadcrumbs(experiment);
-      updateToolbar(toolbarState);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toolbarState, experiment, recurringRun]);
 
   useEffect(() => {
     refetchRecurringRun();
@@ -158,7 +174,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
         <div className={commonCss.scrollContainer}>
           <div className={padding(20)}>
             <DetailsTable
-              title='Recurring run details'
+              title='Recurring run detailssssss'
               fields={getRecurringRunDetails(recurringRun)}
             ></DetailsTable>
             <DetailsTable title='Run triggers' fields={getRunTriggers(recurringRun)}></DetailsTable>
@@ -173,17 +189,14 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
   );
 }
 
-function getBreadcrumbs(experiment?: V2beta1Experiment): Breadcrumb[] {
+function getBreadcrumbs(experimentId?: string, experimentName?: string): Breadcrumb[] {
   const breadcrumbs: Breadcrumb[] = [];
-  if (experiment && experiment.experiment_id) {
+  if (experimentId) {
     breadcrumbs.push(
       { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
       {
-        displayName: experiment.display_name || 'Unknown experiment name',
-        href: RoutePage.EXPERIMENT_DETAILS.replace(
-          ':' + RouteParams.experimentId,
-          experiment.experiment_id,
-        ),
+        displayName: experimentName || 'Unknown experiment name',
+        href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
       },
     );
   } else {
