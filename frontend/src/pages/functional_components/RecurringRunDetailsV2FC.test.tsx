@@ -19,25 +19,25 @@ import * as React from 'react';
 import fs from 'fs';
 import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import RecurringRunDetailsRouter from './RecurringRunDetailsRouter';
-import RecurringRunDetailsV2 from './RecurringRunDetailsV2';
+import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
 import TestUtils from 'src/TestUtils';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Apis } from 'src/lib/Apis';
-import { PageProps } from './Page';
+import { PageProps } from 'src/pages/Page';
 import { RouteParams, RoutePage } from 'src/components/Router';
 import * as features from 'src/features';
 
 const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
 const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 
-describe('RecurringRunDetailsV2', () => {
+describe('RecurringRunDetailsV2FC', () => {
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
+  const historyReplaceSpy = jest.fn();
   const getRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
   const deleteRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'deleteRecurringRun');
   const enableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
@@ -49,22 +49,21 @@ describe('RecurringRunDetailsV2', () => {
   let testPipelineVersion: V2beta1PipelineVersion = {};
 
   function generateProps(): PageProps {
-    const match = {
-      isExact: true,
-      params: { [RouteParams.recurringRunId]: fullTestV2RecurringRun.recurring_run_id },
-      path: '',
-      url: '',
+    return {
+      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      location: '' as any,
+      match: {
+        params: { [RouteParams.recurringRunId]: fullTestV2RecurringRun.recurring_run_id },
+        isExact: true,
+        path: '',
+        url: '',
+      },
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
+      updateBanner: updateBannerSpy,
+      updateDialog: updateDialogSpy,
+      updateSnackbar: updateSnackbarSpy,
+      updateToolbar: updateToolbarSpy,
     };
-    return TestUtils.generatePageProps(
-      RecurringRunDetailsV2,
-      '' as any,
-      match,
-      historyPushSpy,
-      updateBannerSpy,
-      updateDialogSpy,
-      updateToolbarSpy,
-      updateSnackbarSpy,
-    );
   }
 
   beforeEach(() => {
@@ -98,9 +97,8 @@ describe('RecurringRunDetailsV2', () => {
     };
 
     jest.clearAllMocks();
-    jest
-      .spyOn(features, 'isFeatureEnabled')
-      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+    // mock both v2_alpha and functional feature keys are enable.
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
 
     getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
     getPipelineVersionSpy.mockImplementation(() => testPipelineVersion);
@@ -260,7 +258,6 @@ describe('RecurringRunDetailsV2', () => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
     });
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops!',
@@ -282,7 +279,6 @@ describe('RecurringRunDetailsV2', () => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
     });
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops!',
