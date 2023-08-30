@@ -15,18 +15,18 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import BusyButton from '../atoms/BusyButton';
+import BusyButton from 'src/atoms/BusyButton';
 import Button from '@material-ui/core/Button';
-import Input from '../atoms/Input';
+import Input from 'src/atoms/Input';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
-import { Apis } from '../lib/Apis';
-import { PageProps } from './Page';
-import { RoutePage, QUERY_PARAMS } from '../components/Router';
-import { URLParser } from '../lib/URLParser';
+import { Apis } from 'src/lib/Apis';
+import { PageProps } from 'src/pages/Page';
+import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
+import { URLParser } from 'src/lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, fontsize } from '../Css';
-import { errorToMessage } from '../lib/Utils';
-import { getLatestVersion } from './NewRunV2';
+import { commonCss, padding, fontsize } from 'src/Css';
+import { errorToMessage } from 'src/lib/Utils';
+import { getLatestVersion } from 'src/pages/NewRunV2';
 import { useMutation } from 'react-query';
 
 const css = stylesheet({
