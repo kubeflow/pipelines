@@ -19,6 +19,7 @@ import { useQuery } from 'react-query';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import DetailsTable from 'src/components/DetailsTable';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
@@ -52,27 +53,34 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
   } = useQuery<V2beta1RecurringRun, Error>(
     ['recurringRun', recurringRunId],
     async () => {
-      const recurringRun = await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
-      setRecurringRunName(recurringRun.display_name);
-      setRecurringRunStatus(recurringRun.status);
-      setRecurringRunIdFromApi(recurringRun.recurring_run_id);
-
-      return recurringRun;
+      return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
     { enabled: !!recurringRunId, staleTime: 0, cacheTime: 0 },
   );
 
   const experimentId = recurringRun?.experiment_id!;
-  const { error: getExperimentError } = useQuery<void, Error>(
+  const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>(
     ['experiment'],
     async () => {
-      const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
-      setExperimentName(experiment.display_name);
-      setExperimentIdFromApi(experiment.experiment_id);
-      // The logic related to experiment is done in useQuery, so no need to return.
+      return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
     { enabled: !!experimentId, staleTime: 0 },
   );
+
+  useEffect(() => {
+    if (recurringRun) {
+      setRecurringRunName(recurringRun.display_name);
+      setRecurringRunStatus(recurringRun.status);
+      setRecurringRunIdFromApi(recurringRun.recurring_run_id);
+    }
+  }, [recurringRun]);
+
+  useEffect(() => {
+    if (experiment) {
+      setExperimentName(experiment.display_name);
+      setExperimentIdFromApi(experiment.experiment_id);
+    }
+  }, [experiment]);
 
   useEffect(() => {
     const toolbarState = getInitialToolbarState();
@@ -89,8 +97,8 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     recurringRunIdFromApi,
     recurringRunName,
     recurringRunStatus,
-    experimentName,
     experimentIdFromApi,
+    experimentName,
   ]);
 
   useEffect(() => {
@@ -101,6 +109,9 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
       })();
     }
 
+    // getExperimentError is from the getExperiment useQuery which is enabled by the
+    // experiment ID in recurringRun object. => when getExperimentError changed,
+    // getRecurringRun useQuery must be successful (getRecurringRunError is null)
     if (getExperimentError) {
       (async () => {
         const errorMessage = await errorToMessage(getExperimentError);
@@ -173,7 +184,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
         <div className={commonCss.scrollContainer}>
           <div className={padding(20)}>
             <DetailsTable
-              title='Recurring run detailssssss'
+              title='Recurring run details'
               fields={getRecurringRunDetails(recurringRun)}
             ></DetailsTable>
             <DetailsTable title='Run triggers' fields={getRunTriggers(recurringRun)}></DetailsTable>
