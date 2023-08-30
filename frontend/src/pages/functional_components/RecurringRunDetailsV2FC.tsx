@@ -18,7 +18,6 @@ import React, { useEffect, useState } from 'react';
 import { useQuery } from 'react-query';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import DetailsTable from 'src/components/DetailsTable';
-import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
