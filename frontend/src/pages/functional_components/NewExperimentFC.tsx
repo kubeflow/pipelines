@@ -52,6 +52,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   const [experimentName, setExperimentName] = useState<string>('');
   const [isbeingCreated, setIsBeingCreated] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [errMsgFromApi, setErrMsgFromApi] = useState<string>();
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
 
   useEffect(() => {
@@ -71,11 +72,23 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     }
   }, [experimentName]);
 
+  useEffect(() => {
+    if (errMsgFromApi) {
+      updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        onClose: () => setIsBeingCreated(false),
+        content: errMsgFromApi,
+        title: 'Experiment creation failed',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [errMsgFromApi]);
+
   const newExperimentMutation = useMutation((experiment: V2beta1Experiment) => {
     return Apis.experimentServiceApiV2.createExperiment(experiment);
   });
 
-  const create = () => {
+  const createExperiment = () => {
     let newExperiment: V2beta1Experiment = {
       display_name: experimentName,
       description: description,
@@ -108,13 +121,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
         });
       },
       onError: async err => {
-        const errorMessage = await errorToMessage(err);
-        updateDialog({
-          buttons: [{ text: 'Dismiss' }],
-          onClose: () => setIsBeingCreated(false),
-          content: errorMessage,
-          title: 'Experiment creation failed',
-        });
+        setErrMsgFromApi(await errorToMessage(err));
       },
     });
   };
@@ -154,7 +161,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
             busy={isbeingCreated}
             className={commonCss.buttonAction}
             title={'Next'}
-            onClick={create}
+            onClick={createExperiment}
           />
           <Button
             id='cancelNewExperimentBtn'
