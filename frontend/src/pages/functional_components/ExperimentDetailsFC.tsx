@@ -29,13 +29,11 @@ import Toolbar, { ToolbarProps } from 'src/components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
-import { Page, PageProps } from 'src/pages/Page';
+import { PageProps } from 'src/pages/Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from 'src/Css';
-import { errorToMessage, logger } from 'src/lib/Utils';
-import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { Redirect } from 'react-router-dom';
+import { errorToMessage } from 'src/lib/Utils';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
@@ -107,13 +105,16 @@ export function ExperimentDetailsFC(props: PageProps) {
   const [refresh, setRefresh] = useState(true);
   const Refresh = () => setRefresh(refreshed => !refreshed);
   const [experimentName, setExperimentName] = useState<string>();
+  const [experimentStorageState, setExperimentStorageState] = useState<
+    V2beta1ExperimentStorageState
+  >();
   const [activeRecurringRunsCount, setActiveRecurringRunsCount] = useState(0);
   const [recurringRunsManagerOpen, setRecurringRunsManagerOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [runListToolbarProps, setRunListToolbarProps] = useState<ToolbarProps>({
     actions: getRunInitialToolBarButtons(props, Refresh, selectedIds).getToolbarActionMap(),
     breadcrumbs: [],
-    pageTitle: 'Runsssss',
+    pageTitle: 'Runs',
     topLevelToolbar: false,
   });
   const [runStorageState, setRunStorageState] = useState(V2beta1RunStorageState.AVAILABLE);
@@ -121,7 +122,7 @@ export function ExperimentDetailsFC(props: PageProps) {
 
   const experimentId = props.match.params[RouteParams.experimentId];
 
-  const { data: experiment, error: getExperimentError } = useQuery<
+  const { data: experiment, error: getExperimentError, refetch: refetchExperiment } = useQuery<
     V2beta1Experiment | undefined,
     Error
   >(
@@ -129,7 +130,7 @@ export function ExperimentDetailsFC(props: PageProps) {
     async () => {
       return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
-    { enabled: !!experimentId, staleTime: Infinity },
+    { enabled: !!experimentId, staleTime: 0, cacheTime: 0 },
   );
 
   const description = experiment?.description || '';
@@ -157,16 +158,31 @@ export function ExperimentDetailsFC(props: PageProps) {
   useEffect(() => {
     if (experiment) {
       setExperimentName(experiment.display_name);
+      setExperimentStorageState(experiment.storage_state);
     }
   }, [experiment]);
 
   useEffect(() => {
     const toolbarState = getInitialToolbarState();
 
+    const buttons = new Buttons(props, Refresh, getInitialToolbarState().actions);
+    const idGetter = () => (experimentId ? [experimentId] : []);
+    experimentStorageState === V2beta1ExperimentStorageState.ARCHIVED
+      ? buttons.restore('experiment', idGetter, true, () => Refresh())
+      : buttons.archive('experiment', idGetter, true, () => Refresh());
+
+    toolbarState.actions = buttons.getToolbarActionMap();
     toolbarState.pageTitle = experimentName || experimentId;
+
     updateToolbar(toolbarState);
+    setRunStorageState(
+      experimentStorageState === V2beta1ExperimentStorageState.ARCHIVED
+        ? V2beta1RunStorageState.ARCHIVED
+        : V2beta1RunStorageState.AVAILABLE,
+    );
+    setRunlistRefreshCount(runlistRefreshCount + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [experimentName]);
+  }, [experimentName, experimentStorageState]);
 
   useEffect(() => {
     if (recurringRunList) {
@@ -201,6 +217,7 @@ export function ExperimentDetailsFC(props: PageProps) {
   }, [listRecurringRunError]);
 
   useEffect(() => {
+    refetchExperiment();
     refetchRecurringRun();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refresh]);
