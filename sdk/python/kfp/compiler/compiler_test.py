@@ -40,6 +40,7 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import pipeline_task
 from kfp.dsl import PipelineTaskFinalStatus
+from kfp.dsl import tasks_group
 from kfp.dsl import yaml_component
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
