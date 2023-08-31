@@ -106,14 +106,14 @@ export function ExperimentDetailsFC(props: PageProps) {
   const { updateBanner, updateDialog, updateToolbar } = props;
   const [refresh, setRefresh] = useState(true);
   const Refresh = () => setRefresh(refreshed => !refreshed);
-  const [toolbarState, setToolbarState] = useState<ToolbarProps>();
+  const [experimentName, setExperimentName] = useState<string>();
   const [activeRecurringRunsCount, setActiveRecurringRunsCount] = useState(0);
   const [recurringRunsManagerOpen, setRecurringRunsManagerOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [runListToolbarProps, setRunListToolbarProps] = useState<ToolbarProps>({
     actions: getRunInitialToolBarButtons(props, Refresh, selectedIds).getToolbarActionMap(),
     breadcrumbs: [],
-    pageTitle: 'Runs',
+    pageTitle: 'Runsssss',
     topLevelToolbar: false,
   });
   const [runStorageState, setRunStorageState] = useState(V2beta1RunStorageState.AVAILABLE);
@@ -121,72 +121,52 @@ export function ExperimentDetailsFC(props: PageProps) {
 
   const experimentId = props.match.params[RouteParams.experimentId];
 
-  const { data: experiment } = useQuery<V2beta1Experiment | undefined, Error>(
+  const { data: experiment, error: getExperimentError } = useQuery<
+    V2beta1Experiment | undefined,
+    Error
+  >(
     ['experiment', experimentId],
     async () => {
-      try {
-        return await Apis.experimentServiceApiV2.getExperiment(experimentId);
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        updateBanner({
-          additionalInfo: errorMessage ? errorMessage : undefined,
-          message:
-            `Error: failed to retrieve experiment: ${experimentId}.` +
-            (errorMessage ? ' Click Details for more information.' : ''),
-          mode: 'error',
-        });
-        return;
-      }
+      return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
   const description = experiment?.description || '';
 
-  const { data: recurringRunList, refetch: refetchRecurringRun } = useQuery<
-    V2beta1RecurringRun[] | undefined,
-    Error
-  >(
+  const {
+    data: recurringRunList,
+    error: listRecurringRunError,
+    refetch: refetchRecurringRun,
+  } = useQuery<V2beta1RecurringRun[] | undefined, Error>(
     ['recurring_run_list'],
     async () => {
-      try {
-        const listRecurringRunsResponse = await Apis.recurringRunServiceApi.listRecurringRuns(
-          undefined,
-          100,
-          '',
-          undefined,
-          undefined,
-          experimentId,
-        );
-        return listRecurringRunsResponse.recurringRuns ?? [];
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        updateBanner({
-          additionalInfo: errorMessage ? errorMessage : undefined,
-          message:
-            `Error: failed to retrieve recurring runs for experiment: ${experimentId}.` +
-            (errorMessage ? ' Click Details for more information.' : ''),
-          mode: 'warning',
-        });
-        return;
-      }
+      const listRecurringRunsResponse = await Apis.recurringRunServiceApi.listRecurringRuns(
+        undefined,
+        100,
+        '',
+        undefined,
+        undefined,
+        experimentId,
+      );
+      return listRecurringRunsResponse.recurringRuns ?? [];
     },
     { enabled: !!experimentId, staleTime: 0, cacheTime: 0 },
   );
 
   useEffect(() => {
     if (experiment) {
-      setToolbarState(getInitialToolbarState(experiment, props, Refresh));
+      setExperimentName(experiment.display_name);
     }
   }, [experiment]);
 
   useEffect(() => {
-    if (toolbarState) {
-      toolbarState.pageTitle = experiment?.display_name || experimentId;
-      updateToolbar(toolbarState);
-    }
+    const toolbarState = getInitialToolbarState();
+
+    toolbarState.pageTitle = experimentName || experimentId;
+    updateToolbar(toolbarState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toolbarState]);
+  }, [experimentName]);
 
   useEffect(() => {
     if (recurringRunList) {
@@ -197,8 +177,42 @@ export function ExperimentDetailsFC(props: PageProps) {
   }, [recurringRunList]);
 
   useEffect(() => {
+    if (getExperimentError) {
+      (async () => {
+        await showPageError(
+          `Error: failed to retrieve experiment: ${experimentId}.`,
+          getExperimentError,
+        );
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getExperimentError]);
+
+  useEffect(() => {
+    if (listRecurringRunError) {
+      (async () => {
+        await showPageError(
+          `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
+          listRecurringRunError,
+        );
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listRecurringRunError]);
+
+  useEffect(() => {
     refetchRecurringRun();
-  }, [refresh, refetchRecurringRun]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh]);
+
+  const getInitialToolbarState = (): ToolbarProps => {
+    const buttons = new Buttons(props, Refresh);
+    return {
+      actions: buttons.refresh(Refresh).getToolbarActionMap(),
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: '',
+    };
+  };
 
   const showPageError = async (message: string, error: Error | undefined) => {
     const errorMessage = await errorToMessage(error);
@@ -374,20 +388,6 @@ export function ExperimentDetailsFC(props: PageProps) {
       )}
     </div>
   );
-}
-
-function getInitialToolbarState(
-  experiment: V2beta1Experiment,
-  props: PageProps,
-  refresh: () => void,
-) {
-  const buttons = new Buttons(props, refresh);
-  return {
-    actions: buttons.refresh(refresh).getToolbarActionMap(),
-    breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-    // TODO: determine what to show if no props.
-    pageTitle: experiment.display_name!,
-  };
 }
 
 function getRunInitialToolBarButtons(
