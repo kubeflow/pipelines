@@ -50,7 +50,10 @@ describe('NewExperiment', () => {
     // mock both v2_alpha and functional feature keys are enable.
     jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
 
-    createExperimentSpy.mockImplementation(() => ({ experiment_id: 'new-experiment-id' }));
+    createExperimentSpy.mockImplementation(() => ({
+      experiment_id: 'new-experiment-id',
+      display_name: 'new-experiment-name',
+    }));
   });
 
   it('does not include any action buttons in the toolbar', () => {
