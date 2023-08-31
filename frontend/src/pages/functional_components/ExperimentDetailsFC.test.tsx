@@ -16,14 +16,14 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
+import EnhancedExperimentDetails, { ExperimentDetails } from 'src/pages/ExperimentDetails';
 import { ExperimentDetailsFC } from './ExperimentDetailsFC';
 import TestUtils from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
-import { PageProps } from './Page';
+import { PageProps } from 'src/pages/Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { range } from 'lodash';
