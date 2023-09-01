@@ -48,26 +48,26 @@ def model_evaluation_text_generation(
   """Computes evaluation metrics of a text generation model.
 
   Supports evaluating large language models performing the following generative
-  tasks: ``summarization``, ``question-answering``, and ``text-generation``.
+  tasks: `summarization`, `question-answering`, and `text-generation`.
 
   Args:
     project: The GCP project that runs the pipeline component.
     location: The GCP region that runs the pipeline component.
     evaluation_task: The task that the large language model will be evaluated
       on. The evaluation component computes a set of metrics relevant to that
-      specific task. Currently supported tasks are: ``summarization``,
-      ``question-answering`, and ``text-generation``.
+      specific task. Currently supported tasks are: `summarization`,
+      `question-answering`, and `text-generation`.
     target_field_name: The full name path of the features target field in the
       predictions file. Formatted to be able to find nested columns, delimited
-      by ``.``. Alternatively referred to as the ground truth (or
+      by `.`. Alternatively referred to as the ground truth (or
       ground_truth_column) field. If not set, defaulted to
-      ``inputs.ground_truth``.
+      `inputs.ground_truth`.
     prediction_field_name: The full name path of the prediction field in the
       prediction file. Formatted to be able to find nested columns, delimited by
-      ``.``. If not set, defaulted to ``predictions.content``.
+      `.`. If not set, defaulted to `predictions.content`.
     predictions_format: The file format for the LLM Batch Prediction results.
-      ``jsonl`` is currently the only allowed format. If not set, defaulted to
-      ``jsonl``.
+      `jsonl` is currently the only allowed format. If not set, defaulted to
+      `jsonl`.
     joined_predictions_gcs_source: An Artifact with an URI pointing toward a GCS
       directory or a GCS file with joined prediction & ground truth files to be
       used for this evaluation.
@@ -77,7 +77,7 @@ def model_evaluation_text_generation(
       only ground truth files to be used for this evaluation.
     display_name: The name of the evaluation custom job.
     machine_type: The machine type of this custom job. If not set, defaulted to
-      ``e2-highmem-16``. More details:
+      `e2-highmem-16`. More details:
       https://cloud.google.com/compute/docs/machine-resource
     service_account: Sets the default service account for workload run-as
       account. The service account running the pipeline
@@ -87,11 +87,11 @@ def model_evaluation_text_generation(
       Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
       for the CustomJob's project.
     network: The full name of the Compute Engine network to which the job should
-      be peered. For example, ``projects/12345/global/networks/myVPC``. Format
-      is of the form ``projects/{project}/global/networks/{network}``. Where
-      ``{project}`` is a project number, as in ``12345``, and ``{network}`` is a
-      network name, as in ``myVPC``. To specify this field, you must have
-      already configured VPC Network Peering for Vertex AI
+      be peered. For example, `projects/12345/global/networks/myVPC`. Format is
+      of the form `projects/{project}/global/networks/{network}`. Where
+      `{project}` is a project number, as in `12345`, and `{network}` is a
+      network name, as in `myVPC`. To specify this field, you must have already
+      configured VPC Network Peering for Vertex AI
       (https://cloud.google.com/vertex-ai/docs/general/vpc-peering). If left
       unspecified, the job is not peered with any network.
     reserved_ip_ranges: A list of names for the reserved ip ranges under the VPC
@@ -101,12 +101,12 @@ def model_evaluation_text_generation(
     encryption_spec_key_name:  Customer-managed encryption key options. If set,
       resources created by this pipeline will be encrypted with the provided
       encryption key. Has the form:
-      ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+      `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
       The key needs to be in the same region as where the compute resource is
       created.
 
   Returns:
-    evaluation_metrics: ``Metrics`` artifact representing the language model
+    evaluation_metrics: `Metrics` artifact representing the language model
       evaluation metrics.
     gcp_resources: Serialized gcp_resources proto tracking the custom job.
       For more details, see

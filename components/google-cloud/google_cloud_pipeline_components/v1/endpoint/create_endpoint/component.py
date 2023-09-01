@@ -37,10 +37,10 @@ def endpoint_create(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """`Creates <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create>`_ a Google Cloud Vertex `Endpoint <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_ and waits for it to be ready.
+  """[Creates](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create) a Google Cloud Vertex [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints) and waits for it to be ready.
 
 
-  See the `Endpoint create <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create>`_ method for more information.
+  See the [Endpoint create](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/create) method for more information.
 
   Args:
       location: Location to create the Endpoint. If not set,
@@ -58,7 +58,7 @@ def endpoint_create(
       encryption_spec_key_name: Customer-managed encryption
         key spec for an Endpoint. If set, this Endpoint and all of this
         Endoint's sub-resources will be secured by this key. Has the form:
-        ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+        `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
         The key needs to be in the same region as where the compute resource
         is created.  If set, this Endpoint and all sub-resources of this
         Endpoint will be secured by this key.
@@ -66,14 +66,14 @@ def endpoint_create(
         network to which the Endpoint should be peered. Private services
         access must already be configured for the network. If left
         unspecified, the Endpoint is not peered with any network.
-        `Format <https://cloud.google.com/compute/docs/reference/rest/v1/networks/insert>`_:
-        ``projects/{project}/global/networks/{network}``. Where ``{project}`` is a
-        project number, as in ``'12345'``, and ``{network}`` is network name.
+        [Format](https://cloud.google.com/compute/docs/reference/rest/v1/networks/insert):
+        `projects/{project}/global/networks/{network}`. Where `{project}` is a
+        project number, as in `'12345'`, and `{network}` is network name.
       project: Project to create the Endpoint. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       endpoint: Artifact tracking the created Endpoint.
-      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the create Endpoint's long-running operation.
+      gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the create Endpoint's long-running operation.
   """
   # fmt: on
   return ContainerSpec(

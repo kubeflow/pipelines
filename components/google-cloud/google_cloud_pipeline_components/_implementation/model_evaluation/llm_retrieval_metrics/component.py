@@ -8,7 +8,6 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
-
 _IMAGE_URI = 'us-docker.pkg.dev/vertex-evaluation/public/llm:v0.3'
 
 
@@ -42,10 +41,10 @@ def llm_retrieval_metrics(
       location: Required. The GCP region that runs the pipeline component.
       golden_docs_pattern: Required. Files where queries and corresponding
         golden doc ids are saved. The path pattern can contain glob characters
-        (``*``, ``?``, and ``[...]`` sets).
+        (`*`, `?`, and `[...]` sets).
       embedding_retrieval_results_pattern: Required. Files where doc retrieval
         results for each query are saved. The path pattern can contain glob
-        characters (``*``, ``?``, and ``[...]`` sets).
+        characters (`*`, `?`, and `[...]` sets).
       retrieval_metrics_top_k_list: Required. k values for retrieval metrics,
         for example, precision@k, accuracy@k, etc. If more than one value,
         separated by comma. e.g., "1,5,10".

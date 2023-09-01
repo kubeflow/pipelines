@@ -67,7 +67,7 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
     model_name: The Vertex model resource name to be imported and used for batch
       prediction.
     target_field_name: The target field's name. Formatted to be able to find
-      nested columns, delimited by ``.``. Prefixed with 'instance.' on the
+      nested columns, delimited by `.`. Prefixed with 'instance.' on the
       component for Vertex Batch Prediction.
     batch_predict_instances_format: The format in which instances are given,
       must be one of the Model's supportedInputStorageFormats. For more details
@@ -76,21 +76,21 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
     batch_predict_gcs_destination_output_uri: The Google Cloud Storage location
       of the directory where the output is to be written to. In the given
       directory a new directory is created. Its name is
-      ``prediction-<model-display-name>-<job-create-time>``, where timestamp is
-      in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
-      ``predictions_0001.<extension>``, ``predictions_0002.<extension>``, ...,
-      ``predictions_N.<extension>`` are created where ``<extension>`` depends on
-      chosen ``predictions_format``, and N may equal 0001 and depends on the
-      total number of successfully predicted instances. If the Model has both
-      ``instance`` and ``prediction`` schemata defined then each such file
-      contains predictions as per the ``predictions_format``. If prediction for
-      any instance failed (partially or completely), then an additional
-      ``errors_0001.<extension>``, ``errors_0002.<extension>``,...,
-      ``errors_N.<extension>`` files are created (N depends on total number of
+      `prediction-<model-display-name>-<job-create-time>`, where timestamp is in
+      YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
+      `predictions_0001.<extension>`, `predictions_0002.<extension>`, ...,
+      `predictions_N.<extension>` are created where `<extension>` depends on
+      chosen `predictions_format`, and N may equal 0001 and depends on the total
+      number of successfully predicted instances. If the Model has both
+      `instance` and `prediction` schemata defined then each such file contains
+      predictions as per the `predictions_format`. If prediction for any
+      instance failed (partially or completely), then an additional
+      `errors_0001.<extension>`, `errors_0002.<extension>`,...,
+      `errors_N.<extension>` files are created (N depends on total number of
       failed predictions). These files contain the failed instances, as per
-      their schema, followed by an additional ``error`` field which as value has
-      ``google.rpc.Status`` containing only ``code`` and ``message`` fields. For
-      more details about this output config, see
+      their schema, followed by an additional `error` field which as value has
+      `google.rpc.Status` containing only `code` and `message` fields. For more
+      details about this output config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_gcs_source_uris: Google Cloud Storage URI(-s) to your
       instances to run batch prediction on. May contain wildcards. For more
@@ -108,20 +108,19 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_bigquery_destination_output_uri: The BigQuery project location
       where the output is to be written to. In the given project a new dataset
-      is created with name ``prediction_<model-display-name>_<job-create-time>``
+      is created with name `prediction_<model-display-name>_<job-create-time>`
       where is made BigQuery-dataset-name compatible (for example, most special
       characters become underscores), and timestamp is in
       YYYY_MM_DDThh_mm_ss_sssZ "based on ISO-8601" format. In the dataset two
-      tables will be created, ``predictions``, and ``errors``. If the Model has
-      both ``instance`` and ``prediction`` schemata defined then the tables have
-      columns as follows: The ``predictions`` table contains instances for which
-      the prediction succeeded, it has columns as per a concatenation of the
-      Model's instance and prediction schemata. The ``errors`` table contains
-      rows for which the prediction has failed, it has instance columns, as per
-      the instance schema, followed by a single "errors" column, which as values
-      has ````google.rpc.Status`` <Status>``__ represented as a STRUCT, and
-      containing only ``code`` and ``message``.  For more details about this
-      output config, see
+      tables will be created, `predictions`, and `errors`. If the Model has both
+      `instance` and `prediction` schemata defined then the tables have columns
+      as follows: The `predictions` table contains instances for which the
+      prediction succeeded, it has columns as per a concatenation of the Model's
+      instance and prediction schemata. The `errors` table contains rows for
+      which the prediction has failed, it has instance columns, as per the
+      instance schema, followed by a single "errors" column, which as values has
+      `google.rpc.Status` represented as a STRUCT, and containing only `code`
+      and `message`.  For more details about this output config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_machine_type: The type of machine for running batch prediction
       on dedicated resources. If the Model supports DEDICATED_RESOURCES this
@@ -133,21 +132,21 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_starting_replica_count: The number of machine replicas used at
       the start of the batch operation. If not set, Vertex AI decides starting
-      number, not greater than ``max_replica_count``. Only used if
-      ``machine_type`` is set.
+      number, not greater than `max_replica_count`. Only used if `machine_type`
+      is set.
     batch_predict_max_replica_count: The maximum number of machine replicas the
-      batch operation may be scaled to. Only used if ``machine_type`` is set.
+      batch operation may be scaled to. Only used if `machine_type` is set.
     batch_predict_accelerator_type: The type of accelerator(s) that may be
-      attached to the machine as per ``batch_predict_accelerator_count``. Only
-      used if ``batch_predict_machine_type`` is set. For more details about the
+      attached to the machine as per `batch_predict_accelerator_count`. Only
+      used if `batch_predict_machine_type` is set. For more details about the
       machine spec, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_accelerator_count: The number of accelerators to attach to the
-      ``batch_predict_machine_type``. Only used if
-      ``batch_predict_machine_type`` is set.
+      `batch_predict_machine_type`. Only used if `batch_predict_machine_type` is
+      set.
     slicing_specs: List of
-      ``google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec``.
-      When provided, compute metrics for each defined slice. See sample code in
+      `google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec`. When
+      provided, compute metrics for each defined slice. See sample code in
       https://cloud.google.com/vertex-ai/docs/pipelines/model-evaluation-component
         For more details on configuring slices, see
       https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform_v1.types.ModelEvaluationSlice.
@@ -165,11 +164,11 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
     encryption_spec_key_name:  Customer-managed encryption key options. If set,
       resources created by this pipeline will be encrypted with the provided
       encryption key. Has the form:
-      ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+      `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
       The key needs to be in the same region as where the compute resource is
       created.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options
-      are ``Dataflow`` and ``DirectRunner``.
+      are `Dataflow` and `DirectRunner`.
     project: The GCP project that runs the pipeline components. Defaults to the
       project in which the PipelineJob is run.
 
@@ -290,7 +289,7 @@ def evaluation_automl_tabular_regression_pipeline(  # pylint: disable=dangerous-
     model_name: The Vertex model resource name to be imported and used for batch
       prediction.
     target_field_name: The target field's name. Formatted to be able to find
-      nested columns, delimited by ``.``. Prefixed with 'instance.' on the
+      nested columns, delimited by `.`. Prefixed with 'instance.' on the
       component for Vertex Batch Prediction.
     batch_predict_instances_format: The format in which instances are given,
       must be one of the Model's supportedInputStorageFormats. For more details
@@ -299,21 +298,21 @@ def evaluation_automl_tabular_regression_pipeline(  # pylint: disable=dangerous-
     batch_predict_gcs_destination_output_uri: The Google Cloud Storage location
       of the directory where the output is to be written to. In the given
       directory a new directory is created. Its name is
-      ``prediction-<model-display-name>-<job-create-time>``, where timestamp is
-      in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
-      ``predictions_0001.<extension>``, ``predictions_0002.<extension>``, ...,
-      ``predictions_N.<extension>`` are created where ``<extension>`` depends on
-      chosen ``predictions_format``, and N may equal 0001 and depends on the
-      total number of successfully predicted instances. If the Model has both
-      ``instance`` and ``prediction`` schemata defined then each such file
-      contains predictions as per the ``predictions_format``. If prediction for
-      any instance failed (partially or completely), then an additional
-      ``errors_0001.<extension>``, ``errors_0002.<extension>``,...,
-      ``errors_N.<extension>`` files are created (N depends on total number of
+      `prediction-<model-display-name>-<job-create-time>`, where timestamp is in
+      YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
+      `predictions_0001.<extension>`, `predictions_0002.<extension>`, ...,
+      `predictions_N.<extension>` are created where `<extension>` depends on
+      chosen `predictions_format`, and N may equal 0001 and depends on the total
+      number of successfully predicted instances. If the Model has both
+      `instance` and `prediction` schemata defined then each such file contains
+      predictions as per the `predictions_format`. If prediction for any
+      instance failed (partially or completely), then an additional
+      `errors_0001.<extension>`, `errors_0002.<extension>`,...,
+      `errors_N.<extension>` files are created (N depends on total number of
       failed predictions). These files contain the failed instances, as per
-      their schema, followed by an additional ``error`` field which as value has
-      ``google.rpc.Status`` containing only ``code`` and ``message`` fields. For
-      more details about this output config, see
+      their schema, followed by an additional `error` field which as value has
+      `google.rpc.Status` containing only `code` and `message` fields. For more
+      details about this output config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_gcs_source_uris: Google Cloud Storage URI(-s) to your
       instances to run batch prediction on. May contain wildcards. For more
@@ -331,20 +330,19 @@ def evaluation_automl_tabular_regression_pipeline(  # pylint: disable=dangerous-
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_bigquery_destination_output_uri: The BigQuery project location
       where the output is to be written to. In the given project a new dataset
-      is created with name ``prediction_<model-display-name>_<job-create-time>``
+      is created with name `prediction_<model-display-name>_<job-create-time>`
       where is made BigQuery-dataset-name compatible (for example, most special
       characters become underscores), and timestamp is in
       YYYY_MM_DDThh_mm_ss_sssZ "based on ISO-8601" format. In the dataset two
-      tables will be created, ``predictions``, and ``errors``. If the Model has
-      both ``instance`` and ``prediction`` schemata defined then the tables have
-      columns as follows: The ``predictions`` table contains instances for which
-      the prediction succeeded, it has columns as per a concatenation of the
-      Model's instance and prediction schemata. The ``errors`` table contains
-      rows for which the prediction has failed, it has instance columns, as per
-      the instance schema, followed by a single "errors" column, which as values
-      has ````google.rpc.Status`` <Status>``__ represented as a STRUCT, and
-      containing only ``code`` and ``message``.  For more details about this
-      output config, see
+      tables will be created, `predictions`, and `errors`. If the Model has both
+      `instance` and `prediction` schemata defined then the tables have columns
+      as follows: The `predictions` table contains instances for which the
+      prediction succeeded, it has columns as per a concatenation of the Model's
+      instance and prediction schemata. The `errors` table contains rows for
+      which the prediction has failed, it has instance columns, as per the
+      instance schema, followed by a single "errors" column, which as values has
+      `google.rpc.Status` represented as a STRUCT, and containing only `code`
+      and `message`.  For more details about this output config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_machine_type: The type of machine for running batch prediction
       on dedicated resources. If the Model supports DEDICATED_RESOURCES this
@@ -356,18 +354,18 @@ def evaluation_automl_tabular_regression_pipeline(  # pylint: disable=dangerous-
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_starting_replica_count: The number of machine replicas used at
       the start of the batch operation. If not set, Vertex AI decides starting
-      number, not greater than ``max_replica_count``. Only used if
-      ``machine_type`` is set.
+      number, not greater than `max_replica_count`. Only used if `machine_type`
+      is set.
     batch_predict_max_replica_count: The maximum number of machine replicas the
-      batch operation may be scaled to. Only used if ``machine_type`` is set.
+      batch operation may be scaled to. Only used if `machine_type` is set.
     batch_predict_accelerator_type: The type of accelerator(s) that may be
-      attached to the machine as per ``batch_predict_accelerator_count``. Only
-      used if ``batch_predict_machine_type`` is set. For more details about the
+      attached to the machine as per `batch_predict_accelerator_count`. Only
+      used if `batch_predict_machine_type` is set. For more details about the
       machine spec, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_accelerator_count: The number of accelerators to attach to the
-      ``batch_predict_machine_type``. Only used if
-      ``batch_predict_machine_type`` is set.
+      `batch_predict_machine_type`. Only used if `batch_predict_machine_type` is
+      set.
     dataflow_machine_type: The Dataflow machine type for evaluation components.
     dataflow_max_num_workers: The max number of Dataflow workers for evaluation
       components.
@@ -382,11 +380,11 @@ def evaluation_automl_tabular_regression_pipeline(  # pylint: disable=dangerous-
     encryption_spec_key_name:  Customer-managed encryption key options. If set,
       resources created by this pipeline will be encrypted with the provided
       encryption key. Has the form:
-      ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+      `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
       The key needs to be in the same region as where the compute resource is
       created.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options
-      are ``Dataflow`` and ``DirectRunner``.
+      are `Dataflow` and `DirectRunner`.
 
   Returns:
       A google.RegressionMetrics artifact and imported
@@ -505,7 +503,7 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
     model_name: The Vertex model resource name to be imported and used for batch
       prediction.
     target_field_name: The target field's name. Formatted to be able to find
-      nested columns, delimited by ``.``. Prefixed with 'instance.' on the
+      nested columns, delimited by `.`. Prefixed with 'instance.' on the
       component for Vertex Batch Prediction.
     batch_predict_instances_format: The format in which instances are given,
       must be one of the Model's supportedInputStorageFormats. For more details
@@ -514,21 +512,21 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
     batch_predict_gcs_destination_output_uri: The Google Cloud Storage location
       of the directory where the output is to be written to. In the given
       directory a new directory is created. Its name is
-      ``prediction-<model-display-name>-<job-create-time>``, where timestamp is
-      in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
-      ``predictions_0001.<extension>``, ``predictions_0002.<extension>``, ...,
-      ``predictions_N.<extension>`` are created where ``<extension>`` depends on
-      chosen ``predictions_format``, and N may equal 0001 and depends on the
-      total number of successfully predicted instances. If the Model has both
-      ``instance`` and ``prediction`` schemata defined then each such file
-      contains predictions as per the ``predictions_format``. If prediction for
-      any instance failed (partially or completely), then an additional
-      ``errors_0001.<extension>``, ``errors_0002.<extension>``,...,
-      ``errors_N.<extension>`` files are created (N depends on total number of
+      `prediction-<model-display-name>-<job-create-time>`, where timestamp is in
+      YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
+      `predictions_0001.<extension>`, `predictions_0002.<extension>`, ...,
+      `predictions_N.<extension>` are created where `<extension>` depends on
+      chosen `predictions_format`, and N may equal 0001 and depends on the total
+      number of successfully predicted instances. If the Model has both
+      `instance` and `prediction` schemata defined then each such file contains
+      predictions as per the `predictions_format`. If prediction for any
+      instance failed (partially or completely), then an additional
+      `errors_0001.<extension>`, `errors_0002.<extension>`,...,
+      `errors_N.<extension>` files are created (N depends on total number of
       failed predictions). These files contain the failed instances, as per
-      their schema, followed by an additional ``error`` field which as value has
-      ``google.rpc.Status`` containing only ``code`` and ``message`` fields. For
-      more details about this output config, see
+      their schema, followed by an additional `error` field which as value has
+      `google.rpc.Status` containing only `code` and `message` fields. For more
+      details about this output config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_gcs_source_uris: Google Cloud Storage URI(-s) to your
       instances to run batch prediction on. May contain wildcards. For more
@@ -546,20 +544,19 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_bigquery_destination_output_uri: The BigQuery project location
       where the output is to be written to. In the given project a new dataset
-      is created with name ``prediction_<model-display-name>_<job-create-time>``
+      is created with name `prediction_<model-display-name>_<job-create-time>`
       where is made BigQuery-dataset-name compatible (for example, most special
       characters become underscores), and timestamp is in
       YYYY_MM_DDThh_mm_ss_sssZ "based on ISO-8601" format. In the dataset two
-      tables will be created, ``predictions``, and ``errors``. If the Model has
-      both ``instance`` and ``prediction`` schemata defined then the tables have
-      columns as follows: The ``predictions`` table contains instances for which
-      the prediction succeeded, it has columns as per a concatenation of the
-      Model's instance and prediction schemata. The ``errors`` table contains
-      rows for which the prediction has failed, it has instance columns, as per
-      the instance schema, followed by a single "errors" column, which as values
-      has ````google.rpc.Status`` <Status>``__ represented as a STRUCT, and
-      containing only ``code`` and ``message``.  For more details about this
-      output config, see
+      tables will be created, `predictions`, and `errors`. If the Model has both
+      `instance` and `prediction` schemata defined then the tables have columns
+      as follows: The `predictions` table contains instances for which the
+      prediction succeeded, it has columns as per a concatenation of the Model's
+      instance and prediction schemata. The `errors` table contains rows for
+      which the prediction has failed, it has instance columns, as per the
+      instance schema, followed by a single "errors" column, which as values has
+      `google.rpc.Status` represented as a STRUCT, and containing only `code`
+      and `message`.  For more details about this output config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_machine_type: The type of machine for running batch prediction
       on dedicated resources. If the Model supports DEDICATED_RESOURCES this
@@ -571,21 +568,21 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_starting_replica_count: The number of machine replicas used at
       the start of the batch operation. If not set, Vertex AI decides starting
-      number, not greater than ``max_replica_count``. Only used if
-      ``machine_type`` is set.
+      number, not greater than `max_replica_count`. Only used if `machine_type`
+      is set.
     batch_predict_max_replica_count: The maximum number of machine replicas the
-      batch operation may be scaled to. Only used if ``machine_type`` is set.
+      batch operation may be scaled to. Only used if `machine_type` is set.
     batch_predict_accelerator_type: The type of accelerator(s) that may be
-      attached to the machine as per ``batch_predict_accelerator_count``. Only
-      used if ``batch_predict_machine_type`` is set. For more details about the
+      attached to the machine as per `batch_predict_accelerator_count`. Only
+      used if `batch_predict_machine_type` is set. For more details about the
       machine spec, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_accelerator_count: The number of accelerators to attach to the
-      ``batch_predict_machine_type``. Only used if
-      ``batch_predict_machine_type`` is set.
+      `batch_predict_machine_type`. Only used if `batch_predict_machine_type` is
+      set.
     slicing_specs: List of
-      ``google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec``.
-      When provided, compute metrics for each defined slice. See sample code in
+      `google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec`. When
+      provided, compute metrics for each defined slice. See sample code in
       https://cloud.google.com/vertex-ai/docs/pipelines/model-evaluation-component
         For more details on configuring slices, see
       https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform_v1.types.ModelEvaluationSlice.
@@ -603,11 +600,11 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
     encryption_spec_key_name:  Customer-managed encryption key options. If set,
       resources created by this pipeline will be encrypted with the provided
       encryption key. Has the form:
-      ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+      `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
       The key needs to be in the same region as where the compute resource is
       created.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options
-      are ``Dataflow`` and ``DirectRunner``.
+      are `Dataflow` and `DirectRunner`.
   """
   with kfp.dsl.Condition(
       prediction_type == 'classification', name='classification'

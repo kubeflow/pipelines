@@ -19,6 +19,7 @@ import sys
 import textwrap
 from typing import List
 
+import commonmark
 import docstring_parser
 from google_cloud_pipeline_components import utils
 from kfp import components
@@ -333,6 +334,17 @@ def process_named_docstring_returns(app, what, name, obj, options, lines):
       returns_section = get_return_section(obj)
       lines.extend([':returns:', ''])
       lines.extend(returns_section)
+
+  markdown_to_rst(app, what, name, obj, options, lines)
+
+
+def markdown_to_rst(app, what, name, obj, options, lines):
+  md = '\n'.join(lines)
+  ast = commonmark.Parser().parse(md)
+  rst = commonmark.ReStructuredTextRenderer().render(ast)
+  lines.clear()
+  lines += rst.splitlines()
+
 
 def setup(app):
   app.connect('autodoc-process-docstring', process_named_docstring_returns)

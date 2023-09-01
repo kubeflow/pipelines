@@ -1863,7 +1863,7 @@ components:
 
             Model will be secured by this key.  Has the form:
 
-            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+            `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
 
             The key needs to be in the same region as where the compute resource
 

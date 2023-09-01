@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Serve batch predictions from your models using `Vertex AI Batch Predictions <https://cloud.google.com/vertex-ai/docs/predictions/overview?_ga=2.161419069.-1686833729.1684288907#batch_predictions>`_."""
+"""Serve batch predictions from your models using [Vertex AI Batch Predictions](https://cloud.google.com/vertex-ai/docs/predictions/overview?_ga=2.161419069.-1686833729.1684288907#batch_predictions)."""
 
 from google_cloud_pipeline_components.v1.batch_predict_job.component import model_batch_predict as ModelBatchPredictOp
 

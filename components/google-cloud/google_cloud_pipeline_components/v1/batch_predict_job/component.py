@@ -65,130 +65,130 @@ def model_batch_predict(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Creates a Google Cloud Vertex `BatchPredictionJob <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs>`_ and waits for it to complete.
+  """Creates a Google Cloud Vertex [BatchPredictionJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs) and waits for it to complete.
 
-  For more details, see `BatchPredictionJob.Create <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/create>`_.
+  For more details, see [BatchPredictionJob.Create](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/create).
 
   Args:
       job_display_name: The user-defined name of this BatchPredictionJob.
       location: Location for creating the BatchPredictionJob.
       instances_format: The format in which instances are
-        given, must be one of the `Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models>`_'s supportedInputStorageFormats.
+        given, must be one of the [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models)'s supportedInputStorageFormats.
         For more details about this input config, see
-        `InputConfig <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.>`_
+        [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.)
       predictions_format: The format in which Vertex AI gives the predictions. Must be one of the
         Model's supportedOutputStorageFormats.
-        For more details about this output config, see `OutputConfig <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig>`_.
+        For more details about this output config, see [OutputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig).
       model: The Model used to get predictions via this job. Must share the same
         ancestor Location. Starting this job has no impact on any existing
         deployments of the Model and their resources. Either this or
-        ``unmanaged_container_model`` must be specified.
+        `unmanaged_container_model` must be specified.
       unmanaged_container_model: The unmanaged container model used to get predictions via this job.
         This should be used for models that are not uploaded to Vertex. Either
         this or model must be specified.
       gcs_source_uris: Google Cloud Storage URI(-s) to your instances to run batch prediction
-        on. They must match ``instances_format``. May contain wildcards. For more
-        information on wildcards, see `WildcardNames <https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames>`_.
-        For more details about this input config, see `InputConfig <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig>`_.
+        on. They must match `instances_format`. May contain wildcards. For more
+        information on wildcards, see [WildcardNames](https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames).
+        For more details about this input config, see [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig).
       bigquery_source_input_uri: BigQuery URI to a table, up to 2000 characters long. For example:
-        ``projectId.bqDatasetId.bqTableId``  For more details about this input
+        `projectId.bqDatasetId.bqTableId`  For more details about this input
         config, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
       model_parameters: The parameters that govern the predictions. The schema of the parameters
       instance_type: The format of the instance that the Model
         accepts. Vertex AI will convert compatible
-        `InstancesFormat <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig>`_
+        [InstancesFormat](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig)
         to the specified format. Supported values are:
-        ``object``: Each input is converted to JSON object format.
-          * For ``bigquery``, each row is converted to an object.
-          * For ``jsonl``, each line of the JSONL input must be an object.
-          * Does not apply to ``csv``, ``file-list``, ``tf-record``, or ``tf-record-gzip``.
-        ``array``: Each input is converted to JSON array format.
-          * For ``bigquery``, each row is converted to an array. The order
+        `object`: Each input is converted to JSON object format.
+          * For `bigquery`, each row is converted to an object.
+          * For `jsonl`, each line of the JSONL input must be an object.
+          * Does not apply to `csv`, `file-list`, `tf-record`, or `tf-record-gzip`.
+        `array`: Each input is converted to JSON array format.
+          * For `bigquery`, each row is converted to an array. The order
             of columns is determined by the BigQuery column order, unless
-            `included_fields <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig>`_ is populated.
-            ``included_fields`` must be populated for specifying field orders.
-          * For ``jsonl``, if each line of the JSONL input is an object,
-            ``included_fields`` must be populated for specifying field orders.
-          * Does not apply to `csv`, ``file-list``, ``tf-record``, or
-            ``tf-record-gzip``.
+            [included_fields](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig) is populated.
+            `included_fields` must be populated for specifying field orders.
+          * For `jsonl`, if each line of the JSONL input is an object,
+            `included_fields` must be populated for specifying field orders.
+          * Does not apply to `csv`, `file-list`, `tf-record`, or
+            `tf-record-gzip`.
         If not specified, Vertex AI converts the batch prediction input as
         follows:
-         * For ``bigquery`` and ``csv``, the behavior is the same as ``array`. The
+         * For `bigquery` and `csv`, the behavior is the same as `array`. The
            order of columns is the same as defined in the file or table, unless
            included_fields is populated.
-         * For ``jsonl``, the prediction instance format is determined by
+         * For `jsonl`, the prediction instance format is determined by
            each line of the input.
-         * For ``tf-record``/``tf-record-gzip``, each record will be converted to
-           an object in the format of ``{"b64": <value>}``, where ``<value>`` is
+         * For `tf-record`/`tf-record-gzip`, each record will be converted to
+           an object in the format of `{"b64": <value>}`, where `<value>` is
            the Base64-encoded string of the content of the record.
-         * For ``file-list``, each file in the list will be converted to an
-           object in the format of ``{"b64": <value>}``, where ``<value>`` is
+         * For `file-list`, each file in the list will be converted to an
+           object in the format of `{"b64": <value>}`, where `<value>` is
            the Base64-encoded string of the content of the file.
       key_field: The name of the field that is considered as a key.
         The values identified by the key field is not included in the
         transformed instances that is sent to the Model. This is similar to
-        specifying this name of the field in `excluded_fields <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig>`_. In addition,
+        specifying this name of the field in [excluded_fields](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig). In addition,
         the batch prediction output will not include the instances. Instead the
         output will only include the value of the key field, in a field named
-        ``key`` in the output:
-         * For ``jsonl`` output format, the output will have a ``key`` field
-           instead of the ``instance`` field.
-         * For ``csv``/``bigquery`` output format, the output will have have a ``key``
+        `key` in the output:
+         * For `jsonl` output format, the output will have a `key` field
+           instead of the `instance` field.
+         * For `csv`/`bigquery` output format, the output will have have a `key`
            column instead of the instance feature columns.
         The input must be JSONL with objects at each line, CSV, BigQuery
         or TfRecord.
       included_fields: Fields that will be included in the prediction instance that is
         sent to the Model.
-        If ``instance_type`` is ``array``, the order of field names in
-        ``included_fields`` also determines the order of the values in the array.
-        When ``included_fields`` is populated, ``excluded_fields`` must be empty.
+        If `instance_type` is `array`, the order of field names in
+        `included_fields` also determines the order of the values in the array.
+        When `included_fields` is populated, `excluded_fields` must be empty.
         The input must be JSONL with objects at each line, CSV, BigQuery
         or TfRecord.
       excluded_fields: Fields that will be excluded in the prediction instance that is
         sent to the Model.
         Excluded will be attached to the batch prediction output if
         key_field is not specified.
-        When ``excluded_fields`` is populated, ``included_fields`` must be empty.
+        When `excluded_fields` is populated, `included_fields` must be empty.
         The input must be JSONL with objects at each line, CSV, BigQuery
         or TfRecord.
-        may be specified via the Model's ``parameters_schema_uri``.
+        may be specified via the Model's `parameters_schema_uri`.
       gcs_destination_output_uri_prefix: The Google Cloud
         Storage location of the directory where the output is to be written
         to. In the given directory a new directory is created. Its name is
-        ``prediction-<model-display-name>-<job-create-time>``, where timestamp
+        `prediction-<model-display-name>-<job-create-time>`, where timestamp
         is in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
-        ``predictions_0001.<extension>``, ``predictions_0002.<extension>``,
-        ..., ``predictions_N.<extension>`` are created where ``<extension>``
-        depends on chosen ``predictions_format``, and N may equal 0001 and
+        `predictions_0001.<extension>`, `predictions_0002.<extension>`,
+        ..., `predictions_N.<extension>` are created where `<extension>`
+        depends on chosen `predictions_format`, and N may equal 0001 and
         depends on the total number of successfully predicted instances. If
-        the Model has both ``instance`` and ``prediction`` schemata defined
+        the Model has both `instance` and `prediction` schemata defined
         then each such file contains predictions as per the
-        ``predictions_format``. If prediction for any instance failed
+        `predictions_format`. If prediction for any instance failed
         (partially or completely), then an additional
-        ``errors_0001.<extension>``, ``errors_0002.<extension>``,...,
-        ``errors_N.<extension>`` files are created (N depends on total number
+        `errors_0001.<extension>`, `errors_0002.<extension>`,...,
+        `errors_N.<extension>` files are created (N depends on total number
         of failed predictions). These files contain the failed instances, as
-        per their schema, followed by an additional ``error`` field which as
-        value has ``google.rpc.Status`` containing only ``code`` and
-        ``message`` fields.  For more details about this output config, see
+        per their schema, followed by an additional `error` field which as
+        value has `google.rpc.Status` containing only `code` and
+        `message` fields.  For more details about this output config, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
       bigquery_destination_output_uri: The BigQuery project location where the output is to be written to. In
         the given project a new dataset is created with name
-        ``prediction_<model-display-name>_<job-create-time>`` where is made
+        `prediction_<model-display-name>_<job-create-time>` where is made
         BigQuery-dataset-name compatible (for example, most special characters
         become underscores), and timestamp is in YYYY_MM_DDThh_mm_ss_sssZ
         "based on ISO-8601" format. In the dataset two tables will be created,
-        ``predictions``, and ``errors``. If the Model has both ``instance``
-        and ``prediction`` schemata defined then the tables have columns as
-        follows: The ``predictions`` table contains instances for which the
+        `predictions`, and `errors`. If the Model has both `instance`
+        and `prediction` schemata defined then the tables have columns as
+        follows: The `predictions` table contains instances for which the
         prediction succeeded, it has columns as per a concatenation of the
-        Model's instance and prediction schemata. The ``errors`` table
+        Model's instance and prediction schemata. The `errors` table
         contains rows for which the prediction has failed, it has instance
         columns, as per the instance schema, followed by a single "errors"
-        column, which as values has `google.rpc.Status <Status>`_
-        represented as a STRUCT, and containing only ``code`` and
-        ``message``. For more details about this output config, see
+        column, which as values has [google.rpc.Status](Status)
+        represented as a STRUCT, and containing only `code` and
+        `message`. For more details about this output config, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
       machine_type: The type of machine for running batch
         prediction on dedicated resources. If the Model supports
@@ -200,19 +200,19 @@ def model_batch_predict(
         For more details about the machine spec, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
       accelerator_type: The type of accelerator(s) that may be
-        attached to the machine as per ``accelerator_count``. Only used if
-        ``machine_type`` is set.  For more details about the machine spec, see
+        attached to the machine as per `accelerator_count`. Only used if
+        `machine_type` is set.  For more details about the machine spec, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
       accelerator_count: The number of accelerators to attach
-        to the ``machine_type``. Only used if ``machine_type`` is set.  For more
+        to the `machine_type`. Only used if `machine_type` is set.  For more
         details about the machine spec, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
       starting_replica_count: The number of machine replicas
         used at the start of the batch operation. If not set, Vertex AI
-        decides starting number, not greater than ``max_replica_count``. Only
-        used if ``machine_type`` is set.
+        decides starting number, not greater than `max_replica_count`. Only
+        used if `machine_type` is set.
       max_replica_count: The maximum number of machine replicas the batch operation may be scaled
-        to. Only used if ``machine_type`` is set.
+        to. Only used if `machine_type` is set.
       manual_batch_tuning_parameters_batch_size: The number of
         the records (e.g. instances) of the operation given in each batch to a
         machine replica. Machine type, and size of a single record should be
@@ -222,31 +222,31 @@ def model_batch_predict(
         fail.
       generate_explanation: Generate explanation along with
         the batch prediction results. This will cause the batch prediction
-        output to include explanations based on the ``prediction_format``: -
-        ``bigquery``: output includes a column named ``explanation``. The value is
+        output to include explanations based on the `prediction_format`: -
+        `bigquery`: output includes a column named `explanation`. The value is
         a struct that conforms to the [aiplatform.gapic.Explanation] object. -
-        ``jsonl``: The JSON objects on each line include an additional entry
-        keyed ``explanation``. The value of the entry is a JSON object that
-        conforms to the [aiplatform.gapic.Explanation] object. - ``csv``:
+        `jsonl`: The JSON objects on each line include an additional entry
+        keyed `explanation`. The value of the entry is a JSON object that
+        conforms to the [aiplatform.gapic.Explanation] object. - `csv`:
         Generating explanations for CSV format is not supported.  If this
         field is set to true, either the Model.explanation_spec or
         explanation_metadata and explanation_parameters must be populated.
       explanation_metadata: Explanation metadata
         configuration for this BatchPredictionJob. Can be specified only if
-        ``generate_explanation`` is set to `True`.  This value overrides the
-        value of ``Model.explanation_metadata``. All fields of
-        ``explanation_metadata`` are optional in the request. If a field of the
-        ``explanation_metadata`` object is not populated, the corresponding
+        `generate_explanation` is set to `True`.  This value overrides the
+        value of `Model.explanation_metadata`. All fields of
+        `explanation_metadata` are optional in the request. If a field of the
+        `explanation_metadata` object is not populated, the corresponding
         field of the `Model.explanation_metadata` object is inherited.  For
         more details, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
       explanation_parameters: Parameters to configure
         explaining for Model's predictions. Can be specified only if
-        ``generate_explanation`` is set to `True`.  This value overrides the
+        `generate_explanation` is set to `True`.  This value overrides the
         value of `Model.explanation_parameters`. All fields of
-        ``explanation_parameters`` are optional in the request. If a field of
-        the ``explanation_parameters`` object is not populated, the
-        corresponding field of the ``Model.explanation_parameters`` object is
+        `explanation_parameters` are optional in the request. If a field of
+        the `explanation_parameters` object is not populated, the
+        corresponding field of the `Model.explanation_parameters` object is
         inherited.  For more details, see
         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters.
       labels: The labels with user-defined metadata to
@@ -259,7 +259,7 @@ def model_batch_predict(
         key options for a BatchPredictionJob. If this is set, then all
         resources created by the BatchPredictionJob will be encrypted with the
         provided encryption key.  Has the form:
-        ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+        `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
         The key needs to be in the same region as where the compute resource
         is created.
       project: Project to create the BatchPredictionJob. Defaults to the project in which the PipelineJob is run.

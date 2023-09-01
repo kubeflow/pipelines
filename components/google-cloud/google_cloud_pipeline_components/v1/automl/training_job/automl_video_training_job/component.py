@@ -46,7 +46,7 @@ def automl_video_training_job(
   If training on a Vertex AI dataset, you can use one of the following split configurations:
 
   Data fraction splits:
-  ``training_fraction_split``, and ``test_fraction_split`` may optionally
+  `training_fraction_split`, and `test_fraction_split` may optionally
   be provided, they must sum to up to 1. If none of the fractions are set,
   by default roughly 80% of data will be used for training, and 20% for test.
   Data filter splits:
@@ -126,17 +126,17 @@ def automl_video_training_job(
       training_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the training pipeline. Has the
           form:
-          ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
+          `projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key`.
           The key needs to be in the same region as where the compute
           resource is created.
           If set, this TrainingPipeline will be secured by this key.
           Note: Model trained by this TrainingPipeline is also secured
-          by this key if ``model_to_upload`` is not set separately.
+          by this key if `model_to_upload` is not set separately.
           Overrides encryption_spec_key_name set in aiplatform.init.
       model_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the model. Has the
           form:
-          ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
+          `projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key`.
           The key needs to be in the same region as where the compute
           resource is created.
           If set, the trained Model will be secured by this key.

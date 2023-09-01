@@ -52,10 +52,10 @@ def detect_model_bias(
       location: Location for running data bias detection.
       target_field_name: The full name path of the features target field in the
         predictions file. Formatted to be able to find nested columns, delimited
-        by ``.``. Alternatively referred to as the ground truth (or
+        by `.`. Alternatively referred to as the ground truth (or
         ground_truth_column) field.
       predictions_format: The file format for the batch prediction results.
-        ``jsonl`` is the only currently allow format.
+        `jsonl` is the only currently allow format.
       predictions_gcs_source: An artifact with its URI pointing toward a GCS
         directory with prediction or explanation files to be used for this
         evaluation. For prediction results, the files should be named
@@ -65,33 +65,33 @@ def detect_model_bias(
         data to be used for this evaluation. For prediction results, the table
         column should be named "predicted_*".
       bias_configs: A list of
-        ``google.cloud.aiplatform_v1beta1.types.ModelEvaluation.BiasConfig``.
+        `google.cloud.aiplatform_v1beta1.types.ModelEvaluation.BiasConfig`.
         When provided, compute model bias metrics for each defined slice. Below
         is an example of how to format this input.
         1: First, create a BiasConfig.
-          ``from google.cloud.aiplatform_v1beta1.types.ModelEvaluation import BiasConfig``
+          `from google.cloud.aiplatform_v1beta1.types.ModelEvaluation import BiasConfig`
 
-          ``from google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice import SliceSpec``
+          `from google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice import SliceSpec`
 
-          ``from google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice.SliceSpec import SliceConfig``
+          `from google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice.SliceSpec import SliceConfig`
 
-          ``bias_config = BiasConfig(bias_slices=SliceSpec(configs={
-              'feature_a': SliceConfig(SliceSpec.Value(string_value= 'label_a') ) }))``
+          `bias_config = BiasConfig(bias_slices=SliceSpec(configs={
+              'feature_a': SliceConfig(SliceSpec.Value(string_value= 'label_a') ) }))`
         2: Create a list to store the bias configs into.
-          ``bias_configs = []``
+          `bias_configs = []`
         3: Format each BiasConfig into a JSON or Dict.
-          ``bias_config_json = json_format.MessageToJson(bias_config`` or
-          ``bias_config_dict = json_format.MessageToDict(bias_config)``
+          `bias_config_json = json_format.MessageToJson(bias_config` or
+          `bias_config_dict = json_format.MessageToDict(bias_config)`
         4: Combine each bias_config JSON into a list.
-          ``bias_configs.append(bias_config_json)``
+          `bias_configs.append(bias_config_json)`
         5: Finally, pass bias_configs as an parameter for this component.
-          ``DetectModelBiasOp(bias_configs=bias_configs)``
+          `DetectModelBiasOp(bias_configs=bias_configs)`
       thresholds: A list of float values to be used as prediction decision
         thresholds.
       encryption_spec_key_name: Customer-managed encryption key options for the
         Dataflow. If this is set, then all resources created by the Dataflow
         will be encrypted with the provided encryption key. Has the form:
-        ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+        `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
         The key needs to be in the same region as where the compute resource is
         created.
       project: Project to run data bias detection. Defaults to the project in which the PipelineJob is run.

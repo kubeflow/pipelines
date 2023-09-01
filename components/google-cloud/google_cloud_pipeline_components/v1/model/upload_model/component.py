@@ -44,20 +44,20 @@ def model_upload(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """`Uploads <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload>`_ a Google Cloud Vertex `Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models>`_ and returns a Model artifact representing the uploaded Model
+  """[Uploads](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload) a Google Cloud Vertex [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models) and returns a Model artifact representing the uploaded Model
   resource.
 
-  See `Model upload <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload>`_ method for more information.
+  See [Model upload](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload) method for more information.
 
   Args:
       location: Optional location to upload this Model to. If
-        not set, defaults to ``us-central1``.
+        not set, defaults to `us-central1`.
       display_name: The display name of the Model. The name
         can be up to 128 characters long and can be consist of any UTF-8
-        characters. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model>`_
-      description: The description of the Model. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model>`_
-      parent_model: An artifact of a model which to upload a new version to. Only specify this field when uploading a new version. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload#request-body>`_
-      unmanaged_container_model: The unmanaged container model to be uploaded.  The Model can be passed from an upstream step or imported via a KFP ``dsl.importer``.
+        characters. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)
+      description: The description of the Model. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)
+      parent_model: An artifact of a model which to upload a new version to. Only specify this field when uploading a new version. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload#request-body)
+      unmanaged_container_model: The unmanaged container model to be uploaded.  The Model can be passed from an upstream step or imported via a KFP `dsl.importer`.
 
         :Examples:
           ::
@@ -75,13 +75,13 @@ def model_upload(
               })
 
       explanation_metadata: Metadata describing the Model's
-        input and output for explanation. Both ``explanation_metadata`` and ``explanation_parameters`` must be passed together when used. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata>`_
+        input and output for explanation. Both `explanation_metadata` and `explanation_parameters` must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)
       explanation_parameters: Parameters to configure
-        explaining for Model's predictions.  `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters>`_
+        explaining for Model's predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)
       encryption_spec_key_name: Customer-managed encryption
         key spec for a Model. If set, this Model and all sub-resources of this
         Model will be secured by this key.  Has the form:
-        ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+        `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
         The key needs to be in the same region as where the compute resource
         is created.
       labels: The labels with user-defined metadata to
@@ -94,7 +94,7 @@ def model_upload(
 
   Returns:
       model: Artifact tracking the created Model.
-      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the upload Model's long-running operation.
+      gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the upload Model's long-running operation.
   """
   # fmt: on
   return ContainerSpec(

@@ -27,7 +27,6 @@ from kfp.components import placeholders
 
 from google.protobuf import json_format
 
-
 # note: this is a slight dependency on KFP SDK implementation details
 # other code should not similarly depend on the stability of kfp.placeholders
 DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX = "output__"
@@ -46,7 +45,7 @@ def build_serverless_customjob_container_spec(
     project: Project to run the job in.
     location: Location to run the job in.
     custom_job_payload: Payload to pass to the custom job. This dictionary is
-      serialized and passed as the custom job ``--payload``.
+      serialized and passed as the custom job `--payload`.
     gcp_resources: GCP resources that can be used to track the job.
 
   Returns:

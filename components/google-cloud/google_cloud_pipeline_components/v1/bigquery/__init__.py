@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Create and execute machine learning models via SQL using `Google Cloud BigQuery ML <https://cloud.google.com/bigquery/docs/bqml-introduction>`_."""
+"""Create and execute machine learning models via SQL using [Google Cloud BigQuery ML](https://cloud.google.com/bigquery/docs/bqml-introduction)."""
 
 from google_cloud_pipeline_components.v1.bigquery.create_model.component import bigquery_create_model_job as BigqueryCreateModelJobOp
 from google_cloud_pipeline_components.v1.bigquery.detect_anomalies_model.component import bigquery_detect_anomalies_job as BigqueryDetectAnomaliesModelJobOp

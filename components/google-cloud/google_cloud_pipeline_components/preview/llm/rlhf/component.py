@@ -28,7 +28,6 @@ from google_cloud_pipeline_components._implementation.llm import upload_llm_mode
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
 
-
 PipelineOutput = NamedTuple(
     'Outputs', model_resource_name=str, endpoint_resource_name=str
 )
@@ -61,17 +60,17 @@ def rlhf_pipeline(
   Args:
     prompt_dataset: Cloud storage path to an unlabled prompt dataset used for
       reinforcement learning. The dataset format is jsonl. Each example in the
-      dataset must have an ``input_text`` field that contains the prompt.
+      dataset must have an `input_text` field that contains the prompt.
     preference_dataset: Cloud storage path to a human preference dataset used to
       train a reward model. The dataset format is jsonl. Each example in the
-      dataset must contain the following fields: ``input_text`` that contains
-      the prompt, ``candidate_0`` and ``candidate_1`` that contain candidate
-      responses, ``choice`` that specifies the preferred candidate.
+      dataset must contain the following fields: `input_text` that contains the
+      prompt, `candidate_0` and `candidate_1` that contain candidate responses,
+      `choice` that specifies the preferred candidate.
     large_model_reference: Name of the base model. Supported values are
-      ``text-bison@001``, ``t5-small``, ``t5-large``, ``t5-xl`` and ``t5-xxl``.
-      ``text-bison@001`` and ``t5-small`` are supported in ``us-central1` and
-      ``europe-west4``. ``t5-large``, ``t5-xl`` and ``t5-xxl`` are only
-      supported in ``europe-west4``.
+      `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`.
+      `text-bison@001` and `t5-small` are supported in `us-central1` and
+      `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in
+      `europe-west4`.
     model_display_name: Name of the fine-tuned model shown in the Model
       Registry. If not provided, a default name will be created.
     prompt_sequence_length: Maximum tokenized sequence length for input text.
@@ -103,12 +102,12 @@ def rlhf_pipeline(
       follow it, e.g. "Classify this movie review as positive or negative" or
       "Translate this sentence to Danish". Do not specify this if your dataset
       already prepends the instruction to the inputs field.
-    deploy_model: Whether to deploy the model to an endpoint in ``us-central1``.
+    deploy_model: Whether to deploy the model to an endpoint in `us-central1`.
       Default is True.
     eval_dataset: Optional Cloud storage path to an evaluation dataset. If
       provided, inference will be performed on this dataset after training. The
       dataset format is jsonl. Each example in the dataset must contain a field
-      ``input_text`` that contains the prompt.
+      `input_text` that contains the prompt.
     project: Project used to run custom jobs. If not specified the project used
       to run the pipeline will be used.
     location: Location used to run custom jobs. If not specified the location

@@ -129,17 +129,17 @@ def evaluation_llm_safety_bias_pipeline(
       Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
       for the CustomJob's project.
     network: The full name of the Compute Engine network to which the job should
-      be peered. For example, ``projects/12345/global/networks/myVPC``. Format
-      is of the form ``projects/{project}/global/networks/{network}``. Where
-      ``{project}`` is a project number, as in ``12345``, and ``{network}`` is a
-      network name, as in ``myVPC``. To specify this field, you must have
-      already configured VPC Network Peering for Vertex AI
+      be peered. For example, `projects/12345/global/networks/myVPC`. Format is
+      of the form `projects/{project}/global/networks/{network}`. Where
+      `{project}` is a project number, as in `12345`, and `{network}` is a
+      network name, as in `myVPC`. To specify this field, you must have already
+      configured VPC Network Peering for Vertex AI
       (https://cloud.google.com/vertex-ai/docs/general/vpc-peering). If left
       unspecified, the job is not peered with any network.
     encryption_spec_key_name: Customer-managed encryption key options. If set,
       resources created by this pipeline will be encrypted with the provided
       encryption key. Has the form:
-      ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+      `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
       The key needs to be in the same region as where the compute resource is
       created.
 

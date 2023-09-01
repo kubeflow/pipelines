@@ -39,10 +39,10 @@ def custom_training_job(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Launch a Vertex AI `custom training job <https://cloud.google.com/vertex-ai/docs/training/create-custom-job>`_ using the `CustomJob <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs>`_ API.
+  """Launch a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
 
-  See `Create custom training jobs
-  <https://cloud.google.com/vertex-ai/docs/training/create-custom-job>`_ for
+  See [Create custom training jobs
+ ](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for
   more information.
 
   Args:
@@ -52,7 +52,7 @@ def custom_training_job(
     worker_pool_specs: Serialized json spec of the
       worker pools including machine type and Docker image. All worker pools
       except the first one are optional and can be skipped by providing an
-      empty value. See `more information <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec>`_.
+      empty value. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec).
     timeout: The maximum job running time. The default is 7 days. A duration in
       seconds with up to nine fractional digits, terminated by 's', for example:
       "3.5s".
@@ -60,23 +60,23 @@ def custom_training_job(
       gets restarted. This feature can be used by distributed training jobs that
       are not resilient to workers leaving and joining a job.
     service_account: Sets the default service account for workload run-as
-      account. The `service account
-      <https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account>`_
+      account. The [service account
+     ](https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
       running the pipeline submitting jobs must have act-as permission on this
-      run-as account. If unspecified, the Vertex AI Custom Code `Service Agent
-      <https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents>`_
+      run-as account. If unspecified, the Vertex AI Custom Code [Service Agent
+     ](https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
       for the CustomJob's project.
     tensorboard: The name of a Vertex AI Tensorboard resource to which this
       CustomJob will upload Tensorboard logs.
-    enable_web_access: Whether you want Vertex AI to enable `interactive shell
+    enable_web_access: Whether you want Vertex AI to enable [interactive shell
       access
-      <https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell>`_
-      to training containers. If ``True``, you can access interactive shells at
+     ](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+      to training containers. If `True`, you can access interactive shells at
       the URIs given by [CustomJob.web_access_uris][].
     network: The full name of the Compute Engine network to which the job should
-      be peered. For example, ``projects/12345/global/networks/myVPC``. Format
-      is of the form ``projects/{project}/global/networks/{network}``. Where
-      ``{project}`` is a project number, as in ``12345``, and ``{network}`` is a
+      be peered. For example, `projects/12345/global/networks/myVPC`. Format
+      is of the form `projects/{project}/global/networks/{network}`. Where
+      `{project}` is a project number, as in `12345`, and `{network}` is a
       network name. Private services access must already be configured for the
       network. If left unspecified, the job is not peered with any network.
     reserved_ip_ranges: A list of names for the reserved IP ranges under the VPC
@@ -84,17 +84,17 @@ def custom_training_job(
       within the provided IP ranges. Otherwise, the job will be deployed to any
       IP ranges under the provided VPC network.
     base_output_directory: The Cloud Storage location to store the output of
-      this CustomJob or HyperparameterTuningJob. See `more information
-      <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination>`_.
+      this CustomJob or HyperparameterTuningJob. See [more information
+     ](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).
     labels: The labels with user-defined metadata to organize the CustomJob. See
-      `more information <https://goo.gl/xmQnxf>`_.
+      [more information](https://goo.gl/xmQnxf).
     encryption_spec_key_name: Customer-managed encryption key options for the
       CustomJob. If this is set, then all resources created by the CustomJob
       will be encrypted with the provided encryption key.
     project: Project to create the custom training job in. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-    gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the CustomJob.
+    gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the CustomJob.
   """
   # fmt: on
   return utils.build_serverless_customjob_container_spec(

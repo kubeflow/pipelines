@@ -67,6 +67,7 @@ setuptools.setup(
             "protobuf<4.0.0dev,>=3.19.0",
             "grpcio-status<=1.47.0",
         ] + [
+            "commonmark==0.9.1",
             "autodocsumm==0.2.9",
             "sphinx==5.0.2",
             "sphinx-immaterial==0.9.0",

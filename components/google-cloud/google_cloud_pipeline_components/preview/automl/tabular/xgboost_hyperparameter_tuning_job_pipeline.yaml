@@ -1815,7 +1815,7 @@ components:
 
             the given project a new dataset is created with name
 
-            ``prediction_<model-display-name>_<job-create-time>`` where is made
+            `prediction_<model-display-name>_<job-create-time>` where is made
 
             BigQuery-dataset-name compatible (for example, most special characters
 
@@ -1823,25 +1823,25 @@ components:
 
             "based on ISO-8601" format. In the dataset two tables will be created,
 
-            ``predictions``, and ``errors``. If the Model has both ``instance``
+            `predictions`, and `errors`. If the Model has both `instance`
 
-            and ``prediction`` schemata defined then the tables have columns as
+            and `prediction` schemata defined then the tables have columns as
 
-            follows: The ``predictions`` table contains instances for which the
+            follows: The `predictions` table contains instances for which the
 
             prediction succeeded, it has columns as per a concatenation of the
 
-            Model''s instance and prediction schemata. The ``errors`` table
+            Model''s instance and prediction schemata. The `errors` table
 
             contains rows for which the prediction has failed, it has instance
 
             columns, as per the instance schema, followed by a single "errors"
 
-            column, which as values has ```google.rpc.Status`` <Status>`__
+            column, which as values has `google.rpc.Status`
 
-            represented as a STRUCT, and containing only ``code`` and
+            represented as a STRUCT, and containing only `code` and
 
-            ``message``. For more details about this output config, see
+            `message`. For more details about this output config, see
 
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
           isOptional: true
@@ -1867,7 +1867,7 @@ components:
 
             provided encryption key.  Has the form:
 
-            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+            `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
 
             The key needs to be in the same region as where the compute resource
 
@@ -1944,37 +1944,37 @@ components:
 
             to. In the given directory a new directory is created. Its name is
 
-            ``prediction-<model-display-name>-<job-create-time>``, where timestamp
+            `prediction-<model-display-name>-<job-create-time>`, where timestamp
 
             is in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
 
-            ``predictions_0001.<extension>``, ``predictions_0002.<extension>``,
+            `predictions_0001.<extension>`, `predictions_0002.<extension>`,
 
-            ..., ``predictions_N.<extension>`` are created where ``<extension>``
+            ..., `predictions_N.<extension>` are created where `<extension>`
 
-            depends on chosen ``predictions_format``, and N may equal 0001 and
+            depends on chosen `predictions_format`, and N may equal 0001 and
 
             depends on the total number of successfully predicted instances. If
 
-            the Model has both ``instance`` and ``prediction`` schemata defined
+            the Model has both `instance` and `prediction` schemata defined
 
             then each such file contains predictions as per the
 
-            ``predictions_format``. If prediction for any instance failed
+            `predictions_format`. If prediction for any instance failed
 
             (partially or completely), then an additional
 
-            ``errors_0001.<extension>``, ``errors_0002.<extension>``,...,
+            `errors_0001.<extension>`, `errors_0002.<extension>`,...,
 
-            ``errors_N.<extension>`` files are created (N depends on total number
+            `errors_N.<extension>` files are created (N depends on total number
 
             of failed predictions). These files contain the failed instances, as
 
-            per their schema, followed by an additional ``error`` field which as
+            per their schema, followed by an additional `error` field which as
 
-            value has ``google.rpc.Status`` containing only ``code`` and
+            value has `google.rpc.Status` containing only `code` and
 
-            ``message`` fields.  For more details about this output config, see
+            `message` fields.  For more details about this output config, see
 
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
           isOptional: true
@@ -2352,7 +2352,7 @@ components:
 
             Model will be secured by this key.  Has the form:
 
-            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+            `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
 
             The key needs to be in the same region as where the compute resource
 
