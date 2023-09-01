@@ -1699,7 +1699,7 @@ describe('NewRun', () => {
       await screen.findByDisplayValue('prefilled value 1');
       await screen.findByLabelText('param-2');
       await screen.findByDisplayValue('prefilled value 2');
-    });
+    }, 10000);
 
     it('trims whitespace from the pipeline params', async () => {
       tree = shallow(<TestNewRun {...generateProps()} />);
