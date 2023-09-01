@@ -98,7 +98,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [experimentResponse, pipelineId]);
+  }, [experimentResponse]);
 
   // Handle the error when createExperiment() is failed
   useEffect(() => {
