@@ -36,7 +36,7 @@ def video_dataset_import(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Uploads data to an existing managed `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_.
+  """Uploads data to an existing managed [Dataset](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets).
 
   Args:
       location: Optional location to retrieve Dataset from.
@@ -50,8 +50,8 @@ def video_dataset_import(
       import_schema_uri: Points to a YAML file stored on Google Cloud
           Storage describing the import format. Validation will be
           done against the schema. The schema is defined as an
-          `OpenAPI 3.0.2 Schema
-          Object <https://tinyurl.com/y538mdwt>`_.
+          [OpenAPI 3.0.2 Schema
+          Object](https://tinyurl.com/y538mdwt).
       data_item_labels: Labels that will be applied to newly imported DataItems. If
           an identical DataItem as one being imported already exists
           in the Dataset, then these labels will be appended to these
@@ -64,7 +64,7 @@ def video_dataset_import(
           if their content bytes are identical (e.g. image bytes or
           pdf bytes). These labels will be overridden by Annotation
           labels specified inside index file refenced by
-          ``import_schema_uri``,
+          `import_schema_uri`,
           e.g. jsonl file.
       project: Project to retrieve Dataset from. Defaults to the project in which the PipelineJob is run.
 

@@ -23,7 +23,6 @@ from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPred
 from google_cloud_pipeline_components.v1.model_evaluation.classification_component import model_evaluation_classification as ModelEvaluationClassificationOp
 from kfp import dsl
 
-
 _PIPELINE_NAME = 'evaluation-llm-classification-pipeline'
 
 
@@ -60,7 +59,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
     project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     target_field_name: The target field's name. Formatted to be able to find
-      nested columns, delimited by ``.``. Prefixed with 'instance.' on the
+      nested columns, delimited by `.`. Prefixed with 'instance.' on the
       component for Vertex Batch Prediction.
     batch_predict_gcs_source_uris: Google Cloud Storage URI(-s) to your
       instances data to run batch prediction on. The instances data should also
@@ -78,7 +77,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
     evaluation_task: The task that the large language model will be evaluated
       on. The evaluation component computes a set of metrics relevant to that
       specific task. Currently supported Classification tasks is:
-      ``text-classification``.
+      `text-classification`.
     evaluation_class_labels: The JSON array of class names for the target_field,
       in the same order they appear in the batch predictions input file.
     batch_predict_instances_format: The format in which instances are given,
@@ -90,7 +89,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
       more details about this output config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     machine_type: The machine type of the custom jobs in this pipeline. If not
-      set, defaulted to ``e2-highmem-16`. More details:
+      set, defaulted to `e2-highmem-16`. More details:
         https://cloud.google.com/compute/docs/machine-resource
     service_account: Sets the default service account for workload run-as
       account. The service account running the pipeline
@@ -100,18 +99,18 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
       Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
       for the CustomJob's project.
     network: The full name of the Compute Engine network to which the job should
-      be peered. For example, ``projects/12345/global/networks/myVPC``. Format
-      is of the form ``projects/{project}/global/networks/{network}``. Where
-      ``{project}`` is a project number, as in ``12345``, and ``{network}`` is a
-      network name, as in ``myVPC``. To specify this field, you must have
-      already configured VPC Network Peering for Vertex AI
+      be peered. For example, `projects/12345/global/networks/myVPC`. Format is
+      of the form `projects/{project}/global/networks/{network}`. Where
+      `{project}` is a project number, as in `12345`, and `{network}` is a
+      network name, as in `myVPC`. To specify this field, you must have already
+      configured VPC Network Peering for Vertex AI
       (https://cloud.google.com/vertex-ai/docs/general/vpc-peering). If left
       unspecified, the job is not peered with any network.
     dataflow_machine_type: The Dataflow machine type for evaluation components.
     dataflow_disk_size_gb: The disk size (in GB) of the machine executing the
-      evaluation run. If not set, defaulted to ``50``.
+      evaluation run. If not set, defaulted to `50`.
     dataflow_max_num_workers: The max number of workers executing the evaluation
-      run. If not set, defaulted to ``5``.
+      run. If not set, defaulted to `5`.
     dataflow_service_account: Custom service account to run Dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
@@ -121,7 +120,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
     encryption_spec_key_name:  Customer-managed encryption key options. If set,
       resources created by this pipeline will be encrypted with the provided
       encryption key. Has the form:
-      ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+      `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
       The key needs to be in the same region as where the compute resource is
       created.
 

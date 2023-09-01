@@ -22,7 +22,6 @@ from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import private_text_importer
 import kfp
 
-
 PipelineOutput = NamedTuple('Outputs', output_prediction_gcs_path=str)
 
 
@@ -46,14 +45,14 @@ def infer_pipeline(
 
   Args:
     large_model_reference: Name of the base model. Supported values are
-      ``text-bison@001``, ``t5-small``, ``t5-large``, ``t5-xl`` and ``t5-xxl``.
-      ``text-bison@001`` and ``t5-small`` are supported in ``us-central1` and
-      ``europe-west4``. ``t5-large``, ``t5-xl`` and ``t5-xxl`` are only
-      supported in ``europe-west4``.
+      `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`.
+      `text-bison@001` and `t5-small` are supported in `us-central1` and
+      `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in
+      `europe-west4`.
     model_checkpoint: Cloud storage path to the model checkpoint.
     prompt_dataset: Cloud storage path to an unlabled prompt dataset used for
       reinforcement learning. The dataset format is jsonl. Each example in the
-      dataset must have an ``input_text`` field that contains the prompt.
+      dataset must have an `input_text` field that contains the prompt.
     prompt_sequence_length: Maximum tokenized sequence length for input text.
       Higher values increase memory overhead. This value should be at most 8192.
       Default value is 512.

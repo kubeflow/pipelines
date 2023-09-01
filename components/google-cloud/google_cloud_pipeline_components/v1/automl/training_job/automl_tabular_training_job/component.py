@@ -65,14 +65,14 @@ def automl_tabular_training_job(
   If training on a Vertex AI dataset, you can use one of the following split configurations:
 
   Data fraction splits:
-  Any of ``training_fraction_split``, ``validation_fraction_split`` and
-  ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
+  Any of `training_fraction_split`, `validation_fraction_split` and
+  `test_fraction_split` may optionally be provided, they must sum to up to 1. If
   the provided ones sum to less than 1, the remainder is assigned to sets as
   decided by Vertex AI. If none of the fractions are set, by default roughly 80%
   of data will be used for training, 10% for validation, and 10% for test.
   Predefined splits:
   Assigns input data to training, validation, and test sets based on the value of a provided key.
-  If using predefined splits, ``predefined_split_column_name`` must be provided.
+  If using predefined splits, `predefined_split_column_name` must be provided.
   Supported only for tabular Datasets.
   Timestamp splits:
   Assigns input data to training, validation, and test sets
@@ -99,8 +99,8 @@ def automl_tabular_training_job(
           the Model. This is ignored if Dataset is not provided.
       predefined_split_column_name: The key is a name of one of the Dataset's data
           columns. The value of the key (either the label's value or
-          value in the column) must be one of {``training``,
-          ``validation``, ``test``}, and it defines to which set the
+          value in the column) must be one of {`training`,
+          `validation`, `test`}, and it defines to which set the
           given piece of data is assigned. If for a piece of data the
           key is not present or has an invalid value, that piece is
           ignored by the pipeline.
@@ -173,10 +173,10 @@ def automl_tabular_training_job(
           If False, then the export is not performed.
       export_evaluated_data_items_bigquery_destination_uri: URI of desired destination BigQuery table for exported test set predictions.
           Expected format:
-          ``bq://<project_id>:<dataset_id>:<table>``
+          `bq://<project_id>:<dataset_id>:<table>`
           If not specified, then results are exported to the following auto-created BigQuery
           table:
-          ``<project_id>:export_evaluated_examples_<model_name>_<yyyy_MM_dd'T'HH_mm_ss_SSS'Z'>.evaluated_examples``
+          `<project_id>:export_evaluated_examples_<model_name>_<yyyy_MM_dd'T'HH_mm_ss_SSS'Z'>.evaluated_examples`
           Applies only if [export_evaluated_data_items] is True.
       export_evaluated_data_items_override_destination: Whether to override the contents of [export_evaluated_data_items_bigquery_destination_uri],
           if the table exists, for exported test set predictions. If False, and the
@@ -253,17 +253,17 @@ def automl_tabular_training_job(
       training_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the training pipeline. Has the
           form:
-          ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
+          `projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key`.
           The key needs to be in the same region as where the compute
           resource is created.
           If set, this TrainingPipeline will be secured by this key.
           Note: Model trained by this TrainingPipeline is also secured
-          by this key if ``model_to_upload`` is not set separately.
+          by this key if `model_to_upload` is not set separately.
           Overrides encryption_spec_key_name set in aiplatform.init.
       model_encryption_spec_key_name: The Cloud KMS resource identifier of the customer
           managed encryption key used to protect the model. Has the
           form:
-          ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
+          `projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key`.
           The key needs to be in the same region as where the compute
           resource is created.
           If set, the trained Model will be secured by this key.

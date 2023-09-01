@@ -33,47 +33,47 @@ def model_export(
     image_destination: str = '',
 ):
   # fmt: off
-  """`Exports <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export>`_ a Google Cloud Vertex `Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models>`_ to a user-specified location.
+  """[Exports](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export) a Google Cloud Vertex [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models) to a user-specified location.
 
   The Model must be exportable. A Model is considered to be exportable if it has at least one supported
   export format.
 
-  See the `Model export <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export>`_ method for more information.
+  See the [Model export](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export) method for more information.
 
   Args:
       model: The Model to export.
       export_format_id: The ID of the format in which the Model must be
         exported. Each Model lists the export formats it supports. If no value
         is provided here, then the first from the list of the Model's
-        supported formats is used by default. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export#OutputConfig>`_
+        supported formats is used by default. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export#OutputConfig)
       artifact_destination: The Cloud Storage location where
         the Model artifact is to be written to. Under the directory given as
         the destination a new one with name
-        ``"model-export-<model-display-name>-<timestamp-of-export-call>"``,
+        `"model-export-<model-display-name>-<timestamp-of-export-call>"`,
         where timestamp is in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format, will
         be created. Inside, the Model and any of its supporting files will be
         written.  This field should only be set when, in
         [Model.supported_export_formats], the value for the key given in
-        ``export_format_id`` contains ``ARTIFACT``. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export#OutputConfig>`_
+        `export_format_id` contains `ARTIFACT`. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export#OutputConfig)
       image_destination: The Google Container Registry or
         Artifact Registry URI where the Model container image will be copied
-        to. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export#OutputConfig>`_
+        to. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/export#OutputConfig)
 
         Accepted forms:
 
-          -  Google Container Registry path. For example: ``gcr.io/projectId/imageName:tag``.
+          -  Google Container Registry path. For example: `gcr.io/projectId/imageName:tag`.
           -  Artifact Registry path.
 
         For example:
 
-          ``us-central1-docker.pkg.dev/projectId/repoName/imageName:tag``.
+          `us-central1-docker.pkg.dev/projectId/repoName/imageName:tag`.
 
-        This field should only be set when, in [Model.supported_export_formats], the value for the key given in ``export_format_id`` contains ``IMAGE``.
+        This field should only be set when, in [Model.supported_export_formats], the value for the key given in `export_format_id` contains `IMAGE`.
 
   Returns:
       output_info: Details of the completed export with output destination paths to
           the artifacts or container image.
-    gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the export Model's long-running operation.
+    gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the export Model's long-running operation.
   """
   # fmt: on
   return ContainerSpec(

@@ -36,7 +36,7 @@ def dataflow_python(
 
   Args:
       location: Location of the Dataflow job. If not set, defaults to
-          ``'us-central1'``.
+          `'us-central1'`.
       python_module_path: The GCS path to the Python file to run.
       temp_location: A GCS path for Dataflow to stage temporary job
           files created during the execution of the pipeline.

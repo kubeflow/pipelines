@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Create `Google Cloud Dataflow <https://cloud.google.com/dataflow>`_ jobs from within Vertex AI Pipelines."""
+"""Create [Google Cloud Dataflow](https://cloud.google.com/dataflow) jobs from within Vertex AI Pipelines."""
 
 from google_cloud_pipeline_components.v1.dataflow.python_job.component import dataflow_python as DataflowPythonJobOp
 

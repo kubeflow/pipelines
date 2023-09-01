@@ -31,13 +31,13 @@ def video_dataset_export(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Exports `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_ to a GCS output directory.
+  """Exports [Dataset](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets) to a GCS output directory.
 
   Args:
       output_dir: The Google Cloud Storage location where the output is to
           be written to. In the given directory a new directory will be
           created with name:
-          ``export-data-<dataset-display-name>-<timestamp-of-export-call>``
+          `export-data-<dataset-display-name>-<timestamp-of-export-call>`
           where timestamp is in YYYYMMDDHHMMSS format. All export
           output will be written into that directory. Inside that
           directory, annotations with the same schema will be grouped

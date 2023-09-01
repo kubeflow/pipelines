@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Compose `tabular data forecasting <https://cloud.google.com/vertex-ai/docs/tabular-data/forecasting/overview>`_ pipelines."""
+"""Compose [tabular data forecasting](https://cloud.google.com/vertex-ai/docs/tabular-data/forecasting/overview) pipelines."""
 
 from google_cloud_pipeline_components.v1.forecasting.prepare_data_for_train.component import prepare_data_for_train as ForecastingPrepareDataForTrainOp
 from google_cloud_pipeline_components.v1.forecasting.preprocess.component import forecasting_preprocessing as ForecastingPreprocessingOp

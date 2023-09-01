@@ -54,7 +54,7 @@ def model_evaluation_classification(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Computes a ``google.ClassificationMetrics`` Artifact, containing evaluation
+  """Computes a `google.ClassificationMetrics` Artifact, containing evaluation
   metrics given a model's prediction results.
 
   Creates a Dataflow job with Apache Beam and TFMA to compute evaluation
@@ -65,7 +65,7 @@ def model_evaluation_classification(
   Args:
       location: Location for running the evaluation.
       predictions_format: The file format for the batch
-        prediction results. ``jsonl``, ``csv``, and ``bigquery`` are the allowed
+        prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
         formats, from Vertex Batch Prediction.
       predictions_gcs_source: An artifact with its
         URI pointing toward a GCS directory with prediction or explanation files
@@ -76,8 +76,8 @@ def model_evaluation_classification(
         with prediction or explanation data to be used for this evaluation. For
         prediction results, the table column should be named "predicted_*".
       ground_truth_format: Required for custom tabular and non
-        tabular data. The file format for the ground truth files. ``jsonl``,
-        ``csv``, and ``bigquery`` are the allowed formats.
+        tabular data. The file format for the ground truth files. `jsonl`,
+        `csv`, and `bigquery` are the allowed formats.
       ground_truth_gcs_source: Required for custom
         tabular and non tabular data. The GCS URIs representing where the ground
         truth is located. Used to provide ground truth for each prediction
@@ -88,50 +88,50 @@ def model_evaluation_classification(
         Used to provide ground truth for each prediction instance when they are
         not part of the batch prediction jobs prediction instance.
       classification_type: The type of classification problem,
-        either ``multiclass`` or ``multilabel``.
+        either `multiclass` or `multilabel`.
       class_labels: The list of class names for the
         target_field_name, in the same order they appear in the batch
         predictions jobs predictions output file. For instance, if the values of
-        target_field_name could be either ``1`` or ``0``, and the predictions output
+        target_field_name could be either `1` or `0`, and the predictions output
         contains ["1", "0"] for the prediction_label_column, then the
         class_labels input will be ["1", "0"]. If not set, defaults to the
         classes found in the prediction_label_column in the batch prediction
         jobs predictions file.
       target_field_name: The full name path of the features target field
         in the predictions file. Formatted to be able to find nested columns,
-        delimited by ``.``. Alternatively referred to as the ground truth (or
+        delimited by `.`. Alternatively referred to as the ground truth (or
         ground_truth_column) field.
       model: The Vertex model used for evaluation. Must be located in the same
         region as the location argument. It is used to set the default
         configurations for AutoML and custom-trained models.
       prediction_score_column: The column name of the field
         containing batch prediction scores. Formatted to be able to find nested
-        columns, delimited by ``.``.
+        columns, delimited by `.`.
       prediction_label_column: The column name of the field
         containing classes the model is scoring. Formatted to be able to find
-        nested columns, delimited by ``.``.
+        nested columns, delimited by `.`.
       slicing_specs: List of
-        ``google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec``. When
+        `google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec`. When
         provided, compute metrics for each defined slice. See sample code in
         https://cloud.google.com/vertex-ai/docs/pipelines/model-evaluation-component
         Below is an example of how to format this input.
 
         1: First, create a SlicingSpec.
-          ``from google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice import SliceSpec``
+          `from google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice import SliceSpec`
 
-          ``from google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice.SliceSpec import SliceConfig``
+          `from google.cloud.aiplatform_v1.types.ModelEvaluationSlice.Slice.SliceSpec import SliceConfig`
 
-          ``slicing_spec = SliceSpec(configs={ 'feature_a': SliceConfig(SliceSpec.Value(string_value='label_a'))})``
+          `slicing_spec = SliceSpec(configs={ 'feature_a': SliceConfig(SliceSpec.Value(string_value='label_a'))})`
         2: Create a list to store the slicing specs into.
-          ``slicing_specs = []``
+          `slicing_specs = []`
         3: Format each SlicingSpec into a JSON or Dict.
-          ``slicing_spec_json = json_format.MessageToJson(slicing_spec)``
+          `slicing_spec_json = json_format.MessageToJson(slicing_spec)`
           or
-          ``slicing_spec_dict = json_format.MessageToDict(slicing_spec)``
+          `slicing_spec_dict = json_format.MessageToDict(slicing_spec)`
         4: Combine each slicing_spec JSON into a list.
-          ``slicing_specs.append(slicing_spec_json)``
+          `slicing_specs.append(slicing_spec_json)`
         5: Finally, pass slicing_specs as an parameter for this component.
-          ``ModelEvaluationClassificationOp(slicing_specs=slicing_specs)``
+          `ModelEvaluationClassificationOp(slicing_specs=slicing_specs)`
         For more details on configuring slices, see
         https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform_v1.types.ModelEvaluationSlice
       positive_classes: The list of class
@@ -158,16 +158,16 @@ def model_evaluation_classification(
       encryption_spec_key_name:  Customer-managed encryption key options.
         If set, resources created by this pipeline will be encrypted with the
         provided encryption key. Has the form:
-        ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+        `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
         The key needs to be in the same region as where the compute resource is
         created.
-      force_runner_mode: Flag to choose Beam runner. Valid options are ``DirectRunner``
-        and ``Dataflow``.
+      force_runner_mode: Flag to choose Beam runner. Valid options are `DirectRunner`
+        and `Dataflow`.
       project: Project to run evaluation container. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       evaluation_metrics:
-        ``google.ClassificationMetrics`` representing the classification
+        `google.ClassificationMetrics` representing the classification
         evaluation metrics in GCS.
       gcp_resources: Serialized gcp_resources proto tracking the Dataflow
         job. For more details, see

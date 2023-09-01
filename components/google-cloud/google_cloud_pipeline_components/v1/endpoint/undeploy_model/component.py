@@ -30,9 +30,9 @@ def model_undeploy(
     traffic_split: Dict[str, str] = {},
 ):
   # fmt: off
-  """`Undeploys <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel>`_ a Google Cloud Vertex `DeployedModel <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#deployedmodel>`_ within an `Endpoint <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints>`_.
+  """[Undeploys](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel) a Google Cloud Vertex [DeployedModel](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#deployedmodel) within an [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints).
 
-  See the `undeploy Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel>`_ method for more information.
+  See the [undeploy Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/undeployModel) method for more information.
 
 
   Args:
@@ -46,7 +46,7 @@ def model_undeploy(
           assigned to it when this method executes, or if this field unassigns any traffic to it.
 
   Returns:
-      gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the undeploy Model's long-running operation.
+      gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the undeploy Model's long-running operation.
   """
   # fmt: on
   return dsl.ContainerSpec(

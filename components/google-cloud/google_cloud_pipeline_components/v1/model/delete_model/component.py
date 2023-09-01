@@ -21,17 +21,17 @@ from kfp.dsl import Input
 @dsl.container_component
 def model_delete(model: Input[VertexModel], gcp_resources: dsl.OutputPath(str)):
   # fmt: off
-  """`Deletes <https://cloud.google.com/vertex-
-  ai/docs/reference/rest/v1/projects.locations.models/delete>`_ a Google Cloud Vertex `Model <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models>`_.
+  """[Deletes](https://cloud.google.com/vertex-
+  ai/docs/reference/rest/v1/projects.locations.models/delete) a Google Cloud Vertex [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models).
 
-  See the `Model delete <https://cloud.google.com/vertex-
-  ai/docs/reference/rest/v1/projects.locations.models/delete>`_ method for more information.
+  See the [Model delete](https://cloud.google.com/vertex-
+  ai/docs/reference/rest/v1/projects.locations.models/delete) method for more information.
 
   Args:
-      model: The name of the Model resource to be deleted. Format: ``projects/{project}/locations/{location}/models/{model}``. `More information. <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/delete#path-parameters>`_
+      model: The name of the Model resource to be deleted. Format: `projects/{project}/locations/{location}/models/{model}`. [More information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/delete#path-parameters).
 
   Returns:
-    gcp_resources: Serialized JSON of ``gcp_resources`` `proto <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ which tracks the delete Model's long-running operation.
+    gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the delete Model's long-running operation.
   """
   # fmt: on
   return dsl.ContainerSpec(

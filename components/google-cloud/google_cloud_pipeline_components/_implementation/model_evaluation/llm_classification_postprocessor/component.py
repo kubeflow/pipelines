@@ -81,11 +81,11 @@ def llm_classification_predictions_postprocessor_internal(
       (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
       submitting jobs must have act-as permission on this run-as account.
     network: The full name of the Compute Engine network to which the job should
-      be peered. For example, ``projects/12345/global/networks/myVPC``. Format
-      is of the form ``projects/{project}/global/networks/{network}``. Where
-      ``{project}`` is a project number, as in ``12345``, and ``{network}`` is a
-      network name, as in ``myVPC``. To specify this field, you must have
-      already configured VPC Network Peering for Vertex AI
+      be peered. For example, `projects/12345/global/networks/myVPC`. Format is
+      of the form `projects/{project}/global/networks/{network}`. Where
+      `{project}` is a project number, as in `12345`, and `{network}` is a
+      network name, as in `myVPC`. To specify this field, you must have already
+      configured VPC Network Peering for Vertex AI
       (https://cloud.google.com/vertex-ai/docs/general/vpc-peering). If left
       unspecified, the job is not peered with any network.
     reserved_ip_ranges: A list of names for the reserved ip ranges under the VPC
@@ -95,7 +95,7 @@ def llm_classification_predictions_postprocessor_internal(
     encryption_spec_key_name:  Customer-managed encryption key options. If set,
       resources created by this Custom Job will be encrypted with the provided
       encryption key. Has the form:
-      ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+      `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
       The key needs to be in the same region as where the compute resource is
       created.
 
@@ -179,18 +179,18 @@ def llm_classification_predictions_postprocessor_graph_component(
       same order they appear in the batch predictions input file.
     display_name: The name of the custom job.
     machine_type: The machine type of this custom job. If not set, defaulted to
-      ``e2-highmem-16``. More details:
+      `e2-highmem-16`. More details:
         https://cloud.google.com/compute/docs/machine-resource
     service_account: Sets the default service account for workload run-as
       account. The service account running the pipeline
       (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
       submitting jobs must have act-as permission on this run-as account.
     network: The full name of the Compute Engine network to which the job should
-      be peered. For example, ``projects/12345/global/networks/myVPC``. Format
-      is of the form ``projects/{project}/global/networks/{network}``. Where
-      ``{project}`` is a project number, as in ``12345``, and ``{network}`` is a
-      network name, as in ``myVPC``. To specify this field, you must have
-      already configured VPC Network Peering for Vertex AI
+      be peered. For example, `projects/12345/global/networks/myVPC`. Format is
+      of the form `projects/{project}/global/networks/{network}`. Where
+      `{project}` is a project number, as in `12345`, and `{network}` is a
+      network name, as in `myVPC`. To specify this field, you must have already
+      configured VPC Network Peering for Vertex AI
       (https://cloud.google.com/vertex-ai/docs/general/vpc-peering). If left
       unspecified, the job is not peered with any network.
     reserved_ip_ranges: A list of names for the reserved ip ranges under the VPC
@@ -200,7 +200,7 @@ def llm_classification_predictions_postprocessor_graph_component(
     encryption_spec_key_name:  Customer-managed encryption key options. If set,
       resources created by this Custom Job will be encrypted with the provided
       encryption key. Has the form:
-      ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+      `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
       The key needs to be in the same region as where the compute resource is
       created.
 

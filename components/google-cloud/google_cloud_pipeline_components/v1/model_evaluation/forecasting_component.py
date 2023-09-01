@@ -52,7 +52,7 @@ def model_evaluation_forecasting(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Computes a ``google.ForecastingMetrics`` Artifact, containing evaluation
+  """Computes a `google.ForecastingMetrics` Artifact, containing evaluation
   metrics given a model's prediction results.
 
   Creates a Dataflow job with Apache Beam and TFMA to compute evaluation
@@ -62,7 +62,7 @@ def model_evaluation_forecasting(
   Args:
       location: Location for running the evaluation.
       predictions_format: The file format for the batch
-        prediction results. ``jsonl``, ``csv``, and ``bigquery`` are the allowed
+        prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
         formats, from Vertex Batch Prediction.
       predictions_gcs_source: An artifact with its
         URI pointing toward a GCS directory with prediction or explanation files
@@ -73,8 +73,8 @@ def model_evaluation_forecasting(
         with prediction or explanation data to be used for this evaluation. For
         prediction results, the table column should be named "predicted_*".
       ground_truth_format: Required for custom tabular and non
-        tabular data. The file format for the ground truth files. ``jsonl``,
-        ``csv``, and ``bigquery`` are the allowed formats.
+        tabular data. The file format for the ground truth files. `jsonl`,
+        `csv`, and `bigquery` are the allowed formats.
       ground_truth_gcs_source: Required for custom
         tabular and non tabular data. The GCS URIs representing where the ground
         truth is located. Used to provide ground truth for each prediction
@@ -85,23 +85,23 @@ def model_evaluation_forecasting(
         Used to provide ground truth for each prediction instance when they are
         not part of the batch prediction jobs prediction instance.
       forecasting_type: The forecasting type being addressed by
-        this evaluation run. ``point`` and ``quantile`` are the supported types.
+        this evaluation run. `point` and `quantile` are the supported types.
       forecasting_quantiles: Required for a
-        ``quantile`` forecasting_type. The list of quantiles in the same order
+        `quantile` forecasting_type. The list of quantiles in the same order
         appeared in the quantile prediction score column.
-      point_evaluation_quantile: Required for a ``quantile``
+      point_evaluation_quantile: Required for a `quantile`
         forecasting_type. A quantile in the list of forecasting_quantiles that
         will be used for point evaluation metrics.
       target_field_name: The full name path of the features target field
         in the predictions file. Formatted to be able to find nested columns,
-        delimited by ``.``. Alternatively referred to as the ground truth (or
+        delimited by `.`. Alternatively referred to as the ground truth (or
         ground_truth_column) field.
       model: The Vertex model used for evaluation. Must be located in the same
         region as the location argument. It is used to set the default
         configurations for AutoML and custom-trained models.
       prediction_score_column: The column name of the field
         containing batch prediction scores. Formatted to be able to find nested
-        columns, delimited by ``.``.
+        columns, delimited by `.`.
       dataflow_service_account: Service account to run the
         Dataflow job. If not set, Dataflow will use the default worker service
         account.  For more details, see
@@ -123,17 +123,17 @@ def model_evaluation_forecasting(
       encryption_spec_key_name:  Customer-managed encryption key options.
         If set, resources created by this pipeline will be encrypted with the
         provided encryption key. Has the form:
-        ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+        `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
         The key needs to be in the same region as where the compute resource is
         created.
-      force_runner_mode: Flag to choose Beam runner. Valid options are ``DirectRunner``
-        and ``Dataflow``.
+      force_runner_mode: Flag to choose Beam runner. Valid options are `DirectRunner`
+        and `Dataflow`.
       project: Project to run evaluation container. Defaults to the project in which the PipelineJob is run.
 
 
   Returns:
       evaluation_metrics:
-        ``google.ForecastingMetrics`` representing the forecasting
+        `google.ForecastingMetrics` representing the forecasting
         evaluation metrics in GCS.
       gcp_resources: Serialized gcp_resources proto tracking the Dataflow
         job. For more details, see

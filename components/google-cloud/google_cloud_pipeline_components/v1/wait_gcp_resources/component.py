@@ -26,11 +26,11 @@ def wait_gcp_resources(
   # fmt: off
   """Waits for the completion of one or more GCP resources by polling for completion statuses.
 
-  Currently this component only supports waiting on a `DataflowJob <https://cloud.google.com/config-connector/docs/reference/resource-docs/dataflow/dataflowjob>`_ resource.
+  Currently this component only supports waiting on a [DataflowJob](https://cloud.google.com/config-connector/docs/reference/resource-docs/dataflow/dataflowjob) resource.
 
-  To use this component, first create a component that outputs a ``gcp_resources`` proto as JSON, then pass it to this component's ``gcp_resources`` parameter.
+  To use this component, first create a component that outputs a `gcp_resources` proto as JSON, then pass it to this component's `gcp_resources` parameter.
 
-  See `details <https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto>`_ on how to create a ``gcp_resources`` proto as a component output.
+  See [details](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) on how to create a `gcp_resources` proto as a component output.
 
   Examples:
     ::
@@ -44,10 +44,10 @@ def wait_gcp_resources(
       )
 
   Args:
-    gcp_resources: Serialized JSON of ``gcp_resources`` proto, indicating the resource(s) this component should wait on.
+    gcp_resources: Serialized JSON of `gcp_resources` proto, indicating the resource(s) this component should wait on.
 
   Returns:
-    gcp_resources: The ``gcp_resource``, including any relevant error information.
+    gcp_resources: The `gcp_resource`, including any relevant error information.
 
   """
   # fmt: on
