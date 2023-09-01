@@ -16,3 +16,4 @@
 # prefer not using placeholder suffix like KFP does for reduce verbosity
 PROJECT_ID_PLACEHOLDER = "{{$.pipeline_google_cloud_project_id}}"
 LOCATION_PLACEHOLDER = "{{$.pipeline_google_cloud_location}}"
+EXECUTOR_INPUT_PLACEHOLDER = "{{$}}"
