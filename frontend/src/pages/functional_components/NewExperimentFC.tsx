@@ -96,8 +96,9 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     }
     // Only trigger this effect when search string parameters change.
     // Do not rerun this effect if updateSnackbar callback has changes to avoid re-rendering.
+    // Do not rerun this effect if pipelineId has changes to avoid re-rendering.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [experimentResponse, latestVersion, pipelineId]);
+  }, [experimentResponse, latestVersion]);
 
   useEffect(() => {
     if (errMsgFromApi) {
