@@ -14,24 +14,18 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import EnhancedExperimentDetails, { ExperimentDetails } from 'src/pages/ExperimentDetails';
 import { ExperimentDetailsFC } from './ExperimentDetailsFC';
 import TestUtils from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
-import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
-import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { RouteParams } from 'src/components/Router';
 import { range } from 'lodash';
-import { ButtonKeys } from 'src/lib/Buttons';
-import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { Router } from 'react-router-dom';
-import { createMemoryHistory } from 'history';
-import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
 describe('ExperimentDetails', () => {
   const TEST_EXPERIMENT_ID = 'test-experiment-id';
@@ -44,6 +38,7 @@ describe('ExperimentDetails', () => {
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   const listRecurringRunsSpy = jest.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns');
   const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
+  const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
 
   const MOCK_EXPERIMENT = newMockExperiment();
 
@@ -73,31 +68,35 @@ describe('ExperimentDetails', () => {
     };
   }
 
-  async function mockNRecurringRuns(n: number): Promise<void> {
+  function mockNRecurringRuns(n: number): void {
     listRecurringRunsSpy.mockImplementation(() => ({
-      recurringRuns: range(n).map(i => ({
-        display_name: 'test job name' + i,
-        recurring_run_id: 'test-recurringrun-id' + i,
-        status: V2beta1RecurringRunStatus.ENABLED,
-      })),
+      recurringRuns: range(1, n + 1).map(
+        i =>
+          ({
+            display_name: 'test recurring run name' + i,
+            recurring_run_id: 'test-recurringrun-id' + i,
+            status: V2beta1RecurringRunStatus.ENABLED,
+          } as V2beta1RecurringRun),
+      ),
     }));
-    await listRecurringRunsSpy;
-    await TestUtils.flushPromises();
   }
 
-  async function mockNRuns(n: number): Promise<void> {
+  function mockNRuns(n: number): void {
     listRunsSpy.mockImplementation(() => ({
-      runs: range(n).map(i => ({ run_id: 'test-run-id' + i, display_name: 'test run name' + i })),
+      runs: range(1, n + 1).map(
+        i =>
+          ({
+            run_id: 'testrun' + i,
+            experiment_id: MOCK_EXPERIMENT.experiment_id,
+            display_name: 'run with id: testrun' + i,
+          } as V2beta1Run),
+      ),
     }));
-    await listRunsSpy;
-    await TestUtils.flushPromises();
   }
 
   beforeEach(async () => {
     jest.clearAllMocks();
     getExperimentSpy.mockImplementation(() => newMockExperiment());
-    // await mockNRecurringRuns(0);
-    // await mockNRuns(0);
   });
 
   it('renders a page with no runs or recurring runs', async () => {
@@ -117,6 +116,8 @@ describe('ExperimentDetails', () => {
   });
 
   it('uses the experiment ID in props as the page title if the experiment has no name', async () => {
+    mockNRecurringRuns(1);
+    mockNRuns(1);
     const experiment = newMockExperiment();
     experiment.display_name = '';
     getExperimentSpy.mockImplementationOnce(() => experiment);
@@ -131,11 +132,15 @@ describe('ExperimentDetails', () => {
 
     await waitFor(() => {
       expect(getExperimentSpy).toHaveBeenCalled();
+      expect(listRecurringRunsSpy).toHaveBeenCalled();
+      expect(listRunsSpy).toHaveBeenCalled();
     });
 
-    expect(updateBannerSpy).toHaveBeenCalledWith({
-      pageTitle: 'test-no-name-exp-id',
-    });
+    expect(updateToolbarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pageTitle: 'test-no-name-exp-id',
+      }),
+    );
   });
 
   it('uses the experiment name as the page title', async () => {
@@ -149,9 +154,11 @@ describe('ExperimentDetails', () => {
       expect(getExperimentSpy).toHaveBeenCalled();
     });
 
-    expect(updateBannerSpy).toHaveBeenCalledWith({
-      pageTitle: TEST_EXPERIMENT_NAME,
-    });
+    expect(updateToolbarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pageTitle: TEST_EXPERIMENT_NAME,
+      }),
+    );
   });
 
   it('removes all description text after second newline and replaces with an ellipsis', async () => {
@@ -170,29 +177,212 @@ describe('ExperimentDetails', () => {
     });
 
     screen.getByText('Line 1');
+    screen.getByText('Line 2');
+    expect(screen.queryByText('Line 3')).toBeNull();
+    expect(screen.queryByText('Line 4')).toBeNull();
   });
 
-  //   it('', () => {});
+  it('calls getExperiment with the experiment ID in props', async () => {
+    const props = generateProps();
+    props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
+    render(
+      <CommonTestWrapper>
+        <ExperimentDetailsFC {...props} />
+      </CommonTestWrapper>,
+    );
 
-  //   it('', () => {});
+    await waitFor(() => {
+      expect(getExperimentSpy).toHaveBeenCalledTimes(1);
+      expect(getExperimentSpy).toHaveBeenCalledWith('test exp ID');
+    });
+  });
 
-  //   it('', () => {});
+  it('shows an error banner if fetching the experiment fails', async () => {
+    mockNRecurringRuns(1);
+    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'There was something wrong!');
 
-  //   it('', () => {});
+    render(
+      <CommonTestWrapper>
+        <ExperimentDetailsFC {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-  //   it('', () => {});
+    await waitFor(() => {
+      expect(getExperimentSpy).toHaveBeenCalled();
+    });
 
-  //   it('', () => {});
+    expect(updateBannerSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'There was something wrong!',
+        message:
+          `Error: failed to retrieve experiment: ${MOCK_EXPERIMENT.experiment_id}. ` +
+          `Click Details for more information.`,
+      }),
+    );
+  });
 
-  //   it('', () => {});
+  it('shows a list of available runs', async () => {
+    mockNRuns(1);
+    render(
+      <CommonTestWrapper>
+        <ExperimentDetailsFC {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-  //   it('', () => {});
+    await waitFor(() => {
+      expect(getExperimentSpy).toHaveBeenCalled();
+      expect(listRunsSpy).toHaveBeenCalled();
+    });
 
-  //   it('', () => {});
+    screen.getByText('run with id: testrun1');
+  });
 
-  //   it('', () => {});
+  it("shows an error banner if fetching the experiment's recurring runs fails", async () => {
+    mockNRecurringRuns(1);
+    mockNRuns(1);
+    TestUtils.makeErrorResponseOnce(listRecurringRunsSpy, 'There was something wrong!');
 
-  //   it('', () => {});
+    render(
+      <CommonTestWrapper>
+        <ExperimentDetailsFC {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-  //   it('', () => {});
+    await waitFor(() => {
+      expect(getExperimentSpy).toHaveBeenCalled();
+      expect(listRecurringRunsSpy).toHaveBeenCalled();
+    });
+
+    expect(updateBannerSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        additionalInfo: 'There was something wrong!',
+        message:
+          `Error: failed to retrieve recurring runs for experiment: ${MOCK_EXPERIMENT.experiment_id}. ` +
+          `Click Details for more information.`,
+      }),
+    );
+  });
+
+  it('only counts enabled recurring runs as active', async () => {
+    const recurringRuns = [
+      {
+        recurring_run_id: 'enabled-recurringrun-1-id',
+        status: V2beta1RecurringRunStatus.ENABLED,
+        display_name: 'enabled-recurringrun-1',
+      },
+      {
+        recurring_run_id: 'enabled-recurringrun-2-id',
+        status: V2beta1RecurringRunStatus.ENABLED,
+        display_name: 'enabled-recurringrun-2',
+      },
+      {
+        recurring_run_id: 'disabled-recurringrun-1-id',
+        status: V2beta1RecurringRunStatus.DISABLED,
+        display_name: 'disabled-recurringrun-1',
+      },
+    ];
+    listRecurringRunsSpy.mockImplementationOnce(() => ({ recurringRuns }));
+
+    render(
+      <CommonTestWrapper>
+        <ExperimentDetailsFC {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(getExperimentSpy).toHaveBeenCalled();
+      expect(listRecurringRunsSpy).toHaveBeenCalled();
+    });
+
+    screen.getByText('2 active');
+  });
+
+  it("fetches this experiment's recurring runs when recurring run manager modal is opened", async () => {
+    mockNRecurringRuns(1);
+    render(
+      <CommonTestWrapper>
+        <ExperimentDetailsFC {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(getExperimentSpy).toHaveBeenCalled();
+      expect(listRecurringRunsSpy).toHaveBeenCalled();
+    });
+
+    const recurringRunManageBtn = screen.getByText('Manage');
+    expect(recurringRunManageBtn.closest('button')?.disabled).toEqual(false);
+    // Open the recurring run manager modal
+    fireEvent.click(recurringRunManageBtn);
+
+    // listRecurringRun() will be called again after clicking manage button
+    await waitFor(() => {
+      expect(listRecurringRunsSpy).toHaveBeenCalled();
+    });
+
+    screen.getByText('test recurring run name1');
+  });
+
+  it('refreshes the number of active recurring runs when the recurring run manager is closed', async () => {
+    const recurringRuns = [
+      {
+        recurring_run_id: 'enabled-recurringrun-1-id',
+        status: V2beta1RecurringRunStatus.ENABLED,
+        display_name: 'enabled-recurringrun-1',
+      },
+    ];
+    listRecurringRunsSpy.mockImplementation(() => ({ recurringRuns }));
+
+    render(
+      <CommonTestWrapper>
+        <ExperimentDetailsFC {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(getExperimentSpy).toHaveBeenCalled();
+      expect(listRecurringRunsSpy).toHaveBeenCalled();
+    });
+
+    screen.getByText('1 active'); // 1 active recurring run in the beginning
+
+    const recurringRunManageBtn = screen.getByText('Manage');
+    expect(recurringRunManageBtn.closest('button')?.disabled).toEqual(false);
+    // Open the recurring run manager modal
+    fireEvent.click(recurringRunManageBtn);
+
+    // listRecurringRun() will be called again after clicking manage button
+    await waitFor(() => {
+      expect(listRecurringRunsSpy).toHaveBeenCalled();
+    });
+
+    const enabledBtnForFirstRRun = screen.getByText('Enabled');
+    fireEvent.click(enabledBtnForFirstRRun); // disable the second recurring run
+
+    listRecurringRunsSpy.mockReset();
+    const recurringRunsAfterDisabled = [
+      {
+        recurring_run_id: 'enabled-recurringrun-1-id',
+        status: V2beta1RecurringRunStatus.DISABLED,
+        display_name: 'enabled-recurringrun-1',
+      },
+    ];
+    listRecurringRunsSpy.mockImplementation(() => ({ recurringRunsAfterDisabled }));
+
+    await waitFor(() => {
+      expect(listRecurringRunsSpy).toHaveBeenCalled();
+    });
+
+    const closeBtn = screen.getByText('Close');
+    // Close the recurring run manager modal
+    fireEvent.click(closeBtn);
+
+    await waitFor(() => {
+      expect(listRecurringRunsSpy).toHaveBeenCalled();
+    });
+
+    screen.getByText('0 active'); // 0 active recurring run in thE final
+  });
+
+  // TODO(jlyaoyuli): add more unit tests for sub run list.
 });

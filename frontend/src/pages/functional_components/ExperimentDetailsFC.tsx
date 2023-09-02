@@ -227,7 +227,7 @@ export function ExperimentDetailsFC(props: PageProps) {
     return {
       actions: buttons.refresh(Refresh).getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: '',
+      pageTitle: experimentId,
     };
   };
 
