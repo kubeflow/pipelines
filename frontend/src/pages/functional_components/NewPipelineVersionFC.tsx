@@ -19,7 +19,7 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import { TextFieldProps } from '@material-ui/core/TextField';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Dropzone from 'react-dropzone';
 import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
 import { classes, stylesheet } from 'typestyle';
@@ -33,44 +33,12 @@ import { color, commonCss, padding, zIndex } from 'src/Css';
 import { Apis, PipelineSortKeys, BuildInfo } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage, logger } from 'src/lib/Utils';
-import { Page, PageProps } from './Page';
-import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { PageProps } from 'src/pages/Page';
 import PrivateSharedSelector from 'src/components/PrivateSharedSelector';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { useMutation } from 'react-query';
-
-interface NewPipelineVersionState {
-  validationError: string;
-  isbeingCreated: boolean;
-  errorMessage: string;
-
-  pipelineDescription: string;
-  pipelineId?: string;
-  pipelineName?: string;
-  pipelineVersionName: string;
-  pipelineVersionDescription: string;
-  pipeline?: V2beta1Pipeline;
-
-  codeSourceUrl: string;
-
-  // Package can be local file or url
-  importMethod: ImportMethod;
-  fileName: string;
-  file: File | null;
-  packageUrl: string;
-  dropzoneActive: boolean;
-
-  // Create a new pipeline or not
-  newPipeline: boolean;
-
-  // Select existing pipeline
-  pipelineSelectorOpen: boolean;
-  unconfirmedSelectedPipeline?: V2beta1Pipeline;
-
-  isPrivate: boolean;
-}
 
 interface NewPipelineVersionFCProps extends PageProps {
   buildInfo?: BuildInfo;

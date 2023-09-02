@@ -39,6 +39,8 @@ import PrivateSharedSelector from 'src/components/PrivateSharedSelector';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
+import { NewPipelineVersionFC } from 'src/pages/functional_components/NewPipelineVersionFC';
+import { FeatureKey, isFeatureEnabled } from 'src/features';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -684,7 +686,11 @@ const EnhancedNewPipelineVersion: React.FC<PageProps> = props => {
   const buildInfo = React.useContext(BuildInfoContext);
   const namespace = React.useContext(NamespaceContext);
 
-  return <NewPipelineVersion {...props} buildInfo={buildInfo} namespace={namespace} />;
+  return isFeatureEnabled(FeatureKey.FUNCTIONAL_COMPONENT) ? (
+    <NewPipelineVersionFC {...props} buildInfo={buildInfo} namespace={namespace} />
+  ) : (
+    <NewPipelineVersion {...props} buildInfo={buildInfo} namespace={namespace} />
+  );
 };
 
 export default EnhancedNewPipelineVersion;
