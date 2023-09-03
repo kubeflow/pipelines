@@ -34,8 +34,8 @@ import { commonCss, padding } from 'src/Css';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
-import { Page, PageProps } from './Page';
-import PipelineVersionList from './PipelineVersionList';
+import { Page, PageProps } from 'src/pages/Page';
+import PipelineVersionList from 'src/pages/PipelineVersionList';
 
 interface pipelineListProps {
   namespace?: string;

@@ -19,11 +19,12 @@ import { classes } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { PageProps } from './Page';
 import PipelineList from './PipelineList';
-import { PipelineListFC } from './PipelineListFC';
+import { PipelineListFC } from 'src/pages/functional_components/PipelineListFC';
 import { RoutePage } from '../components/Router';
 import { NamespaceContext } from '../lib/KubeflowClient';
 import { commonCss, padding } from '../Css';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+import { FeatureKey, isFeatureEnabled } from 'src/features';
 
 export enum PrivateAndSharedTab {
   PRIVATE = 0,
@@ -59,8 +60,11 @@ const PrivateAndSharedPipelines: React.FC<PrivateAndSharedProps> = props => {
   };
 
   if (!buildInfo?.apiServerMultiUser) {
-    return <PipelineList {...props} />;
-    // return <PipelineListFC {...props} />
+    return isFeatureEnabled(FeatureKey.FUNCTIONAL_COMPONENT) ? (
+      <PipelineListFC {...props} />
+    ) : (
+      <PipelineList {...props} />
+    );
   }
   return (
     <div className={classes(commonCss.page, padding(20, 't'))}>
