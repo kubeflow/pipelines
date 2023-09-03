@@ -91,6 +91,7 @@ const css = stylesheet({
 export function NewPipelineVersionFC(props: NewPipelineVersionFCProps) {
   const urlParser = new URLParser(props);
   const { buildInfo, namespace, updateDialog, updateToolbar } = props;
+  const [isFirstTimeLoad, setIsFirstTimeLoad] = useState<boolean>(true);
   const [isbeingCreated, setIsBeingCreated] = useState<boolean>();
   const [errorMessage, setErrorMessage] = useState<string>();
   const [pipelineDescription, setPipelineDescription] = useState<string>('');
@@ -152,18 +153,21 @@ export function NewPipelineVersionFC(props: NewPipelineVersionFCProps) {
 
   useEffect(() => {
     const currDate = new Date();
-    if (pipeline) {
+    if (pipeline && isFirstTimeLoad) {
       setPipelineId(pipeline.pipeline_id || '');
       setPipelineName(pipeline.display_name || '');
       setPipelineVersionName(
         pipeline?.display_name + '_version_at_' + currDate.toISOString() || '',
       );
+      setIsFirstTimeLoad(false);
     }
     if (unconfirmedSelectedPipeline) {
       setPipelineId(unconfirmedSelectedPipeline.pipeline_id || '');
       setPipelineName(unconfirmedSelectedPipeline.display_name || '');
       setPipelineVersionName(
-        unconfirmedSelectedPipeline.display_name + '_version_at_' + currDate.toISOString() || '',
+        pipelineVersionName ||
+          unconfirmedSelectedPipeline.display_name + '_version_at_' + currDate.toISOString() ||
+          '',
       );
     }
     if (file) {
@@ -215,7 +219,7 @@ export function NewPipelineVersionFC(props: NewPipelineVersionFCProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errMsgFromPipelineApi]);
 
-  // When upload/create/list version is failed.
+  // When upload/create version is failed.
   useEffect(() => {
     if (errMsgFromVersionApi) {
       updateDialog({
@@ -315,8 +319,6 @@ export function NewPipelineVersionFC(props: NewPipelineVersionFCProps) {
             listVersionsResponse.pipeline_versions.length > 0
           ) {
             setPipelineVersionResponse(listVersionsResponse.pipeline_versions[0]);
-          } else {
-            setErrMsgFromVersionApi('Pipeline is empty');
           }
         },
         onError: async err => {
