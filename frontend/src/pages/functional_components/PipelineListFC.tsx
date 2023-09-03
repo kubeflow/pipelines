@@ -34,7 +34,7 @@ import { commonCss, padding } from 'src/Css';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
-import { Page, PageProps } from 'src/pages/Page';
+import { PageProps } from 'src/pages/Page';
 import PipelineVersionList from 'src/pages/PipelineVersionList';
 
 interface pipelineListProps {
@@ -53,47 +53,12 @@ interface DisplayPipeline extends V2beta1Pipeline {
 
 export function PipelineListFC(props: pipelineListFCProps) {
   const { namespace, updateBanner, updateToolbar } = props;
-  const [selectedPipelineIds, setSelectedPipelineIds] = useState<string[]>([]);
-  const [selectedVersionIds, setSelectedVersionIds] = useState<versionIdsMap>({});
+  const [isFirstTimeLoad, setIsFirstTimeLoad] = useState<boolean>(true);
   const [refresh, setRefresh] = useState(true);
   const Refresh = () => setRefresh(refreshed => !refreshed);
-  const selectionChanged = (parentId: string | undefined, selectedIds: string[]) => {
-    if (!!parentId) {
-      // select version
-      // console.log({[parentId]: selectedIds})
-      // let updatedSelectedVersionId = Object.assign(selectedVersionIds, {[parentId]: selectedIds})
+  const [selectedPipelineIds, setSelectedPipelineIds] = useState<string[]>([]);
+  const [selectedVersionIds, setSelectedVersionIds] = useState<versionIdsMap>({});
 
-      // console.log(updatedSelectedVersionId)
-      // setSelectedVersionIds(updatedSelectedVersionId);
-
-      // let updatedSelectedVersionId = new Map<string, string[]>();
-      setSelectedVersionIds({ [parentId]: selectedIds });
-      // Update selected pipeline version ids.
-      // this.setStateSafe({
-      //   selectedVersionIds: { ...this.state.selectedVersionIds, ...{ [pipelineId!]: selectedIds } },
-      // });
-      // console.log('set is finished')
-
-      // const actions = this.props.toolbarProps.actions;
-      // actions[ButtonKeys.DELETE_RUN].disabled =
-      //   this.state.selectedIds.length < 1 && selectedIds.length < 1;
-      // this.props.updateToolbar({ actions });
-    } else {
-      // select pipeline
-      setSelectedPipelineIds(selectedIds);
-
-      // const selectedVersionIdsCt = this._deepCountDictionary(this.state.selectedVersionIds);
-      // const actions = this.props.toolbarProps.actions;
-      // actions[ButtonKeys.DELETE_RUN].disabled = selectedIds.length < 1 && selectedVersionIdsCt < 1;
-      // this.props.updateToolbar({ actions });
-    }
-  };
-
-  // console.log(selectedVersionIds)
-
-  const [toolbarState, setToolbarState] = useState<ToolbarProps>(
-    getInitialToolbarState([], {}, selectionChanged, props, Refresh),
-  );
   const [displayPipelines, setDisplayPipelines] = useState<DisplayPipeline[]>([]);
   const [rows, setRows] = useState<Row[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string>('');
@@ -141,30 +106,21 @@ export function PipelineListFC(props: pipelineListFCProps) {
   );
 
   useEffect(() => {
-    if (pipelineList) {
-      let updatedDisplayPipelines: DisplayPipeline[] = pipelineList;
-      updatedDisplayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
-      setDisplayPipelines(updatedDisplayPipelines);
-    }
-  }, [pipelineList]);
-
-  useEffect(() => {
-    setToolbarState(
-      getInitialToolbarState(
-        selectedPipelineIds,
-        selectedVersionIds,
-        selectionChanged,
-        props,
-        Refresh,
-      ),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const toolbarState = getInitialToolbarState();
+    const actions = toolbarState.actions;
+    actions[ButtonKeys.DELETE_RUN].disabled =
+      selectedPipelineIds.length < 1 && deepCountDictionary(selectedVersionIds) < 1;
+    updateToolbar(toolbarState);
   }, [selectedPipelineIds, selectedVersionIds]);
 
   useEffect(() => {
-    updateToolbar(toolbarState);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toolbarState]);
+    if (pipelineList && isFirstTimeLoad) {
+      let updatedDisplayPipelines: DisplayPipeline[] = pipelineList;
+      updatedDisplayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
+      setDisplayPipelines(updatedDisplayPipelines);
+      setIsFirstTimeLoad(false);
+    }
+  }, [pipelineList]);
 
   useEffect(() => {
     const rows = displayPipelines.map(p => {
@@ -181,6 +137,28 @@ export function PipelineListFC(props: pipelineListFCProps) {
   //   refetchPipelineList();
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [request]);
+
+  const getInitialToolbarState = (): ToolbarProps => {
+    const buttons = new Buttons(props, Refresh);
+    return {
+      actions: buttons
+        .newPipelineVersion('Upload pipeline')
+        .refresh(Refresh)
+        .deletePipelinesAndPipelineVersions(
+          () => selectedPipelineIds,
+          () => selectedVersionIds,
+          (pipelineId, ids) => selectionChanged(pipelineId, ids),
+          false /* useCurrentResource */,
+        )
+        .getToolbarActionMap(),
+      breadcrumbs: [],
+      pageTitle: 'Pipelines',
+    };
+  };
+
+  const deepCountDictionary = (dict: { [pipelineId: string]: string[] }): number => {
+    return Object.keys(dict).reduce((count, pipelineId) => count + dict[pipelineId].length, 0);
+  };
 
   const reload = async (updateRequest: ListRequest) => {
     let response: V2beta1ListPipelinesResponse | null = null;
@@ -206,6 +184,19 @@ export function PipelineListFC(props: pipelineListFCProps) {
     // return nextPageToken;
   };
 
+  const selectionChanged = (parentId: string | undefined, selectedIds: string[]) => {
+    if (!!parentId) {
+      // select version
+      // copy the target to an new object to avoid it's been changed
+      let updatedSelectedVersionId = Object.assign({}, selectedVersionIds);
+      Object.assign(updatedSelectedVersionId, { [parentId]: selectedIds });
+      setSelectedVersionIds(updatedSelectedVersionId);
+    } else {
+      // select pipeline
+      setSelectedPipelineIds(selectedIds);
+    }
+  };
+
   const showPageError = async (message: string, error: Error | undefined) => {
     const errorMessage = await errorToMessage(error);
     updateBanner({
@@ -216,9 +207,6 @@ export function PipelineListFC(props: pipelineListFCProps) {
 
   const getExpandedPipelineComponent = (rowIndex: number) => {
     const pipeline = displayPipelines[rowIndex];
-    const updateVersionSelection = (selectedIds: string[]) => {
-      selectionChanged(pipeline.pipeline_id, selectedIds);
-    };
     return (
       <PipelineVersionList
         pipelineId={pipeline.pipeline_id}
@@ -226,7 +214,9 @@ export function PipelineListFC(props: pipelineListFCProps) {
         {...props}
         selectedIds={selectedVersionIds[pipeline.pipeline_id!] || []}
         noFilterBox={true}
-        onSelectionChange={updateVersionSelection}
+        onSelectionChange={(selectedIds: string[]) => {
+          selectionChanged(pipeline.pipeline_id, selectedIds);
+        }}
         disableSorting={false}
         disablePaging={false}
       />
@@ -244,9 +234,6 @@ export function PipelineListFC(props: pipelineListFCProps) {
     setDisplayPipelines(updatedDisplayPipelines);
   };
 
-  const updatePipelineSelection = (selectedIds: string[]) => {
-    selectionChanged(undefined, selectedIds);
-  };
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
       Display pipeline list here.
@@ -256,7 +243,9 @@ export function PipelineListFC(props: pipelineListFCProps) {
           columns={columns}
           rows={rows}
           initialSortColumn={PipelineSortKeys.CREATED_AT}
-          updateSelection={updatePipelineSelection}
+          updateSelection={(selectedIds: string[]) => {
+            selectionChanged(undefined, selectedIds);
+          }}
           selectedIds={selectedPipelineIds}
           reload={reload}
           toggleExpansion={toggleRowExpand}
@@ -267,30 +256,6 @@ export function PipelineListFC(props: pipelineListFCProps) {
       )}
     </div>
   );
-}
-
-function getInitialToolbarState(
-  selectedIds: string[],
-  selectedVersionIds: { [pipelineId: string]: string[] },
-  selectionChanged: (pipelineId: string | undefined, selectedIds: string[]) => void,
-  props: PageProps,
-  refresh: () => void,
-) {
-  const buttons = new Buttons(props, refresh);
-  return {
-    actions: buttons
-      .newPipelineVersion('Upload pipeline')
-      .refresh(refresh)
-      .deletePipelinesAndPipelineVersions(
-        () => selectedIds,
-        () => selectedVersionIds,
-        (pipelineId, ids) => selectionChanged(pipelineId, ids),
-        false /* useCurrentResource */,
-      )
-      .getToolbarActionMap(),
-    breadcrumbs: [],
-    pageTitle: 'Pipelines',
-  };
 }
 
 const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
