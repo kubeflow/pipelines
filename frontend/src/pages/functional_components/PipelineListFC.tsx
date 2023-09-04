@@ -60,14 +60,14 @@ export function PipelineListFC(props: pipelineListFCProps) {
   const [selectedVersionIds, setSelectedVersionIds] = useState<versionIdsMap>({});
 
   const [displayPipelines, setDisplayPipelines] = useState<DisplayPipeline[]>([]);
+  const [errorMsgFromApi, setErrorMsgFromApi] = useState<string>('');
   const [rows, setRows] = useState<Row[]>([]);
-  const [nextPageToken, setNextPageToken] = useState<string>('');
-  const [request, setRequest] = useState<ListRequest>({
+  const initialRequest: ListRequest = {
     pageToken: '',
     pageSize: 10,
     sortBy: 'created_at desc',
     filter: '',
-  });
+  };
 
   const columns: Column[] = [
     {
@@ -80,29 +80,23 @@ export function PipelineListFC(props: pipelineListFCProps) {
     { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
   ];
 
-  const {
-    isFetched: pipelineIsFetched,
-    data: pipelineList,
-    refetch: refetchPipelineList,
-  } = useQuery<V2beta1Pipeline[], Error>(
+  const { data: pipelineList, error: listPipelinesError, refetch: refetchPipelineList } = useQuery<
+    V2beta1Pipeline[],
+    Error
+  >(
     ['pipelineList'],
     async () => {
       let pipelineListResponse: V2beta1ListPipelinesResponse;
-      try {
-        pipelineListResponse = await Apis.pipelineServiceApiV2.listPipelines(
-          namespace,
-          request.pageToken,
-          request.pageSize,
-          request.sortBy,
-          request.filter,
-        );
-        setNextPageToken(pipelineListResponse.next_page_token || '');
-        return pipelineListResponse.pipelines ?? [];
-      } catch (err) {
-        throw new Error('Error: failed to retrieve list of pipelines.');
-      }
+      pipelineListResponse = await Apis.pipelineServiceApiV2.listPipelines(
+        namespace,
+        initialRequest.pageToken,
+        initialRequest.pageSize,
+        initialRequest.sortBy,
+        initialRequest.filter,
+      );
+      return pipelineListResponse.pipelines ?? [];
     },
-    { enabled: !!request },
+    { enabled: !!initialRequest },
   );
 
   useEffect(() => {
@@ -111,6 +105,7 @@ export function PipelineListFC(props: pipelineListFCProps) {
     actions[ButtonKeys.DELETE_RUN].disabled =
       selectedPipelineIds.length < 1 && deepCountDictionary(selectedVersionIds) < 1;
     updateToolbar(toolbarState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPipelineIds, selectedVersionIds]);
 
   useEffect(() => {
@@ -120,7 +115,30 @@ export function PipelineListFC(props: pipelineListFCProps) {
       setDisplayPipelines(updatedDisplayPipelines);
       setIsFirstTimeLoad(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pipelineList]);
+
+  useEffect(() => {
+    if (listPipelinesError) {
+      (async () => {
+        setErrorMsgFromApi(await errorToMessage(listPipelinesError));
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listPipelinesError]);
+
+  useEffect(() => {
+    if (errorMsgFromApi) {
+      updateBanner({
+        additionalInfo: errorMsgFromApi ? errorMsgFromApi : undefined,
+        message:
+          'Error: failed to retrieve list of pipelines.' +
+          (errorMsgFromApi ? ' Click Details for more information.' : ''),
+        mode: 'error',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [errorMsgFromApi]);
 
   useEffect(() => {
     const rows = displayPipelines.map(p => {
@@ -133,10 +151,11 @@ export function PipelineListFC(props: pipelineListFCProps) {
     setRows(rows);
   }, [displayPipelines]);
 
-  // useEffect(() => {
-  //   refetchPipelineList();
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [request]);
+  useEffect(() => {
+    refetchPipelineList();
+    setIsFirstTimeLoad(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh]);
 
   const getInitialToolbarState = (): ToolbarProps => {
     const buttons = new Buttons(props, Refresh);
@@ -175,13 +194,9 @@ export function PipelineListFC(props: pipelineListFCProps) {
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       setDisplayPipelines(displayPipelines);
     } catch (err) {
-      await showPageError('Error: failed to retrieve list of pipelines.', err);
+      setErrorMsgFromApi(await errorToMessage(err));
     }
     return response ? response.next_page_token || '' : '';
-    // setRequest(listRequest)
-    // await refetchPipelineList();
-    // // wait until nextPageToken is updated, then return
-    // return nextPageToken;
   };
 
   const selectionChanged = (parentId: string | undefined, selectedIds: string[]) => {
@@ -195,14 +210,6 @@ export function PipelineListFC(props: pipelineListFCProps) {
       // select pipeline
       setSelectedPipelineIds(selectedIds);
     }
-  };
-
-  const showPageError = async (message: string, error: Error | undefined) => {
-    const errorMessage = await errorToMessage(error);
-    updateBanner({
-      additionalInfo: errorMessage ? errorMessage : undefined,
-      message: message + (errorMessage ? ' Click Details for more information.' : ''),
-    });
   };
 
   const getExpandedPipelineComponent = (rowIndex: number) => {
@@ -236,24 +243,20 @@ export function PipelineListFC(props: pipelineListFCProps) {
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
-      Display pipeline list here.
-      {pipelineIsFetched && (
-        <CustomTable
-          // ref={this._tableRef}
-          columns={columns}
-          rows={rows}
-          initialSortColumn={PipelineSortKeys.CREATED_AT}
-          updateSelection={(selectedIds: string[]) => {
-            selectionChanged(undefined, selectedIds);
-          }}
-          selectedIds={selectedPipelineIds}
-          reload={reload}
-          toggleExpansion={toggleRowExpand}
-          getExpandComponent={getExpandedPipelineComponent}
-          filterLabel='Filter pipelines'
-          emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
-        />
-      )}
+      <CustomTable
+        columns={columns}
+        rows={rows}
+        initialSortColumn={PipelineSortKeys.CREATED_AT}
+        updateSelection={(selectedIds: string[]) => {
+          selectionChanged(undefined, selectedIds);
+        }}
+        selectedIds={selectedPipelineIds}
+        reload={reload}
+        toggleExpansion={toggleRowExpand}
+        getExpandComponent={getExpandedPipelineComponent}
+        filterLabel='Filter pipelines'
+        emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
+      />
     </div>
   );
 }
