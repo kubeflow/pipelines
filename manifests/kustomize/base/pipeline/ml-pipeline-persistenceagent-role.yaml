@@ -27,8 +27,9 @@ rules:
   verbs:
   - report
 - apiGroups:
-  - ''
+    - pipelines.kubeflow.org
   resources:
-  - namespaces
+    - runs
   verbs:
-  - get
+    - reportMetrics
+    - readArtifact
