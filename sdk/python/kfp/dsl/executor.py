@@ -241,7 +241,19 @@ class Executor():
                 f'Unknown return type: {annotation_type}. Must be one of the supported data types: https://www.kubeflow.org/docs/components/pipelines/v2/data-types/'
             )
 
-    def _write_executor_output(self, func_output: Optional[Any] = None):
+    def _write_executor_output(self,
+                               func_output: Optional[Any] = None
+                              ) -> Optional[str]:
+        """Writes executor output containing the Python function output. The
+        executor output file will not be written if this code is executed from
+        a non-chief node in a mirrored execution strategy.
+
+        Args:
+            func_output: The object returned by the function.
+
+        Returns:
+            Optional[str]: Returns the location of the executor_output file as a string if the file is written. Else, None.
+        """
         if self._output_artifacts:
             self._executor_output['artifacts'] = {}
 
@@ -296,8 +308,18 @@ class Executor():
             os.makedirs(os.path.dirname(executor_output_path), exist_ok=True)
             with open(executor_output_path, 'w') as f:
                 f.write(json.dumps(self._executor_output))
+            return executor_output_path
 
-    def execute(self):
+        return None
+
+    def execute(self) -> Optional[str]:
+        """Executes the function and writes the executor output file. The
+        executor output file will not be written if this code is executed from
+        a non-chief node in a mirrored execution strategy.
+
+        Returns:
+            Optional[str]: Returns the location of the executor_output file as a string if the file is written. Else, None.
+        """
         annotations = inspect.getfullargspec(self._func).annotations
 
         # Function arguments.
@@ -344,7 +366,7 @@ class Executor():
                 func_kwargs[k] = self._get_input_artifact_path(k)
 
         result = self._func(**func_kwargs)
-        self._write_executor_output(result)
+        return self._write_executor_output(result)
 
 
 def create_artifact_instance(
