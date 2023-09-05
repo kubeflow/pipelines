@@ -37,6 +37,7 @@ def infer_pipeline(
     prompt_dataset: str,
     prompt_sequence_length: int = 512,
     target_sequence_length: int = 64,
+    sampling_strategy: str = 'greedy',
     instruction: Optional[str] = None,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
@@ -59,6 +60,8 @@ def infer_pipeline(
     target_sequence_length:  Maximum tokenized sequence length for target text.
       Higher values increase memory overhead. This value should be at most 1024.
       Default value is 64.
+    sampling_strategy: This field specifies the sampling strategy. The valid
+      options are 'greedy' and 'temperature_sampling'.
     instruction: This field lets the model know what task it needs to perform.
       Base models have been trained over a large set of varied instructions. You
       can give a simple and intuitive description of the task and the model will
@@ -115,6 +118,7 @@ def infer_pipeline(
       large_model_reference=reference_model_metadata.outputs[
           'large_model_reference'
       ],
+      sampling_strategy=sampling_strategy,
       accelerator_type=machine_spec.outputs['accelerator_type'],
       accelerator_count=machine_spec.outputs['accelerator_count'],
       machine_type=machine_spec.outputs['machine_type'],

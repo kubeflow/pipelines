@@ -36,6 +36,7 @@ def BulkInferrer(  # pylint: disable=invalid-name
     output_prediction: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     output_prediction_gcs_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    sampling_strategy: str = 'greedy',
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Performs bulk inference.
 
@@ -53,6 +54,7 @@ def BulkInferrer(  # pylint: disable=invalid-name
     input_model: Model to use for inference.
     large_model_reference: Predefined model used to create the ``input_model``.
     input_dataset_path: Path to dataset to use for inference.
+    sampling_strategy: The sampling strategy for inference.
     dataset_split: Perform inference on this split of the input dataset.
 
   Returns:
@@ -76,6 +78,7 @@ def BulkInferrer(  # pylint: disable=invalid-name
               f'--large_model_reference={large_model_reference}',
               f'--inputs_sequence_length={inputs_sequence_length}',
               f'--targets_sequence_length={targets_sequence_length}',
+              f'--sampling_strategy={sampling_strategy}',
               f'--output_prediction={output_prediction}',
               f'--output_prediction_gcs_path={output_prediction_gcs_path}',
           ],
