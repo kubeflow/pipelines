@@ -252,7 +252,7 @@ class Executor():
             func_output: The object returned by the function.
 
         Returns:
-            Union[str, None]: Returns the location of the executor_output file as a string if the file is written. Else, None.
+            Optional[str]: Returns the location of the executor_output file as a string if the file is written. Else, None.
         """
         if self._output_artifacts:
             self._executor_output['artifacts'] = {}
@@ -312,13 +312,13 @@ class Executor():
 
         return None
 
-    def execute(self) -> Union[str, None]:
+    def execute(self) -> Optional[str]:
         """Executes the function and writes the executor output file. The
         executor output file will not be written if this code is executed from
         a non-chief node in a mirrored execution strategy.
 
         Returns:
-            Union[str, None]: Returns the location of the executor_output file as a string if the file is written. Else, None.
+            Optional[str]: Returns the location of the executor_output file as a string if the file is written. Else, None.
         """
         annotations = inspect.getfullargspec(self._func).annotations
 
