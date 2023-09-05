@@ -53,7 +53,7 @@ var (
 		// display in which Kubeflow namespace the runs were triggered
 		"profile",
 
-		// display latest workflow name
+		// display workflow name
 		"workflow",
 	}
 
