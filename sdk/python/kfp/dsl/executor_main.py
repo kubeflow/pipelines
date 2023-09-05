@@ -98,7 +98,11 @@ def executor_main():
     executor = component_executor.Executor(
         executor_input=executor_input, function_to_execute=function_to_execute)
 
-    executor.execute()
+    output_file = executor.execute()
+    if output_file is None:
+        logging.info('Did not write output file.')
+    else:
+        logging.info(f'Wrote executor output file to {output_file}.')
 
 
 if __name__ == '__main__':
