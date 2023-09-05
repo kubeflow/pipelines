@@ -243,7 +243,7 @@ class Executor():
 
     def _write_executor_output(self,
                                func_output: Optional[Any] = None
-                              ) -> Union[str, None]:
+                              ) -> Optional[str]:
         """Writes executor output containing the Python function output. The
         executor output file will not be written if this code is executed from
         a non-chief node in a mirrored execution strategy.
