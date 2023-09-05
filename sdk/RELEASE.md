@@ -2,6 +2,17 @@
 
 
 ## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+# 2.1.3
+
+## Features
 * Create "dependency-free" runtime package (only `typing_extensions` required) for Lightweight Python Components to reduce runtime dependency resolution errors [\#9710](https://github.com/kubeflow/pipelines/pull/9710), [\#9886](https://github.com/kubeflow/pipelines/pull/9886)
 
 ## Breaking changes
