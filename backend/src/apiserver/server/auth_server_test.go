@@ -118,7 +118,7 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 		Version:   common.RbacPipelinesVersion,
 		Resource:  common.RbacResourceTypeViewers,
 	}
-	assert.EqualError(t, err, wrapFailedAuthzRequestError(getPermissionDeniedError(userIdentity, resourceAttributes)).Error())
+	assert.EqualError(t, err, wrapFailedAuthzRequestError(getPermissionDeniedError(userIdentity, []string{}, resourceAttributes)).Error())
 }
 
 func TestAuthorizeRequest_EmptyUserIdPrefix(t *testing.T) {

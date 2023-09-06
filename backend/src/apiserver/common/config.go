@@ -30,8 +30,10 @@ const (
 	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
 	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
+	KubeflowGroupsHeader                    string = "KUBEFLOW_GROUPS_HEADER"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	ExperimentalGroupsSupport               string = "EXPERIMENTAL_GROUPS_SUPPORT"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -120,10 +122,18 @@ func GetKubeflowUserIDHeader() string {
 	return GetStringConfigWithDefault(KubeflowUserIDHeader, GoogleIAPUserIdentityHeader)
 }
 
+func GetKubeflowGroupsHeader() string {
+	return GetStringConfigWithDefault(KubeflowGroupsHeader, GroupsHeader)
+}
+
 func GetKubeflowUserIDPrefix() string {
 	return GetStringConfigWithDefault(KubeflowUserIDPrefix, GoogleIAPUserIdentityPrefix)
 }
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
+}
+
+func GetExperimentalGroupsSupport() bool {
+	return GetBoolConfigWithDefault(ExperimentalGroupsSupport, DefaultExperimentalGroupsSupport)
 }

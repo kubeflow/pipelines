@@ -486,7 +486,7 @@ func TestCreateRunV1_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized with reason",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized with reason",
 	)
 }
 
@@ -1273,7 +1273,7 @@ func TestReportRunMetricsV1_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"PermissionDenied: User 'user@google.com' is not authorized",
+		"PermissionDenied: User 'user@google.com' with groups [] is not authorized",
 	)
 }
 
@@ -1362,7 +1362,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"User 'user@google.com' is not authorized with reason: this is not allowed",
+		"User 'user@google.com' with groups [] is not authorized with reason",
 	)
 }
 
@@ -1515,7 +1515,7 @@ func TestReadArtifactsV1_Unauthorized(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		"User 'user@google.com' is not authorized with reason: this is not allowed",
+		"User 'user@google.com' with groups [] is not authorized with reason: this is not allowed",
 	)
 }
 

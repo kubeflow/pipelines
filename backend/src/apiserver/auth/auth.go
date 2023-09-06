@@ -25,6 +25,7 @@ import (
 
 type Authenticator interface {
 	GetUserIdentity(ctx context.Context) (string, error)
+	GetUserGroups(ctx context.Context) ([]string, error)
 }
 
 var IdentityHeaderMissingError = util.NewUnauthenticatedError(
@@ -34,7 +35,12 @@ var IdentityHeaderMissingError = util.NewUnauthenticatedError(
 
 func GetAuthenticators(tokenReviewClient client.TokenReviewInterface) []Authenticator {
 	return []Authenticator{
-		NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix()),
+		NewHTTPHeaderAuthenticator(
+			common.GetKubeflowUserIDHeader(),
+			common.GetKubeflowUserIDPrefix(),
+			common.GetKubeflowGroupsHeader(),
+			common.GetExperimentalGroupsSupport(),
+		),
 		NewTokenReviewAuthenticator(
 			common.AuthorizationBearerTokenHeader,
 			common.AuthorizationBearerTokenPrefix,

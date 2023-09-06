@@ -176,7 +176,7 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error) {
 	pctx := context.Background()
 	if user != "" {
-		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(),
+		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(), getKubeflowGroupsHeader(),
 			getKubeflowUserIDPrefix()+user)
 	}
 	ctx, cancel := context.WithTimeout(pctx, time.Minute)
@@ -195,7 +195,7 @@ func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest, user str
 func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error) {
 	pctx := context.Background()
 	if user != "" {
-		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(),
+		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(), getKubeflowGroupsHeader(),
 			getKubeflowUserIDPrefix()+user)
 	}
 	ctx, cancel := context.WithTimeout(pctx, time.Minute)
@@ -217,6 +217,14 @@ func getKubeflowUserIDHeader() string {
 		return value
 	}
 	return common.GoogleIAPUserIdentityHeader
+}
+
+// TODO use config file & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowGroupsHeader()"
+func getKubeflowGroupsHeader() string {
+	if value, ok := os.LookupEnv(common.KubeflowGroupsHeader); ok {
+		return value
+	}
+	return common.GroupsHeader
 }
 
 // TODO use of viper & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowUserIDPrefix()"

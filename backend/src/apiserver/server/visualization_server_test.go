@@ -304,7 +304,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	assert.EqualError(
 		t,
 		err,
-		util.Wrap(getPermissionDeniedError(userIdentity, resourceAttributes), "Failed to authorize on namespace").Error(),
+		util.Wrap(getPermissionDeniedError(userIdentity, []string{}, resourceAttributes), "Failed to authorize on namespace").Error(),
 	)
 }
 
