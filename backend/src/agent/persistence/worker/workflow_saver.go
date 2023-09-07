@@ -27,17 +27,15 @@ import (
 type WorkflowSaver struct {
 	client                        client.WorkflowClientInterface
 	pipelineClient                client.PipelineClientInterface
-	k8sClient                     client.KubernetesCoreInterface
 	metricsReporter               *MetricsReporter
 	ttlSecondsAfterWorkflowFinish int64
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
-	pipelineClient client.PipelineClientInterface, k8sClient client.KubernetesCoreInterface, ttlSecondsAfterWorkflowFinish int64) *WorkflowSaver {
+	pipelineClient client.PipelineClientInterface, ttlSecondsAfterWorkflowFinish int64) *WorkflowSaver {
 	return &WorkflowSaver{
 		client:                        client,
 		pipelineClient:                pipelineClient,
-		k8sClient:                     k8sClient,
 		metricsReporter:               NewMetricsReporter(pipelineClient),
 		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
 	}
@@ -70,11 +68,6 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		return nil
 	}
 
-	user, err1 := s.k8sClient.GetNamespaceOwner(namespace)
-	if err1 != nil {
-		return util.Wrapf(err1, "Failed get '%v' namespace", namespace)
-	}
-
 	// Save this Workflow to the database.
 	err = s.pipelineClient.ReportWorkflow(wf)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)
@@ -94,5 +87,5 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	log.WithFields(log.Fields{
 		"Workflow": name,
 	}).Infof("Syncing Workflow (%v): success, processing complete.", name)
-	return s.metricsReporter.ReportMetrics(wf, user)
+	return s.metricsReporter.ReportMetrics(wf)
 }
