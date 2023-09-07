@@ -2,6 +2,7 @@
 
 
 ## Features
+* Add support for `dsl.If`, `dsl.Elif`, and `dsl.Else` control flow context managers; deprecate `dsl.Condition` in favor of `dsl.If` [\#9894](https://github.com/kubeflow/pipelines/pull/9894)
 
 ## Breaking changes
 
