@@ -95,10 +95,6 @@ func main() {
 	} else {
 		swfInformerFactory = swfinformers.NewFilteredSharedInformerFactory(swfClient, time.Second*30, namespace, nil)
 	}
-	k8sCoreClient := client.CreateKubernetesCoreOrFatal(DefaultConnectionTimeout, util.ClientParameters{
-		QPS:   clientQPS,
-		Burst: clientBurst,
-	})
 
 	tokenRefresher := client.NewTokenRefresher(time.Duration(saTokenRefreshIntervalInSecs)*time.Second, nil)
 	err = tokenRefresher.StartTokenRefreshTicker()
@@ -122,7 +118,6 @@ func main() {
 		swfInformerFactory,
 		execInformer,
 		pipelineClient,
-		k8sCoreClient,
 		util.NewRealTime())
 
 	go swfInformerFactory.Start(stopCh)
