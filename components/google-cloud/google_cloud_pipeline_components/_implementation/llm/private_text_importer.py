@@ -21,7 +21,8 @@ from kfp import dsl
 
 
 def _resolve_image(default: str = '') -> str:
-  return os.environ.get('TEXT_IMPORTER_IMAGE_OVERRIDE', default)
+  return os.environ.get('TEXT_IMPORTER_IMAGE_OVERRIDE') or default
+
 
 # pytype: disable=unsupported-operands
 @dsl.container_component
