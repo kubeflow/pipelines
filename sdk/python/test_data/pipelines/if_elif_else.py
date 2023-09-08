@@ -16,7 +16,7 @@ from kfp import dsl
 
 
 @dsl.component
-def flip_coin() -> str:
+def flip_three_sided_die() -> str:
     import random
     val = random.randint(0, 2)
 
@@ -35,8 +35,8 @@ def print_and_return(text: str) -> str:
 
 
 @dsl.pipeline
-def flip_coin_pipeline():
-    flip_coin_task = flip_coin()
+def roll_die_pipeline():
+    flip_coin_task = flip_three_sided_die()
     with dsl.If(flip_coin_task.output == 'heads'):
         print_and_return(text='Got heads!')
     with dsl.Elif(flip_coin_task.output == 'tails'):
@@ -47,5 +47,5 @@ def flip_coin_pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=flip_coin_pipeline,
+        pipeline_func=roll_die_pipeline,
         package_path=__file__.replace('.py', '.yaml'))

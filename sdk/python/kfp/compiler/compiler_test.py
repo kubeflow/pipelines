@@ -4401,7 +4401,7 @@ class TestConditionLogic(unittest.TestCase):
     def test_elif_no_if_not_supported(self):
         with self.assertRaisesRegex(
                 tasks_group.InvalidControlFlowException,
-                r'dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.'
+                r'dsl\.Elif can only be used following an upstream dsl\.If or dsl\.Elif\.'
         ):
 
             @dsl.pipeline

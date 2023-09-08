@@ -1,5 +1,5 @@
 # PIPELINE DEFINITION
-# Name: flip-coin-pipeline
+# Name: roll-die-pipeline
 components:
   comp-condition-1:
     dag:
@@ -18,7 +18,7 @@ components:
             name: print-and-return
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-Output:
+        pipelinechannel--flip-three-sided-die-Output:
           parameterType: STRING
   comp-condition-2:
     dag:
@@ -37,7 +37,7 @@ components:
             name: print-and-return-2
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-Output:
+        pipelinechannel--flip-three-sided-die-Output:
           parameterType: STRING
   comp-condition-3:
     dag:
@@ -56,10 +56,10 @@ components:
             name: print-and-return-3
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-Output:
+        pipelinechannel--flip-three-sided-die-Output:
           parameterType: STRING
-  comp-flip-coin:
-    executorLabel: exec-flip-coin
+  comp-flip-three-sided-die:
+    executorLabel: exec-flip-three-sided-die
     outputDefinitions:
       parameters:
         Output:
@@ -96,19 +96,19 @@ components:
           parameterType: STRING
 deploymentSpec:
   executors:
-    exec-flip-coin:
+    exec-flip-three-sided-die:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - flip_coin
+        - flip_three_sided_die
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -122,9 +122,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_coin() -> str:\n    import random\n    val = random.randint(0,\
-          \ 2)\n\n    if val == 0:\n        return 'heads'\n    elif val == 1:\n \
-          \       return 'tails'\n    else:\n        return 'draw'\n\n"
+          \ *\n\ndef flip_three_sided_die() -> str:\n    import random\n    val =\
+          \ random.randint(0, 2)\n\n    if val == 0:\n        return 'heads'\n   \
+          \ elif val == 1:\n        return 'tails'\n    else:\n        return 'draw'\n\
+          \n"
         image: python:3.7
     exec-print-and-return:
       container:
@@ -138,7 +139,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -167,7 +168,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -196,7 +197,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -214,7 +215,7 @@ deploymentSpec:
           \ text\n\n"
         image: python:3.7
 pipelineInfo:
-  name: flip-coin-pipeline
+  name: roll-die-pipeline
 root:
   dag:
     tasks:
@@ -222,58 +223,58 @@ root:
         componentRef:
           name: comp-condition-1
         dependentTasks:
-        - flip-coin
+        - flip-three-sided-die
         inputs:
           parameters:
-            pipelinechannel--flip-coin-Output:
+            pipelinechannel--flip-three-sided-die-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: flip-coin
+                producerTask: flip-three-sided-die
         taskInfo:
           name: condition-1
         triggerPolicy:
-          condition: inputs.parameter_values['pipelinechannel--flip-coin-Output']
+          condition: inputs.parameter_values['pipelinechannel--flip-three-sided-die-Output']
             == 'heads'
       condition-2:
         componentRef:
           name: comp-condition-2
         dependentTasks:
-        - flip-coin
+        - flip-three-sided-die
         inputs:
           parameters:
-            pipelinechannel--flip-coin-Output:
+            pipelinechannel--flip-three-sided-die-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: flip-coin
+                producerTask: flip-three-sided-die
         taskInfo:
           name: condition-2
         triggerPolicy:
-          condition: '!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
-            == ''heads'') && inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
+          condition: '!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+            == ''heads'') && inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
             == ''tails'''
       condition-3:
         componentRef:
           name: comp-condition-3
         dependentTasks:
-        - flip-coin
+        - flip-three-sided-die
         inputs:
           parameters:
-            pipelinechannel--flip-coin-Output:
+            pipelinechannel--flip-three-sided-die-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: flip-coin
+                producerTask: flip-three-sided-die
         taskInfo:
           name: condition-3
         triggerPolicy:
-          condition: '!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
-            == ''heads'') && !(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
+          condition: '!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+            == ''heads'') && !(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
             == ''tails'')'
-      flip-coin:
+      flip-three-sided-die:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-flip-coin
+          name: comp-flip-three-sided-die
         taskInfo:
-          name: flip-coin
+          name: flip-three-sided-die
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.1.2
+sdkVersion: kfp-2.1.3

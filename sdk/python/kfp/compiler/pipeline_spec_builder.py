@@ -858,7 +858,7 @@ def _update_task_spec_for_condition_group(
         group: The condition group to update task spec for.
         pipeline_task_spec: The pipeline task spec to update in place.
     """
-    condition = _binary_operations_to_cel_conjunctive(group.condition)
+    condition = _binary_operations_to_cel_conjunctive(group.conditions)
     pipeline_task_spec.trigger_policy.CopyFrom(
         pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(condition=condition))
 
@@ -1260,7 +1260,7 @@ def build_spec_by_group(
             condition_subgroup_channels = list(subgroup_input_channels)
 
             compiler_utils.get_channels_from_condition(
-                subgroup.condition, condition_subgroup_channels)
+                subgroup.conditions, condition_subgroup_channels)
 
             subgroup_component_spec = build_component_spec_for_group(
                 input_pipeline_channels=condition_subgroup_channels,

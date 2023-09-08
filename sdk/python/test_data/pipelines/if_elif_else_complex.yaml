@@ -1,83 +1,94 @@
 # PIPELINE DEFINITION
-# Name: flip-coin-pipeline
+# Name: lucky-number-pipeline
 # Inputs:
-#    confirm: bool
+#    add_drumroll: bool [Default: True]
+#    repeat_if_lucky_number: bool [Default: True]
+#    trials: list [Default: [1.0, 2.0, 3.0]]
 components:
-  comp-condition-1:
+  comp-condition-10:
     dag:
       tasks:
-        condition-2:
+        condition-11:
           componentRef:
-            name: comp-condition-2
+            name: comp-condition-11
           inputs:
             parameters:
-              pipelinechannel--flip-coin-Output:
-                componentInputParameter: pipelinechannel--flip-coin-Output
-              pipelinechannel--int-zero-through-three-Output:
-                componentInputParameter: pipelinechannel--int-zero-through-three-Output
+              pipelinechannel--int-0-to-9999-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--repeat_if_lucky_number:
+                componentInputParameter: pipelinechannel--repeat_if_lucky_number
           taskInfo:
-            name: condition-2
+            name: condition-11
           triggerPolicy:
-            condition: int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output'])
-              == 0
+            condition: inputs.parameter_values['pipelinechannel--repeat_if_lucky_number']
+              == true
+        print-and-return-6:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-and-return-6
+          inputs:
+            parameters:
+              text:
+                runtimeValue:
+                  constant: 'Announcing: Got the lucky number 5000! A one in 10,000
+                    chance.'
+          taskInfo:
+            name: print-and-return-6
+    inputDefinitions:
+      parameters:
+        pipelinechannel--int-0-to-9999-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--repeat_if_lucky_number:
+          parameterType: BOOLEAN
+  comp-condition-11:
+    dag:
+      tasks:
+        for-loop-13:
+          componentRef:
+            name: comp-for-loop-13
+          inputs:
+            parameters:
+              pipelinechannel--int-0-to-9999-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--repeat_if_lucky_number:
+                componentInputParameter: pipelinechannel--repeat_if_lucky_number
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-12
+            items:
+              raw: '[1, 2]'
+          taskInfo:
+            name: for-loop-13
+    inputDefinitions:
+      parameters:
+        pipelinechannel--int-0-to-9999-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--repeat_if_lucky_number:
+          parameterType: BOOLEAN
+  comp-condition-2:
+    dag:
+      tasks:
         condition-3:
           componentRef:
             name: comp-condition-3
           inputs:
             parameters:
-              pipelinechannel--confirm:
-                componentInputParameter: pipelinechannel--confirm
-              pipelinechannel--flip-coin-Output:
-                componentInputParameter: pipelinechannel--flip-coin-Output
-              pipelinechannel--int-zero-through-three-Output:
-                componentInputParameter: pipelinechannel--int-zero-through-three-Output
+              pipelinechannel--add_drumroll:
+                componentInputParameter: pipelinechannel--add_drumroll
+              pipelinechannel--trials-loop-item:
+                componentInputParameter: pipelinechannel--trials-loop-item
           taskInfo:
             name: condition-3
           triggerPolicy:
-            condition: '!(int(inputs.parameter_values[''pipelinechannel--int-zero-through-three-Output''])
-              == 0) && int(inputs.parameter_values[''pipelinechannel--int-zero-through-three-Output''])
-              == 1'
-        condition-5:
-          componentRef:
-            name: comp-condition-5
-          inputs:
-            parameters:
-              pipelinechannel--flip-coin-Output:
-                componentInputParameter: pipelinechannel--flip-coin-Output
-              pipelinechannel--int-zero-through-three-Output:
-                componentInputParameter: pipelinechannel--int-zero-through-three-Output
-          taskInfo:
-            name: condition-5
-          triggerPolicy:
-            condition: '!(int(inputs.parameter_values[''pipelinechannel--int-zero-through-three-Output''])
-              == 0) && !(int(inputs.parameter_values[''pipelinechannel--int-zero-through-three-Output''])
-              == 1) && int(inputs.parameter_values[''pipelinechannel--int-zero-through-three-Output''])
-              == 2'
-        condition-6:
-          componentRef:
-            name: comp-condition-6
-          inputs:
-            parameters:
-              pipelinechannel--flip-coin-Output:
-                componentInputParameter: pipelinechannel--flip-coin-Output
-              pipelinechannel--int-zero-through-three-Output:
-                componentInputParameter: pipelinechannel--int-zero-through-three-Output
-          taskInfo:
-            name: condition-6
-          triggerPolicy:
-            condition: '!(int(inputs.parameter_values[''pipelinechannel--int-zero-through-three-Output''])
-              == 0) && !(int(inputs.parameter_values[''pipelinechannel--int-zero-through-three-Output''])
-              == 1) && !(int(inputs.parameter_values[''pipelinechannel--int-zero-through-three-Output''])
-              == 2)'
+            condition: int(inputs.parameter_values['pipelinechannel--trials-loop-item'])
+              == 3
     inputDefinitions:
       parameters:
-        pipelinechannel--confirm:
+        pipelinechannel--add_drumroll:
           parameterType: BOOLEAN
-        pipelinechannel--flip-coin-Output:
-          parameterType: STRING
-        pipelinechannel--int-zero-through-three-Output:
+        pipelinechannel--trials-loop-item:
           parameterType: NUMBER_INTEGER
-  comp-condition-2:
+  comp-condition-3:
     dag:
       tasks:
         print-and-return:
@@ -89,33 +100,72 @@ components:
             parameters:
               text:
                 runtimeValue:
-                  constant: Got zero!
+                  constant: Adding drumroll on last trial!
           taskInfo:
             name: print-and-return
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-Output:
-          parameterType: STRING
-        pipelinechannel--int-zero-through-three-Output:
+        pipelinechannel--add_drumroll:
+          parameterType: BOOLEAN
+        pipelinechannel--trials-loop-item:
           parameterType: NUMBER_INTEGER
-  comp-condition-3:
+  comp-condition-4:
     dag:
       tasks:
-        condition-4:
+        condition-5:
           componentRef:
-            name: comp-condition-4
+            name: comp-condition-5
+          dependentTasks:
+          - is-even-or-odd
           inputs:
             parameters:
-              pipelinechannel--confirm:
-                componentInputParameter: pipelinechannel--confirm
-              pipelinechannel--flip-coin-Output:
-                componentInputParameter: pipelinechannel--flip-coin-Output
-              pipelinechannel--int-zero-through-three-Output:
-                componentInputParameter: pipelinechannel--int-zero-through-three-Output
+              pipelinechannel--int-0-to-9999-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--is-even-or-odd-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: is-even-or-odd
           taskInfo:
-            name: condition-4
+            name: condition-5
           triggerPolicy:
-            condition: inputs.parameter_values['pipelinechannel--confirm'] == true
+            condition: inputs.parameter_values['pipelinechannel--is-even-or-odd-Output']
+              == 'even'
+        condition-6:
+          componentRef:
+            name: comp-condition-6
+          dependentTasks:
+          - is-even-or-odd
+          inputs:
+            parameters:
+              pipelinechannel--int-0-to-9999-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--is-even-or-odd-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: is-even-or-odd
+          taskInfo:
+            name: condition-6
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--is-even-or-odd-Output'']
+              == ''even'')'
+        is-even-or-odd:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-is-even-or-odd
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+          taskInfo:
+            name: is-even-or-odd
+    inputDefinitions:
+      parameters:
+        pipelinechannel--int-0-to-9999-Output:
+          parameterType: NUMBER_INTEGER
+  comp-condition-5:
+    dag:
+      tasks:
         print-and-return-2:
           cachingOptions:
             enableCache: true
@@ -125,18 +175,16 @@ components:
             parameters:
               text:
                 runtimeValue:
-                  constant: Got one!
+                  constant: Got a low even number!
           taskInfo:
             name: print-and-return-2
     inputDefinitions:
       parameters:
-        pipelinechannel--confirm:
-          parameterType: BOOLEAN
-        pipelinechannel--flip-coin-Output:
-          parameterType: STRING
-        pipelinechannel--int-zero-through-three-Output:
+        pipelinechannel--int-0-to-9999-Output:
           parameterType: NUMBER_INTEGER
-  comp-condition-4:
+        pipelinechannel--is-even-or-odd-Output:
+          parameterType: STRING
+  comp-condition-6:
     dag:
       tasks:
         print-and-return-3:
@@ -148,18 +196,80 @@ components:
             parameters:
               text:
                 runtimeValue:
-                  constant: 'Confirmed: definitely got one.'
+                  constant: Got a low odd number!
           taskInfo:
             name: print-and-return-3
     inputDefinitions:
       parameters:
-        pipelinechannel--confirm:
-          parameterType: BOOLEAN
-        pipelinechannel--flip-coin-Output:
-          parameterType: STRING
-        pipelinechannel--int-zero-through-three-Output:
+        pipelinechannel--int-0-to-9999-Output:
           parameterType: NUMBER_INTEGER
-  comp-condition-5:
+        pipelinechannel--is-even-or-odd-Output:
+          parameterType: STRING
+  comp-condition-7:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--is-even-or-odd-2-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: is-even-or-odd-2
+      tasks:
+        condition-8:
+          componentRef:
+            name: comp-condition-8
+          dependentTasks:
+          - is-even-or-odd-2
+          inputs:
+            parameters:
+              pipelinechannel--int-0-to-9999-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--is-even-or-odd-2-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: is-even-or-odd-2
+          taskInfo:
+            name: condition-8
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--is-even-or-odd-2-Output']
+              == 'even'
+        condition-9:
+          componentRef:
+            name: comp-condition-9
+          dependentTasks:
+          - is-even-or-odd-2
+          inputs:
+            parameters:
+              pipelinechannel--int-0-to-9999-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--is-even-or-odd-2-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: is-even-or-odd-2
+          taskInfo:
+            name: condition-9
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--is-even-or-odd-2-Output'']
+              == ''even'')'
+        is-even-or-odd-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-is-even-or-odd-2
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+          taskInfo:
+            name: is-even-or-odd-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--int-0-to-9999-Output:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--is-even-or-odd-2-Output:
+          parameterType: NUMBER_INTEGER
+  comp-condition-8:
     dag:
       tasks:
         print-and-return-4:
@@ -171,16 +281,16 @@ components:
             parameters:
               text:
                 runtimeValue:
-                  constant: Got two!
+                  constant: Got a high even number!
           taskInfo:
             name: print-and-return-4
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-Output:
-          parameterType: STRING
-        pipelinechannel--int-zero-through-three-Output:
+        pipelinechannel--int-0-to-9999-Output:
           parameterType: NUMBER_INTEGER
-  comp-condition-6:
+        pipelinechannel--is-even-or-odd-2-Output:
+          parameterType: STRING
+  comp-condition-9:
     dag:
       tasks:
         print-and-return-5:
@@ -192,27 +302,160 @@ components:
             parameters:
               text:
                 runtimeValue:
-                  constant: Got three!
+                  constant: Got a high odd number!
           taskInfo:
             name: print-and-return-5
     inputDefinitions:
       parameters:
-        pipelinechannel--flip-coin-Output:
-          parameterType: STRING
-        pipelinechannel--int-zero-through-three-Output:
+        pipelinechannel--int-0-to-9999-Output:
           parameterType: NUMBER_INTEGER
-  comp-flip-coin:
-    executorLabel: exec-flip-coin
+        pipelinechannel--is-even-or-odd-2-Output:
+          parameterType: STRING
+  comp-for-loop-1:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--is-even-or-odd-2-Output:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--is-even-or-odd-2-Output
+              producerSubtask: condition-7
+      tasks:
+        condition-10:
+          componentRef:
+            name: comp-condition-10
+          dependentTasks:
+          - int-0-to-9999
+          inputs:
+            parameters:
+              pipelinechannel--int-0-to-9999-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: int-0-to-9999
+              pipelinechannel--repeat_if_lucky_number:
+                componentInputParameter: pipelinechannel--repeat_if_lucky_number
+          taskInfo:
+            name: condition-10
+          triggerPolicy:
+            condition: '!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+              < 5000) && !(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+              > 5000)'
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            parameters:
+              pipelinechannel--add_drumroll:
+                componentInputParameter: pipelinechannel--add_drumroll
+              pipelinechannel--trials-loop-item:
+                componentInputParameter: pipelinechannel--trials-loop-item
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--add_drumroll'] ==
+              true
+        condition-4:
+          componentRef:
+            name: comp-condition-4
+          dependentTasks:
+          - int-0-to-9999
+          inputs:
+            parameters:
+              pipelinechannel--int-0-to-9999-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: int-0-to-9999
+          taskInfo:
+            name: condition-4
+          triggerPolicy:
+            condition: int(inputs.parameter_values['pipelinechannel--int-0-to-9999-Output'])
+              < 5000
+        condition-7:
+          componentRef:
+            name: comp-condition-7
+          dependentTasks:
+          - int-0-to-9999
+          inputs:
+            parameters:
+              pipelinechannel--int-0-to-9999-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: int-0-to-9999
+          taskInfo:
+            name: condition-7
+          triggerPolicy:
+            condition: '!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+              < 5000) && int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+              > 5000'
+        int-0-to-9999:
+          cachingOptions: {}
+          componentRef:
+            name: comp-int-0-to-9999
+          taskInfo:
+            name: int-0-to-9999
+    inputDefinitions:
+      parameters:
+        pipelinechannel--add_drumroll:
+          parameterType: BOOLEAN
+        pipelinechannel--repeat_if_lucky_number:
+          parameterType: BOOLEAN
+        pipelinechannel--trials:
+          parameterType: LIST
+        pipelinechannel--trials-loop-item:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--is-even-or-odd-2-Output:
+          parameterType: NUMBER_INTEGER
+  comp-for-loop-13:
+    dag:
+      tasks:
+        print-and-return-7:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-and-return-7
+          inputs:
+            parameters:
+              text:
+                runtimeValue:
+                  constant: 'Announcing again: Got the lucky number 5000! A one in
+                    10,000 chance.'
+          taskInfo:
+            name: print-and-return-7
+    inputDefinitions:
+      parameters:
+        pipelinechannel--int-0-to-9999-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--loop-item-param-12:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--repeat_if_lucky_number:
+          parameterType: BOOLEAN
+  comp-int-0-to-9999:
+    executorLabel: exec-int-0-to-9999
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-is-even-or-odd:
+    executorLabel: exec-is-even-or-odd
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
     outputDefinitions:
       parameters:
         Output:
           parameterType: STRING
-  comp-int-zero-through-three:
-    executorLabel: exec-int-zero-through-three
+  comp-is-even-or-odd-2:
+    executorLabel: exec-is-even-or-odd-2
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
     outputDefinitions:
       parameters:
         Output:
-          parameterType: NUMBER_INTEGER
+          parameterType: STRING
   comp-print-and-return:
     executorLabel: exec-print-and-return
     inputDefinitions:
@@ -263,21 +506,47 @@ components:
       parameters:
         Output:
           parameterType: STRING
+  comp-print-and-return-6:
+    executorLabel: exec-print-and-return-6
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-and-return-7:
+    executorLabel: exec-print-and-return-7
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-strings:
+    executorLabel: exec-print-strings
+    inputDefinitions:
+      parameters:
+        strings:
+          parameterType: LIST
 deploymentSpec:
   executors:
-    exec-flip-coin:
+    exec-int-0-to-9999:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - flip_coin
+        - int_0_to_9999
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -291,22 +560,22 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_coin() -> str:\n    import random\n    return 'heads' if\
-          \ random.randint(0, 1) == 0 else 'tails'\n\n"
+          \ *\n\ndef int_0_to_9999() -> int:\n    import random\n    return random.randint(0,\
+          \ 9999)\n\n"
         image: python:3.7
-    exec-int-zero-through-three:
+    exec-is-even-or-odd:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - int_zero_through_three
+        - is_even_or_odd
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -320,8 +589,37 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef int_zero_through_three() -> int:\n    import random\n    return\
-          \ random.randint(0, 3)\n\n"
+          \ *\n\ndef is_even_or_odd(num: int) -> str:\n    return 'odd' if num % 2\
+          \ else 'even'\n\n"
+        image: python:3.7
+    exec-is-even-or-odd-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - is_even_or_odd
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef is_even_or_odd(num: int) -> str:\n    return 'odd' if num % 2\
+          \ else 'even'\n\n"
         image: python:3.7
     exec-print-and-return:
       container:
@@ -335,7 +633,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -364,7 +662,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -393,7 +691,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -422,7 +720,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -451,7 +749,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -468,51 +766,145 @@ deploymentSpec:
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
         image: python:3.7
+    exec-print-and-return-6:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.7
+    exec-print-and-return-7:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.7
+    exec-print-strings:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_strings
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.1.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_strings(strings: List[str]):\n    print(strings)\n\n"
+        image: python:3.7
 pipelineInfo:
-  name: flip-coin-pipeline
+  name: lucky-number-pipeline
 root:
   dag:
     tasks:
-      condition-1:
+      for-loop-1:
         componentRef:
-          name: comp-condition-1
-        dependentTasks:
-        - flip-coin
-        - int-zero-through-three
+          name: comp-for-loop-1
         inputs:
           parameters:
-            pipelinechannel--confirm:
-              componentInputParameter: confirm
-            pipelinechannel--flip-coin-Output:
-              taskOutputParameter:
-                outputParameterKey: Output
-                producerTask: flip-coin
-            pipelinechannel--int-zero-through-three-Output:
-              taskOutputParameter:
-                outputParameterKey: Output
-                producerTask: int-zero-through-three
+            pipelinechannel--add_drumroll:
+              componentInputParameter: add_drumroll
+            pipelinechannel--repeat_if_lucky_number:
+              componentInputParameter: repeat_if_lucky_number
+            pipelinechannel--trials:
+              componentInputParameter: trials
+        parameterIterator:
+          itemInput: pipelinechannel--trials-loop-item
+          items:
+            inputParameter: pipelinechannel--trials
         taskInfo:
-          name: condition-1
-        triggerPolicy:
-          condition: inputs.parameter_values['pipelinechannel--flip-coin-Output']
-            == 'heads'
-      flip-coin:
+          name: for-loop-1
+      print-strings:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-flip-coin
+          name: comp-print-strings
+        dependentTasks:
+        - for-loop-1
+        inputs:
+          parameters:
+            strings:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--is-even-or-odd-2-Output
+                producerTask: for-loop-1
         taskInfo:
-          name: flip-coin
-      int-zero-through-three:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-int-zero-through-three
-        taskInfo:
-          name: int-zero-through-three
+          name: print-strings
   inputDefinitions:
     parameters:
-      confirm:
+      add_drumroll:
+        defaultValue: true
+        isOptional: true
         parameterType: BOOLEAN
+      repeat_if_lucky_number:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+      trials:
+        defaultValue:
+        - 1.0
+        - 2.0
+        - 3.0
+        isOptional: true
+        parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.1.2
+sdkVersion: kfp-2.1.3

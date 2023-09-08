@@ -11,20 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
+
 from kfp import compiler
 from kfp import dsl
 
 
 @dsl.component
-def int_zero_through_three() -> int:
+def int_0_to_9999() -> int:
     import random
-    return random.randint(0, 3)
+    return random.randint(0, 9999)
 
 
 @dsl.component
-def flip_coin() -> str:
-    import random
-    return 'heads' if random.randint(0, 1) == 0 else 'tails'
+def is_even_or_odd(num: int) -> str:
+    return 'odd' if num % 2 else 'even'
 
 
 @dsl.component
@@ -33,28 +34,53 @@ def print_and_return(text: str) -> str:
     return text
 
 
+@dsl.component
+def print_strings(strings: List[str]):
+    print(strings)
+
+
 @dsl.pipeline
-def flip_coin_pipeline(confirm: bool):
-    int_task = int_zero_through_three()
-    flip_coin_task = flip_coin()
+def lucky_number_pipeline(add_drumroll: bool = True,
+                          repeat_if_lucky_number: bool = True,
+                          trials: List[int] = [1, 2, 3]):
+    with dsl.ParallelFor(trials) as trial:
+        int_task = int_0_to_9999().set_caching_options(False)
+        with dsl.If(add_drumroll == True):
+            with dsl.If(trial == 3):
+                print_and_return(text='Adding drumroll on last trial!')
 
-    with dsl.If(flip_coin_task.output == 'heads'):
-        with dsl.If(int_task.output == 0):
-            print_and_return(text='Got zero!')
+        with dsl.If(int_task.output < 5000):
 
-        with dsl.Elif(int_task.output == 1):
-            task = print_and_return(text='Got one!')
-            with dsl.If(confirm == True):
-                print_and_return(text='Confirmed: definitely got one.')
+            even_or_odd_task = is_even_or_odd(num=int_task.output)
 
-        with dsl.Elif(int_task.output == 2):
-            print_and_return(text='Got two!')
+            with dsl.If(even_or_odd_task.output == 'even'):
+                print_and_return(text='Got a low even number!')
+            with dsl.Else():
+                print_and_return(text='Got a low odd number!')
+
+        with dsl.Elif(int_task.output > 5000):
+
+            even_or_odd_task = is_even_or_odd(num=int_task.output)
+
+            with dsl.If(even_or_odd_task.output == 'even'):
+                print_and_return(text='Got a high even number!')
+            with dsl.Else():
+                print_and_return(text='Got a high odd number!')
 
         with dsl.Else():
-            print_and_return(text='Got three!')
+            print_and_return(
+                text='Announcing: Got the lucky number 5000! A one in 10,000 chance.'
+            )
+            with dsl.If(repeat_if_lucky_number == True):
+                with dsl.ParallelFor([1, 2]) as _:
+                    print_and_return(
+                        text='Announcing again: Got the lucky number 5000! A one in 10,000 chance.'
+                    )
+
+    print_strings(strings=dsl.Collected(even_or_odd_task.output))
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=flip_coin_pipeline,
+        pipeline_func=lucky_number_pipeline,
         package_path=__file__.replace('.py', '.yaml'))

@@ -123,8 +123,8 @@ def get_channels_from_condition(
     operations: List[pipeline_channel.BinaryOperation],
     collected_channels: list,
 ) -> None:
-    """Append to collected_channels each pipeline channels used in each operand
-    of each operation in operations."""
+    """Appends to collected_channels each pipeline channels used in each
+    operand of each operation in operations."""
     for operation in operations:
         for operand in [operation.left_operand, operation.right_operand]:
             if isinstance(operand, pipeline_channel.PipelineChannel):
@@ -153,7 +153,7 @@ def get_condition_channels_for_tasks(
         if isinstance(group, tasks_group._ConditionBase):
             new_current_conditions_channels = list(current_conditions_channels)
             get_channels_from_condition(
-                group.condition,
+                group.conditions,
                 new_current_conditions_channels,
             )
 

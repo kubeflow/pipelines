@@ -151,7 +151,7 @@ class _ConditionBase(TasksGroup):
 
     def __init__(
         self,
-        condition: List[pipeline_channel.BinaryOperation],
+        conditions: List[pipeline_channel.BinaryOperation],
         name: Optional[str] = None,
     ) -> None:
         super().__init__(
@@ -159,7 +159,7 @@ class _ConditionBase(TasksGroup):
             name=name,
             is_root=False,
         )
-        self.condition: List[pipeline_channel.BinaryOperation] = condition
+        self.conditions: List[pipeline_channel.BinaryOperation] = conditions
 
 
 class If(_ConditionBase):
@@ -184,7 +184,7 @@ class If(_ConditionBase):
         name: Optional[str] = None,
     ) -> None:
         super().__init__(
-            condition=[condition],
+            conditions=[condition],
             name=name,
         )
         if isinstance(condition, bool):
@@ -241,7 +241,7 @@ class Elif(_ConditionBase):
         if not isinstance(prev_cond, (Condition, If, Elif)):
             # prefer pushing toward dsl.If rather than dsl.Condition for syntactic consistency with the if-elif-else keywords in Python
             raise InvalidControlFlowException(
-                'dsl.Else can only be used following an upstream dsl.If or dsl.Elif.'
+                'dsl.Elif can only be used following an upstream dsl.If or dsl.Elif.'
             )
 
         if isinstance(condition, bool):
@@ -259,7 +259,7 @@ class Elif(_ConditionBase):
         conditions.append(condition)
 
         super().__init__(
-            condition=conditions,
+            conditions=conditions,
             name=name,
         )
 
@@ -305,7 +305,7 @@ class Else(_ConditionBase):
             )
 
         super().__init__(
-            condition=prev_cond._negated_upstream_conditions,
+            conditions=prev_cond._negated_upstream_conditions,
             name=name,
         )
 

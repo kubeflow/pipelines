@@ -172,10 +172,10 @@ pipelines:
       name: flip_coin_pipeline
       execute: false
     - module: if_elif_else
-      name: flip_coin_pipeline
+      name: roll_die_pipeline
       execute: false
     - module: if_elif_else_complex
-      name: flip_coin_pipeline
+      name: lucky_number_pipeline
       execute: false
 components:
   test_data_dir: sdk/python/test_data/components
