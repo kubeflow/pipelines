@@ -82,7 +82,7 @@ setuptools.setup(
         # Pin google-api-core version for the bug fixing in 1.31.5
         # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
         "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
-        "kfp>=2.0.0b10,<3.0.0",
+        "kfp>=2.0.0b10,<=2.1.3",
         "google-cloud-aiplatform>=1.14.0,<2",
     ],
     project_urls={

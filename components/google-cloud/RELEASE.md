@@ -1,5 +1,10 @@
 ## Upcoming release
 
+## Release 2.3.1
+* Make LLM pipelines compatible with KFP SDK 2.1.3
+* Require KFP SDK <=2.1.3
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
 ## Release 2.3.0
 * Add `preview.llm.infer_pipeline` and `preview.llm.rlhf_pipeline`
 * Add `automl_tabular_tabnet_trainer` and `automl_tabular_wide_and_deep_trainer` to `preview.automl.tabular` and `v1.automl.tabular`
