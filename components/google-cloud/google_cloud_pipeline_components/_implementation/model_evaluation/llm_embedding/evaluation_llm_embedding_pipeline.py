@@ -168,7 +168,8 @@ def evaluation_llm_embedding_pipeline(
       encryption_spec_key_name=encryption_spec_key_name,
   )
 
-  # TODO(b/290838262): Revisit if/when the concurrent jobs limit is increased/removed.
+  # TODO(b/290838262): Revisit if/when the concurrent jobs limit is
+  # increased/removed.
   batch_predict_query.after(batch_predict_corpus)
 
   embedding_retrieval_task = LLMEmbeddingRetrievalOp(
