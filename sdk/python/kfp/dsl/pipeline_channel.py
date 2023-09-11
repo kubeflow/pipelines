@@ -24,7 +24,7 @@ from kfp.dsl.types import type_utils
 
 
 @dataclasses.dataclass
-class BinaryOperation:
+class ConditionOperation:
     """Represents a condition expression to be used in condition control flow
     group.
 
@@ -152,22 +152,22 @@ class PipelineChannel(abc.ABC):
         return hash(self.pattern)
 
     def __eq__(self, other):
-        return BinaryOperation('==', self, other)
+        return ConditionOperation('==', self, other)
 
     def __ne__(self, other):
-        return BinaryOperation('!=', self, other)
+        return ConditionOperation('!=', self, other)
 
     def __lt__(self, other):
-        return BinaryOperation('<', self, other)
+        return ConditionOperation('<', self, other)
 
     def __le__(self, other):
-        return BinaryOperation('<=', self, other)
+        return ConditionOperation('<=', self, other)
 
     def __gt__(self, other):
-        return BinaryOperation('>', self, other)
+        return ConditionOperation('>', self, other)
 
     def __ge__(self, other):
-        return BinaryOperation('>=', self, other)
+        return ConditionOperation('>=', self, other)
 
 
 class PipelineParameterChannel(PipelineChannel):

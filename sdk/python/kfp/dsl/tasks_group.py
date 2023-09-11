@@ -151,7 +151,7 @@ class _ConditionBase(TasksGroup):
 
     def __init__(
         self,
-        conditions: List[pipeline_channel.BinaryOperation],
+        conditions: List[pipeline_channel.ConditionOperation],
         name: Optional[str] = None,
     ) -> None:
         super().__init__(
@@ -159,7 +159,7 @@ class _ConditionBase(TasksGroup):
             name=name,
             is_root=False,
         )
-        self.conditions: List[pipeline_channel.BinaryOperation] = conditions
+        self.conditions: List[pipeline_channel.ConditionOperation] = conditions
 
 
 class If(_ConditionBase):
@@ -315,9 +315,9 @@ class InvalidControlFlowException(Exception):
 
 
 def _shallow_copy_list_of_binary_operations(
-    operations: List[pipeline_channel.BinaryOperation]
-) -> List[pipeline_channel.BinaryOperation]:
-    # shallow copy is sufficient to allow us to invert the negate flag of a BinaryOperation without affecting copies. deep copy not needed and would result in many copies of the full pipeline since PipelineChannels hold references to the pipeline.
+    operations: List[pipeline_channel.ConditionOperation]
+) -> List[pipeline_channel.ConditionOperation]:
+    # shallow copy is sufficient to allow us to invert the negate flag of a ConditionOperation without affecting copies. deep copy not needed and would result in many copies of the full pipeline since PipelineChannels hold references to the pipeline.
     return [copy.copy(operation) for operation in operations]
 
 

@@ -710,9 +710,9 @@ def _update_task_spec_for_loop_group(
 
 
 def _binary_operations_to_cel_conjunctive(
-        operations: List[pipeline_channel.BinaryOperation]) -> str:
-    """Converts a list of BinaryOperation to a CEL string with placeholders.
-    Each BinaryOperation will be joined the others via the conjunctive (&&).
+        operations: List[pipeline_channel.ConditionOperation]) -> str:
+    """Converts a list of ConditionOperation to a CEL string with placeholders.
+    Each ConditionOperation will be joined the others via the conjunctive (&&).
 
     Args:
         operations: The binary operations to convert to convert and join.
@@ -728,8 +728,8 @@ def _binary_operations_to_cel_conjunctive(
 
 
 def _single_binary_operation_to_cel_condition(
-        operation: pipeline_channel.BinaryOperation) -> str:
-    """Converts a BinaryOperation to a CEL string with placeholders.
+        operation: pipeline_channel.ConditionOperation) -> str:
+    """Converts a ConditionOperation to a CEL string with placeholders.
 
     Args:
         operation: The binary operation to convert to a string.

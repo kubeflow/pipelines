@@ -120,7 +120,7 @@ def get_parent_groups(
 
 
 def get_channels_from_condition(
-    operations: List[pipeline_channel.BinaryOperation],
+    operations: List[pipeline_channel.ConditionOperation],
     collected_channels: list,
 ) -> None:
     """Appends to collected_channels each pipeline channels used in each
