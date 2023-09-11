@@ -1766,15 +1766,19 @@ def _merge_component_spec(
             if task_spec.component_ref.name == old_component_ref:
                 task_spec.component_ref.name = new_component_ref
 
-    # Do all the renaming in place, then do the acutal merge of component specs
+    # Do all the renaming in place, then do the actual merge of component specs
     # in a second pass. This would ensure all component specs are in the final
     # state at the time of merging.
     old_name_to_new_name = {}
+    existing_main_comp_names = list(main_pipeline_spec.components.keys())
     for component_name, component_spec in sub_pipeline_spec.components.items():
         old_component_name = component_name
+        current_comp_name_collection = [
+            key for pair in old_name_to_new_name.items() for key in pair
+        ]
         new_component_name = utils.make_name_unique_by_adding_index(
             name=component_name,
-            collection=list(main_pipeline_spec.components.keys()),
+            collection=existing_main_comp_names + current_comp_name_collection,
             delimiter='-')
         old_name_to_new_name[old_component_name] = new_component_name
 
