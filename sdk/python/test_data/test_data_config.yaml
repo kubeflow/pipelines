@@ -168,6 +168,15 @@ pipelines:
     - module: pipeline_with_metadata_fields
       name: dataset_concatenator
       execute: false
+    - module: if_else
+      name: flip_coin_pipeline
+      execute: false
+    - module: if_elif_else
+      name: roll_die_pipeline
+      execute: false
+    - module: if_elif_else_complex
+      name: lucky_number_pipeline
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true

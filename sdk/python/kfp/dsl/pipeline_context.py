@@ -189,6 +189,12 @@ class Pipeline:
         """Removes the current TasksGroup from the stack."""
         del self.groups[-1]
 
+    def get_last_tasks_group(self) -> Optional['tasks_group.TasksGroup']:
+        """Gets the last TasksGroup added to the pipeline at the current level
+        of the pipeline definition."""
+        groups = self.groups[-1].groups
+        return groups[-1] if groups else None
+
     def remove_task_from_groups(self, task: pipeline_task.PipelineTask):
         """Removes a task from the pipeline.
 

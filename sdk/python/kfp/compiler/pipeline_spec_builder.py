@@ -709,22 +709,38 @@ def _update_task_spec_for_loop_group(
         input_name=pipeline_task_spec.parameter_iterator.item_input)
 
 
-def _resolve_condition_operands(
-    left_operand: Union[str, pipeline_channel.PipelineChannel],
-    right_operand: Union[str, pipeline_channel.PipelineChannel],
-) -> Tuple[str, str]:
-    """Resolves values and PipelineChannels for condition operands.
+def _binary_operations_to_cel_conjunctive(
+        operations: List[pipeline_channel.ConditionOperation]) -> str:
+    """Converts a list of ConditionOperation to a CEL string with placeholders.
+    Each ConditionOperation will be joined the others via the conjunctive (&&).
 
     Args:
-        left_operand: The left operand of a condition expression.
-        right_operand: The right operand of a condition expression.
+        operations: The binary operations to convert to convert and join.
 
     Returns:
-        A tuple of the resolved operands values:
-        (left_operand_value, right_operand_value).
+        The binary operations as a CEL string.
     """
+    operands = [
+        _single_binary_operation_to_cel_condition(operation=bin_op)
+        for bin_op in operations
+    ]
+    return ' && '.join(operands)
 
-    # Pre-scan the operand to get the type of constant value if there's any.
+
+def _single_binary_operation_to_cel_condition(
+        operation: pipeline_channel.ConditionOperation) -> str:
+    """Converts a ConditionOperation to a CEL string with placeholders.
+
+    Args:
+        operation: The binary operation to convert to a string.
+
+    Returns:
+        The binary operation as a CEL string.
+    """
+    left_operand = operation.left_operand
+    right_operand = operation.right_operand
+
+    # cannot make comparisons involving particular types
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
             parameter_type = type_utils.get_parameter_type(
@@ -738,8 +754,10 @@ def _resolve_condition_operands(
                 input_name = compiler_utils.additional_input_name_for_pipeline_channel(
                     value_or_reference)
                 raise ValueError(
-                    f'Conditional requires scalar parameter values for comparison. Found input "{input_name}" of type {value_or_reference.channel_type} in pipeline definition instead.'
+                    f'Conditional requires primitive parameter values for comparison. Found input "{input_name}" of type {value_or_reference.channel_type} in pipeline definition instead.'
                 )
+
+    # ensure the types compared are the same or compatible
     parameter_types = set()
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
@@ -822,11 +840,16 @@ def _resolve_condition_operands(
 
         operand_values.append(operand_value)
 
-    return tuple(operand_values)
+    left_operand_value, right_operand_value = tuple(operand_values)
+
+    condition_string = (
+        f'{left_operand_value} {operation.operator} {right_operand_value}')
+
+    return f'!({condition_string})' if operation.negate else condition_string
 
 
 def _update_task_spec_for_condition_group(
-    group: tasks_group.Condition,
+    group: tasks_group._ConditionBase,
     pipeline_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
 ) -> None:
     """Updates PipelineTaskSpec for condition group.
@@ -835,15 +858,9 @@ def _update_task_spec_for_condition_group(
         group: The condition group to update task spec for.
         pipeline_task_spec: The pipeline task spec to update in place.
     """
-    left_operand_value, right_operand_value = _resolve_condition_operands(
-        group.condition.left_operand, group.condition.right_operand)
-
-    condition_string = (
-        f'{left_operand_value} {group.condition.operator} {right_operand_value}'
-    )
+    condition = _binary_operations_to_cel_conjunctive(group.conditions)
     pipeline_task_spec.trigger_policy.CopyFrom(
-        pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(
-            condition=condition_string))
+        pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(condition=condition))
 
 
 def build_task_spec_for_exit_task(
@@ -954,7 +971,7 @@ def build_task_spec_for_group(
             group=group,
             pipeline_task_spec=pipeline_task_spec,
         )
-    elif isinstance(group, tasks_group.Condition):
+    elif isinstance(group, tasks_group._ConditionBase):
         _update_task_spec_for_condition_group(
             group=group,
             pipeline_task_spec=pipeline_task_spec,
@@ -1236,17 +1253,14 @@ def build_spec_by_group(
             _build_dag_outputs(subgroup_component_spec,
                                subgroup_output_channels)
 
-        elif isinstance(subgroup, tasks_group.Condition):
+        elif isinstance(subgroup, tasks_group._ConditionBase):
 
             # "Punch the hole", adding inputs needed by its subgroups or
             # tasks.
             condition_subgroup_channels = list(subgroup_input_channels)
-            for operand in [
-                    subgroup.condition.left_operand,
-                    subgroup.condition.right_operand,
-            ]:
-                if isinstance(operand, pipeline_channel.PipelineChannel):
-                    condition_subgroup_channels.append(operand)
+
+            compiler_utils.get_channels_from_condition(
+                subgroup.conditions, condition_subgroup_channels)
 
             subgroup_component_spec = build_component_spec_for_group(
                 input_pipeline_channels=condition_subgroup_channels,

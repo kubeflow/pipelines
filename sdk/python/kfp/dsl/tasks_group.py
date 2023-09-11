@@ -13,8 +13,10 @@
 # limitations under the License.
 """Definition for TasksGroup."""
 
+import copy
 import enum
-from typing import Optional, Union
+from typing import List, Optional, Union
+import warnings
 
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
@@ -52,7 +54,7 @@ class TasksGroup:
         group_type: TasksGroupType,
         name: Optional[str] = None,
         is_root: bool = False,
-    ):
+    ) -> None:
         """Create a new instance of TasksGroup.
 
         Args:
@@ -117,7 +119,7 @@ class ExitHandler(TasksGroup):
         self,
         exit_task: pipeline_task.PipelineTask,
         name: Optional[str] = None,
-    ):
+    ) -> None:
         """Initializes a Condition task group."""
         super().__init__(
             group_type=TasksGroupType.EXIT_HANDLER,
@@ -138,9 +140,31 @@ class ExitHandler(TasksGroup):
         self.exit_task = exit_task
 
 
-class Condition(TasksGroup):
-    """A class for creating conditional control flow within a pipeline
-    definition.
+class _ConditionBase(TasksGroup):
+    """Parent class for condition control flow context managers (Condition, If,
+    Elif, Else).
+
+    Args:
+        condition: A list of binary operations to be combined via conjunction.
+        name: The name of the condition group.
+    """
+
+    def __init__(
+        self,
+        conditions: List[pipeline_channel.ConditionOperation],
+        name: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            group_type=TasksGroupType.CONDITION,
+            name=name,
+            is_root=False,
+        )
+        self.conditions: List[pipeline_channel.ConditionOperation] = conditions
+
+
+class If(_ConditionBase):
+    """A class for creating a conditional control flow "if" block within a
+    pipeline.
 
     Args:
         condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task or a pipeline parameter.
@@ -150,22 +174,151 @@ class Condition(TasksGroup):
       ::
 
         task1 = my_component1(...)
-        with Condition(task1.output=='pizza', 'pizza-condition'):
+        with dsl.If(task1.output=='pizza', 'pizza-condition'):
             task2 = my_component2(...)
     """
 
     def __init__(
         self,
-        condition: pipeline_channel.ConditionOperator,
+        condition,
         name: Optional[str] = None,
-    ):
-        """Initializes a conditional task group."""
+    ) -> None:
         super().__init__(
-            group_type=TasksGroupType.CONDITION,
+            conditions=[condition],
             name=name,
-            is_root=False,
         )
-        self.condition = condition
+        if isinstance(condition, bool):
+            raise ValueError(
+                f'Got constant boolean {condition} as a condition. This is likely because the provided condition evaluated immediately. At least one of the operands must be an output from an upstream task or a pipeline parameter.'
+            )
+        copied_condition = copy.copy(condition)
+        copied_condition.negate = True
+        self._negated_upstream_conditions = [copied_condition]
+
+
+class Condition(If):
+    """Deprecated.
+
+    Use dsl.If instead.
+    """
+
+    def __enter__(self):
+        super().__enter__()
+        warnings.warn(
+            'dsl.Condition is deprecated. Please use dsl.If instead.',
+            category=DeprecationWarning,
+            stacklevel=2)
+        return self
+
+
+class Elif(_ConditionBase):
+    """A class for creating a conditional control flow "else if" block within a
+    pipeline. Can be used following an upstream dsl.If or dsl.Elif.
+
+    Args:
+        condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task or a pipeline parameter.
+        name: The name of the condition group.
+
+    Example:
+      ::
+
+        task1 = my_component1(...)
+        task2 = my_component2(...)
+        with dsl.If(task1.output=='pizza', 'pizza-condition'):
+            task3 = my_component3(...)
+
+        with dsl.Elif(task2.output=='pasta', 'pasta-condition'):
+            task4 = my_component4(...)
+    """
+
+    def __init__(
+        self,
+        condition,
+        name: Optional[str] = None,
+    ) -> None:
+        prev_cond = pipeline_context.Pipeline.get_default_pipeline(
+        ).get_last_tasks_group()
+        if not isinstance(prev_cond, (Condition, If, Elif)):
+            # prefer pushing toward dsl.If rather than dsl.Condition for syntactic consistency with the if-elif-else keywords in Python
+            raise InvalidControlFlowException(
+                'dsl.Elif can only be used following an upstream dsl.If or dsl.Elif.'
+            )
+
+        if isinstance(condition, bool):
+            raise ValueError(
+                f'Got constant boolean {condition} as a condition. This is likely because the provided condition evaluated immediately. At least one of the operands must be an output from an upstream task or a pipeline parameter.'
+            )
+
+        copied_condition = copy.copy(condition)
+        copied_condition.negate = True
+        self._negated_upstream_conditions = _shallow_copy_list_of_binary_operations(
+            prev_cond._negated_upstream_conditions) + [copied_condition]
+
+        conditions = _shallow_copy_list_of_binary_operations(
+            prev_cond._negated_upstream_conditions)
+        conditions.append(condition)
+
+        super().__init__(
+            conditions=conditions,
+            name=name,
+        )
+
+
+class Else(_ConditionBase):
+    """A class for creating a conditional control flow "else" block within a
+    pipeline. Can be used following an upstream dsl.If or dsl.Elif.
+
+    Args:
+        name: The name of the condition group.
+
+    Example:
+      ::
+
+        task1 = my_component1(...)
+        task2 = my_component2(...)
+        with dsl.If(task1.output=='pizza', 'pizza-condition'):
+            task3 = my_component3(...)
+
+        with dsl.Elif(task2.output=='pasta', 'pasta-condition'):
+            task4 = my_component4(...)
+
+        with dsl.Else():
+            my_component5(...)
+    """
+
+    def __init__(
+        self,
+        name: Optional[str] = None,
+    ) -> None:
+        prev_cond = pipeline_context.Pipeline.get_default_pipeline(
+        ).get_last_tasks_group()
+
+        if isinstance(prev_cond, Else):
+            # prefer pushing toward dsl.If rather than dsl.Condition for syntactic consistency with the if-elif-else keywords in Python
+            raise InvalidControlFlowException(
+                'Cannot use dsl.Else following another dsl.Else. dsl.Else can only be used following an upstream dsl.If or dsl.Elif.'
+            )
+        if not isinstance(prev_cond, (Condition, If, Elif)):
+            # prefer pushing toward dsl.If rather than dsl.Condition for syntactic consistency with the if-elif-else keywords in Python
+            raise InvalidControlFlowException(
+                'dsl.Else can only be used following an upstream dsl.If or dsl.Elif.'
+            )
+
+        super().__init__(
+            conditions=prev_cond._negated_upstream_conditions,
+            name=name,
+        )
+
+
+class InvalidControlFlowException(Exception):
+    pass
+
+
+def _shallow_copy_list_of_binary_operations(
+    operations: List[pipeline_channel.ConditionOperation]
+) -> List[pipeline_channel.ConditionOperation]:
+    # shallow copy is sufficient to allow us to invert the negate flag of a ConditionOperation without affecting copies. deep copy not needed and would result in many copies of the full pipeline since PipelineChannels hold references to the pipeline.
+    return [copy.copy(operation) for operation in operations]
 
 
 class ParallelFor(TasksGroup):
@@ -198,7 +351,7 @@ class ParallelFor(TasksGroup):
         items: Union[for_loop.ItemList, pipeline_channel.PipelineChannel],
         name: Optional[str] = None,
         parallelism: Optional[int] = None,
-    ):
+    ) -> None:
         """Initializes a for loop task group."""
         parallelism = parallelism or 0
         if parallelism < 0:
