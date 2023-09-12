@@ -34,6 +34,7 @@ def llm_embedding_retrieval(
     query_embedding_source_directory: Input[Artifact],
     doc_embedding_source_directory: Input[Artifact],
     embedding_retrieval_top_n: int,
+    embedding_retrieval_combination_function: str = 'max',
     display_name: str = 'llm_embedding_retrieval_component',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
@@ -53,12 +54,15 @@ def llm_embedding_retrieval(
   Args:
       project: Required. The GCP project that runs the pipeline component.
       location: Required. The GCP region that runs the pipeline component.
-      query_embedding_source_directory: Required. Directory where query embedding
+      query_embedding_source_directory: Required. Directory where query
+        embedding results are saved.
+      doc_embedding_source_directory: Required. Directory where doc embedding
         results are saved.
-      doc_embedding_source_directory: Required. Directory where doc embedding results
-        are saved.
       embedding_retrieval_top_n: Required. Top N docs will be retrieved for each
         query, based on similarity.
+      embedding_retrieval_combination_function: The function to combine
+        query-chunk similarities to query-doc similarity. Supported functions
+        are avg, max, and sum.
       display_name: The name of the Evaluation job.
       machine_type: The machine type of this custom job. If not set, defaulted
         to `e2-highmem-16`. More details:
@@ -118,6 +122,7 @@ def llm_embedding_retrieval(
               f'--query_embedding_source_directory={query_embedding_source_directory.path}',
               f'--doc_embedding_source_directory={doc_embedding_source_directory.path}',
               f'--embedding_retrieval_top_n={embedding_retrieval_top_n}',
+              f'--embedding_retrieval_combination_function={embedding_retrieval_combination_function}',
               f'--root_dir={PIPELINE_ROOT_PLACEHOLDER}',
               f'--gcp_resources={gcp_resources}',
               f'--embedding_retrieval_results_path={embedding_retrieval_results_path}',

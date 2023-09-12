@@ -34,6 +34,9 @@ def evaluation_llm_embedding_pipeline(
     query_gcs_source: str,
     golden_docs_gcs_source: str,
     model_name: str,
+    embedding_chunk_size: int = 0,
+    embedding_chunk_overlap: int = 0,
+    embedding_retrieval_combination_function: str = 'max',
     batch_predict_instances_format: str = 'jsonl',
     batch_predict_predictions_format: str = 'jsonl',
     embedding_retrieval_top_n: int = 10,
@@ -62,6 +65,13 @@ def evaluation_llm_embedding_pipeline(
     golden_docs_gcs_source: The gcs location for csv file containing mapping of
       each query to the golden docs.
     model_name: The path for model to generate embeddings.
+    embedding_chunk_size: The length of each document chunk. If 0, chunking is
+      not enabled.
+    embedding_chunk_overlap: The length of the overlap part between adjacent
+      chunks. Will only be used if embedding_chunk_size > 0.
+    embedding_retrieval_combination_function: The function to combine
+      query-chunk similarities to query-doc similarity. Supported functions are
+      avg, max, and sum.
     batch_predict_instances_format: The format in which instances are given,
       must be one of the Model's supportedInputStorageFormats. If not set,
       default to "jsonl".  For more details about this input config, see
@@ -117,6 +127,8 @@ def evaluation_llm_embedding_pipeline(
       service_account=service_account,
       network=network,
       runner=runner,
+      embedding_chunk_size=embedding_chunk_size,
+      embedding_chunk_overlap=embedding_chunk_overlap,
       dataflow_service_account=dataflow_service_account,
       dataflow_disk_size_gb=dataflow_disk_size_gb,
       dataflow_machine_type=dataflow_machine_type,
@@ -181,6 +193,7 @@ def evaluation_llm_embedding_pipeline(
           'gcs_output_directory'
       ],
       embedding_retrieval_top_n=embedding_retrieval_top_n,
+      embedding_retrieval_combination_function=embedding_retrieval_combination_function,
       machine_type=machine_type,
       service_account=service_account,
       network=network,

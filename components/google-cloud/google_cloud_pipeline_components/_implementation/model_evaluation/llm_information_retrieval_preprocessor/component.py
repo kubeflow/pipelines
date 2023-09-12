@@ -34,6 +34,8 @@ def llm_information_retrieval_preprocessor(
     corpus_gcs_source: str,
     query_gcs_source: str,
     golden_docs_gcs_source: str,
+    embedding_chunk_size: int = 0,
+    embedding_chunk_overlap: int = 0,
     display_name: str = 'information-retrieval-preprocessor',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
@@ -61,6 +63,10 @@ def llm_information_retrieval_preprocessor(
         documents.
       golden_docs_gcs_source: Required. The path for csv file containing mapping
         of each query to the golden docs.
+      embedding_chunk_size: The length of each document chunk. If 0, chunking is
+        not enabled.
+      embedding_chunk_overlap: The length of the overlap part between adjacent
+        chunks. Will only be used if embedding_chunk_size > 0.
       display_name: The name of the Evaluation job.
       machine_type: The machine type of this custom job. If not set, defaulted
         to `e2-highmem-16`. More details:
@@ -132,6 +138,8 @@ def llm_information_retrieval_preprocessor(
               f'--predictions_query_gcs_source={predictions_query_gcs_source}',
               f'--predictions_corpus_gcs_source={predictions_corpus_gcs_source}',
               f'--embedding_retrieval_gcs_source={embedding_retrieval_gcs_source}',
+              f'--embedding_chunk_size={embedding_chunk_size}',
+              f'--embedding_chunk_overlap={embedding_chunk_overlap}',
               f'--runner={runner}',
               f'--dataflow_service_account={dataflow_service_account}',
               f'--dataflow_disk_size={dataflow_disk_size_gb}',
