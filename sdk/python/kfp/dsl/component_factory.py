@@ -99,13 +99,21 @@ def make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
     return ' '.join(options) + ' '
 
 
+def make_pip_install_command(
+    install_parts: List[str],
+    index_url_options: str,
+) -> str:
+    concat_package_list = ' '.join(
+        [repr(str(package)) for package in install_parts])
+    return f'python3 -m pip install --quiet --no-warn-script-location {index_url_options}{concat_package_list}'
+
+
 _install_python_packages_script_template = '''
 if ! [ -x "$(command -v pip)" ]; then
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
 fi
 
-PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-    --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
+PIP_DISABLE_PIP_VERSION_CHECK=1 {pip_install_commands} && "$0" "$@"
 '''
 
 
@@ -122,30 +130,42 @@ def _get_packages_to_install_command(
     # container component, and they haven't already specified a KFP dep
     # themselves, we install KFP for them
     inject_kfp_install = install_kfp_package and target_image is None and not kfp_in_user_pkgs
+    if not inject_kfp_install and not packages_to_install:
+        return []
+    pip_install_strings = []
+    index_url_options = make_index_url_options(pip_index_urls)
+
     if inject_kfp_install:
         if kfp_package_path:
-            packages_to_install.append(kfp_package_path)
+            kfp_pip_install_command = make_pip_install_command(
+                install_parts=[kfp_package_path],
+                index_url_options=index_url_options,
+            )
         else:
-            packages_to_install.extend(_get_injected_kfp_imports())
+            kfp_pip_install_command = make_pip_install_command(
+                install_parts=[
+                    f'kfp=={kfp.__version__}',
+                    '--no-deps',
+                    'typing-extensions>=3.7.4,<5; python_version<"3.9"',
+                ],
+                index_url_options=index_url_options,
+            )
+        pip_install_strings.append(kfp_pip_install_command)
+
+        if packages_to_install:
+            pip_install_strings.append(' && ')
 
     if packages_to_install:
-        concat_package_list = ' '.join(
-            [repr(str(package)) for package in packages_to_install])
-        index_url_options = make_index_url_options(pip_index_urls)
-
-        install_python_packages_script = _install_python_packages_script_template.format(
+        user_packages_pip_install_command = make_pip_install_command(
+            install_parts=packages_to_install,
             index_url_options=index_url_options,
-            concat_package_list=concat_package_list)
-        return ['sh', '-c', install_python_packages_script]
+        )
+        pip_install_strings.append(user_packages_pip_install_command)
 
-    return []
-
-
-def _get_injected_kfp_imports() -> List[str]:
     return [
-        f'kfp=={kfp.__version__}',
-        '--no-deps',
-        'typing-extensions>=3.7.4,<5; python_version<"3.9"',
+        'sh', '-c',
+        _install_python_packages_script_template.format(
+            pip_install_commands=' '.join(pip_install_strings))
     ]
 
 
