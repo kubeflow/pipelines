@@ -120,9 +120,7 @@ def custom_training_job(
               },
           },
           'labels': labels,
-          'encryption_spec_key_name': {
-              'kms_key_name': encryption_spec_key_name
-          },
+          'encryption_spec': {'kms_key_name': encryption_spec_key_name},
       },
       gcp_resources=gcp_resources,
   )

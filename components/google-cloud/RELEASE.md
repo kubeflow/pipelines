@@ -1,5 +1,7 @@
 ## Upcoming release
 
+* Fix use of `encryption_spec_key_name` in `v1.custom_job.CustomTrainingJobOp` and `v1.custom_job.create_custom_training_job_from_component`
+
 ## Release 2.3.1
 * Make LLM pipelines compatible with KFP SDK 2.1.3
 * Require KFP SDK <=2.1.3
