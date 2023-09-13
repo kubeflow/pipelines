@@ -116,7 +116,7 @@ def tabular_feature_ranking_and_selection(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230817_0125',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230910_1325',
                   '", "args": ["feature_selection", "--data_source=',
                   data_source.uri,
                   '", "--target_column=',
@@ -153,7 +153,7 @@ def tabular_feature_ranking_and_selection(
                   ),
                   dataflow_max_num_workers,
                   '", "--dataflow_worker_container_image=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230817_0125',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325',
                   '", "--dataflow_machine_type=',
                   dataflow_machine_type,
                   '", "--dataflow_disk_size_gb=',

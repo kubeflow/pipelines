@@ -126,6 +126,11 @@ components:
           parameterType: STRING
     outputDefinitions:
       artifacts:
+        example_instance:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          description: An example instance which may be used as an input for predictions.
         explanation_metadata_artifact:
           artifactType:
             schemaTitle: system.Artifact
@@ -215,6 +220,11 @@ components:
           parameterType: STRING
     outputDefinitions:
       artifacts:
+        example_instance:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          description: An example instance which may be used as an input for predictions.
         explanation_metadata_artifact:
           artifactType:
             schemaTitle: system.Artifact
@@ -2971,6 +2981,61 @@ components:
             \     output_column: Name of our output feature."
           isOptional: true
           parameterType: LIST
+        embedding_batch_prediction_accelerator_count:
+          defaultValue: -1.0
+          description: 'The number of accelerators to
+
+            use to generate the embeddings. Default is 0.'
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        embedding_batch_prediction_accelerator_type:
+          defaultValue: accelerator_type_unspecified
+          description: 'The accelerator type to use to
+
+            generate embeddings. If not provided, no accelerator is used. More
+
+            details: https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype'
+          isOptional: true
+          parameterType: STRING
+        embedding_batch_prediction_batch_size:
+          defaultValue: -1.0
+          description: 'The batch size for embedding batch
+
+            prediction job. Default = 1024.'
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        embedding_batch_prediction_machine_type:
+          defaultValue: ''
+          description: 'The machine type to be
+
+            used to run the embedding batch prediction job. If not provided,
+
+            `n1-highmem-32` will be used. For more details, see:
+
+            https://cloud.google.com/vertex-ai/docs/predictions/configure-compute#machine-types'
+          isOptional: true
+          parameterType: STRING
+        embedding_batch_prediction_max_replica_count:
+          defaultValue: -1.0
+          description: 'The max replica count for
+
+            embedding batch prediction job. Default = 50.'
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        embedding_batch_prediction_starting_replica_count:
+          defaultValue: -1.0
+          description: 'The starting replica count
+
+            for embedding batch prediction job. Default = 20.'
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        embedding_prediction_server_docker_uri:
+          defaultValue: ''
+          description: 'The docker image inside which to
+
+            run the embedding models to generate embeddings.'
+          isOptional: true
+          parameterType: STRING
         encryption_spec_key_name:
           defaultValue: ''
           description: Customer-managed encryption key.
@@ -3227,7 +3292,7 @@ components:
           parameterType: STRING
         run_distill:
           defaultValue: false
-          description: 'Whether the distillation should be applied
+          description: '(deprecated) Whether the distillation should be applied
 
             to the training.'
           isOptional: true
@@ -4012,7 +4077,7 @@ components:
 
             the given project a new dataset is created with name
 
-            `prediction_<model-display-name>_<job-create-time>` where is made
+            ``prediction_<model-display-name>_<job-create-time>`` where is made
 
             BigQuery-dataset-name compatible (for example, most special characters
 
@@ -4020,25 +4085,25 @@ components:
 
             "based on ISO-8601" format. In the dataset two tables will be created,
 
-            `predictions`, and `errors`. If the Model has both `instance`
+            ``predictions``, and ``errors``. If the Model has both ``instance``
 
-            and `prediction` schemata defined then the tables have columns as
+            and ``prediction`` schemata defined then the tables have columns as
 
-            follows: The `predictions` table contains instances for which the
+            follows: The ``predictions`` table contains instances for which the
 
             prediction succeeded, it has columns as per a concatenation of the
 
-            Model''s instance and prediction schemata. The `errors` table
+            Model''s instance and prediction schemata. The ``errors`` table
 
             contains rows for which the prediction has failed, it has instance
 
             columns, as per the instance schema, followed by a single "errors"
 
-            column, which as values has `google.rpc.Status`
+            column, which as values has ```google.rpc.Status`` <Status>`__
 
-            represented as a STRUCT, and containing only `code` and
+            represented as a STRUCT, and containing only ``code`` and
 
-            `message`. For more details about this output config, see
+            ``message``. For more details about this output config, see
 
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
           isOptional: true
@@ -4064,7 +4129,7 @@ components:
 
             provided encryption key.  Has the form:
 
-            `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
+            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
 
             The key needs to be in the same region as where the compute resource
 
@@ -4141,37 +4206,37 @@ components:
 
             to. In the given directory a new directory is created. Its name is
 
-            `prediction-<model-display-name>-<job-create-time>`, where timestamp
+            ``prediction-<model-display-name>-<job-create-time>``, where timestamp
 
             is in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
 
-            `predictions_0001.<extension>`, `predictions_0002.<extension>`,
+            ``predictions_0001.<extension>``, ``predictions_0002.<extension>``,
 
-            ..., `predictions_N.<extension>` are created where `<extension>`
+            ..., ``predictions_N.<extension>`` are created where ``<extension>``
 
-            depends on chosen `predictions_format`, and N may equal 0001 and
+            depends on chosen ``predictions_format``, and N may equal 0001 and
 
             depends on the total number of successfully predicted instances. If
 
-            the Model has both `instance` and `prediction` schemata defined
+            the Model has both ``instance`` and ``prediction`` schemata defined
 
             then each such file contains predictions as per the
 
-            `predictions_format`. If prediction for any instance failed
+            ``predictions_format``. If prediction for any instance failed
 
             (partially or completely), then an additional
 
-            `errors_0001.<extension>`, `errors_0002.<extension>`,...,
+            ``errors_0001.<extension>``, ``errors_0002.<extension>``,...,
 
-            `errors_N.<extension>` files are created (N depends on total number
+            ``errors_N.<extension>`` files are created (N depends on total number
 
             of failed predictions). These files contain the failed instances, as
 
-            per their schema, followed by an additional `error` field which as
+            per their schema, followed by an additional ``error`` field which as
 
-            value has `google.rpc.Status` containing only `code` and
+            value has ``google.rpc.Status`` containing only ``code`` and
 
-            `message` fields.  For more details about this output config, see
+            ``message`` fields.  For more details about this output config, see
 
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
           isOptional: true
@@ -4474,7 +4539,7 @@ components:
 
             the given project a new dataset is created with name
 
-            `prediction_<model-display-name>_<job-create-time>` where is made
+            ``prediction_<model-display-name>_<job-create-time>`` where is made
 
             BigQuery-dataset-name compatible (for example, most special characters
 
@@ -4482,25 +4547,25 @@ components:
 
             "based on ISO-8601" format. In the dataset two tables will be created,
 
-            `predictions`, and `errors`. If the Model has both `instance`
+            ``predictions``, and ``errors``. If the Model has both ``instance``
 
-            and `prediction` schemata defined then the tables have columns as
+            and ``prediction`` schemata defined then the tables have columns as
 
-            follows: The `predictions` table contains instances for which the
+            follows: The ``predictions`` table contains instances for which the
 
             prediction succeeded, it has columns as per a concatenation of the
 
-            Model''s instance and prediction schemata. The `errors` table
+            Model''s instance and prediction schemata. The ``errors`` table
 
             contains rows for which the prediction has failed, it has instance
 
             columns, as per the instance schema, followed by a single "errors"
 
-            column, which as values has `google.rpc.Status`
+            column, which as values has ```google.rpc.Status`` <Status>`__
 
-            represented as a STRUCT, and containing only `code` and
+            represented as a STRUCT, and containing only ``code`` and
 
-            `message`. For more details about this output config, see
+            ``message``. For more details about this output config, see
 
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
           isOptional: true
@@ -4526,7 +4591,7 @@ components:
 
             provided encryption key.  Has the form:
 
-            `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
+            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
 
             The key needs to be in the same region as where the compute resource
 
@@ -4603,37 +4668,37 @@ components:
 
             to. In the given directory a new directory is created. Its name is
 
-            `prediction-<model-display-name>-<job-create-time>`, where timestamp
+            ``prediction-<model-display-name>-<job-create-time>``, where timestamp
 
             is in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
 
-            `predictions_0001.<extension>`, `predictions_0002.<extension>`,
+            ``predictions_0001.<extension>``, ``predictions_0002.<extension>``,
 
-            ..., `predictions_N.<extension>` are created where `<extension>`
+            ..., ``predictions_N.<extension>`` are created where ``<extension>``
 
-            depends on chosen `predictions_format`, and N may equal 0001 and
+            depends on chosen ``predictions_format``, and N may equal 0001 and
 
             depends on the total number of successfully predicted instances. If
 
-            the Model has both `instance` and `prediction` schemata defined
+            the Model has both ``instance`` and ``prediction`` schemata defined
 
             then each such file contains predictions as per the
 
-            `predictions_format`. If prediction for any instance failed
+            ``predictions_format``. If prediction for any instance failed
 
             (partially or completely), then an additional
 
-            `errors_0001.<extension>`, `errors_0002.<extension>`,...,
+            ``errors_0001.<extension>``, ``errors_0002.<extension>``,...,
 
-            `errors_N.<extension>` files are created (N depends on total number
+            ``errors_N.<extension>`` files are created (N depends on total number
 
             of failed predictions). These files contain the failed instances, as
 
-            per their schema, followed by an additional `error` field which as
+            per their schema, followed by an additional ``error`` field which as
 
-            value has `google.rpc.Status` containing only `code` and
+            value has ``google.rpc.Status`` containing only ``code`` and
 
-            `message` fields.  For more details about this output config, see
+            ``message`` fields.  For more details about this output config, see
 
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
           isOptional: true
@@ -5794,25 +5859,22 @@ deploymentSpec:
         - --gcp_resources
         - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
         - --payload
-        - '{"Concat": ["{\"display_name\": \"automl-tabular-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
-          \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
-          {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
-          "\", \"args\": [\"forecasting_mp_ensemble", "\", \"--transform_output_path=",
-          "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--error_file_path=",
-          "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
-          "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
-          \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
-          "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
-          "\", \"--instance_schema_path=", "{{$.inputs.artifacts[''instance_schema_path''].uri}}",
-          "\", \"--prediction_docker_uri=", "{{$.inputs.parameters[''prediction_image_uri'']}}",
-          "\", \"--model_relative_output_path=", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model",
-          "\", \"--explanation_metadata_path=", "{{$.outputs.parameters[''explanation_metadata''].output_file}}",
-          ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}", "\",
-          \"--explanation_parameters_path=", "{{$.outputs.parameters[''explanation_parameters''].output_file}}",
-          "\", \"--model_architecture_path=", "{{$.outputs.artifacts[''model_architecture''].uri}}",
-          "\", \"--use_json=true", "\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"]}'
+        - '{"display_name": "automl-forecasting-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+          "encryption_spec": {"kms_key_name": "{{$.inputs.parameters[''encryption_spec_key_name'']}}"},
+          "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec":
+          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230910_1325",
+          "args": ["forecasting_mp_ensemble", "--transform_output_path={{$.inputs.artifacts[''transform_output''].uri}}",
+          "--error_file_path={{$.inputs.parameters[''root_dir'']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
+          "--metadata_path={{$.inputs.artifacts[''metadata''].uri}}", "--tuning_result_input_path={{$.inputs.artifacts[''tuning_result_input''].uri}}",
+          "--instance_baseline_path={{$.inputs.artifacts[''instance_baseline''].uri}}",
+          "--instance_schema_path={{$.inputs.artifacts[''instance_schema_path''].uri}}",
+          "--prediction_docker_uri={{$.inputs.parameters[''prediction_image_uri'']}}",
+          "--model_relative_output_path={{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model",
+          "--explanation_metadata_path={{$.outputs.parameters[''explanation_metadata''].output_file}},{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
+          "--explanation_parameters_path={{$.outputs.parameters[''explanation_parameters''].output_file}}",
+          "--model_architecture_path={{$.outputs.artifacts[''model_architecture''].uri}}",
+          "--example_instance_path={{$.outputs.artifacts[''example_instance''].uri}}",
+          "--use_json=true", "--executor_input={{$.json_escape[1]}}"]}}]}}'
         command:
         - python3
         - -u
@@ -5831,25 +5893,22 @@ deploymentSpec:
         - --gcp_resources
         - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
         - --payload
-        - '{"Concat": ["{\"display_name\": \"automl-tabular-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
-          \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
-          {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
-          "\", \"args\": [\"forecasting_mp_ensemble", "\", \"--transform_output_path=",
-          "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--error_file_path=",
-          "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
-          "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
-          \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
-          "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
-          "\", \"--instance_schema_path=", "{{$.inputs.artifacts[''instance_schema_path''].uri}}",
-          "\", \"--prediction_docker_uri=", "{{$.inputs.parameters[''prediction_image_uri'']}}",
-          "\", \"--model_relative_output_path=", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model",
-          "\", \"--explanation_metadata_path=", "{{$.outputs.parameters[''explanation_metadata''].output_file}}",
-          ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}", "\",
-          \"--explanation_parameters_path=", "{{$.outputs.parameters[''explanation_parameters''].output_file}}",
-          "\", \"--model_architecture_path=", "{{$.outputs.artifacts[''model_architecture''].uri}}",
-          "\", \"--use_json=true", "\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"]}'
+        - '{"display_name": "automl-forecasting-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+          "encryption_spec": {"kms_key_name": "{{$.inputs.parameters[''encryption_spec_key_name'']}}"},
+          "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec":
+          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230910_1325",
+          "args": ["forecasting_mp_ensemble", "--transform_output_path={{$.inputs.artifacts[''transform_output''].uri}}",
+          "--error_file_path={{$.inputs.parameters[''root_dir'']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
+          "--metadata_path={{$.inputs.artifacts[''metadata''].uri}}", "--tuning_result_input_path={{$.inputs.artifacts[''tuning_result_input''].uri}}",
+          "--instance_baseline_path={{$.inputs.artifacts[''instance_baseline''].uri}}",
+          "--instance_schema_path={{$.inputs.artifacts[''instance_schema_path''].uri}}",
+          "--prediction_docker_uri={{$.inputs.parameters[''prediction_image_uri'']}}",
+          "--model_relative_output_path={{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model",
+          "--explanation_metadata_path={{$.outputs.parameters[''explanation_metadata''].output_file}},{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
+          "--explanation_parameters_path={{$.outputs.parameters[''explanation_parameters''].output_file}}",
+          "--model_architecture_path={{$.outputs.artifacts[''model_architecture''].uri}}",
+          "--example_instance_path={{$.outputs.artifacts[''example_instance''].uri}}",
+          "--use_json=true", "--executor_input={{$.json_escape[1]}}"]}}]}}'
         command:
         - python3
         - -u
@@ -5872,11 +5931,11 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230910_1325",
           "\", \"args\": [\"forecasting_mp_l2l_stage_1_tuner", "\", \"--region=",
           "{{$.inputs.parameters[''location'']}}", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--training_docker_uri=",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230910_1325",
           "\", \"--reduce_search_space_mode=", "{{$.inputs.parameters[''reduce_search_space_mode'']}}",
           "\", \"--component_id={{$.pipeline_task_uuid}}", "\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train",
@@ -5915,11 +5974,11 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230910_1325",
           "\", \"args\": [\"forecasting_mp_l2l_stage_2_tuner", "\", \"--region=",
           "{{$.inputs.parameters[''location'']}}", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--training_docker_uri=",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230817_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230910_1325",
           "\", \"--component_id={{$.pipeline_task_uuid}}", "\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train",
           "\", \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -5958,7 +6017,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230817_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230910_1325", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -6278,8 +6337,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230817_0125
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -6295,7 +6354,15 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125
+        - '{"Concat": ["--embedding_prediction_server_docker_uri=", "{{$.inputs.parameters[''embedding_prediction_server_docker_uri'']}}"]}'
+        - '{"Concat": ["--embedding_batch_prediction_machine_type=", "{{$.inputs.parameters[''embedding_batch_prediction_machine_type'']}}"]}'
+        - '{"Concat": ["--embedding_batch_prediction_accelerator_type=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_type'']}}"]}'
+        - '{"Concat": ["--embedding_batch_prediction_accelerator_count=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_count'']}}"]}'
+        - '{"Concat": ["--embedding_batch_prediction_starting_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_starting_replica_count'']}}"]}'
+        - '{"Concat": ["--embedding_batch_prediction_max_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_max_replica_count'']}}"]}'
+        - '{"Concat": ["--embedding_batch_prediction_batch_size=", "{{$.inputs.parameters[''embedding_batch_prediction_batch_size'']}}"]}'
+        - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -6465,10 +6532,10 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20230817_0125',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20230817_0125',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20230817_0125',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20230817_0125',\n\
+          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20230910_1325',\n\
+          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20230910_1325',\n\
+          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20230910_1325',\n\
+          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20230910_1325',\n\
           \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
           \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
           \    )\n  return images[model_type]\n\n"
@@ -6501,10 +6568,10 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20230817_0125',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20230817_0125',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20230817_0125',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20230817_0125',\n\
+          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20230910_1325',\n\
+          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20230910_1325',\n\
+          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20230910_1325',\n\
+          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20230910_1325',\n\
           \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
           \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
           \    )\n  return images[model_type]\n\n"
@@ -6537,7 +6604,7 @@ deploymentSpec:
           \ str) -> str:\n  \"\"\"Generates the BP output's target column name.\"\"\
           \"\n  if forecasting_type == 'quantile':\n    return f'predicted_{target_column}.quantile_predictions'\n\
           \  return f'predicted_{target_column}.value'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
     exec-get-predictions-column-2:
       container:
         args:
@@ -6566,7 +6633,7 @@ deploymentSpec:
           \ str) -> str:\n  \"\"\"Generates the BP output's target column name.\"\"\
           \"\n  if forecasting_type == 'quantile':\n    return f'predicted_{target_column}.quantile_predictions'\n\
           \  return f'predicted_{target_column}.value'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
     exec-importer:
       importer:
         artifactUri:
@@ -7096,7 +7163,7 @@ deploymentSpec:
           \          'model_display_name',\n          'transformations',\n      ],\n\
           \  )(\n      data_source_csv_filenames,\n      data_source_bigquery_table_path,\n\
           \      model_display_name,\n      transformations,\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
     exec-split-materialized-data:
       container:
         args:
@@ -7142,7 +7209,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230817_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325
     exec-string-not-empty:
       container:
         args:
@@ -7208,7 +7275,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
     exec-table-to-uri-2:
       container:
         args:
@@ -7244,7 +7311,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230817_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
     exec-training-configurator-and-validator:
       container:
         args:
@@ -7289,7 +7356,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230817_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
 pipelineInfo:
   description: The Temporal Fusion Transformer (TFT) Forecasting pipeline.
   name: temporal-fusion-transformer-forecasting
