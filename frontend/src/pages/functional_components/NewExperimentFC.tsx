@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
-import BusyButton from 'src/atoms/BusyButton';
 import Button from '@material-ui/core/Button';
-import Input from 'src/atoms/Input';
+import React, { useEffect, useState } from 'react';
+import { useMutation, useQuery } from 'react-query';
+import { commonCss, fontsize, padding } from 'src/Css';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import BusyButton from 'src/atoms/BusyButton';
+import Input from 'src/atoms/Input';
+import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
-import { PageProps } from 'src/pages/Page';
-import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
 import { URLParser } from 'src/lib/URLParser';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, fontsize } from 'src/Css';
 import { errorToMessage } from 'src/lib/Utils';
 import { getLatestVersion } from 'src/pages/NewRunV2';
-import { useMutation } from 'react-query';
-import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { PageProps } from 'src/pages/Page';
+import { classes, stylesheet } from 'typestyle';
 
 const css = stylesheet({
   errorMessage: {
@@ -52,11 +52,15 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   const [description, setDescription] = useState<string>('');
   const [experimentName, setExperimentName] = useState<string>('');
   const [isbeingCreated, setIsBeingCreated] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [latestVersion, setLatestVersion] = useState<V2beta1PipelineVersion | undefined>();
   const [experimentResponse, setExperimentResponse] = useState<V2beta1Experiment>();
   const [errMsgFromApi, setErrMsgFromApi] = useState<string>();
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
+
+  const { data: latestVersion } = useQuery<V2beta1PipelineVersion | undefined, Error>(
+    ['pipeline_versions', pipelineId],
+    () => getLatestVersion(pipelineId!),
+    { enabled: !!pipelineId },
+  );
 
   useEffect(() => {
     updateToolbar({
@@ -64,16 +68,9 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'New experiment',
     });
+    // Initialize toolbar only once during the first render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (pipelineId) {
-      (async () => {
-        setLatestVersion(await getLatestVersion(pipelineId));
-      })();
-    }
-  }, [pipelineId]);
 
   // Handle the redirection work when createExperiment is succeed
   useEffect(() => {
@@ -97,17 +94,11 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
         open: true,
       });
     }
+    // Only trigger this effect when search string parameters change.
+    // Do not rerun this effect if updateSnackbar callback has changes to avoid re-rendering.
+    // Do not rerun this effect if pipelineId has changes to avoid re-rendering.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [experimentResponse]);
-
-  // Handle the error when createExperiment() is failed
-  useEffect(() => {
-    if (!experimentName) {
-      setErrorMessage('Experiment name is required');
-    } else {
-      setErrorMessage('');
-    }
-  }, [experimentName]);
+  }, [experimentResponse, latestVersion]);
 
   useEffect(() => {
     if (errMsgFromApi) {
@@ -118,8 +109,9 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
         title: 'Experiment creation failed',
       });
     }
+    // Do not rerun this effect if updateDialog callback has changes to avoid re-rendering.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [errMsgFromApi]);
+  }, [errMsgFromApi, updateDialog]);
 
   const newExperimentMutation = useMutation((experiment: V2beta1Experiment) => {
     return Apis.experimentServiceApiV2.createExperiment(experiment);
@@ -136,6 +128,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     newExperimentMutation.mutate(newExperiment, {
       onSuccess: response => {
         setExperimentResponse(response);
+        setErrMsgFromApi(undefined);
       },
       onError: async err => {
         setErrMsgFromApi(await errorToMessage(err));
@@ -174,7 +167,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
         <div className={commonCss.flex}>
           <BusyButton
             id='createExperimentBtn'
-            disabled={!!errorMessage}
+            disabled={!experimentName}
             busy={isbeingCreated}
             className={commonCss.buttonAction}
             title={'Next'}
@@ -186,7 +179,9 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
           >
             Cancel
           </Button>
-          <div className={css.errorMessage}>{errorMessage}</div>
+          <div className={css.errorMessage}>
+            {experimentName ? '' : 'Experiment name is required'}
+          </div>
         </div>
       </div>
     </div>
