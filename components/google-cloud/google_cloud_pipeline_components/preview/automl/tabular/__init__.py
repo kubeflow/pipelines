@@ -16,6 +16,8 @@
 
 import os
 
+from google_cloud_pipeline_components.preview.automl.tabular.auto_feature_engineering import automated_feature_engineering as AutoFeatureEngineeringOp
+from google_cloud_pipeline_components.preview.automl.tabular.distillation_stage_feature_transform_engine import distillation_stage_feature_transform_engine as DistillationStageFeatureTransformEngineOp
 from google_cloud_pipeline_components.preview.automl.tabular.feature_selection import tabular_feature_ranking_and_selection as FeatureSelectionOp
 from google_cloud_pipeline_components.preview.automl.tabular.feature_transform_engine import feature_transform_engine as FeatureTransformEngineOp
 from google_cloud_pipeline_components.preview.automl.tabular.tabnet_hyperparameter_tuning_job import tabnet_hyperparameter_tuning_job as TabNetHyperparameterTuningJobOp
@@ -27,12 +29,14 @@ from google_cloud_pipeline_components.preview.automl.tabular.xgboost_trainer imp
 from kfp import components
 
 __all__ = [
+    'AutoFeatureEngineeringOp',
     'FeatureSelectionOp',
     'WideAndDeepHyperparameterTuningJobOp',
     'WideAndDeepTrainerOp',
     'TabNetHyperparameterTuningJobOp',
     'TabNetTrainerOp',
     'FeatureTransformEngineOp',
+    'DistillationStageFeatureTransformEngineOp',
     'XGBoostHyperparameterTuningJobOp',
     'XGBoostTrainerOp',
 ]

@@ -651,6 +651,9 @@ def get_automl_tabular_pipeline_and_parameters(
         _GCPC_PREVIEW_TABULAR_PATH,
         'automl_tabular_v2_pipeline.yaml',
     )
+    # V2 pipeline requires execution engine to be set.
+    if 'tf_transform_execution_engine' not in parameter_values:
+      parameter_values['tf_transform_execution_engine'] = 'dataflow'
 
   return pipeline_definition_path, parameter_values
 

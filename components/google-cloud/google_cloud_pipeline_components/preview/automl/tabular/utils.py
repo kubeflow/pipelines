@@ -21,6 +21,7 @@ _EVALUATION_DATAFLOW_MACHINE_TYPE = 'n1-standard-4'
 _EVALUATION_DATAFLOW_STARTING_NUM_WORKERS = 10
 _EVALUATION_DATAFLOW_MAX_NUM_WORKERS = 100
 _EVALUATION_DATAFLOW_DISK_SIZE_GB = 50
+_FEATURE_SELECTION_EXECUTION_ENGINE_BIGQUERY = 'bigquery'
 
 # Needed because we reference the AutoML Tabular V1 pipeline.
 _GCPC_STAGING_PATH = pathlib.Path(
@@ -46,8 +47,6 @@ def _generate_model_display_name() -> str:
   return f'tabular-workflow-model-{uuid.uuid4()}'
 
 
-# TODO(b/277393122): Once we finish L2L+FTE integration, add use_fte flag
-# to signify FTE usage instead of the presence of num_selected_features.
 def _get_default_pipeline_params(
     project: str,
     location: str,
@@ -109,6 +108,7 @@ def _get_default_pipeline_params(
     num_selected_features: Optional[int] = None,
     model_display_name: str = '',
     model_description: str = '',
+    enable_fte: bool = False,
 ) -> Dict[str, Any]:
   """Get the AutoML Tabular v1 default training pipeline.
 
@@ -223,6 +223,7 @@ def _get_default_pipeline_params(
       enable_probabilistic_inference and run_distillation cannot be enabled.
     model_display_name: The display name of the uploaded Vertex model.
     model_description: The description for the uploaded model.
+    enable_fte: Whether to enable the Feature Transform Engine.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
@@ -326,8 +327,29 @@ def _get_default_pipeline_params(
         }
     )
 
-  # V1 pipeline without FTE
-  if num_selected_features is None:
+  if run_distillation:
+    distillation_parameters = {
+        'distill_batch_predict_machine_type': (
+            distill_batch_predict_machine_type
+        ),
+        'distill_batch_predict_starting_replica_count': (
+            distill_batch_predict_starting_replica_count
+        ),
+        'distill_batch_predict_max_replica_count': (
+            distill_batch_predict_max_replica_count
+        ),
+        'run_distillation': run_distillation,
+    }
+    parameter_values.update(
+        {
+            param: value
+            for param, value in distillation_parameters.items()
+            if value is not None
+        }
+    )
+
+  # V1 pipeline
+  if not enable_fte:
     if not additional_experiments:
       additional_experiments = {}
 
@@ -362,35 +384,8 @@ def _get_default_pipeline_params(
           'apply_feature_selection_tuning': apply_feature_selection_tuning,
       })
 
-    if run_distillation:
-      distillation_parameters = {
-          'distill_batch_predict_machine_type': (
-              distill_batch_predict_machine_type
-          ),
-          'distill_batch_predict_starting_replica_count': (
-              distill_batch_predict_starting_replica_count
-          ),
-          'distill_batch_predict_max_replica_count': (
-              distill_batch_predict_max_replica_count
-          ),
-          'run_distillation': run_distillation,
-      }
-      parameter_values.update(
-          {
-              param: value
-              for param, value in distillation_parameters.items()
-              if value is not None
-          }
-      )
-
   # V2 pipeline (with FTE)
   else:
-    if run_distillation:
-      raise ValueError(
-          'Distillation is currently not supported'
-          ' when num_selected_features is specified.'
-      )
-
     parameters = {
         'num_selected_features': num_selected_features,
         'dataset_level_custom_transformation_definitions': [],
@@ -478,6 +473,7 @@ def get_automl_tabular_pipeline_and_parameters(
     num_selected_features: Optional[int] = None,
     model_display_name: str = '',
     model_description: str = '',
+    enable_fte: bool = False,
 ) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular v1 default training pipeline.
 
@@ -589,6 +585,7 @@ def get_automl_tabular_pipeline_and_parameters(
       defaults to None, in which case all features are used.
     model_display_name: The display name of the uploaded Vertex model.
     model_description: The description for the uploaded model.
+    enable_fte: Whether to enable the Feature Transform Engine.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
@@ -652,10 +649,11 @@ def get_automl_tabular_pipeline_and_parameters(
       num_selected_features=num_selected_features,
       model_display_name=model_display_name,
       model_description=model_description,
+      enable_fte=enable_fte,
   )
 
   # V1 pipeline without FTE
-  if num_selected_features is None:
+  if not enable_fte:
     pipeline_definition_path = os.path.join(
         _GCPC_GA_TABULAR_PATH, 'automl_tabular_pipeline.yaml'
     )
@@ -3356,5 +3354,100 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
       pathlib.Path(__file__).parent.resolve(),
       'xgboost_hyperparameter_tuning_job_pipeline.yaml',
   )
+
+  return pipeline_definition_path, parameter_values
+
+
+def get_feature_selection_pipeline_and_parameters(
+    root_dir: str,
+    project: str,
+    location: str,
+    target_column: str,
+    prediction_type: str,
+    optimization_objective: str,
+    dataset_level_custom_transformation_definitions: Optional[
+        List[Dict[str, Any]]
+    ] = None,
+    dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
+    run_feature_selection: Optional[bool] = None,
+    feature_selection_algorithm: Optional[str] = None,
+    feature_selection_execution_engine: Optional[
+        str
+    ] = _FEATURE_SELECTION_EXECUTION_ENGINE_BIGQUERY,
+    max_selected_features: Optional[int] = None,
+    predefined_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    tf_auto_transform_features: Optional[
+        Union[List[str], Dict[str, List[str]]]
+    ] = None,
+    weight_column: Optional[str] = None,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    bigquery_staging_full_dataset_id: Optional[str] = None,
+    dataflow_machine_type: Optional[str] = None,
+    dataflow_max_num_workers: Optional[int] = None,
+    dataflow_disk_size_gb: Optional[int] = None,
+    dataflow_subnetwork: Optional[str] = None,
+    dataflow_use_public_ips: Optional[bool] = None,
+    encryption_spec_key_name: Optional[str] = None,
+    stage_1_deadline_hours: Optional[float] = None,
+    stage_2_deadline_hours: Optional[float] = None,
+):
+  """Returns feature transform engine pipeline and formatted parameters."""
+
+  if isinstance(tf_auto_transform_features, list):
+    tf_auto_transform_features = {'auto': tf_auto_transform_features}
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(), 'feature_selection_pipeline.yaml'
+  )
+
+  parameter_values = {
+      'root_dir': root_dir,
+      'project': project,
+      'location': location,
+      'target_column': target_column,
+      'weight_column': weight_column,
+      'prediction_type': prediction_type,
+      'dataset_level_custom_transformation_definitions': (
+          dataset_level_custom_transformation_definitions
+          if dataset_level_custom_transformation_definitions
+          else []
+      ),
+      'dataset_level_transformations': (
+          dataset_level_transformations if dataset_level_transformations else []
+      ),
+      'run_feature_selection': run_feature_selection,
+      'feature_selection_algorithm': feature_selection_algorithm,
+      'feature_selection_execution_engine': feature_selection_execution_engine,
+      'max_selected_features': max_selected_features,
+      'predefined_split_key': predefined_split_key,
+      'stratified_split_key': stratified_split_key,
+      'training_fraction': training_fraction,
+      'validation_fraction': validation_fraction,
+      'test_fraction': test_fraction,
+      'tf_auto_transform_features': tf_auto_transform_features,
+      'optimization_objective': optimization_objective,
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'bigquery_staging_full_dataset_id': bigquery_staging_full_dataset_id,
+      'dataflow_machine_type': dataflow_machine_type,
+      'dataflow_max_num_workers': dataflow_max_num_workers,
+      'dataflow_disk_size_gb': dataflow_disk_size_gb,
+      'dataflow_subnetwork': dataflow_subnetwork,
+      'dataflow_use_public_ips': dataflow_use_public_ips,
+      'encryption_spec_key_name': encryption_spec_key_name,
+      'stage_1_deadline_hours': stage_1_deadline_hours,
+      'stage_2_deadline_hours': stage_2_deadline_hours,
+  }
+
+  parameter_values = {
+      param: value
+      for param, value in parameter_values.items()
+      if value is not None
+  }
 
   return pipeline_definition_path, parameter_values
