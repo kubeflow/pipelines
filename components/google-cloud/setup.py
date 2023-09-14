@@ -84,6 +84,7 @@ setuptools.setup(
         "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
         "kfp>=2.0.0b10,<=2.1.3",
         "google-cloud-aiplatform>=1.14.0,<2",
+        "Jinja2==3.1.2",
     ],
     project_urls={
         "User Documentation": "https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction",
