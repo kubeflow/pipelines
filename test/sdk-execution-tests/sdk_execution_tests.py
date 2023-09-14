@@ -65,7 +65,7 @@ def create_test_case_parameters() -> List[TestCase]:
     return parameters
 
 
-def wait(run_result: client.client.RunPipelineResult) -> kfp_server_api.ApiRun:
+def wait(run_result: client.client.RunPipelineResult) -> kfp_server_api.V2beta1Run:
     return kfp_client.wait_for_run_completion(
         run_id=run_result.run_id, timeout=int(TIMEOUT_SECONDS))
 
