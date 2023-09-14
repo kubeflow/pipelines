@@ -2,7 +2,7 @@
 
 
 ## Features
-* Add support for `dsl.If`, `dsl.Elif`, and `dsl.Else` control flow context managers; deprecate `dsl.Condition` in favor of `dsl.If` [\#9894](https://github.com/kubeflow/pipelines/pull/9894)
+
 
 ## Breaking changes
 
@@ -11,18 +11,12 @@
 ## Bug fixes and other changes
 
 ## Documentation updates
-# 2.1.3
+# 2.2.0
 
 ## Features
+* Add support for `dsl.If`, `dsl.Elif`, and `dsl.Else` control flow context managers; deprecate `dsl.Condition` in favor of `dsl.If` [\#9894](https://github.com/kubeflow/pipelines/pull/9894)
 * Create "dependency-free" runtime package (only `typing_extensions` required) for Lightweight Python Components to reduce runtime dependency resolution errors [\#9710](https://github.com/kubeflow/pipelines/pull/9710), [\#9886](https://github.com/kubeflow/pipelines/pull/9886)
 
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-
-## Documentation updates
 # 2.0.1
 
 ## Features
