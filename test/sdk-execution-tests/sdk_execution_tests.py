@@ -122,4 +122,4 @@ async def test(test_case: TestCase, mocker) -> None:
             f'Error triggering pipeline {test_case.name}.') from e
 
     api_run = await event_loop.run_in_executor(None, wait, run_result)
-    assert api_run.run.status == 'Succeeded', f'Pipeline {test_case.name} ended with incorrect status: {api_run.run.status}. More info: {run_url}'
+    assert api_run.state == 'Succeeded', f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
