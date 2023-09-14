@@ -65,7 +65,7 @@ def create_test_case_parameters() -> List[TestCase]:
     return parameters
 
 
-def wait(run_result: client.client.RunPipelineResult) -> kfp_server_api.ApiRun:
+def wait(run_result: client.client.RunPipelineResult) -> kfp_server_api.V2beta1Run:
     return kfp_client.wait_for_run_completion(
         run_id=run_result.run_id, timeout=int(TIMEOUT_SECONDS))
 
@@ -122,4 +122,4 @@ async def test(test_case: TestCase, mocker) -> None:
             f'Error triggering pipeline {test_case.name}.') from e
 
     api_run = await event_loop.run_in_executor(None, wait, run_result)
-    assert api_run.run.status == 'Succeeded', f'Pipeline {test_case.name} ended with incorrect status: {api_run.run.status}. More info: {run_url}'
+    assert api_run.state == 'SUCCEEDED', f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
