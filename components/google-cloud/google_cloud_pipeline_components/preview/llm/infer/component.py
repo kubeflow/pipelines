@@ -42,40 +42,24 @@ def infer_pipeline(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
 ) -> PipelineOutput:
+  # fmt: off
   """Uses a large-language model to perform bulk inference on a prompt dataset.
 
   Args:
-    large_model_reference: Name of the base model. Supported values are
-      `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`.
-      `text-bison@001` and `t5-small` are supported in `us-central1` and
-      `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in
-      `europe-west4`.
+    large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
     model_checkpoint: Cloud storage path to the model checkpoint.
-    prompt_dataset: Cloud storage path to an unlabled prompt dataset used for
-      reinforcement learning. The dataset format is jsonl. Each example in the
-      dataset must have an `input_text` field that contains the prompt.
-    prompt_sequence_length: Maximum tokenized sequence length for input text.
-      Higher values increase memory overhead. This value should be at most 8192.
-      Default value is 512.
-    target_sequence_length:  Maximum tokenized sequence length for target text.
-      Higher values increase memory overhead. This value should be at most 1024.
-      Default value is 64.
-    sampling_strategy: This field specifies the sampling strategy. The valid
-      options are 'greedy' and 'temperature_sampling'.
-    instruction: This field lets the model know what task it needs to perform.
-      Base models have been trained over a large set of varied instructions. You
-      can give a simple and intuitive description of the task and the model will
-      follow it, e.g. "Classify this movie review as positive or negative" or
-      "Translate this sentence to Danish". Do not specify this if your dataset
-      already prepends the instruction to the inputs field.
-    project: Project used to run custom jobs. If not specified the project used
-      to run the pipeline will be used.
-    location: Location used to run custom jobs. If not specified the location
-      used to run the pipeline will be used.
+    prompt_dataset: Cloud storage path to an unlabled prompt dataset used for reinforcement learning. The dataset format is jsonl. Each example in the dataset must have an `input_text` field that contains the prompt.
+    prompt_sequence_length: Maximum tokenized sequence length for input text. Higher values increase memory overhead. This value should be at most 8192. Default value is 512.
+    target_sequence_length:  Maximum tokenized sequence length for target text. Higher values increase memory overhead. This value should be at most 1024. Default value is 64.
+    sampling_strategy: This field specifies the sampling strategy. The valid options are 'greedy' and 'temperature_sampling'.
+    instruction: This field lets the model know what task it needs to perform. Base models have been trained over a large set of varied instructions. You can give a simple and intuitive description of the task and the model will follow it, e.g. "Classify this movie review as positive or negative" or "Translate this sentence to Danish". Do not specify this if your dataset already prepends the instruction to the inputs field.
+    project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
+    location: Location used to run custom jobs. If not specified the location used to run the pipeline will be used.
 
   Returns:
     Cloud storage path to output predictions.
   """
+  # fmt: on
   prompt_column = 'input_text'
   machine_spec = function_based.resolve_machine_spec(
       location=location,

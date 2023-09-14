@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoML Feature Ranking and Selection component spec."""
 
 from typing import Optional
@@ -51,37 +50,21 @@ def tabular_feature_ranking_and_selection(
 
   Args:
       project: Project to run feature selection.
-      location: Location for running the feature selection. If not set,
-        default to us-central1.
+      location: Location for running the feature selection. If not set, default to us-central1.
       root_dir: The Cloud Storage location to store the output.
-      dataflow_machine_type: The machine type used for dataflow
-        jobs. If not set, default to n1-standard-16.
-      dataflow_max_num_workers: The number of workers to run the
-        dataflow job. If not set, default to 25.
-      dataflow_disk_size_gb: The disk size, in gigabytes, to use
-        on each Dataflow worker instance. If not set, default to 40.
-      dataflow_subnetwork: Dataflow's fully qualified subnetwork
-        name, when empty the default subnetwork will be used. More
-        details:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips: Specifies whether Dataflow
-        workers use public IP addresses.
-      dataflow_service_account: Custom service account to run
-        dataflow jobs.
-      encryption_spec_key_name: Customer-managed encryption key.
-        If this is set, then all resources will be encrypted with the provided
-        encryption key. data_source(Dataset): The input dataset artifact which
-        references csv, BigQuery, or TF Records. target_column_name(str): Target
-        column name of the input dataset.
-      max_selected_features: number of features to select by the
-        algorithm. If not set, default to 1000.
+      dataflow_machine_type: The machine type used for dataflow jobs. If not set, default to n1-standard-16.
+      dataflow_max_num_workers: The number of workers to run the dataflow job. If not set, default to 25.
+      dataflow_disk_size_gb: The disk size, in gigabytes, to use on each Dataflow worker instance. If not set, default to 40.
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
+      dataflow_service_account: Custom service account to run dataflow jobs.
+      encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources will be encrypted with the provided encryption key. data_source(Dataset): The input dataset artifact which references csv, BigQuery, or TF Records. target_column_name(str): Target column name of the input dataset.
+      max_selected_features: number of features to select by the algorithm. If not set, default to 1000.
 
   Returns:
       feature_ranking: the dictionary of feature names and feature ranking values.
       selected_features: A json array of selected feature names.
-      gcp_resources: GCP resources created by this component.
-        For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: GCP resources created by this component. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
 

@@ -41,8 +41,7 @@ def _update_parameters(
 def _generate_model_display_name() -> str:
   """Automatically generates a model_display_name.
 
-  Returns:
-    model_display_name.
+  Returns: model_display_name.
   """
   return f'tabular-workflow-model-{uuid.uuid4()}'
 
@@ -150,10 +149,10 @@ def _get_default_pipeline_params(
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
     stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
-        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
-        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     export_additional_model_without_custom_ops: Whether to export additional
       model without custom TensorFlow operators.
     stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
@@ -170,7 +169,7 @@ def _get_default_pipeline_params(
       transform component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
@@ -225,8 +224,7 @@ def _get_default_pipeline_params(
     model_description: The description for the uploaded model.
     enable_fte: Whether to enable the Feature Transform Engine.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   if not study_spec_parameters_override:
     study_spec_parameters_override = []
@@ -515,10 +513,10 @@ def get_automl_tabular_pipeline_and_parameters(
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
     stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
-        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
-        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     export_additional_model_without_custom_ops: Whether to export additional
       model without custom TensorFlow operators.
     stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
@@ -535,7 +533,7 @@ def get_automl_tabular_pipeline_and_parameters(
       transform component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
@@ -587,8 +585,7 @@ def get_automl_tabular_pipeline_and_parameters(
     model_description: The description for the uploaded model.
     enable_fte: Whether to enable the Feature Transform Engine.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   parameter_values = _get_default_pipeline_params(
       project=project,
@@ -766,10 +763,10 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
     stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
-        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
-        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     export_additional_model_without_custom_ops: Whether to export additional
       model without custom TensorFlow operators.
     stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
@@ -786,7 +783,7 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
       transform component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
@@ -825,8 +822,7 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
     model_display_name: The display name of the uploaded Vertex model.
     model_description: The description for the uploaded model.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   model_display_name = (
       model_display_name
@@ -910,8 +906,7 @@ def input_dictionary_to_parameter(input_dict: Optional[Dict[str, Any]]) -> str:
   Args:
     input_dict: The input json dictionary.
 
-  Returns:
-    The encoded string used for parameter.
+  Returns: The encoded string used for parameter.
   """
   if not input_dict:
     return ''
@@ -1004,7 +999,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
     cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
-        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     export_additional_model_without_custom_ops: Whether to export additional
       model without custom TensorFlow operators.
     stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
@@ -1021,7 +1016,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
       transform component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
@@ -1049,8 +1044,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
     evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       evaluation components.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
 
   return get_automl_tabular_pipeline_and_parameters(
@@ -1281,7 +1275,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       transform component.
     worker_pool_specs_override: The dictionary for overriding training and
       evaluation worker pool specs. The dictionary should be of format
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation: Whether to run evaluation steps during training.
     evaluation_batch_predict_machine_type: The prediction server machine type
       for batch predict components during evaluation.
@@ -1300,13 +1294,12 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
@@ -1573,7 +1566,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       transform component.
     worker_pool_specs_override: The dictionary for overriding training and
       evaluation worker pool specs. The dictionary should be of format
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation: Whether to run evaluation steps during training.
     evaluation_batch_predict_machine_type: The prediction server machine type
       for batch predict components during evaluation.
@@ -1592,13 +1585,12 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   warnings.warn(
       'This method is deprecated. Please use'
@@ -1850,7 +1842,7 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
       transform component.
     worker_pool_specs_override: The dictionary for overriding training and
       evaluation worker pool specs. The dictionary should be of format
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation: Whether to run evaluation steps during training.
     evaluation_batch_predict_machine_type: The prediction server machine type
       for batch predict components during evaluation.
@@ -1869,13 +1861,12 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
@@ -2132,7 +2123,7 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
       transform component.
     worker_pool_specs_override: The dictionary for overriding training and
       evaluation worker pool specs. The dictionary should be of format
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation: Whether to run evaluation steps during training.
     evaluation_batch_predict_machine_type: The prediction server machine type
       for batch predict components during evaluation.
@@ -2151,13 +2142,12 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
@@ -2461,7 +2451,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
       transform component.
     worker_pool_specs_override: The dictionary for overriding training and
       evaluation worker pool specs. The dictionary should be of format
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation: Whether to run evaluation steps during training.
     evaluation_batch_predict_machine_type: The prediction server machine type
       for batch predict components during evaluation.
@@ -2480,13 +2470,12 @@ def get_tabnet_trainer_pipeline_and_parameters(
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
@@ -2642,8 +2631,7 @@ def get_tabnet_study_spec_parameters_override(
       parameter is only used as a hint for the hyperparameter search space,
       unrelated to the real cost.
 
-  Returns:
-    List of study_spec_parameters_override.
+  Returns: List of study_spec_parameters_override.
   """
 
   if dataset_size_bucket not in ['small', 'medium', 'large']:
@@ -2687,8 +2675,7 @@ def _format_tabnet_regression_study_spec_parameters_override(
       parameter is only used as a hint for the hyperparameter search space,
       unrelated to the real cost.
 
-  Returns:
-    List of study_spec_parameters_override for regression.
+  Returns: List of study_spec_parameters_override for regression.
   """
 
   # To get regression study_spec_parameters, we need to set
@@ -2720,8 +2707,7 @@ def _format_tabnet_regression_study_spec_parameters_override(
 def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
   """Get study_spec_parameters_override for a Wide & Deep hyperparameter tuning job.
 
-  Returns:
-    List of study_spec_parameters_override.
+  Returns: List of study_spec_parameters_override.
   """
   param_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
@@ -2737,8 +2723,7 @@ def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
 def get_xgboost_study_spec_parameters_override() -> List[Dict[str, Any]]:
   """Get study_spec_parameters_override for an XGBoost hyperparameter tuning job.
 
-  Returns:
-    List of study_spec_parameters_override.
+  Returns: List of study_spec_parameters_override.
   """
   param_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(), 'configs/xgboost_params.json'
@@ -2964,13 +2949,12 @@ def get_xgboost_trainer_pipeline_and_parameters(
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   parameter_values = {}
   if isinstance(tf_auto_transform_features, list):
@@ -3245,13 +3229,12 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
 
-  Returns:
-    Tuple of pipeline_definition_path and parameter_values.
+  Returns: Tuple of pipeline_definition_path and parameter_values.
   """
   parameter_values = {}
   if isinstance(tf_auto_transform_features, list):

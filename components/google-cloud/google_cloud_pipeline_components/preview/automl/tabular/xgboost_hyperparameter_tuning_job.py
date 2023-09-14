@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoML XGBoost Hyperparameter Tuning component spec."""
 
 from typing import Optional
@@ -41,35 +40,19 @@ def xgboost_hyperparameter_tuning_job(
   Args:
       project: The GCP project that runs the pipeline components.
       location: The GCP region that runs the pipeline components.
-      study_spec_metric_id: Metric to optimize. For options,
-        please look under 'eval_metric' at
-        https://xgboost.readthedocs.io/en/stable/parameter.html#learning-task-parameters.
-      study_spec_metric_goal: Optimization goal of the metric,
-        possible values: "MAXIMIZE", "MINIMIZE".
-      study_spec_parameters_override: List of dictionaries
-        representing parameters to optimize. The dictionary key is the
-        parameter_id, which is passed to training job as a command line
-        argument, and the dictionary value is the parameter specification of the
-        metric.
+      study_spec_metric_id: Metric to optimize. For options, please look under 'eval_metric' at https://xgboost.readthedocs.io/en/stable/parameter.html#learning-task-parameters.
+      study_spec_metric_goal: Optimization goal of the metric, possible values: "MAXIMIZE", "MINIMIZE".
+      study_spec_parameters_override: List of dictionaries representing parameters to optimize. The dictionary key is the parameter_id, which is passed to training job as a command line argument, and the dictionary value is the parameter specification of the metric.
       max_trial_count: The desired total number of trials.
-      parallel_trial_count: The desired number of trials to run
-        in parallel.
-      max_failed_trial_count: The number of failed trials that
-        need to be seen before failing the HyperparameterTuningJob. If set to 0,
-        Vertex AI decides how many trials must fail before the whole job fails.
-      study_spec_algorithm: The search algorithm specified for
-        the study. One of 'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or
-        'RANDOM_SEARCH'.
-      study_spec_measurement_selection_type: Which measurement
-        to use if/when the service automatically selects the final measurement
-        from previously reported intermediate measurements. One of
-        "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
+      parallel_trial_count: The desired number of trials to run in parallel.
+      max_failed_trial_count: The number of failed trials that need to be seen before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides how many trials must fail before the whole job fails.
+      study_spec_algorithm: The search algorithm specified for the study. One of 'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
+      study_spec_measurement_selection_type: Which measurement to use if/when the service automatically selects the final measurement from previously reported intermediate measurements. One of "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
       worker_pool_specs: The worker pool specs.
       encryption_spec_key_name: The KMS key name.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the custom training
-        job.
+      gcp_resources: Serialized gcp_resources proto tracking the custom training job.
   """
   # fmt: on
 

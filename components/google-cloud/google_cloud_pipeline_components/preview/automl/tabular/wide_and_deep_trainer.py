@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoML Wide and Deep Trainer component spec."""
 
 from typing import Optional
@@ -82,68 +81,37 @@ def wide_and_deep_trainer(
       location: The GCP region that runs the pipeline components.
       root_dir: The root GCS directory for the pipeline components.
       target_column: The target column name.
-      prediction_type: The type of prediction the model is to
-        produce. "classification" or "regression".
+      prediction_type: The type of prediction the model is to produce. "classification" or "regression".
       weight_column: The weight column name.
       max_steps: Number of steps to run the trainer for.
-      max_train_secs: Amount of time in seconds to run the
-        trainer for.
+      max_train_secs: Amount of time in seconds to run the trainer for.
       learning_rate: The learning rate used by the linear optimizer.
-      optimizer_type: The type of optimizer to use. Choices are
-        "adam", "ftrl" and "sgd" for the Adam, FTRL, and Gradient Descent
-        Optimizers, respectively.
-      l1_regularization_strength: L1 regularization strength
-        for optimizer_type="ftrl".
-      l2_regularization_strength: L2 regularization strength
-        for optimizer_type="ftrl"
-      l2_shrinkage_regularization_strength: L2 shrinkage
-        regularization strength for optimizer_type="ftrl".
+      optimizer_type: The type of optimizer to use. Choices are "adam", "ftrl" and "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
+      l1_regularization_strength: L1 regularization strength for optimizer_type="ftrl".
+      l2_regularization_strength: L2 regularization strength for optimizer_type="ftrl"
+      l2_shrinkage_regularization_strength: L2 shrinkage regularization strength for optimizer_type="ftrl".
       beta_1: Beta 1 value for optimizer_type="adam".
       beta_2: Beta 2 value for optimizer_type="adam".
-      hidden_units: Hidden layer sizes to use for DNN feature
-        columns, provided in comma-separated layers.
-      use_wide: If set to true, the categorical columns will be
-        used in the wide part of the DNN model.
-      embed_categories: If set to true, the categorical columns
-        will be used embedded and used in the deep part of the model. Embedding
-        size is the square root of the column cardinality.
-      dnn_dropout: The probability we will drop out a given
-        coordinate.
-      dnn_learning_rate: The learning rate for training the
-        deep part of the model.
-      dnn_optimizer_type: The type of optimizer to use for the
-        deep part of the model. Choices are "adam", "ftrl" and "sgd". for the
-        Adam, FTRL, and Gradient Descent Optimizers, respectively.
-      dnn_l1_regularization_strength: L1 regularization
-        strength for dnn_optimizer_type="ftrl".
-      dnn_l2_regularization_strength: L2 regularization
-        strength for dnn_optimizer_type="ftrl".
-      dnn_l2_shrinkage_regularization_strength: L2 shrinkage
-        regularization strength for dnn_optimizer_type="ftrl".
+      hidden_units: Hidden layer sizes to use for DNN feature columns, provided in comma-separated layers.
+      use_wide: If set to true, the categorical columns will be used in the wide part of the DNN model.
+      embed_categories: If set to true, the categorical columns will be used embedded and used in the deep part of the model. Embedding size is the square root of the column cardinality.
+      dnn_dropout: The probability we will drop out a given coordinate.
+      dnn_learning_rate: The learning rate for training the deep part of the model.
+      dnn_optimizer_type: The type of optimizer to use for the deep part of the model. Choices are "adam", "ftrl" and "sgd". for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
+      dnn_l1_regularization_strength: L1 regularization strength for dnn_optimizer_type="ftrl".
+      dnn_l2_regularization_strength: L2 regularization strength for dnn_optimizer_type="ftrl".
+      dnn_l2_shrinkage_regularization_strength: L2 shrinkage regularization strength for dnn_optimizer_type="ftrl".
       dnn_beta_1: Beta 1 value for dnn_optimizer_type="adam".
       dnn_beta_2: Beta 2 value for dnn_optimizer_type="adam".
-      enable_profiler: Enables profiling and saves a trace
-        during evaluation.
-      cache_data: Whether to cache data or not. If set to
-        'auto', caching is determined based on the dataset size.
+      enable_profiler: Enables profiling and saves a trace during evaluation.
+      cache_data: Whether to cache data or not. If set to 'auto', caching is determined based on the dataset size.
       seed: Seed to be used for this run.
-      eval_steps: Number of steps to run evaluation for. If not
-        specified or negative, it means run evaluation on the whole validation
-        dataset. If set to 0, it means run evaluation for a fixed number of
-        samples.
+      eval_steps: Number of steps to run evaluation for. If not specified or negative, it means run evaluation on the whole validation dataset. If set to 0, it means run evaluation for a fixed number of samples.
       batch_size: Batch size for training.
-      measurement_selection_type: Which measurement to use
-        if/when the service automatically selects the final measurement from
-        previously reported intermediate measurements. One of "BEST_MEASUREMENT"
-        or "LAST_MEASUREMENT".
-      optimization_metric: Optimization metric used for
-        `measurement_selection_type`. Default is "rmse" for regression and "auc"
-        for classification.
-      eval_frequency_secs: Frequency at which evaluation and
-        checkpointing will take place.
-      training_machine_spec: The training machine
-        spec. See https://cloud.google.com/compute/docs/machine-types for
-        options.
+      measurement_selection_type: Which measurement to use if/when the service automatically selects the final measurement from previously reported intermediate measurements. One of "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
+      optimization_metric: Optimization metric used for `measurement_selection_type`. Default is "rmse" for regression and "auc" for classification.
+      eval_frequency_secs: Frequency at which evaluation and checkpointing will take place.
+      training_machine_spec: The training machine spec. See https://cloud.google.com/compute/docs/machine-types for options.
       training_disk_spec: The training disk spec.
       instance_baseline: The path to a JSON file for baseline values.
       metadata: Amount of time in seconds to run the trainer for.

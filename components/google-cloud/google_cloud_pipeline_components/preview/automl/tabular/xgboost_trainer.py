@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoML XGBoost Trainer component spec."""
 
 from typing import Optional
@@ -37,8 +36,7 @@ def xgboost_trainer(
       encryption_spec_key_name: The KMS key name.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the custom training
-        job.
+      gcp_resources: Serialized gcp_resources proto tracking the custom training job.
   """
   # fmt: on
 

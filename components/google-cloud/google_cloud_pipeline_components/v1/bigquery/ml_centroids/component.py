@@ -43,47 +43,19 @@ def bigquery_ml_centroids_job(
   """Launch a BigQuery ML.CENTROIDS job and waits for it to finish.
 
   Args:
-      location: Location to run the BigQuery ML.CENTROIDS job.
-        If not set, default to `US` multi-region. For more details, see
-        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model: BigQuery ML model for ML.CENTROIDS.
-        For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-centroids#mlcentroids_syntax
-      standardize: Determines whether the centroid features
-        should be standardized to assume that all features have a mean of zero
-        and a standard deviation of one. For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-centroids#mlcentroids_syntax
-      query_parameters: jobs.query parameters for
-        standard SQL queries. If query_parameters are both specified in here
-        and in job_configuration_query, the value in here will override the
-        other one.
-      job_configuration_query: A json formatted string
-        describing the rest of the job configuration. For more details, see
-        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels: The labels associated with this job. You can
-        use these to organize and group your jobs. Label keys and values can
-        be no longer than 63 characters, can only containlowercase letters,
-        numeric characters, underscores and dashes. International characters
-        are allowed. Label values are optional. Label keys must start with a
-        letter and each label in the list must have a different key.
+      location: Location to run the BigQuery ML.CENTROIDS job. If not set, default to `US` multi-region. For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model: BigQuery ML model for ML.CENTROIDS. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-centroids#mlcentroids_syntax
+      standardize: Determines whether the centroid features should be standardized to assume that all features have a mean of zero and a standard deviation of one. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-centroids#mlcentroids_syntax
+      query_parameters: jobs.query parameters for standard SQL queries. If query_parameters are both specified in here and in job_configuration_query, the value in here will override the other one.
+      job_configuration_query: A json formatted string describing the rest of the job configuration. For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      labels: The labels associated with this job. You can use these to organize and group your jobs. Label keys and values can be no longer than 63 characters, can only containlowercase letters, numeric characters, underscores and dashes. International characters are allowed. Label values are optional. Label keys must start with a letter and each label in the list must have a different key.
         Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-      encryption_spec_key_name:
-        Describes the Cloud
-        KMS encryption key that will be used to protect destination
-        BigQuery table. The BigQuery Service Account associated with your
-        project requires access to this encryption key. If
-        encryption_spec_key_name are both specified in here and in
-        job_configuration_query, the value in here will override the other
-        one.
+      encryption_spec_key_name: Describes the Cloud KMS encryption key that will be used to protect destination BigQuery table. The BigQuery Service Account associated with your project requires access to this encryption key. If encryption_spec_key_name are both specified in here and in job_configuration_query, the value in here will override the other one.
       project: Project to run BigQuery ML.CENTROIDS job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      centroids: Information about the centroids in a k-means model.
-        For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-centroids#mlcentroids_output
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      centroids: Information about the centroids in a k-means model. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-centroids#mlcentroids_output
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

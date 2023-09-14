@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoML Tabnet Trainer component spec."""
 
 from typing import Optional
@@ -84,78 +83,39 @@ def tabnet_trainer(
       location: The GCP region that runs the pipeline components.
       root_dir: The root GCS directory for the pipeline components.
       target_column: The target column name.
-      prediction_type: The type of prediction the model is to
-        produce. "classification" or "regression".
+      prediction_type: The type of prediction the model is to produce. "classification" or "regression".
       weight_column: The weight column name.
       max_steps: Number of steps to run the trainer for.
-      max_train_secs: Amount of time in seconds to run the
-        trainer for.
+      max_train_secs: Amount of time in seconds to run the trainer for.
       learning_rate: The learning rate used by the linear optimizer.
-      large_category_dim: Embedding dimension for categorical
-        feature with large number of categories.
-      large_category_thresh: Threshold for number of categories
-        to apply large_category_dim embedding dimension to.
-      yeo_johnson_transform: Enables trainable Yeo-Johnson
-        power transform.
-      feature_dim: Dimensionality of the hidden representation
-        in feature transformation block.
-      feature_dim_ratio: The ratio of output dimension
-        (dimensionality of the outputs of each decision step) to feature
-        dimension.
+      large_category_dim: Embedding dimension for categorical feature with large number of categories.
+      large_category_thresh: Threshold for number of categories to apply large_category_dim embedding dimension to.
+      yeo_johnson_transform: Enables trainable Yeo-Johnson power transform.
+      feature_dim: Dimensionality of the hidden representation in feature transformation block.
+      feature_dim_ratio: The ratio of output dimension (dimensionality of the outputs of each decision step) to feature dimension.
       num_decision_steps: Number of sequential decision steps.
-      relaxation_factor: Relaxation factor that promotes the
-        reuse of each feature at different decision steps. When it is 1, a
-        feature is enforced to be used only at one decision step and as it
-        increases, more flexibility is provided to use a feature at multiple
-        decision steps.
-      decay_every: Number of iterations for periodically
-        applying learning rate decaying.
+      relaxation_factor: Relaxation factor that promotes the reuse of each feature at different decision steps. When it is 1, a feature is enforced to be used only at one decision step and as it increases, more flexibility is provided to use a feature at multiple decision steps.
+      decay_every: Number of iterations for periodically applying learning rate decaying.
       decay_rate: Learning rate decaying.
       gradient_thresh: Threshold for the norm of gradients for clipping.
-      sparsity_loss_weight: Weight of the loss for sparsity
-        regularization (increasing it will yield more sparse feature selection).
+      sparsity_loss_weight: Weight of the loss for sparsity regularization (increasing it will yield more sparse feature selection).
       batch_momentum: Momentum in ghost batch normalization.
-      batch_size_ratio: The ratio of virtual batch size (size
-        of the ghost batch normalization) to batch size.
-      num_transformer_layers: The number of transformer layers
-        for each decision step. used only at one decision step and as it
-        increases, more flexibility is provided to use a feature at multiple
-        decision steps.
-      num_transformer_layers_ratio: The ratio of shared
-        transformer layer to transformer layers.
-      class_weight: The class weight is used to computes a
-        weighted cross entropy which is helpful in classify imbalanced dataset.
-        Only used for classification.
-      loss_function_type: Loss function type. Loss function in
-        classification [cross_entropy, weighted_cross_entropy, focal_loss],
-        default is cross_entropy. Loss function in regression: [rmse, mae, mse],
-        default is mse.
-      alpha_focal_loss: Alpha value (balancing factor) in
-        focal_loss function. Only used for classification.
-      gamma_focal_loss: Gamma value (modulating factor) for
-        focal loss for focal loss. Only used for classification.
-      enable_profiler: Enables profiling and saves a trace
-        during evaluation.
-      cache_data: Whether to cache data or not. If set to
-        'auto', caching is determined based on the dataset size.
+      batch_size_ratio: The ratio of virtual batch size (size of the ghost batch normalization) to batch size.
+      num_transformer_layers: The number of transformer layers for each decision step. used only at one decision step and as it increases, more flexibility is provided to use a feature at multiple decision steps.
+      num_transformer_layers_ratio: The ratio of shared transformer layer to transformer layers.
+      class_weight: The class weight is used to computes a weighted cross entropy which is helpful in classify imbalanced dataset. Only used for classification.
+      loss_function_type: Loss function type. Loss function in classification [cross_entropy, weighted_cross_entropy, focal_loss], default is cross_entropy. Loss function in regression: [rmse, mae, mse], default is mse.
+      alpha_focal_loss: Alpha value (balancing factor) in focal_loss function. Only used for classification.
+      gamma_focal_loss: Gamma value (modulating factor) for focal loss for focal loss. Only used for classification.
+      enable_profiler: Enables profiling and saves a trace during evaluation.
+      cache_data: Whether to cache data or not. If set to 'auto', caching is determined based on the dataset size.
       seed: Seed to be used for this run.
-      eval_steps: Number of steps to run evaluation for. If not
-        specified or negative, it means run evaluation on the whole validation
-        dataset. If set to 0, it means run evaluation for a fixed number of
-        samples.
+      eval_steps: Number of steps to run evaluation for. If not specified or negative, it means run evaluation on the whole validation dataset. If set to 0, it means run evaluation for a fixed number of samples.
       batch_size: Batch size for training.
-      measurement_selection_type: Which measurement to use
-        if/when the service automatically selects the final measurement from
-        previously reported intermediate measurements. One of "BEST_MEASUREMENT"
-        or "LAST_MEASUREMENT".
-      optimization_metric: Optimization metric used for
-        `measurement_selection_type`. Default is "rmse" for regression and "auc"
-        for classification.
-      eval_frequency_secs: Frequency at which evaluation and
-        checkpointing will take place.
-      training_machine_spec: The training machine
-        spec. See https://cloud.google.com/compute/docs/machine-types for
-        options.
+      measurement_selection_type: Which measurement to use if/when the service automatically selects the final measurement from previously reported intermediate measurements. One of "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
+      optimization_metric: Optimization metric used for `measurement_selection_type`. Default is "rmse" for regression and "auc" for classification.
+      eval_frequency_secs: Frequency at which evaluation and checkpointing will take place.
+      training_machine_spec: The training machine spec. See https://cloud.google.com/compute/docs/machine-types for options.
       training_disk_spec: The training disk spec.
       instance_baseline: The path to a JSON file for baseline values.
       metadata: Amount of time in seconds to run the trainer for.

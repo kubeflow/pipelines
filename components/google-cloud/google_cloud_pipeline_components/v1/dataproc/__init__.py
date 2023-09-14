@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# fmt: off
 """Create [Google Cloud Dataproc](https://cloud.google.com/dataproc) jobs from within Vertex AI Pipelines."""
+# fmt: on
 
 from google_cloud_pipeline_components.v1.dataproc.create_pyspark_batch.component import dataproc_create_pyspark_batch as DataprocPySparkBatchOp
 from google_cloud_pipeline_components.v1.dataproc.create_spark_batch.component import dataproc_create_spark_batch as DataprocSparkBatchOp

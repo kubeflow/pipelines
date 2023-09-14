@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoML Forecasting Stage 1 Tuner component spec."""
 
 from typing import Optional
@@ -50,32 +49,21 @@ def automl_forecasting_stage_1_tuner(
       project: Project to run hyperparameter tuning.
       location: Location for running the hyperparameter tuning.
       root_dir: The Cloud Storage location to store the output.
-      study_spec_parameters_override: JSON study spec. E.g.,
-        [{"parameter_id": "activation","categorical_value_spec": {"values":
-        ["tanh"]}}]
-      worker_pool_specs_override_json: JSON worker pool specs. E.g.,
-        [{"machine_spec": {"machine_type":
-        "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
-        "n1-standard-16"}}]
-      reduce_search_space_mode: The reduce search space mode. Possible
-        values: "regular" (default), "minimal", "full".
-      num_selected_trials: Number of selected trials. The number of weak
-        learners in the final model is 5 * num_selected_trials.
-      deadline_hours: Number of hours the hyperparameter tuning should
-        run.
+      study_spec_parameters_override: JSON study spec. E.g., [{"parameter_id": "activation","categorical_value_spec": {"values": ["tanh"]}}]
+      worker_pool_specs_override_json: JSON worker pool specs. E.g., [{"machine_spec": {"machine_type": "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]
+      reduce_search_space_mode: The reduce search space mode. Possible values: "regular" (default), "minimal", "full".
+      num_selected_trials: Number of selected trials. The number of weak learners in the final model is 5 * num_selected_trials.
+      deadline_hours: Number of hours the hyperparameter tuning should run.
       num_parallel_trials: Number of parallel training trials.
       single_run_max_secs: Max number of seconds each training trial runs.
       metadata: The tabular example gen metadata.
       transform_output: The transform output artifact.
-      materialized_train_split: The materialized train
-        split.
+      materialized_train_split: The materialized train split.
       materialized_eval_split: The materialized eval split.
       encryption_spec_key_name: Customer-managed encryption key.
 
   Returns:
-      gcp_resources: GCP resources created by this component.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: GCP resources created by this component. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
       tuning_result_output: The trained model and architectures.
   """
   # fmt: on

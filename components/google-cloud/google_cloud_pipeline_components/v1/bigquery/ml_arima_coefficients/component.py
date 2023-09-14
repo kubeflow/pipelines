@@ -45,36 +45,16 @@ def bigquery_ml_arima_coefficients(
   This function only applies to the time-series ARIMA_PLUS and ARIMA models.
 
   Args:
-      location: Location to run the BigQuery job. If not set,
-        default to `US` multi-region. For more details, see
-        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model: BigQuery ML model for
-        ML.ARIMA_COEFFICIENTS. For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-coefficients
-      query_parameters: Query parameters for
-        standard SQL queries. If query_parameters are both specified in here
-        and in job_configuration_query, the value in here will override the
-        other one.
-      job_configuration_query: A json formatted string
-        describing the rest of the job configuration. For more details, see
-        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      encryption_spec_key_name:
-        Describes the Cloud
-        KMS encryption key that will be used to protect destination
-        BigQuery table. The BigQuery Service Account associated with your
-        project requires access to this encryption key. If
-        encryption_spec_key_name are both specified in here and in
-        job_configuration_query, the value in here will override the other
-        one.
+      location: Location to run the BigQuery job. If not set, default to `US` multi-region. For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model: BigQuery ML model for ML.ARIMA_COEFFICIENTS. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-coefficients
+      query_parameters: Query parameters for standard SQL queries. If query_parameters are both specified in here and in job_configuration_query, the value in here will override the other one.
+      job_configuration_query: A json formatted string describing the rest of the job configuration. For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      encryption_spec_key_name: Describes the Cloud KMS encryption key that will be used to protect destination BigQuery table. The BigQuery Service Account associated with your project requires access to this encryption key. If encryption_spec_key_name are both specified in here and in job_configuration_query, the value in here will override the other one.
       project: Project to run the BigQuery job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      arima_coefficients: Describes arima_coefficients to the type of model supplied.
-          For more details, see
-          https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-coefficients#mlarima_coefficients_output
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      arima_coefficients: Describes arima_coefficients to the type of model supplied. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-coefficients#mlarima_coefficients_output
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

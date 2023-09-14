@@ -58,73 +58,29 @@ def model_evaluation_regression(
 
   Args:
       location: Location for running the evaluation.
-      predictions_format: The file format for the batch
-        prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
-        formats, from Vertex Batch Prediction.
-      predictions_gcs_source: An artifact with its
-        URI pointing toward a GCS directory with prediction or explanation files
-        to be used for this evaluation. For prediction results, the files should
-        be named "prediction.results-*". For explanation results, the files
-        should be named "explanation.results-*".
-      predictions_bigquery_source: BigQuery table
-        with prediction or explanation data to be used for this evaluation. For
-        prediction results, the table column should be named "predicted_*".
-      ground_truth_format: Required for custom tabular and non
-        tabular data. The file format for the ground truth files. `jsonl`,
-        `csv`, and `bigquery` are the allowed formats.
-      ground_truth_gcs_source: Required for custom
-        tabular and non tabular data. The GCS URIs representing where the ground
-        truth is located. Used to provide ground truth for each prediction
-        instance when they are not part of the batch prediction jobs prediction
-        instance.
-      ground_truth_bigquery_source: Required for custom tabular.
-        The BigQuery table URI representing where the ground truth is located.
-        Used to provide ground truth for each prediction instance when they are
-        not part of the batch prediction jobs prediction instance.
-      target_field_name: The target field's name. Formatted to be able to find
-        nested columns, delimited by `.`. Prefixed with 'instance.' on the
-        component for Vertex Batch Prediction.
-      model: The Vertex model used for evaluation. Must be located in the same
-        region as the location argument. It is used to set the default
-        configurations for AutoML and custom-trained models.
-      prediction_score_column: The column name of the field
-        containing batch prediction scores. Formatted to be able to find nested
-        columns, delimited by `.`.
-      dataflow_service_account: Service account to run the
-        Dataflow job. If not set, Dataflow will use the default worker service
-        account. For more details, see
-        https://cloud.google.com/dataflow/docs/concepts/secURIty-and-permissions#default_worker_service_account
-      dataflow_disk_size_gb: The disk size (in GB) of the machine
-        executing the evaluation run.
-      dataflow_machine_type: The machine type executing the
-        evaluation run.
-      dataflow_workers_num: The number of workers executing the
-        evaluation run.
-      dataflow_max_workers_num: The max number of workers
-        executing the evaluation run.
-      dataflow_subnetwork: Dataflow's fully qualified subnetwork
-        name, when empty the default subnetwork will be used. More
-        details:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips: Specifies whether Dataflow
-        workers use public IP addresses.
-      encryption_spec_key_name:  Customer-managed encryption key options.
-        If set, resources created by this pipeline will be encrypted with the
-        provided encryption key. Has the form:
-        `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
-        The key needs to be in the same region as where the compute resource is
-        created.
-      force_runner_mode: Flag to choose Beam runner. Valid options are
-        `DirectRunner` and `Dataflow`.
+      predictions_format: The file format for the batch prediction results. `jsonl`, `csv`, and `bigquery` are the allowed formats, from Vertex Batch Prediction.
+      predictions_gcs_source: An artifact with its URI pointing toward a GCS directory with prediction or explanation files to be used for this evaluation. For prediction results, the files should be named "prediction.results-*". For explanation results, the files should be named "explanation.results-*".
+      predictions_bigquery_source: BigQuery table with prediction or explanation data to be used for this evaluation. For prediction results, the table column should be named "predicted_*".
+      ground_truth_format: Required for custom tabular and non tabular data. The file format for the ground truth files. `jsonl`, `csv`, and `bigquery` are the allowed formats.
+      ground_truth_gcs_source: Required for custom tabular and non tabular data. The GCS URIs representing where the ground truth is located. Used to provide ground truth for each prediction instance when they are not part of the batch prediction jobs prediction instance.
+      ground_truth_bigquery_source: Required for custom tabular. The BigQuery table URI representing where the ground truth is located. Used to provide ground truth for each prediction instance when they are not part of the batch prediction jobs prediction instance.
+      target_field_name: The target field's name. Formatted to be able to find nested columns, delimited by `.`. Prefixed with 'instance.' on the component for Vertex Batch Prediction.
+      model: The Vertex model used for evaluation. Must be located in the same region as the location argument. It is used to set the default configurations for AutoML and custom-trained models.
+      prediction_score_column: The column name of the field containing batch prediction scores. Formatted to be able to find nested columns, delimited by `.`.
+      dataflow_service_account: Service account to run the Dataflow job. If not set, Dataflow will use the default worker service account. For more details, see https://cloud.google.com/dataflow/docs/concepts/secURIty-and-permissions#default_worker_service_account
+      dataflow_disk_size_gb: The disk size (in GB) of the machine executing the evaluation run.
+      dataflow_machine_type: The machine type executing the evaluation run.
+      dataflow_workers_num: The number of workers executing the evaluation run.
+      dataflow_max_workers_num: The max number of workers executing the evaluation run.
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
+      encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+      force_runner_mode: Flag to choose Beam runner. Valid options are `DirectRunner` and `Dataflow`.
       project: Project to run evaluation container. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      evaluation_metrics:
-        `google.RegressionMetrics` representing the regression
-        evaluation metrics in GCS.
-      gcp_resources: Serialized gcp_resources proto tracking the Dataflow
-        job. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      evaluation_metrics: `google.RegressionMetrics` representing the regression evaluation metrics in GCS.
+      gcp_resources: Serialized gcp_resources proto tracking the Dataflow job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return dsl.ContainerSpec(

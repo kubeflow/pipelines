@@ -44,44 +44,20 @@ def bigquery_ml_confusion_matrix_job(
   """Launch a BigQuery confusion matrix job and waits for it to finish.
 
   Args:
-      location: Location to run the BigQuery confusion matrix
-        job. If not set, default to `US` multi-region. For more details, see
-        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model: BigQuery ML model for confusion
-        matrix. For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#eval_model_name
-      table_name: BigQuery table id of the input table that
-        contains the evaluation data. For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#eval_table_name
-      query_statement: Query statement string used to generate
-        the evaluation data. For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#eval_query_statement
-      threshold: A custom threshold for your binary
-        classification model used for evaluation. For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#eval_threshold
-      query_parameters: Query parameters for
-        standard SQL queries. If query_parameters are both specified in here
-        and in job_configuration_query, the value in here will override the
-        other one.
-      job_configuration_query: A json formatted string
-        describing the rest of the job configuration. For more details, see
-        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels: The labels associated with this job. You can
-        use these to organize and group your jobs. Label keys and values can
-        be no longer than 63 characters, can only containlowercase letters,
-        numeric characters, underscores and dashes. International characters
-        are allowed. Label values are optional. Label keys must start with a
-        letter and each label in the list must have a different key.
+      location: Location to run the BigQuery confusion matrix job. If not set, default to `US` multi-region. For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model: BigQuery ML model for confusion matrix. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#eval_model_name
+      table_name: BigQuery table id of the input table that contains the evaluation data. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#eval_table_name
+      query_statement: Query statement string used to generate the evaluation data. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#eval_query_statement
+      threshold: A custom threshold for your binary classification model used for evaluation. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#eval_threshold
+      query_parameters: Query parameters for standard SQL queries. If query_parameters are both specified in here and in job_configuration_query, the value in here will override the other one.
+      job_configuration_query: A json formatted string describing the rest of the job configuration. For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      labels: The labels associated with this job. You can use these to organize and group your jobs. Label keys and values can be no longer than 63 characters, can only containlowercase letters, numeric characters, underscores and dashes. International characters are allowed. Label values are optional. Label keys must start with a letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
       project: Project to run BigQuery confusion matrix job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      confusion_matrix: Describes common metrics applicable to the type of model supplied.
-        For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#mlconfusion_matrix_output
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      confusion_matrix: Describes common metrics applicable to the type of model supplied. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-confusion#mlconfusion_matrix_output
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(
