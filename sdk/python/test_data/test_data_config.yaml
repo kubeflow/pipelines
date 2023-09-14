@@ -239,6 +239,7 @@ components:
       execute: false
     - module: component_with_metadata_fields
       name: dataset_joiner
+      execute: false
     - module: component_with_task_final_status
       name: exit_comp
       execute: false
