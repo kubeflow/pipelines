@@ -48,31 +48,23 @@ def prepare_data_for_train(
   AutoMLForecastingTrainingJobRunOp.
 
   Args:
-    input_tables: Serialized Json array that specifies
-      input BigQuery tables and specs.
-    preprocess_metadata: The output of
-      ForecastingPreprocessingOp that is a serialized dictionary with 2 fields:
-      processed_bigquery_table_uri and column_metadata.
-    model_feature_columns: Serialized list of column names
-      that will be used as input feature in the training step. If None, all
-      columns will be used in training.
+    input_tables: Serialized Json array that specifies input BigQuery tables and specs.
+    preprocess_metadata: The output of ForecastingPreprocessingOp that is a serialized dictionary with 2 fields: processed_bigquery_table_uri and column_metadata.
+    model_feature_columns: Serialized list of column names that will be used as input feature in the training step. If None, all columns will be used in training.
 
   Returns:
-    NamedTuple:
-      time_series_identifier_column: Name of the column that identifies the time series.
-      time_series_attribute_columns: Serialized column names that should be used as attribute columns.
-      available_at_forecast_columns: Serialized column names of columns that are available at forecast.
-      unavailable_at_forecast_columns: Serialized column names of columns that are unavailable at forecast.
-      column_transformations: Serialized transformations to apply to the input columns.
-      preprocess_bq_uri: The BigQuery table that saves the preprocessing result and will be
-        used as training input.
-      target_column: The name of the column values of which the Model is to predict.
-      time_column: Name of the column that identifies time order in the time series.
-      predefined_split_column: Name of the column that specifies an ML use of the row.
-      weight_column: Name of the column that should be used as the weight column.
-      data_granularity_unit: The data granularity unit.
-      data_granularity_count: The number of data granularity units between data points in the
-        training data.
+    time_series_identifier_column: Name of the column that identifies the time series.
+    time_series_attribute_columns: Serialized column names that should be used as attribute columns.
+    available_at_forecast_columns: Serialized column names of columns that are available at forecast.
+    unavailable_at_forecast_columns: Serialized column names of columns that are unavailable at forecast.
+    column_transformations: Serialized transformations to apply to the input columns.
+    preprocess_bq_uri: The BigQuery table that saves the preprocessing result and will be used as training input.
+    target_column: The name of the column values of which the Model is to predict.
+    time_column: Name of the column that identifies time order in the time series.
+    predefined_split_column: Name of the column that specifies an ML use of the row.
+    weight_column: Name of the column that should be used as the weight column.
+    data_granularity_unit: The data granularity unit.
+    data_granularity_count: The number of data granularity units between data points in the training data.
   """
   # fmt: on
   # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported

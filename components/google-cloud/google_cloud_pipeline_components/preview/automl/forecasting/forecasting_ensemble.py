@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoML Forecasting Ensemble component spec."""
 
 from typing import Optional
@@ -54,20 +53,14 @@ def automl_forecasting_ensemble(
     root_dir: The Cloud Storage path to store the output.
     transform_output: The transform output artifact.
     metadata: The tabular example gen metadata.
-    tuning_result_input: AutoML Tabular tuning
-      result.
-    instance_baseline: The instance baseline
-      used to calculate explanations.
-    instance_schema_path: The path to the instance schema,
-      describing the input data for the tf_model at serving time.
+    tuning_result_input: AutoML Tabular tuning result.
+    instance_baseline: The instance baseline used to calculate explanations.
+    instance_schema_path: The path to the instance schema, describing the input data for the tf_model at serving time.
     encryption_spec_key_name: Customer-managed encryption key.
-    prediction_image_uri: URI of the Docker image to be used as the
-      container for serving predictions. This URI must identify an image in
-      Artifact Registry or Container Registry.
+    prediction_image_uri: URI of the Docker image to be used as the container for serving predictions. This URI must identify an image in Artifact Registry or Container Registry.
 
   Returns:
-    gcp_resources: GCP resources created by this component. For more details, see
-      https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+    gcp_resources: GCP resources created by this component. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
     model_architecture: The architecture of the output model.
     unmanaged_container_model: Model information needed to perform batch prediction.
     explanation_metadata: The explanation metadata used by Vertex online and batch explanations.

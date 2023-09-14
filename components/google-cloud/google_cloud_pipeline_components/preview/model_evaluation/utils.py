@@ -34,8 +34,7 @@ def create_slice_specs_list(
       ModelEvaluationSlice.Slice.SliceSpec.Value; a bool for `all_values` or a
       list for ModelEvaluationSlice.Slice.SliceSpec.Range.
 
-  Returns:
-    A list of ModelEvaluationSlice.Slice.SliceSpec proto.
+  Returns: A list of ModelEvaluationSlice.Slice.SliceSpec proto.
 
   Raises:
     ValueError: if the format of a feature's value is invalid.
@@ -97,12 +96,11 @@ def create_bias_configs_list(
       slice_b: `list_of_slice_a_and_slice_b = [[{'education': 'low'},
         {'education': 'high'}]]`.
 
-  Returns:
-    A list of BiasConfig.
+  Returns: A list of BiasConfig.
 
   Raises:
     ValueError: if a feature's value is `all_values` or the format of the
-      feature's value is invalid.
+    feature's value is invalid.
   """
   bias_configs_list = []
   for slice_a_and_slice_b in list_of_slice_a_and_slice_b:

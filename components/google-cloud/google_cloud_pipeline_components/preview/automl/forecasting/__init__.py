@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Experimental AutoML forecasting components."""
 
 from google_cloud_pipeline_components.preview.automl.forecasting.forecasting_ensemble import automl_forecasting_ensemble as ForecastingEnsembleOp

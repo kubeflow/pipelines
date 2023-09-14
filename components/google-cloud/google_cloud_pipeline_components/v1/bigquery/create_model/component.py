@@ -39,32 +39,17 @@ def bigquery_create_model_job(
   """Launch a BigQuery create model job and waits for it to finish.
 
   Args:
-      location: Location of the job to create the BigQuery model. If not set, default to
-        `US` multi-region.  For more details, see
-        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      query: SQL query text to execute. Only standard SQL is
-        supported.  If query are both specified in here and in
-        job_configuration_query, the value in here will override the other
-        one.
-      query_parameters: Query parameters for standard SQL queries.
-        If query_parameters are both specified in here and in
-        job_configuration_query, the value in here will override the other one.
-      job_configuration_query: A json formatted string describing the rest of the job configuration.
-        For more details, see
-        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels: The labels associated with this job. You can
-        use these to organize and group your jobs. Label keys and values can
-        be no longer than 63 characters, can only containlowercase letters,
-        numeric characters, underscores and dashes. International characters
-        are allowed. Label values are optional. Label keys must start with a
-        letter and each label in the list must have a different key.
+      location: Location of the job to create the BigQuery model. If not set, default to `US` multi-region.  For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      query: SQL query text to execute. Only standard SQL is supported.  If query are both specified in here and in job_configuration_query, the value in here will override the other one.
+      query_parameters: Query parameters for standard SQL queries. If query_parameters are both specified in here and in job_configuration_query, the value in here will override the other one.
+      job_configuration_query: A json formatted string describing the rest of the job configuration. For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      labels: The labels associated with this job. You can use these to organize and group your jobs. Label keys and values can be no longer than 63 characters, can only containlowercase letters, numeric characters, underscores and dashes. International characters are allowed. Label values are optional. Label keys must start with a letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
       project: Project to run BigQuery model creation job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       model: Describes the model which is created.
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

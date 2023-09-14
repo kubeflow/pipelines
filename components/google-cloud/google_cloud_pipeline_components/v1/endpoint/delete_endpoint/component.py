@@ -25,9 +25,7 @@ def endpoint_delete(
     gcp_resources: dsl.OutputPath(str),
 ):
   # fmt: off
-  """[Deletes](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete) a Google Cloud Vertex [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints).
-
-  See the [Endpoint delete](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete) method for more information.
+  """[Deletes](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete) a Google Cloud Vertex [Endpoint](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints). See the [Endpoint delete](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/delete) method for more information.
 
   Args:
       endpoint: The Endpoint to be deleted.

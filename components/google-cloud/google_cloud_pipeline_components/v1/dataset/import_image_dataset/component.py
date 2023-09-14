@@ -41,29 +41,9 @@ def image_dataset_import(
   Args:
       location: Optional location to retrieve Dataset from.
       dataset: The Dataset to be updated.
-      gcs_source:
-          Google Cloud Storage URI(-s) to the
-          input file(s). May contain wildcards. For more
-          information on wildcards, see
-          https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
-      import_schema_uri: Points to a YAML file stored on Google Cloud
-          Storage describing the import format. Validation will be
-          done against the schema. The schema is defined as an
-          [OpenAPI 3.0.2 Schema Object](https://tinyurl.com/y538mdwt).
-      data_item_labels: Labels that will be applied to newly imported DataItems. If
-          an identical DataItem as one being imported already exists
-          in the Dataset, then these labels will be appended to these
-          of the already existing one, and if labels with identical
-          key is imported before, the old label value will be
-          overwritten. If two DataItems are identical in the same
-          import data operation, the labels will be combined and if
-          key collision happens in this case, one of the values will
-          be picked randomly. Two DataItems are considered identical
-          if their content bytes are identical (e.g. image bytes or
-          pdf bytes). These labels will be overridden by Annotation
-          labels specified inside index file refenced by
-          `import_schema_uri`, e.g. jsonl file.
+      gcs_source: Google Cloud Storage URI(-s) to the input file(s). May contain wildcards. For more information on wildcards, see https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames. For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
+      import_schema_uri: Points to a YAML file stored on Google Cloud Storage describing the import format. Validation will be done against the schema. The schema is defined as an [OpenAPI 3.0.2 Schema Object](https://tinyurl.com/y538mdwt).
+      data_item_labels: Labels that will be applied to newly imported DataItems. If an identical DataItem as one being imported already exists in the Dataset, then these labels will be appended to these of the already existing one, and if labels with identical key is imported before, the old label value will be overwritten. If two DataItems are identical in the same import data operation, the labels will be combined and if key collision happens in this case, one of the values will be picked randomly. Two DataItems are considered identical if their content bytes are identical (e.g. image bytes or pdf bytes). These labels will be overridden by Annotation labels specified inside index file refenced by `import_schema_uri`, e.g. jsonl file.
       project: Project to retrieve Dataset from. Defaults to the project in which the PipelineJob is run.
 
   Returns:

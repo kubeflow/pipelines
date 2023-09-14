@@ -56,6 +56,7 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
     force_runner_mode: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
+  # fmt: off
   """The evaluation vision error analysis pipeline.
 
   This pipeline can help you to continuously discover dataset example errors
@@ -65,101 +66,32 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
 
   Args:
     location: The GCP region that runs the pipeline components.
-    model_name: The Vertex model resource name to be imported and used for batch
-      prediction, in the format of
-      `projects/{project}/locations/{location}/models/{model}` or
-      `projects/{project}/locations/{location}/models/{model}@{model_version_id
-      or model_version_alias}`
-    batch_predict_gcs_destination_output_uri: The Google Cloud Storage location
-      of the directory where the output is to be written to. In the given
-      directory a new directory is created. Its name is
-      `prediction-<model-display-name>-<job-create-time>`, where timestamp is in
-      YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
-      `predictions_0001.<extension>`, `predictions_0002.<extension>`, ...,
-      `predictions_N.<extension>` are created where `<extension>` depends on
-      chosen `predictions_format`, and N may equal 0001 and depends on the total
-      number of successfully predicted instances. If the Model has both
-      `instance` and `prediction` schemata defined then each such file contains
-      predictions as per the `predictions_format`. If prediction for any
-      instance failed (partially or completely), then an additional
-      `errors_0001.<extension>`, `errors_0002.<extension>`,...,
-      `errors_N.<extension>` files are created (N depends on total number of
-      failed predictions). These files contain the failed instances, as per
-      their schema, followed by an additional `error` field which as value has
-      `google.rpc.Status` containing only `code` and `message` fields. For more
-      details about this output config, see
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
-    test_dataset_resource_name: A Vertex dataset resource name of the test
-      dataset. If `test_dataset_storage_source_uris` is also provided, this
-      argument will override the GCS source.
-    test_dataset_annotation_set_name: A string of the annotation_set resource
-      name containing the ground truth of the test datset used for evaluation.
-    training_dataset_resource_name: A Vertex dataset resource name of the
-      training dataset. If `training_dataset_storage_source_uris` is also
-      provided, this argument will override the GCS source.
-    training_dataset_annotation_set_name: A string of the annotation_set
-      resource name containing the ground truth of the test datset used for
-      feature extraction.
-    test_dataset_storage_source_uris: Google Cloud Storage URI(-s) to unmanaged
-      test datasets.`jsonl` is currently the only allowed format. If
-      `test_dataset` is also provided, this field will be overridden by the
-      provided Vertex Dataset.
-    training_dataset_storage_source_uris: Google Cloud Storage URI(-s) to
-      unmanaged test datasets.`jsonl` is currently the only allowed format. If
-      `training_dataset` is also provided, this field will be overridden by the
-      provided Vertex Dataset.
-    batch_predict_instances_format: The format in which instances are given,
-      must be one of the Model's supportedInputStorageFormats. For more details
-      about this input config, see
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
-    batch_predict_predictions_format: The format in which Vertex AI gives the
-      predictions. Must be one of the Model's supportedOutputStorageFormats. For
-      more details about this output config, see
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
-    batch_predict_machine_type: The type of machine for running batch prediction
-      on dedicated resources. If the Model supports DEDICATED_RESOURCES this
-      config may be provided (and the job will use these resources). If the
-      Model doesn't support AUTOMATIC_RESOURCES, this config must be provided.
-      For more details about the BatchDedicatedResources, see
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#BatchDedicatedResources.
-        For more details about the machine spec, see
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
-    batch_predict_starting_replica_count: The number of machine replicas used at
-      the start of the batch operation. If not set, Vertex AI decides starting
-      number, not greater than `max_replica_count`. Only used if `machine_type`
-      is set.
-    batch_predict_max_replica_count: The maximum number of machine replicas the
-      batch operation may be scaled to. Only used if `machine_type` is set.
-    batch_predict_accelerator_type: The type of accelerator(s) that may be
-      attached to the machine as per `batch_predict_accelerator_count`. Only
-      used if `batch_predict_machine_type` is set. For more details about the
-      machine spec, see
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
-    batch_predict_accelerator_count: The number of accelerators to attach to the
-      `batch_predict_machine_type`. Only used if `batch_predict_machine_type` is
-      set.
+    model_name: The Vertex model resource name to be imported and used for batch prediction, in the format of `projects/{project}/locations/{location}/models/{model}` or `projects/{project}/locations/{location}/models/{model}@{model_version_id or model_version_alias}`
+    batch_predict_gcs_destination_output_uri: The Google Cloud Storage location of the directory where the output is to be written to. In the given directory a new directory is created. Its name is `prediction-<model-display-name>-<job-create-time>`, where timestamp is in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files `predictions_0001.<extension>`, `predictions_0002.<extension>`, ..., `predictions_N.<extension>` are created where `<extension>` depends on chosen `predictions_format`, and N may equal 0001 and depends on the total number of successfully predicted instances. If the Model has both `instance` and `prediction` schemata defined then each such file contains predictions as per the `predictions_format`. If prediction for any instance failed (partially or completely), then an additional `errors_0001.<extension>`, `errors_0002.<extension>`,..., `errors_N.<extension>` files are created (N depends on total number of failed predictions). These files contain the failed instances, as per their schema, followed by an additional `error` field which as value has `google.rpc.Status` containing only `code` and `message` fields. For more details about this output config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
+    test_dataset_resource_name: A Vertex dataset resource name of the test dataset. If `test_dataset_storage_source_uris` is also provided, this argument will override the GCS source.
+    test_dataset_annotation_set_name: A string of the annotation_set resource name containing the ground truth of the test datset used for evaluation.
+    training_dataset_resource_name: A Vertex dataset resource name of the training dataset. If `training_dataset_storage_source_uris` is also provided, this argument will override the GCS source.
+    training_dataset_annotation_set_name: A string of the annotation_set resource name containing the ground truth of the test datset used for feature extraction.
+    test_dataset_storage_source_uris: Google Cloud Storage URI(-s) to unmanaged test datasets.`jsonl` is currently the only allowed format. If `test_dataset` is also provided, this field will be overridden by the provided Vertex Dataset.
+    training_dataset_storage_source_uris: Google Cloud Storage URI(-s) to unmanaged test datasets.`jsonl` is currently the only allowed format. If `training_dataset` is also provided, this field will be overridden by the provided Vertex Dataset.
+    batch_predict_instances_format: The format in which instances are given, must be one of the Model's supportedInputStorageFormats. For more details about this input config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
+    batch_predict_predictions_format: The format in which Vertex AI gives the predictions. Must be one of the Model's supportedOutputStorageFormats. For more details about this output config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
+    batch_predict_machine_type: The type of machine for running batch prediction on dedicated resources. If the Model supports DEDICATED_RESOURCES this config may be provided (and the job will use these resources). If the Model doesn't support AUTOMATIC_RESOURCES, this config must be provided. For more details about the BatchDedicatedResources, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#BatchDedicatedResources. For more details about the machine spec, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
+    batch_predict_starting_replica_count: The number of machine replicas used at the start of the batch operation. If not set, Vertex AI decides starting number, not greater than `max_replica_count`. Only used if `machine_type` is set.
+    batch_predict_max_replica_count: The maximum number of machine replicas the batch operation may be scaled to. Only used if `machine_type` is set.
+    batch_predict_accelerator_type: The type of accelerator(s) that may be attached to the machine as per `batch_predict_accelerator_count`. Only used if `batch_predict_machine_type` is set. For more details about the machine spec, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
+    batch_predict_accelerator_count: The number of accelerators to attach to the `batch_predict_machine_type`. Only used if `batch_predict_machine_type` is set.
     dataflow_machine_type: The Dataflow machine type for evaluation components.
-    dataflow_max_num_workers: The max number of Dataflow workers for evaluation
-      components.
-    dataflow_disk_size_gb: The disk size (in GB) of the machine executing the
-      evaluation run.
+    dataflow_max_num_workers: The max number of Dataflow workers for evaluation components.
+    dataflow_disk_size_gb: The disk size (in GB) of the machine executing the evaluation run.
     dataflow_service_account: Custom service account to run Dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default subnetwork will be used. Example:
-      https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
-      addresses.
-    encryption_spec_key_name:  Customer-managed encryption key options. If set,
-      resources created by this pipeline will be encrypted with the provided
-      encryption key. Has the form:
-      `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
-      The key needs to be in the same region as where the compute resource is
-      created.
-    force_runner_mode: Indicate the runner mode to use forcely. Valid options
-      are `Dataflow` and `DirectRunner`.
-    project: The GCP project that runs the pipeline components. Defaults to the
-      project in which the PipelineJob is run.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
+    encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    force_runner_mode: Indicate the runner mode to use forcely. Valid options are `Dataflow` and `DirectRunner`.
+    project: The GCP project that runs the pipeline components. Defaults to the project in which the PipelineJob is run.
   """
+  # fmt: on
   evaluation_display_name = 'automl-vision-error-analysis-pipeline'
 
   with dsl.Condition(

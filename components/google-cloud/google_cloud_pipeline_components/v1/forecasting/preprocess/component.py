@@ -37,8 +37,7 @@ def forecasting_preprocessing(
   Args:
     project: The GCP project id that runs the pipeline.
     input_tables: Serialized Json array that specifies input BigQuery tables and specs.
-    preprocessing_bigquery_dataset: Optional BigQuery dataset to save the preprocessing result BigQuery table.
-        If not present, a new dataset will be created by the component.
+    preprocessing_bigquery_dataset: Optional BigQuery dataset to save the preprocessing result BigQuery table. If not present, a new dataset will be created by the component.
     location: Optional location for the BigQuery data, default is US.
 
   Returns:

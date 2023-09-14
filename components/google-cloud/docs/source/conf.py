@@ -328,6 +328,7 @@ def remove_after_returns_in_place(lines: List[str]) -> bool:
   return False
 
 def process_named_docstring_returns(app, what, name, obj, options, lines):
+  markdown_to_rst(lines)
   if getattr(obj, '_is_component', False):
     has_returns_section = remove_after_returns_in_place(lines)
     if has_returns_section:
@@ -335,10 +336,8 @@ def process_named_docstring_returns(app, what, name, obj, options, lines):
       lines.extend([':returns:', ''])
       lines.extend(returns_section)
 
-  markdown_to_rst(app, what, name, obj, options, lines)
 
-
-def markdown_to_rst(app, what, name, obj, options, lines):
+def markdown_to_rst(lines: List[str]) -> List[str]:
   md = '\n'.join(lines)
   ast = commonmark.Parser().parse(md)
   rst = commonmark.ReStructuredTextRenderer().render(ast)

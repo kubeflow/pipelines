@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoML Stats and Example Generation component spec."""
 
 from typing import Optional
@@ -71,62 +70,28 @@ def tabular_stats_and_example_gen(
   """Generates stats and training instances for tabular data.
 
   Args:
-      project: Project to run dataset statistics and example
-        generation.
-      location: Location for running dataset statistics and example
-        generation.
+      project: Project to run dataset statistics and example generation.
+      location: Location for running dataset statistics and example generation.
       root_dir: The Cloud Storage location to store the output.
       target_column_name: The target column name.
       weight_column_name: The weight column name.
-      prediction_type: The prediction type. Supported values:
-        "classification", "regression".
-      optimization_objective: Objective function the model is optimizing
-        towards. The training process creates a model that maximizes/minimizes
-        the value of the objective function over the validation set. The
-        supported optimization objectives depend on the prediction type. If the
-        field is not set, a default objective function is used.
-          classification: "maximize-au-roc" (default) - Maximize the
-            area under the receiver operating characteristic (ROC) curve.
-            "minimize-log-loss" - Minimize log loss. "maximize-au-prc" -
-            Maximize the area under the precision-recall curve.
-            "maximize-precision-at-recall" - Maximize precision for a specified
-            recall value. "maximize-recall-at-precision" - Maximize recall for a
-            specified precision value.
-          classification (multi-class): "minimize-log-loss" (default) - Minimize
-            log loss.
-          regression: "minimize-rmse" (default) - Minimize root-mean-squared
-            error (RMSE). "minimize-mae" - Minimize mean-absolute error (MAE).
-            "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
-      optimization_objective_recall_value: Required when
-        optimization_objective is "maximize-precision-at-recall". Must be
-        between 0 and 1, inclusive.
-      optimization_objective_precision_value: Required when
-        optimization_objective is "maximize-recall-at-precision". Must be
-        between 0 and 1, inclusive.
-      transformations: Quote escaped JSON string for transformations. Each
-        transformation will apply transform function to given input column. And
-        the result will be used for training. When creating transformation for
-        BigQuery Struct column, the column should be flattened using "." as the
-        delimiter.
-      transformations_path: Path to a GCS file containing JSON
-        string for transformations.
-      dataflow_machine_type: The machine type used for dataflow
-        jobs. If not set, default to n1-standard-16.
-      dataflow_max_num_workers: The number of workers to run the
-        dataflow job. If not set, default to 25.
-      dataflow_disk_size_gb: The disk size, in gigabytes, to use
-        on each Dataflow worker instance. If not set, default to 40.
-      dataflow_subnetwork: Dataflow's fully qualified subnetwork
-        name, when empty the default subnetwork will be used. More
-        details:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-      dataflow_use_public_ips: Specifies whether Dataflow
-        workers use public IP addresses.
-      dataflow_service_account: Custom service account to run
-        dataflow jobs.
+      prediction_type: The prediction type. Supported values: "classification", "regression".
+      optimization_objective: Objective function the model is optimizing towards. The training process creates a model that maximizes/minimizes the value of the objective function over the validation set. The supported optimization objectives depend on the prediction type. If the field is not set, a default objective function is used.
+          classification: "maximize-au-roc" (default) - Maximize the area under the receiver operating characteristic (ROC) curve. "minimize-log-loss" - Minimize log loss. "maximize-au-prc" - Maximize the area under the precision-recall curve. "maximize-precision-at-recall" - Maximize precision for a specified recall value. "maximize-recall-at-precision" - Maximize recall for a specified precision value. classification (multi-class): "minimize-log-loss" (default) - Minimize log loss.
+          regression: "minimize-rmse" (default) - Minimize root-mean-squared error (RMSE). "minimize-mae" - Minimize mean-absolute error (MAE). "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
+      optimization_objective_recall_value: Required when optimization_objective is "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
+      optimization_objective_precision_value: Required when optimization_objective is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
+      transformations: Quote escaped JSON string for transformations. Each transformation will apply transform function to given input column. And the result will be used for training. When creating transformation for BigQuery Struct column, the column should be flattened using "." as the delimiter.
+      transformations_path: Path to a GCS file containing JSON string for transformations.
+      dataflow_machine_type: The machine type used for dataflow jobs. If not set, default to n1-standard-16.
+      dataflow_max_num_workers: The number of workers to run the dataflow job. If not set, default to 25.
+      dataflow_disk_size_gb: The disk size, in gigabytes, to use on each Dataflow worker instance. If not set, default to 40.
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. More
+        details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
+      dataflow_service_account: Custom service account to run dataflow jobs.
       encryption_spec_key_name: Customer-managed encryption key.
-      run_distillation: True if in distillation mode. The default value
-        is false.
+      run_distillation: True if in distillation mode. The default value is false.
 
   Returns:
       dataset_schema: The schema of the dataset.
@@ -138,8 +103,7 @@ def tabular_stats_and_example_gen(
       downsampled_test_split_json: The downsampled test split JSON object.
       instance_baseline: The instance baseline used to calculate explanations.
       metadata: The tabular example gen metadata.
-      gcp_resources: GCP resources created by this component. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: GCP resources created by this component. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
 

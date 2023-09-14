@@ -55,70 +55,32 @@ def rlhf_pipeline(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
 ) -> PipelineOutput:
+  # fmt: off
   """Performs reinforcement learning from human feedback.
 
   Args:
-    prompt_dataset: Cloud storage path to an unlabled prompt dataset used for
-      reinforcement learning. The dataset format is jsonl. Each example in the
-      dataset must have an `input_text` field that contains the prompt.
-    preference_dataset: Cloud storage path to a human preference dataset used to
-      train a reward model. The dataset format is jsonl. Each example in the
-      dataset must contain the following fields: `input_text` that contains the
-      prompt, `candidate_0` and `candidate_1` that contain candidate responses,
-      `choice` that specifies the preferred candidate.
-    large_model_reference: Name of the base model. Supported values are
-      `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`.
-      `text-bison@001` and `t5-small` are supported in `us-central1` and
-      `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in
-      `europe-west4`.
-    model_display_name: Name of the fine-tuned model shown in the Model
-      Registry. If not provided, a default name will be created.
-    prompt_sequence_length: Maximum tokenized sequence length for input text.
-      Higher values increase memory overhead. This value should be at most 8192.
-      Default value is 512.
-    target_sequence_length:  Maximum tokenized sequence length for target text.
-      Higher values increase memory overhead. This value should be at most 1024.
-      Default value is 64.
-    reward_model_learning_rate_multiplier: Constant used to adjust the base
-      learning rate used when training a reward model. Multiply by a number > 1
-      to increase the magnitude of updates applied at each training step or
-      multiply by a number < 1 to decrease the magnitude of updates. Default
-      value is 1.0.
-    reinforcement_learning_rate_multiplier: Constant used to adjust the base
-      learning rate used during reinforcement learning. Multiply by a number > 1
-      to increase the magnitude of updates applied at each training step or
-      multiply by a number < 1 to decrease the magnitude of updates. Default
-      value is 1.0.
-    reward_model_train_steps: Number of steps to use when training a reward
-      model. Default value is 1000.
-    reinforcement_learning_train_steps: Number of reinforcement learning steps
-      to perform when tuning a base model. Default value is 1000.
-    kl_coeff: Coefficient for KL penalty. This regularizes the policy model and
-      penalizes if it diverges from its initial distribution. If set to 0, the
-      reference language model is not loaded into memory. Default value is 0.1.
-    instruction: This field lets the model know what task it needs to perform.
-      Base models have been trained over a large set of varied instructions. You
-      can give a simple and intuitive description of the task and the model will
-      follow it, e.g. "Classify this movie review as positive or negative" or
-      "Translate this sentence to Danish". Do not specify this if your dataset
-      already prepends the instruction to the inputs field.
-    deploy_model: Whether to deploy the model to an endpoint in `us-central1`.
-      Default is True.
-    eval_dataset: Optional Cloud storage path to an evaluation dataset. If
-      provided, inference will be performed on this dataset after training. The
-      dataset format is jsonl. Each example in the dataset must contain a field
-      `input_text` that contains the prompt.
-    project: Project used to run custom jobs. If not specified the project used
-      to run the pipeline will be used.
-    location: Location used to run custom jobs. If not specified the location
-      used to run the pipeline will be used.
+    prompt_dataset: Cloud storage path to an unlabled prompt dataset used for reinforcement learning. The dataset format is jsonl. Each example in the dataset must have an `input_text` field that contains the prompt.
+    preference_dataset: Cloud storage path to a human preference dataset used to train a reward model. The dataset format is jsonl. Each example in the dataset must contain the following fields: `input_text` that contains the prompt, `candidate_0` and `candidate_1` that contain candidate responses, `choice` that specifies the preferred candidate.
+    large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
+    model_display_name: Name of the fine-tuned model shown in the Model Registry. If not provided, a default name will be created.
+    prompt_sequence_length: Maximum tokenized sequence length for input text. Higher values increase memory overhead. This value should be at most 8192. Default value is 512.
+    target_sequence_length:  Maximum tokenized sequence length for target text. Higher values increase memory overhead. This value should be at most 1024. Default value is 64.
+    reward_model_learning_rate_multiplier: Constant used to adjust the base learning rate used when training a reward model. Multiply by a number > 1 to increase the magnitude of updates applied at each training step or multiply by a number < 1 to decrease the magnitude of updates. Default value is 1.0.
+    reinforcement_learning_rate_multiplier: Constant used to adjust the base learning rate used during reinforcement learning. Multiply by a number > 1 to increase the magnitude of updates applied at each training step or multiply by a number < 1 to decrease the magnitude of updates. Default value is 1.0.
+    reward_model_train_steps: Number of steps to use when training a reward model. Default value is 1000.
+    reinforcement_learning_train_steps: Number of reinforcement learning steps to perform when tuning a base model. Default value is 1000.
+    kl_coeff: Coefficient for KL penalty. This regularizes the policy model and penalizes if it diverges from its initial distribution. If set to 0, the reference language model is not loaded into memory. Default value is 0.1.
+    instruction: This field lets the model know what task it needs to perform. Base models have been trained over a large set of varied instructions. You can give a simple and intuitive description of the task and the model will follow it, e.g. "Classify this movie review as positive or negative" or "Translate this sentence to Danish". Do not specify this if your dataset already prepends the instruction to the inputs field.
+    deploy_model: Whether to deploy the model to an endpoint in `us-central1`. Default is True.
+    eval_dataset: Optional Cloud storage path to an evaluation dataset. If provided, inference will be performed on this dataset after training. The dataset format is jsonl. Each example in the dataset must contain a field `input_text` that contains the prompt.
+    project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
+    location: Location used to run custom jobs. If not specified the location used to run the pipeline will be used.
 
   Returns:
-    model_resource_name: Path to the model uploaded to the Model Registry. This
-    will be an empty string if the model was not deployed.
-    endpoint_resource_name: Path the Online Prediction Endpoint. This will be an
-    empty string if the model was not deployed.
+    model_resource_name: Path to the model uploaded to the Model Registry. This will be an empty string if the model was not deployed.
+    endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
+  # fmt: on
   policy_model_lora_dim = 1
   reward_model_lora_dim = 0
   batch_size = 64

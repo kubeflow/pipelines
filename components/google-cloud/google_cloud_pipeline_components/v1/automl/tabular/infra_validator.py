@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """AutoML Infra Validator component spec."""
 
 from google_cloud_pipeline_components.types.artifact_types import UnmanagedContainerModel
@@ -27,8 +26,7 @@ def automl_tabular_infra_validator(
   """Validates the trained AutoML Tabular model is a valid model.
 
   Args:
-      unmanaged_container_model: google.UnmanagedContainerModel for model
-        to be validated.
+      unmanaged_container_model: google.UnmanagedContainerModel for model to be validated.
   """
   # fmt: on
 
