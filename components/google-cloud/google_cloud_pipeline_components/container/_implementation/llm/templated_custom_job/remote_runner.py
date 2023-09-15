@@ -13,13 +13,19 @@
 # limitations under the License.
 """GCP remote runner for templated custom jobs based on the AI Platform SDK."""
 
+import base64
 import json
+import logging
+import sys
 from typing import Any, Callable, Dict, List, Optional
+import google_cloud_pipeline_components.google_cloud_pipeline_components.container.v1.custom_job.remote_runner as custom_job_remote_runner
 import jinja2
 from jinja2 import sandbox
 
 # Note that type annotations need to match the python version in the GCPC docker
 # image in addition to the internal python version.
+
+ParamListType = Optional[List[List[str]]]
 
 
 def _json_escape_filter(value: str) -> str:
@@ -83,7 +89,7 @@ def convert_key_value_param_list(
 
 
 def convert_integer_params(
-    integer_params: Optional[List[List[str]]],
+    integer_params: ParamListType,
 ) -> Dict[str, Optional[int]]:
   """Converts a list of (key, [integer]) pairs to a dictionary."""
   return convert_key_value_param_list(
@@ -92,7 +98,7 @@ def convert_integer_params(
 
 
 def convert_string_params(
-    string_params: Optional[List[List[str]]],
+    string_params: ParamListType,
 ) -> Dict[str, Optional[str]]:
   """Converts a list of (key, [string]) pairs to a dictionary."""
   return convert_key_value_param_list(
@@ -101,7 +107,7 @@ def convert_string_params(
 
 
 def convert_float_params(
-    float_params: Optional[List[List[str]]],
+    float_params: ParamListType,
 ) -> Dict[str, Optional[float]]:
   """Converts a list of (key, [float]) pairs to a dictionary."""
   return convert_key_value_param_list(
@@ -110,7 +116,7 @@ def convert_float_params(
 
 
 def convert_boolean_params(
-    boolean_params: Optional[List[List[str]]],
+    boolean_params: ParamListType,
 ) -> Dict[str, Optional[bool]]:
   """Converts a list of (key, [boolean]) pairs to a dictionary."""
   return convert_key_value_param_list(
@@ -121,9 +127,81 @@ def convert_boolean_params(
 
 
 def convert_json_params(
-    json_params: Optional[List[List[str]]],
+    json_params: ParamListType,
 ) -> Dict[str, Any]:
   """Converts a list of (key, [json objects]) pairs to a dictionary."""
   return convert_key_value_param_list(
       param_list=json_params, type_cast=json.loads, cmd_flag='--set_json'
+  )
+
+
+# This method will also be used for unit tests.
+def decode_and_render_payload(
+    payload: str,
+    int_params: ParamListType = None,
+    string_params: ParamListType = None,
+    float_params: ParamListType = None,
+    boolean_params: ParamListType = None,
+    json_params: ParamListType = None,
+) -> str:
+  """Decodes base64-encoded Jinja2 payload and renders it."""
+  params = convert_integer_params(int_params)
+  params.update(convert_string_params(string_params))
+  params.update(convert_float_params(float_params))
+  params.update(convert_boolean_params(boolean_params))
+  params.update(convert_json_params(json_params))
+
+  return render_payload(base64.b64decode(payload).decode('utf-8'), params)
+
+
+def create_templated_custom_job(
+    type: str,  # pylint: disable=redefined-builtin
+    project: str,
+    location: str,
+    payload: str,
+    gcp_resources: str,
+    dry_run: bool = False,
+    set_integer: ParamListType = None,
+    set_string: ParamListType = None,
+    set_float: ParamListType = None,
+    set_boolean: ParamListType = None,
+    set_json: ParamListType = None,
+) -> None:
+  """Creates and polls a Custom Job."""
+  rendered_payload = decode_and_render_payload(
+      payload=payload,
+      int_params=set_integer,
+      string_params=set_string,
+      float_params=set_float,
+      boolean_params=set_boolean,
+      json_params=set_json,
+  )
+
+  # Call json.loads() to validate that the payload is a valid JSON.
+  # Call json.dumps() instead of using rendered_payload to remove redundant
+  # blank spaces in the payload.
+  try:
+    payload_str = json.dumps(json.loads(rendered_payload))
+  except json.JSONDecodeError as e:
+    logging.error(
+        'Cannot deserialize the rendered payload to JSON: %r', rendered_payload
+    )
+    raise ValueError(
+        'The rendered payload is an invalid JSON. Please see the error log for '
+        'details.'
+    ) from e
+
+  if dry_run:
+    logging.info(
+        'Log rendered payload for dry run and exit with error code 1: %s',
+        payload_str,
+    )
+    sys.exit(1)
+
+  custom_job_remote_runner.create_custom_job(
+      type=type,
+      project=project,
+      location=location,
+      payload=payload_str,
+      gcp_resources=gcp_resources,
   )
