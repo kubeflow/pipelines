@@ -29,13 +29,15 @@ from google.cloud import aiplatform
 from google.cloud.aiplatform_v1.types import pipeline_job
 from google.cloud.aiplatform_v1.types import pipeline_state
 from google.cloud.aiplatform_v1.types import training_pipeline
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 import requests
 
 from google.rpc import code_pb2
 from google.protobuf import json_format
-from google_cloud_pipeline_components.container.utils import execution_context
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util, error_util
+
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5
@@ -231,6 +233,7 @@ class PipelineRemoteRunner:
             error_util.exit_with_internal_error(
                 f'Request failed after {_CONNECTION_ERROR_RETRY_LIMIT} retries.'
             )
+            return  # Not necessary, only to please the linter.
 
         if (
             get_pipeline_response.state
