@@ -42,7 +42,7 @@ class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        class VertexDataset:
+        class VertexDataset(dsl.Artifact):
             schema_title = 'google.VertexDataset'
             schema_version = '0.0.0'
 
@@ -50,7 +50,7 @@ class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
 
         tmp_dir = tempfile.TemporaryDirectory()
         with open(os.path.join(tmp_dir.name, 'aiplatform.py'), 'w') as f:
-            f.write(class_source)
+            f.write('from kfp import dsl\n\n' + class_source)
         sys.path.append(tmp_dir.name)
         cls.tmp_dir = tmp_dir
 

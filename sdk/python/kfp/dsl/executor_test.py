@@ -118,11 +118,6 @@ class ExecutorTest(parameterized.TestCase):
             schema_title = 'google.VertexDataset'
             schema_version = '0.0.0'
 
-            @property
-            def path(self) -> str:
-                return self.uri.replace('gs://',
-                                        artifact_types._GCS_LOCAL_MOUNT_PREFIX)
-
         def test_func(input_artifact_one: Input[VertexDataset]):
             self.assertEqual(input_artifact_one.uri,
                              'gs://some-bucket/input_artifact_one')

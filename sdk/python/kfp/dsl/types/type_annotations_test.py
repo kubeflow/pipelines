@@ -198,7 +198,7 @@ class TestIsArtifact(parameterized.TestCase):
         self.assertTrue(type_annotations.is_artifact_class(obj))
 
     @parameterized.parameters([{
-        'obj': obj(name='name', uri='uri', metadata={})
+        'obj': obj(uri='uri', metadata={})
     } for obj in artifact_types._SCHEMA_TITLE_TO_TYPE.values()])
     def test_true_instance(self, obj):
         self.assertTrue(type_annotations.is_artifact_class(obj))

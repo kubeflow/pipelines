@@ -14,6 +14,8 @@
 import sys
 import tempfile
 
+from kfp import dsl
+
 # NOTE: this is a compilation test only and is not executable, since dummy_third_party_package does not exist and cannot be installed or imported at runtime
 
 
@@ -25,33 +27,15 @@ def create_temporary_google_artifact_package(
     import os
     import textwrap
 
-    class VertexModel:
+    class VertexModel(dsl.Artifact):
         schema_title = 'google.VertexModel'
         schema_version = '0.0.0'
 
-        def __init__(self, name: str, uri: str, metadata: dict) -> None:
-            self.name = name
-            self.uri = uri
-            self.metadata = metadata
-
-        @property
-        def path(self) -> str:
-            return self.uri.replace('gs://', '/')
-
-    class VertexDataset:
+    class VertexDataset(dsl.Artifact):
         schema_title = 'google.VertexDataset'
         schema_version = '0.0.0'
 
-        def __init__(self, name: str, uri: str, metadata: dict) -> None:
-            self.name = name
-            self.uri = uri
-            self.metadata = metadata
-
-        @property
-        def path(self) -> str:
-            return self.uri.replace('gs://', '/')
-
-    class_source = textwrap.dedent(
+    class_source = 'from kfp import dsl' + '\n\n' + textwrap.dedent(
         inspect.getsource(VertexModel)) + '\n\n' + textwrap.dedent(
             inspect.getsource(VertexDataset))
 
