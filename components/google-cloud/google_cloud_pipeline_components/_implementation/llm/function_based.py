@@ -221,8 +221,8 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://t5-data/pretrained_models/t5x/flan_t5_xxl/'
           ),
-          reward_model_reference='T5_XXL',
-          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xxl',
+          reward_model_reference='T5_XL',
+          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xl',
           is_supported=True,
       ),
       'palm-tiny': reference_model_metadata(
