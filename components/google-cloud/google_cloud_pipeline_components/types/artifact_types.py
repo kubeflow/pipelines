@@ -56,10 +56,12 @@ properties:
   resourceName:
     type: string""")
 
+  # param named key instead of name, since it is not the final name of the
+  # artifact. the final name is the Vertex resource ID.
   @classmethod
   def create(
       cls,
-      name: str,
+      key: str,
       uri: str,
       model_resource_name: str,
   ) -> 'VertexModel':
@@ -67,7 +69,7 @@ properties:
     """Create a VertexModel artifact instance.
 
     Args:
-      name: The artifact name.
+      key: The artifact key.
       uri: the Vertex Model resource uri, in a form of https://{service-endpoint}/v1/projects/{project}/locations/{location}/models/{model}, where {service-endpoint} is one of the supported service endpoints at https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
       model_resource_name: The name of the Model resource, in a form of projects/{project}/locations/{location}/models/{model}. For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/get
 
@@ -75,11 +77,12 @@ properties:
       VertexModel instance.
     """
     # fmt: on
-    return cls(
-        name=name,
+    instance = cls(
         uri=uri,
         metadata={_RESOURCE_NAME_KEY: model_resource_name},
     )
+    instance.name = key
+    return instance
 
 
 class VertexEndpoint(dsl.Artifact):
@@ -96,7 +99,7 @@ properties:
   @classmethod
   def create(
       cls,
-      name: str,
+      key: str,
       uri: str,
       endpoint_resource_name: str,
   ) -> 'VertexEndpoint':
@@ -104,7 +107,7 @@ properties:
     """Create a VertexEndpoint artifact instance.
 
     Args:
-      name: The artifact name.
+      key: The artifact key.
       uri: the Vertex Endpoint resource uri, in a form of https://{service-endpoint}/v1/projects/{project}/locations/{location}/endpoints/{endpoint}, where {service-endpoint} is one of the supported service endpoints at https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
       endpoint_resource_name: The name of the Endpoint resource, in a form of projects/{project}/locations/{location}/endpoints/{endpoint}. For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/get
 
@@ -112,11 +115,12 @@ properties:
       VertexEndpoint instance.
     """
     # fmt: on
-    return cls(
-        name=name,
+    instance = cls(
         uri=uri,
         metadata={_RESOURCE_NAME_KEY: endpoint_resource_name},
     )
+    instance.name = key
+    return instance
 
 
 class VertexBatchPredictionJob(dsl.Artifact):
@@ -139,7 +143,7 @@ properties:
   @classmethod
   def create(
       cls,
-      name: str,
+      key: str,
       uri: str,
       job_resource_name: str,
       bigquery_output_table: Optional[str] = None,
@@ -150,7 +154,7 @@ properties:
     """Create a VertexBatchPredictionJob artifact instance.
 
     Args:
-      name: The artifact name.
+      key: The artifact key.
       uri: the Vertex Batch Prediction resource uri, in a form of https://{service-endpoint}/v1/projects/{project}/locations/{location}/batchPredictionJobs/{batchPredictionJob}, where {service-endpoint} is one of the supported service endpoints at https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
       job_resource_name: The name of the batch prediction job resource, in a form of projects/{project}/locations/{location}/batchPredictionJobs/{batchPredictionJob}. For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/get
       bigquery_output_table: The name of the BigQuery table created, in predictions_<timestamp> format, into which the prediction output is written. For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#outputinfo
@@ -161,8 +165,7 @@ properties:
       VertexBatchPredictionJob instance.
     """
     # fmt: on
-    return cls(
-        name=name,
+    instance = cls(
         uri=uri,
         metadata={
             _RESOURCE_NAME_KEY: job_resource_name,
@@ -171,6 +174,8 @@ properties:
             'gcsOutputDirectory': gcs_output_directory,
         },
     )
+    instance.name = key
+    return instance
 
 
 class VertexDataset(dsl.Artifact):
@@ -187,7 +192,7 @@ properties:
   @classmethod
   def create(
       cls,
-      name: str,
+      key: str,
       uri: str,
       dataset_resource_name: str,
   ) -> 'VertexDataset':
@@ -195,18 +200,19 @@ properties:
     """Create a VertexDataset artifact instance.
 
     Args:
-      name: The artifact name.
+      key: The artifact key.
       uri: the Vertex Dataset resource uri, in a form of https://{service-endpoint}/v1/projects/{project}/locations/{location}/datasets/{datasets_name}, where {service-endpoint} is one of the supported service endpoints at https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
       dataset_resource_name: The name of the Dataset resource, in a form of projects/{project}/locations/{location}/datasets/{datasets_name}. For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets/get
 
     Returns:
       VertexDataset instance.
     """
-    return cls(
+    instance = cls(
         uri=uri,
-        name=name,
         metadata={_RESOURCE_NAME_KEY: dataset_resource_name},
     )
+    instance.name = key
+    return instance
 
 
 class BQMLModel(dsl.Artifact):
@@ -227,7 +233,7 @@ properties:
   @classmethod
   def create(
       cls,
-      name: str,
+      key: str,
       project_id: str,
       dataset_id: str,
       model_id: str,
@@ -236,7 +242,7 @@ properties:
     """Create a BQMLModel artifact instance.
 
     Args:
-      name: The artifact name.
+      key: The artifact key.
       project_id: The ID of the project containing this model.
       dataset_id: The ID of the dataset containing this model.
       model_id: The ID of the model. For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/models#ModelReference
@@ -245,8 +251,7 @@ properties:
       BQMLModel instance.
     """
     # fmt: on
-    return cls(
-        name=name,
+    instance = cls(
         uri=f'https://www.googleapis.com/bigquery/v2/projects/{project_id}/datasets/{dataset_id}/models/{model_id}',
         metadata={
             'projectId': project_id,
@@ -254,6 +259,8 @@ properties:
             'modelId': model_id,
         },
     )
+    instance.name = key
+    return instance
 
 
 class BQTable(dsl.Artifact):
@@ -276,7 +283,7 @@ properties:
   @classmethod
   def create(
       cls,
-      name: str,
+      key: str,
       project_id: str,
       dataset_id: str,
       table_id: str,
@@ -285,7 +292,7 @@ properties:
     """Create a BQTable artifact instance.
 
     Args:
-      name: The artifact name.
+      key: The artifact key.
       project_id: The ID of the project containing this table.
       dataset_id: The ID of the dataset containing this table.
       table_id: The ID of the table.  For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/TableReference
@@ -294,8 +301,7 @@ properties:
       BQTable instance.
     """
     # fmt: on
-    return cls(
-        name=name,
+    instance = cls(
         uri=f'https://www.googleapis.com/bigquery/v2/projects/{project_id}/datasets/{dataset_id}/tables/{table_id}',
         metadata={
             'projectId': project_id,
@@ -303,6 +309,8 @@ properties:
             'tableId': table_id,
         },
     )
+    instance.name = key
+    return instance
 
 
 class UnmanagedContainerModel(dsl.Artifact):
@@ -509,7 +517,7 @@ properties:
   @classmethod
   def create(
       cls,
-      name: str = 'evaluation_metrics',
+      key: str = 'evaluation_metrics',
       recall: Optional[float] = None,
       precision: Optional[float] = None,
       f1_score: Optional[float] = None,
@@ -522,7 +530,7 @@ properties:
     """Create a ClassificationMetrics artifact instance.
 
     Args:
-      name: The artifact name.
+      key: The artifact key.
       recall: Recall (True Positive Rate) for the given confidence threshold.
       precision: Precision for the given confidence threshold.
       f1_score: The harmonic mean of recall and precision.
@@ -550,10 +558,11 @@ properties:
       metadata['auRoc'] = au_roc
     if log_loss is not None:
       metadata['logLoss'] = log_loss
-    return cls(
-        name=name,
+    instance = cls(
         metadata=metadata,
     )
+    instance.name = key
+    return instance
 
 
 class RegressionMetrics(dsl.Artifact):
@@ -584,7 +593,7 @@ properties:
   @classmethod
   def create(
       cls,
-      name: str = 'evaluation_metrics',
+      key: str = 'evaluation_metrics',
       root_mean_squared_error: Optional[float] = None,
       mean_absolute_error: Optional[float] = None,
       mean_absolute_percentage_error: Optional[float] = None,
@@ -595,7 +604,7 @@ properties:
     """Create a RegressionMetrics artifact instance.
 
     Args:
-      name: The artifact name.
+      key: The artifact key.
       root_mean_squared_error: Root Mean Squared Error (RMSE).
       mean_absolute_error: Mean Absolute Error (MAE).
       mean_absolute_percentage_error: Mean absolute percentage error.
@@ -617,10 +626,11 @@ properties:
       metadata['rSquared'] = r_squared
     if root_mean_squared_log_error is not None:
       metadata['rootMeanSquaredLogError'] = root_mean_squared_log_error
-    return cls(
-        name=name,
+    instance = cls(
         metadata=metadata,
     )
+    instance.name = key
+    return instance
 
 
 class ForecastingMetrics(dsl.Artifact):
@@ -674,7 +684,7 @@ properties:
   @classmethod
   def create(
       cls,
-      name: str = 'evaluation_metrics',
+      key: str = 'evaluation_metrics',
       root_mean_squared_error: Optional[float] = None,
       mean_absolute_error: Optional[float] = None,
       mean_absolute_percentage_error: Optional[float] = None,
@@ -688,7 +698,7 @@ properties:
     """Create a ForecastingMetrics artifact instance.
 
     Args:
-      name: The artifact name.
+      key: The artifact key.
       root_mean_squared_error: Root Mean Squared Error (RMSE).
       mean_absolute_error: Mean Absolute Error (MAE).
       mean_absolute_percentage_error: Mean absolute percentage error.
@@ -725,7 +735,8 @@ properties:
       metadata['symmetricMeanAbsolutePercentageError'] = (
           symmetric_mean_absolute_percentage_error
       )
-    return cls(
-        name=name,
+    instance = cls(
         metadata=metadata,
     )
+    instance.name = key
+    return instance

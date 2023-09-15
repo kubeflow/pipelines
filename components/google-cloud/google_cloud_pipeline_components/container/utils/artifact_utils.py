@@ -16,15 +16,17 @@
 
 import json
 import os
+from typing import Any, Dict, List, Optional
 
 
 def update_output_artifact(
     executor_input: str,
     target_artifact_name: str,
     uri: str,
-    metadata: dict = {},
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> None:
   """Updates the output artifact with the new uri and metadata."""
+  metadata = metadata or {}
   executor_input_json = json.loads(executor_input)
   executor_output = {'artifacts': {}}
   for name, artifacts in (
@@ -51,7 +53,7 @@ def update_output_artifact(
 # Writes a list of Artifacts to the executor output file.
 def update_output_artifacts(
     executor_input: str,
-    artifacts: list,
+    artifacts: List[Dict[str, Any]],
 ) -> None:
   """Updates a list of Artifacts to the executor output file."""
   executor_input_json = json.loads(executor_input)
@@ -64,6 +66,8 @@ def update_output_artifacts(
       # https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto#L878
       artifacts_list = output_artifacts[artifact.name].get('artifacts')
       if artifacts_list:
+        # name is really a temporary name
+        # we use the resource name provied by the BE in ExecutorInput
         updated_runtime_artifact = artifacts_list[0]
         updated_runtime_artifact['uri'] = artifact.uri
         updated_runtime_artifact['metadata'] = artifact.metadata
