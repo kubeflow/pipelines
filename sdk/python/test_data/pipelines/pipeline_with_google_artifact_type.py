@@ -25,7 +25,9 @@ def create_temporary_google_artifact_package(
     import os
     import textwrap
 
-    class VertexModel:
+    from kfp import dsl
+
+    class VertexModel(dsl.Artifact):
         schema_title = 'google.VertexModel'
         schema_version = '0.0.0'
 
@@ -38,7 +40,7 @@ def create_temporary_google_artifact_package(
         def path(self) -> str:
             return self.uri.replace('gs://', '/')
 
-    class VertexDataset:
+    class VertexDataset(dsl.Artifact):
         schema_title = 'google.VertexDataset'
         schema_version = '0.0.0'
 
@@ -51,7 +53,7 @@ def create_temporary_google_artifact_package(
         def path(self) -> str:
             return self.uri.replace('gs://', '/')
 
-    class_source = textwrap.dedent(
+    class_source = 'from kfp import dsl' + '\n\n' + textwrap.dedent(
         inspect.getsource(VertexModel)) + '\n\n' + textwrap.dedent(
             inspect.getsource(VertexDataset))
 
