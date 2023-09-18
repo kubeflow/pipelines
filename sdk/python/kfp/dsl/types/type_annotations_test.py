@@ -309,5 +309,89 @@ class TestGetInnerType(parameterized.TestCase):
         self.assertEqual(actual, expected)
 
 
+class MyArtifact(dsl.Artifact):
+    pass
+
+
+class NotArtifact:
+    pass
+
+
+class TestIsSubclassOfArtifact(parameterized.TestCase):
+
+    @parameterized.parameters([{
+        'obj': obj
+    } for obj in [
+        dsl.Artifact,
+        dsl.Dataset,
+        dsl.Metrics,
+        MyArtifact,
+    ]])
+    def test_true(self, obj):
+        self.assertTrue(type_annotations.issubclass_of_artifact(obj))
+
+    @parameterized.parameters([{
+        'obj': obj
+    } for obj in [
+        dsl.Artifact(),
+        dsl.Dataset(),
+        1,
+        NotArtifact(),
+    ]])
+    def test_false(self, obj):
+        self.assertFalse(type_annotations.issubclass_of_artifact(obj))
+
+
+class TestIsGenericList(parameterized.TestCase):
+
+    @parameterized.parameters([{
+        'obj': obj
+    } for obj in [
+        List,
+        List[str],
+        List[dsl.Artifact],
+        List[Dict[str, str]],
+    ] + ([
+        list,
+        list[str],
+    ] if sys.version_info >= (3, 9, 0) else [])])
+    def test_true(self, obj):
+        self.assertTrue(type_annotations.is_generic_list(obj))
+
+    @parameterized.parameters([{
+        'obj': obj
+    } for obj in [
+        Optional[List[str]],
+        Dict[str, str],
+        str,
+        int,
+        dsl.Artifact,
+    ]])
+    def test_false(self, obj):
+        self.assertFalse(type_annotations.is_generic_list(obj))
+
+
+class TestGetInnerType(parameterized.TestCase):
+
+    @parameterized.parameters([{
+        'annotation': annotation,
+        'expected': expected
+    } for annotation, expected in [
+        (int, None),
+        (Optional[int], (int, type(None))),
+        (Union[int, None], (int, type(None))),
+        (List[str], str),
+        (Dict[str, str], (str, str)),
+        (List[dsl.Artifact], dsl.Artifact),
+    ] + ([
+        (list[str], str),
+        (dict[str, str], (str, str)),
+        (list[dsl.Artifact], dsl.Artifact),
+    ] if sys.version_info >= (3, 9, 0) else [])])
+    def test(self, annotation, expected):
+        actual = type_annotations.get_inner_type(annotation)
+        self.assertEqual(actual, expected)
+
+
 if __name__ == '__main__':
     unittest.main()
