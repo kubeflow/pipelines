@@ -17,7 +17,7 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import Any, List, Type, TypeVar, Union
+from typing import Any, List, Optional, Type, TypeVar, Union
 
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
@@ -99,7 +99,7 @@ class InputPath:
 
 
 def construct_type_for_inputpath_or_outputpath(
-        type_: Union[str, Type, None]) -> Union[str, None]:
+        type_: Union[str, Type, None]) -> Optional[str]:
     if type_annotations.is_artifact_class(type_):
         return type_utils.create_bundled_artifact_type(type_.schema_title,
                                                        type_.schema_version)
@@ -242,8 +242,8 @@ def is_list_of_artifacts(
         get_inner_type(annotation))
 
 
-def get_inner_type(annotation: Any) -> Union[Any, None]:
-    """Return the inner type of a generic annotation.
+def get_inner_type(annotation: Any) -> Optional[Any]:
+    """Returns the inner type of a generic annotation.
 
     For Union or Optional types with multiple inner types, a tuple of
     types is returned.
@@ -263,7 +263,10 @@ def issubclass_of_artifact(obj: Any) -> bool:
 
 
 def is_generic_list(annotation: Any) -> bool:
-    # handles typing generics and built-in generics for python>=3.9
-    return (annotation == list or
-            getattr(annotation, '__origin__', None) is list or
-            getattr(annotation, '__origin__', None) is List)
+    # handles generics from the typing module for python<3.9
+    typing_generic_list = getattr(annotation, '__origin__',
+                                  None) is list or getattr(
+                                      annotation, '__origin__', None) is List
+    # handles built-in generics for python>=3.9
+    built_in_generic_list = annotation == list
+    return typing_generic_list or built_in_generic_list

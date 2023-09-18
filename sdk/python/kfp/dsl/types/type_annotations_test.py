@@ -251,7 +251,7 @@ class TestIsSubclassOfArtifact(parameterized.TestCase):
         dsl.Artifact(),
         dsl.Dataset(),
         1,
-        NotArtifact(),
+        NotArtifact,
     ]])
     def test_false(self, obj):
         self.assertFalse(type_annotations.issubclass_of_artifact(obj))

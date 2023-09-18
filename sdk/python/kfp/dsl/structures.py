@@ -797,7 +797,7 @@ class ComponentSpec:
             }
 
         def extract_description_from_command(
-                commands: List[str]) -> Union[str, None]:
+                commands: List[str]) -> Optional[str]:
             for command in commands:
                 if isinstance(command, str) and 'import kfp' in command:
                     for node in ast.walk(ast.parse(command)):
@@ -846,7 +846,7 @@ class ComponentSpec:
             ComponentSpec: The ComponentSpec object.
         """
 
-        def extract_description(component_yaml: str) -> Union[str, None]:
+        def extract_description(component_yaml: str) -> Optional[str]:
             heading = '# Description: '
             multi_line_description_prefix = '#             '
             index_of_heading = 2

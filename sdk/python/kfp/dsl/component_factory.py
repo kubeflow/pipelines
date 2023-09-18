@@ -401,7 +401,7 @@ def extract_component_interface(
 
     def parse_docstring_with_return_as_args(
             docstring: Union[str,
-                             None]) -> Union[docstring_parser.Docstring, None]:
+                             None]) -> Optional[docstring_parser.Docstring]:
         """Modifies docstring so that a return section can be treated as an
         args section, then parses the docstring."""
         if docstring is None:
@@ -661,7 +661,7 @@ def create_graph_component_from_func(
 def get_pipeline_description(
     decorator_description: Union[str, None],
     docstring: docstring_parser.Docstring,
-) -> Union[str, None]:
+) -> Optional[str]:
     """Obtains the correct pipeline description from the pipeline decorator's
     description argument and the parsed docstring.
 
