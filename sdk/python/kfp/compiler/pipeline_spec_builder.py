@@ -1585,11 +1585,11 @@ def _merge_component_spec(
 
     Uniqueness is determined by existing component names in main_pipeline_spec
     and sub_pipeline_spec.
-    
+
     Renaming is first done in place, specifically in a LIFO order. This is to avoid
     a rename causing a name collision with a later rename. Then, the actual merge
-    of component specs is done in a second pass. This ensures all component specs   
-    are in the final state at the time of merging.  
+    of component specs is done in a second pass. This ensures all component specs
+    are in the final state at the time of merging.
 
     Args:
         main_pipeline_spec: The main pipeline spec to merge into.
