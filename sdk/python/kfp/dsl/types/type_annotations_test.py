@@ -211,24 +211,25 @@ class TestIsArtifact(parameterized.TestCase):
 
     def test_false_no_schema_title(self):
 
-        class NotArtifact:
+        class MissingSchemaTitle:
             schema_version = ''
 
-        self.assertFalse(type_annotations.is_artifact_class(NotArtifact))
+        self.assertFalse(type_annotations.is_artifact_class(MissingSchemaTitle))
 
     def test_false_no_schema_version(self):
 
-        class NotArtifact:
+        class MissingSchemaVersion:
             schema_title = ''
 
-        self.assertFalse(type_annotations.is_artifact_class(NotArtifact))
+        self.assertFalse(
+            type_annotations.is_artifact_class(MissingSchemaVersion))
 
 
-class MyArtifact(dsl.Artifact):
+class ArtifactSubclass(dsl.Artifact):
     pass
 
 
-class NotArtifact:
+class NotArtifactSubclass:
     pass
 
 
@@ -240,7 +241,7 @@ class TestIsSubclassOfArtifact(parameterized.TestCase):
         dsl.Artifact,
         dsl.Dataset,
         dsl.Metrics,
-        MyArtifact,
+        ArtifactSubclass,
     ]])
     def test_true(self, obj):
         self.assertTrue(type_annotations.issubclass_of_artifact(obj))
@@ -251,7 +252,7 @@ class TestIsSubclassOfArtifact(parameterized.TestCase):
         dsl.Artifact(),
         dsl.Dataset(),
         1,
-        NotArtifact,
+        NotArtifactSubclass,
     ]])
     def test_false(self, obj):
         self.assertFalse(type_annotations.issubclass_of_artifact(obj))
