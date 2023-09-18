@@ -35,6 +35,7 @@ from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
+SINGLE_OUTPUT_NAME = 'Output'
 
 
 @dataclasses.dataclass
@@ -209,7 +210,6 @@ def extract_component_interface(
     description: Optional[str] = None,
     name: Optional[str] = None,
 ) -> structures.ComponentSpec:
-    single_output_name_const = 'Output'
 
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
@@ -280,10 +280,9 @@ def extract_component_interface(
         if passing_style in [
                 type_annotations.OutputAnnotation, type_annotations.OutputPath
         ]:
-            if io_name == single_output_name_const:
+            if io_name == SINGLE_OUTPUT_NAME:
                 raise ValueError(
-                    f'"{single_output_name_const}" is an invalid parameter name.'
-                )
+                    f'"{SINGLE_OUTPUT_NAME}" is an invalid parameter name.')
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
             if type_annotations.is_artifact_class(parameter_type):
@@ -359,8 +358,7 @@ def extract_component_interface(
                 output_spec = structures.OutputSpec(type=output_type_struct)
                 outputs[name] = output_spec
         elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
-            output_name = _maybe_make_unique(single_output_name_const,
-                                             output_names)
+            output_name = _maybe_make_unique(SINGLE_OUTPUT_NAME, output_names)
             # Fixes exotic, but possible collision:
             #   `def func(output_path: OutputPath()) -> str: ...`
             output_names.add(output_name)

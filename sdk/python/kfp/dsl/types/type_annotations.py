@@ -17,7 +17,7 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import List, Type, TypeVar, Union
+from typing import Any, List, Type, TypeVar, Union
 
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
@@ -233,13 +233,37 @@ def is_artifact_class(artifact_class_or_instance: Type) -> bool:
 
 
 def is_list_of_artifacts(
-    type_var: Union[Type[List[artifact_types.Artifact]],
-                    Type[artifact_types.Artifact]]
+    annotation: Union[Type[List[artifact_types.Artifact]],
+                      Type[artifact_types.Artifact]]
 ) -> bool:
-    # the type annotation for this function's `type_var` parameter may not actually be a subclass of the KFP SDK's Artifact class for custom artifact types
-    is_list_or_list_generic = getattr(type_var, '__origin__', None) == list
-    # in >= python3.9, List wont have .__args__ if it's used as `-> List` with no inner type argument
-    contains_artifact = hasattr(
-        type_var, '__args__') and type_annotations.is_artifact_class(
-            type_var.__args__[0])
-    return is_list_or_list_generic and contains_artifact
+    """Checks if an object is a list of list of artifacts annotation (e.g.,
+    List[Artifact], List[Dataset])"""
+    return is_generic_list(annotation) and issubclass_of_artifact(
+        get_inner_type(annotation))
+
+
+def get_inner_type(annotation: Any) -> Union[Any, None]:
+    """Return the inner type of a generic annotation.
+
+    For Union or Optional types with multiple inner types, a tuple of
+    types is returned.
+    """
+    # Check if the annotation has '__args__' attribute
+    if hasattr(annotation, '__args__'):
+        if len(annotation.__args__) == 1:
+            return annotation.__args__[0]
+        else:
+            return tuple(annotation.__args__)
+    return None
+
+
+def issubclass_of_artifact(obj: Any) -> bool:
+    """Checks if an object is a class and a subclass of a dsl.Artifact."""
+    return type(obj) == type and issubclass(obj, artifact_types.Artifact)
+
+
+def is_generic_list(annotation: Any) -> bool:
+    # handles typing generics and built-in generics for python>=3.9
+    return (annotation == list or
+            getattr(annotation, '__origin__', None) is list or
+            getattr(annotation, '__origin__', None) is List)
