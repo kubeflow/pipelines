@@ -54,7 +54,7 @@ BOOLEAN = 4
 LIST = 5
 STRUCT = 6
 PARAMETER_TYPES_MAPPING = {
-    'integer': 2,
+    'integer': NUMBER_INTEGER,
     'int': NUMBER_INTEGER,
     'double': NUMBER_DOUBLE,
     'float': NUMBER_DOUBLE,
@@ -194,9 +194,13 @@ def get_parameter_type_name(
     """Gets the parameter type name."""
 
     from kfp.pipeline_spec import pipeline_spec_pb2
-
+    param_enum_val = get_parameter_type(param_type)
+    if param_enum_val is None:
+        raise ValueError(
+            '`param_type` is not a parameter type. Cannot get ParameterType name.'
+        )
     return pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
-        get_parameter_type(param_type))
+        param_enum_val)
 
 
 class InconsistentTypeException(Exception):

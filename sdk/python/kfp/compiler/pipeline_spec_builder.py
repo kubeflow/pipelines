@@ -24,6 +24,7 @@ from google.protobuf import json_format
 from google.protobuf import struct_pb2
 import kfp
 from kfp.compiler import compiler_utils
+from kfp.dsl import component_factory
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context
@@ -44,8 +45,6 @@ group_type_to_dsl_class = {
     tasks_group.TasksGroupType.FOR_LOOP: tasks_group.ParallelFor,
     tasks_group.TasksGroupType.EXIT_HANDLER: tasks_group.ExitHandler,
 }
-
-_SINGLE_OUTPUT_NAME = 'Output'
 
 
 def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
@@ -1774,7 +1773,7 @@ def convert_pipeline_outputs_to_dict(
     if pipeline_outputs is None:
         return {}
     elif isinstance(pipeline_outputs, pipeline_channel.PipelineChannel):
-        return {_SINGLE_OUTPUT_NAME: pipeline_outputs}
+        return {component_factory.SINGLE_OUTPUT_NAME: pipeline_outputs}
     elif isinstance(pipeline_outputs, tuple) and hasattr(
             pipeline_outputs, '_asdict'):
         return dict(pipeline_outputs._asdict())
