@@ -17,11 +17,7 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-<<<<<<< HEAD
 from typing import Any, List, Optional, Type, TypeVar, Union
-=======
-from typing import Any, List, Type, TypeVar, Union
->>>>>>> 0489000a3 (chore(sdk): test observability, refactorings, and cleanup)
 
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
@@ -139,7 +135,7 @@ def is_Input_Output_artifact_annotation(typ) -> bool:
     return True
 
 
-def is_input_artifact(typ) -> bool:
+def is_artifact_wrapped_in_Input(typ) -> bool:
     """Returns True if typ is of type Input[T]."""
     if not is_Input_Output_artifact_annotation(typ):
         return False
@@ -147,7 +143,7 @@ def is_input_artifact(typ) -> bool:
     return typ.__metadata__[0] == InputAnnotation
 
 
-def is_output_artifact(typ) -> bool:
+def is_artifact_wrapped_in_Output(typ) -> bool:
     """Returns True if typ is of type Output[T]."""
     if not is_Input_Output_artifact_annotation(typ):
         return False
@@ -164,14 +160,19 @@ def get_io_artifact_class(typ):
         return None
 
     # extract inner type from list of artifacts
-    inner = typ.__args__[0]
+    inner = strip_Input_or_Output_marker(typ)
     if hasattr(inner, '__origin__') and inner.__origin__ == list:
         return inner.__args__[0]
 
     return inner
 
 
-def get_io_artifact_annotation(typ):
+def strip_Input_or_Output_marker(typ):
+    return typ.__args__[0]
+
+
+def get_input_or_output_marker(
+        typ) -> Optional[Union[InputAnnotation, OutputAnnotation]]:
     if not is_Input_Output_artifact_annotation(typ):
         return None
 

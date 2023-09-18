@@ -16,6 +16,7 @@ import json
 import os
 import re
 from typing import Any, Callable, Dict, List, Optional, Union
+import warnings
 
 from kfp import dsl
 from kfp.dsl import task_final_status
@@ -39,6 +40,12 @@ class Executor:
             self.func = function_to_execute
 
         self.executor_input = executor_input
+        self.executor_output_path = self.executor_input['outputs']['outputFile']
+
+        # drop executor_output.json part from path
+        local_task_root = os.path.split(self.executor_output_path)[0]
+        artifact_types.CONTAINER_TASK_ROOT = local_task_root
+
         self.input_artifacts: Dict[str, Union[dsl.Artifact,
                                               List[dsl.Artifact]]] = {}
         self.output_artifacts: Dict[str, dsl.Artifact] = {}
@@ -55,9 +62,14 @@ class Executor:
             if list_of_artifact_proto_structs:
                 annotation = self.func.__annotations__[name]
                 # InputPath has no attribute __origin__ and also should be handled as a single artifact
-                if type_annotations.is_Input_Output_artifact_annotation(
-                        annotation) and type_annotations.is_list_of_artifacts(
-                            annotation.__origin__):
+                annotation = type_annotations.maybe_strip_optional_from_annotation(
+                    annotation)
+                is_list_of_artifacts = (
+                    type_annotations.is_Input_Output_artifact_annotation(
+                        annotation) and
+                    type_annotations.is_list_of_artifacts(annotation.__origin__)
+                ) or type_annotations.is_list_of_artifacts(annotation)
+                if is_list_of_artifacts:
                     self.input_artifacts[name] = [
                         self.make_artifact(
                             msg,
@@ -129,7 +141,7 @@ class Executor:
 
         path = parameter.get('outputFile', None)
         if path:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
+            makedirs_recursively(path)
         return path
 
     def get_output_artifact_path(self, artifact_name: str) -> str:
@@ -189,8 +201,29 @@ class Executor:
                     f'Function `{self.func.__name__}` returned value of type {type(return_value)}; want type {origin_type}'
                 )
             self.write_output_parameter_value(output_name, return_value)
+
         elif is_artifact(annotation_type):
-            self.write_output_artifact_payload(output_name, return_value)
+            if isinstance(return_value, artifact_types.Artifact):
+                # for -> Artifact annotations, where the user returns an artifact
+                artifact_name = self.executor_input['outputs']['artifacts'][
+                    output_name]['artifacts'][0]['name']
+                # users should not override the name for Vertex Pipelines
+                # if empty string, replace
+                # else provide descriptive warning and prefer letting backend throw exception
+                running_on_vertex = 'VERTEX_AI_PIPELINES_RUN_LABELS' in os.environ
+                if running_on_vertex:
+                    if return_value.name == '':
+                        return_value.name = artifact_name
+                    else:
+                        # prefer letting the backend throw the runtime exception
+                        warnings.warn(
+                            f'If you are running your pipeline Vertex AI Pipelines, you should not provide a name for your artifact. It will be set to the Vertex artifact resource name {artifact_name} by default. Got value for name: {return_value.name}.',
+                            RuntimeWarning,
+                            stacklevel=2)
+                self.output_artifacts[output_name] = return_value
+            else:
+                # for -> Artifact annotations, where the user returns some data that the executor should serialize
+                self.write_output_artifact_payload(output_name, return_value)
         else:
             raise RuntimeError(
                 f'Unknown return type: {annotation_type}. Must be one of the supported data types: https://www.kubeflow.org/docs/components/pipelines/v2/data-types/'
@@ -209,18 +242,6 @@ class Executor:
         Returns:
             Optional[str]: Returns the location of the executor_output file as a string if the file is written. Else, None.
         """
-        if self.output_artifacts:
-            self.excutor_output['artifacts'] = {}
-
-        for name, artifact in self.output_artifacts.items():
-            runtime_artifact = {
-                'name': artifact.name,
-                'uri': artifact.uri,
-                'metadata': artifact.metadata,
-            }
-            artifacts_list = {'artifacts': [runtime_artifact]}
-
-            self.excutor_output['artifacts'][name] = artifacts_list
 
         if func_output is not None:
             if is_parameter(self.return_annotation) or is_artifact(
@@ -248,6 +269,19 @@ class Executor:
                     f'Unknown return type: {self.return_annotation}. Must be one of `str`, `int`, `float`, a subclass of `Artifact`, or a NamedTuple collection of these types.'
                 )
 
+        if self.output_artifacts:
+            self.excutor_output['artifacts'] = {}
+
+        for name, artifact in self.output_artifacts.items():
+            runtime_artifact = {
+                'name': artifact.name,
+                'uri': artifact.uri,
+                'metadata': artifact.metadata,
+            }
+            artifacts_list = {'artifacts': [runtime_artifact]}
+
+            self.excutor_output['artifacts'][name] = artifacts_list
+
         # This check is to ensure only one worker (in a mirrored, distributed training/compute strategy) attempts to write to the same executor output file at the same time using gcsfuse, which enforces immutability of files.
         write_file = True
 
@@ -259,12 +293,10 @@ class Executor:
             write_file = cluster_spec['task']['type'] in CHIEF_NODE_LABELS
 
         if write_file:
-            executor_output_path = self.executor_input['outputs']['outputFile']
-            os.makedirs(os.path.dirname(executor_output_path), exist_ok=True)
-            with open(executor_output_path, 'w') as f:
+            makedirs_recursively(self.executor_output_path)
+            with open(self.executor_output_path, 'w') as f:
                 f.write(json.dumps(self.excutor_output))
-            return executor_output_path
-
+            return self.executor_output_path
         return None
 
     def execute(self) -> Optional[str]:
@@ -300,16 +332,22 @@ class Executor:
                     error_message=value.get('error').get('message', None),
                 )
 
+            elif type_annotations.is_list_of_artifacts(v):
+                func_kwargs[k] = self.get_input_artifact(k)
+
             elif is_parameter(v):
                 value = self.get_input_parameter_value(k)
                 if value is not None:
                     func_kwargs[k] = value
 
             elif type_annotations.is_Input_Output_artifact_annotation(v):
-                if type_annotations.is_input_artifact(v):
+                if type_annotations.is_artifact_wrapped_in_Input(v):
                     func_kwargs[k] = self.get_input_artifact(k)
-                if type_annotations.is_output_artifact(v):
+                if type_annotations.is_artifact_wrapped_in_Output(v):
                     func_kwargs[k] = self.get_output_artifact(k)
+
+            elif is_artifact(v):
+                func_kwargs[k] = self.get_input_artifact(k)
 
             elif isinstance(v, type_annotations.OutputPath):
                 if is_parameter(v.type):

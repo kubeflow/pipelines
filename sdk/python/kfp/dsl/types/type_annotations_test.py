@@ -58,21 +58,24 @@ class AnnotationsTest(parameterized.TestCase):
         Input,
     ])
     def test_is_input_artifact(self, annotation):
-        self.assertTrue(type_annotations.is_input_artifact(annotation))
+        self.assertTrue(
+            type_annotations.is_artifact_wrapped_in_Input(annotation))
 
     @parameterized.parameters([
         Output[Model],
         Output,
     ])
     def test_is_not_input_artifact(self, annotation):
-        self.assertFalse(type_annotations.is_input_artifact(annotation))
+        self.assertFalse(
+            type_annotations.is_artifact_wrapped_in_Input(annotation))
 
     @parameterized.parameters([
         Output[Model],
         Output[List[Model]],
     ])
     def test_is_output_artifact(self, annotation):
-        self.assertTrue(type_annotations.is_output_artifact(annotation))
+        self.assertTrue(
+            type_annotations.is_artifact_wrapped_in_Output(annotation))
 
     @parameterized.parameters([
         Input[Model],
@@ -80,7 +83,8 @@ class AnnotationsTest(parameterized.TestCase):
         Input,
     ])
     def test_is_not_output_artifact(self, annotation):
-        self.assertFalse(type_annotations.is_output_artifact(annotation))
+        self.assertFalse(
+            type_annotations.is_artifact_wrapped_in_Output(annotation))
 
     def test_get_io_artifact_class(self):
         self.assertEqual(
@@ -97,26 +101,26 @@ class AnnotationsTest(parameterized.TestCase):
 
     def test_get_io_artifact_annotation(self):
         self.assertEqual(
-            type_annotations.get_io_artifact_annotation(Output[Model]),
+            type_annotations.get_input_or_output_marker(Output[Model]),
             OutputAnnotation)
         self.assertEqual(
-            type_annotations.get_io_artifact_annotation(Output[List[Model]]),
+            type_annotations.get_input_or_output_marker(Output[List[Model]]),
             OutputAnnotation)
         self.assertEqual(
-            type_annotations.get_io_artifact_annotation(Input[Model]),
+            type_annotations.get_input_or_output_marker(Input[Model]),
             InputAnnotation)
         self.assertEqual(
-            type_annotations.get_io_artifact_annotation(Input[List[Model]]),
+            type_annotations.get_input_or_output_marker(Input[List[Model]]),
             InputAnnotation)
         self.assertEqual(
-            type_annotations.get_io_artifact_annotation(Input), InputAnnotation)
+            type_annotations.get_input_or_output_marker(Input), InputAnnotation)
         self.assertEqual(
-            type_annotations.get_io_artifact_annotation(Output),
+            type_annotations.get_input_or_output_marker(Output),
             OutputAnnotation)
 
         self.assertEqual(
-            type_annotations.get_io_artifact_annotation(Model), None)
-        self.assertEqual(type_annotations.get_io_artifact_annotation(str), None)
+            type_annotations.get_input_or_output_marker(Model), None)
+        self.assertEqual(type_annotations.get_input_or_output_marker(str), None)
 
     @parameterized.parameters(
         {
@@ -253,90 +257,6 @@ class TestIsSubclassOfArtifact(parameterized.TestCase):
         dsl.Dataset(),
         1,
         NotArtifactSubclass,
-    ]])
-    def test_false(self, obj):
-        self.assertFalse(type_annotations.issubclass_of_artifact(obj))
-
-
-class TestIsGenericList(parameterized.TestCase):
-
-    @parameterized.parameters([{
-        'obj': obj
-    } for obj in [
-        List,
-        List[str],
-        List[dsl.Artifact],
-        List[Dict[str, str]],
-    ] + ([
-        list,
-        list[str],
-    ] if sys.version_info >= (3, 9, 0) else [])])
-    def test_true(self, obj):
-        self.assertTrue(type_annotations.is_generic_list(obj))
-
-    @parameterized.parameters([{
-        'obj': obj
-    } for obj in [
-        Optional[List[str]],
-        Dict[str, str],
-        str,
-        int,
-        dsl.Artifact,
-    ]])
-    def test_false(self, obj):
-        self.assertFalse(type_annotations.is_generic_list(obj))
-
-
-class TestGetInnerType(parameterized.TestCase):
-
-    @parameterized.parameters([{
-        'annotation': annotation,
-        'expected': expected
-    } for annotation, expected in [
-        (int, None),
-        (Optional[int], (int, type(None))),
-        (Union[int, None], (int, type(None))),
-        (List[str], str),
-        (Dict[str, str], (str, str)),
-        (List[dsl.Artifact], dsl.Artifact),
-    ] + ([
-        (list[str], str),
-        (dict[str, str], (str, str)),
-        (list[dsl.Artifact], dsl.Artifact),
-    ] if sys.version_info >= (3, 9, 0) else [])])
-    def test(self, annotation, expected):
-        actual = type_annotations.get_inner_type(annotation)
-        self.assertEqual(actual, expected)
-
-
-class MyArtifact(dsl.Artifact):
-    pass
-
-
-class NotArtifact:
-    pass
-
-
-class TestIsSubclassOfArtifact(parameterized.TestCase):
-
-    @parameterized.parameters([{
-        'obj': obj
-    } for obj in [
-        dsl.Artifact,
-        dsl.Dataset,
-        dsl.Metrics,
-        MyArtifact,
-    ]])
-    def test_true(self, obj):
-        self.assertTrue(type_annotations.issubclass_of_artifact(obj))
-
-    @parameterized.parameters([{
-        'obj': obj
-    } for obj in [
-        dsl.Artifact(),
-        dsl.Dataset(),
-        1,
-        NotArtifact(),
     ]])
     def test_false(self, obj):
         self.assertFalse(type_annotations.issubclass_of_artifact(obj))

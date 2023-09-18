@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes for input/output Artifacts in KFP SDK."""
+"""Classes and utilities for using and creating artifacts in components."""
 
+import os
 from typing import Dict, List, Optional, Type
 
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
@@ -90,13 +91,18 @@ class Artifact:
         return None
 
     def _set_path(self, path: str) -> None:
-        if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
-            path = 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
-        elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
-            path = 'minio://' + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
-        elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
-            path = 's3://' + path[len(_S3_LOCAL_MOUNT_PREFIX):]
-        self.uri = path
+        self.uri = convert_local_path_to_remote_path(path)
+
+
+def convert_local_path_to_remote_path(path: str) -> str:
+    if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
+        return 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
+    elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
+        return 'minio://' + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
+    elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
+        return 's3://' + path[len(_S3_LOCAL_MOUNT_PREFIX):]
+    else:
+        raise ValueError(f'Unknown remote path for local path: {path}')
 
 
 class Model(Artifact):
@@ -470,3 +476,25 @@ _SCHEMA_TITLE_TO_TYPE: Dict[str, Type[Artifact]] = {
         Markdown,
     ]
 }
+
+CONTAINER_TASK_ROOT: Optional[str] = None
+
+
+# suffix default of 'Output' should be the same key as the default key for a
+# single output component, but use value not variable for reference docs
+def get_uri(suffix: str = 'Output') -> str:
+    """Gets the task root URI, a unique object storage URI associated with the
+    current task. This function may only be called at task runtime.
+
+    Args:
+        suffix: A suffix to append to the URI. This is a helpful for creating unique subdirectories when the component has multiple outputs.
+
+    Returns:
+        The URI.
+    """
+    if CONTAINER_TASK_ROOT is None:
+        raise RuntimeError(
+            "'dsl.get_uri' can only be called at task runtime. The task root is unknown in the current environment."
+        )
+    remote_task_root = convert_local_path_to_remote_path(CONTAINER_TASK_ROOT)
+    return os.path.join(remote_task_root, suffix)

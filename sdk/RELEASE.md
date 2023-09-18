@@ -15,6 +15,7 @@
 # 2.3.0
 ## Features
 * Support `PipelineTaskFinalStatus` in tasks that use `.ignore_upstream_failure()` [\#10010](https://github.com/kubeflow/pipelines/pull/10010)
+* Add support for a Pythonic artifact authoring style [\#9932](https://github.com/kubeflow/pipelines/pull/9932)
 
 
 ## Breaking changes
