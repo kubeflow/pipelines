@@ -34,6 +34,7 @@ def llm_information_retrieval_preprocessor(
     corpus_gcs_source: str,
     query_gcs_source: str,
     golden_docs_gcs_source: str,
+    embedding_chunking_function: str = 'langchain-RecursiveCharacterTextSplitter',
     embedding_chunk_size: int = 0,
     embedding_chunk_overlap: int = 0,
     display_name: str = 'information-retrieval-preprocessor',
@@ -63,6 +64,9 @@ def llm_information_retrieval_preprocessor(
         documents.
       golden_docs_gcs_source: Required. The path for csv file containing mapping
         of each query to the golden docs.
+      embedding_chunking_function: function used to split a document into
+        chunks. Supported values are `langchain-RecursiveCharacterTextSplitter`
+        and `sentence-splitter`.
       embedding_chunk_size: The length of each document chunk. If 0, chunking is
         not enabled.
       embedding_chunk_overlap: The length of the overlap part between adjacent
@@ -138,6 +142,7 @@ def llm_information_retrieval_preprocessor(
               f'--predictions_query_gcs_source={predictions_query_gcs_source}',
               f'--predictions_corpus_gcs_source={predictions_corpus_gcs_source}',
               f'--embedding_retrieval_gcs_source={embedding_retrieval_gcs_source}',
+              f'--embedding_chunking_function={embedding_chunking_function}',
               f'--embedding_chunk_size={embedding_chunk_size}',
               f'--embedding_chunk_overlap={embedding_chunk_overlap}',
               f'--runner={runner}',
