@@ -1,6 +1,6 @@
 # PIPELINE DEFINITION
 # Name: learn-to-learn-forecasting
-# Description: The AutoML Forecasting pipeline.
+# Description: Train a model using Tabular Workflows for Learn to Learn Forecasting pipelines.
 # Inputs:
 #    available_at_forecast_columns: list
 #    context_window: int [Default: 0.0]
