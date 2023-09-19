@@ -34,6 +34,7 @@ def evaluation_llm_embedding_pipeline(
     query_gcs_source: str,
     golden_docs_gcs_source: str,
     model_name: str,
+    embedding_chunking_function: str = 'langchain-RecursiveCharacterTextSplitter',
     embedding_chunk_size: int = 0,
     embedding_chunk_overlap: int = 0,
     embedding_retrieval_combination_function: str = 'max',
@@ -65,6 +66,13 @@ def evaluation_llm_embedding_pipeline(
     golden_docs_gcs_source: The gcs location for csv file containing mapping of
       each query to the golden docs.
     model_name: The path for model to generate embeddings.
+    embedding_chunking_function: function used to split a document into chunks.
+      Supported values are `langchain-RecursiveCharacterTextSplitter` and
+      `sentence-splitter`. langchain-RecursiveCharacterTextSplitter:
+      langchain.text_splitter.RecursiveCharacterTextSplitter, with configurable
+      chunk_size and chunk_overlap. sentence-splitter: splitter that will not
+      break in the middle of a sentence. embedding_chunk_size and
+      embedding_chunk_overlap are measured by the number of tokens.
     embedding_chunk_size: The length of each document chunk. If 0, chunking is
       not enabled.
     embedding_chunk_overlap: The length of the overlap part between adjacent
@@ -127,6 +135,7 @@ def evaluation_llm_embedding_pipeline(
       service_account=service_account,
       network=network,
       runner=runner,
+      embedding_chunking_function=embedding_chunking_function,
       embedding_chunk_size=embedding_chunk_size,
       embedding_chunk_overlap=embedding_chunk_overlap,
       dataflow_service_account=dataflow_service_account,
