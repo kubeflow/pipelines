@@ -12,13 +12,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Experimental AutoML forecasting components."""
+import os
 
 from google_cloud_pipeline_components.preview.automl.forecasting.forecasting_ensemble import automl_forecasting_ensemble as ForecastingEnsembleOp
 from google_cloud_pipeline_components.preview.automl.forecasting.forecasting_stage_1_tuner import automl_forecasting_stage_1_tuner as ForecastingStage1TunerOp
 from google_cloud_pipeline_components.preview.automl.forecasting.forecasting_stage_2_tuner import automl_forecasting_stage_2_tuner as ForecastingStage2TunerOp
+from kfp import components
 
 __all__ = [
     'ForecastingStage1TunerOp',
     'ForecastingEnsembleOp',
     'ForecastingStage2TunerOp',
+    'learn_to_learn_forecasting_pipeline',
+    'sequence_to_sequence_forecasting_pipeline',
+    'temporal_fusion_transformer_forecasting_pipeline',
+    'time_series_dense_encoder_forecasting_pipeline',
 ]
+
+learn_to_learn_forecasting_pipeline = components.load_component_from_file(
+    # Note, please don't name it as `component.yaml` which will conflict with
+    # the generated file.
+    os.path.join(
+        os.path.dirname(__file__), 'learn_to_learn_forecasting_pipeline.yaml'
+    )
+)
+
+sequence_to_sequence_forecasting_pipeline = components.load_component_from_file(
+    # Note, please don't name it as `component.yaml` which will conflict with
+    # the generated file.
+    os.path.join(
+        os.path.dirname(__file__),
+        'sequence_to_sequence_forecasting_pipeline.yaml',
+    )
+)
+
+temporal_fusion_transformer_forecasting_pipeline = components.load_component_from_file(
+    # Note, please don't name it as `component.yaml` which will conflict with
+    # the generated file.
+    os.path.join(
+        os.path.dirname(__file__),
+        'temporal_fusion_transformer_forecasting_pipeline.yaml',
+    )
+)
+
+time_series_dense_encoder_forecasting_pipeline = components.load_component_from_file(
+    # Note, please don't name it as `component.yaml` which will conflict with
+    # the generated file.
+    os.path.join(
+        os.path.dirname(__file__),
+        'time_series_dense_encoder_forecasting_pipeline.yaml',
+    )
+)

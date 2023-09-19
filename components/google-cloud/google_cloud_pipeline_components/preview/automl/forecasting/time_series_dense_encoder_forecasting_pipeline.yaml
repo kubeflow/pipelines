@@ -1,6 +1,6 @@
 # PIPELINE DEFINITION
 # Name: time-series-dense-encoder-forecasting
-# Description: The Timeseries Dense Encoder (TiDE) Forecasting pipeline.
+# Description: The Timeseries Dense Encoder (TiDE) Forecasting pipeline. TiDE is a new model type in Vertex Forecasting and has the best training and inference performance while not sacrificing any model quality.
 # Inputs:
 #    available_at_forecast_columns: list
 #    context_window: int [Default: 0.0]

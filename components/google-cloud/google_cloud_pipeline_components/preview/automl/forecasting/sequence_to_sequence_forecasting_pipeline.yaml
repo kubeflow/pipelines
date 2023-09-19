@@ -1,6 +1,6 @@
 # PIPELINE DEFINITION
 # Name: sequence-to-sequence-forecasting
-# Description: The Sequence to Sequence (Seq2Seq) Forecasting pipeline.
+# Description: The Sequence to Sequence (Seq2Seq) Forecasting pipeline. Seq2seq is a simple model, and can be trained very fast, but accuracy is not its strength
 # Inputs:
 #    available_at_forecast_columns: list
 #    context_window: int [Default: 0.0]

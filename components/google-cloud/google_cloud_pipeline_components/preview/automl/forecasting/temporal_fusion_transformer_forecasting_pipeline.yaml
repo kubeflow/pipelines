@@ -1,6 +1,6 @@
 # PIPELINE DEFINITION
 # Name: temporal-fusion-transformer-forecasting
-# Description: The Temporal Fusion Transformer (TFT) Forecasting pipeline.
+# Description: The Temporal Fusion Transformer (TFT) Forecasting pipeline. The TFT model can produce the feature importance using the built-in mask for each feature, which leads to a very cheap prediction explanability overhead. With this model, the user won't need to explicitly enable the explanability support during serving to get the feature importance for each feature column.
 # Inputs:
 #    available_at_forecast_columns: list
 #    context_window: int [Default: 0.0]

@@ -4,6 +4,7 @@
 * Fix use of `encryption_spec_key_name` in `v1.custom_job.CustomTrainingJobOp` and `v1.custom_job.create_custom_training_job_from_component`
 * Add feature_selection_pipeline to preview.automl.tabular.
 * Bump supported KFP versions to kfp>=2.0.0b10,<=2.2.0
+* Add `time_series_dense_encoder_forecasting_pipeline`, `learn_to_learn_forecasting_pipeline`, `sequence_to_sequence_forecasting_pipeline`, and `temporal_fusion_transformer_forecasting_pipeline` to `preview.automl.forecasting`.
 
 ## Release 2.3.1
 * Make LLM pipelines compatible with KFP SDK 2.1.3
