@@ -793,6 +793,7 @@ implementation:
                 task = print_op(msg='Hello')
 
     def test_nested_conditions_with_for_loops_in_nested_pipelines(self):
+
         @dsl.pipeline()
         def pipeline_2():
             with dsl.ParallelFor([1, 2, 3]):
@@ -803,7 +804,7 @@ implementation:
             with dsl.ParallelFor([1, 2, 3]):
                 print_op(message='1')
 
-                with dsl.Condition(run_pipeline_2==run_pipeline_2):
+                with dsl.Condition(run_pipeline_2 == run_pipeline_2):
                     with dsl.Condition(run_pipeline_2 == 1):
                         pipeline_2()
 
@@ -825,9 +826,18 @@ implementation:
 
             with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
-                tasks = [comp.get("dag", {}).get("tasks", {}) for comp in pipeline_spec['components'].values()]
-                component_refs = [[x.get("componentRef", {}).get("name") for x in task.values()] for task in tasks]
-                all_component_refs = [item for sublist in component_refs for item in sublist]
+                tasks = [
+                    comp.get('dag', {}).get('tasks', {})
+                    for comp in pipeline_spec['components'].values()
+                ]
+                component_refs = [[
+                    x.get('componentRef', {}).get('name')
+                    for x in task.values()
+                ]
+                                  for task in tasks]
+                all_component_refs = [
+                    item for sublist in component_refs for item in sublist
+                ]
                 counted_refs = collections.Counter(all_component_refs)
                 self.assertEqual(1, max(counted_refs.values()))
 
