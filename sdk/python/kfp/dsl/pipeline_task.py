@@ -604,6 +604,8 @@ class PipelineTask:
 
         for input_spec_name, input_spec in (self.component_spec.inputs or
                                             {}).items():
+            if type_utils.is_task_final_status_type(input_spec.type):
+                continue
             argument_value = self._inputs[input_spec_name]
             if (isinstance(argument_value, pipeline_channel.PipelineChannel)
                ) and (not input_spec.optional) and (argument_value.task_name

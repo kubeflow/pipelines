@@ -2,6 +2,7 @@
 
 
 ## Features
+* Support `PipelineTaskFinalStatus` in tasks that use `.ignore_upstream_failure()` [\#10010](https://github.com/kubeflow/pipelines/pull/10010)
 
 
 ## Breaking changes

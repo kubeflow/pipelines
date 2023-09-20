@@ -301,11 +301,6 @@ def build_task_spec_for_task(
                 'str, int, float, bool, dict, and list.'
                 f'Got {input_value} of type {type(input_value)}.')
 
-    if task._ignore_upstream_failure_tag:
-        pipeline_task_spec.trigger_policy.strategy = (
-            pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
-            .ALL_UPSTREAM_TASKS_COMPLETED)
-
     return pipeline_task_spec
 
 
@@ -339,7 +334,8 @@ def build_component_spec_for_task(
     """
     for input_name, input_spec in (task.component_spec.inputs or {}).items():
         if not is_exit_task and type_utils.is_task_final_status_type(
-                input_spec.type) and not is_compiled_component:
+                input_spec.type
+        ) and not is_compiled_component and not task._ignore_upstream_failure_tag:
             raise ValueError(
                 f'PipelineTaskFinalStatus can only be used in an exit task. Parameter {input_name} of a non exit task has type PipelineTaskFinalStatus.'
             )
@@ -1302,6 +1298,11 @@ def build_spec_by_group(
             subgroup_task_spec.dependent_tasks.extend(
                 [utils.sanitize_task_name(dep) for dep in group_dependencies])
 
+        # Modify the task inputs for PipelineTaskFinalStatus if ignore_upstream_failure is used
+        # Must be done after dependencies are added
+        if isinstance(subgroup, pipeline_task.PipelineTask):
+            modify_task_for_ignore_upstream_failure(
+                task=subgroup, pipeline_task_spec=subgroup_task_spec)
         # Add component spec
         subgroup_component_name = utils.make_name_unique_by_adding_index(
             name=subgroup_component_name,
@@ -1326,6 +1327,41 @@ def build_spec_by_group(
         task_name_to_component_spec=task_name_to_component_spec,
         pipeline_spec=pipeline_spec,
     )
+
+
+def modify_task_for_ignore_upstream_failure(
+    task: pipeline_task.PipelineTask,
+    pipeline_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+):
+    if task._ignore_upstream_failure_tag:
+        pipeline_task_spec.trigger_policy.strategy = (
+            pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
+            .ALL_UPSTREAM_TASKS_COMPLETED)
+
+        for input_name, input_spec in (task.component_spec.inputs or
+                                       {}).items():
+            if type_utils.is_task_final_status_type(input_spec.type):
+
+                if len(pipeline_task_spec.dependent_tasks) == 0:
+                    if task.parent_task_group.group_type == tasks_group.TasksGroupType.PIPELINE:
+                        raise compiler_utils.InvalidTopologyException(
+                            f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task. Got task '{pipeline_task_spec.task_info.name} with no upstream dependencies."
+                        )
+                    else:
+                        # TODO: permit additional PipelineTaskFinalStatus flexibility by "punching the hole" through Condition and ParallelFor groups
+                        raise compiler_utils.InvalidTopologyException(
+                            f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope. Got task '{pipeline_task_spec.task_info.name}' beneath a 'dsl.{group_type_to_dsl_class[task.parent_task_group.group_type].__name__}' that does not also contain the upstream dependent task."
+                        )
+
+                # if >1 dependent task, ambiguous to which upstream task the PipelineTaskFinalStatus should correspond, since there is no ExitHandler that bundles these together
+                if len(pipeline_task_spec.dependent_tasks) > 1:
+                    raise compiler_utils.InvalidTopologyException(
+                        f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task. Got {len(pipeline_task_spec.dependent_tasks)} dependent tasks: {pipeline_task_spec.dependent_tasks}."
+                    )
+
+                pipeline_task_spec.inputs.parameters[
+                    input_name].task_final_status.producer_task = pipeline_task_spec.dependent_tasks[
+                        0]
 
 
 def platform_config_to_platform_spec(
