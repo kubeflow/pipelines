@@ -6,4 +6,4 @@ IMAGE="tensorflow/tensorflow:2.5.1"
 # support custom entrypoint for now. We need to override with --entrypoint ""
 # for other `docker run` usecase.
 # https://github.com/tensorflow/tfx/blob/master/tfx/tools/docker/Dockerfile#L71
-../../../update_requirements.sh $IMAGE <requirements.in >requirements.txt
+../../../../hack/update-requirements.sh $IMAGE <requirements.in >requirements.txt

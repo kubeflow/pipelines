@@ -18,7 +18,7 @@
 set -euo pipefail
 IMAGE=${1:-"python:3.7"}
 docker run -i --rm  --entrypoint "" "$IMAGE" sh -c '
-  python3 -m pip install pip setuptools --upgrade --quiet
-  python3 -m pip install pip-tools==5.4.0 --quiet
-  pip-compile --verbose --output-file - -
+  python3 -m pip install pip setuptools --quiet --upgrade
+  python3 -m pip install pip-tools==6.14.0 --quiet
+  pip-compile --output-file - -
 '
