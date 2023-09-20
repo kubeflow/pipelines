@@ -251,7 +251,7 @@ def get_name_to_specs(
                     annotation):
             if containerized:
                 raise TypeError(
-                    'Artifacts can only be used in Container Components with Input or Output type markers. Got function input in_artifact with type Artifact.'
+                    f"Container Components must wrap input and output artifact annotations with Input/Output type markers (Input[<artifact>] or Output[<artifact>]). Got function input '{name}' with annotation {annotation}."
                 )
             name_to_input_specs[maybe_make_unique(
                 name, list(name_to_input_specs))] = make_input_spec(

@@ -5632,7 +5632,7 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
     def test_container_input_artifact(self):
         with self.assertRaisesRegex(
                 TypeError,
-                r'Artifacts can only be used in Container Components with Input or Output type markers\. Got function input in_artifact with type Artifact\.'
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\."
         ):
 
             @dsl.container_component
@@ -5642,7 +5642,7 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
     def test_container_input_artifact_optional(self):
         with self.assertRaisesRegex(
                 TypeError,
-                r'Artifacts can only be used in Container Components with Input or Output type markers\. Got function input in_artifact with type Artifact\.'
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\."
         ):
 
             @dsl.container_component
@@ -5652,7 +5652,7 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
     def test_container_input_list_of_artifacts(self):
         with self.assertRaisesRegex(
                 TypeError,
-                r'Artifacts can only be used in Container Components with Input or Output type markers\. Got function input in_artifact with type Artifact\.'
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\."
         ):
 
             @dsl.container_component
@@ -5662,7 +5662,7 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
     def test_container_input_list_of_artifacts_optional(self):
         with self.assertRaisesRegex(
                 TypeError,
-                r'Artifacts can only be used in Container Components with Input or Output type markers\. Got function input in_artifact with type Artifact\.'
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\."
         ):
 
             @dsl.container_component
