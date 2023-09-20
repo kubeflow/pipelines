@@ -1,4 +1,5 @@
 ## Upcoming release
+* Add new cancel-job component that cancels specific resource types when the pipeline is cancelled.
 
 ## Release 2.4.1
 * Disable caching for LLM pipeline tasks that store temporary artifacts.

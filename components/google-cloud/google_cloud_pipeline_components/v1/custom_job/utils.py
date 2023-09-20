@@ -174,7 +174,7 @@ def create_custom_training_job_from_component(
     worker_pool_specs.append(additional_worker_pool_spec)
 
   # get the component spec for both components
-  cj_component_spec_key = list(cj_pipeline_spec['components'].keys())[0]
+  cj_component_spec_key = 'comp-custom-training-job-component'
   cj_component_spec = cj_pipeline_spec['components'][cj_component_spec_key]
 
   user_component_spec_key = list(user_pipeline_spec['components'].keys())[0]
@@ -228,7 +228,7 @@ def create_custom_training_job_from_component(
   )
 
   # update the customjob task with the user inputs
-  cj_task_key = list(cj_pipeline_spec['root']['dag']['tasks'].keys())[0]
+  cj_task_key = 'custom-training-job-component'
   user_task_key = list(user_pipeline_spec['root']['dag']['tasks'].keys())[0]
 
   cj_pipeline_spec['root']['dag']['tasks'][cj_task_key]['inputs'].update(
