@@ -15,6 +15,7 @@
 
 import os
 from typing import Dict, List, Optional, Type
+import warnings
 
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
 _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
@@ -485,15 +486,28 @@ def get_uri(suffix: str = 'Output') -> str:
     """Gets the task root URI, a unique object storage URI associated with the
     current task. This function may only be called at task runtime.
 
+    Returns an empty string if the task root cannot be inferred from the runtime environment.
+
     Args:
         suffix: A suffix to append to the URI. This is a helpful for creating unique subdirectories when the component has multiple outputs.
 
     Returns:
-        The URI.
+        The URI or empty string.
     """
     if CONTAINER_TASK_ROOT is None:
         raise RuntimeError(
-            "'dsl.get_uri' can only be called at task runtime. The task root is unknown in the current environment."
+            f"'dsl.{get_uri.__name__}' can only be called at task runtime. The task root is unknown in the current environment."
         )
+    UNSUPPORTED_KFP_PATH = '/tmp/kfp_outputs'
+    if CONTAINER_TASK_ROOT == UNSUPPORTED_KFP_PATH:
+        warnings.warn(
+            f'dsl.{get_uri.__name__} is not yet supported by the KFP backend. Please specify a URI explicitly.',
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        # return empty string, not None, to conform with logic in artifact
+        # constructor which immediately converts uri=None to uri=''
+        # this way the .path property can worry about handling fewer input types
+        return ''
     remote_task_root = convert_local_path_to_remote_path(CONTAINER_TASK_ROOT)
     return os.path.join(remote_task_root, suffix)

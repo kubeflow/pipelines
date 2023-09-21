@@ -110,6 +110,24 @@ class TestGetUri(unittest.TestCase):
                 'gs://my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789/model',
                 dsl.get_uri('model'))
 
+    def test_suffix_arg_tmp_no_suffix(self):
+        with set_temporary_task_root('/tmp/kfp_outputs'):
+            with self.assertWarnsRegex(
+                    RuntimeWarning,
+                    r'dsl\.get_uri is not yet supported by the KFP backend\. Please specify a URI explicitly\.'
+            ):
+                actual = dsl.get_uri('model')
+                self.assertEqual('', actual)
+
+    def test_suffix_arg_tmp_with_suffix(self):
+        with set_temporary_task_root('/tmp/kfp_outputs'):
+            with self.assertWarnsRegex(
+                    RuntimeWarning,
+                    r'dsl\.get_uri is not yet supported by the KFP backend\. Please specify a URI explicitly\.'
+            ):
+                actual = dsl.get_uri('model')
+                self.assertEqual('', actual)
+
 
 class TestConvertLocalPathToRemotePath(parameterized.TestCase):
 
