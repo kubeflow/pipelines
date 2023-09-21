@@ -17,7 +17,7 @@ from kfp.dsl import Dataset
 from kfp.dsl import Model
 
 
-@dsl.component
+@dsl.component(packages_to_install=['dill==0.3.7'])
 def make_language_model(text_dataset: Dataset) -> Model:
     # dill allows pickling objects belonging to a function's local namespace
     import dill
