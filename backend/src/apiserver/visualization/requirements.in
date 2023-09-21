@@ -7,11 +7,11 @@ ipython==7.12.0
 jupyter_client==5.3.*
 nbconvert==5.5.0
 nbformat==4.4.0
-scikit_learn==0.21.2
-tensorflow==2.5.1
-tensorflow-metadata==1.2.*
-tensorflow-model-analysis==0.33.*
-tensorflow-data-validation==1.2.*
-tensorflow-serving-api==2.5.1
+scikit-learn==0.24.2
+tensorflow==2.10.1
+tensorflow-metadata==1.9.*
+tensorflow-model-analysis==0.40.*
+tensorflow-data-validation==1.9.*
+tensorflow-serving-api==2.10.1
 tornado==6.*
 mistune<2.0.0

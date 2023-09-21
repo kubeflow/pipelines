@@ -20,5 +20,5 @@ IMAGE=${1:-"python:3.7"}
 docker run -i --rm  --entrypoint "" "$IMAGE" sh -c '
   python3 -m pip install pip setuptools --quiet --upgrade
   python3 -m pip install pip-tools==6.14.0 --quiet
-  pip-compile --output-file - -
+  pip-compile --resolver=backtracking --output-file - -
 '
