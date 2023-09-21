@@ -3127,6 +3127,141 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
             .strategy, 0)
 
+    def test_can_use_task_final_status(self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(
+            status: PipelineTaskFinalStatus,
+            text: str = '',
+        ):
+            print(text)
+            print(status)
+
+        @dsl.pipeline
+        def my_pipeline():
+            worker_task = worker_component()
+            exit_task = cancel_handler(
+                text=worker_task.output).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['cancel-handler']
+            .trigger_policy.strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['cancel-handler'].inputs
+            .parameters['status'].task_final_status.producer_task,
+            'worker-component')
+
+        status_param = my_pipeline.pipeline_spec.components[
+            'comp-cancel-handler'].input_definitions.parameters['status']
+        self.assertTrue(status_param.is_optional)
+        self.assertEqual(status_param.parameter_type,
+                         type_utils.TASK_FINAL_STATUS)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['worker-component']
+            .trigger_policy.strategy, 0)
+
+    def test_cannot_use_task_final_status_under_task_group(self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(
+            status: PipelineTaskFinalStatus,
+            text: str = '',
+        ):
+            print(text)
+            print(status)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope\. Got task 'cancel-handler' beneath a 'dsl\.Condition' that does not also contain the upstream dependent task\.",
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                worker_task = worker_component()
+                with dsl.Condition(worker_task.output == 'foo'):
+                    exit_task = cancel_handler(
+                        text=worker_task.output).ignore_upstream_failure()
+
+    def test_cannot_use_final_task_status_if_zero_dependencies(self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(status: PipelineTaskFinalStatus,):
+            print(status)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got task 'cancel-handler with no upstream dependencies\.",
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                worker_task = worker_component()
+                exit_task = cancel_handler().ignore_upstream_failure()
+
+    def test_cannot_use_task_final_status_if_more_than_one_dependency_implicit(
+            self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(
+            status: PipelineTaskFinalStatus,
+            a: str = '',
+            b: str = '',
+        ):
+            print(status)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got 2 dependent tasks: \['worker-component', 'worker-component-2']\.",
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                worker_task1 = worker_component()
+                worker_task2 = worker_component()
+                exit_task = cancel_handler(
+                    a=worker_task1.output,
+                    b=worker_task2.output).ignore_upstream_failure()
+
+    def test_cannot_use_task_final_status_if_more_than_one_dependency_explicit(
+            self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(status: PipelineTaskFinalStatus,):
+            print(status)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got 2 dependent tasks: \['worker-component', 'worker-component-2']\.",
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                worker_task1 = worker_component()
+                worker_task2 = worker_component()
+                exit_task = cancel_handler().after(
+                    worker_task1, worker_task2).ignore_upstream_failure()
+
     def test_component_with_no_input_permitted(self):
 
         @dsl.component
