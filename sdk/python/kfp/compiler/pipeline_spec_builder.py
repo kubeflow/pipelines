@@ -1340,28 +1340,29 @@ def modify_task_for_ignore_upstream_failure(
 
         for input_name, input_spec in (task.component_spec.inputs or
                                        {}).items():
-            if type_utils.is_task_final_status_type(input_spec.type):
+            if not type_utils.is_task_final_status_type(input_spec.type):
+                continue
 
-                if len(pipeline_task_spec.dependent_tasks) == 0:
-                    if task.parent_task_group.group_type == tasks_group.TasksGroupType.PIPELINE:
-                        raise compiler_utils.InvalidTopologyException(
-                            f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task. Got task '{pipeline_task_spec.task_info.name} with no upstream dependencies."
-                        )
-                    else:
-                        # TODO: permit additional PipelineTaskFinalStatus flexibility by "punching the hole" through Condition and ParallelFor groups
-                        raise compiler_utils.InvalidTopologyException(
-                            f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope. Got task '{pipeline_task_spec.task_info.name}' beneath a 'dsl.{group_type_to_dsl_class[task.parent_task_group.group_type].__name__}' that does not also contain the upstream dependent task."
-                        )
-
-                # if >1 dependent task, ambiguous to which upstream task the PipelineTaskFinalStatus should correspond, since there is no ExitHandler that bundles these together
-                if len(pipeline_task_spec.dependent_tasks) > 1:
+            if len(pipeline_task_spec.dependent_tasks) == 0:
+                if task.parent_task_group.group_type == tasks_group.TasksGroupType.PIPELINE:
                     raise compiler_utils.InvalidTopologyException(
-                        f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task. Got {len(pipeline_task_spec.dependent_tasks)} dependent tasks: {pipeline_task_spec.dependent_tasks}."
+                        f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task. Got task '{pipeline_task_spec.task_info.name} with no upstream dependencies."
+                    )
+                else:
+                    # TODO: permit additional PipelineTaskFinalStatus flexibility by "punching the hole" through Condition and ParallelFor groups
+                    raise compiler_utils.InvalidTopologyException(
+                        f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope. Got task '{pipeline_task_spec.task_info.name}' beneath a 'dsl.{group_type_to_dsl_class[task.parent_task_group.group_type].__name__}' that does not also contain the upstream dependent task."
                     )
 
-                pipeline_task_spec.inputs.parameters[
-                    input_name].task_final_status.producer_task = pipeline_task_spec.dependent_tasks[
-                        0]
+            # if >1 dependent task, ambiguous to which upstream task the PipelineTaskFinalStatus should correspond, since there is no ExitHandler that bundles these together
+            if len(pipeline_task_spec.dependent_tasks) > 1:
+                raise compiler_utils.InvalidTopologyException(
+                    f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task. Got {len(pipeline_task_spec.dependent_tasks)} dependent tasks: {pipeline_task_spec.dependent_tasks}."
+                )
+
+            pipeline_task_spec.inputs.parameters[
+                input_name].task_final_status.producer_task = pipeline_task_spec.dependent_tasks[
+                    0]
 
 
 def platform_config_to_platform_spec(
