@@ -257,10 +257,10 @@ libclang==16.0.6
     # via tensorflow
 markdown==3.4.4
     # via tensorboard
-markupsafe==2.1.3
+markupsafe==2.0.1
     # via
+    #   -r -
     #   jinja2
-    #   werkzeug
 mistune==0.8.4
     # via
     #   -r -
@@ -549,7 +549,7 @@ wcwidth==0.2.6
     # via prompt-toolkit
 webencodings==0.5.1
     # via bleach
-werkzeug==2.3.7
+werkzeug==2.1.2
     # via tensorboard
 wheel==0.41.2
     # via
