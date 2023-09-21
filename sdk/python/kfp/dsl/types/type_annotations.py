@@ -135,7 +135,7 @@ def is_Input_Output_artifact_annotation(typ) -> bool:
     return True
 
 
-def is_artifact_wrapped_in_Input(typ) -> bool:
+def is_artifact_wrapped_in_Input(typ: Any) -> bool:
     """Returns True if typ is of type Input[T]."""
     if not is_Input_Output_artifact_annotation(typ):
         return False
@@ -143,7 +143,7 @@ def is_artifact_wrapped_in_Input(typ) -> bool:
     return typ.__metadata__[0] == InputAnnotation
 
 
-def is_artifact_wrapped_in_Output(typ) -> bool:
+def is_artifact_wrapped_in_Output(typ: Any) -> bool:
     """Returns True if typ is of type Output[T]."""
     if not is_Input_Output_artifact_annotation(typ):
         return False
@@ -167,7 +167,7 @@ def get_io_artifact_class(typ):
     return inner
 
 
-def strip_Input_or_Output_marker(typ):
+def strip_Input_or_Output_marker(typ: Any) -> artifact_types.Artifact:
     return typ.__args__[0]
 
 

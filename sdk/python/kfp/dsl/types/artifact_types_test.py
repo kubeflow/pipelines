@@ -139,6 +139,7 @@ class TestConvertLocalPathToRemotePath(parameterized.TestCase):
         ('/minio/foo/bar', 'minio://foo/bar'),
         ('/s3/foo/bar', 's3://foo/bar'),
         ('/tmp/kfp_outputs', '/tmp/kfp_outputs'),
+        ('/some/random/path', '/some/random/path'),
     ]])
     def test_gcs(self, local_path, expected):
         actual = artifact_types.convert_local_path_to_remote_path(local_path)

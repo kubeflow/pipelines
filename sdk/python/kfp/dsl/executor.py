@@ -42,9 +42,9 @@ class Executor:
         self.executor_input = executor_input
         self.executor_output_path = self.executor_input['outputs']['outputFile']
 
-        # drop executor_output.json part from path
-        local_task_root = os.path.split(self.executor_output_path)[0]
-        artifact_types.CONTAINER_TASK_ROOT = local_task_root
+        # drop executor_output.json part from the outputFile path
+        artifact_types.CONTAINER_TASK_ROOT = os.path.split(
+            self.executor_output_path)[0]
 
         self.input_artifacts: Dict[str, Union[dsl.Artifact,
                                               List[dsl.Artifact]]] = {}

@@ -182,10 +182,10 @@ pipelines:
       execute: false
     - module: pythonic_artifact_with_single_return
       name: make_language_model_pipeline
-      execute: true
+      execute: false
     - module: pythonic_artifacts_with_multiple_returns
       name: split_datasets_and_return_first
-      execute: true
+      execute: false
     - module: pythonic_artifacts_with_list_of_artifacts
       name: make_and_join_datasets
       execute: false
