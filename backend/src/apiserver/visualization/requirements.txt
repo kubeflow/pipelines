@@ -222,8 +222,9 @@ itables==0.1.0
     # via -r -
 jedi==0.19.0
     # via ipython
-jinja2==3.1.2
+jinja2==2.11.3
     # via
+    #   -r -
     #   bokeh
     #   nbconvert
     #   notebook
