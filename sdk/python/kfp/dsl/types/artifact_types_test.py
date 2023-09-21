@@ -18,6 +18,7 @@ import json
 import os
 import unittest
 
+from absl.testing import parameterized
 from kfp import dsl
 from kfp.dsl.types import artifact_types
 
@@ -101,13 +102,29 @@ class TestGetUri(unittest.TestCase):
                 'minio://my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789/Output',
                 dsl.get_uri())
 
-    def test_suffix_arg(self):
+    def test_suffix_arg_gcs(self):
         with set_temporary_task_root(
                 '/gcs/my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789'
         ):
             self.assertEqual(
                 'gs://my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789/model',
                 dsl.get_uri('model'))
+
+
+class TestConvertLocalPathToRemotePath(parameterized.TestCase):
+
+    @parameterized.parameters([{
+        'local_path': local_path,
+        'expected': expected
+    } for local_path, expected in [
+        ('/gcs/foo/bar', 'gs://foo/bar'),
+        ('/minio/foo/bar', 'minio://foo/bar'),
+        ('/s3/foo/bar', 's3://foo/bar'),
+        ('/tmp/kfp_outputs', '/tmp/kfp_outputs'),
+    ]])
+    def test_gcs(self, local_path, expected):
+        actual = artifact_types.convert_local_path_to_remote_path(local_path)
+        self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':

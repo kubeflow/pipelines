@@ -101,8 +101,7 @@ def convert_local_path_to_remote_path(path: str) -> str:
         return 'minio://' + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
         return 's3://' + path[len(_S3_LOCAL_MOUNT_PREFIX):]
-    else:
-        raise ValueError(f'Unknown remote path for local path: {path}')
+    return path
 
 
 class Model(Artifact):
