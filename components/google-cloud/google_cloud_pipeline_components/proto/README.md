@@ -14,7 +14,7 @@ pip install -U google-cloud-pipeline-components
 To write a resource as an output parameter
 
 ```
-from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf.json_format import MessageToJson
 
 dataflow_resources = GcpResources()
