@@ -14,7 +14,7 @@ metadata:
       \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d) printf \"%s\"
       \"$0\" \u003e \"$program_path/ephemeral_component.py\" python3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"
       ","\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import
-      *\n\ndef comp():\n    pass\n\n"],"image":"python:3.7"}'
+      *\n\ndef comp():\n    pass\n\n"],"image":"python:3.9"}'
     pipelines.kubeflow.org/implementations-comp-comp-2: '{"args":["--executor_input","{{$}}","--function_to_execute","comp"],"command":["sh","-c","\nif
       ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m
       ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,7 +22,7 @@ metadata:
       \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d) printf \"%s\"
       \"$0\" \u003e \"$program_path/ephemeral_component.py\" python3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"
       ","\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import
-      *\n\ndef comp():\n    pass\n\n"],"image":"python:3.7"}'
+      *\n\ndef comp():\n    pass\n\n"],"image":"python:3.9"}'
     pipelines.kubeflow.org/implementations-comp-createpvc: '{"image":"argostub/createpvc"}'
     pipelines.kubeflow.org/implementations-comp-deletepvc: '{"image":"argostub/deletepvc"}'
     pipelines.kubeflow.org/kubernetes-comp-comp: '{"pvcMount":[{"mountPath":"/data","taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'

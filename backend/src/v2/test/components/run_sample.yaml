@@ -24,7 +24,7 @@ inputs:
 - {name: backend_compiler, type: Binary}
 implementation:
   container:
-    image: python:3.7-alpine
+    image: python:3.9-alpine
     command:
     - sh
     - -exc
@@ -49,7 +49,7 @@ implementation:
         --pipeline_root "$output_dir" \
         --launcher_v2_image "$launcher_v2_image" \
         --driver_image "$driver_image"
-      
+
     - inputPath: backend_compiler
     - inputValue: Sample Path
     - concat: [{inputValue: GCS Root}, '/', {inputValue: Name}]
