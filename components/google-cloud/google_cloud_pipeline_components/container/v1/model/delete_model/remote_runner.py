@@ -14,6 +14,7 @@
 
 import json
 import re
+
 from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
@@ -22,12 +23,12 @@ _MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/mo
 
 
 def delete_model(
-    type,
-    project,
-    location,
-    payload,
-    gcp_resources,
-):
+    type: str,
+    project: str,
+    location: str,
+    payload: str,
+    gcp_resources: str,
+) -> None:
   """Delete model and poll the LongRunningOperator till it reaches a final state."""
   # TODO(IronPan) temporarily remove the empty fields from the spec
   delete_model_request = json_util.recursive_remove_empty(
@@ -49,13 +50,15 @@ def delete_model(
     )
   api_endpoint = location + '-aiplatform.googleapis.com'
   vertex_uri_prefix = f'https://{api_endpoint}/v1/'
-  delete_model_url = f'{vertex_uri_prefix}{model_name}'
+  # vertex AI delete model API deletes the full model, not only the version
+  model_name_no_version = model_name.rsplit('@', 1)[0]
+  delete_model_url = f'{vertex_uri_prefix}{model_name_no_version}'
 
   try:
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
     delete_model_lro = remote_runner.create_lro(
         delete_model_url, '', gcp_resources, 'delete'
     )
-    delete_model_lro = remote_runner.poll_lro(lro=delete_model_lro)
+    remote_runner.poll_lro(lro=delete_model_lro)
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
