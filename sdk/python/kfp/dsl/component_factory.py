@@ -147,7 +147,7 @@ def _get_packages_to_install_command(
                 install_parts=[
                     f'kfp=={kfp.__version__}',
                     '--no-deps',
-                    'typing-extensions>=3.7.4,<5; python_version<"3.9"',
+                    'typing-extensions>=3.7.4,<5; python_version<"3.12"',
                 ],
                 index_url_options=index_url_options,
             )
