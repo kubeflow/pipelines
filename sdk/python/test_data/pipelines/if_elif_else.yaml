@@ -108,8 +108,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -126,7 +126,7 @@ deploymentSpec:
           \ random.randint(0, 2)\n\n    if val == 0:\n        return 'heads'\n   \
           \ elif val == 1:\n        return 'tails'\n    else:\n        return 'draw'\n\
           \n"
-        image: python:3.9
+        image: python:3.7
     exec-print-and-return:
       container:
         args:
@@ -139,8 +139,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -155,7 +155,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.9
+        image: python:3.7
     exec-print-and-return-2:
       container:
         args:
@@ -168,8 +168,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -184,7 +184,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.9
+        image: python:3.7
     exec-print-and-return-3:
       container:
         args:
@@ -197,8 +197,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -213,7 +213,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.9
+        image: python:3.7
 pipelineInfo:
   name: roll-die-pipeline
 root:
@@ -277,4 +277,4 @@ root:
         taskInfo:
           name: flip-three-sided-die
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.1.3
+sdkVersion: kfp-2.2.0

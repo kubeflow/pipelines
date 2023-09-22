@@ -171,8 +171,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -187,7 +187,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef args_generator_op() -> List[Dict[str, str]]:\n    return [{'A_a':\
           \ '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]\n\n"
-        image: python:3.9
+        image: python:3.7
     exec-print-struct:
       container:
         args:
@@ -200,8 +200,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -215,7 +215,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_struct(struct: Dict):\n    print(struct)\n\n"
-        image: python:3.9
+        image: python:3.7
     exec-print-struct-2:
       container:
         args:
@@ -228,8 +228,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -243,7 +243,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_struct(struct: Dict):\n    print(struct)\n\n"
-        image: python:3.9
+        image: python:3.7
     exec-print-text:
       container:
         args:
@@ -256,8 +256,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -271,7 +271,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: python:3.9
+        image: python:3.7
     exec-print-text-2:
       container:
         args:
@@ -284,8 +284,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -299,7 +299,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: python:3.9
+        image: python:3.7
     exec-print-text-3:
       container:
         args:
@@ -312,8 +312,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -327,7 +327,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: python:3.9
+        image: python:3.7
     exec-print-text-4:
       container:
         args:
@@ -340,8 +340,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -355,7 +355,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: python:3.9
+        image: python:3.7
     exec-print-text-5:
       container:
         args:
@@ -368,8 +368,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.1.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.12\"' && \"\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
         - -ec
@@ -383,7 +383,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: python:3.9
+        image: python:3.7
 pipelineInfo:
   name: pipeline-with-loops
 root:
@@ -440,4 +440,4 @@ root:
       loop_parameter:
         parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.1.3
+sdkVersion: kfp-2.2.0
