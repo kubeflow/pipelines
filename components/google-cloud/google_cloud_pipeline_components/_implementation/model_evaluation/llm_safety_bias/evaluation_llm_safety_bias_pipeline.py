@@ -28,7 +28,7 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 
 _PRIVATE_BP_IMAGE = (
-    'us-docker.pkg.dev/vertex-ai-restricted/llm-eval/private-bp:v0.1'
+    'us-docker.pkg.dev/vertex-ai-restricted/llm-eval/private-bp:v0.2'
 )
 
 
