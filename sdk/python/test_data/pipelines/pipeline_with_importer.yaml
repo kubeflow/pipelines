@@ -148,7 +148,7 @@ deploymentSpec:
           \ trained using data: {data}'\n\n    from collections import namedtuple\n\
           \    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar,\
           \ model)\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-train-2:
       container:
         args:
@@ -182,7 +182,7 @@ deploymentSpec:
           \ trained using data: {data}'\n\n    from collections import namedtuple\n\
           \    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar,\
           \ model)\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: pipeline-with-importer
 root:

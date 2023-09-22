@@ -72,7 +72,7 @@ deploymentSpec:
           \ as f:\n        content_b = f.read()\n\n    concatenated_string = content_a\
           \ + content_b\n    with open(out_dataset.path, 'w') as f:\n        f.write(concatenated_string)\n\
           \n    return concatenated_string\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: dataset-joiner
 root:

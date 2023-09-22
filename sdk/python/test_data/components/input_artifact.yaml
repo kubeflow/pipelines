@@ -41,7 +41,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef input_artifact(data: Input[Dataset]):\n    print(data.name)\n\
           \    print(data.uri)\n    print(data.metadata)\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: input-artifact
 root:

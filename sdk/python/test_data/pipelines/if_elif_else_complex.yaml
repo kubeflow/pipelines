@@ -562,7 +562,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef int_0_to_9999() -> int:\n    import random\n    return random.randint(0,\
           \ 9999)\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-is-even-or-odd:
       container:
         args:
@@ -591,7 +591,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef is_even_or_odd(num: int) -> str:\n    return 'odd' if num % 2\
           \ else 'even'\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-is-even-or-odd-2:
       container:
         args:
@@ -620,7 +620,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef is_even_or_odd(num: int) -> str:\n    return 'odd' if num % 2\
           \ else 'even'\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return:
       container:
         args:
@@ -649,7 +649,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return-2:
       container:
         args:
@@ -678,7 +678,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return-3:
       container:
         args:
@@ -707,7 +707,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return-4:
       container:
         args:
@@ -736,7 +736,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return-5:
       container:
         args:
@@ -765,7 +765,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return-6:
       container:
         args:
@@ -794,7 +794,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return-7:
       container:
         args:
@@ -823,7 +823,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-strings:
       container:
         args:
@@ -851,7 +851,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_strings(strings: List[str]):\n    print(strings)\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: lucky-number-pipeline
 root:

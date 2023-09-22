@@ -97,7 +97,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add_numbers(first: int, second: int) -> int:\n    return first\
           \ + second\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-concat-message:
       container:
         args:
@@ -126,7 +126,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef concat_message(first: str, second: str) -> str:\n    return first\
           \ + second\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-output-artifact:
       container:
         args:
@@ -155,7 +155,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef output_artifact(number: int, message: str) -> Dataset:\n    result\
           \ = [message for _ in range(number)]\n    return '\\n'.join(result)\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-output-named-tuple:
       container:
         args:
@@ -191,7 +191,7 @@ deploymentSpec:
           \ = 'Model contents: ' + artifact_contents\n\n    from collections import\
           \ namedtuple\n    output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])\n\
           \    return output(scalar, metrics, model)\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: functions-with-outputs
 root:

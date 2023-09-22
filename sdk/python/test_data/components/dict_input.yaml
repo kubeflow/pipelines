@@ -38,7 +38,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef dict_input(struct: Dict):\n    print(struct)\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: dict-input
 root:
