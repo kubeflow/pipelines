@@ -11,6 +11,7 @@ These tests require golden snapshots of pipelines and components against with co
 
 ```bash
 for f in sdk/python/test_data/pipelines/*.py ; do echo "$f" && python3 "$f" ; done
+for f in sdk/python/test_data/pipelines/parallelfor_fan_in/*.py ; do echo "$f" && python3 "$f" ; done
 ```
 
 
