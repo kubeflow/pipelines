@@ -44,7 +44,7 @@ def model_upload(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """[Uploads](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload) a Google Cloud Vertex [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models) and returns a Model artifact representing the uploaded Model resource. See [Model upload](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload) method for more information.
+  """[Uploads](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload) a Google Cloud Vertex [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models) and returns a Model artifact representing the uploaded Model resource, with a tag for the particular version. See [Model upload](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload) method for more information.
 
   Args:
       location: Optional location to upload this Model to. If not set, defaults to `us-central1`.
@@ -65,7 +65,7 @@ def model_upload(
       project: Project to upload this Model to. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      model: Artifact tracking the created Model.
+      model: Artifact tracking the created Model version.
       gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the upload Model's long-running operation.
   """
   # fmt: on
