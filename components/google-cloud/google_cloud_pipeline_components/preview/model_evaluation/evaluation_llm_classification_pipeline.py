@@ -48,6 +48,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
+    evaluation_display_name: str = 'evaluation-llm-classification-pipeline-{{$.pipeline_job_uuid}}',
 ) -> NamedTuple(
     'outputs',
     evaluation_metrics=ClassificationMetrics,
@@ -77,6 +78,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    evaluation_display_name: The display name of the uploaded evaluation resource to the Vertex AI model.
 
   Returns:
     evaluation_metrics: ClassificationMetrics Artifact for LLM Text Classification.
@@ -148,7 +150,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
       model=get_vertex_model_task.outputs['artifact'],
       dataset_type=batch_predict_instances_format,
       dataset_paths=batch_predict_gcs_source_uris,
-      display_name=_PIPELINE_NAME,
+      display_name=evaluation_display_name,
   )
 
   return outputs(

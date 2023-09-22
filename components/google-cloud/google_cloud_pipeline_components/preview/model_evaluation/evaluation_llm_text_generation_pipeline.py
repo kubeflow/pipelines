@@ -39,6 +39,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     service_account: str = '',
     network: str = '',
     encryption_spec_key_name: str = '',
+    evaluation_display_name: str = 'evaluation-llm-text-generation-pipeline-{{$.pipeline_job_uuid}}',
 ) -> NamedTuple(
     'outputs', evaluation_metrics=Metrics, evaluation_resource_name=str
 ):
@@ -61,6 +62,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     service_account: Sets the default service account for workload run-as account. The service account running the pipeline (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account) submitting jobs must have act-as permission on this run-as account. If unspecified, the Vertex AI Custom Code Service Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents) for the CustomJob's project.
     network: The full name of the Compute Engine network to which the job should be peered. For example, `projects/12345/global/networks/myVPC`. Format is of the form `projects/{project}/global/networks/{network}`. Where `{project}` is a project number, as in `12345`, and `{network}` is a network name, as in `myVPC`. To specify this field, you must have already configured VPC Network Peering for Vertex AI (https://cloud.google.com/vertex-ai/docs/general/vpc-peering). If left unspecified, the job is not peered with any network.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    evaluation_display_name: The display name of the uploaded evaluation resource to the Vertex AI model.
 
   Returns:
     evaluation_metrics: Metrics Artifact for LLM Text Generation.
@@ -104,7 +106,6 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       joined_predictions_gcs_source=batch_predict_task.outputs[
           'gcs_output_directory'
       ],
-      display_name=_PIPELINE_NAME,
       machine_type=machine_type,
       service_account=service_account,
       network=network,
@@ -117,7 +118,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       problem_type=evaluation_task,
       dataset_type=batch_predict_predictions_format,
       dataset_paths=batch_predict_gcs_source_uris,
-      display_name=_PIPELINE_NAME,
+      display_name=evaluation_display_name,
   )
 
   return outputs(

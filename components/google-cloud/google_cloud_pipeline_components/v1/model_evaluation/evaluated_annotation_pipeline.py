@@ -48,6 +48,7 @@ def evaluated_annotation_pipeline(  # pylint: disable=dangerous-default-value
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
+    evaluation_display_name: str = 'evaluation-automl-vision-evaluated-annotation-pipeline-{{$.pipeline_job_uuid}}',
     force_runner_mode: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
@@ -75,11 +76,11 @@ def evaluated_annotation_pipeline(  # pylint: disable=dangerous-default-value
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    evaluation_display_name: The display name of the uploaded evaluation resource to the Vertex AI model.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options are `Dataflow` and `DirectRunner`.
     project: The GCP project that runs the pipeline components. Defaults to the project in which the PipelineJob is run.
   """
   # fmt: off
-  evaluation_display_name = 'automl-vision-evaluated-annotation-pipeline'
 
   get_test_dataset_task = GetVertexDatasetOp(
       dataset_resource_name=test_dataset_resource_name

@@ -53,6 +53,7 @@ def evaluation_automl_unstructure_data_classification_pipeline(  # pylint: disab
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
+    evaluation_display_name: str = 'evaluation-automl-unstructured-data-pipeline-{{$.pipeline_job_uuid}}',
     force_runner_mode: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ) -> NamedTuple(
@@ -90,6 +91,7 @@ def evaluation_automl_unstructure_data_classification_pipeline(  # pylint: disab
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    evaluation_display_name: The display name of the uploaded evaluation resource to the Vertex AI model.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options are `Dataflow` and `DirectRunner`.
     project: The GCP project that runs the pipeline components. Defaults to the project in which the PipelineJob is run.
 
@@ -102,7 +104,6 @@ def evaluation_automl_unstructure_data_classification_pipeline(  # pylint: disab
       evaluation_resource_name=str,
   )
 
-  evaluation_display_name = 'evaluation_automl_unstructure_data_pipeline'
   get_model_task = GetVertexModelOp(model_name=model_name)
 
   # Remove the ground truth from the given GCS data.
@@ -217,6 +218,7 @@ def evaluation_automl_unstructure_data_regression_pipeline(  # pylint: disable=d
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
+    evaluation_display_name: str = 'evaluation-automl-unstructured-data-pipeline-{{$.pipeline_job_uuid}}',
     force_runner_mode: str = '',
 ) -> NamedTuple(
     'outputs',
@@ -254,6 +256,7 @@ def evaluation_automl_unstructure_data_regression_pipeline(  # pylint: disable=d
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    evaluation_display_name: The display name of the uploaded evaluation resource to the Vertex AI model.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options are `Dataflow` and `DirectRunner`.
 
   Returns: A Tuple of google.RegressionMetrics artifact and the imported evaluation metrics resource name.
@@ -265,7 +268,6 @@ def evaluation_automl_unstructure_data_regression_pipeline(  # pylint: disable=d
       evaluation_resource_name=str,
   )
 
-  evaluation_display_name = 'evaluation_automl_unstructure_data_pipeline'
   get_model_task = GetVertexModelOp(model_name=model_name)
 
   # Remove the ground truth from the given GCS data.
@@ -381,6 +383,7 @@ def evaluation_automl_unstructure_data_pipeline(  # pylint: disable=dangerous-de
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
+    evaluation_display_name: str = 'evaluation-automl-unstructured-data-pipeline-{{$.pipeline_job_uuid}}',
     force_runner_mode: str = '',
 ):
   # fmt: off
@@ -416,6 +419,7 @@ def evaluation_automl_unstructure_data_pipeline(  # pylint: disable=dangerous-de
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    evaluation_display_name: The display name of the uploaded evaluation resource to the Vertex AI model.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options are `Dataflow` and `DirectRunner`.
   """
   # fmt: on
@@ -448,6 +452,7 @@ def evaluation_automl_unstructure_data_pipeline(  # pylint: disable=dangerous-de
         dataflow_subnetwork=dataflow_subnetwork,
         dataflow_use_public_ips=dataflow_use_public_ips,
         encryption_spec_key_name=encryption_spec_key_name,
+        evaluation_display_name=evaluation_display_name,
         force_runner_mode=force_runner_mode,
     )
 
@@ -476,5 +481,6 @@ def evaluation_automl_unstructure_data_pipeline(  # pylint: disable=dangerous-de
         dataflow_subnetwork=dataflow_subnetwork,
         dataflow_use_public_ips=dataflow_use_public_ips,
         encryption_spec_key_name=encryption_spec_key_name,
+        evaluation_display_name=evaluation_display_name,
         force_runner_mode=force_runner_mode,
     )

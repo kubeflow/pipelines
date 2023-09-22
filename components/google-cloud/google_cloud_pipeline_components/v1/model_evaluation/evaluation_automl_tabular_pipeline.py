@@ -42,6 +42,7 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
     batch_predict_accelerator_type: str = '',
     batch_predict_accelerator_count: int = 0,
     slicing_specs: List[Any] = [],  # pylint: disable=g-bare-generic
+    evaluation_display_name: str = 'evaluation-automl-tabular-pipeline-{{$.pipeline_job_uuid}}',
     dataflow_machine_type: str = 'n1-standard-4',
     dataflow_max_num_workers: int = 5,
     dataflow_disk_size_gb: int = 50,
@@ -88,6 +89,7 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    evaluation_display_name: The display name of the uploaded evaluation resource to the Vertex AI model.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options are `Dataflow` and `DirectRunner`.
     project: The GCP project that runs the pipeline components. Defaults to the project in which the PipelineJob is run.
 
@@ -100,8 +102,6 @@ def evaluation_automl_tabular_classification_pipeline(  # pylint: disable=danger
       evaluation_metrics=ClassificationMetrics,
       evaluation_resource_name=str,
   )
-
-  evaluation_display_name = 'evaluation-automl-tabular-pipeline'
 
   # Get the Vertex AI Model.
   get_model_task = GetVertexModelOp(model_name=model_name)
@@ -190,6 +190,7 @@ def evaluation_automl_tabular_regression_pipeline(  # pylint: disable=dangerous-
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
+    evaluation_display_name: str = 'evaluation-automl-tabular-pipeline-{{$.pipeline_job_uuid}}',
     force_runner_mode: str = '',
 ) -> NamedTuple(
     'outputs',
@@ -224,6 +225,7 @@ def evaluation_automl_tabular_regression_pipeline(  # pylint: disable=dangerous-
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    evaluation_display_name: The display name of the uploaded evaluation resource to the Vertex AI model.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options are `Dataflow` and `DirectRunner`.
 
   Returns:
@@ -235,8 +237,6 @@ def evaluation_automl_tabular_regression_pipeline(  # pylint: disable=dangerous-
       evaluation_metrics=RegressionMetrics,
       evaluation_resource_name=str,
   )
-
-  evaluation_display_name = 'evaluation-automl-tabular-pipeline'
 
   # Get the Vertex AI Model.
   get_model_task = GetVertexModelOp(model_name=model_name)
@@ -326,6 +326,7 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
+    evaluation_display_name: str = 'evaluation-automl-tabular-pipeline-{{$.pipeline_job_uuid}}',
     force_runner_mode: str = '',
 ):
   # fmt: off
@@ -358,6 +359,7 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+    evaluation_display_name: The display name of the uploaded evaluation resource to the Vertex AI model.
     force_runner_mode: Indicate the runner mode to use forcely. Valid options are `Dataflow` and `DirectRunner`.
   """
   # fmt: on
@@ -388,6 +390,7 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
         dataflow_subnetwork=dataflow_subnetwork,
         dataflow_use_public_ips=dataflow_use_public_ips,
         encryption_spec_key_name=encryption_spec_key_name,
+        evaluation_display_name=evaluation_display_name,
         force_runner_mode=force_runner_mode,
     )
 
@@ -415,5 +418,6 @@ def evaluation_automl_tabular_pipeline(  # pylint: disable=dangerous-default-val
         dataflow_subnetwork=dataflow_subnetwork,
         dataflow_use_public_ips=dataflow_use_public_ips,
         encryption_spec_key_name=encryption_spec_key_name,
+        evaluation_display_name=evaluation_display_name,
         force_runner_mode=force_runner_mode,
     )
