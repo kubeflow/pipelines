@@ -719,6 +719,29 @@ implementation:
         with self.assertRaises(KeyError):
             for_loop_4['iteratorPolicy']
 
+    def test_compile_parallel_for_with_varying_datatypes(self):
+
+        @dsl.component
+        def my_component(first_param: int, second_param: str):
+            print(first_param)
+            print(second_param)
+        
+        @dsl.pipeline
+        def my_pipeline():
+            loop_params = [
+                {"first_param": 1, "second_param": "hello"},
+                {"first_param": 1, "second_param": "world"},
+                {"first_param": 0, "second_param": "hello"},
+                {"first_param": 0, "second_param": "world"},
+            ]
+            with dsl.ParallelFor(loop_params) as iterator:
+                my_component(first_param=iterator.first_param, second_param=iterator.second_param)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+
     def test_pipeline_in_pipeline(self):
 
         @dsl.component
