@@ -101,7 +101,7 @@ spec:
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
-      - {name: KFP_V2_IMAGE, value: 'python:3.9'}
+      - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
           "NUMBER_INTEGER"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
           {"output_parameter_one": {"type": "NUMBER_INTEGER", "path": "/tmp/outputs/output_parameter_one/data"}},
@@ -109,7 +109,7 @@ spec:
           "instanceSchema": "", "schemaVersion": "0.0.1", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
-      image: python:3.9
+      image: python:3.7
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
     inputs:
@@ -208,7 +208,7 @@ spec:
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
-      - {name: KFP_V2_IMAGE, value: 'python:3.9'}
+      - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
           "NUMBER_INTEGER"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
           "schemaTitle": "system.Dataset", "instanceSchema": "", "schemaVersion":
@@ -217,7 +217,7 @@ spec:
           "/tmp/outputs/model/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
-      image: python:3.9
+      image: python:3.7
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
     inputs:
