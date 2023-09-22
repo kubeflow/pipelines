@@ -197,6 +197,8 @@ func TestDefaultImage(t *testing.T) {
 
 	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
 	assert.Nil(t, err)
+	require.NotNil(t, patchOperation)
+	require.Equal(t, patchOperation[0].Op, OperationTypeReplace)
 	container := patchOperation[0].Value.([]corev1.Container)[0]
 	require.Equal(t, "gcr.io/google-containers/busybox", container.Image)
 }
