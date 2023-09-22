@@ -126,12 +126,15 @@ class LoopArgument(pipeline_channel.PipelineParameterChannel):
         self._referenced_subvars: Dict[str, LoopArgumentVariable] = {}
 
         if isinstance(items, list) and isinstance(items[0], dict):
-            subvar_names = set(items[0].keys())
+            subvars = {
+                key: type(value).__name__ for key, value in items[0].items()
+            }
             # then this block creates loop_arg.variable_a and loop_arg.variable_b
-            for subvar_name in subvar_names:
+            for subvar_name, subvar_type in subvars.items():
                 loop_arg_var = LoopArgumentVariable(
                     loop_argument=self,
                     subvar_name=subvar_name,
+                    channel_type=subvar_type,
                 )
                 self._referenced_subvars[subvar_name] = loop_arg_var
                 setattr(self, subvar_name, loop_arg_var)
@@ -214,6 +217,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineChannel):
         self,
         loop_argument: LoopArgument,
         subvar_name: str,
+        channel_type: Optional[str] = None,
     ):
         """Initializes a LoopArgumentVariable instance.
 
@@ -222,6 +226,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineChannel):
                 a subvariable to.
             subvar_name: The name of this subvariable, which is the name of the
                 dict key that spawned this subvariable.
+            channel_type: The type of this subvariable.
 
         Raises:
             ValueError is subvar name is illegal.
@@ -240,8 +245,8 @@ class LoopArgumentVariable(pipeline_channel.PipelineChannel):
                 subvar_name=subvar_name,
             ),
             task_name=loop_argument.task_name,
-            channel_type=_get_subvar_type(loop_argument.channel_type) or
-            'String',
+            channel_type=channel_type or
+            _get_subvar_type(loop_argument.channel_type) or 'String',
         )
 
     @property
