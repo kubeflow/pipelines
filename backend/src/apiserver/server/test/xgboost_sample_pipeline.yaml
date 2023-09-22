@@ -924,4 +924,4 @@ root:
         taskInfo:
           name: xgboost-train-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.16
+sdkVersion: kfp-2.2.0
