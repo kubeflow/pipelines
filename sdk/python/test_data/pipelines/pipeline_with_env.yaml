@@ -60,7 +60,7 @@ deploymentSpec:
         env:
         - name: ENV1
           value: val1
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: pipeline-with-env
 root:

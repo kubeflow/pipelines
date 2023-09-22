@@ -144,7 +144,7 @@ deploymentSpec:
           \ None):\n    if artifact is not None:\n        print(artifact.name)\n \
           \       print(artifact.uri)\n        print(artifact.metadata)\n    else:\n\
           \        print('No artifact provided!')\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-python-artifact-printer-2:
       container:
         args:
@@ -175,7 +175,7 @@ deploymentSpec:
           \ None):\n    if artifact is not None:\n        print(artifact.name)\n \
           \       print(artifact.uri)\n        print(artifact.metadata)\n    else:\n\
           \        print('No artifact provided!')\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: optional-artifact-pipeline
 root:

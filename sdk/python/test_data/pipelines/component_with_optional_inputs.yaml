@@ -48,7 +48,7 @@ deploymentSpec:
           \ {input1}, type: {type(input1)}')\n    print(f'input2: {input2}, type:\
           \ {type(input2)}')\n    print(f'input3: {input3}, type: {type(input3)}')\n\
           \n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: v2-component-optional-input
 root:

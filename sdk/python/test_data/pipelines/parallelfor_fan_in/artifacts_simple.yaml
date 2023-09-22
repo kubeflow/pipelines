@@ -108,7 +108,7 @@ deploymentSpec:
           \    nums = []\n    for dataset in in_datasets:\n        with open(dataset.path)\
           \ as f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,\
           \ 'w') as f:\n        f.write(str(sum(nums)))\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-add-container:
       container:
         args:
@@ -125,7 +125,7 @@ deploymentSpec:
         command:
         - python
         - -c
-        image: python:3.7
+        image: python:3.9
     exec-double:
       container:
         args:
@@ -154,7 +154,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef double(num: int, out_dataset: Output[Dataset]):\n    with open(out_dataset.path,\
           \ 'w') as f:\n        f.write(str(2 * num))\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: math-pipeline
 root:

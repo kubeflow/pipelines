@@ -126,7 +126,7 @@ deploymentSpec:
           \ random.randint(0, 2)\n\n    if val == 0:\n        return 'heads'\n   \
           \ elif val == 1:\n        return 'tails'\n    else:\n        return 'draw'\n\
           \n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return:
       container:
         args:
@@ -155,7 +155,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return-2:
       container:
         args:
@@ -184,7 +184,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-and-return-3:
       container:
         args:
@@ -213,7 +213,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: roll-die-pipeline
 root:
