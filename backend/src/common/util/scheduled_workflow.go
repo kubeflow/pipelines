@@ -31,9 +31,9 @@ const (
 	SWFlegacy  ScheduledWorkflowType = "legacy"
 	SWFunknown ScheduledWorkflowType = "Unknown"
 
-	apiVersionV1 = "kubeflow.org/v1beta1"
-	apiVersionV2 = "kubeflow.org/v2beta1"
-	swfKind      = "ScheduledWorkflow"
+	ApiVersionV1 = "kubeflow.org/v1beta1"
+	ApiVersionV2 = "kubeflow.org/v2beta1"
+	SwfKind      = "ScheduledWorkflow"
 )
 
 // ScheduledWorkflow is a type to help manipulate ScheduledWorkflow objects.
@@ -160,9 +160,9 @@ func (s *ScheduledWorkflow) ToStringForStore() string {
 }
 
 func (s *ScheduledWorkflow) GetVersion() ScheduledWorkflowType {
-	if strings.HasPrefix(s.APIVersion, apiVersionV1) && s.Kind == swfKind {
+	if strings.HasPrefix(s.APIVersion, ApiVersionV1) && s.Kind == SwfKind {
 		return SWFv1
-	} else if strings.HasPrefix(s.APIVersion, apiVersionV2) && s.Kind == swfKind {
+	} else if strings.HasPrefix(s.APIVersion, ApiVersionV2) && s.Kind == SwfKind {
 		return SWFv2
 	} else if s.APIVersion == "" && s.Kind == "" {
 		return SWFlegacy

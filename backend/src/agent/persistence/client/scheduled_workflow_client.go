@@ -62,5 +62,11 @@ func (c *ScheduledWorkflowClient) Get(namespace string, name string) (
 			"Error retrieving scheduled workflow (%v) in namespace (%v): %v", name, namespace, err)
 	}
 
+	// If the APIVersion and Kind are not set then set them to the default values.
+	if schedule.APIVersion == "" && schedule.Kind == "" {
+		schedule.Kind = util.SwfKind
+		schedule.APIVersion = util.ApiVersionV1
+	}
+
 	return util.NewScheduledWorkflow(schedule), nil
 }
