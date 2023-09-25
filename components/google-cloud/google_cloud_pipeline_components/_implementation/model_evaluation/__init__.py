@@ -15,6 +15,7 @@
 
 import os
 
+from google_cloud_pipeline_components._implementation.model_evaluation.chunking.component import chunking as ChunkingOp
 from google_cloud_pipeline_components._implementation.model_evaluation.data_sampler.component import evaluation_data_sampler as EvaluationDataSamplerOp
 from google_cloud_pipeline_components._implementation.model_evaluation.dataset_preprocessor.component import dataset_preprocessor_error_analysis as EvaluationDatasetPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.error_analysis_annotation.component import error_analysis_annotation as ErrorAnalysisAnnotationOp
@@ -38,6 +39,7 @@ from google_cloud_pipeline_components._implementation.model_evaluation.target_fi
 __all__ = [
     'evaluation_llm_safety_bias_pipeline',
     'evaluation_llm_embedding_pipeline',
+    'ChunkingOp',
     'EvaluationDataSamplerOp',
     'EvaluationDatasetPreprocessorOp',
     'ErrorAnalysisAnnotationOp',
