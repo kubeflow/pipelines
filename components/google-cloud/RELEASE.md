@@ -6,6 +6,7 @@
 * Add `time_series_dense_encoder_forecasting_pipeline`, `learn_to_learn_forecasting_pipeline`, `sequence_to_sequence_forecasting_pipeline`, and `temporal_fusion_transformer_forecasting_pipeline` to `preview.automl.forecasting`.
 * Add support for customizing evaluation display name on `v1` and `preview` `model_evaluation` pipelines.
 * Include model version ID in `v1.model.upload_model.ModelUploadOp`'s `VertexModel` output (key: `model`). The URI and metadata `resourceName` field in the outputted `VertexModel` now have `@<model_version_id>` appended, corresponding to the model that was just created. Downstream components `DeleteModel` and `UndeployModel` will respect the model version if provided.
+* Bump KFP SDK upper bound to 2.3.0
 
 
 ## Release 2.3.1
