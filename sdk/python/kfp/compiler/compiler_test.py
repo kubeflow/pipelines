@@ -4620,6 +4620,7 @@ class TestConditionLogic(unittest.TestCase):
                 print_and_return(
                     text=f'Coin three result: {flip_coin_task_3.output}')
 
+        print(flip_coin_pipeline.pipeline_spec.components['comp-pipeline-1'])
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.components['comp-pipeline-1'].dag
             .tasks['condition-2'].trigger_policy.condition,
