@@ -263,6 +263,18 @@ class Elif(_ConditionBase):
             name=name,
         )
 
+    def __enter__(self):
+        if not pipeline_context.Pipeline.get_default_pipeline():
+            raise ValueError('Default pipeline not defined.')
+
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+
+        maybe_make_and_insert_conditional_branches_group(pipeline)
+
+        self._make_name_unique()
+        pipeline.push_tasks_group(self)
+        return self
+
 
 class Else(_ConditionBase):
     """A class for creating a conditional control flow "else" block within a
@@ -293,7 +305,11 @@ class Else(_ConditionBase):
         prev_cond = pipeline_context.Pipeline.get_default_pipeline(
         ).get_last_tasks_group()
 
-        if isinstance(prev_cond, Else):
+        # if it immediately follows as TasksGroup, this is because it immediately
+        # follows Else in the user code and we wrap Else in a TasksGroup
+        if isinstance(
+                prev_cond, TasksGroup
+        ) and prev_cond.display_name == CONDITIONAL_BRANCHES_GROUP_NAME:
             # prefer pushing toward dsl.If rather than dsl.Condition for syntactic consistency with the if-elif-else keywords in Python
             raise InvalidControlFlowException(
                 'Cannot use dsl.Else following another dsl.Else. dsl.Else can only be used following an upstream dsl.If or dsl.Elif.'
@@ -308,6 +324,65 @@ class Else(_ConditionBase):
             conditions=prev_cond._negated_upstream_conditions,
             name=name,
         )
+
+    def __enter__(self):
+        if not pipeline_context.Pipeline.get_default_pipeline():
+            raise ValueError('Default pipeline not defined.')
+
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+
+        maybe_make_and_insert_conditional_branches_group(pipeline)
+
+        self._make_name_unique()
+        pipeline.push_tasks_group(self)
+        return self
+
+    def __exit__(self, *unused_args):
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+        pipeline.pop_tasks_group()
+
+        # since this is an else, also pop off the parent dag for conditional branches
+        # this parent TasksGroup is not a context manager, so we simulate its
+        # __exit__ call with this
+        pipeline.pop_tasks_group()
+
+
+CONDITIONAL_BRANCHES_GROUP_NAME = 'conditional-group'
+
+
+def maybe_make_and_insert_conditional_branches_group(
+        pipeline: 'pipeline_context.Pipeline') -> None:
+
+    already_has_pipeline_wrapper = isinstance(
+        pipeline.get_last_tasks_group(),
+        Elif,
+    )
+    if already_has_pipeline_wrapper:
+        return
+
+    condition_wrapper_group = TasksGroup(
+        group_type=TasksGroupType.PIPELINE,
+        name=CONDITIONAL_BRANCHES_GROUP_NAME,
+        is_root=False,
+    )
+    condition_wrapper_group._make_name_unique()
+
+    # swap outer and inner group ids so that numbering stays sequentially consistent with how such hypothetical code would be authored
+    def swap_group_ids(parent: TasksGroup, cond: TasksGroup):
+        parent_name, parent_id = parent.name.split('-')
+        cond_name, cond_id = cond.name.split('-')
+        cond.name = f'{cond_name}-{parent_id}'
+        parent.name = f'{parent_name}-{cond_id}'
+
+    # replace last pushed group (If or Elif) with condition group
+    last_pushed_group = pipeline.groups[-1].groups.pop()
+    swap_group_ids(condition_wrapper_group, last_pushed_group)
+    pipeline.push_tasks_group(condition_wrapper_group)
+
+    # then repush (__enter__) and pop (__exit__) the last pushed group
+    # before the wrapper to emulate re-entering and exiting its context
+    pipeline.push_tasks_group(last_pushed_group)
+    pipeline.pop_tasks_group()
 
 
 class InvalidControlFlowException(Exception):

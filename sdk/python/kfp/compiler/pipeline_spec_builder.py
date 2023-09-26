@@ -1286,6 +1286,20 @@ def build_spec_by_group(
                 is_parent_component_root=is_parent_component_root,
             )
 
+        # handles the conditional group wrapping only
+        elif isinstance(subgroup, tasks_group.TasksGroup):
+            subgroup_component_spec = build_component_spec_for_group(
+                input_pipeline_channels=subgroup_input_channels,
+                output_pipeline_channels={},
+            )
+
+            subgroup_task_spec = build_task_spec_for_group(
+                group=subgroup,
+                pipeline_channels=subgroup_input_channels,
+                tasks_in_current_dag=tasks_in_current_dag,
+                is_parent_component_root=is_parent_component_root,
+            )
+
         else:
             raise RuntimeError(
                 f'Unexpected task/group type: Got {subgroup} of type '
