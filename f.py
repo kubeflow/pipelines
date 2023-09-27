@@ -29,11 +29,27 @@ def print_and_return(text: str) -> str:
 @dsl.pipeline
 def flip_coin_pipeline() -> str:
     flip_coin_task = flip_coin()
+
+    # ONE DAG
     with dsl.If(flip_coin_task.output == 'heads'):
         print_task_1 = print_and_return(text='Got heads!')
+    # with dsl.Elif():
     with dsl.Else():
+        # For loop
         print_task_2 = print_and_return(text='Got tails!')
+    # to output from this dag --> It's a container of pipeline channels
+    # ONE DAG
+
     x = dsl.OneOf(print_task_1.output, print_task_2.output)
+
+    # scope limitation options (not exclusive):
+    ## 1 not permitting composing collected into oneof + vice versa
+    ## 2 can dsl.OneOf only be outputted from a pipeline, rather than consumed by a task? -- probably cannot do this...
+    ## 3 follows from #2... when If, Elif, and Else are used, they have to be at the top level of the DAG
+
+    # TODO(cjmccarthy): discuss with AutoML team
+
+    # as an input: it represents a PipelineChannel
     print_and_return(text=x)
     return x
 
