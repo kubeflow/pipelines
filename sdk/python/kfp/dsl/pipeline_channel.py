@@ -265,6 +265,38 @@ class PipelineArtifactChannel(PipelineChannel):
         )
 
 
+class MultiChannel:
+    """Container of multiple pipeline parameter channels."""
+
+    def __init__(
+        self,
+        channels=List[Union[PipelineParameterChannel, PipelineArtifactChannel]],
+    ) -> None:
+        self.channels = list(channels)
+        self.first_channel = channels[0]
+        self.channel_type = self.first_channel.channel_type
+        self.surfacer_pipeline: Optional[str] = None
+
+    @property
+    def full_name(self) -> str:
+        """Unique name for the PipelineChannel."""
+        if self.surfacer_pipeline is None:
+            raise ValueError(
+                'Cannot create full name when surfacer pipeline is None.')
+        return f'{self.surfacer_pipeline.name}-{"unique-todo"}'
+
+
+class OneOf(MultiChannel):
+    identifier = 0
+
+    def __init__(self, *channels) -> None:
+        super().__init__(channels=channels)
+
+    @classmethod
+    def increment_identifer(cls) -> None:
+        cls.identifier += 1
+
+
 def create_pipeline_channel(
     name: str,
     channel_type: Union[str, Dict],

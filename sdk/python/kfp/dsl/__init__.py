@@ -231,6 +231,7 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.container_component_decorator import container_component
     from kfp.dsl.for_loop import Collected
     from kfp.dsl.importer_node import importer
+    from kfp.dsl.pipeline_channel import OneOf
     from kfp.dsl.pipeline_context import pipeline
     from kfp.dsl.pipeline_task import PipelineTask
     from kfp.dsl.placeholders import ConcatPlaceholder
@@ -252,6 +253,7 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
         'If',
         'Elif',
         'Else',
+        'OneOf',
         'ExitHandler',
         'ParallelFor',
         'Collected',

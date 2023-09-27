@@ -140,13 +140,21 @@ class PipelineTask:
 
         self._inputs = args
 
-        self._channel_inputs = [
-            value for _, value in args.items()
-            if isinstance(value, pipeline_channel.PipelineChannel)
-        ] + pipeline_channel.extract_pipeline_channels_from_any([
-            value for _, value in args.items()
-            if not isinstance(value, pipeline_channel.PipelineChannel)
-        ])
+        self._channel_inputs = []
+        for _, value in args.items():
+            if isinstance(value, pipeline_channel.PipelineChannel):
+                self._channel_inputs.append(value)
+            elif isinstance(value, pipeline_channel.OneOf):
+                from kfp.dsl import pipeline_context
+                pipeline = pipeline_context.Pipeline.get_default_pipeline()
+                value.surfacer_pipeline = pipeline.groups[-1].groups[0]
+                value.name = 'Output'
+                self.channel_inputs.append(value)
+        self._channel_inputs.extend(
+            pipeline_channel.extract_pipeline_channels_from_any([
+                value for _, value in args.items()
+                if not isinstance(value, pipeline_channel.PipelineChannel)
+            ]))
 
     @property
     def platform_spec(self) -> pipeline_spec_pb2.PlatformSpec:

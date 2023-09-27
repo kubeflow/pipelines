@@ -163,7 +163,30 @@ def build_task_spec_for_task(
                 pipeline_task_spec.inputs.artifacts[
                     input_name].component_input_artifact = (
                         component_input_artifact)
-
+        elif isinstance(input_value, pipeline_channel.OneOf):
+            if isinstance(input_value.first_channel,
+                          pipeline_channel.PipelineParameterChannel):
+                # tasks_in_current_dag includes groups
+                if input_value.surfacer_pipeline.name in tasks_in_current_dag:
+                    # Dependent task within the same DAG.
+                    pipeline_task_spec.inputs.parameters[
+                        input_name].task_output_parameter.producer_task = (
+                            utils.sanitize_task_name(
+                                input_value.surfacer_pipeline.name))
+                    pipeline_task_spec.inputs.parameters[
+                        input_name].task_output_parameter.output_parameter_key = (
+                            input_value.name)
+            else:
+                # tasks_in_current_dag includes groups
+                if input_value.surfacer_pipeline.name in tasks_in_current_dag:
+                    # Dependent task within the same DAG.
+                    pipeline_task_spec.inputs.artifacts[
+                        input_name].task_output_artifact.producer_task = (
+                            utils.sanitize_task_name(
+                                input_value.surfacer_pipeline.name))
+                    pipeline_task_spec.inputs.artifacts[
+                        input_name].task_output_artifact.output_artifact_key = (
+                            input_value.name)
         elif isinstance(input_value,
                         pipeline_channel.PipelineParameterChannel) or (
                             isinstance(input_value, for_loop.Collected) and
@@ -417,7 +440,7 @@ def _build_component_spec_from_component_spec_structure(
     return component_spec
 
 
-def _connect_dag_outputs(
+def _connect_single_dag_outputs(
     component_spec: pipeline_spec_pb2.ComponentSpec,
     output_name: str,
     output_channel: pipeline_channel.PipelineChannel,
@@ -451,13 +474,62 @@ def _connect_dag_outputs(
             output_name].value_from_parameter.output_parameter_key = output_channel.name
 
 
+def _connect_multi_dag_outputs(
+    component_spec: pipeline_spec_pb2.ComponentSpec,
+    output_name: str,
+    output_channel: pipeline_channel.MultiChannel,
+) -> None:
+    """Connects dag output to a subtask output.
+
+    Args:
+        component_spec: The component spec to modify its dag outputs.
+        output_name: The name of the dag output.
+        output_channel: The pipeline channel selected for the dag output.
+    """
+    if isinstance(output_channel.first_channel,
+                  pipeline_channel.PipelineArtifactChannel):
+        if output_name not in component_spec.output_definitions.artifacts:
+            raise ValueError(
+                f'Pipeline or component output not defined: {output_name}. You may be missing a type annotation.'
+            )
+        for channel in output_channel.channels:
+            component_spec.dag.outputs.artifacts[
+                output_name].artifact_selectors.append(
+                    pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                        producer_subtask=channel.task_name,
+                        output_artifact_key=channel.name,
+                    ))
+    if isinstance(output_channel.first_channel,
+                  pipeline_channel.PipelineParameterChannel):
+        if output_name not in component_spec.output_definitions.parameters:
+            raise ValueError(
+                f'Pipeline or component output not defined: {output_name}. You may be missing a type annotation.'
+            )
+        for channel in output_channel.channels:
+            component_spec.dag.outputs.parameters[
+                output_name].value_from_oneof.parameter_selectors.append(
+                    pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                        producer_subtask=channel.task_name,
+                        output_parameter_key=channel.name,
+                    ))
+
+
 def _build_dag_outputs(
     component_spec: pipeline_spec_pb2.ComponentSpec,
     dag_outputs: Dict[str, pipeline_channel.PipelineChannel],
 ) -> None:
     """Builds DAG output spec."""
     for output_name, output_channel in dag_outputs.items():
-        _connect_dag_outputs(component_spec, output_name, output_channel)
+        if isinstance(output_channel, pipeline_channel.PipelineChannel):
+            _connect_single_dag_outputs(component_spec, output_name,
+                                        output_channel)
+        elif isinstance(output_channel, pipeline_channel.MultiChannel):
+            _connect_multi_dag_outputs(component_spec, output_name,
+                                       output_channel)
+        else:
+            raise ValueError(
+                f"Got unknown pipeline output '{output_name}' of type {output_channel}."
+            )
     # Valid dag outputs covers all outptus in component definition.
     for output_name in component_spec.output_definitions.artifacts:
         if output_name not in component_spec.dag.outputs.artifacts:
@@ -608,25 +680,35 @@ def build_component_spec_for_group(
                         channel.channel_type))
             component_spec.input_definitions.artifacts[
                 input_name].is_artifact_list = channel.is_artifact_list
-        else:
+        elif isinstance(channel, pipeline_channel.PipelineParameterChannel):
             # channel is one of PipelineParameterChannel, LoopArgument, or
             # LoopArgumentVariable.
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)
+        else:
+            raise ValueError(f'Got unknown pipeline channel input: {channel}.')
 
     for output_name, output in output_pipeline_channels.items():
-        if isinstance(output, pipeline_channel.PipelineArtifactChannel):
+        if isinstance(output, pipeline_channel.PipelineArtifactChannel) or (
+                isinstance(output, pipeline_channel.MultiChannel) and
+                isinstance(output.first_channel,
+                           pipeline_channel.PipelineArtifactChannel)):
             component_spec.output_definitions.artifacts[
                 output_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         output.channel_type))
             component_spec.output_definitions.artifacts[
                 output_name].is_artifact_list = output.is_artifact_list
-        else:
+        elif isinstance(output, pipeline_channel.PipelineParameterChannel) or (
+                isinstance(output, pipeline_channel.MultiChannel) and
+                isinstance(output.first_channel,
+                           pipeline_channel.PipelineParameterChannel)):
             component_spec.output_definitions.parameters[
                 output_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)
+        else:
+            raise ValueError(f'Got unknown pipeline channel output: {channel}.')
 
     return component_spec
 
@@ -1136,7 +1218,9 @@ def build_spec_by_group(
         subgroup_input_channels = [
             channel for channel, _ in inputs.get(subgroup.name, [])
         ]
+        # print('subgroup input channels', subgroup_input_channels)
         subgroup_output_channels = outputs.get(subgroup.name, {})
+        # print('subgroup output channels', subgroup_output_channels)
 
         subgroup_component_name = (utils.sanitize_component_name(subgroup.name))
 
@@ -1245,9 +1329,6 @@ def build_spec_by_group(
                 is_parent_component_root=is_parent_component_root,
             )
 
-            _build_dag_outputs(subgroup_component_spec,
-                               subgroup_output_channels)
-
         elif isinstance(subgroup, tasks_group._ConditionBase):
 
             # "Punch the hole", adding inputs needed by its subgroups or
@@ -1290,7 +1371,7 @@ def build_spec_by_group(
         elif isinstance(subgroup, tasks_group.TasksGroup):
             subgroup_component_spec = build_component_spec_for_group(
                 input_pipeline_channels=subgroup_input_channels,
-                output_pipeline_channels={},
+                output_pipeline_channels=subgroup_output_channels,
             )
 
             subgroup_task_spec = build_task_spec_for_group(
@@ -1299,6 +1380,8 @@ def build_spec_by_group(
                 tasks_in_current_dag=tasks_in_current_dag,
                 is_parent_component_root=is_parent_component_root,
             )
+            _build_dag_outputs(subgroup_component_spec,
+                               subgroup_output_channels)
 
         else:
             raise RuntimeError(
@@ -1823,7 +1906,9 @@ def convert_pipeline_outputs_to_dict(
     output name to PipelineChannel."""
     if pipeline_outputs is None:
         return {}
-    elif isinstance(pipeline_outputs, pipeline_channel.PipelineChannel):
+    elif isinstance(
+            pipeline_outputs,
+        (pipeline_channel.PipelineChannel, pipeline_channel.MultiChannel)):
         return {component_factory.SINGLE_OUTPUT_NAME: pipeline_outputs}
     elif isinstance(pipeline_outputs, tuple) and hasattr(
             pipeline_outputs, '_asdict'):

@@ -14,9 +14,11 @@
 """Utility methods for compiler implementation that is IR-agnostic."""
 
 import collections
+import copy
 from copy import deepcopy
 from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
+from kfp import dsl
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context
@@ -243,22 +245,30 @@ def get_inputs_for_all_groups(
             # channels from the front, and pop it out when it's no longer
             #  needed by the parent DAG.
             channels_to_add = collections.deque()
-            channel_to_add = channel
 
-            while isinstance(channel_to_add, (
+            while isinstance(channel, (
                     for_loop.LoopArgument,
                     for_loop.LoopArgumentVariable,
             )):
-                channels_to_add.append(channel_to_add)
-                if isinstance(channel_to_add, for_loop.LoopArgumentVariable):
-                    channel_to_add = channel_to_add.loop_argument
+                channels_to_add.append(channel)
+                if isinstance(channel, for_loop.LoopArgumentVariable):
+                    channel = channel.loop_argument
                 else:
-                    channel_to_add = channel_to_add.items_or_pipeline_channel
+                    channel = channel.items_or_pipeline_channel
+            if isinstance(channel, pipeline_channel.PipelineChannel):
+                channels_to_add.append(channel)
 
-            if isinstance(channel_to_add, pipeline_channel.PipelineChannel):
-                channels_to_add.append(channel_to_add)
+            if isinstance(channel, dsl.OneOf):
+                channels_to_add.append(
+                    pipeline_channel.create_pipeline_channel(
+                        name='Output',
+                        channel_type=channel.channel_type,
+                        task_name=channel.surfacer_pipeline.name,
+                        is_artifact_list=getattr(channel, 'is_artifact_list',
+                                                 False)))
 
-            if channel.task_name:
+            # all other pipeline channels have the .task_name field
+            if not isinstance(channel, dsl.OneOf) and channel.task_name:
                 # The PipelineChannel is produced by a task.
 
                 upstream_task = pipeline.tasks[channel.task_name]
@@ -342,7 +352,7 @@ def get_inputs_for_all_groups(
                                 channels_to_add.pop()
                                 if not channels_to_add:
                                     break
-
+    print(inputs)
     return inputs
 
 
@@ -410,9 +420,11 @@ def validate_parallel_for_fan_in_consumption_legal(
 
 def make_new_channel_for_collected_outputs(
     channel_name: str,
-    starting_channel: pipeline_channel.PipelineChannel,
+    starting_channel: Union[pipeline_channel.PipelineParameterChannel,
+                            pipeline_channel.PipelineArtifactChannel],
     task_name: str,
-) -> pipeline_channel.PipelineChannel:
+) -> Union[pipeline_channel.PipelineParameterChannel,
+           pipeline_channel.PipelineArtifactChannel]:
     """Creates a new PipelineParameterChannel/PipelineArtifactChannel list for
     a dsl.Collected channel from the original task output."""
     if isinstance(starting_channel, pipeline_channel.PipelineParameterChannel):
@@ -424,6 +436,33 @@ def make_new_channel_for_collected_outputs(
             channel_type=starting_channel.channel_type,
             task_name=task_name,
             is_artifact_list=True)
+    else:
+        ValueError(
+            f'Got unknown PipelineChannel: {starting_channel!r}. Expected an instance of {pipeline_channel.PipelineArtifactChannel.__name__!r} or {pipeline_channel.PipelineParameterChannel.__name__!r}.'
+        )
+
+
+def make_new_channel_for_oneof_outputs(
+    channel_name: str,
+    starting_channel: pipeline_channel.OneOf,
+    task_name: str,
+) -> Union[pipeline_channel.PipelineParameterChannel,
+           pipeline_channel.PipelineArtifactChannel]:
+    """Creates a new PipelineParameterChannel/PipelineArtifactChannel for a
+    dsl.OneOf channel from the original task output."""
+    if isinstance(starting_channel.first_channel,
+                  pipeline_channel.PipelineParameterChannel):
+        return pipeline_channel.PipelineParameterChannel(
+            channel_name,
+            channel_type=starting_channel.channel_type,
+            task_name=task_name)
+    elif isinstance(starting_channel.first_channel,
+                    pipeline_channel.PipelineArtifactChannel):
+        return pipeline_channel.PipelineArtifactChannel(
+            channel_name,
+            channel_type=starting_channel.channel_type,
+            task_name=task_name,
+            is_artifact_list=starting_channel.is_artifact_list)
     else:
         ValueError(
             f'Got unknown PipelineChannel: {starting_channel!r}. Expected an instance of {pipeline_channel.PipelineArtifactChannel.__name__!r} or {pipeline_channel.PipelineParameterChannel.__name__!r}.'
@@ -462,77 +501,45 @@ def get_outputs_for_all_groups(
     }
 
     outputs = collections.defaultdict(dict)
-
+    processed_oneofs: Dict[dsl.OneOf, pipeline_channel.PipelineChannel] = {}
     # handle dsl.Collected consumed by tasks
     for task in pipeline.tasks.values():
         for channel in task.channel_inputs:
-            if not isinstance(channel, for_loop.Collected):
-                continue
-            producer_task = pipeline.tasks[channel.task_name]
-            consumer_task = task
-
-            upstream_groups, downstream_groups = (
-                _get_uncommon_ancestors(
-                    task_name_to_parent_groups=task_name_to_parent_groups,
-                    group_name_to_parent_groups=group_name_to_parent_groups,
-                    task1=producer_task,
-                    task2=consumer_task,
-                ))
-            validate_parallel_for_fan_in_consumption_legal(
-                consumer_task_name=consumer_task.name,
-                upstream_groups=upstream_groups,
-                group_name_to_group=group_name_to_group,
-            )
-
-            # producer_task's immediate parent group and the name by which
-            # to surface the channel
-            surfaced_output_name = additional_input_name_for_pipeline_channel(
-                channel)
-
-            # the highest-level task group that "consumes" the
-            # collected output
-            parent_consumer = downstream_groups[0]
-            producer_task_name = upstream_groups.pop()
-
-            # process from the upstream groups from the inside out
-            for upstream_name in reversed(upstream_groups):
-                outputs[upstream_name][
-                    surfaced_output_name] = make_new_channel_for_collected_outputs(
-                        channel_name=channel.name,
-                        starting_channel=channel.output,
-                        task_name=producer_task_name,
-                    )
-
-                # on each iteration, mutate the channel being consumed so
-                # that it references the last parent group surfacer
-                channel.name = surfaced_output_name
-                channel.task_name = upstream_name
-
-                # for the next iteration, set the consumer to the current
-                # surfacer (parent group)
-                producer_task_name = upstream_name
-
-                parent_of_current_surfacer = group_name_to_parent_groups[
-                    upstream_name][-2]
-                if parent_consumer in group_name_to_children[
-                        parent_of_current_surfacer]:
-                    break
-
-        # handle dsl.Collected returned from pipeline
-        for output_key, channel in pipeline_outputs_dict.items():
             if isinstance(channel, for_loop.Collected):
+                producer_task = pipeline.tasks[channel.task_name]
+                consumer_task = task
+
+                upstream_groups, downstream_groups = (
+                    _get_uncommon_ancestors(
+                        task_name_to_parent_groups=task_name_to_parent_groups,
+                        group_name_to_parent_groups=group_name_to_parent_groups,
+                        task1=producer_task,
+                        task2=consumer_task,
+                    ))
+                validate_parallel_for_fan_in_consumption_legal(
+                    consumer_task_name=consumer_task.name,
+                    upstream_groups=upstream_groups,
+                    group_name_to_group=group_name_to_group,
+                )
+
+                # producer_task's immediate parent group and the name by which
+                # to surface the channel
                 surfaced_output_name = additional_input_name_for_pipeline_channel(
                     channel)
-                upstream_groups = task_name_to_parent_groups[
-                    channel.task_name][1:]
+
+                # the highest-level task group that "consumes" the
+                # collected output
+                parent_consumer = downstream_groups[0]
                 producer_task_name = upstream_groups.pop()
-                # process upstream groups from the inside out, until getting to the pipeline level
+
+                # process from the upstream groups from the inside out
                 for upstream_name in reversed(upstream_groups):
-                    new_channel = make_new_channel_for_collected_outputs(
-                        channel_name=channel.name,
-                        starting_channel=channel.output,
-                        task_name=producer_task_name,
-                    )
+                    outputs[upstream_name][
+                        surfaced_output_name] = make_new_channel_for_collected_outputs(
+                            channel_name=channel.name,
+                            starting_channel=channel.output,
+                            task_name=producer_task_name,
+                        )
 
                     # on each iteration, mutate the channel being consumed so
                     # that it references the last parent group surfacer
@@ -542,15 +549,130 @@ def get_outputs_for_all_groups(
                     # for the next iteration, set the consumer to the current
                     # surfacer (parent group)
                     producer_task_name = upstream_name
-                    outputs[upstream_name][surfaced_output_name] = new_channel
 
+                    parent_of_current_surfacer = group_name_to_parent_groups[
+                        upstream_name][-2]
+                    if parent_consumer in group_name_to_children[
+                            parent_of_current_surfacer]:
+                        break
+
+            elif isinstance(channel, dsl.OneOf):
+                for subchannel in channel.channels:
+                    surfaced_output_name = additional_input_name_for_pipeline_channel(
+                        subchannel)
+                    upstream_groups = task_name_to_parent_groups[
+                        subchannel.task_name][1:]
+                    producer_task_name = upstream_groups.pop()
+                    # process upstream groups from the inside out, until getting to the pipeline level
+                    for j, upstream_name in enumerate(
+                            reversed(upstream_groups)):
+                        upstream_group = group_name_to_group[upstream_name]
+                        if j == 0:
+                            if isinstance(upstream_group,
+                                          tasks_group._ConditionBase):
+                                # TODO: should this be something other than deepcopy?
+                                outputs[upstream_name][
+                                    surfaced_output_name] = copy.deepcopy(
+                                        subchannel)
+
+                                # on each iteration, mutate the channel being consumed so
+                                # that it references the last parent group surfacer
+                                subchannel.name = surfaced_output_name
+                                subchannel.task_name = upstream_name
+                        elif j == 1:
+                            if isinstance(
+                                    upstream_group, tasks_group.TasksGroup
+                            ) and upstream_group.display_name == 'conditional-group':
+                                if channel.surfacer_pipeline is None:
+                                    raise ValueError
+                                outputs[upstream_name]['Output'] = channel
+                            else:
+                                raise ValueError(
+                                    f'Expected to surface outputs from a conditional context manager. Got {upstream_group.group_type}.'
+                                )
+                processed_oneofs[channel] = make_new_channel_for_oneof_outputs(
+                    channel_name='Output',
+                    starting_channel=channel,
+                    task_name=upstream_name,
+                )
+
+        # handle dsl.Collected returned from pipeline
+    for output_key, channel in pipeline_outputs_dict.items():
+        if isinstance(channel, for_loop.Collected):
+            surfaced_output_name = additional_input_name_for_pipeline_channel(
+                channel)
+            upstream_groups = task_name_to_parent_groups[channel.task_name][1:]
+            producer_task_name = upstream_groups.pop()
+            # process upstream groups from the inside out, until getting to the pipeline level
+            for upstream_name in reversed(upstream_groups):
+                new_channel = make_new_channel_for_collected_outputs(
+                    channel_name=channel.name,
+                    starting_channel=channel.output,
+                    task_name=producer_task_name,
+                )
+
+                # on each iteration, mutate the channel being consumed so
+                # that it references the last parent group surfacer
+                channel.name = surfaced_output_name
+                channel.task_name = upstream_name
+
+                # for the next iteration, set the consumer to the current
+                # surfacer (parent group)
+                producer_task_name = upstream_name
+                outputs[upstream_name][surfaced_output_name] = new_channel
+
+            # after surfacing from all inner TasksGroup, change the PipelineChannel output to also return from the correct TasksGroup
+            pipeline_outputs_dict[
+                output_key] = make_new_channel_for_collected_outputs(
+                    channel_name=surfaced_output_name,
+                    starting_channel=channel.output,
+                    task_name=upstream_name,
+                )
+        elif isinstance(channel, dsl.OneOf):
+            if channel in processed_oneofs:
                 # after surfacing from all inner TasksGroup, change the PipelineChannel output to also return from the correct TasksGroup
+                pipeline_outputs_dict[output_key] = processed_oneofs[channel]
+
+            else:
+                for subchannel in channel.channels:
+                    surfaced_output_name = additional_input_name_for_pipeline_channel(
+                        subchannel)
+                    upstream_groups = task_name_to_parent_groups[
+                        subchannel.task_name][1:]
+                    producer_task_name = upstream_groups.pop()
+                    # process upstream groups from the inside out, until getting to the pipeline level
+                    for j, upstream_name in enumerate(
+                            reversed(upstream_groups)):
+                        upstream_group = group_name_to_group[upstream_name]
+                        if j == 0:
+                            if isinstance(upstream_group,
+                                          tasks_group._ConditionBase):
+                                # TODO: should this be something other than deepcopy?
+                                outputs[upstream_name][
+                                    surfaced_output_name] = copy.deepcopy(
+                                        subchannel)
+
+                                # on each iteration, mutate the channel being consumed so
+                                # that it references the last parent group surfacer
+                                subchannel.name = surfaced_output_name
+                                subchannel.task_name = upstream_name
+                        elif j == 1:
+                            if isinstance(
+                                    upstream_group, tasks_group.TasksGroup
+                            ) and upstream_group.display_name == 'conditional-group':
+                                outputs[upstream_name][output_key] = channel
+                            else:
+                                raise ValueError(
+                                    f'Expected to surface outputs from a conditional context manager. Got {upstream_group.group_type}.'
+                                )
                 pipeline_outputs_dict[
                     output_key] = make_new_channel_for_collected_outputs(
-                        channel_name=surfaced_output_name,
+                        # make unique name?
+                        channel_name='Output',
                         starting_channel=channel.output,
                         task_name=upstream_name,
                     )
+
     return outputs, pipeline_outputs_dict
 
 
@@ -636,7 +758,10 @@ def get_dependencies(
         upstream_task_names = set()
         task_condition_inputs = list(condition_channels[task.name])
         for channel in task.channel_inputs + task_condition_inputs:
-            if channel.task_name:
+            if isinstance(channel, dsl.OneOf):
+                upstream_task_names.update(
+                    {c.task_name for c in channel.channels})
+            elif channel.task_name:
                 upstream_task_names.add(channel.task_name)
         upstream_task_names |= set(task.dependent_tasks)
 

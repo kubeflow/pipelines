@@ -221,6 +221,8 @@ def _get_type_string_from_component_argument(
     from kfp.dsl import pipeline_channel
     if isinstance(argument_value, pipeline_channel.PipelineChannel):
         return argument_value.channel_type
+    elif isinstance(argument_value, pipeline_channel.MultiChannel):
+        return argument_value.first_channel.channel_type
 
     # argument is a constant
     argument_type = type(argument_value)

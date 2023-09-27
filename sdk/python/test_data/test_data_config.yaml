@@ -171,8 +171,11 @@ pipelines:
     - module: if_else
       name: flip_coin_pipeline
       execute: false
-    - module: if_elif_else
-      name: roll_die_pipeline
+    - module: if_elif_else_with_oneof_parameters
+      name: outer_pipeline
+      execute: false
+    - module: if_elif_else_with_oneof_artifacts
+      name: outer_pipeline
       execute: false
     - module: if_elif_else_complex
       name: lucky_number_pipeline

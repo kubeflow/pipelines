@@ -66,7 +66,7 @@ def lucky_number_pipeline(add_drumroll: bool = True,
         with dsl.Elif(int_task.output > 5000):
 
             even_or_odd_task = is_even_or_odd(num=int_task.output)
-
+            # TODO: opportunity for nested oneof
             with dsl.If(even_or_odd_task.output == 'even'):
                 print_and_return(text='Got a high even number!')
             with dsl.Else():
