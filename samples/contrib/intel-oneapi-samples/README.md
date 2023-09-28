@@ -96,8 +96,8 @@ clf = xgb.train(params = params,
 is the Python API of the oneAPI Data Analytics Library, oneDAL. daal4py helps to further 
 optimize model prediction, or inference, on CPUs. The following code demonstrates how to 
 convert a trained XGBoost model into daal4py format and calculate the predicted 
-classification results, implemented in the `convert_xgboost_to_daal4py` and the 
-`daal4py_inference` components. 
+classification results, implemented in the `convert_xgboost_to_daal4py` and `daal4py_inference` 
+components. 
 
 ```
 # convert XGBoost model to daal4py
@@ -149,7 +149,7 @@ view the model performance results. You should see a similar graph of the receiv
 operating characteristic (ROC) curve as the one below.
 
 <p align="center">
-  <img src="assets/intel-xgb-d4p-pipeline-roc-curve.png" alt="ROC Curve" width="500"/>
+  <img src="assets/intel-xgb-d4p-pipeline-roc-curve.png" alt="ROC Curve" width="750"/>
 </p>
 
 [Back to Table of Contents](#table-of-contents)
