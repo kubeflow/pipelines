@@ -1,4 +1,6 @@
 ## Upcoming release
+
+## Release 2.4.0
 * Add support for running tasks on a `PersistentResource` (see [CustomJobSpec](https://cloud.google.com/vertex-ai/docs/reference/rest/v1beta1/CustomJobSpec)) via `persistent_resource_id` parameter on `preview.custom_job.CustomTrainingJobOp` and `preview.custom_job.create_custom_training_job_from_component`
 * Fix use of `encryption_spec_key_name` in `v1.custom_job.CustomTrainingJobOp` and `v1.custom_job.create_custom_training_job_from_component`
 * Add feature_selection_pipeline to preview.automl.tabular.
@@ -7,7 +9,7 @@
 * Add support for customizing evaluation display name on `v1` and `preview` `model_evaluation` pipelines.
 * Include model version ID in `v1.model.upload_model.ModelUploadOp`'s `VertexModel` output (key: `model`). The URI and metadata `resourceName` field in the outputted `VertexModel` now have `@<model_version_id>` appended, corresponding to the model that was just created. Downstream components `DeleteModel` and `UndeployModel` will respect the model version if provided.
 * Bump KFP SDK upper bound to 2.3.0
-
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
 
 ## Release 2.3.1
 * Make LLM pipelines compatible with KFP SDK 2.1.3
