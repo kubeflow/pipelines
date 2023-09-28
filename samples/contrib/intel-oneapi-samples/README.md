@@ -149,7 +149,7 @@ view the model performance results. You should see a similar graph of the receiv
 operating characteristic (ROC) curve as the one below.
 
 <p align="center">
-  <img src="assets/intel-xgb-d4p-pipeline-roc-curve.png" alt="ROC Curve" width="750"/>
+  <img src="assets/intel-xgb-d4p-pipeline-roc-curve.png" alt="ROC Curve" width="900"/>
 </p>
 
 [Back to Table of Contents](#table-of-contents)
