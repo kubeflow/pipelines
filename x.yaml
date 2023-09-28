@@ -1,0 +1,86 @@
+# PIPELINE DEFINITION
+# Name: test-pipeline
+# Inputs:
+#    region: str [Default: 'us-central1']
+components:
+  comp-comp:
+    executorLabel: exec-comp
+    inputDefinitions:
+      parameters:
+        regional_uri:
+          parameterType: STRING
+  comp-graph:
+    dag:
+      tasks:
+        comp:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-comp
+          inputs:
+            parameters:
+              regional_uri:
+                componentInputParameter: regional_uri
+          taskInfo:
+            name: comp
+    inputDefinitions:
+      parameters:
+        regional_uri:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.3.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef comp(regional_uri: str):\n    print(regional_uri)\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: test-pipeline
+root:
+  dag:
+    tasks:
+      graph:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-graph
+        inputs:
+          parameters:
+            pipelinechannel--region:
+              componentInputParameter: region
+            regional_uri:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--region'']}}-aiplatform.googleapis.com'
+        taskInfo:
+          name: graph
+  inputDefinitions:
+    parameters:
+      region:
+        defaultValue: us-central1
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.3.0

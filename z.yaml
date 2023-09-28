@@ -1,0 +1,96 @@
+# PIPELINE DEFINITION
+# Name: my-pipeline
+components:
+  comp-vertex-ai-request:
+    executorLabel: exec-vertex-ai-request
+    inputDefinitions:
+      parameters:
+        location:
+          parameterType: STRING
+        method:
+          parameterType: STRING
+        payload:
+          parameterType: STRUCT
+        project:
+          parameterType: STRING
+        resource:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-vertex-ai-request:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - vertex_ai_request
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.3.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef vertex_ai_request(\n    project: str,\n    location: str,\n \
+          \   resource: str,\n    method: str,\n    payload: dict,\n):\n    import\
+          \ requests\n\n    # from google.oauth2.credentials import Credentials\n\
+          \    # from google.oauth2.service_account import ServiceAccountCredentials\n\
+          \n    # creds = ServiceAccountCredentials.from_service_account_file(\n \
+          \   #     'path_to_service_account.json',\n    #     scopes=[\"https://www.googleapis.com/auth/cloud-platform\"\
+          ])\n\n    # access_token = creds.refresh(None).token\n\n    def get_access_token():\n\
+          \        url = \"http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token\"\
+          \n        headers = {\"Metadata-Flavor\": \"Google\"}\n        response\
+          \ = requests.get(url, headers=headers)\n        response.raise_for_status()\n\
+          \        return response.json()[\"access_token\"]\n\n    endpoint = f\"\
+          https://{location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/datasets\"\
+          \n    # https://us-central1-aiplatform.googleapis.com\n    headers = {\n\
+          \        \"Authorization\": f\"Bearer {get_access_token()}\",\n        \"\
+          Content-Type\": \"application/json\"\n    }\n    method_map = {'get': 'GET'}\n\
+          \n    response = requests.request(\n        method_map[method],\n      \
+          \  endpoint,\n        headers=headers,\n    )\n\n    print(response.json())\n\
+          \n"
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
+pipelineInfo:
+  name: my-pipeline
+root:
+  dag:
+    tasks:
+      vertex-ai-request:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-vertex-ai-request
+        inputs:
+          parameters:
+            location:
+              runtimeValue:
+                constant: us-central1
+            method:
+              runtimeValue:
+                constant: get
+            payload:
+              runtimeValue:
+                constant:
+                  name: beans
+            project:
+              runtimeValue:
+                constant: cjmccarthy-kfp
+            resource:
+              runtimeValue:
+                constant: datasets
+        taskInfo:
+          name: vertex-ai-request
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.3.0
