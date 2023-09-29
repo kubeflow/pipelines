@@ -1,18 +1,28 @@
 # PIPELINE DEFINITION
-# Name: my-pipeline
+# Name: demo-pipeline
 components:
   comp-vertex-ai-request:
     executorLabel: exec-vertex-ai-request
     inputDefinitions:
       parameters:
+        api_version:
+          defaultValue: v1
+          isOptional: true
+          parameterType: STRING
         location:
           parameterType: STRING
         method:
           parameterType: STRING
-        payload:
+        path_parameters:
+          defaultValue: {}
+          isOptional: true
           parameterType: STRUCT
         project:
           parameterType: STRING
+        query_parameters:
+          defaultValue: {}
+          isOptional: true
+          parameterType: STRUCT
         resource:
           parameterType: STRING
 deploymentSpec:
@@ -44,26 +54,35 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef vertex_ai_request(\n    project: str,\n    location: str,\n \
-          \   resource: str,\n    method: str,\n    payload: dict,\n):\n    import\
-          \ requests\n\n    # from google.oauth2.credentials import Credentials\n\
-          \    # from google.oauth2.service_account import ServiceAccountCredentials\n\
-          \n    # creds = ServiceAccountCredentials.from_service_account_file(\n \
-          \   #     'path_to_service_account.json',\n    #     scopes=[\"https://www.googleapis.com/auth/cloud-platform\"\
-          ])\n\n    # access_token = creds.refresh(None).token\n\n    def get_access_token():\n\
-          \        url = \"http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token\"\
+          \   resource: str,\n    method: str,\n    query_parameters: dict = {},\n\
+          \    path_parameters: dict = {},\n    api_version: str = 'v1',\n):\n   \
+          \ import requests\n    import os\n\n    def get_access_token():\n      \
+          \  url = \"http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token\"\
           \n        headers = {\"Metadata-Flavor\": \"Google\"}\n        response\
           \ = requests.get(url, headers=headers)\n        response.raise_for_status()\n\
-          \        return response.json()[\"access_token\"]\n\n    endpoint = f\"\
-          https://{location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/datasets\"\
-          \n    # https://us-central1-aiplatform.googleapis.com\n    headers = {\n\
+          \        return response.json()[\"access_token\"]\n\n    ENDPOINT_BASE =\
+          \ f'https://{location}-aiplatform.googleapis.com/{api_version}/projects/{project}/locations/{location}'\n\
+          \n    method_map = {\n        'datasets': {\n            'methods': {\n\
+          \                'get': ('GET', 'datasets/{name}'),\n                # 'create':\
+          \ ('POST',),\n                # 'delete': ('DELETE',),\n               \
+          \ # 'export': ('POST',),\n                # 'import': ('POST'),\n      \
+          \          'list': ('GET', 'datasets'),\n                # 'patch': ('PATCH',),\n\
+          \                # 'searchDataItems': ('GET',),\n            }\n       \
+          \ }\n    }\n    print(\n        \"Hitting endpoint: \",\n        os.path.join(\n\
+          \            ENDPOINT_BASE, method_map[resource]['methods'][method][1].format(\n\
+          \                project=project, **path_parameters)))\n    headers = {\n\
           \        \"Authorization\": f\"Bearer {get_access_token()}\",\n        \"\
-          Content-Type\": \"application/json\"\n    }\n    method_map = {'get': 'GET'}\n\
-          \n    response = requests.request(\n        method_map[method],\n      \
-          \  endpoint,\n        headers=headers,\n    )\n\n    print(response.json())\n\
-          \n"
+          Content-Type\": \"application/json\"\n    }\n    response = requests.request(\n\
+          \        method=method_map[resource]['methods'][method][0],\n        url=os.path.join(\n\
+          \            ENDPOINT_BASE, method_map[resource]['methods'][method][1].format(\n\
+          \                project=project, **path_parameters)),\n        headers=headers,\n\
+          \        params=query_parameters,\n    )\n    response.raise_for_status()\n\
+          \n    print(\"Got response:\")\n    print(response.json())\n    print(\n\
+          \        \"Here is where we would persist the artifact output based on the\
+          \ method used and the response payload.\"\n    )\n\n"
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
 pipelineInfo:
-  name: my-pipeline
+  name: demo-pipeline
 root:
   dag:
     tasks:
@@ -80,10 +99,10 @@ root:
             method:
               runtimeValue:
                 constant: get
-            payload:
+            path_parameters:
               runtimeValue:
                 constant:
-                  name: beans
+                  name: '8622262432879869952'
             project:
               runtimeValue:
                 constant: cjmccarthy-kfp
