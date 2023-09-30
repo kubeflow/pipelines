@@ -622,7 +622,7 @@ inputs:
 - {name: message, type: PipelineTaskFinalStatus}
 implementation:
   container:
-    image: python:3.7
+    image: python:3.9
     command:
     - echo
     - {inputValue: message}
@@ -1075,7 +1075,7 @@ class TestCompileComponent(parameterized.TestCase):
         def hello_world_container() -> dsl.ContainerSpec:
             """Hello world component."""
             return dsl.ContainerSpec(
-                image='python:3.7',
+                image='python:3.9',
                 command=['echo', 'hello world'],
                 args=[],
             )
@@ -1098,7 +1098,7 @@ class TestCompileComponent(parameterized.TestCase):
         @dsl.container_component
         def container_simple_io(text: str, output_path: dsl.OutputPath(str)):
             return dsl.ContainerSpec(
-                image='python:3.7',
+                image='python:3.9',
                 command=['my_program', text],
                 args=['--output_path', output_path])
 
@@ -2362,7 +2362,7 @@ class TestYamlComments(unittest.TestCase):
         def my_container_component(text: str, output_path: OutputPath(str)):
             """component description."""
             return ContainerSpec(
-                image='python:3.7',
+                image='python:3.9',
                 command=['my_program', text],
                 args=['--output_path', output_path])
 

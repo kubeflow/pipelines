@@ -184,7 +184,7 @@ class ConcatPlaceholder(Placeholder):
         def container_with_concat_placeholder(text1: str, text2: Output[Dataset],
                                               output_path: OutputPath(str)):
             return ContainerSpec(
-                image='python:3.7',
+                image='python:3.9',
                 command=[
                     'my_program',
                     ConcatPlaceholder(['prefix-', text1, text2.uri])
@@ -232,7 +232,7 @@ class IfPresentPlaceholder(Placeholder):
                                           dataset: Output[Dataset],
                                           optional_input: str = 'default'):
             return ContainerSpec(
-                    image='python:3.7',
+                    image='python:3.9',
                     command=[
                         'my_program',
                         IfPresentPlaceholder(

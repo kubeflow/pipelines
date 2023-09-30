@@ -14,7 +14,7 @@
 from kfp import dsl
 
 
-@dsl.component(base_image='python:3.7', target_image='kfp-image')
+@dsl.component(base_image='python:3.9', target_image='kfp-image')
 def concat_message(message1: str, message2: str) -> str:
     return message1 + message2
 

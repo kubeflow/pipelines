@@ -16,7 +16,7 @@
 source_root=$(pwd)
 
 python3 -m pip install --upgrade pip
-python3 -m pip install coveralls==1.9.2
+python3 -m pip install coveralls==3.3.1
 python3 -m pip install $(grep 'absl-py==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'docker==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
