@@ -1,6 +1,6 @@
 steps:
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
-  - --destination=gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.45
+  - --destination=gcr.io/ml-pipeline/google-cloud-pipeline-components:$_IMAGE_SUFFIX
   - --destination=gcr.io/ml-pipeline/google-cloud-pipeline-components:public-image-gcpc-v1-scan
   - --cache=false
