@@ -192,7 +192,7 @@ html_theme_options = {
     }],
     'font': {'text': 'Open Sans'},
     'version_dropdown': True,
-    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/test-gcpc-dropdown/versions.json',
+    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/google-cloud/docs/source/versions.json',
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.
