@@ -1,4 +1,5 @@
 ## Upcoming release
+* Disable caching for LLM pipeline tasks that store temporary artifacts.
 
 ## Release 2.4.0
 * Add support for running tasks on a `PersistentResource` (see [CustomJobSpec](https://cloud.google.com/vertex-ai/docs/reference/rest/v1beta1/CustomJobSpec)) via `persistent_resource_id` parameter on `preview.custom_job.CustomTrainingJobOp` and `preview.custom_job.create_custom_training_job_from_component`

@@ -72,19 +72,23 @@ def infer_pipeline(
   prompt_dataset_image_uri = function_based.resolve_private_image_uri(
       image_name='text_importer',
   ).set_display_name('PromptDatasetImageUriResolver')
-  prompt_dataset_importer = private_text_importer.PrivateTextImporter(
-      project=project,
-      location=location,
-      input_text=prompt_dataset,
-      inputs_field_name=prompt_column,
-      targets_field_name='',  # ignore targets_field_name
-      output_split_name=env.TRAIN_SPLIT,
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
-      ],
-      image_uri=prompt_dataset_image_uri.output,
-      instruction=instruction,
-  ).set_display_name('PromptDatasetImporter')
+  prompt_dataset_importer = (
+      private_text_importer.PrivateTextImporter(
+          project=project,
+          location=location,
+          input_text=prompt_dataset,
+          inputs_field_name=prompt_column,
+          targets_field_name='',  # ignore targets_field_name
+          output_split_name=env.TRAIN_SPLIT,
+          large_model_reference=reference_model_metadata.outputs[
+              'large_model_reference'
+          ],
+          image_uri=prompt_dataset_image_uri.output,
+          instruction=instruction,
+      )
+      .set_display_name('PromptDatasetImporter')
+      .set_caching_options(False)
+  )
 
   bulk_inferrer_image_uri = function_based.resolve_private_image_uri(
       image_name='infer',

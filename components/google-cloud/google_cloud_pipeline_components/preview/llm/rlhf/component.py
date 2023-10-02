@@ -99,20 +99,24 @@ def rlhf_pipeline(
   prompt_dataset_image_uri = function_based.resolve_private_image_uri(
       image_name='text_importer'
   ).set_display_name('PromptDatasetImageUriResolver')
-  prompt_dataset_importer = private_text_importer.PrivateTextImporter(
-      project=project,
-      location=location,
-      input_text=prompt_dataset,
-      inputs_field_name=prompt_column,
-      # Target field name does not matter because this field is not used.
-      targets_field_name='non_existent_targets_field_name',
-      output_split_name=env.TRAIN_SPLIT,
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
-      ],
-      image_uri=prompt_dataset_image_uri.output,
-      instruction=instruction,
-  ).set_display_name('PromptDatasetImporter')
+  prompt_dataset_importer = (
+      private_text_importer.PrivateTextImporter(
+          project=project,
+          location=location,
+          input_text=prompt_dataset,
+          inputs_field_name=prompt_column,
+          # Target field name does not matter because this field is not used.
+          targets_field_name='non_existent_targets_field_name',
+          output_split_name=env.TRAIN_SPLIT,
+          large_model_reference=reference_model_metadata.outputs[
+              'large_model_reference'
+          ],
+          image_uri=prompt_dataset_image_uri.output,
+          instruction=instruction,
+      )
+      .set_display_name('PromptDatasetImporter')
+      .set_caching_options(False)
+  )
 
   preference_dataset_image_uri = function_based.resolve_private_image_uri(
       image_name='text_comparison_importer'
@@ -120,21 +124,23 @@ def rlhf_pipeline(
   comma_separated_candidates_field_names = (
       function_based.convert_to_delimited_string(items=candidate_columns)
   )
-  preference_dataset_importer = private_text_comparison_importer.PrivateTextComparisonImporter(
-      project=project,
-      location=location,
-      input_text=preference_dataset,
-      inputs_field_name=prompt_column,
-      comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
-      choice_field_name=choice_column,
-      split=env.TRAIN_SPLIT,
-      large_model_reference=reference_model_metadata.outputs[
-          'reward_model_reference'
-      ],
-      image_uri=preference_dataset_image_uri.output,
-      instruction=instruction,
-  ).set_display_name(
-      'PreferenceDatasetImporter'
+  preference_dataset_importer = (
+      private_text_comparison_importer.PrivateTextComparisonImporter(
+          project=project,
+          location=location,
+          input_text=preference_dataset,
+          inputs_field_name=prompt_column,
+          comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
+          choice_field_name=choice_column,
+          split=env.TRAIN_SPLIT,
+          large_model_reference=reference_model_metadata.outputs[
+              'reward_model_reference'
+          ],
+          image_uri=preference_dataset_image_uri.output,
+          instruction=instruction,
+      )
+      .set_display_name('PreferenceDatasetImporter')
+      .set_caching_options(False)
   )
 
   reward_model_image_uri = function_based.resolve_private_image_uri(
@@ -142,59 +148,71 @@ def rlhf_pipeline(
       accelerator_type=machine_spec.outputs['accelerator_type'],
       accelerator_count=machine_spec.outputs['accelerator_count'],
   ).set_display_name('RewardModelImageUriResolver')
-  reward_model = reward_model_trainer.RewardModelTrainer(
-      project=project,
-      location=location,
-      input_model_path=reference_model_metadata.outputs['reward_model_path'],
-      input_dataset_path=preference_dataset_importer.outputs[
-          'output_dataset_path'
-      ],
-      train_steps=reward_model_train_steps,
-      accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
-      large_model_reference=reference_model_metadata.outputs[
-          'reward_model_reference'
-      ],
-      machine_type=machine_spec.outputs['machine_type'],
-      image_uri=reward_model_image_uri.output,
-      inputs_sequence_length=prompt_sequence_length,
-      targets_sequence_length=target_sequence_length,
-      batch_size=batch_size,
-      learning_rate_multiplier=reward_model_learning_rate_multiplier,
-      lora_dim=reward_model_lora_dim,
-  ).set_display_name('RewardModelTrainer')
+  reward_model = (
+      reward_model_trainer.RewardModelTrainer(
+          project=project,
+          location=location,
+          input_model_path=reference_model_metadata.outputs[
+              'reward_model_path'
+          ],
+          input_dataset_path=preference_dataset_importer.outputs[
+              'output_dataset_path'
+          ],
+          train_steps=reward_model_train_steps,
+          accelerator_type=machine_spec.outputs['accelerator_type'],
+          accelerator_count=machine_spec.outputs['accelerator_count'],
+          large_model_reference=reference_model_metadata.outputs[
+              'reward_model_reference'
+          ],
+          machine_type=machine_spec.outputs['machine_type'],
+          image_uri=reward_model_image_uri.output,
+          inputs_sequence_length=prompt_sequence_length,
+          targets_sequence_length=target_sequence_length,
+          batch_size=batch_size,
+          learning_rate_multiplier=reward_model_learning_rate_multiplier,
+          lora_dim=reward_model_lora_dim,
+      )
+      .set_display_name('RewardModelTrainer')
+      .set_caching_options(False)
+  )
 
   rl_image_uri = function_based.resolve_private_image_uri(
       image_name='reinforcer',
       accelerator_type=machine_spec.outputs['accelerator_type'],
       accelerator_count=machine_spec.outputs['accelerator_count'],
   ).set_display_name('ReinforcerImageUriResolver')
-  rl_model = reinforcer.Reinforcer(
-      project=project,
-      location=location,
-      input_reference_model_path=reference_model_metadata.outputs[
-          'reference_model_path'
-      ],
-      input_reward_model_path=reward_model.outputs['output_model_path'],
-      input_dataset_path=prompt_dataset_importer.outputs['imported_data_path'],
-      train_steps=reinforcement_learning_train_steps,
-      accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
-      ],
-      reward_model_reference=reference_model_metadata.outputs[
-          'reward_model_reference'
-      ],
-      machine_type=machine_spec.outputs['machine_type'],
-      image_uri=rl_image_uri.output,
-      inputs_sequence_length=prompt_sequence_length,
-      targets_sequence_length=target_sequence_length,
-      batch_size=batch_size,
-      learning_rate_multiplier=reinforcement_learning_rate_multiplier,
-      kl_coeff=kl_coeff,
-      lora_dim=policy_model_lora_dim,
-  ).set_display_name('Reinforcer')
+  rl_model = (
+      reinforcer.Reinforcer(
+          project=project,
+          location=location,
+          input_reference_model_path=reference_model_metadata.outputs[
+              'reference_model_path'
+          ],
+          input_reward_model_path=reward_model.outputs['output_model_path'],
+          input_dataset_path=prompt_dataset_importer.outputs[
+              'imported_data_path'
+          ],
+          train_steps=reinforcement_learning_train_steps,
+          accelerator_type=machine_spec.outputs['accelerator_type'],
+          accelerator_count=machine_spec.outputs['accelerator_count'],
+          large_model_reference=reference_model_metadata.outputs[
+              'large_model_reference'
+          ],
+          reward_model_reference=reference_model_metadata.outputs[
+              'reward_model_reference'
+          ],
+          machine_type=machine_spec.outputs['machine_type'],
+          image_uri=rl_image_uri.output,
+          inputs_sequence_length=prompt_sequence_length,
+          targets_sequence_length=target_sequence_length,
+          batch_size=batch_size,
+          learning_rate_multiplier=reinforcement_learning_rate_multiplier,
+          kl_coeff=kl_coeff,
+          lora_dim=policy_model_lora_dim,
+      )
+      .set_display_name('Reinforcer')
+      .set_caching_options(False)
+  )
 
   should_perform_inference = function_based.value_exists(value=eval_dataset)
   with kfp.dsl.Condition(
