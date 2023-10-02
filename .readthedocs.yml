@@ -7,4 +7,3 @@ python:
   install:
     - method: setuptools
       path: components/google-cloud
-
