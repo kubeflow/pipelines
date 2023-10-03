@@ -1,6 +1,6 @@
 # PIPELINE DEFINITION
 # Name: conditional-execution-pipeline
-# Description: Shows how to use dsl.Condition().
+# Description: Shows how to use dsl.If().
 components:
   comp-condition-1:
     dag:
@@ -301,7 +301,7 @@ deploymentSpec:
         - '{{$.inputs.parameters[''msg'']}}'
         image: python:alpine3.6
 pipelineInfo:
-  description: Shows how to use dsl.Condition().
+  description: Shows how to use dsl.If().
   displayName: Conditional execution pipeline.
   name: conditional-execution-pipeline
 root:

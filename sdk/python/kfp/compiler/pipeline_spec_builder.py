@@ -38,14 +38,6 @@ from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
-# must be defined here to avoid circular imports
-group_type_to_dsl_class = {
-    tasks_group.TasksGroupType.PIPELINE: pipeline_context.Pipeline,
-    tasks_group.TasksGroupType.CONDITION: tasks_group.Condition,
-    tasks_group.TasksGroupType.FOR_LOOP: tasks_group.ParallelFor,
-    tasks_group.TasksGroupType.EXIT_HANDLER: tasks_group.ExitHandler,
-}
-
 
 def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     """Creates a google.protobuf.struct_pb2.Value message out of a provide
@@ -92,10 +84,10 @@ def build_task_spec_for_task(
     For instance::
 
         random_num = random_num_op(...)
-        with dsl.Condition(random_num.output > 5):
+        with dsl.If(random_num.output > 5):
             print_op('%s > 5' % random_num.output)
 
-    In this example, `dsl.Condition` forms a subDAG with one task from `print_op`
+    In this example, `dsl.If` forms a subDAG with one task from `print_op`
     inside the subDAG. The task of `print_op` references output from `random_num`
     task, which is outside the sub-DAG. When compiling to IR, such cross DAG
     reference is disallowed. So we need to "punch a hole" in the sub-DAG to make
@@ -1351,7 +1343,7 @@ def modify_task_for_ignore_upstream_failure(
                 else:
                     # TODO: permit additional PipelineTaskFinalStatus flexibility by "punching the hole" through Condition and ParallelFor groups
                     raise compiler_utils.InvalidTopologyException(
-                        f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope. Got task '{pipeline_task_spec.task_info.name}' beneath a 'dsl.{group_type_to_dsl_class[task.parent_task_group.group_type].__name__}' that does not also contain the upstream dependent task."
+                        f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope. Got task '{pipeline_task_spec.task_info.name}' beneath a 'dsl.{task.parent_task_group.__class__.__name__}' that does not also contain the upstream dependent task."
                     )
 
             # if >1 dependent task, ambiguous to which upstream task the PipelineTaskFinalStatus should correspond, since there is no ExitHandler that bundles these together
@@ -1426,7 +1418,7 @@ def build_exit_handler_groups_recursively(
             # remove this if block to support nested exit handlers
             if not parent_group.is_root:
                 raise ValueError(
-                    f'{tasks_group.ExitHandler.__name__} can only be used within the outermost scope of a pipeline function definition. Using an {tasks_group.ExitHandler.__name__} within {group_type_to_dsl_class[parent_group.group_type].__name__} {parent_group.name} is not allowed.'
+                    f'{tasks_group.ExitHandler.__name__} can only be used within the outermost scope of a pipeline function definition. Using an {tasks_group.ExitHandler.__name__} within {parent_group.__class__.__name__} {parent_group.name} is not allowed.'
                 )
 
             exit_task = group.exit_task

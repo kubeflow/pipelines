@@ -524,12 +524,12 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.If context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.If context\.'
         ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
-                with dsl.Condition(val == False):
+                with dsl.If(val == False):
                     producer_task = producer_op()
 
                 dummy_op(msg=producer_task.output)
@@ -546,7 +546,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline(val: bool):
-            with dsl.Condition(val == False):
+            with dsl.If(val == False):
                 producer_task = producer_op()
                 dummy_op(msg=producer_task.output)
 
@@ -1617,7 +1617,7 @@ class TestValidLegalTopologies(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl.If context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.If context\.'
         ):
 
             @dsl.pipeline()
@@ -1625,7 +1625,7 @@ class TestValidLegalTopologies(unittest.TestCase):
                 return_1_task = return_1()
 
                 one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
+                with dsl.If(return_1_task.output == 1):
                     two = print_op(message='2')
 
                 three = print_op(message='3').after(two)
@@ -1641,7 +1641,7 @@ class TestValidLegalTopologies(unittest.TestCase):
         def my_pipeline():
             return_1_task = return_1()
 
-            with dsl.Condition(return_1_task.output == 1):
+            with dsl.If(return_1_task.output == 1):
                 one = return_1()
                 two = print_op(message='2')
                 three = print_op(message=str(one.output))
@@ -1658,7 +1658,7 @@ class TestValidLegalTopologies(unittest.TestCase):
             return_1_task = return_1()
 
             one = print_op(message='1')
-            with dsl.Condition(return_1_task.output == 1):
+            with dsl.If(return_1_task.output == 1):
                 two = print_op(message='2')
                 three = print_op(message='3').after(one)
 
@@ -1672,7 +1672,7 @@ class TestValidLegalTopologies(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl\.If context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.If context\.'
         ):
 
             @dsl.pipeline()
@@ -1680,10 +1680,10 @@ class TestValidLegalTopologies(unittest.TestCase):
                 return_1_task = return_1()
 
                 one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
+                with dsl.If(return_1_task.output == 1):
                     two = print_op(message='2')
 
-                with dsl.Condition(return_1_task.output == 1):
+                with dsl.If(return_1_task.output == 1):
                     three = print_op(message='3').after(two)
 
             with tempfile.TemporaryDirectory() as tempdir:
@@ -1698,9 +1698,9 @@ class TestValidLegalTopologies(unittest.TestCase):
             return_1_task = return_1()
             return_1_task2 = return_1()
 
-            with dsl.Condition(return_1_task.output == 1):
+            with dsl.If(return_1_task.output == 1):
                 one = return_1()
-                with dsl.Condition(return_1_task2.output == 1):
+                with dsl.If(return_1_task2.output == 1):
                     two = print_op(message='2')
                     three = print_op(message=str(one.output))
 
@@ -1713,16 +1713,16 @@ class TestValidLegalTopologies(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.If context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.If context\.'
         ):
 
             @dsl.pipeline()
             def my_pipeline():
                 return_1_task = return_1()
 
-                with dsl.Condition(return_1_task.output == 1):
+                with dsl.If(return_1_task.output == 1):
                     one = print_op(message='1')
-                    with dsl.Condition(return_1_task.output == 1):
+                    with dsl.If(return_1_task.output == 1):
                         two = print_op(message='2')
                     three = print_op(message='3').after(two)
 
@@ -1877,7 +1877,7 @@ class TestValidLegalTopologies(unittest.TestCase):
 
             with dsl.ParallelFor([1, 2, 3]):
                 one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
+                with dsl.If(return_1_task.output == 1):
                     two = print_op(message='2').after(one)
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -1891,7 +1891,7 @@ class TestValidLegalTopologies(unittest.TestCase):
         def my_pipeline():
             return_1_task = return_1()
 
-            with dsl.Condition(return_1_task.output == 1):
+            with dsl.If(return_1_task.output == 1):
                 one = print_op(message='1')
                 with dsl.ParallelFor([1, 2, 3]):
                     two = print_op(message='2').after(one)
@@ -2005,7 +2005,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
     def test_outside_of_condition_blocked(self):
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.If context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op within an uncommon dsl\.If context\.'
         ):
 
             @dsl.component
@@ -2020,7 +2020,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
             def my_pipeline():
                 return_1_task = return_1()
 
-                with dsl.Condition(return_1_task.output == 1):
+                with dsl.If(return_1_task.output == 1):
                     one = print_op(message='1')
                     two = print_op(message='2')
                 three = print_op(message='3').after(one)
@@ -2044,7 +2044,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
         def my_pipeline():
             return_1_task = return_1()
 
-            with dsl.Condition(return_1_task.output == '1'):
+            with dsl.If(return_1_task.output == '1'):
                 one = print_op(message='1')
                 two = print_op(message='2').after(one)
             three = print_op(message='3')
@@ -2922,7 +2922,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
         @dsl.pipeline
         def math_pipeline(text: str) -> int:
-            with dsl.Condition(text == 'text'):
+            with dsl.If(text == 'text'):
                 with dsl.ParallelFor([1, 2, 3]) as v:
                     t = double(num=v)
 
@@ -2941,10 +2941,10 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
         @dsl.pipeline
         def my_pipeline(a: str):
             with dsl.ParallelFor([1, 2, 3]) as v:
-                with dsl.Condition(v == 1):
+                with dsl.If(v == 1):
                     t = double(num=v)
 
-            with dsl.Condition(a == 'a'):
+            with dsl.If(a == 'a'):
                 x = add(nums=dsl.Collected(t.output))
 
     def test_producer_condition_illegal1(self):
@@ -2959,16 +2959,16 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl.If context manager unless the consumer task is too\. Task add consumes from double within a dsl\.If context\.'
         ):
 
             @dsl.pipeline
             def my_pipeline(a: str = '', b: str = ''):
-                with dsl.Condition(a == 'a'):
+                with dsl.If(a == 'a'):
                     with dsl.ParallelFor([1, 2, 3]) as v:
                         t = double(num=v)
 
-                with dsl.Condition(b == 'b'):
+                with dsl.If(b == 'b'):
                     x = add(nums=dsl.Collected(t.output))
 
     def test_producer_condition_illegal2(self):
@@ -3181,13 +3181,13 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope\. Got task 'cancel-handler' beneath a 'dsl\.Condition' that does not also contain the upstream dependent task\.",
+                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope\. Got task 'cancel-handler' beneath a 'dsl\.If' that does not also contain the upstream dependent task\.",
         ):
 
             @dsl.pipeline
             def my_pipeline():
                 worker_task = worker_component()
-                with dsl.Condition(worker_task.output == 'foo'):
+                with dsl.If(worker_task.output == 'foo'):
                     exit_task = cancel_handler(
                         text=worker_task.output).ignore_upstream_failure()
 
@@ -4553,7 +4553,7 @@ class TestConditionLogic(unittest.TestCase):
 
             @dsl.pipeline
             def my_pipeline():
-                with dsl.Condition('foo' == 'foo'):
+                with dsl.If('foo' == 'foo'):
                     print_and_return(text='I will always run.')
 
     def test_boolean_elif_has_helpful_error(self):

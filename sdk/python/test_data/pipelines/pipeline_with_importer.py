@@ -59,7 +59,7 @@ def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
         metadata={'key': 'value'})
     train1 = train(dataset=importer1.output)
 
-    with dsl.Condition(train1.outputs['scalar'] == '123'):
+    with dsl.If(train1.outputs['scalar'] == '123'):
         importer2 = importer(
             artifact_uri=dataset2, artifact_class=Dataset, reimport=True)
         train(dataset=importer2.output)

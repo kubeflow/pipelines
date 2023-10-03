@@ -67,7 +67,7 @@ def math_pipeline(
     with dsl.ParallelFor([1, 2, 3]) as x:
         double_task1 = double(num=x)
         with dsl.ParallelFor([1, 2, 3]) as y:
-            with dsl.Condition(y >= threshold):
+            with dsl.If(y >= threshold):
                 double_task2 = double(num=y)
     sum_task = add_two_lists_of_datasets(
         in_datasets1=dsl.Collected(double_task1.outputs['out_dataset']),

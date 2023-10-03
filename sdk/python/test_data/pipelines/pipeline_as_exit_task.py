@@ -42,7 +42,7 @@ def get_run_state(status: dict) -> str:
 @dsl.pipeline(name='conditional-notification')
 def exit_op(status: PipelineTaskFinalStatus):
     """Checks pipeline run status."""
-    with dsl.Condition(get_run_state(status=status).output == 'FAILED'):
+    with dsl.If(get_run_state(status=status).output == 'FAILED'):
         print_op(message='notify task failure.')
 
 

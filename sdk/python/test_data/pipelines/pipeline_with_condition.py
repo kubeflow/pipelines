@@ -36,7 +36,7 @@ def my_pipeline(text: str = 'condition test'):
     flip1 = flip_coin_op().set_caching_options(False)
     print_op(msg=flip1.output)
 
-    with dsl.Condition(flip1.output == 'heads'):
+    with dsl.If(flip1.output == 'heads'):
         flip2 = flip_coin_op().set_caching_options(False)
         print_op(msg=flip2.output)
         print_op(msg=text)

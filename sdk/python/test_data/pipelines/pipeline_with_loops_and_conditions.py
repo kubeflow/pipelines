@@ -69,7 +69,7 @@ def my_pipeline(
     flip = flip_coin_op()
     outter_args_generator = args_generator_op()
 
-    with dsl.Condition(flip.output != 'no-such-result'):  # always true
+    with dsl.If(flip.output != 'no-such-result'):  # always true
 
         inner_arg_generator = args_generator_op()
 
@@ -77,13 +77,13 @@ def my_pipeline(
 
             print_text(msg=msg)
 
-            with dsl.Condition(item.A_a == 'heads'):
+            with dsl.If(item.A_a == 'heads'):
                 print_text(msg=item.B_b)
 
-            with dsl.Condition(flip.output == 'heads'):
+            with dsl.If(flip.output == 'heads'):
                 print_text(msg=item.B_b)
 
-            with dsl.Condition(item.A_a == 'tails'):
+            with dsl.If(item.A_a == 'tails'):
                 with dsl.ParallelFor([{'a': '-1'}, {'a': '-2'}]) as inner_item:
                     print_struct(struct=inner_item)
 
@@ -99,12 +99,12 @@ def my_pipeline(
             with dsl.ParallelFor(['1', '2']) as static_item:
                 print_text(msg=static_item)
 
-                with dsl.Condition(static_item == '1'):
+                with dsl.If(static_item == '1'):
                     print_text(msg='1')
 
     # Reference loop item from grand child
     with dsl.ParallelFor(loop_parameter) as item:
-        with dsl.Condition(item.A_a == 'heads'):
+        with dsl.If(item.A_a == 'heads'):
             with dsl.ParallelFor(item.B_b) as item_b:
                 print_text(msg=item_b)
 

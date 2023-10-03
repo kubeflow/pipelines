@@ -141,7 +141,7 @@ def get_condition_channels_for_tasks(
 
     Returns:
         A mapping of task name to a set of pipeline channels appeared in its
-        parent dsl.Condition groups.
+        parent dsl.If groups.
     """
     conditions = collections.defaultdict(set)
 
@@ -389,7 +389,7 @@ def validate_parallel_for_fan_in_consumption_legal(
     #
     # @dsl.pipeline
     # def my_pipeline(text: str = ''):
-    #     with dsl.Condition(text == 'a'):
+    #     with dsl.If(text == 'a'):
     #         with dsl.ParallelFor([1, 2, 3]) as x:
     #             t = double(num=x)
     #     x = add(nums=dsl.Collected(t.output))

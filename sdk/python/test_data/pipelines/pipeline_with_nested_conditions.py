@@ -38,11 +38,11 @@ def my_pipeline():
     flip2 = flip_coin_op()
     print_op(msg=flip2.output)
 
-    with dsl.Condition(flip1.output != 'no-such-result'):  # always true
+    with dsl.If(flip1.output != 'no-such-result'):  # always true
         flip3 = flip_coin_op()
         print_op(msg=flip3.output)
 
-        with dsl.Condition(flip2.output == flip3.output):
+        with dsl.If(flip2.output == flip3.output):
             flip4 = flip_coin_op()
             print_op(msg=flip4.output)
 

@@ -17,10 +17,10 @@ def add(nums: List[int]) -> int:
 @dsl.pipeline
 def math_pipeline(threshold: int = 2) -> List[int]:
     with dsl.ParallelFor([1, 2, 3]) as x:
-        with dsl.Condition(x >= threshold):
+        with dsl.If(x >= threshold):
             t = double(num=x)
 
-    with dsl.Condition(threshold == 2):
+    with dsl.If(threshold == 2):
         t = add(nums=dsl.Collected(t.output))
     return dsl.Collected(t.output)
 

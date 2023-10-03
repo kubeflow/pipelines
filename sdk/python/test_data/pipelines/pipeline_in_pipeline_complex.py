@@ -47,9 +47,9 @@ implementation:
 @dsl.pipeline(name='inner-pipeline')
 def graph_component(msg: str):
     task = print_op1(msg=msg)
-    with dsl.Condition(task.output == 'Hello'):
+    with dsl.If(task.output == 'Hello'):
         print_op2(msg='world')
-    with dsl.Condition(task.output != 'Hello'):
+    with dsl.If(task.output != 'Hello'):
         print_op3(msg='Bye!')
 
 
