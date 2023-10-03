@@ -202,61 +202,6 @@ components:
             \     output_column: Name of our output feature."
           isOptional: true
           parameterType: LIST
-        embedding_batch_prediction_accelerator_count:
-          defaultValue: -1.0
-          description: 'The number of accelerators to
-
-            use to generate the embeddings. Default is 0.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_accelerator_type:
-          defaultValue: accelerator_type_unspecified
-          description: 'The accelerator type to use to
-
-            generate embeddings. If not provided, no accelerator is used. More
-
-            details: https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype'
-          isOptional: true
-          parameterType: STRING
-        embedding_batch_prediction_batch_size:
-          defaultValue: -1.0
-          description: 'The batch size for embedding batch
-
-            prediction job. Default = 1024.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_machine_type:
-          defaultValue: ''
-          description: 'The machine type to be
-
-            used to run the embedding batch prediction job. If not provided,
-
-            `n1-highmem-32` will be used. For more details, see:
-
-            https://cloud.google.com/vertex-ai/docs/predictions/configure-compute#machine-types'
-          isOptional: true
-          parameterType: STRING
-        embedding_batch_prediction_max_replica_count:
-          defaultValue: -1.0
-          description: 'The max replica count for
-
-            embedding batch prediction job. Default = 50.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_starting_replica_count:
-          defaultValue: -1.0
-          description: 'The starting replica count
-
-            for embedding batch prediction job. Default = 20.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_prediction_server_docker_uri:
-          defaultValue: ''
-          description: 'The docker image inside which to
-
-            run the embedding models to generate embeddings.'
-          isOptional: true
-          parameterType: STRING
         encryption_spec_key_name:
           defaultValue: ''
           description: Customer-managed encryption key.
@@ -1224,8 +1169,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -1241,15 +1186,8 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        - '{"Concat": ["--embedding_prediction_server_docker_uri=", "{{$.inputs.parameters[''embedding_prediction_server_docker_uri'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_machine_type=", "{{$.inputs.parameters[''embedding_batch_prediction_machine_type'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_accelerator_type=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_type'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_accelerator_count=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_starting_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_starting_replica_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_max_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_max_replica_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_batch_size=", "{{$.inputs.parameters[''embedding_batch_prediction_batch_size'']}}"]}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -1297,7 +1235,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
 pipelineInfo:
   description: Defines pipeline for feature transform engine component.
   name: feature-selection
@@ -1333,27 +1271,6 @@ root:
               componentInputParameter: dataset_level_custom_transformation_definitions
             dataset_level_transformations:
               componentInputParameter: dataset_level_transformations
-            embedding_batch_prediction_accelerator_count:
-              runtimeValue:
-                constant: -1.0
-            embedding_batch_prediction_accelerator_type:
-              runtimeValue:
-                constant: accelerator_type_unspecified
-            embedding_batch_prediction_batch_size:
-              runtimeValue:
-                constant: -1.0
-            embedding_batch_prediction_machine_type:
-              runtimeValue:
-                constant: ''
-            embedding_batch_prediction_max_replica_count:
-              runtimeValue:
-                constant: -1.0
-            embedding_batch_prediction_starting_replica_count:
-              runtimeValue:
-                constant: -1.0
-            embedding_prediction_server_docker_uri:
-              runtimeValue:
-                constant: ''
             encryption_spec_key_name:
               componentInputParameter: encryption_spec_key_name
             feature_selection_algorithm:
@@ -1477,7 +1394,7 @@ root:
                 constant: -1.0
             enable_probabilistic_inference:
               runtimeValue:
-                constant: 0.0
+                constant: false
             forecast_horizon:
               runtimeValue:
                 constant: -1.0
@@ -1493,10 +1410,10 @@ root:
               componentInputParameter: prediction_type
             run_distill:
               runtimeValue:
-                constant: 0.0
+                constant: false
             run_evaluation:
               runtimeValue:
-                constant: 0.0
+                constant: false
             split_example_counts:
               taskOutputParameter:
                 outputParameterKey: split_example_counts
@@ -1635,4 +1552,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.17
+sdkVersion: kfp-2.0.0-rc.2

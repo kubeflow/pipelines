@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """AutoML Training Configurator and Validator component spec."""
 
 from typing import Optional
@@ -96,7 +97,7 @@ def training_configurator_and_validator(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125',
       command=[],
       args=[
           'training_configurator_and_validator',

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """AutoML Tabular Ensemble component spec."""
 
 from typing import Optional
@@ -105,7 +106,7 @@ def automl_tabular_ensemble(
                       ' 1, "machine_spec": {"machine_type": "n1-highmem-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231002_0125',
                   '", "args": ["ensemble", "--transform_output_path=',
                   transform_output.uri,
                   '", "--model_output_path=',
@@ -136,7 +137,7 @@ def automl_tabular_ensemble(
                   '", "--warmup_data=',
                   warmup_data.uri,
                   '", "--prediction_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231002_0125',
                   '", "--model_path=',
                   model.uri,
                   '", "--custom_model_path=',

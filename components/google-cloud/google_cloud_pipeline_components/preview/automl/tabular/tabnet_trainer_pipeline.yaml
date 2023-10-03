@@ -1020,61 +1020,6 @@ components:
             \     output_column: Name of our output feature."
           isOptional: true
           parameterType: LIST
-        embedding_batch_prediction_accelerator_count:
-          defaultValue: -1.0
-          description: 'The number of accelerators to
-
-            use to generate the embeddings. Default is 0.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_accelerator_type:
-          defaultValue: accelerator_type_unspecified
-          description: 'The accelerator type to use to
-
-            generate embeddings. If not provided, no accelerator is used. More
-
-            details: https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype'
-          isOptional: true
-          parameterType: STRING
-        embedding_batch_prediction_batch_size:
-          defaultValue: -1.0
-          description: 'The batch size for embedding batch
-
-            prediction job. Default = 1024.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_machine_type:
-          defaultValue: ''
-          description: 'The machine type to be
-
-            used to run the embedding batch prediction job. If not provided,
-
-            `n1-highmem-32` will be used. For more details, see:
-
-            https://cloud.google.com/vertex-ai/docs/predictions/configure-compute#machine-types'
-          isOptional: true
-          parameterType: STRING
-        embedding_batch_prediction_max_replica_count:
-          defaultValue: -1.0
-          description: 'The max replica count for
-
-            embedding batch prediction job. Default = 50.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_starting_replica_count:
-          defaultValue: -1.0
-          description: 'The starting replica count
-
-            for embedding batch prediction job. Default = 20.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_prediction_server_docker_uri:
-          defaultValue: ''
-          description: 'The docker image inside which to
-
-            run the embedding models to generate embeddings.'
-          isOptional: true
-          parameterType: STRING
         encryption_spec_key_name:
           defaultValue: ''
           description: Customer-managed encryption key.
@@ -1735,7 +1680,7 @@ components:
 
             deployments of the Model and their resources. Either this or
 
-            unmanaged_container_model must be specified.'
+            `unmanaged_container_model` must be specified.'
           isOptional: true
         unmanaged_container_model:
           artifactType:
@@ -1778,7 +1723,7 @@ components:
 
             the given project a new dataset is created with name
 
-            ``prediction_<model-display-name>_<job-create-time>`` where is made
+            `prediction_<model-display-name>_<job-create-time>` where is made
 
             BigQuery-dataset-name compatible (for example, most special characters
 
@@ -1786,25 +1731,25 @@ components:
 
             "based on ISO-8601" format. In the dataset two tables will be created,
 
-            ``predictions``, and ``errors``. If the Model has both ``instance``
+            `predictions`, and `errors`. If the Model has both `instance`
 
-            and ``prediction`` schemata defined then the tables have columns as
+            and `prediction` schemata defined then the tables have columns as
 
-            follows: The ``predictions`` table contains instances for which the
+            follows: The `predictions` table contains instances for which the
 
             prediction succeeded, it has columns as per a concatenation of the
 
-            Model''s instance and prediction schemata. The ``errors`` table
+            Model''s instance and prediction schemata. The `errors` table
 
             contains rows for which the prediction has failed, it has instance
 
             columns, as per the instance schema, followed by a single "errors"
 
-            column, which as values has ```google.rpc.Status`` <Status>`__
+            column, which as values has [google.rpc.Status](Status)
 
-            represented as a STRUCT, and containing only ``code`` and
+            represented as a STRUCT, and containing only `code` and
 
-            ``message``. For more details about this output config, see
+            `message`. For more details about this output config, see
 
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
           isOptional: true
@@ -1830,7 +1775,7 @@ components:
 
             provided encryption key.  Has the form:
 
-            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+            `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
 
             The key needs to be in the same region as where the compute resource
 
@@ -1846,9 +1791,9 @@ components:
 
             Excluded will be attached to the batch prediction output if
 
-            [key_field][] is not specified.
+            key_field is not specified.
 
-            When excluded_fields is populated, [included_fields][] must be empty.
+            When `excluded_fields` is populated, `included_fields` must be empty.
 
             The input must be JSONL with objects at each line, CSV, BigQuery
 
@@ -1907,47 +1852,51 @@ components:
 
             to. In the given directory a new directory is created. Its name is
 
-            ``prediction-<model-display-name>-<job-create-time>``, where timestamp
+            `prediction-<model-display-name>-<job-create-time>`, where timestamp
 
             is in YYYY-MM-DDThh:mm:ss.sssZ ISO-8601 format. Inside of it files
 
-            ``predictions_0001.<extension>``, ``predictions_0002.<extension>``,
+            `predictions_0001.<extension>`, `predictions_0002.<extension>`,
 
-            ..., ``predictions_N.<extension>`` are created where ``<extension>``
+            ..., `predictions_N.<extension>` are created where `<extension>`
 
-            depends on chosen ``predictions_format``, and N may equal 0001 and
+            depends on chosen `predictions_format`, and N may equal 0001 and
 
             depends on the total number of successfully predicted instances. If
 
-            the Model has both ``instance`` and ``prediction`` schemata defined
+            the Model has both `instance` and `prediction` schemata defined
 
             then each such file contains predictions as per the
 
-            ``predictions_format``. If prediction for any instance failed
+            `predictions_format`. If prediction for any instance failed
 
             (partially or completely), then an additional
 
-            ``errors_0001.<extension>``, ``errors_0002.<extension>``,...,
+            `errors_0001.<extension>`, `errors_0002.<extension>`,...,
 
-            ``errors_N.<extension>`` files are created (N depends on total number
+            `errors_N.<extension>` files are created (N depends on total number
 
             of failed predictions). These files contain the failed instances, as
 
-            per their schema, followed by an additional ``error`` field which as
+            per their schema, followed by an additional `error` field which as
 
-            value has ``google.rpc.Status`` containing only ``code`` and
+            value has `google.rpc.Status` containing only `code` and
 
-            ``message`` fields.  For more details about this output config, see
+            `message` fields.  For more details about this output config, see
 
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
           isOptional: true
           parameterType: STRING
         gcs_source_uris:
           defaultValue: []
-          description: "Google Cloud Storage URI(-s) to your instances to run batch\
-            \ prediction\non. They must match `instances_format`. May contain wildcards.\
-            \ For more\ninformation on wildcards, see\n  https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.\n\
-            For more details about this input config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig."
+          description: 'Google Cloud Storage URI(-s) to your instances to run batch
+            prediction
+
+            on. They must match `instances_format`. May contain wildcards. For more
+
+            information on wildcards, see [WildcardNames](https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames).
+
+            For more details about this input config, see [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig).'
           isOptional: true
           parameterType: LIST
         generate_explanation:
@@ -1982,11 +1931,11 @@ components:
 
             sent to the Model.
 
-            If [instance_type][] is `array`, the order of field names in
+            If `instance_type` is `array`, the order of field names in
 
-            included_fields also determines the order of the values in the array.
+            `included_fields` also determines the order of the values in the array.
 
-            When included_fields is populated, [excluded_fields][] must be empty.
+            When `included_fields` is populated, `excluded_fields` must be empty.
 
             The input must be JSONL with objects at each line, CSV, BigQuery
 
@@ -1995,38 +1944,43 @@ components:
           parameterType: LIST
         instance_type:
           defaultValue: ''
-          description: "The format of the instance that the Model accepts. Vertex\
-            \ AI will\nconvert compatible\n[batch prediction input instance formats][InputConfig.instances_format]\n\
-            to the specified format.\nSupported values are:\n** `object`: Each input\
-            \ is converted to JSON object format.\n* For `bigquery`, each row is converted\
-            \ to an object.\n* For `jsonl`, each line of the JSONL input must be an\
-            \ object.\n* Does not apply to `csv`, `file-list`, `tf-record`, or\n`tf-record-gzip`.\n\
-            ** `array`: Each input is converted to JSON array format.\n* For `bigquery`,\
-            \ each row is converted to an array. The order\n  of columns is determined\
-            \ by the BigQuery column order, unless\n  [included_fields][] is populated.\n\
-            \  [included_fields][] must be populated for specifying field orders.\n\
-            * For `jsonl`, if each line of the JSONL input is an object,\n  [included_fields][]\
-            \ must be populated for specifying field orders.\n* Does not apply to\
-            \ `csv`, `file-list`, `tf-record`, or\n  `tf-record-gzip`.\nIf not specified,\
-            \ Vertex AI converts the batch prediction input as\nfollows:\n * For `bigquery`\
-            \ and `csv`, the behavior is the same as `array`. The\n   order of columns\
-            \ is the same as defined in the file or table, unless\n   [included_fields][]\
-            \ is populated.\n * For `jsonl`, the prediction instance format is determined\
-            \ by\n   each line of the input.\n * For `tf-record`/`tf-record-gzip`,\
-            \ each record will be converted to\n   an object in the format of `{\"\
-            b64\": <value>}`, where `<value>` is\n   the Base64-encoded string of\
-            \ the content of the record.\n * For `file-list`, each file in the list\
-            \ will be converted to an\n   object in the format of `{\"b64\": <value>}`,\
+          description: "The format of the instance that the Model\naccepts. Vertex\
+            \ AI will convert compatible\n[InstancesFormat](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig)\n\
+            to the specified format. Supported values are:\n`object`: Each input is\
+            \ converted to JSON object format.\n  * For `bigquery`, each row is converted\
+            \ to an object.\n  * For `jsonl`, each line of the JSONL input must be\
+            \ an object.\n  * Does not apply to `csv`, `file-list`, `tf-record`, or\
+            \ `tf-record-gzip`.\n`array`: Each input is converted to JSON array format.\n\
+            \  * For `bigquery`, each row is converted to an array. The order\n  \
+            \  of columns is determined by the BigQuery column order, unless\n   \
+            \ [included_fields](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig)\
+            \ is populated.\n    `included_fields` must be populated for specifying\
+            \ field orders.\n  * For `jsonl`, if each line of the JSONL input is an\
+            \ object,\n    `included_fields` must be populated for specifying field\
+            \ orders.\n  * Does not apply to `csv`, `file-list`, `tf-record`, or\n\
+            \    `tf-record-gzip`.\nIf not specified, Vertex AI converts the batch\
+            \ prediction input as\nfollows:\n * For `bigquery` and `csv`, the behavior\
+            \ is the same as `array`. The\n   order of columns is the same as defined\
+            \ in the file or table, unless\n   included_fields is populated.\n * For\
+            \ `jsonl`, the prediction instance format is determined by\n   each line\
+            \ of the input.\n * For `tf-record`/`tf-record-gzip`, each record will\
+            \ be converted to\n   an object in the format of `{\"b64\": <value>}`,\
             \ where `<value>` is\n   the Base64-encoded string of the content of the\
-            \ file.\n(-- api-linter: core::0140::base64=disabled\n    aip.dev/not-precedent:\
-            \ Base64 is not for this field. --)"
+            \ record.\n * For `file-list`, each file in the list will be converted\
+            \ to an\n   object in the format of `{\"b64\": <value>}`, where `<value>`\
+            \ is\n   the Base64-encoded string of the content of the file."
           isOptional: true
           parameterType: STRING
         instances_format:
           defaultValue: jsonl
-          description: "The format in which instances are\ngiven, must be one of the\
-            \ Model's supportedInputStorageFormats. If not\nset, default to \"jsonl\"\
-            .  For more details about this input config,\nsee\n  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig."
+          description: 'The format in which instances are
+
+            given, must be one of the [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models)''s
+            supportedInputStorageFormats.
+
+            For more details about this input config, see
+
+            [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.)'
           isOptional: true
           parameterType: STRING
         job_display_name:
@@ -2037,14 +1991,14 @@ components:
           description: "The name of the field that is considered as a key.\nThe values\
             \ identified by the key field is not included in the\ntransformed instances\
             \ that is sent to the Model. This is similar to\nspecifying this name\
-            \ of the field in [excluded_fields][]. In addition,\nthe batch prediction\
-            \ output will not include the instances. Instead the\noutput will only\
-            \ include the value of the key field, in a field named\n`key` in the output:\n\
-            \ * For `jsonl` output format, the output will have a `key` field\n  \
-            \ instead of the `instance` field.\n * For `csv`/`bigquery` output format,\
-            \ the output will have have a `key`\n   column instead of the instance\
-            \ feature columns.\nThe input must be JSONL with objects at each line,\
-            \ CSV, BigQuery\nor TfRecord."
+            \ of the field in [excluded_fields](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig).\
+            \ In addition,\nthe batch prediction output will not include the instances.\
+            \ Instead the\noutput will only include the value of the key field, in\
+            \ a field named\n`key` in the output:\n * For `jsonl` output format, the\
+            \ output will have a `key` field\n   instead of the `instance` field.\n\
+            \ * For `csv`/`bigquery` output format, the output will have have a `key`\n\
+            \   column instead of the instance feature columns.\nThe input must be\
+            \ JSONL with objects at each line, CSV, BigQuery\nor TfRecord."
           isOptional: true
           parameterType: STRING
         labels:
@@ -2064,9 +2018,7 @@ components:
           parameterType: STRUCT
         location:
           defaultValue: us-central1
-          description: 'Location for creating the BatchPredictionJob.
-
-            If not set, default to us-central1.'
+          description: Location for creating the BatchPredictionJob.
           isOptional: true
           parameterType: STRING
         machine_type:
@@ -2104,7 +2056,7 @@ components:
 
             batch not fitting in a machine''s memory, and the whole operation will
 
-            fail. The default value is 4.'
+            fail.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         max_replica_count:
@@ -2112,7 +2064,7 @@ components:
           description: 'The maximum number of machine replicas the batch operation
             may be scaled
 
-            to. Only used if `machine_type` is set. Default is 10.'
+            to. Only used if `machine_type` is set.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         model_parameters:
@@ -2123,13 +2075,19 @@ components:
           parameterType: STRUCT
         predictions_format:
           defaultValue: jsonl
-          description: "The format in which Vertex AI gives the predictions. Must\
-            \ be one of the\nModel's supportedOutputStorageFormats. If not set, default\
-            \ to \"jsonl\".\nFor more details about this output config, see\n  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig."
+          description: 'The format in which Vertex AI gives the predictions. Must
+            be one of the
+
+            Model''s supportedOutputStorageFormats.
+
+            For more details about this output config, see [OutputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig).'
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to create the BatchPredictionJob.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to create the BatchPredictionJob. Defaults to the project
+            in which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
         starting_replica_count:
           defaultValue: 0.0
@@ -2276,9 +2234,17 @@ components:
           artifactType:
             schemaTitle: google.ClassificationMetrics
             schemaVersion: 0.0.1
-          description: 'Path of classification metrics generated from the
+          description: 'google.ClassificationMetrics artifact generated from
 
-            classification evaluation component.'
+            the ModelEvaluationClassificationOp component.'
+          isOptional: true
+        embedding_metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+          description: 'The embedding metrics artifact generated from the
+
+            embedding retrieval metrics component.'
           isOptional: true
         explanation:
           artifactType:
@@ -2300,9 +2266,9 @@ components:
           artifactType:
             schemaTitle: google.ForecastingMetrics
             schemaVersion: 0.0.1
-          description: 'Path of forecasting metrics generated from the
+          description: 'google.ForecastingMetrics artifact generated from
 
-            forecasting evaluation component.'
+            the ModelEvaluationForecastingOp component.'
           isOptional: true
         metrics:
           artifactType:
@@ -2322,24 +2288,39 @@ components:
           artifactType:
             schemaTitle: system.Metrics
             schemaVersion: 0.0.1
+          description: 'system.Metrics artifact generated from
+
+            the LLMEvaluationTextGenerationOp component. Subject to change to
+
+            google.QuestionAnsweringMetrics.'
           isOptional: true
         regression_metrics:
           artifactType:
             schemaTitle: google.RegressionMetrics
             schemaVersion: 0.0.1
-          description: 'Path of regression metrics generated from the regression
+          description: 'google.ClassificationMetrics artifact generated from
 
-            evaluation component.'
+            the ModelEvaluationRegressionOp component.'
           isOptional: true
         summarization_metrics:
           artifactType:
             schemaTitle: system.Metrics
             schemaVersion: 0.0.1
+          description: 'system.Metrics artifact generated from
+
+            the LLMEvaluationTextGenerationOp component. Subject to change to
+
+            google.SummarizationMetrics.'
           isOptional: true
         text_generation_metrics:
           artifactType:
             schemaTitle: system.Metrics
             schemaVersion: 0.0.1
+          description: 'system.Metrics artifact generated from
+
+            the LLMEvaluationTextGenerationOp component. Subject to change to
+
+            google.TextGenerationMetrics.'
           isOptional: true
       parameters:
         dataset_path:
@@ -2362,7 +2343,9 @@ components:
         problem_type:
           description: 'The problem type of the metrics being imported to the
 
-            VertexModel. `classification`, `regression`, and `forecasting` are the
+            VertexModel. `classification`, `regression`, `forecasting`,
+
+            `text-generation`, `question-answering`, and `summarization` are the
 
             currently supported problem types. Must be provided when `metrics` is
 
@@ -2371,6 +2354,8 @@ components:
           parameterType: STRING
     outputDefinitions:
       parameters:
+        evaluation_resource_name:
+          parameterType: STRING
         gcp_resources:
           parameterType: STRING
   comp-model-upload:
@@ -2381,28 +2366,25 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: 'An artifact of a model
-
-            which to upload a new version to. Only specify this field when
-
-            uploading a new version.'
+          description: An artifact of a model which to upload a new version to. Only
+            specify this field when uploading a new version. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload#request-body)
           isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
-          description: "The unmanaged container model to be uploaded.  The model can\n\
-            be passed from an upstream step, or imported via an importer.\n\nExamples::\n\
-            \n  from kfp.dsl import importer\n  from\n  google_cloud_pipeline_components.google_cloud_pipeline_components.types\n\
-            \  import artifact_types\n\n  importer_spec = importer(\n    artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',\n\
-            \    artifact_class=artifact_types.UnmanagedContainerModel, metadata={\n\
-            \      'containerSpec': { 'imageUri':\n        'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'\n\
-            \        }\n    })"
+          description: "The unmanaged container model to be uploaded.  The Model can\
+            \ be passed from an upstream step or imported via a KFP `dsl.importer`.\n\
+            :Examples:\n  ::\n\n    from kfp import dsl\n    from google_cloud_pipeline_components.google_cloud_pipeline_components.types\
+            \ import artifact_types\n\n    importer_spec = dsl.importer(\n      artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',\n\
+            \      artifact_class=artifact_types.UnmanagedContainerModel,\n      metadata={\n\
+            \        'containerSpec': { 'imageUri':\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'\n\
+            \          }\n      })"
           isOptional: true
       parameters:
         description:
           defaultValue: ''
-          description: The description of the model.
+          description: The description of the Model. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)
           isOptional: true
           parameterType: STRING
         display_name:
@@ -2410,7 +2392,7 @@ components:
 
             can be up to 128 characters long and can be consist of any UTF-8
 
-            characters.'
+            characters. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)'
           parameterType: STRING
         encryption_spec_key_name:
           defaultValue: ''
@@ -2420,7 +2402,7 @@ components:
 
             Model will be secured by this key.  Has the form:
 
-            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+            `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
 
             The key needs to be in the same region as where the compute resource
 
@@ -2431,22 +2413,15 @@ components:
           defaultValue: {}
           description: 'Metadata describing the Model''s
 
-            input and output for explanation. Both `explanation_metadata` and
-
-            `explanation_parameters` must be passed together when used.  For more
-
-            details, see
-
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.'
+            input and output for explanation. Both `explanation_metadata` and `explanation_parameters`
+            must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)'
           isOptional: true
           parameterType: STRUCT
         explanation_parameters:
           defaultValue: {}
           description: 'Parameters to configure
 
-            explaining for Model''s predictions.  For more details, see
-
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.'
+            explaining for Model''s predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)'
           isOptional: true
           parameterType: STRUCT
         labels:
@@ -2466,13 +2441,16 @@ components:
           parameterType: STRUCT
         location:
           defaultValue: us-central1
-          description: 'Optional location to upload this model to. If
+          description: 'Optional location to upload this Model to. If
 
-            not set, default to us-central1.'
+            not set, defaults to `us-central1`.'
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to upload this model to.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to upload this Model to. Defaults to the project in
+            which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -2480,15 +2458,11 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: Artifact tracking the created model.
+          description: Artifact tracking the created Model.
       parameters:
         gcp_resources:
-          description: 'Serialized gcp_resources proto tracking the upload model''s
-            long
-
-            running operation. For more details, see
-
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          description: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
+            which tracks the upload Model's long-running operation.
           parameterType: STRING
   comp-parse-worker-pool-specs-override:
     executorLabel: exec-parse-worker-pool-specs-override
@@ -3139,7 +3113,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230910_1325", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231002_0125", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -3154,7 +3128,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231002_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -3170,7 +3144,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3270,8 +3244,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -3287,15 +3261,8 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        - '{"Concat": ["--embedding_prediction_server_docker_uri=", "{{$.inputs.parameters[''embedding_prediction_server_docker_uri'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_machine_type=", "{{$.inputs.parameters[''embedding_batch_prediction_machine_type'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_accelerator_type=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_type'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_accelerator_count=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_starting_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_starting_replica_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_max_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_max_replica_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_batch_size=", "{{$.inputs.parameters[''embedding_batch_prediction_batch_size'']}}"]}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -3347,7 +3314,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-model-evaluation:
       container:
         args:
@@ -3433,6 +3400,8 @@ deploymentSpec:
           "{{$.inputs.artifacts[''summarization_metrics''].uri}}"]}}'
         - '{"IfPresent": {"InputName": "feature_attributions", "Then": ["--feature_attributions",
           "{{$.inputs.artifacts[''feature_attributions''].uri}}"]}}'
+        - '{"IfPresent": {"InputName": "embedding_metrics", "Then": ["--embedding_metrics",
+          "{{$.inputs.artifacts[''embedding_metrics''].uri}}"]}}'
         - '{"IfPresent": {"InputName": "problem_type", "Then": ["--problem_type",
           "{{$.inputs.parameters[''problem_type'']}}"]}}'
         - --display_name
@@ -3451,12 +3420,14 @@ deploymentSpec:
         - '{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}'
         - --gcp_resources
         - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        - --evaluation_resource_name
+        - '{{$.outputs.parameters[''evaluation_resource_name''].output_file}}'
         command:
         - python3
         - -u
         - -m
-        - google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3
+        - google_cloud_pipeline_components.container._implementation.model_evaluation.import_model_evaluation
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-model-upload:
       container:
         args:
@@ -3468,7 +3439,9 @@ deploymentSpec:
           "\"", ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
           ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
           "}", ", \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}"]}'
+          "\"}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"pipeline_job\":
+          \"", "projects/{{$.inputs.parameters[''project'']}}/locations/{{$.inputs.parameters[''location'']}}/pipelineJobs/{{$.pipeline_job_uuid}}",
+          "\"", "}"]}'
         - --project
         - '{{$.inputs.parameters[''project'']}}'
         - --location
@@ -3477,14 +3450,14 @@ deploymentSpec:
         - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
         - --executor_input
         - '{{$}}'
-        - '{"IfPresent": {"InputName": "parent_model", "Then": {"Concat": ["--parent_model_name
-          ", "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}}'
+        - '{"IfPresent": {"InputName": "parent_model", "Then": ["--parent_model_name",
+          "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}'
         command:
         - python3
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.model.upload_model.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-parse-worker-pool-specs-override:
       container:
         args:
@@ -3497,7 +3470,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3552,7 +3525,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3596,7 +3569,7 @@ deploymentSpec:
           \          'model_display_name',\n      ],\n  )(\n      data_source_csv_filenames,\n\
           \      data_source_bigquery_table_path,\n      model_display_name,\n  )\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-split-materialized-data:
       container:
         args:
@@ -3642,7 +3615,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125
     exec-tabnet-trainer:
       container:
         args:
@@ -3660,11 +3633,11 @@ deploymentSpec:
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"", "1",
           "\", \"machine_spec\": ", "{{$.inputs.parameters[''training_machine_spec'']}}",
           ", \"disk_spec\": ", "{{$.inputs.parameters[''training_disk_spec'']}}",
-          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230910_1325",
+          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20231002_0125",
           "\", \"args\": [\"--target_column=", "{{$.inputs.parameters[''target_column'']}}",
           "\", \"--weight_column=", "{{$.inputs.parameters[''weight_column'']}}",
           "\", \"--model_type=", "{{$.inputs.parameters[''prediction_type'']}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230910_1325",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231002_0125",
           "\", \"--baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
           \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
@@ -3751,7 +3724,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
 pipelineInfo:
   description: 'Train a model using the Tabular Workflow for TabNet pipelines.
 
@@ -4437,4 +4410,4 @@ root:
           schemaTitle: system.Metrics
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.17
+sdkVersion: kfp-2.0.0-rc.2

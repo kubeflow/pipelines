@@ -123,7 +123,10 @@ components:
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to run the BigQuery query job.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to run the BigQuery query job. Defaults to the project
+            in which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
         query:
           defaultValue: ''
@@ -211,7 +214,7 @@ components:
               predictions_gcs_source:
                 componentInputArtifact: pipelinechannel--prophet-trainer-evaluated_examples_directory
             parameters:
-              dataflow_disk_size:
+              dataflow_disk_size_gb:
                 componentInputParameter: pipelinechannel--evaluation_dataflow_disk_size_gb
               dataflow_machine_type:
                 componentInputParameter: pipelinechannel--evaluation_dataflow_machine_type
@@ -442,7 +445,7 @@ components:
             parameters:
               autodetect_csv_schema:
                 runtimeValue:
-                  constant: 1.0
+                  constant: true
               bigquery_staging_full_dataset_id:
                 runtimeValue:
                   constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}.{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}'
@@ -452,7 +455,7 @@ components:
                 componentInputParameter: pipelinechannel--data_source_csv_filenames
               forecasting_apply_windowing:
                 runtimeValue:
-                  constant: 0.0
+                  constant: false
               forecasting_context_window:
                 runtimeValue:
                   constant: 0.0
@@ -935,61 +938,6 @@ components:
             \     output_column: Name of our output feature."
           isOptional: true
           parameterType: LIST
-        embedding_batch_prediction_accelerator_count:
-          defaultValue: -1.0
-          description: 'The number of accelerators to
-
-            use to generate the embeddings. Default is 0.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_accelerator_type:
-          defaultValue: accelerator_type_unspecified
-          description: 'The accelerator type to use to
-
-            generate embeddings. If not provided, no accelerator is used. More
-
-            details: https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype'
-          isOptional: true
-          parameterType: STRING
-        embedding_batch_prediction_batch_size:
-          defaultValue: -1.0
-          description: 'The batch size for embedding batch
-
-            prediction job. Default = 1024.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_machine_type:
-          defaultValue: ''
-          description: 'The machine type to be
-
-            used to run the embedding batch prediction job. If not provided,
-
-            `n1-highmem-32` will be used. For more details, see:
-
-            https://cloud.google.com/vertex-ai/docs/predictions/configure-compute#machine-types'
-          isOptional: true
-          parameterType: STRING
-        embedding_batch_prediction_max_replica_count:
-          defaultValue: -1.0
-          description: 'The max replica count for
-
-            embedding batch prediction job. Default = 50.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_starting_replica_count:
-          defaultValue: -1.0
-          description: 'The starting replica count
-
-            for embedding batch prediction job. Default = 20.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_prediction_server_docker_uri:
-          defaultValue: ''
-          description: 'The docker image inside which to
-
-            run the embedding models to generate embeddings.'
-          isOptional: true
-          parameterType: STRING
         encryption_spec_key_name:
           defaultValue: ''
           description: Customer-managed encryption key.
@@ -1678,11 +1626,12 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: 'The managed Vertex Model used for
+          description: 'The Vertex model used for evaluation. Must be located in the
+            same
 
-            predictions job, if using Vertex batch prediction. Must share the same
+            region as the location argument. It is used to set the default
 
-            location as the provided input argument `location`.'
+            configurations for AutoML and custom-trained models.'
           isOptional: true
         predictions_bigquery_source:
           artifactType:
@@ -1709,36 +1658,36 @@ components:
             should be named "explanation.results-*".'
           isOptional: true
       parameters:
-        dataflow_disk_size:
+        dataflow_disk_size_gb:
           defaultValue: 50.0
           description: 'The disk size (in GB) of the machine
 
-            executing the evaluation run. If not set, defaulted to `50`.'
+            executing the evaluation run.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-4
           description: 'The machine type executing the
 
-            evaluation run. If not set, defaulted to `n1-standard-4`.'
+            evaluation run.'
           isOptional: true
           parameterType: STRING
         dataflow_max_workers_num:
           defaultValue: 5.0
           description: 'The max number of workers
 
-            executing the evaluation run. If not set, defaulted to `25`.'
+            executing the evaluation run.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
           defaultValue: ''
           description: 'Service account to run the
 
-            dataflow job. If not set, dataflow will use the default worker service
+            Dataflow job. If not set, Dataflow will use the default worker service
 
             account. For more details, see
 
-            https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account'
+            https://cloud.google.com/dataflow/docs/concepts/secURIty-and-permissions#default_worker_service_account'
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
@@ -1763,28 +1712,36 @@ components:
           defaultValue: 1.0
           description: 'The number of workers executing the
 
-            evaluation run. If not set, defaulted to `10`.'
+            evaluation run.'
           isOptional: true
           parameterType: NUMBER_INTEGER
         encryption_spec_key_name:
           defaultValue: ''
-          description: Customer-managed encryption key.
+          description: ' Customer-managed encryption key options.
+
+            If set, resources created by this pipeline will be encrypted with the
+
+            provided encryption key. Has the form:
+
+            `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
+
+            The key needs to be in the same region as where the compute resource is
+
+            created.'
           isOptional: true
           parameterType: STRING
-        force_direct_runner:
-          defaultValue: false
-          description: 'Flag to use Beam DirectRunner. If set to true,
+        force_runner_mode:
+          defaultValue: ''
+          description: 'Flag to choose Beam runner. Valid options are
 
-            use Apache Beam DirectRunner to execute the task locally instead of
-
-            launching a Dataflow job.'
+            `DirectRunner` and `Dataflow`.'
           isOptional: true
-          parameterType: BOOLEAN
+          parameterType: STRING
         ground_truth_bigquery_source:
           defaultValue: ''
           description: 'Required for custom tabular.
 
-            The BigQuery table uri representing where the ground truth is located.
+            The BigQuery table URI representing where the ground truth is located.
 
             Used to provide ground truth for each prediction instance when they are
 
@@ -1797,16 +1754,14 @@ components:
 
             tabular data. The file format for the ground truth files. `jsonl`,
 
-            `csv`, and `bigquery` are the allowed formats. If not set, defaulted to
-
-            `jsonl`.'
+            `csv`, and `bigquery` are the allowed formats.'
           isOptional: true
           parameterType: STRING
         ground_truth_gcs_source:
           defaultValue: []
           description: 'Required for custom
 
-            tabular and non tabular data. The GCS uris representing where the ground
+            tabular and non tabular data. The GCS URIs representing where the ground
 
             truth is located. Used to provide ground truth for each prediction
 
@@ -1817,20 +1772,16 @@ components:
           parameterType: LIST
         location:
           defaultValue: us-central1
-          description: 'Location for running the evaluation. If not set,
-
-            defaulted to `us-central1`.'
+          description: Location for running the evaluation.
           isOptional: true
           parameterType: STRING
         prediction_score_column:
-          defaultValue: ''
+          defaultValue: prediction.value
           description: 'The column name of the field
 
             containing batch prediction scores. Formatted to be able to find nested
 
-            columns, delimited by `.`. If not set, defaulted to `prediction.scores`
-
-            for classification.'
+            columns, delimited by `.`.'
           isOptional: true
           parameterType: STRING
         predictions_format:
@@ -1839,20 +1790,21 @@ components:
 
             prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
 
-            formats, from Vertex Batch Prediction. If not set, defaulted to `jsonl`.'
+            formats, from Vertex Batch Prediction.'
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to run evaluation container.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to run evaluation container. Defaults to the project
+            in which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
         target_field_name:
-          description: 'The full name path of the features target field
+          description: 'The target field''s name. Formatted to be able to find
 
-            in the predictions file. Formatted to be able to find nested columns,
+            nested columns, delimited by `.`. Prefixed with ''instance.'' on the
 
-            delimited by `.`. Alternatively referred to as the ground truth (or
-
-            ground_truth_column) field.'
+            component for Vertex Batch Prediction.'
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -1860,12 +1812,12 @@ components:
           artifactType:
             schemaTitle: google.RegressionMetrics
             schemaVersion: 0.0.1
-          description: 'google.ClassificationMetrics representing the classification
+          description: '`google.RegressionMetrics` representing the regression
 
             evaluation metrics in GCS.'
       parameters:
         gcp_resources:
-          description: 'Serialized gcp_resources proto tracking the dataflow
+          description: 'Serialized gcp_resources proto tracking the Dataflow
 
             job. For more details, see
 
@@ -1879,28 +1831,25 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: 'An artifact of a model
-
-            which to upload a new version to. Only specify this field when
-
-            uploading a new version.'
+          description: An artifact of a model which to upload a new version to. Only
+            specify this field when uploading a new version. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload#request-body)
           isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
-          description: "The unmanaged container model to be uploaded.  The model can\n\
-            be passed from an upstream step, or imported via an importer.\n\nExamples::\n\
-            \n  from kfp.dsl import importer\n  from\n  google_cloud_pipeline_components.google_cloud_pipeline_components.types\n\
-            \  import artifact_types\n\n  importer_spec = importer(\n    artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',\n\
-            \    artifact_class=artifact_types.UnmanagedContainerModel, metadata={\n\
-            \      'containerSpec': { 'imageUri':\n        'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'\n\
-            \        }\n    })"
+          description: "The unmanaged container model to be uploaded.  The Model can\
+            \ be passed from an upstream step or imported via a KFP `dsl.importer`.\n\
+            :Examples:\n  ::\n\n    from kfp import dsl\n    from google_cloud_pipeline_components.google_cloud_pipeline_components.types\
+            \ import artifact_types\n\n    importer_spec = dsl.importer(\n      artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',\n\
+            \      artifact_class=artifact_types.UnmanagedContainerModel,\n      metadata={\n\
+            \        'containerSpec': { 'imageUri':\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'\n\
+            \          }\n      })"
           isOptional: true
       parameters:
         description:
           defaultValue: ''
-          description: The description of the model.
+          description: The description of the Model. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)
           isOptional: true
           parameterType: STRING
         display_name:
@@ -1908,7 +1857,7 @@ components:
 
             can be up to 128 characters long and can be consist of any UTF-8
 
-            characters.'
+            characters. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)'
           parameterType: STRING
         encryption_spec_key_name:
           defaultValue: ''
@@ -1918,7 +1867,7 @@ components:
 
             Model will be secured by this key.  Has the form:
 
-            ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+            `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`.
 
             The key needs to be in the same region as where the compute resource
 
@@ -1929,22 +1878,15 @@ components:
           defaultValue: {}
           description: 'Metadata describing the Model''s
 
-            input and output for explanation. Both `explanation_metadata` and
-
-            `explanation_parameters` must be passed together when used.  For more
-
-            details, see
-
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.'
+            input and output for explanation. Both `explanation_metadata` and `explanation_parameters`
+            must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)'
           isOptional: true
           parameterType: STRUCT
         explanation_parameters:
           defaultValue: {}
           description: 'Parameters to configure
 
-            explaining for Model''s predictions.  For more details, see
-
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.'
+            explaining for Model''s predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)'
           isOptional: true
           parameterType: STRUCT
         labels:
@@ -1964,13 +1906,16 @@ components:
           parameterType: STRUCT
         location:
           defaultValue: us-central1
-          description: 'Optional location to upload this model to. If
+          description: 'Optional location to upload this Model to. If
 
-            not set, default to us-central1.'
+            not set, defaults to `us-central1`.'
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to upload this model to.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to upload this Model to. Defaults to the project in
+            which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -1978,15 +1923,11 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: Artifact tracking the created model.
+          description: Artifact tracking the created Model.
       parameters:
         gcp_resources:
-          description: 'Serialized gcp_resources proto tracking the upload model''s
-            long
-
-            running operation. For more details, see
-
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          description: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
+            which tracks the upload Model's long-running operation.
           parameterType: STRING
   comp-prophet-trainer:
     executorLabel: exec-prophet-trainer
@@ -2231,7 +2172,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -2253,7 +2194,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-bigquery-delete-dataset-with-prefix:
       container:
         args:
@@ -2266,7 +2207,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -2287,7 +2228,7 @@ deploymentSpec:
           \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
           \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-bigquery-query-job:
       container:
         args:
@@ -2314,7 +2255,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-build-job-configuration-query:
       container:
         args:
@@ -2327,7 +2268,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -2348,7 +2289,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-feature-transform-engine:
       container:
         args:
@@ -2433,8 +2374,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -2450,15 +2391,8 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        - '{"Concat": ["--embedding_prediction_server_docker_uri=", "{{$.inputs.parameters[''embedding_prediction_server_docker_uri'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_machine_type=", "{{$.inputs.parameters[''embedding_batch_prediction_machine_type'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_accelerator_type=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_type'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_accelerator_count=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_starting_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_starting_replica_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_max_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_max_replica_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_batch_size=", "{{$.inputs.parameters[''embedding_batch_prediction_batch_size'']}}"]}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
     exec-get-fte-suffix:
       container:
         args:
@@ -2471,7 +2405,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -2492,7 +2426,7 @@ deploymentSpec:
           \ table.table_id.startswith(fte_table):\n      return table.table_id[len(fte_table)\
           \ + 1:]\n  raise ValueError(\n      f'No FTE output tables found in {bigquery_staging_full_dataset_id}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-get-table-location:
       container:
         args:
@@ -2505,7 +2439,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -2528,7 +2462,7 @@ deploymentSpec:
           \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
           \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
           \  return client.get_table(table).location\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-model-evaluation-regression:
       container:
         args:
@@ -2568,7 +2502,7 @@ deploymentSpec:
         - --dataflow_service_account
         - '{{$.inputs.parameters[''dataflow_service_account'']}}'
         - --dataflow_disk_size
-        - '{{$.inputs.parameters[''dataflow_disk_size'']}}'
+        - '{{$.inputs.parameters[''dataflow_disk_size_gb'']}}'
         - --dataflow_machine_type
         - '{{$.inputs.parameters[''dataflow_machine_type'']}}'
         - --dataflow_workers_num
@@ -2581,8 +2515,8 @@ deploymentSpec:
         - '{{$.inputs.parameters[''dataflow_use_public_ips'']}}'
         - --kms_key_name
         - '{{$.inputs.parameters[''encryption_spec_key_name'']}}'
-        - --force_direct_runner
-        - '{{$.inputs.parameters[''force_direct_runner'']}}'
+        - --force_runner_mode
+        - '{{$.inputs.parameters[''force_runner_mode'']}}'
         - --output_metrics_gcs_path
         - '{{$.outputs.artifacts[''evaluation_metrics''].path}}'
         - --gcp_resources
@@ -2592,7 +2526,7 @@ deploymentSpec:
         command:
         - python3
         - /main.py
-        image: gcr.io/ml-pipeline/model-evaluation:v0.9
+        image: gcr.io/ml-pipeline/model-evaluation:v0.9.2
     exec-model-upload:
       container:
         args:
@@ -2604,7 +2538,9 @@ deploymentSpec:
           "\"", ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
           ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
           "}", ", \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}"]}'
+          "\"}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"pipeline_job\":
+          \"", "projects/{{$.inputs.parameters[''project'']}}/locations/{{$.inputs.parameters[''location'']}}/pipelineJobs/{{$.pipeline_job_uuid}}",
+          "\"", "}"]}'
         - --project
         - '{{$.inputs.parameters[''project'']}}'
         - --location
@@ -2613,14 +2549,14 @@ deploymentSpec:
         - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
         - --executor_input
         - '{{$}}'
-        - '{"IfPresent": {"InputName": "parent_model", "Then": {"Concat": ["--parent_model_name
-          ", "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}}'
+        - '{"IfPresent": {"InputName": "parent_model", "Then": ["--parent_model_name",
+          "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}'
         command:
         - python3
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.model.upload_model.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-prophet-trainer:
       container:
         args:
@@ -2637,10 +2573,10 @@ deploymentSpec:
           ", "\"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, ", "\"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"1\",
           ", "\"machine_spec\": {\"machine_type\": \"n1-standard-4\"}, ", "\"container_spec\":
-          {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230910_1325\",
+          {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231002_0125\",
           ", "\"args\": [\"prophet_trainer\", \"", "--job_name=dataflow-{{$.pipeline_job_name}}\",
-          \"", "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325\",
-          \"", "--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230910_1325\",
+          \"", "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125\",
+          \"", "--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20231002_0125\",
           \"", "--artifacts_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/model/\",
           \"", "--evaluated_examples_dir=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/eval/\", \"", "--region=", "{{$.inputs.parameters[''location'']}}",
@@ -2681,7 +2617,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -2704,7 +2640,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-validate-inputs:
       container:
         args:
@@ -2717,7 +2653,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -2806,7 +2742,7 @@ deploymentSpec:
           \   raise ValueError(\n          'Granularity unit should be one of the\
           \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-wrapped-in-list:
       container:
         args:
@@ -2819,7 +2755,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -2833,7 +2769,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef wrapped_in_list(value: str) -> List[str]:\n  \"\"\"Wraps a string\
           \ in a list.\"\"\"\n  return [value]\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
 pipelineInfo:
   description: Trains one Prophet model per time series.
   name: prophet-train
@@ -2853,7 +2789,7 @@ root:
                 constant: tmp_{{$.pipeline_job_uuid}}
             delete_contents:
               runtimeValue:
-                constant: 1.0
+                constant: true
             project:
               componentInputParameter: project
         taskInfo:
@@ -3111,4 +3047,4 @@ root:
         isOptional: true
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.17
+sdkVersion: kfp-2.0.0-rc.2

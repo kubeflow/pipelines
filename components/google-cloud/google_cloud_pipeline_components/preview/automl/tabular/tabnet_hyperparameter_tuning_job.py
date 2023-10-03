@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """AutoML Tabnet Hyperparameter Tuning component spec."""
 
 from typing import Optional
@@ -157,7 +158,7 @@ def tabnet_hyperparameter_tuning_job(
                   ', "disk_spec": ',
                   training_disk_spec,
                   ', "container_spec": {"image_uri":"',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20231002_0125',
                   '", "args": ["--target_column=',
                   target_column,
                   '", "--weight_column=',
@@ -165,7 +166,7 @@ def tabnet_hyperparameter_tuning_job(
                   '", "--model_type=',
                   prediction_type,
                   '", "--prediction_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231002_0125',
                   '", "--prediction_docker_uri_artifact_path=',
                   prediction_docker_uri_output,
                   '", "--baseline_path=',

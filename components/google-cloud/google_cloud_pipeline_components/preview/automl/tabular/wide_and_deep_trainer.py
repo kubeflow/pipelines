@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """AutoML Wide and Deep Trainer component spec."""
 
 from typing import Optional
@@ -160,7 +161,7 @@ def wide_and_deep_trainer(
                   ', "disk_spec": ',
                   training_disk_spec,
                   ', "container_spec": {"image_uri":"',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20231002_0125',
                   '", "args": ["--target_column=',
                   target_column,
                   '", "--weight_column=',
@@ -168,7 +169,7 @@ def wide_and_deep_trainer(
                   '", "--model_type=',
                   prediction_type,
                   '", "--prediction_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231002_0125',
                   '", "--baseline_path=',
                   instance_baseline.uri,
                   '", "--metadata_path=',

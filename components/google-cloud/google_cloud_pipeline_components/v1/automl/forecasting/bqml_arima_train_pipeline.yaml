@@ -103,7 +103,10 @@ components:
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to run BigQuery model creation job.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to run BigQuery model creation job. Defaults to the
+            project in which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
         query:
           description: 'SQL query text to execute. Only standard SQL is
@@ -246,7 +249,10 @@ components:
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to run the BigQuery query job.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to run the BigQuery query job. Defaults to the project
+            in which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
         query:
           defaultValue: ''
@@ -350,7 +356,10 @@ components:
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to run the BigQuery query job.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to run the BigQuery query job. Defaults to the project
+            in which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
         query:
           defaultValue: ''
@@ -454,7 +463,10 @@ components:
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to run the BigQuery query job.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to run the BigQuery query job. Defaults to the project
+            in which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
         query:
           defaultValue: ''
@@ -558,7 +570,10 @@ components:
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to run the BigQuery query job.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to run the BigQuery query job. Defaults to the project
+            in which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
         query:
           defaultValue: ''
@@ -662,7 +677,10 @@ components:
           isOptional: true
           parameterType: STRING
         project:
-          description: Project to run the BigQuery query job.
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to run the BigQuery query job. Defaults to the project
+            in which the PipelineJob is run.
+          isOptional: true
           parameterType: STRING
         query:
           defaultValue: ''
@@ -1369,7 +1387,7 @@ components:
                 componentInputParameter: pipelinechannel--forecast_horizon
               forecast_horizon_off_by_one:
                 runtimeValue:
-                  constant: 1.0
+                  constant: true
               splits:
                 runtimeValue:
                   constant:
@@ -1609,7 +1627,7 @@ components:
                   producerTask: maybe-replace-with-default
               exists_ok:
                 runtimeValue:
-                  constant: 1.0
+                  constant: true
               location:
                 taskOutputParameter:
                   outputParameterKey: Output
@@ -1771,7 +1789,7 @@ components:
             parameters:
               autodetect_csv_schema:
                 runtimeValue:
-                  constant: 1.0
+                  constant: true
               bigquery_staging_full_dataset_id:
                 runtimeValue:
                   constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-project_id'']}}.{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-2-dataset_id'']}}'
@@ -1781,7 +1799,7 @@ components:
                 componentInputParameter: pipelinechannel--data_source_csv_filenames
               forecasting_apply_windowing:
                 runtimeValue:
-                  constant: 0.0
+                  constant: false
               forecasting_context_window:
                 runtimeValue:
                   constant: 0.0
@@ -2162,61 +2180,6 @@ components:
             \     output_column: Name of our output feature."
           isOptional: true
           parameterType: LIST
-        embedding_batch_prediction_accelerator_count:
-          defaultValue: -1.0
-          description: 'The number of accelerators to
-
-            use to generate the embeddings. Default is 0.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_accelerator_type:
-          defaultValue: accelerator_type_unspecified
-          description: 'The accelerator type to use to
-
-            generate embeddings. If not provided, no accelerator is used. More
-
-            details: https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype'
-          isOptional: true
-          parameterType: STRING
-        embedding_batch_prediction_batch_size:
-          defaultValue: -1.0
-          description: 'The batch size for embedding batch
-
-            prediction job. Default = 1024.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_machine_type:
-          defaultValue: ''
-          description: 'The machine type to be
-
-            used to run the embedding batch prediction job. If not provided,
-
-            `n1-highmem-32` will be used. For more details, see:
-
-            https://cloud.google.com/vertex-ai/docs/predictions/configure-compute#machine-types'
-          isOptional: true
-          parameterType: STRING
-        embedding_batch_prediction_max_replica_count:
-          defaultValue: -1.0
-          description: 'The max replica count for
-
-            embedding batch prediction job. Default = 50.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_batch_prediction_starting_replica_count:
-          defaultValue: -1.0
-          description: 'The starting replica count
-
-            for embedding batch prediction job. Default = 20.'
-          isOptional: true
-          parameterType: NUMBER_INTEGER
-        embedding_prediction_server_docker_uri:
-          defaultValue: ''
-          description: 'The docker image inside which to
-
-            run the embedding models to generate embeddings.'
-          isOptional: true
-          parameterType: STRING
         encryption_spec_key_name:
           defaultValue: ''
           description: Customer-managed encryption key.
@@ -3554,7 +3517,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3576,7 +3539,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-bigquery-create-dataset-2:
       container:
         args:
@@ -3589,7 +3552,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3611,7 +3574,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-bigquery-create-model-job:
       container:
         args:
@@ -3637,7 +3600,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.bigquery.create_model.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-bigquery-delete-dataset-with-prefix:
       container:
         args:
@@ -3650,7 +3613,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3671,7 +3634,7 @@ deploymentSpec:
           \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
           \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-bigquery-list-rows:
       container:
         args:
@@ -3684,7 +3647,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3709,7 +3672,7 @@ deploymentSpec:
           \ metadata['datasetId'], metadata['tableId']]))\n  result = []\n  for row\
           \ in rows:\n    result.append({col: str(value) for col, value in dict(row).items()})\n\
           \  return result\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-bigquery-list-rows-2:
       container:
         args:
@@ -3722,7 +3685,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3747,7 +3710,7 @@ deploymentSpec:
           \ metadata['datasetId'], metadata['tableId']]))\n  result = []\n  for row\
           \ in rows:\n    result.append({col: str(value) for col, value in dict(row).items()})\n\
           \  return result\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-bigquery-query-job:
       container:
         args:
@@ -3774,7 +3737,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-bigquery-query-job-2:
       container:
         args:
@@ -3801,7 +3764,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-bigquery-query-job-3:
       container:
         args:
@@ -3828,7 +3791,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-bigquery-query-job-4:
       container:
         args:
@@ -3855,7 +3818,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-bigquery-query-job-5:
       container:
         args:
@@ -3882,7 +3845,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b4
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-build-job-configuration-query:
       container:
         args:
@@ -3895,7 +3858,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3916,7 +3879,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-build-job-configuration-query-2:
       container:
         args:
@@ -3929,7 +3892,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3950,7 +3913,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-build-job-configuration-query-3:
       container:
         args:
@@ -3963,7 +3926,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -3984,7 +3947,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-build-job-configuration-query-4:
       container:
         args:
@@ -3997,7 +3960,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4018,7 +3981,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-build-job-configuration-query-5:
       container:
         args:
@@ -4031,7 +3994,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4052,7 +4015,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-build-job-configuration-query-6:
       container:
         args:
@@ -4065,7 +4028,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4086,7 +4049,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-build-serialized-query-parameters:
       container:
         args:
@@ -4099,7 +4062,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4163,7 +4126,7 @@ deploymentSpec:
           \      'name': 'start_time',\n      'parameterType': {\n          'type':\
           \ 'TIMESTAMP'\n      },\n      'parameterValue': {\n          'value': start_time\n\
           \      },\n  })\n  return query_parameters\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-build-serialized-query-parameters-2:
       container:
         args:
@@ -4176,7 +4139,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4240,7 +4203,7 @@ deploymentSpec:
           \      'name': 'start_time',\n      'parameterType': {\n          'type':\
           \ 'TIMESTAMP'\n      },\n      'parameterValue': {\n          'value': start_time\n\
           \      },\n  })\n  return query_parameters\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-build-serialized-query-parameters-3:
       container:
         args:
@@ -4253,7 +4216,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4317,7 +4280,7 @@ deploymentSpec:
           \      'name': 'start_time',\n      'parameterType': {\n          'type':\
           \ 'TIMESTAMP'\n      },\n      'parameterValue': {\n          'value': start_time\n\
           \      },\n  })\n  return query_parameters\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-cond:
       container:
         args:
@@ -4330,7 +4293,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4345,7 +4308,7 @@ deploymentSpec:
           \ *\n\ndef cond(predicate: bool, true_str: str, false_str: str) -> str:\n\
           \  \"\"\"Returns true_str if predicate is true, else false_str.\"\"\"\n\
           \  return true_str if predicate else false_str\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-create-metrics-artifact:
       container:
         args:
@@ -4358,7 +4321,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4377,7 +4340,7 @@ deploymentSpec:
           \      'MAPE': 'meanAbsolutePercentageError',\n  }\n  metrics = {metric_name_map[k]:\
           \ v for k, v in dict(metrics_rows[0]).items()}\n  evaluation_metrics.metadata\
           \ = metrics\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-feature-transform-engine:
       container:
         args:
@@ -4462,8 +4425,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -4479,15 +4442,8 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        - '{"Concat": ["--embedding_prediction_server_docker_uri=", "{{$.inputs.parameters[''embedding_prediction_server_docker_uri'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_machine_type=", "{{$.inputs.parameters[''embedding_batch_prediction_machine_type'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_accelerator_type=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_type'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_accelerator_count=", "{{$.inputs.parameters[''embedding_batch_prediction_accelerator_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_starting_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_starting_replica_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_max_replica_count=", "{{$.inputs.parameters[''embedding_batch_prediction_max_replica_count'']}}"]}'
-        - '{"Concat": ["--embedding_batch_prediction_batch_size=", "{{$.inputs.parameters[''embedding_batch_prediction_batch_size'']}}"]}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
     exec-get-fte-suffix:
       container:
         args:
@@ -4500,7 +4456,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4521,7 +4477,7 @@ deploymentSpec:
           \ table.table_id.startswith(fte_table):\n      return table.table_id[len(fte_table)\
           \ + 1:]\n  raise ValueError(\n      f'No FTE output tables found in {bigquery_staging_full_dataset_id}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-get-table-location:
       container:
         args:
@@ -4534,7 +4490,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4557,7 +4513,7 @@ deploymentSpec:
           \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
           \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
           \  return client.get_table(table).location\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-get-value:
       container:
         args:
@@ -4570,7 +4526,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4584,7 +4540,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef get_value(d: Dict[str, str], key: str) -> str:\n  return d[key]\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-get-window-query-priority:
       container:
         args:
@@ -4597,7 +4553,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4614,7 +4570,7 @@ deploymentSpec:
           \ depending on the window number.\"\"\"\n  if int(window['window_number'])\
           \ <= max_interactive:\n    return 'INTERACTIVE'\n  else:\n    return 'BATCH'\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-maybe-replace-with-default:
       container:
         args:
@@ -4627,7 +4583,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4642,7 +4598,7 @@ deploymentSpec:
           \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
           \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
           \n  return default if not value else value\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-query-with-retry:
       container:
         args:
@@ -4655,7 +4611,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4696,7 +4652,7 @@ deploymentSpec:
           \          'Query failed with %s. Retrying after %d seconds.', e, wait_time)\n\
           \      time.sleep(wait_time)\n      retry_count += 1\n  return destination_uri\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-query-with-retry-2:
       container:
         args:
@@ -4709,7 +4665,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4750,7 +4706,7 @@ deploymentSpec:
           \          'Query failed with %s. Retrying after %d seconds.', e, wait_time)\n\
           \      time.sleep(wait_time)\n      retry_count += 1\n  return destination_uri\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-query-with-retry-3:
       container:
         args:
@@ -4763,7 +4719,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4804,7 +4760,7 @@ deploymentSpec:
           \          'Query failed with %s. Retrying after %d seconds.', e, wait_time)\n\
           \      time.sleep(wait_time)\n      retry_count += 1\n  return destination_uri\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-table-to-uri:
       container:
         args:
@@ -4817,7 +4773,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4840,7 +4796,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-table-to-uri-2:
       container:
         args:
@@ -4853,7 +4809,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4876,7 +4832,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-validate-inputs:
       container:
         args:
@@ -4889,7 +4845,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -4978,7 +4934,7 @@ deploymentSpec:
           \   raise ValueError(\n          'Granularity unit should be one of the\
           \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
     exec-wrapped-in-list:
       container:
         args:
@@ -4991,7 +4947,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.17'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -5005,7 +4961,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef wrapped_in_list(value: str) -> List[str]:\n  \"\"\"Wraps a string\
           \ in a list.\"\"\"\n  return [value]\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20230910_1325
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
 pipelineInfo:
   description: Trains a BQML ARIMA_PLUS model.
   name: automl-tabular-bqml-arima-train
@@ -5031,7 +4987,7 @@ root:
                 constant: tmp_{{$.pipeline_job_uuid}}
             delete_contents:
               runtimeValue:
-                constant: 1.0
+                constant: true
             project:
               componentInputParameter: project
         taskInfo:
@@ -5237,4 +5193,4 @@ root:
           schemaTitle: system.Metrics
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.17
+sdkVersion: kfp-2.0.0-rc.2
