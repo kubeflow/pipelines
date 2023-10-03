@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """AutoML Feature Ranking and Selection component spec."""
 
 from typing import Optional
@@ -99,7 +100,7 @@ def tabular_feature_ranking_and_selection(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231002_0125',
                   '", "args": ["feature_selection", "--data_source=',
                   data_source.uri,
                   '", "--target_column=',
@@ -136,7 +137,7 @@ def tabular_feature_ranking_and_selection(
                   ),
                   dataflow_max_num_workers,
                   '", "--dataflow_worker_container_image=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125',
                   '", "--dataflow_machine_type=',
                   dataflow_machine_type,
                   '", "--dataflow_disk_size_gb=',

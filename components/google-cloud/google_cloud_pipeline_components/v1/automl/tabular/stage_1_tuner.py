@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """AutoML Tabular Stage 1 Tuner component spec."""
 
 from typing import Optional
@@ -109,11 +110,11 @@ def automl_tabular_stage_1_tuner(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231002_0125',
                   '", "args": ["l2l_stage_1_tuner", "--transform_output_path=',
                   transform_output.uri,
                   '", "--training_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231002_0125',
                   '", "--feature_selection_result_path=',
                   feature_ranking.uri,
                   '", "--disable_early_stopping=',

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """AutoML Forecasting Stage 1 Tuner component spec."""
 
 from typing import Optional
@@ -98,14 +99,14 @@ def automl_forecasting_stage_1_tuner(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231002_0125',
                   '", "args": ["forecasting_mp_l2l_stage_1_tuner',
                   '", "--region=',
                   location,
                   '", "--transform_output_path=',
                   transform_output.uri,
                   '", "--training_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20230910_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231002_0125',
                   '", "--reduce_search_space_mode=',
                   reduce_search_space_mode,
                   f'", "--component_id={dsl.PIPELINE_TASK_ID_PLACEHOLDER}',

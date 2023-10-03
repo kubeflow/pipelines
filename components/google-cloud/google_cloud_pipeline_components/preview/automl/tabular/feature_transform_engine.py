@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """AutoML Feature Transform Engine component spec."""
 
 from typing import Optional
@@ -91,15 +92,6 @@ def feature_transform_engine(
     group_total_weight: float = 0.0,
     temporal_total_weight: float = 0.0,
     group_temporal_total_weight: float = 0.0,
-    embedding_prediction_server_docker_uri: Optional[str] = '',
-    embedding_batch_prediction_machine_type: Optional[str] = '',
-    embedding_batch_prediction_accelerator_type: Optional[
-        str
-    ] = 'accelerator_type_unspecified',
-    embedding_batch_prediction_accelerator_count: Optional[int] = -1,
-    embedding_batch_prediction_starting_replica_count: Optional[int] = -1,
-    embedding_batch_prediction_max_replica_count: Optional[int] = -1,
-    embedding_batch_prediction_batch_size: Optional[int] = -1,
 ):
   # fmt: off
   """Transforms raw data to engineered features.
@@ -292,14 +284,8 @@ def feature_transform_engine(
       dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
       dataflow_service_account: Custom service account to run Dataflow jobs.
       encryption_spec_key_name: Customer-managed encryption key.
-      autodetect_csv_schema: If True, infers the column types when importing CSVs into BigQuery.
-      embedding_prediction_server_docker_uri: The docker image inside which to run the embedding models to generate embeddings.
-      embedding_batch_prediction_machine_type: The machine type to be used to run the embedding batch prediction job. If not provided, `n1-highmem-32` will be used. For more details, see: https://cloud.google.com/vertex-ai/docs/predictions/configure-compute#machine-types
-      embedding_batch_prediction_accelerator_type: The accelerator type to use to generate embeddings. If not provided, no accelerator is used. More details: https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype
-      embedding_batch_prediction_accelerator_count: The number of accelerators to use to generate the embeddings. Default is 0.
-      embedding_batch_prediction_starting_replica_count: The starting replica count for embedding batch prediction job. Default = 20.
-      embedding_batch_prediction_max_replica_count: The max replica count for embedding batch prediction job. Default = 50.
-      embedding_batch_prediction_batch_size: The batch size for embedding batch prediction job. Default = 1024.
+      autodetect_csv_schema: If True, infers the column types
+        when importing CSVs into BigQuery.
 
   Returns:
       dataset_stats: The stats of the dataset.
@@ -322,7 +308,7 @@ def feature_transform_engine(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125',
       command=[],
       args=[
           'feature_transform_engine',
@@ -651,8 +637,8 @@ def feature_transform_engine(
           dsl.ConcatPlaceholder(
               items=['--dataflow_machine_type=', dataflow_machine_type]
           ),
-          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230910_1325',
-          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20230910_1325',
+          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125',
+          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125',
           dsl.ConcatPlaceholder(
               items=['--dataflow_disk_size_gb=', dataflow_disk_size_gb]
           ),
@@ -701,48 +687,6 @@ def feature_transform_engine(
                       group_temporal_total_weight,
                   ]
               ),
-          ),
-          dsl.ConcatPlaceholder(
-              items=[
-                  '--embedding_prediction_server_docker_uri=',
-                  embedding_prediction_server_docker_uri,
-              ]
-          ),
-          dsl.ConcatPlaceholder(
-              items=[
-                  '--embedding_batch_prediction_machine_type=',
-                  embedding_batch_prediction_machine_type,
-              ]
-          ),
-          dsl.ConcatPlaceholder(
-              items=[
-                  '--embedding_batch_prediction_accelerator_type=',
-                  embedding_batch_prediction_accelerator_type,
-              ]
-          ),
-          dsl.ConcatPlaceholder(
-              items=[
-                  '--embedding_batch_prediction_accelerator_count=',
-                  embedding_batch_prediction_accelerator_count,
-              ]
-          ),
-          dsl.ConcatPlaceholder(
-              items=[
-                  '--embedding_batch_prediction_starting_replica_count=',
-                  embedding_batch_prediction_starting_replica_count,
-              ]
-          ),
-          dsl.ConcatPlaceholder(
-              items=[
-                  '--embedding_batch_prediction_max_replica_count=',
-                  embedding_batch_prediction_max_replica_count,
-              ]
-          ),
-          dsl.ConcatPlaceholder(
-              items=[
-                  '--embedding_batch_prediction_batch_size=',
-                  embedding_batch_prediction_batch_size,
-              ]
           ),
           dsl.ConcatPlaceholder(
               items=[

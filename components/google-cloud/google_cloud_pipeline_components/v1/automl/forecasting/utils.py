@@ -76,7 +76,8 @@ def get_bqml_arima_train_pipeline_and_parameters(
       but also the longest training runtime.
     run_evaluation: Whether to run evaluation steps during training.
 
-  Returns: Tuple of pipeline_definition_path and parameter_values.
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
   """
   parameter_values = {
       'project': project,
@@ -133,7 +134,8 @@ def get_bqml_arima_predict_pipeline_and_parameters(
       results. This will cause the batch prediction output to include
       explanations.
 
-  Returns: Tuple of pipeline_definition_path and parameter_values.
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
   """
   parameter_values = {
       'project': project,
@@ -235,7 +237,8 @@ def get_prophet_train_pipeline_and_parameters(
       addresses.
     run_evaluation: Whether to run evaluation steps during training.
 
-  Returns: Tuple of pipeline_definition_path and parameter_values.
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
   """
   parameter_values = {
       'project': project,
@@ -316,7 +319,8 @@ def get_prophet_prediction_pipeline_and_parameters(
     machine_type: The machine type used for batch prediction.
     max_num_workers: The max number of workers used for batch prediction.
 
-  Returns: Tuple of pipeline_definition_path and parameter_values.
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
   """
   parameter_values = {
       'project': project,

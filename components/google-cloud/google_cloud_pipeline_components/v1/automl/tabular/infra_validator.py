@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """AutoML Infra Validator component spec."""
 
 from google_cloud_pipeline_components.types.artifact_types import UnmanagedContainerModel
@@ -31,7 +32,7 @@ def automl_tabular_infra_validator(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230910_1325',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231002_0125',
       command=[],
       args=['--executor_input', '{{$}}'],
   )
