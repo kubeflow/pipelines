@@ -75,7 +75,7 @@ def create_custom_training_job_from_component(
 
   This utility converts a [KFP component ](https://www.kubeflow.org/docs/components/pipelines/v2/components/) provided to `component_spec` into `CustomTrainingJobOp` component. Your components inputs, outputs, and logic are carried over, with additional [CustomJob ](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec) parameters exposed. Note that this utility constructs a ClusterSpec where the master and all the workers use the same spec, meaning all disk/machine spec related parameters will apply to all replicas. This is suitable for uses cases such as executing a training component over multiple replicas with [MultiWorkerMirroredStrategy ](https://www.tensorflow.org/api_docs/python/tf/distribute/MultiWorkerMirroredStrategy) or [MirroredStrategy ](https://www.tensorflow.org/api_docs/python/tf/distribute/MirroredStrategy). See [Create custom training jobs ](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for more information.
 
-   Args:
+  Args:
       component_spec: A KFP component.
       display_name: The name of the CustomJob. If not provided the component's name will be used instead.
       replica_count: The count of instances in the cluster. One replica always counts towards the master in worker_pool_spec[0] and the remaining replicas will be allocated in worker_pool_spec[1]. See [more information. ](https://cloud.google.com/vertex-ai/docs/training/distributed-training#configure_a_distributed_training_job)
@@ -97,7 +97,7 @@ def create_custom_training_job_from_component(
       labels: The labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).
       persistent_resource_id: The ID of the PersistentResource in the same Project and Location which to run. If this is specified, the job will be run on existing machines held by the PersistentResource instead of on-demand short-live machines. The network and CMEK configs on the job should be consistent with those on the PersistentResource, otherwise, the job will be rejected. (This is a Preview feature not yet recommended for production workloads.)
 
-   Returns:
+  Returns:
       A KFP component with CustomJob specification applied.
   """
   # fmt: on
