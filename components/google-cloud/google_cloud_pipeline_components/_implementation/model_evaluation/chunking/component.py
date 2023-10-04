@@ -29,7 +29,7 @@ def chunking(
     project: str,
     location: str,
     input_text_gcs_dir: str,
-    embedding_bq_uri: str,
+    output_bq_destination: str,
     display_name: str = 'chunking',
     machine_type: str = 'n1-standard-8',
     service_account: str = '',
@@ -43,7 +43,7 @@ def chunking(
     location: The GCP region that runs the pipeline component.
     input_text_gcs_dir: the GCS directory containing the files to chunk. DO NOT
       include '/' at the end of the path.
-    embedding_bq_uri: The BigQuery table URI where the component will write
+    output_bq_destination: The BigQuery table URI where the component will write
       chunks to.
     display_name: The name of the chunking job/component.
     machine_type: The machine type of this custom job.
@@ -78,7 +78,7 @@ def chunking(
               f'--location={location}',
               f'--root_dir={PIPELINE_ROOT_PLACEHOLDER}',
               f'--input_text_gcs_dir={input_text_gcs_dir}',
-              f'--embedding_bq_uri={embedding_bq_uri}',
+              f'--output_bq_destination={output_bq_destination}',
               f'--gcp_resources={gcp_resources}',
               '--executor_input={{$.json_escape[1]}}',
           ],
