@@ -39,6 +39,11 @@ def print_strings(strings: List[str]):
     print(strings)
 
 
+@dsl.component
+def print_ints(ints: List[int]):
+    print(ints)
+
+
 @dsl.pipeline
 def lucky_number_pipeline(add_drumroll: bool = True,
                           repeat_if_lucky_number: bool = True,
@@ -77,7 +82,7 @@ def lucky_number_pipeline(add_drumroll: bool = True,
                         text='Announcing again: Got the lucky number 5000! A one in 10,000 chance.'
                     )
 
-    print_strings(strings=dsl.Collected(even_or_odd_task.output))
+    print_ints(ints=dsl.Collected(int_task.output))
 
 
 if __name__ == '__main__':
