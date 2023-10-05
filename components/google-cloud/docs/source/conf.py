@@ -208,13 +208,7 @@ html_theme_options = {
     }],
     'font': {'text': 'Open Sans'},
     'version_dropdown': True,
-    'version_info': [
-        {
-            'version': f'https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-{version}',
-            'title': version,
-            'aliases': [],
-        }
-        for version in reversed(V2_DROPDOWN_VERSIONS)
+    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/google-cloud/docs/source/versions.json',
     ],
     # "toc_title_is_page_title": True,
 }
