@@ -9,5 +9,6 @@ kfp==1.8.14
 minio==5.0.10
 sagemaker==2.148.*
 ruamel.yaml==0.16.*
+kfp-server-api==1.8.5
       
       
