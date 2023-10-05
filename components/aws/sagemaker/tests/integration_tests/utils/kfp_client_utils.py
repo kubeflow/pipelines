@@ -5,6 +5,7 @@ import pytest
 
 from utils import argo_utils
 
+from kfp_server_api.rest import ApiException
 
 def compile_and_run_pipeline(
     client,
@@ -55,6 +56,30 @@ def compile_run_monitor_pipeline(
     status_to_check="succeeded",
     check=True,
 ):
+    try:
+        return pipeline_run(client, experiment_id, pipeline_definition, input_params, output_file_dir, pipeline_name, timeout,
+                            status_to_check="succeeded",
+                            check=True)
+    except ApiException as api_exception:
+        kfp_installed_namespace = utils.get_kfp_namespace()
+        client = kfp.Client(namespace=kfp_installed_namespace)
+        if api_exception.status < 500:
+            raise api_exception
+        return pipeline_run(client, experiment_id, pipeline_definition, input_params, output_file_dir, pipeline_name, timeout,
+                            status_to_check="succeeded",
+                            check=True)    
+
+def pipeline_run(
+    client,
+    experiment_id,
+    pipeline_definition,
+    input_params,
+    output_file_dir,
+    pipeline_name,
+    timeout,
+    status_to_check="succeeded",
+    check=True,
+):
     run_id = compile_and_run_pipeline(
         client,
         experiment_id,
@@ -71,7 +96,7 @@ def compile_run_monitor_pipeline(
         pytest.fail(f"Test Failed: {pipeline_name}. Run-id: {run_id}")
 
     return run_id, status, workflow_json
-
+    
 
 def terminate_run(client, run_id):
     client.runs.terminate_run(run_id)
