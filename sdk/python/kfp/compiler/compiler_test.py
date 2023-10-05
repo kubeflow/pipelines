@@ -4355,13 +4355,15 @@ class TestConditionLogic(unittest.TestCase):
                 print_and_return(text='Got tails!')
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-2']
             .trigger_policy.condition,
             "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
         )
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-2']
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-3']
             .trigger_policy.condition,
             "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads')"
         )
@@ -4379,18 +4381,21 @@ class TestConditionLogic(unittest.TestCase):
                 print_and_return(text='Draw!')
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-2']
             .trigger_policy.condition,
             "inputs.parameter_values['pipelinechannel--flip-three-sided-coin-Output'] == 'heads'"
         )
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-2']
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-3']
             .trigger_policy.condition,
             "!(inputs.parameter_values['pipelinechannel--flip-three-sided-coin-Output'] == 'heads') && inputs.parameter_values['pipelinechannel--flip-three-sided-coin-Output'] == 'tails'"
         )
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-3']
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-4']
             .trigger_policy.condition,
             "!(inputs.parameter_values['pipelinechannel--flip-three-sided-coin-Output'] == 'heads') && !(inputs.parameter_values['pipelinechannel--flip-three-sided-coin-Output'] == 'tails')"
         )
@@ -4410,23 +4415,23 @@ class TestConditionLogic(unittest.TestCase):
                 print_and_return(text='Got three!')
 
         self.assertEqual(
-            int_to_string.pipeline_spec.root.dag.tasks['condition-1']
-            .trigger_policy.condition,
+            int_to_string.pipeline_spec.components['comp-condition-branches-1']
+            .dag.tasks['condition-2'].trigger_policy.condition,
             "int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0"
         )
         self.assertEqual(
-            int_to_string.pipeline_spec.root.dag.tasks['condition-2']
-            .trigger_policy.condition,
+            int_to_string.pipeline_spec.components['comp-condition-branches-1']
+            .dag.tasks['condition-3'].trigger_policy.condition,
             "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1"
         )
         self.assertEqual(
-            int_to_string.pipeline_spec.root.dag.tasks['condition-3']
-            .trigger_policy.condition,
+            int_to_string.pipeline_spec.components['comp-condition-branches-1']
+            .dag.tasks['condition-4'].trigger_policy.condition,
             "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2"
         )
         self.assertEqual(
-            int_to_string.pipeline_spec.root.dag.tasks['condition-4']
-            .trigger_policy.condition,
+            int_to_string.pipeline_spec.components['comp-condition-branches-1']
+            .dag.tasks['condition-5'].trigger_policy.condition,
             "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2)"
         )
 
@@ -4452,38 +4457,76 @@ class TestConditionLogic(unittest.TestCase):
                 with dsl.Else():
                     print_and_return(text='Got three!')
 
-        # top level conditions
+                # tests that the pipeline wrapper works well with multiple if/elif/else
+                with dsl.ParallelFor(['Game #1', 'Game #2']) as game_no:
+                    heads_task = flip_coin()
+                    with dsl.If(heads_task.output == 'heads'):
+                        print_and_return(text=game_no)
+                        print_and_return(text='Got heads!')
+                    with dsl.Else():
+                        print_and_return(text=game_no)
+                        print_and_return(text='Got tail!')
+
+        # first group
+        ## top level conditions
+        ### if
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
             .trigger_policy.condition,
             "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
         )
-        # second level nested conditions
+        ## second level nested conditions
+        ### if
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-1'].dag
-            .tasks['condition-2'].trigger_policy.condition,
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-2'].dag.tasks['condition-3']
+            .trigger_policy.condition,
             "int(inputs.parameter_values[\'pipelinechannel--int-zero-through-three-Output\']) == 0"
         )
+        ### elif
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-1'].dag
-            .tasks['condition-3'].trigger_policy.condition,
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-2'].dag.tasks['condition-4']
+            .trigger_policy.condition,
             "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1"
         )
+        ### elif #2
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-1'].dag
-            .tasks['condition-5'].trigger_policy.condition,
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-2'].dag.tasks['condition-6']
+            .trigger_policy.condition,
             "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2"
         )
+        ### else
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-1'].dag
-            .tasks['condition-6'].trigger_policy.condition,
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-2'].dag.tasks['condition-7']
+            .trigger_policy.condition,
             "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2)"
         )
-        # third level nested conditions
+        ## third level nested conditions
+        ### if
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-3'].dag
-            .tasks['condition-4'].trigger_policy.condition,
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-4'].dag
+            .tasks['condition-5'].trigger_policy.condition,
             "inputs.parameter_values['pipelinechannel--confirm'] == true")
+
+        # second group
+
+        ## if
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-10'].dag.tasks['condition-11']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'heads'"
+        )
+        ## elif
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-10'].dag.tasks['condition-12']
+            .trigger_policy.condition,
+            "!(inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'heads')"
+        )
 
     def test_multiple_ifs_permitted(self):
 
@@ -4589,17 +4632,20 @@ class TestConditionLogic(unittest.TestCase):
                     text=f'Coin three result: {flip_coin_task_3.output}')
 
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-2']
             .trigger_policy.condition,
             "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
         )
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-2']
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-3']
             .trigger_policy.condition,
             "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads') && inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'tails'"
         )
         self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-3']
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-4']
             .trigger_policy.condition,
             "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads') && !(inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'tails')"
         )
