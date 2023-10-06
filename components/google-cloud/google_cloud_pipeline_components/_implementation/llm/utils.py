@@ -27,6 +27,7 @@ def build_payload(
     args: List[str],
     accelerator_type: str = '',
     accelerator_count: int = 0,
+    encryption_spec_key_name: str = '',
 ) -> Dict[str, Any]:
   """Generates payload for a custom training job.
 
@@ -41,6 +42,10 @@ def build_payload(
       requested.
     accelerator_count: Number of accelerators. By default no accelerators are
       requested.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set,
+      then all resources created by the CustomJob will be encrypted with the
+      provided encryption key. Note that this is not supported for TPU at the
+      moment.
 
   Returns:
     Custom job payload.
@@ -77,6 +82,9 @@ def build_payload(
         'Accelerator type must be specified if accelerator count is not 0.'
         f'Received accelerator_type == {accelerator_type}.'
     )
+
+  if encryption_spec_key_name:
+    payload['encryption_spec'] = {'kms_key_name': encryption_spec_key_name}
 
   return payload
 
