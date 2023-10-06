@@ -68,6 +68,8 @@ class TasksGroup:
         self.display_name = name
         self.dependencies = []
         self.is_root = is_root
+        # backref to parent, set when the pipeline is called in pipeline_context
+        self.parent_task_group: Optional[TasksGroup] = None
 
     def __enter__(self):
         if not pipeline_context.Pipeline.get_default_pipeline():
@@ -142,6 +144,7 @@ class ExitHandler(TasksGroup):
 
 
 class ConditionBranches(TasksGroup):
+    _oneof_id = 0
 
     def __init__(self) -> None:
         super().__init__(
@@ -149,6 +152,16 @@ class ConditionBranches(TasksGroup):
             name=None,
             is_root=False,
         )
+
+    def _get_oneof_id(self) -> int:
+        """Incrementor for uniquely identifying a OneOf for the parent
+        ConditionBranches group.
+
+        This is analogous to incrementing a unique identifier for tasks
+        groups belonging to a pipeline.
+        """
+        self._oneof_id += 1
+        return self._oneof_id
 
 
 class _ConditionBase(TasksGroup):

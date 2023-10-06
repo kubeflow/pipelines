@@ -7,27 +7,12 @@
 components:
   comp-condition-11:
     dag:
-      tasks:
-        print-and-return-4:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-print-and-return-4
-          inputs:
-            parameters:
-              text:
-                runtimeValue:
-                  constant: Got a high even number!
-          taskInfo:
-            name: print-and-return-4
-    inputDefinitions:
-      parameters:
-        pipelinechannel--int-0-to-9999-Output:
-          parameterType: NUMBER_INTEGER
-        pipelinechannel--is-even-or-odd-2-Output:
-          parameterType: STRING
-  comp-condition-12:
-    dag:
+      outputs:
+        parameters:
+          pipelinechannel--print-and-return-5-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: print-and-return-5
       tasks:
         print-and-return-5:
           cachingOptions:
@@ -38,7 +23,7 @@ components:
             parameters:
               text:
                 runtimeValue:
-                  constant: Got a high odd number!
+                  constant: Got a high even number!
           taskInfo:
             name: print-and-return-5
     inputDefinitions:
@@ -46,6 +31,41 @@ components:
         pipelinechannel--int-0-to-9999-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-2-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--print-and-return-5-Output:
+          parameterType: STRING
+  comp-condition-12:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--print-and-return-6-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: print-and-return-6
+      tasks:
+        print-and-return-6:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-and-return-6
+          inputs:
+            parameters:
+              text:
+                runtimeValue:
+                  constant: Got a high odd number!
+          taskInfo:
+            name: print-and-return-6
+    inputDefinitions:
+      parameters:
+        pipelinechannel--int-0-to-9999-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--is-even-or-odd-2-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--print-and-return-6-Output:
           parameterType: STRING
   comp-condition-13:
     dag:
@@ -64,11 +84,11 @@ components:
           triggerPolicy:
             condition: inputs.parameter_values['pipelinechannel--repeat_if_lucky_number']
               == true
-        print-and-return-6:
+        print-and-return-8:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-and-return-6
+            name: comp-print-and-return-8
           inputs:
             parameters:
               text:
@@ -76,7 +96,7 @@ components:
                   constant: 'Announcing: Got the lucky number 5000! A one in 10,000
                     chance.'
           taskInfo:
-            name: print-and-return-6
+            name: print-and-return-8
     inputDefinitions:
       parameters:
         pipelinechannel--int-0-to-9999-Output:
@@ -153,6 +173,12 @@ components:
           parameterType: NUMBER_INTEGER
   comp-condition-6:
     dag:
+      outputs:
+        parameters:
+          pipelinechannel--print-and-return-2-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: print-and-return-2
       tasks:
         print-and-return-2:
           cachingOptions:
@@ -172,8 +198,18 @@ components:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-Output:
           parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--print-and-return-2-Output:
+          parameterType: STRING
   comp-condition-7:
     dag:
+      outputs:
+        parameters:
+          pipelinechannel--print-and-return-3-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: print-and-return-3
       tasks:
         print-and-return-3:
           cachingOptions:
@@ -192,6 +228,10 @@ components:
         pipelinechannel--int-0-to-9999-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--print-and-return-3-Output:
           parameterType: STRING
   comp-condition-8:
     dag:
@@ -222,6 +262,21 @@ components:
                 componentInputParameter: pipelinechannel--int-0-to-9999-Output
           taskInfo:
             name: is-even-or-odd
+        print-and-return-4:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-and-return-4
+          dependentTasks:
+          - condition-branches-5
+          inputs:
+            parameters:
+              text:
+                taskOutputParameter:
+                  outputParameterKey: pipelinechannel--condition-branches-5-oneof-1
+                  producerTask: condition-branches-5
+          taskInfo:
+            name: print-and-return-4
     inputDefinitions:
       parameters:
         pipelinechannel--int-0-to-9999-Output:
@@ -255,12 +310,36 @@ components:
                 componentInputParameter: pipelinechannel--int-0-to-9999-Output
           taskInfo:
             name: is-even-or-odd-2
+        print-and-return-7:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-and-return-7
+          dependentTasks:
+          - condition-branches-10
+          inputs:
+            parameters:
+              text:
+                taskOutputParameter:
+                  outputParameterKey: pipelinechannel--condition-branches-10-oneof-1
+                  producerTask: condition-branches-10
+          taskInfo:
+            name: print-and-return-7
     inputDefinitions:
       parameters:
         pipelinechannel--int-0-to-9999-Output:
           parameterType: NUMBER_INTEGER
   comp-condition-branches-10:
     dag:
+      outputs:
+        parameters:
+          pipelinechannel--condition-branches-10-oneof-1:
+            valueFromOneof:
+              parameterSelectors:
+              - outputParameterKey: pipelinechannel--print-and-return-5-Output
+                producerSubtask: condition-11
+              - outputParameterKey: pipelinechannel--print-and-return-6-Output
+                producerSubtask: condition-12
       tasks:
         condition-11:
           componentRef:
@@ -295,6 +374,10 @@ components:
         pipelinechannel--int-0-to-9999-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-2-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--condition-branches-10-oneof-1:
           parameterType: STRING
   comp-condition-branches-4:
     dag:
@@ -347,6 +430,15 @@ components:
           parameterType: BOOLEAN
   comp-condition-branches-5:
     dag:
+      outputs:
+        parameters:
+          pipelinechannel--condition-branches-5-oneof-1:
+            valueFromOneof:
+              parameterSelectors:
+              - outputParameterKey: pipelinechannel--print-and-return-2-Output
+                producerSubtask: condition-6
+              - outputParameterKey: pipelinechannel--print-and-return-3-Output
+                producerSubtask: condition-7
       tasks:
         condition-6:
           componentRef:
@@ -381,6 +473,10 @@ components:
         pipelinechannel--int-0-to-9999-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--condition-branches-5-oneof-1:
           parameterType: STRING
   comp-for-loop-1:
     dag:
@@ -443,11 +539,11 @@ components:
   comp-for-loop-16:
     dag:
       tasks:
-        print-and-return-7:
+        print-and-return-9:
           cachingOptions:
             enableCache: true
           componentRef:
-            name: comp-print-and-return-7
+            name: comp-print-and-return-9
           inputs:
             parameters:
               text:
@@ -455,7 +551,7 @@ components:
                   constant: 'Announcing again: Got the lucky number 5000! A one in
                     10,000 chance.'
           taskInfo:
-            name: print-and-return-7
+            name: print-and-return-9
     inputDefinitions:
       parameters:
         pipelinechannel--int-0-to-9999-Output:
@@ -552,6 +648,26 @@ components:
           parameterType: STRING
   comp-print-and-return-7:
     executorLabel: exec-print-and-return-7
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-and-return-8:
+    executorLabel: exec-print-and-return-8
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-and-return-9:
+    executorLabel: exec-print-and-return-9
     inputDefinitions:
       parameters:
         text:
@@ -830,6 +946,64 @@ deploymentSpec:
           \ text\n\n"
         image: python:3.7
     exec-print-and-return-7:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.3.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.7
+    exec-print-and-return-8:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.3.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.7
+    exec-print-and-return-9:
       container:
         args:
         - --executor_input

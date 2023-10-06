@@ -11,41 +11,50 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp import compiler
 from kfp import dsl
+from kfp.dsl import Artifact
+from kfp.dsl import Input
+from kfp.dsl import Output
 
 
 @dsl.component
-def flip_three_sided_die() -> str:
+def flip_coin() -> str:
     import random
-    val = random.randint(0, 2)
-
-    if val == 0:
-        return 'heads'
-    elif val == 1:
-        return 'tails'
-    else:
-        return 'draw'
+    return 'heads' if random.randint(0, 1) == 0 else 'tails'
 
 
 @dsl.component
-def print_and_return(text: str) -> str:
-    print(text)
-    return text
+def param_to_artifact(val: str, a: Output[Artifact]):
+    with open(a.path, 'w') as f:
+        f.write(val)
+
+
+@dsl.component
+def print_artifact(a: Input[Artifact]):
+    with open(a.path) as f:
+        print(f.read())
 
 
 @dsl.pipeline
-def roll_die_pipeline():
-    flip_coin_task = flip_three_sided_die()
+def flip_coin_pipeline() -> Artifact:
+    flip_coin_task = flip_coin()
     with dsl.If(flip_coin_task.output == 'heads'):
-        print_and_return(text='Got heads!')
-    with dsl.Elif(flip_coin_task.output == 'tails'):
-        print_and_return(text='Got tails!')
+        t1 = param_to_artifact(val=flip_coin_task.output)
     with dsl.Else():
-        print_and_return(text='Draw!')
+        t2 = param_to_artifact(val=flip_coin_task.output)
+    oneof = dsl.OneOf(t1.outputs['a'], t2.outputs['a'])
+    print_artifact(a=oneof)
+    return oneof
+
+
+@dsl.pipeline
+def outer_pipeline():
+    flip_coin_task = flip_coin_pipeline()
+    print_artifact(a=flip_coin_task.output)
 
 
 if __name__ == '__main__':
+    from kfp import compiler
     compiler.Compiler().compile(
-        pipeline_func=roll_die_pipeline,
+        pipeline_func=outer_pipeline,
         package_path=__file__.replace('.py', '.yaml'))
