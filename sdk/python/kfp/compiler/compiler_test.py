@@ -2861,6 +2861,31 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
 
 class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
+    def test_correct_subdag_return_type(self):
+        from typing import List
+
+        from kfp import dsl
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        @dsl.pipeline
+        def math_pipeline() -> int:
+            with dsl.ParallelFor([1, 2, 3]) as v:
+                t = double(num=v)
+
+            return add(nums=dsl.Collected(t.output)).output
+
+        self.assertEqual(
+            math_pipeline.pipeline_spec.components['comp-for-loop-2']
+            .output_definitions.parameters['pipelinechannel--double-Output']
+            .parameter_type, type_utils.LIST)
+
     def test_missing_collected_with_correct_annotation(self):
         from typing import List
 

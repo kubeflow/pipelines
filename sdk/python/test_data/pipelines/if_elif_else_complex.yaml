@@ -439,7 +439,7 @@ components:
     outputDefinitions:
       parameters:
         pipelinechannel--int-0-to-9999-Output:
-          parameterType: NUMBER_INTEGER
+          parameterType: LIST
   comp-for-loop-16:
     dag:
       tasks:
