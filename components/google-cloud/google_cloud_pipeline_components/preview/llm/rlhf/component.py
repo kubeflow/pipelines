@@ -25,6 +25,7 @@ from google_cloud_pipeline_components._implementation.llm import private_text_im
 from google_cloud_pipeline_components._implementation.llm import reinforcer
 from google_cloud_pipeline_components._implementation.llm import reward_model_trainer
 from google_cloud_pipeline_components._implementation.llm import upload_llm_model
+from google_cloud_pipeline_components._implementation.llm import upload_tensorboard_metrics
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
 
@@ -54,6 +55,7 @@ def rlhf_pipeline(
     eval_dataset: Optional[str] = None,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
+    tensorboard_resource_id: Optional[str] = None,
 ) -> PipelineOutput:
   # fmt: off
   """Performs reinforcement learning from human feedback.
@@ -75,6 +77,7 @@ def rlhf_pipeline(
     eval_dataset: Optional Cloud storage path to an evaluation dataset. If provided, inference will be performed on this dataset after training. The dataset format is jsonl. Each example in the dataset must contain a field `input_text` that contains the prompt.
     project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
     location: Location used to run custom jobs. If not specified the location used to run the pipeline will be used.
+    tensorboard_resource_id: Optional tensorboard resource id in format `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`. If provided, tensorboard metrics will be uploaded to this location.
 
   Returns:
     model_resource_name: Path to the model uploaded to the Model Registry. This will be an empty string if the model was not deployed.
@@ -176,6 +179,23 @@ def rlhf_pipeline(
       .set_caching_options(False)
   )
 
+  has_tensorboard_id = function_based.value_exists(
+      value=tensorboard_resource_id
+  )
+  with kfp.dsl.Condition(  # pytype: disable=wrong-arg-types
+      has_tensorboard_id.output == True,  # pylint: disable=singleton-comparison, g-explicit-bool-comparison
+      name='Upload Reward Model Tensorboard Metrics',
+  ):
+    _ = upload_tensorboard_metrics.upload_tensorboard_metrics(
+        tensorboard_resource_id=tensorboard_resource_id,
+        metrics_directory=reward_model.outputs['tensorboard_metrics'],
+        experiment_name=(
+            'reward-model-tuner-'
+            f'{kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER}-'
+            f'{kfp.dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
+        ),
+    )
+
   rl_image_uri = function_based.resolve_private_image_uri(
       image_name='reinforcer',
       accelerator_type=machine_spec.outputs['accelerator_type'],
@@ -213,6 +233,20 @@ def rlhf_pipeline(
       .set_display_name('Reinforcer')
       .set_caching_options(False)
   )
+
+  with kfp.dsl.Condition(  # pytype: disable=wrong-arg-types
+      has_tensorboard_id.output == True,  # pylint: disable=singleton-comparison, g-explicit-bool-comparison
+      name='Upload Reinforcement Learning Tensorboard Metrics',
+  ):
+    _ = upload_tensorboard_metrics.upload_tensorboard_metrics(
+        tensorboard_resource_id=tensorboard_resource_id,
+        metrics_directory=rl_model.outputs['tensorboard_metrics'],
+        experiment_name=(
+            'rl-model-tuner-'
+            f'{kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER}-'
+            f'{kfp.dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
+        ),
+    )
 
   should_perform_inference = function_based.value_exists(value=eval_dataset)
   with kfp.dsl.Condition(

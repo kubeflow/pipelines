@@ -1,4 +1,5 @@
 ## Upcoming release
+* Upload tensorboard metrics from RLHF pipelines if a tensorboard resource id is provided at runtime.
 
 ## Release 2.4.1
 * Disable caching for LLM pipeline tasks that store temporary artifacts.
