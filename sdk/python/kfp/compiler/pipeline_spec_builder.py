@@ -626,7 +626,7 @@ def build_component_spec_for_group(
         else:
             component_spec.output_definitions.parameters[
                 output_name].parameter_type = type_utils.get_parameter_type(
-                    channel.channel_type)
+                    output.channel_type)
 
     return component_spec
 
