@@ -61,3 +61,7 @@ def parse_default_args(args):
   parsed_args, _ = parser.parse_known_args(args)
 
   return (parser, parsed_args)
+
+
+def parse_bool(value: str) -> bool:
+  return value is not None and value.lower() != 'false'
