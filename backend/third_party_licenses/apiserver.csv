@@ -85,7 +85,7 @@ github.com/oliveagle/jsonpath,https://github.com/oliveagle/jsonpath/blob/2e52cf6
 github.com/pelletier/go-toml,https://github.com/pelletier/go-toml/blob/v1.9.4/LICENSE,Apache-2.0
 github.com/pkg/errors,https://github.com/pkg/errors/blob/v0.9.1/LICENSE,BSD-2-Clause
 github.com/prometheus/client_golang/prometheus,https://github.com/prometheus/client_golang/blob/v1.12.1/LICENSE,Apache-2.0
-github.com/prometheus/client_model/go,https://github.com/prometheus/client_model/blob/v0.2.0/LICENSE,Apache-2.0
+github.com/prometheus/client_model/go,https://github.com/prometheus/client_model/blob/v0.4.0/LICENSE,Apache-2.0
 github.com/prometheus/common,https://github.com/prometheus/common/blob/v0.32.1/LICENSE,Apache-2.0
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg,https://github.com/prometheus/common/blob/v0.32.1/internal/bitbucket.org/ww/goautoneg/README.txt,BSD-3-Clause
 github.com/prometheus/procfs,https://github.com/prometheus/procfs/blob/v0.7.3/LICENSE,Apache-2.0
@@ -116,7 +116,7 @@ google.golang.org/api,https://github.com/googleapis/google-api-go-client/blob/v0
 google.golang.org/api/internal/third_party/uritemplates,https://github.com/googleapis/google-api-go-client/blob/v0.70.0/internal/third_party/uritemplates/LICENSE,BSD-3-Clause
 google.golang.org/genproto,https://github.com/googleapis/go-genproto/blob/1973136f34c6/LICENSE,Apache-2.0
 google.golang.org/grpc,https://github.com/grpc/grpc-go/blob/v1.44.0/LICENSE,Apache-2.0
-google.golang.org/protobuf,https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/LICENSE,BSD-3-Clause
+google.golang.org/protobuf,https://github.com/protocolbuffers/protobuf-go/blob/v1.30.0/LICENSE,BSD-3-Clause
 gopkg.in/inf.v0,https://github.com/go-inf/inf/blob/v0.9.1/LICENSE,BSD-3-Clause
 gopkg.in/ini.v1,https://github.com/go-ini/ini/blob/v1.66.3/LICENSE,Apache-2.0
 gopkg.in/jcmturner/aescts.v1,https://github.com/jcmturner/aescts/blob/v1.0.1/LICENSE,Apache-2.0
