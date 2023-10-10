@@ -1,5 +1,5 @@
 ## Upcoming release
-* Upload tensorboard metrics from RLHF pipelines if a tensorboard resource id is provided at runtime.
+* Upload tensorboard metrics from `preview.llm.rlhf_pipeline` if a `tensorboard_resource_id` is provided at runtime.
 * Support `incremental_train_base_model`, `parent_model`, `is_default_version`, `model_version_aliases`, `model_version_description` in `AutoMLImageTrainingJobRunOp`.
 
 ## Release 2.4.1
