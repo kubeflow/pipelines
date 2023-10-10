@@ -34,11 +34,13 @@ from google_cloud_pipeline_components._implementation.model_evaluation.llm_retri
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_safety_bias.component import llm_safety_bias_metrics as LLMSafetyBiasMetricsOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_safety_bias.evaluation_llm_safety_bias_pipeline import evaluation_llm_safety_bias_pipeline
 from google_cloud_pipeline_components._implementation.model_evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
+from google_cloud_pipeline_components._implementation.model_evaluation.text2sql.evaluation_llm_text2sql_pipeline import evaluation_llm_text2sql_pipeline
 
 
 __all__ = [
     'evaluation_llm_safety_bias_pipeline',
     'evaluation_llm_embedding_pipeline',
+    'evaluation_llm_text2sql_pipeline',
     'ChunkingOp',
     'EvaluationDataSamplerOp',
     'EvaluationDatasetPreprocessorOp',
