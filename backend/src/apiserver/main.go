@@ -63,6 +63,7 @@ func main() {
 	clientManager := cm.NewClientManager()
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
 	)
 	err := loadSamples(resourceManager)
 	if err != nil {

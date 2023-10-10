@@ -49,11 +49,31 @@ import (
 
 // Metric variables. Please prefix the metric names with resource_manager_.
 var (
+	extraLabels = []string{
+		// display in which Kubeflow namespace the runs were triggered
+		"profile",
+
+		// display workflow name
+		"workflow",
+	}
+
 	// Count the removed workflows due to garbage collection.
 	workflowGCCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "resource_manager_workflow_gc",
 		Help: "The number of gabarage-collected workflows",
 	})
+
+	// Count the successfull workflow runs
+	workflowSuccessCounter = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "resource_manager_workflow_runs_success",
+		Help: "The current number of successfully workflows runs",
+	}, extraLabels)
+
+	// Count the failed workflow runs
+	workflowFailedCounter = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "resource_manager_workflow_runs_failed",
+		Help: "The current number of failed workflows runs",
+	}, extraLabels)
 )
 
 type ClientManagerInterface interface {
@@ -77,6 +97,10 @@ type ClientManagerInterface interface {
 	Authenticators() []kfpauth.Authenticator
 }
 
+type ResourceManagerOptions struct {
+	CollectMetrics bool `json:"collect_metrics,omitempty"`
+}
+
 type ResourceManager struct {
 	experimentStore           storage.ExperimentStoreInterface
 	pipelineStore             storage.PipelineStoreInterface
@@ -96,9 +120,10 @@ type ResourceManager struct {
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []kfpauth.Authenticator
+	options                   *ResourceManagerOptions
 }
 
-func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
+func NewResourceManager(clientManager ClientManagerInterface, options *ResourceManagerOptions) *ResourceManager {
 	return &ResourceManager{
 		experimentStore:           clientManager.ExperimentStore(),
 		pipelineStore:             clientManager.PipelineStore(),
@@ -118,6 +143,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		time:                      clientManager.Time(),
 		uuid:                      clientManager.UUID(),
 		authenticators:            clientManager.Authenticators(),
+		options:                   options,
 	}
 }
 
@@ -613,6 +639,18 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete a run %v", runId)
 	}
+
+	if r.options.CollectMetrics {
+		if run.Conditions == string(exec.ExecutionSucceeded) {
+			if util.GetMetricValue(workflowSuccessCounter) > 0 {
+				workflowSuccessCounter.WithLabelValues(run.Namespace, run.DisplayName).Dec()
+			}
+		} else {
+			if util.GetMetricValue(workflowFailedCounter) > 0 {
+				workflowFailedCounter.WithLabelValues(run.Namespace, run.DisplayName).Dec()
+			}
+		}
+	}
 	return nil
 }
 
@@ -1079,8 +1117,9 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				return nil, util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 			}
 		}
-		// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
-		workflowGCCounter.Inc()
+		if r.options.CollectMetrics {
+			workflowGCCounter.Inc()
+		}
 	}
 	// If the run was Running and got terminated (activeDeadlineSeconds set to 0),
 	// ignore its condition and mark it as such
@@ -1119,8 +1158,10 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				}
 				return nil, util.NewInternalServerError(err, "Failed to delete the obsolete workflow for run %s", runId)
 			}
-			// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
-			workflowGCCounter.Inc()
+
+			if r.options.CollectMetrics {
+				workflowGCCounter.Inc()
+			}
 			// Note, persistence agent will not retry reporting this workflow again, because updateError is a not found error.
 			return nil, util.Wrapf(updateError, "Failed to report workflow name=%q namespace=%q runId=%q", execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
 		}
@@ -1206,6 +1247,20 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				return nil, util.NewNotFoundError(err, message)
 			} else {
 				return nil, util.Wrapf(err, message)
+			}
+		}
+
+		if r.options.CollectMetrics {
+			execNamespace := execSpec.ExecutionNamespace()
+			execName := execSpec.ExecutionName()
+
+			if execStatus.Condition() == exec.ExecutionSucceeded {
+				workflowSuccessCounter.WithLabelValues(execNamespace, execName).Inc()
+			} else {
+				glog.Errorf("pipeline '%s' finished with an error", execName)
+
+				// also collects counts regarding retries
+				workflowFailedCounter.WithLabelValues(execNamespace, execName).Inc()
 			}
 		}
 	}
