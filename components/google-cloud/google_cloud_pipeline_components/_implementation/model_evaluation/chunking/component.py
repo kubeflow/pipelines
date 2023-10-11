@@ -30,6 +30,8 @@ def chunking(
     location: str,
     input_text_gcs_dir: str,
     output_bq_destination: str,
+    output_text_gcs_dir: str,
+    generation_threshold_microseconds: str,
     display_name: str = 'chunking',
     machine_type: str = 'n1-standard-8',
     service_account: str = '',
@@ -45,6 +47,9 @@ def chunking(
       include '/' at the end of the path.
     output_bq_destination: The BigQuery table URI where the component will write
       chunks to.
+    output_text_gcs_dir: The GCS folder to hold intermediate data.
+    generation_threshold_microseconds: only files created on/after this
+      generation threshold will be processed, in microseconds.
     display_name: The name of the chunking job/component.
     machine_type: The machine type of this custom job.
     service_account: Sets the default service account for workload run-as
@@ -79,6 +84,8 @@ def chunking(
               f'--root_dir={PIPELINE_ROOT_PLACEHOLDER}',
               f'--input_text_gcs_dir={input_text_gcs_dir}',
               f'--output_bq_destination={output_bq_destination}',
+              f'--output_text_gcs_dir={output_text_gcs_dir}',
+              f'--generation_threshold_microseconds={generation_threshold_microseconds}',
               f'--gcp_resources={gcp_resources}',
               '--executor_input={{$.json_escape[1]}}',
           ],
