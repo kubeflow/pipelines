@@ -356,9 +356,14 @@ def generate_default_instruction(
   task = task.lower()
   if task == 'summarization':
     return f'Summarize in less than {target_sequence_length} words.'
+
+  elif task == 'question_answer':
+    return f'Answer the question in less than {target_sequence_length} words.'
+
   else:
     raise ValueError(
-        f'Task not recognized: {task}. Supported tasks are: summarization.'
+        f'Task not recognized: {task}. Supported tasks are: "summarization",'
+        ' "question_answer".'
     )
 
 
