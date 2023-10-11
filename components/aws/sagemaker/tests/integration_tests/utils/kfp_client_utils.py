@@ -2,6 +2,7 @@ import json
 import os
 import utils
 import pytest
+import kfp
 
 from utils import argo_utils
 
