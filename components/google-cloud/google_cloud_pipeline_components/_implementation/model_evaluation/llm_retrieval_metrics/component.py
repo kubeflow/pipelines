@@ -2,13 +2,12 @@
 
 from google_cloud_pipeline_components import utils as gcpc_utils
 from google_cloud_pipeline_components._implementation.model_evaluation import utils
+from google_cloud_pipeline_components._implementation.model_evaluation import version
 from kfp.dsl import container_component
 from kfp.dsl import Metrics
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
-
-_IMAGE_URI = 'us-docker.pkg.dev/vertex-evaluation/public/llm:v0.3'
 
 
 @container_component
@@ -99,7 +98,7 @@ def llm_retrieval_metrics(
       custom_job_payload=utils.build_custom_job_payload(
           display_name=display_name,
           machine_type=machine_type,
-          image_uri=_IMAGE_URI,
+          image_uri=version.LLM_EVAL_IMAGE_TAG,
           args=[
               f'--retrieval_metrics={True}',
               f'--project={project}',
