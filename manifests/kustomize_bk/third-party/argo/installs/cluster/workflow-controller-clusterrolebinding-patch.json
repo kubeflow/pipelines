@@ -1,7 +1,0 @@
-[
-  {
-    "op": "replace",
-    "path": "/subjects/0/namespace",
-    "value": "kubeflow"
-  }
-]
