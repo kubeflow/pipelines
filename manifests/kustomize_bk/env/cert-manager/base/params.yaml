@@ -1,0 +1,13 @@
+varReference:
+  - path: spec/commonName
+    kind: Certificate
+  - path: spec/dnsNames
+    kind: Certificate
+  - path: spec/issuerRef/name
+    kind: Certificate
+  - path: metadata/annotations
+    kind: MutatingWebhookConfiguration
+  - path: webhooks/clientConfig/service/namespace
+    kind: MutatingWebhookConfiguration
+  - path: webhooks/name
+    kind: MutatingWebhookConfiguration

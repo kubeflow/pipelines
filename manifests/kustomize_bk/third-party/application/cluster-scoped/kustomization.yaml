@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- application-crd.yaml
+
+# Update application CRD:
+# Copy the upstream file to application-crd.yaml of the current folder.
+# Upstream file: https://github.com/kubernetes-sigs/application/blob/master/config/crd/bases/app.k8s.io_applications.yaml
+# Keep label controller-tools.k8s.io.

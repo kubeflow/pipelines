@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workflow-controller-configmap
+data:
+  # References:
+  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/docs/workflow-controller-configmap.yaml
+
+  # emissary executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
+  containerRuntimeExecutor: emissary
+
+  # In artifactRepository.s3.endpoint, $(kfp-namespace) is needed, because in multi-user mode, pipelines may run in other namespaces.
+  artifactRepository: |
+    archiveLogs: true
+    s3:
+      endpoint: "minio-service.$(kfp-namespace):9000"
+      bucket: "$(kfp-artifact-bucket-name)"
+      # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
+      # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
+      # pod.name. Can also use strftime formating of workflow.creationTimestamp so that workflow
+      # artifacts can be organized by date. If omitted, will use `{{workflow.name}}/{{pod.name}}`,
+      # which has potential for have collisions, because names do not guarantee they are unique
+      # over the lifetime of the cluster.
+      # Refer to https://kubernetes.io/docs/concepts/overview/working-with-objects/names/.
+      #
+      # The following format looks like:
+      # artifacts/my-workflow-abc123/2018/08/23/my-workflow-abc123-1234567890
+      # Adding date into the path greatly reduces the chance of {{pod.name}} collision.
+      keyFormat: "artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
+      # insecure will disable TLS. Primarily used for minio installs not configured with TLS
+      insecure: true
+      accessKeySecret:
+        name: mlpipeline-minio-artifact
+        key: accesskey
+      secretKeySecret:
+        name: mlpipeline-minio-artifact
+        key: secretkey
+  executor: |
+    imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 0.01
+        memory: 32Mi
+      limits:
+        cpu: 0.5
+        memory: 512Mi

@@ -1,0 +1,4 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: # kpt-merge: /workflow-controller-configmap
+  name: workflow-controller-configmap

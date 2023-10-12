@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-install-config
+data:
+  warning: |
+    1. Do not use kubectl to edit this configmap, because some values are used
+    during kustomize build. Instead, change the configmap and apply the entire
+    kustomize manifests again.
+    2. After updating the configmap, some deployments may need to be restarted
+    until the changes take effect. A quick way to restart all deployments in a
+    namespace: `kubectl rollout restart deployment -n <your-namespace>`.
+  appName: pipeline
+  appVersion: 2.0.0-alpha.7
+  dbHost: mysql
+  dbPort: "3306"
+  mlmdDb: metadb
+  cacheDb: cachedb
+  pipelineDb: mlpipeline
+  bucketName: mlpipeline
+  ## defaultPipelineRoot: Optional. Default pipeline root in v2 compatible mode.
+  ## https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/
+  ##
+  ## If the field is not set, kfp-launcher configmaps won't be created and 
+  ## v2 compatible mode defaults to minio://mlpipeline/v2/artifacts as pipeline
+  ## root.
+  ##
+  ## When not in Kubeflow Pipelines multi-user mode, the config works as you
+  ## would normally expect.
+  ##
+  ## In Kubeflow Pipelines multi-user mode, the config creates default
+  ## kfp-launcher configmaps in each user's namespace. Users can edit the
+  ## kfp-launcher configmap's defaultPipelineRoot field afterwards to configure
+  ## namespace-specific default pipeline root. The namespace specific changes in
+  ## kfp-launcher configmap won't be overridden by pipeline-install-config.
+  ##
+  ## Caveat: when you update the config from a non-empty value, only new
+  ## namespaces get the updated config by default. Owners of existing namespaces
+  ## must delete the kfp-launcher configmap to get the new default config value.
+  ##
+  ## Examples:
+  ## defaultPipelineRoot: minio://mlpipeline/v2/artifacts
+  ## defaultPipelineRoot: gs://your-bucket/path/to/artifacts
+  ## defaultPipelineRoot: s3://your-bucket/path/to/artifacts
+  ##
+  ## V2 Compatible Mode Feature stage:
+  ## [Beta](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#beta)
+  defaultPipelineRoot: ""
+  ## autoUpdatePipelineDefaultVersion: States if the pipeline version
+  ## should be updated by defult for a versioned pipeline or not when a new
+  ## version is uploaded. This sets the deployment wide definition.
+  autoUpdatePipelineDefaultVersion: "true"
+  ## cronScheduleTimezone: States the timezone which should be used for
+  ## the cron scheduler. If not specified the local timezone of the
+  ## cluster will be used. Valid values are UTC, Local or values according to
+  ## the IANA Time Zone database, such as "America/New_York" and "Asia/Shanghai".
+  ## Feature stage:
+  ## [Alpha](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#alpha)
+  cronScheduleTimezone: "UTC"
+  ## cacheImage is the image that the mutating webhook will use to patch
+  ## cached steps with. Will be used to echo a message announcing that 
+  ## the cached step result will be used. If not set it will default to 
+  ## 'gcr.io/google-containers/busybox'
+  cacheImage: "gcr.io/google-containers/busybox"
+  ## cacheNodeRestrictions the dummy container runing if output is cached
+  ## will run with the same affinity and node selector as the default pipeline
+  ## step. This is defaulted to 'false' to allow the pod to be scheduled on 
+  ## any node and avoid defaulting to specific nodes. Allowed values are:
+  ## 'false' and 'true'.
+  cacheNodeRestrictions: "false"
+  ## MAXIMUM_CACHE_STALENESS configures caching according to
+  ## https://www.kubeflow.org/docs/components/pipelines/overview/caching/ and
+  ## https://www.kubeflow.org/docs/components/pipelines/overview/caching-v2/.
+  ## Larger than MAXIMUM_CACHE_STALENESS per pipeline user set values are 
+  ## reduced to MAXIMUM_CACHE_STALENESS.
+  ## The administrator of the storage backend can rely on it to delete old cache
+  ## artifacts.
+  MAXIMUM_CACHE_STALENESS: ""
+  ## MAXIMUM_CACHE_STALENESS: "P30D"
+  ## DEFAULT_CACHE_STALENESS configures caching according to
+  ## https://www.kubeflow.org/docs/components/pipelines/overview/caching/ and
+  ## https://www.kubeflow.org/docs/components/pipelines/overview/caching-v2/.
+  ## This value is used if the user did not set a value in the pipeline.
+  DEFAULT_CACHE_STALENESS: ""
+  ## DEFAULT_CACHE_STALENESS: "P7D"
+  ## ConMaxLifeTime will set the connection max lifetime for MySQL
+  ## this is very important to setup when using external databases.
+  ## See this issue for more details: https://github.com/kubeflow/pipelines/issues/5329
+  ## Note: this value should be a string that can be parsed by `time.ParseDuration`.
+  ## If this value doesn't include a unit abbreviation, the units will be assumed
+  ## to be nanoseconds.
+  ConMaxLifeTime: "120s"

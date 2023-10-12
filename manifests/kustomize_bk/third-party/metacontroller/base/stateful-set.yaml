@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: metacontroller
+  name: metacontroller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metacontroller
+  serviceName: ""
+  template:
+    metadata:
+      labels:
+        app: metacontroller
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - resources:
+            limits:
+              cpu: '1'
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          command:
+            - /usr/bin/metacontroller
+            - --zap-log-level=4
+            - '--discovery-interval=3600s' # less insane than 10 seconds
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            privileged: false
+            allowPrivilegeEscalation: false
+          name: metacontroller
+          image: 'docker.io/metacontrollerio/metacontroller:v2.0.4'
+      serviceAccountName: meta-controller-service
+  # Workaround for https://github.com/kubernetes-sigs/kustomize/issues/677
+  volumeClaimTemplates: []

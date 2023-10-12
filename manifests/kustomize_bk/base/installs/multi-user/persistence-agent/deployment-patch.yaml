@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline-persistenceagent
+spec:
+  template:
+    spec:
+      containers:
+      - name: ml-pipeline-persistenceagent
+        envFrom:
+        - configMapRef:
+            name: persistenceagent-config
+        env:
+        - name: NAMESPACE
+          value: ''
+          valueFrom: null
+        - name: KUBEFLOW_USERID_HEADER
+          value: kubeflow-userid
+        - name: KUBEFLOW_USERID_PREFIX
+          value: ""

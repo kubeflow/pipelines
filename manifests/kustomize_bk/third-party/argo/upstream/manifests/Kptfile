@@ -1,0 +1,18 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: manifests
+upstream:
+  type: git
+  git:
+    repo: https://github.com/argoproj/argo-workflows
+    directory: /manifests
+    ref: v3.3.8
+  updateStrategy: resource-merge
+upstreamLock:
+  type: git
+  git:
+    repo: https://github.com/argoproj/argo-workflows
+    directory: /manifests
+    ref: v3.3.8
+    commit: 621b0d1a8e09634666ebe403ee7b8fc29db1dc4e

@@ -1,0 +1,4 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: # kpt-merge: /argo-server
+  name: argo-server

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      serviceAccountName: mysql
+      containers:
+      - args:
+        # https://dev.mysql.com/doc/refman/5.7/en/server-options.html#option_mysqld_ignore-db-dir
+        # Ext4, Btrfs etc. volumes root directories have a lost+found directory that should not be treated as a database.
+        # ignore-db-dir option has been deprecated in mysql v5.7.16.
+        #
+        # If upgrading MySQL to v8.0 fails, try removing /var/lib/mysql/lost+found folder in 
+        # mysql-pv-claim (mysql-persistent-storage):
+        #
+        # kubectl exec -it <mysql-pod-name> -n kubeflow -- bash
+        # rm -rf /var/lib/mysql/lost+found
+        #
+        # More details on upgrading MySQL can be found here:
+        # https://dev.mysql.com/doc/refman/8.0/en/upgrade-prerequisites.html
+        # https://dev.mysql.com/doc/refman/8.0/en/upgrade-docker-mysql.html
+        - --datadir
+        - /var/lib/mysql
+        # MLMD workloads (metadata-grpc-deployment and metadata-writer) depend on mysql_native_password authentication plugin.
+        # mysql_native_password plugin implements native authentication; that is, authentication based on the password 
+        # hashing method in use from before the introduction of pluggable authentication in MySQL 8.0.
+        #
+        # As default_authentication_plugin option is deprecated in MySQL 8.0.27 this needs to be replaced with
+        # appropriate authentication_policy in the next upgrade. See more details:
+        # https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_default_authentication_plugin
+        # https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_authentication_policy
+        - --default-authentication-plugin=mysql_native_password
+        # Disable binlog as the logs grow fast and eat up all disk spaces eventually. And KFP doesn't currently utilize binlog.
+        # https://dev.mysql.com/doc/refman/8.0/en/replication-options-binary-log.html#option_mysqld_log-bin
+        - --disable-log-bin
+        env:
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "true"
+        image: gcr.io/ml-pipeline/mysql:8.0.26
+        name: mysql
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: mysql-persistent-storage
+        resources:
+            requests:
+              cpu: 100m
+              memory: 800Mi
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim

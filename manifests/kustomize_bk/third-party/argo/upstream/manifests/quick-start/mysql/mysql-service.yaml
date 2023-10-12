@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata: # kpt-merge: /mysql
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306

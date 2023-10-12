@@ -1,0 +1,58 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: # kpt-merge: /argo-server-clusterworkflowtemplate-role
+  name: argo-server-clusterworkflowtemplate-role
+rules:
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - clusterworkflowtemplates
+      - clusterworkflowtemplates/finalizers
+    verbs:
+      - create
+      - delete
+      - watch
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: # kpt-merge: /argo-clusterworkflowtemplate-role
+  name: argo-clusterworkflowtemplate-role
+rules:
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - clusterworkflowtemplates
+      - clusterworkflowtemplates/finalizers
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: # kpt-merge: /argo-clusterworkflowtemplate-role-binding
+  name: argo-clusterworkflowtemplate-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argo-clusterworkflowtemplate-role
+subjects:
+  - kind: ServiceAccount
+    name: argo
+    namespace: argo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: # kpt-merge: /argo-server-clusterworkflowtemplate-role-binding
+  name: argo-server-clusterworkflowtemplate-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argo-server-clusterworkflowtemplate-role
+subjects:
+  - kind: ServiceAccount
+    name: argo-server
+    namespace: argo
