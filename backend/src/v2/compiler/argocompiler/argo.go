@@ -16,6 +16,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -112,12 +113,21 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Entrypoint:         tmplEntrypoint,
 		},
 	}
+
+	driverImage := GetEnvDefault(
+		"DRIVER_IMAGE",
+		"gcr.io/ml-pipeline/kfp-driver@sha256:fa68f52639b4f4683c9f8f468502867c9663823af0fbcff1cbe7847d5374bf5c")
+
+	launcherImage := GetEnvDefault(
+		"LAUNCHER_IMAGE",
+		"gcr.io/ml-pipeline/kfp-launcher@sha256:6641bf94acaeec03ee7e231241800fce2f0ad92eee25371bd5248ca800a086d7")
+
 	c := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		driverImage:   "gcr.io/ml-pipeline/kfp-driver@sha256:fa68f52639b4f4683c9f8f468502867c9663823af0fbcff1cbe7847d5374bf5c",
-		launcherImage: "gcr.io/ml-pipeline/kfp-launcher@sha256:6641bf94acaeec03ee7e231241800fce2f0ad92eee25371bd5248ca800a086d7",
+		driverImage:   driverImage,
+		launcherImage: launcherImage,
 		job:           job,
 		spec:          spec,
 		executors:     deploy.GetExecutors(),
@@ -293,6 +303,14 @@ func taskOutputParameter(task string, param string) string {
 func loopItem() string {
 	// https://github.com/argoproj/argo-workflows/blob/13bf15309567ff10ec23b6e5cfed846312d6a1ab/examples/loops-sequence.yaml#L20
 	return "{{item}}"
+}
+
+func GetEnvDefault(variable string, defaultVal string) string {
+	envVar := os.Getenv(variable)
+	if len(envVar) == 0 {
+		return defaultVal
+	}
+	return envVar
 }
 
 // Usually drivers should take very minimal amount of CPU and memory, but we
