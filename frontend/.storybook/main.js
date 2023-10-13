@@ -5,11 +5,14 @@ module.exports = {
     "../src/**/*.stories.mdx",
     "../src/**/*.stories.@(js|jsx|ts|tsx)"
   ],
+
   "addons": [
     "@storybook/addon-links",
     "@storybook/addon-essentials",
-    "@storybook/preset-create-react-app"
+    "@storybook/preset-create-react-app",
+    "@storybook/addon-mdx-gfm"
   ],
+
   // https://github.com/storybookjs/presets/issues/97
   webpackFinal:  async (config) => {
     const getFileLoader = (config) => {
@@ -27,4 +30,13 @@ module.exports = {
     mutateLoaderToMakePathAbsolute(fileLoader);
     return config;
   },
+
+  framework: {
+    name: "@storybook/react-webpack5",
+    options: {}
+  },
+
+  docs: {
+    autodocs: true
+  }
 }
