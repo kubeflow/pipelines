@@ -16,7 +16,7 @@ import os
 
 
 def get_private_image_tag() -> str:
-  return os.getenv('PRIVATE_IMAGE_TAG', '20231010_1107_RC00')
+  return os.getenv('PRIVATE_IMAGE_TAG', '20231013_1201_RC00')
 
 
 def get_use_test_machine_spec() -> bool:
