@@ -3,6 +3,7 @@
 * Support `incremental_train_base_model`, `parent_model`, `is_default_version`, `model_version_aliases`, `model_version_description` in `AutoMLImageTrainingJobRunOp`.
 * Add `preview.automl.vision` and `DataConverterJobOp`.
 * Set display names for `preview.llm` pipelines.
+* Add sliced evaluation metrics support for custom and unstructured AutoML models in evaluation pipeline.
 
 ## Release 2.4.1
 * Disable caching for LLM pipeline tasks that store temporary artifacts.
