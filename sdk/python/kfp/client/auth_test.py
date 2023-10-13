@@ -44,9 +44,8 @@ class TestAuth(parameterized.TestCase):
            'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
           )
     @patch('kfp.client.auth.is_ipython', lambda *args: True)
+    @patch.dict(os.environ, dict(), clear=True)
     def test_get_auth_code_from_ipython(self):
-        os.environ.pop('SSH_CONNECTION', None)
-        os.environ.pop('SSH_CLIENT', None)
         token, redirect_uri = auth.get_auth_code('sample-client-id')
         self.assertEqual(token, '4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
         self.assertEqual(redirect_uri, 'http://localhost:9901')
@@ -55,9 +54,8 @@ class TestAuth(parameterized.TestCase):
            'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
           )
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
+    @patch.dict(os.environ, {'SSH_CONNECTION': 'ENABLED'}, clear=True)
     def test_get_auth_code_from_remote_connection(self):
-        os.environ['SSH_CONNECTION'] = 'ENABLED'
-        os.environ.pop('SSH_CLIENT', None)
         token, redirect_uri = auth.get_auth_code('sample-client-id')
         self.assertEqual(token, '4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
         self.assertEqual(redirect_uri, 'http://localhost:9901')
@@ -66,42 +64,37 @@ class TestAuth(parameterized.TestCase):
            'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
           )
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
+    @patch.dict(os.environ, {'SSH_CLIENT': 'ENABLED'}, clear=True)
     def test_get_auth_code_from_remote_client(self):
-        os.environ.pop('SSH_CONNECTION', None)
-        os.environ['SSH_CLIENT'] = 'ENABLED'
         token, redirect_uri = auth.get_auth_code('sample-client-id')
         self.assertEqual(token, '4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
         self.assertEqual(redirect_uri, 'http://localhost:9901')
 
     @patch('builtins.input', lambda *args: 'https://oauth2.example.com/auth')
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
+    @patch.dict(os.environ, {'SSH_CLIENT': 'ENABLED'}, clear=True)
     def test_get_auth_code_from_remote_client_missing_code(self):
-        os.environ.pop('SSH_CONNECTION', None)
-        os.environ['SSH_CLIENT'] = 'ENABLED'
         self.assertRaises(KeyError, auth.get_auth_code, 'sample-client-id')
 
     @patch('kfp.client.auth.get_auth_response_local', lambda *args:
            'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
           )
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
+    @patch.dict(os.environ, dict(), clear=True)
     def test_get_auth_code_from_local(self):
-        os.environ.pop('SSH_CONNECTION', None)
-        os.environ.pop('SSH_CLIENT', None)
         token, redirect_uri = auth.get_auth_code('sample-client-id')
         self.assertEqual(token, '4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
         self.assertEqual(redirect_uri, 'http://localhost:9901')
 
     @patch('kfp.client.auth.get_auth_response_local', lambda *args: None)
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
+    @patch.dict(os.environ, dict(), clear=True)
     def test_get_auth_code_from_local_empty_response(self):
-        os.environ.pop('SSH_CONNECTION', None)
-        os.environ.pop('SSH_CLIENT', None)
         self.assertRaises(ValueError, auth.get_auth_code, 'sample-client-id')
 
     @patch('kfp.client.auth.get_auth_response_local',
            lambda *args: 'this-is-an-invalid-response')
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
+    @patch.dict(os.environ, dict(), clear=True)
     def test_get_auth_code_from_local_invalid_response(self):
-        os.environ.pop('SSH_CONNECTION', None)
-        os.environ.pop('SSH_CLIENT', None)
         self.assertRaises(KeyError, auth.get_auth_code, 'sample-client-id')
