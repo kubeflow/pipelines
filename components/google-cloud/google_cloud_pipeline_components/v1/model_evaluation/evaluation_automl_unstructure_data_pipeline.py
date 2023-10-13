@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, NamedTuple
+from typing import Any, List, NamedTuple
 
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model import GetVertexModelOp
@@ -43,6 +43,7 @@ def evaluation_automl_unstructure_data_classification_pipeline(  # pylint: disab
     batch_predict_max_replica_count: int = 10,
     batch_predict_accelerator_type: str = '',
     batch_predict_accelerator_count: int = 0,
+    slicing_specs: List[Any] = [],  # pylint: disable=g-bare-generic
     evaluation_prediction_label_column: str = '',
     evaluation_prediction_score_column: str = '',
     evaluation_class_labels: List[str] = [],  # pylint: disable=g-bare-generic
@@ -81,6 +82,7 @@ def evaluation_automl_unstructure_data_classification_pipeline(  # pylint: disab
     batch_predict_max_replica_count: The maximum number of machine replicas the batch operation may be scaled to. Only used if `machine_type` is set.
     batch_predict_accelerator_type: The type of accelerator(s) that may be attached to the machine as per `batch_predict_accelerator_count`. Only used if `batch_predict_machine_type` is set. For more details about the machine spec, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_accelerator_count: The number of accelerators to attach to the `batch_predict_machine_type`. Only used if `batch_predict_machine_type` is set.
+    slicing_specs: List of `google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec`. When provided, compute metrics for each defined slice. See sample code in https://cloud.google.com/vertex-ai/docs/pipelines/model-evaluation-component For more details on configuring slices, see https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform_v1.types.ModelEvaluationSlice.
     evaluation_prediction_label_column: The column name of the field containing classes the model is scoring. Formatted to be able to find nested columns, delimited by `.`.
     evaluation_prediction_score_column: The column name of the field containing batch prediction scores. Formatted to be able to find nested columns, delimited by `.`.
     evaluation_class_labels: Required for classification prediction type. The list of class names for the target_field_name, in the same order they appear in a file in batch_predict_gcs_source_uris. For instance, if the target_field_name could be either `1` or `0`, then the class_labels input will be ["1", "0"].
@@ -173,6 +175,7 @@ def evaluation_automl_unstructure_data_classification_pipeline(  # pylint: disab
       encryption_spec_key_name=encryption_spec_key_name,
       force_runner_mode=force_runner_mode,
       model=get_model_task.outputs['model'],
+      slicing_specs=slicing_specs,
   )
 
   # Import the evaluation result to Vertex AI.
@@ -373,6 +376,7 @@ def evaluation_automl_unstructure_data_pipeline(  # pylint: disable=dangerous-de
     batch_predict_max_replica_count: int = 10,
     batch_predict_accelerator_type: str = '',
     batch_predict_accelerator_count: int = 0,
+    slicing_specs: List[Any] = [],  # pylint: disable=g-bare-generic
     evaluation_prediction_label_column: str = '',
     evaluation_prediction_score_column: str = '',
     evaluation_class_labels: List[str] = [],  # pylint: disable=g-bare-generic
@@ -409,6 +413,7 @@ def evaluation_automl_unstructure_data_pipeline(  # pylint: disable=dangerous-de
     batch_predict_max_replica_count: The maximum number of machine replicas the batch operation may be scaled to. Only used if `machine_type` is set.
     batch_predict_accelerator_type: The type of accelerator(s) that may be attached to the machine as per `batch_predict_accelerator_count`. Only used if `batch_predict_machine_type` is set. For more details about the machine spec, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
     batch_predict_accelerator_count: The number of accelerators to attach to the `batch_predict_machine_type`. Only used if `batch_predict_machine_type` is set.
+    slicing_specs: List of `google.cloud.aiplatform_v1.types.ModelEvaluationSlice.SlicingSpec`. When provided, compute metrics for each defined slice. See sample code in https://cloud.google.com/vertex-ai/docs/pipelines/model-evaluation-component For more details on configuring slices, see https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform_v1.types.ModelEvaluationSlice.
     evaluation_prediction_label_column: The column name of the field containing classes the model is scoring. Formatted to be able to find nested columns, delimited by `.`.
     evaluation_prediction_score_column: The column name of the field containing batch prediction scores. Formatted to be able to find nested columns, delimited by `.`.
     evaluation_class_labels: Required for classification prediction type. The list of class names for the target_field_name, in the same order they appear in a file in batch_predict_gcs_source_uris. For instance, if the target_field_name could be either `1` or `0`, then the class_labels input will be ["1", "0"].
@@ -442,6 +447,7 @@ def evaluation_automl_unstructure_data_pipeline(  # pylint: disable=dangerous-de
         batch_predict_max_replica_count=batch_predict_max_replica_count,
         batch_predict_accelerator_type=batch_predict_accelerator_type,
         batch_predict_accelerator_count=batch_predict_accelerator_count,
+        slicing_specs=slicing_specs,
         evaluation_prediction_label_column=evaluation_prediction_label_column,
         evaluation_prediction_score_column=evaluation_prediction_score_column,
         evaluation_class_labels=evaluation_class_labels,
