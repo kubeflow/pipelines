@@ -15,6 +15,7 @@
 
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.model_evaluation.text2sql_preprocess.component import text2sql_evaluation_preprocess as Text2SQLEvaluationPreprocessOp
+from google_cloud_pipeline_components._implementation.model_evaluation.text2sql_validate_and_process.component import text2sql_evaluation_validate_and_process as Text2SQLEvaluationValidateAndProcessOp
 from google_cloud_pipeline_components.types import artifact_types
 import kfp
 
@@ -81,6 +82,20 @@ def evaluation_llm_text2sql_pipeline(
       project=project,
       location=location,
       evaluation_data_source_path=evaluation_data_source_path,
+      tables_metadata_path=tables_metadata_path,
+      prompt_template_path=prompt_template_path,
+      machine_type=machine_type,
+      service_account=service_account,
+      network=network,
+      encryption_spec_key_name=encryption_spec_key_name,
+  )
+
+  _ = Text2SQLEvaluationValidateAndProcessOp(
+      project=project,
+      location=location,
+      # TODO(bozhengbz) Add value to model_inference_results_path
+      # when model batch prediction component is added.
+      model_inference_results_path='gs://test/model_inference_results.json',
       tables_metadata_path=tables_metadata_path,
       prompt_template_path=prompt_template_path,
       machine_type=machine_type,
