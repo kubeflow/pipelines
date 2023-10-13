@@ -14,6 +14,7 @@
 """Text2SQL evaluation pipeline."""
 
 from google_cloud_pipeline_components import _placeholders
+from google_cloud_pipeline_components._implementation.model_evaluation.text2sql_evaluation.component import text2sql_evaluation as Text2SQLEvaluationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.text2sql_preprocess.component import text2sql_evaluation_preprocess as Text2SQLEvaluationPreprocessOp
 from google_cloud_pipeline_components._implementation.model_evaluation.text2sql_validate_and_process.component import text2sql_evaluation_validate_and_process as Text2SQLEvaluationValidateAndProcessOp
 from google_cloud_pipeline_components.types import artifact_types
@@ -29,6 +30,8 @@ def evaluation_llm_text2sql_pipeline(
     evaluation_data_source_path: str,
     tables_metadata_path: str,
     prompt_template_path: str = '',
+    sql_dialect: str = 'bigquery',
+    evaluation_method: str = 'parser',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     machine_type: str = 'e2-highmem-16',
@@ -50,6 +53,10 @@ def evaluation_llm_text2sql_pipeline(
       metadata, including table names, schema fields.
     prompt_template_path: Required. The path for json file containing prompt
       template. Will provide default value if users do not sepecify.
+    sql_dialect: Optional. SQL dialect type, e.g. bigquery, mysql, etc. Default
+      value is bigquery.
+    evaluation_method: Optional. Text2SQL evaluation method, value can be
+      'parser', 'execution', 'all'. Default value is 'parser'.
     project: Optional. The GCP project that runs the pipeline components.
       Default value is the same project used to run the pipeline.
     location: Optional. The GCP region that runs the pipeline components.
@@ -98,6 +105,21 @@ def evaluation_llm_text2sql_pipeline(
       model_inference_results_path='gs://test/model_inference_results.json',
       tables_metadata_path=tables_metadata_path,
       prompt_template_path=prompt_template_path,
+      machine_type=machine_type,
+      service_account=service_account,
+      network=network,
+      encryption_spec_key_name=encryption_spec_key_name,
+  )
+
+  _ = Text2SQLEvaluationOp(
+      project=project,
+      location=location,
+      sql_dialect=sql_dialect,
+      evaluation_method=evaluation_method,
+      # TODO(bozhengbz) Add value to model_inference_results_path
+      # when model batch prediction component is added.
+      model_inference_results_path='gs://test/model_inference_results.json',
+      tables_metadata_path=tables_metadata_path,
       machine_type=machine_type,
       service_account=service_account,
       network=network,
