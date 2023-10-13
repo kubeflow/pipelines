@@ -261,7 +261,8 @@ def get_auth_code(client_id: str) -> Tuple[str, str]:
                 'scope=openid%20email&access_type=offline&'
                 f'redirect_uri={redirect_uri}')
     authorization_response = None
-    if ('SSH_CONNECTION' in os.environ) or ('SSH_CLIENT' in os.environ):
+    if ('SSH_CONNECTION' in os.environ) or ('SSH_CLIENT'
+                                            in os.environ) or is_ipython():
         try:
             print((
                 'SSH connection detected. Please follow the instructions below.'
@@ -509,3 +510,15 @@ def fetch_auth_token_from_response(url: str) -> str:
     if isinstance(access_code, list):
         access_code = str(access_code.pop(0))
     return access_code
+
+
+def is_ipython() -> bool:
+    """Returns whether we are running in notebook."""
+    try:
+        import IPython
+        ipy = IPython.get_ipython()
+        if ipy is None:
+            return False
+    except ImportError:
+        return False
+    return True

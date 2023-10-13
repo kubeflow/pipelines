@@ -17,12 +17,12 @@ import os
 import tempfile
 import textwrap
 import unittest
-from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
 from absl.testing import parameterized
 from google.protobuf import json_format
+from kfp.client import auth
 from kfp.client import client
 from kfp.compiler import Compiler
 from kfp.dsl import component
@@ -194,24 +194,6 @@ class TestClient(parameterized.TestCase):
     def setUp(self):
         self.client = client.Client(namespace='ns1')
 
-    def test__is_ipython_return_false(self):
-        mock = MagicMock()
-        with patch.dict('sys.modules', IPython=mock):
-            mock.get_ipython.return_value = None
-            self.assertFalse(self.client._is_ipython())
-
-    def test__is_ipython_return_true(self):
-        mock = MagicMock()
-        with patch.dict('sys.modules', IPython=mock):
-            mock.get_ipython.return_value = 'Something'
-            self.assertTrue(self.client._is_ipython())
-
-    def test__is_ipython_should_raise_error(self):
-        mock = MagicMock()
-        with patch.dict('sys.modules', mock):
-            mock.side_effect = ImportError
-            self.assertFalse(self.client._is_ipython())
-
     def test_wait_for_run_completion_invalid_token_should_raise_error(self):
         with self.assertRaises(kfp_server_api.ApiException):
             with patch.object(
@@ -371,7 +353,7 @@ class TestClient(parameterized.TestCase):
 
         with patch.object(self.client._upload_api,
                           'upload_pipeline') as mock_upload_pipeline:
-            with patch.object(self.client, '_is_ipython', return_value=False):
+            with patch.object(auth, 'is_ipython', return_value=False):
                 with tempfile.TemporaryDirectory() as tmp_path:
                     pipeline_test_path = os.path.join(tmp_path, 'test.yaml')
                     Compiler().compile(
@@ -401,7 +383,7 @@ class TestClient(parameterized.TestCase):
     def test_upload_pipeline_with_name(self, pipeline_name):
         with patch.object(self.client._upload_api,
                           'upload_pipeline') as mock_upload_pipeline:
-            with patch.object(self.client, '_is_ipython', return_value=False):
+            with patch.object(auth, 'is_ipython', return_value=False):
                 self.client.upload_pipeline(
                     pipeline_package_path='fake.yaml',
                     pipeline_name=pipeline_name,
@@ -421,7 +403,7 @@ class TestClient(parameterized.TestCase):
     def test_upload_pipeline_with_name_invalid(self, pipeline_name):
         with patch.object(self.client._upload_api,
                           'upload_pipeline') as mock_upload_pipeline:
-            with patch.object(self.client, '_is_ipython', return_value=False):
+            with patch.object(auth, 'is_ipython', return_value=False):
                 with self.assertRaisesRegex(
                         ValueError,
                         'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'

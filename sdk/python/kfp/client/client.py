@@ -324,18 +324,6 @@ class Client:
     def _is_inverse_proxy_host(self, host: str) -> bool:
         return bool(re.match(r'\S+.googleusercontent.com/{0,1}$', host))
 
-    def _is_ipython(self) -> bool:
-        """Returns whether we are running in notebook."""
-        try:
-            import IPython
-            ipy = IPython.get_ipython()
-            if ipy is None:
-                return False
-        except ImportError:
-            return False
-
-        return True
-
     def _get_url_prefix(self) -> str:
         if self._uihost:
             # User's own connection.
@@ -488,7 +476,7 @@ class Client:
             experiment = self._experiment_api.create_experiment(body=experiment)
 
         link = f'{self._get_url_prefix()}/#/experiments/details/{experiment.experiment_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Experiment details</a>.'
             IPython.display.display(IPython.display.HTML(html))
@@ -744,7 +732,7 @@ class Client:
         response = self._run_api.create_run(body=run_body)
 
         link = f'{self._get_url_prefix()}/#/runs/details/{response.run_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = (f'<a href="{link}" target="_blank" >Run details</a>.')
             IPython.display.display(IPython.display.HTML(html))
@@ -1424,7 +1412,7 @@ class Client:
             description=description,
             namespace=namespace)
         link = f'{self._get_url_prefix()}/#/pipelines/details/{response.pipeline_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
@@ -1473,7 +1461,7 @@ class Client:
             pipeline_package_path, **kwargs)
 
         link = f'{self._get_url_prefix()}/#/pipelines/details/{response.pipeline_id}/version/{response.pipeline_version_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
