@@ -31,7 +31,7 @@ def print_op(msg: str):
     print(msg)
 
 
-@dsl.pipeline(name='single-condition-pipeline', pipeline_root='dummy_root')
+@dsl.pipeline(name='single-condition-pipeline')
 def my_pipeline(text: str = 'condition test'):
     flip1 = flip_coin_op().set_caching_options(False)
     print_op(msg=flip1.output)

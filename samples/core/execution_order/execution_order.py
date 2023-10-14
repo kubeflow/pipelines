@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 The Kubeflow Authors
+# Copyright 2019-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,28 +14,28 @@
 # limitations under the License.
 
 
-from kfp.deprecated import dsl, compiler
-import kfp.deprecated.components as comp
+from kfp import compiler
+from kfp import dsl
 
 
-@comp.create_component_from_func
+@dsl.component
 def echo1_op(text1: str):
   print(text1)
 
 
-@comp.create_component_from_func
+@dsl.component
 def echo2_op(text2: str):
   print(text2)
 
 
 @dsl.pipeline(
-    name='execution-order-pipeline',
-    description='A pipeline to demonstrate execution order management.'
+  name='execution-order-pipeline',
+  description='A pipeline to demonstrate execution order management.'
 )
 def execution_order_pipeline(text1: str='message 1', text2: str='message 2'):
   """A two step pipeline with an explicitly defined execution order."""
-  step1_task = echo1_op(text1)
-  step2_task = echo2_op(text2)
+  step1_task = echo1_op(text1=text1)
+  step2_task = echo2_op(text2=text2)
   step2_task.after(step1_task)
 
 if __name__ == '__main__':

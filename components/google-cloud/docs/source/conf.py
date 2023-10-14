@@ -16,14 +16,15 @@ import inspect
 import os
 import re
 import sys
+import textwrap
 from typing import List
 
+import commonmark
 import docstring_parser
 from google_cloud_pipeline_components import utils
 from kfp import components
 from kfp import dsl
 import yaml
-
 
 # setting this enables the .rst files to use the paths v1.bigquery.Component (etc.) rather than google_cloud_pipeline_components.v1.biquery.Component for shorter, readable representation in docs
 gcpc_root_dir = os.path.abspath(
@@ -54,6 +55,14 @@ def second_order_passthrough_decorator(*args, **kwargs):
   return decorator
 
 
+def second_order_passthrough_decorator_for_pipeline(*args, **kwargs):
+  def decorator(func):
+    func._is_pipeline = True
+    return func
+
+  return decorator
+
+
 def load_from_file(path: str):
   with open(path) as f:
     contents = f.read()
@@ -67,6 +76,7 @@ def load_from_file(path: str):
 utils.gcpc_output_name_converter = second_order_passthrough_decorator
 dsl.component = second_order_passthrough_decorator
 dsl.container_component = first_order_passthrough_decorator
+dsl.pipeline = second_order_passthrough_decorator_for_pipeline
 components.load_component_from_file = load_from_file
 
 
@@ -103,17 +113,6 @@ Output = OutputClass()
 
 dsl.Output = Output
 
-# order from earliest to latest
-# start with 2.0.0b3, which is the first time we're using the new theme
-V2_DROPDOWN_VERSIONS = ['2.0.0b3', '2.0.0b4']
-
-# The short X.Y version
-# update for each release
-LATEST_VERSION = V2_DROPDOWN_VERSIONS[-1]
-
-# The full version, including alpha/beta/rc tags
-release = LATEST_VERSION
-
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -129,6 +128,7 @@ extensions = [
     'm2r2',
     'sphinx_immaterial',
     'autodocsumm',
+    'notfound.extension',
 ]
 autodoc_default_options = {
     'members': True,
@@ -136,7 +136,27 @@ autodoc_default_options = {
     'imported-members': True,
     'undoc-members': True,
     'show-inheritance': False,
+    'inherited-members': False,
     'autosummary': False,
+}
+
+# notfound.extension: https://sphinx-notfound-page.readthedocs.io/en/latest/configuration.html#confval-notfound_context
+notfound_context = {
+    'title': 'Page not found',
+    'body': textwrap.dedent("""
+            <head>
+            <title>Page not found</title>
+            </head>
+            <body>
+            <div class="container">
+                <h1>404: Page not found</h1>
+                <p>
+                It's likely the object or page you're looking for doesn't exist in this version of Google Cloud Pipeline Components. Please ensure you have the correct version selected.
+                </p>
+                <a href="https://google-cloud-pipeline-components.readthedocs.io/">Back to homepage</a>
+            </div>
+            </body>
+            """),
 }
 
 html_theme = 'sphinx_immaterial'
@@ -173,14 +193,7 @@ html_theme_options = {
     }],
     'font': {'text': 'Open Sans'},
     'version_dropdown': True,
-    'version_info': [
-        {
-            'version': f'https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-{version}',
-            'title': version,
-            'aliases': [],
-        }
-        for version in reversed(V2_DROPDOWN_VERSIONS)
-    ],
+    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/google-cloud/docs/source/versions.json',
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.
@@ -224,6 +237,11 @@ htmlhelp_basename = 'GoogleCloudPipelineComponentsDocs'
 def component_grouper(app, what, name, obj, section, parent):
   if getattr(obj, '_is_component', False):
     return 'Components'
+
+
+def pipeline_grouper(app, what, name, obj, section, parent):
+  if getattr(obj, '_is_pipeline', False):
+    return 'Pipelines'
 
 
 def autodoc_skip_member(app, what, name, obj, skip, options):
@@ -310,12 +328,22 @@ def remove_after_returns_in_place(lines: List[str]) -> bool:
   return False
 
 def process_named_docstring_returns(app, what, name, obj, options, lines):
+  markdown_to_rst(lines)
   if getattr(obj, '_is_component', False):
     has_returns_section = remove_after_returns_in_place(lines)
     if has_returns_section:
       returns_section = get_return_section(obj)
       lines.extend([':returns:', ''])
       lines.extend(returns_section)
+
+
+def markdown_to_rst(lines: List[str]) -> List[str]:
+  md = '\n'.join(lines)
+  ast = commonmark.Parser().parse(md)
+  rst = commonmark.ReStructuredTextRenderer().render(ast)
+  lines.clear()
+  lines += rst.splitlines()
+
 
 def setup(app):
   app.connect('autodoc-process-docstring', process_named_docstring_returns)
@@ -324,4 +352,5 @@ def setup(app):
       remove__output_prefix_from_signature,
   )
   app.connect('autodocsumm-grouper', component_grouper)
+  app.connect('autodocsumm-grouper', pipeline_grouper)
   app.connect('autodoc-skip-member', autodoc_skip_member)

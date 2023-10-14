@@ -14,10 +14,9 @@
 
 from __future__ import annotations
 import unittest
-import kfp.deprecated as kfp
+import kfp
 import kfp_server_api
-from .loop_static import my_pipeline
-from .loop_static_v2 import my_pipeline as my_pipeline_v2
+from loop_static import my_pipeline
 from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 
 
@@ -50,12 +49,8 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
 
 run_pipeline_func([
     TestCase(
-        pipeline_func=my_pipeline_v2,
+        pipeline_func=my_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         verify_func=verify,
-    ),
-    TestCase(
-        pipeline_func=my_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
 ])

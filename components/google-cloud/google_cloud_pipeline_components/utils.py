@@ -16,16 +16,62 @@
 import copy
 import json
 import re
-from typing import Any, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
+from google_cloud_pipeline_components import _image
 from kfp import components
-# note: this is a slight dependency on KFP SDK implementation details
-# other code should not similarly depend on the stability of kfp.placeholders
+from kfp import dsl
+# do not follow this pattern!
+# we should not depend on non-public modules of the KFP SDK!
 from kfp.components import placeholders
 
 from google.protobuf import json_format
 
+# note: this is a slight dependency on KFP SDK implementation details
+# other code should not similarly depend on the stability of kfp.placeholders
 DOCS_INTEGRATED_OUTPUT_RENAMING_PREFIX = "output__"
+
+
+def build_serverless_customjob_container_spec(
+    *,
+    project: str,
+    location: str,
+    custom_job_payload: Dict[str, Any],
+    gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+) -> dsl.ContainerSpec:
+  """Builds a container spec that launches a custom job.
+
+  Args:
+    project: Project to run the job in.
+    location: Location to run the job in.
+    custom_job_payload: Payload to pass to the custom job. This dictionary is
+      serialized and passed as the custom job `--payload`.
+    gcp_resources: GCP resources that can be used to track the job.
+
+  Returns:
+    Container spec that launches a custom job with the specified payload.
+  """
+  return dsl.ContainerSpec(
+      image=_image.GCPC_IMAGE_TAG,
+      command=[
+          "python3",
+          "-u",
+          "-m",
+          "google_cloud_pipeline_components.container.v1.custom_job.launcher",
+      ],
+      args=[
+          "--type",
+          "CustomJob",
+          "--payload",
+          container_component_dumps(custom_job_payload),
+          "--project",
+          project,
+          "--location",
+          location,
+          "--gcp_resources",
+          gcp_resources,
+      ],
+  )
 
 
 def container_component_dumps(obj: Any) -> Any:
@@ -98,11 +144,18 @@ def container_component_dumps(obj: Any) -> Any:
 def gcpc_output_name_converter(
     new_name: str,
     original_name: Optional[str] = None,
-):
+) -> Callable[["BaseComponent"], "BaseComponent"]:  # pytype: disable=name-error
   """Replace the output with original_name with a new_name in a component decorated with an @dsl.container_component decorator.
 
   Enables authoring components that have an input and output with the same
   key/name.
+
+  Args:
+    new_name: The new name for the output.
+    original_name: The original name of the output.
+
+  Returns:
+    A decorator that takes modifies a component in place.
 
   Example usage:
 
@@ -209,8 +262,8 @@ def gcpc_output_name_converter(
             )
 
       def replace_output_name_in_executor(
-          command: list,
-          args: list,
+          command: List[str],
+          args: List[str],
           original_name: str,
           new_name: str,
       ):

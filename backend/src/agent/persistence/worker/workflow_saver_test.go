@@ -30,8 +30,6 @@ import (
 func TestWorkflow_Save_Success(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	k8sClient := client.NewKubernetesCoreFake()
-	k8sClient.Set("MY_NAMESPACE", USER)
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -43,7 +41,7 @@ func TestWorkflow_Save_Success(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, k8sClient, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -54,10 +52,8 @@ func TestWorkflow_Save_Success(t *testing.T) {
 func TestWorkflow_Save_NotFoundDuringGet(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	k8sClient := client.NewKubernetesCoreFake()
-	k8sClient.Set("MY_NAMESPACE", USER)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, k8sClient, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -69,12 +65,10 @@ func TestWorkflow_Save_NotFoundDuringGet(t *testing.T) {
 func TestWorkflow_Save_ErrorDuringGet(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	k8sClient := client.NewKubernetesCoreFake()
-	k8sClient.Set("MY_NAMESPACE", USER)
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", nil)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, k8sClient, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -86,8 +80,6 @@ func TestWorkflow_Save_ErrorDuringGet(t *testing.T) {
 func TestWorkflow_Save_PermanentFailureWhileReporting(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	k8sClient := client.NewKubernetesCoreFake()
-	k8sClient.Set("MY_NAMESPACE", USER)
 
 	pipelineFake.SetError(util.NewCustomError(fmt.Errorf("Error"), util.CUSTOM_CODE_PERMANENT,
 		"My Permanent Error"))
@@ -102,7 +94,7 @@ func TestWorkflow_Save_PermanentFailureWhileReporting(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, k8sClient, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -114,8 +106,6 @@ func TestWorkflow_Save_PermanentFailureWhileReporting(t *testing.T) {
 func TestWorkflow_Save_TransientFailureWhileReporting(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	k8sClient := client.NewKubernetesCoreFake()
-	k8sClient.Set("MY_NAMESPACE", USER)
 
 	pipelineFake.SetError(util.NewCustomError(fmt.Errorf("Error"), util.CUSTOM_CODE_TRANSIENT,
 		"My Transient Error"))
@@ -130,7 +120,7 @@ func TestWorkflow_Save_TransientFailureWhileReporting(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, k8sClient, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -142,7 +132,6 @@ func TestWorkflow_Save_TransientFailureWhileReporting(t *testing.T) {
 func TestWorkflow_Save_SkippedDueToFinalStatue(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	k8sClient := client.NewKubernetesCoreFake()
 
 	// Add this will result in failure unless reporting is skipped
 	pipelineFake.SetError(util.NewCustomError(fmt.Errorf("Error"), util.CUSTOM_CODE_PERMANENT,
@@ -161,7 +150,7 @@ func TestWorkflow_Save_SkippedDueToFinalStatue(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, k8sClient, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -172,8 +161,6 @@ func TestWorkflow_Save_SkippedDueToFinalStatue(t *testing.T) {
 func TestWorkflow_Save_FinalStatueNotSkippedDueToExceedTTL(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	k8sClient := client.NewKubernetesCoreFake()
-	k8sClient.Set("MY_NAMESPACE", USER)
 
 	// Add this will result in failure unless reporting is skipped
 	pipelineFake.SetError(util.NewCustomError(fmt.Errorf("Error"), util.CUSTOM_CODE_PERMANENT,
@@ -195,7 +182,7 @@ func TestWorkflow_Save_FinalStatueNotSkippedDueToExceedTTL(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, k8sClient, 1)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 1)
 
 	// Sleep 2 seconds to make sure workflow passed TTL
 	time.Sleep(2 * time.Second)
@@ -210,7 +197,6 @@ func TestWorkflow_Save_FinalStatueNotSkippedDueToExceedTTL(t *testing.T) {
 func TestWorkflow_Save_SkippedDDueToMissingRunID(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	k8sClient := client.NewKubernetesCoreFake()
 
 	// Add this will result in failure unless reporting is skipped
 	pipelineFake.SetError(util.NewCustomError(fmt.Errorf("Error"), util.CUSTOM_CODE_PERMANENT,
@@ -225,33 +211,10 @@ func TestWorkflow_Save_SkippedDDueToMissingRunID(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, k8sClient, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
 	assert.Equal(t, false, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
 	assert.Equal(t, nil, err)
-}
-
-func TestWorkflow_Save_FailedToGetUser(t *testing.T) {
-	workflowFake := client.NewWorkflowClientFake()
-	pipelineFake := client.NewPipelineClientFake()
-	k8sClient := client.NewKubernetesCoreFake()
-	k8sClient.Set("ORIGINAL_NAMESPACE", USER)
-
-	workflow := util.NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "MY_NAMESPACE",
-			Name:      "MY_NAME",
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
-		},
-	})
-
-	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
-
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, k8sClient, 100)
-
-	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("Failed get '%v' namespace", "MY_NAMESPACE"))
 }

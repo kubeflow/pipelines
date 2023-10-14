@@ -15,21 +15,23 @@
  */
 
 import * as React from 'react';
-import BusyButton from '../atoms/BusyButton';
+import BusyButton from 'src/atoms/BusyButton';
 import Button from '@material-ui/core/Button';
-import Input from '../atoms/Input';
+import Input from 'src/atoms/Input';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
-import { Apis } from '../lib/Apis';
-import { Page, PageProps } from './Page';
-import { RoutePage, QUERY_PARAMS } from '../components/Router';
+import { Apis } from 'src/lib/Apis';
+import { Page, PageProps } from 'src/pages/Page';
+import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
 import { TextFieldProps } from '@material-ui/core/TextField';
-import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
+import { ToolbarProps } from 'src/components/Toolbar';
+import { URLParser } from 'src/lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, fontsize } from '../Css';
-import { logger, errorToMessage } from '../lib/Utils';
+import { commonCss, padding, fontsize } from 'src/Css';
+import { logger, errorToMessage } from 'src/lib/Utils';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { getLatestVersion } from './NewRunV2';
+import { getLatestVersion } from 'src/pages/NewRunV2';
+import { NewExperimentFC } from 'src/pages/functional_components/NewExperimentFC';
+import { FeatureKey, isFeatureEnabled } from 'src/features';
 
 interface NewExperimentState {
   description: string;
@@ -201,7 +203,11 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
 
 const EnhancedNewExperiment: React.FC<PageProps> = props => {
   const namespace = React.useContext(NamespaceContext);
-  return <NewExperiment {...props} namespace={namespace} />;
+  return isFeatureEnabled(FeatureKey.FUNCTIONAL_COMPONENT) ? (
+    <NewExperimentFC {...props} namespace={namespace} />
+  ) : (
+    <NewExperiment {...props} namespace={namespace} />
+  );
 };
 
 export default EnhancedNewExperiment;

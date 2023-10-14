@@ -59,7 +59,6 @@ def test_create_v2_monitoring_schedule(
             os.path.join(download_dir, "config.yaml"),
         )
     )
-    k8s_client = ack_utils.k8s_client()
 
     # parameters for model bias job definition
     job_definition_name = (
@@ -92,7 +91,7 @@ def test_create_v2_monitoring_schedule(
 
         # Verify if the job definition CR is created properly
         job_definition_describe = ack_utils._get_resource(
-            k8s_client, job_definition_name, "modelbiasjobdefinitions"
+            job_definition_name, "modelbiasjobdefinitions"
         )
         assert (
             job_definition_name
@@ -107,7 +106,7 @@ def test_create_v2_monitoring_schedule(
 
         # Verify if monitoring schedule CR is created properly
         monitoring_schedule_describe = ack_utils._get_resource(
-            k8s_client, monitoring_schedule_name, "monitoringschedules"
+            monitoring_schedule_name, "monitoringschedules"
         )
         assert (
             monitoring_schedule_name
@@ -124,14 +123,12 @@ def test_create_v2_monitoring_schedule(
 
     finally:
         ack_utils._delete_resource(
-            k8s_client,
             job_definition_name,
             "modelbiasjobdefinitions",
             wait_periods=10,
             period_length=30,
         )
         ack_utils._delete_resource(
-            k8s_client,
             monitoring_schedule_name,
             "monitoringschedules",
             wait_periods=10,
@@ -164,7 +161,6 @@ def test_update_v2_monitoring_schedule(
             os.path.join(download_dir, "config.yaml"),
         )
     )
-    k8s_client = ack_utils.k8s_client()
 
     # parameters for job definition
     test_params["Arguments"][test_params["JobInputName"]]["endpointInput"][
@@ -202,7 +198,7 @@ def test_update_v2_monitoring_schedule(
 
         # Verify if monitoring schedule CR is created properly
         monitoring_schedule_describe = ack_utils._get_resource(
-            k8s_client, monitoring_schedule_name, "monitoringschedules"
+            monitoring_schedule_name, "monitoringschedules"
         )
         assert (
             monitoring_schedule_name
@@ -221,7 +217,7 @@ def test_update_v2_monitoring_schedule(
 
         # Verify if the job definition CR is created properly
         job_definition_1_describe = ack_utils._get_resource(
-            k8s_client, job_definition_name_1, "dataqualityjobdefinitions"
+            job_definition_name_1, "dataqualityjobdefinitions"
         )
         assert (
             job_definition_name_1
@@ -262,7 +258,7 @@ def test_update_v2_monitoring_schedule(
 
         # Verify if monitoring schedule is updated with correct job definition
         monitoring_schedule_updated_describe = ack_utils._get_resource(
-            k8s_client, monitoring_schedule_name, "monitoringschedules"
+            monitoring_schedule_name, "monitoringschedules"
         )
         assert (
             monitoring_schedule_updated_describe["status"]["monitoringScheduleStatus"]
@@ -277,7 +273,7 @@ def test_update_v2_monitoring_schedule(
 
         # Verify if the new job definition CR is created properly
         job_definition_2_describe = ack_utils._get_resource(
-            k8s_client, job_definition_name_2, "dataqualityjobdefinitions"
+            job_definition_name_2, "dataqualityjobdefinitions"
         )
         assert (
             job_definition_name_2
@@ -296,21 +292,18 @@ def test_update_v2_monitoring_schedule(
 
     finally:
         ack_utils._delete_resource(
-            k8s_client,
             job_definition_name_1,
             test_params["Plural"],
             wait_periods=10,
             period_length=30,
         )
         ack_utils._delete_resource(
-            k8s_client,
             job_definition_name_2,
             test_params["Plural"],
             wait_periods=10,
             period_length=30,
         )
         ack_utils._delete_resource(
-            k8s_client,
             monitoring_schedule_name,
             "monitoringschedules",
             wait_periods=10,

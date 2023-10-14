@@ -12,10 +12,9 @@
 Please see the [Google Cloud Pipeline Components user guide](https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction).
 
 ### API documentation
-Please see the [Google Cloud Pipeline Components API reference documentation](https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-1.0.41/).
+Please see the [Google Cloud Pipeline Components API reference documentation](https://google-cloud-pipeline-components.readthedocs.io/).
 
 ### Release details
-
 For details about previous and upcoming releases, please see the [release notes](https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/RELEASE.md).
 
 ## Examples

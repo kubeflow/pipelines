@@ -262,6 +262,7 @@ function parseEventsByType(
     [Event.Type.OUTPUT]: [],
     [Event.Type.INTERNAL_INPUT]: [],
     [Event.Type.INTERNAL_OUTPUT]: [],
+    [Event.Type.PENDING_OUTPUT]: [],
   };
 
   if (!response) {

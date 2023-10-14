@@ -51,7 +51,7 @@ import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { V2beta1RecurringRun, RecurringRunMode } from 'src/apisv2beta1/recurringrun';
-import ResourceSelectorV2 from 'src/pages/ResourceSelectorV2';
+import ResourceSelector from 'src/pages/ResourceSelector';
 import {
   convertExperimentToResource,
   convertPipelineVersionToResource,
@@ -282,11 +282,14 @@ function NewRunV2(props: NewRunV2Props) {
       setSpecParameters({});
     }
 
-    const root = spec.defaultPipelineRoot;
-    if (root) {
-      setPipelineRoot(root);
+    const defaultRoot = spec.defaultPipelineRoot;
+    const clonedRoot = clonedRuntimeConfig?.pipeline_root;
+    if (clonedRoot) {
+      setPipelineRoot(clonedRoot);
+    } else if (defaultRoot) {
+      setPipelineRoot(defaultRoot);
     }
-  }, [templateString]);
+  }, [templateString, clonedRuntimeConfig]);
 
   // Handle different change that can affect setIsStartButtonEnabled
   useEffect(() => {
@@ -298,7 +301,6 @@ function NewRunV2(props: NewRunV2Props) {
   }, [templateString, errorMessage, isParameterValid, isMaxConcurrentRunValid]);
 
   // Whenever any input value changes, validate and show error if needed.
-  // TODO(zijianjoy): Validate run name for now, we need to validate others first.
   useEffect(() => {
     if (isTemplatePullSuccess) {
       if (runName) {
@@ -308,8 +310,17 @@ function NewRunV2(props: NewRunV2Props) {
         setErrorMessage('Run name can not be empty.');
         return;
       }
+    } else {
+      if (!existingPipeline) {
+        setErrorMessage('A pipeline must be selected');
+        return;
+      }
+      if (!existingPipelineVersion) {
+        setErrorMessage('A pipeline version must be selected');
+        return;
+      }
     }
-  }, [runName, isTemplatePullSuccess]);
+  }, [runName, existingPipeline, existingPipelineVersion, isTemplatePullSuccess]);
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation((run: V2beta1Run) => {
@@ -335,8 +346,7 @@ function NewRunV2(props: NewRunV2Props) {
             : pipelineVersionRefNew
           : undefined,
       runtime_config: {
-        // TODO(zijianjoy): determine whether to provide pipeline root.
-        pipeline_root: undefined, // pipelineRoot,
+        pipeline_root: pipelineRoot,
         parameters: runtimeParameters,
       },
       service_account: serviceAccount,
@@ -633,9 +643,11 @@ function NewRunV2(props: NewRunV2Props) {
           pipelineRoot={pipelineRoot}
           handlePipelineRootChange={setPipelineRoot}
           titleMessage={
-            Object.keys(specParameters).length
-              ? 'Specify parameters required by the pipeline'
-              : 'This pipeline has no parameters'
+            existingPipeline || cloneOrigin.isClone
+              ? Object.keys(specParameters).length
+                ? 'Specify parameters required by the pipeline'
+                : 'This pipeline has no parameters'
+              : 'Parameters will appear after you select a pipeline'
           }
           specParameters={specParameters}
           clonedRuntimeConfig={clonedRuntimeConfig}
@@ -793,6 +805,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
                 id='choosePipelineVersionBtn'
                 onClick={() => setPipelineVersionSelectorOpen(true)}
                 style={{ padding: '3px 5px', margin: 0 }}
+                disabled={!props.pipeline}
               >
                 Choose
               </Button>
@@ -810,7 +823,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
         PaperProps={{ id: 'pipelineVersionSelectorDialog' }}
       >
         <DialogContent>
-          <ResourceSelectorV2
+          <ResourceSelector
             {...props}
             title='Choose a pipeline version'
             filterLabel='Filter pipeline versions'
@@ -918,7 +931,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
         PaperProps={{ id: 'experimentSelectorDialog' }}
       >
         <DialogContent>
-          <ResourceSelectorV2
+          <ResourceSelector
             {...props}
             title='Choose an experiment'
             filterLabel='Filter experiments'

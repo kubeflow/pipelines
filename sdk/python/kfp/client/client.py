@@ -32,7 +32,7 @@ from google.protobuf import json_format
 from kfp import compiler
 from kfp.client import auth
 from kfp.client import set_volume_credentials
-from kfp.components import base_component
+from kfp.dsl import base_component
 from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
 import yaml
@@ -324,18 +324,6 @@ class Client:
     def _is_inverse_proxy_host(self, host: str) -> bool:
         return bool(re.match(r'\S+.googleusercontent.com/{0,1}$', host))
 
-    def _is_ipython(self) -> bool:
-        """Returns whether we are running in notebook."""
-        try:
-            import IPython
-            ipy = IPython.get_ipython()
-            if ipy is None:
-                return False
-        except ImportError:
-            return False
-
-        return True
-
     def _get_url_prefix(self) -> str:
         if self._uihost:
             # User's own connection.
@@ -488,7 +476,7 @@ class Client:
             experiment = self._experiment_api.create_experiment(body=experiment)
 
         link = f'{self._get_url_prefix()}/#/experiments/details/{experiment.experiment_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Experiment details</a>.'
             IPython.display.display(IPython.display.HTML(html))
@@ -744,7 +732,7 @@ class Client:
         response = self._run_api.create_run(body=run_body)
 
         link = f'{self._get_url_prefix()}/#/runs/details/{response.run_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = (f'<a href="{link}" target="_blank" >Run details</a>.')
             IPython.display.display(IPython.display.HTML(html))
@@ -1417,14 +1405,14 @@ class Client:
         if pipeline_name is None:
             pipeline_doc = _extract_pipeline_yaml(pipeline_package_path)
             pipeline_name = pipeline_doc.pipeline_spec.pipeline_info.name
-        validate_pipeline_resource_name(pipeline_name)
+        validate_pipeline_display_name(pipeline_name)
         response = self._upload_api.upload_pipeline(
             pipeline_package_path,
             name=pipeline_name,
             description=description,
             namespace=namespace)
         link = f'{self._get_url_prefix()}/#/pipelines/details/{response.pipeline_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
@@ -1473,7 +1461,7 @@ class Client:
             pipeline_package_path, **kwargs)
 
         link = f'{self._get_url_prefix()}/#/pipelines/details/{response.pipeline_id}/version/{response.pipeline_version_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
@@ -1622,12 +1610,10 @@ def _add_generated_apis(
     target_struct.api_models = models_struct
 
 
-def validate_pipeline_resource_name(name: str) -> None:
-    REGEX = r'[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'
-
-    if re.fullmatch(REGEX, name) is None:
+def validate_pipeline_display_name(name: str) -> None:
+    if not name or name.isspace():
         raise ValueError(
-            f'Invalid pipeline name: "{name}". Pipeline name must conform to the regex: "{REGEX}".'
+            f'Invalid pipeline name. Pipeline name cannot be empty or contain only whitespace.'
         )
 
 

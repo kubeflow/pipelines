@@ -15,6 +15,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from kfp.dsl import Artifact
 from kfp.dsl import ConcatPlaceholder
@@ -27,7 +28,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_ml_weights_job(
-    project: str,
     model: Input[BQMLModel],
     weights: Output[Artifact],
     gcp_resources: OutputPath(str),
@@ -35,42 +35,23 @@ def bigquery_ml_weights_job(
     query_parameters: List[str] = [],
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery ml weights job and waits for it to finish.
 
   Args:
-      project: Project to run BigQuery ml weights job.
-      location: Location of the job to create the BigQuery
-        model. If not set, default to `US` multi-region.  For more details,
-        see
-        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      query: SQL query text to execute. Only standard SQL is
-        supported.  If query are both specified in here and in
-        job_configuration_query, the value in here will override the other
-        one.
-      query_parameters: jobs.query parameters for
-        standard SQL queries.  If query_parameters are both specified in here
-        and in job_configuration_query, the value in here will override the
-        other one.
-      job_configuration_query: A json formatted string
-        describing the rest of the job configuration.  For more details, see
-        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels: The labels associated with this job. You can
-        use these to organize and group your jobs. Label keys and values can
-        be no longer than 63 characters, can only containlowercase letters,
-        numeric characters, underscores and dashes. International characters
-        are allowed. Label values are optional. Label keys must start with a
-        letter and each label in the list must have a different key.
+      location: Location of the job to create the BigQuery model. If not set, default to `US` multi-region.  For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      query: SQL query text to execute. Only standard SQL is supported.  If query are both specified in here and in job_configuration_query, the value in here will override the other one.
+      query_parameters: jobs.query parameters for standard SQL queries.  If query_parameters are both specified in here and in job_configuration_query, the value in here will override the other one.
+      job_configuration_query: A json formatted string describing the rest of the job configuration.  For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      labels: The labels associated with this job. You can use these to organize and group your jobs. Label keys and values can be no longer than 63 characters, can only containlowercase letters, numeric characters, underscores and dashes. International characters are allowed. Label values are optional. Label keys must start with a letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+      project: Project to run BigQuery ml weights job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      weights: Describes different output columns for different models.
-        For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-weights#mlweights_output.
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      weights: Describes different output columns for different models. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-weights#mlweights_output.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

@@ -26,17 +26,12 @@ def vertex_pipelines_notification_email(
     pipeline_task_final_status: PipelineTaskFinalStatus,
 ):
   # fmt: off
-  """When this component is included as an exit handler, sends a notification
-  email with the status of the upstream DAG to the specified recipients.
+  """Send notification email(s) when an upstream task/DAG completes.
 
-  This component works only on Vertex Pipelines. This component raises an
-  exception when run on Kubeflow Pipelines.
+  This component can only be used as an [ExitHandler](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/control-flow/#exit-handling-dslexithandler)'s exit task. Note that the [PipelineTaskFinalStatus](https://kubeflow-pipelines.readthedocs.io/en/latest/source/dsl.html#kfp.dsl.PipelineTaskFinalStatus) is provided automatically by Vertex Pipelines at runtime. You should not provide any input to this parameter when you instantiate this component as a task. This component works only on Vertex Pipelines. This component raises an exception when run on Kubeflow Pipelines. See a [usage example](https://cloud.google.com/vertex-ai/docs/pipelines/email-notifications).
 
   Args:
-    recipients: A list of email addresses to send this notification
-      to.
-    pipeline_task_final_status: The task final status
-      of the upstream DAG that this component will use in the notification.
+    recipients: A list of email addresses to send a notification to.
   """
   # fmt: on
   return ContainerSpec(

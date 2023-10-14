@@ -32,7 +32,7 @@ import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from 'src/third_party/mlmd/argo_template';
-import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
+import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import {
   V2beta1ListPipelineVersionsResponse,
   V2beta1Pipeline,
@@ -131,10 +131,18 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       buttons
         .newRunFromPipelineVersion(
           () => {
-            return pipelineIdFromParams ? pipelineIdFromParams : '';
+            return this.state.v2Pipeline
+              ? this.state.v2Pipeline.pipeline_id
+              : pipelineIdFromParams
+              ? pipelineIdFromParams
+              : '';
           },
           () => {
-            return pipelineVersionIdFromParams ? pipelineVersionIdFromParams : '';
+            return this.state.v2SelectedVersion
+              ? this.state.v2SelectedVersion.pipeline_version_id
+              : pipelineVersionIdFromParams
+              ? pipelineVersionIdFromParams
+              : '';
           },
         )
         .newPipelineVersion('Upload version', () =>
@@ -200,7 +208,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             pipeline={v2Pipeline}
             selectedVersion={v2SelectedVersion}
             versions={v2Versions}
-            handleVersionSelected={this.handleVersionSelectedV2.bind(this)}
+            handleVersionSelected={this.handleVersionSelected.bind(this)}
           />
         )}
         {!this.state.graphIsLoading && !showV2Pipeline && (
@@ -273,19 +281,20 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   // We don't have default version in v2 pipeline proto, choose the latest version instead.
   private async getSelectedVersion(pipelineId: string, versionId?: string) {
+    let selectedVersion: V2beta1PipelineVersion;
     // Get specific version if version id is provided
     if (versionId) {
       try {
-        return await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
+        selectedVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version.', err);
         logger.error('Cannot retrieve pipeline version.', err);
-        return;
+        return undefined;
       }
     } else {
       // Get the latest version if no version id
       let listVersionsResponse: V2beta1ListPipelineVersionsResponse;
-      let latesetVersion: V2beta1PipelineVersion;
       try {
         listVersionsResponse = await Apis.pipelineServiceApiV2.listPipelineVersions(
           pipelineId,
@@ -294,21 +303,22 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           'created_at desc',
         );
 
-        if (listVersionsResponse.pipeline_versions) {
-          latesetVersion = listVersionsResponse.pipeline_versions[0];
-          // Append version id to URL for create run (new run switcher call getPipelineVersion)
-          this.props.history.replace({
-            pathname: `/pipelines/details/${pipelineId}/version/${latesetVersion.pipeline_version_id}`,
-          });
-          return latesetVersion;
+        if (
+          listVersionsResponse.pipeline_versions &&
+          listVersionsResponse.pipeline_versions.length > 0
+        ) {
+          selectedVersion = listVersionsResponse.pipeline_versions[0];
+        } else {
+          return undefined;
         }
-        return undefined;
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version list.', err);
         logger.error('Cannot retrieve pipeline version list.', err);
-        return;
+        return undefined;
       }
     }
+    return selectedVersion;
   }
 
   public async load(): Promise<void> {
@@ -370,6 +380,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                 ? workflowManifestString
                 : JsYaml.safeDump(workflowManifest);
             } catch (err) {
+              this.setStateSafe({ graphIsLoading: false });
               await this.showPageError(
                 `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
                   origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
@@ -384,6 +395,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               );
             }
           } catch (err) {
+            this.setStateSafe({ graphIsLoading: false });
             await this.showPageError(
               `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
                 origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
@@ -442,6 +454,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         });
         pageTitle = 'Pipeline details';
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
         logger.error(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
         return;
@@ -455,6 +468,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         v1Pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
         v2Pipeline = await Apis.pipelineServiceApiV2.getPipeline(pipelineId);
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline details.', err);
         logger.error('Cannot retrieve pipeline details.', err);
         return;
@@ -466,6 +480,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           v1Version = await Apis.pipelineServiceApi.getPipelineVersion(versionId);
         }
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Cannot retrieve pipeline version.', err);
         logger.error('Cannot retrieve pipeline version.', err);
         return;
@@ -511,14 +526,12 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               )
             ).pipeline_versions || [];
         } catch (err) {
+          this.setStateSafe({ graphIsLoading: false });
           await this.showPageError('Cannot retrieve pipeline versions.', err);
           logger.error('Cannot retrieve pipeline versions.', err);
           return;
         }
-        templateString = await this._getTemplateString(
-          pipelineId,
-          v2SelectedVersion ? v2SelectedVersion.pipeline_version_id! : v1SelectedVersion?.id!,
-        );
+        templateString = await this._getTemplateString(v2SelectedVersion);
       }
 
       breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
@@ -564,67 +577,23 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public async handleVersionSelected(versionId: string): Promise<void> {
-    if (this.state.v1Pipeline) {
-      const selectedVersionV1 = (this.state.v1Versions || []).find(v => v.id === versionId);
-      const selectedVersionV2 = (this.state.v2Versions || []).find(
-        v => v.pipeline_version_id === versionId,
-      );
-      const pageTitle = this.state.v1Pipeline.name?.concat(' (', selectedVersionV1?.name!, ')');
-      this.props.updateToolbar({ pageTitle });
-
-      const selectedVersionPipelineTemplate = await this._getTemplateString(
-        this.state.v1Pipeline.id!,
-        versionId,
-      );
-      this.props.history.replace({
-        pathname: `/pipelines/details/${this.state.v1Pipeline.id}/version/${versionId}`,
-      });
-
-      const [graph, reducedGraph, graphV2] = await this._createGraph(
-        selectedVersionPipelineTemplate,
-      );
-      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
-        this.setStateSafe({
-          graph: undefined,
-          reducedGraph: undefined,
-          graphV2,
-          graphIsLoading: false,
-          v2SelectedVersion: selectedVersionV2,
-          templateString: selectedVersionPipelineTemplate,
-        });
-      } else {
-        this.setStateSafe({
-          graph,
-          reducedGraph,
-          graphV2: undefined,
-          graphIsLoading: false,
-          v1SelectedVersion: selectedVersionV1,
-          templateString: selectedVersionPipelineTemplate,
-        });
-      }
-    }
-  }
-
-  public async handleVersionSelectedV2(versionId: string): Promise<void> {
     if (this.state.v2Pipeline) {
-      const selectedVersionV1 = (this.state.v1Versions || []).find(v => v.id === versionId);
-      const selectedVersionV2 = (this.state.v2Versions || []).find(
+      const v1SelectedVersion = (this.state.v1Versions || []).find(v => v.id === versionId);
+      const v2SelectedVersion = (this.state.v2Versions || []).find(
         v => v.pipeline_version_id === versionId,
       );
       const pageTitle = this.state.v2Pipeline.display_name?.concat(
         ' (',
-        selectedVersionV2?.display_name!,
+        v2SelectedVersion?.display_name!,
         ')',
       );
-      this.props.updateToolbar({ pageTitle });
 
-      const selectedVersionPipelineTemplate = await this._getTemplateString(
-        this.state.v2Pipeline.pipeline_id!,
-        versionId,
-      );
+      const selectedVersionPipelineTemplate = await this._getTemplateString(v2SelectedVersion);
       this.props.history.replace({
         pathname: `/pipelines/details/${this.state.v2Pipeline.pipeline_id}/version/${versionId}`,
       });
+      this.props.updateToolbar(this.getInitialToolbarState());
+      this.props.updateToolbar({ pageTitle });
 
       const [graph, reducedGraph, graphV2] = await this._createGraph(
         selectedVersionPipelineTemplate,
@@ -635,7 +604,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph: undefined,
           graphV2,
           graphIsLoading: false,
-          v2SelectedVersion: selectedVersionV2,
+          v2SelectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
       } else {
@@ -644,42 +613,20 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           reducedGraph,
           graphV2: undefined,
           graphIsLoading: false,
-          v1SelectedVersion: selectedVersionV1,
+          v1SelectedVersion,
           templateString: selectedVersionPipelineTemplate,
         });
       }
     }
   }
 
-  private async _getTemplateString(pipelineId: string, versionId: string): Promise<string> {
-    try {
-      // Get template string from pipeline_spec in pipeline version (v2 API)
-      let pipelineVersion;
-      let pipelineSpecInVersion;
-      if (pipelineId && versionId) {
-        pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
-        pipelineSpecInVersion = pipelineVersion.pipeline_spec;
-      }
-      const templateStrFromSpec = pipelineSpecInVersion
-        ? JsYaml.safeDump(pipelineSpecInVersion)
-        : '';
-
-      // Get template string from template or pipeline version template (v1 API)
-      let templateResponse: ApiGetTemplateResponse;
-      if (versionId) {
-        templateResponse = await Apis.pipelineServiceApi.getPipelineVersionTemplate(versionId);
-      } else {
-        templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
-      }
-
-      return WorkflowUtils.isTemplateV2(templateStrFromSpec)
-        ? templateStrFromSpec
-        : templateResponse.template || '';
-    } catch (err) {
-      await this.showPageError('Cannot retrieve pipeline template.', err);
-      logger.error('Cannot retrieve pipeline details.', err);
+  private async _getTemplateString(pipelineVersion?: V2beta1PipelineVersion): Promise<string> {
+    if (pipelineVersion?.pipeline_spec) {
+      return JsYaml.safeDump(pipelineVersion.pipeline_spec);
+    } else {
+      logger.error('No template string is found');
+      return '';
     }
-    return '';
   }
 
   private async _createGraph(
@@ -710,6 +657,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           );
         }
       } catch (err) {
+        this.setStateSafe({ graphIsLoading: false });
         await this.showPageError('Error: failed to generate Pipeline graph.', err);
       }
     }

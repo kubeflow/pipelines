@@ -142,6 +142,25 @@ describe('DynamicFlow', () => {
       expect(nodeMlmdInfo).toEqual({ execution });
     });
 
+    it('execution found with custom name', () => {
+      const label = 'custom-label';
+      const elem: Node<FlowElementDataBase> = {
+        id: 'task.exec',
+        data: {
+          label: label,
+          mlmdId: 1,
+        },
+        type: NodeTypeNames.EXECUTION,
+        position: { x: 1, y: 2 },
+      };
+
+      const execution = new Execution();
+      execution.setId(1);
+      execution.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(label));
+      const nodeMlmdInfo = getNodeMlmdInfo(elem, [execution], [], []);
+      expect(nodeMlmdInfo).toEqual({ execution });
+    });
+
     it('artifact not exist', () => {
       const elem: Node<FlowElementDataBase> = {
         id: 'artifact.exec.arti',

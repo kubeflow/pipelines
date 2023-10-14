@@ -1,9 +1,9 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: 2.0.0-rc.1
+  publishedVersion: 2.0.2
   publishedVersionMetadata:
-    releaseNote: Based on 2.0.0-rc.1 version.
+    releaseNote: Based on 2.0.2 version.
     releaseTypes:
       - Feature
     recommended: false
@@ -119,6 +119,9 @@ x-google-marketplace:
               - 'workflowtasksets/finalizers'
             verbs: ['*']
           - apiGroups: ['kubeflow.org']
+            resources: ['*']
+            verbs: ['*']
+          - apiGroups: ['pipelines.kubeflow.org']
             resources: ['*']
             verbs: ['*']
           - apiGroups: ['']

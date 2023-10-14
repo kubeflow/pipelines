@@ -22,9 +22,9 @@ import unittest
 from absl.testing import parameterized
 from kfp import compiler
 from kfp import components
-from kfp.components import placeholders
-from kfp.components import python_component
-from kfp.components import structures
+from kfp.dsl import placeholders
+from kfp.dsl import python_component
+from kfp.dsl import structures
 import yaml
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
@@ -146,7 +146,8 @@ class ReadWriteTest(parameterized.TestCase):
             original_component)
         self.assertEqual(
             handle_expected_diffs(original_component.component_spec),
-            handle_expected_diffs(reloaded_component.component_spec))
+            handle_expected_diffs(reloaded_component.component_spec),
+            f'\n\n\nError with (de)serialization consistency of: {yaml_file}')
 
     def _test_serialization_correctness(
         self,
@@ -158,7 +159,8 @@ class ReadWriteTest(parameterized.TestCase):
         pipeline = import_obj_from_file(python_file, function_name)
         compiled_result = self._compile_and_read_yaml(pipeline)
         golden_result = load_compiled_file(yaml_file)
-        self.assertEqual(compiled_result, golden_result)
+        self.assertEqual(compiled_result, golden_result,
+                         f'\n\n\nError with compiling: {python_file}')
 
     @parameterized.parameters(create_test_cases())
     def test(

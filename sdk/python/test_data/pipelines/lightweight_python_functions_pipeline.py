@@ -120,7 +120,7 @@ def train(
     model.metadata['accuracy'] = 0.9
 
 
-@dsl.pipeline(pipeline_root='dummy_root', name='my-test-pipeline-beta')
+@dsl.pipeline(name='my-test-pipeline-beta')
 def pipeline(message: str, input_dict: Dict[str, int] = {'A': 1, 'B': 2}):
 
     preprocess_task = preprocess(

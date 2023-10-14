@@ -16,6 +16,7 @@
 from typing import Optional
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
 from kfp.dsl import Output
@@ -23,7 +24,6 @@ from kfp.dsl import Output
 
 @dsl.container_component
 def tabular_dataset_create(
-    project: str,
     display_name: str,
     dataset: Output[VertexDataset],
     location: Optional[str] = 'us-central1',
@@ -31,42 +31,22 @@ def tabular_dataset_create(
     bq_source: Optional[str] = None,
     labels: Optional[dict] = {},
     encryption_spec_key_name: Optional[str] = None,
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Creates a new tabular dataset.
+  """Creates a new tabular [Dataset](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets).
 
   Args:
-      display_name: The user-defined name of the Dataset.
-          The name can be up to 128 characters long and can be consist
-          of any UTF-8 characters.
-      gcs_source:
-          Google Cloud Storage URI(-s) to the
-          input file(s). May contain wildcards. For more
-          information on wildcards, see
-          https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
+      display_name: The user-defined name of the Dataset. The name can be up to 128 characters long and can be consist of any UTF-8 characters.
+      gcs_source: Google Cloud Storage URI(-s) to the input file(s). May contain wildcards. For more information on wildcards, see https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames. For example, `"gs://bucket/file.csv"` or `["gs://bucket/file1.csv", "gs://bucket/file2.csv"]`.
       bq_source: BigQuery URI to the input table. For example, "bq://project.dataset.table_name".
-      project: project to retrieve dataset from.
-      location: Optional location to retrieve dataset from.
-      labels: Labels with user-defined metadata to organize your Tensorboards.
-          Label keys and values can be no longer than 64 characters
-          (Unicode codepoints), can only contain lowercase letters, numeric
-          characters, underscores and dashes. International characters are allowed.
-          No more than 64 user labels can be associated with one Tensorboard
-          (System labels are excluded).
-          See https://goo.gl/xmQnxf for more information and examples of labels.
-          System reserved label keys are prefixed with "aiplatform.googleapis.com/"
-          and are immutable.
-      encryption_spec_key_name: The Cloud KMS resource identifier of the customer
-          managed encryption key used to protect the dataset. Has the
-          form:
-          ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
-          The key needs to be in the same region as where the compute
-          resource is created.
-          If set, this Dataset and all sub-resources of this Dataset will be secured by this key.
-          Overrides encryption_spec_key_name set in aiplatform.init.
+      location: Optional location to retrieve Dataset from.
+      labels: Labels with user-defined metadata to organize your Tensorboards. Label keys and values can be no longer than 64 characters (Unicode codepoints), can only contain lowercase letters, numeric characters, underscores and dashes. International characters are allowed. No more than 64 user labels can be associated with one Tensorboard (System labels are excluded). See https://goo.gl/xmQnxf for more information and examples of labels. System reserved label keys are prefixed with "aiplatform.googleapis.com/" and are immutable.
+      encryption_spec_key_name: The Cloud KMS resource identifier of the customer managed encryption key used to protect the Dataset. Has the form: `projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created. If set, this Dataset and all sub-resources of this Dataset will be secured by this key. Overrides `encryption_spec_key_name` set in `aiplatform.init`.
+      project: Project to retrieve Dataset from. Defaults to the project in which the PipelineJob is run.
+
   Returns:
-      tabular_dataset: Instantiated representation of the managed tabular dataset resource.
+      dataset: Instantiated representation of the managed tabular Dataset resource.
   """
   # fmt: on
 

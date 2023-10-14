@@ -96,7 +96,6 @@ components:
       parameters:
         output_1:
           parameterType: NUMBER_INTEGER
-defaultPipelineRoot: dummy_root
 deploymentSpec:
   executors:
     exec-downstream:
@@ -213,4 +212,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.16
+sdkVersion: kfp-2.0.0-rc.2

@@ -42,6 +42,4 @@ def my_pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        pipeline_root='dummy_root',
-        output_path=__file__ + '.json')
+        pipeline_func=my_pipeline, output_path=__file__ + '.json')

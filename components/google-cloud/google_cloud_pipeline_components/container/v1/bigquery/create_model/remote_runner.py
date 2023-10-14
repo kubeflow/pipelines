@@ -15,8 +15,8 @@
 
 import google.auth
 import google.auth.transport.requests
+from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.container.v1.bigquery.utils import bigquery_util
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 
 
@@ -95,5 +95,5 @@ def bigquery_create_model_job(
   datasetId = query_result['ddlTargetTable']['datasetId']
   # tableId is the model ID
   modelId = query_result['ddlTargetTable']['tableId']
-  bqml_model_artifact = BQMLModel('model', projectId, datasetId, modelId)
-  artifact_util.update_output_artifacts(executor_input, [bqml_model_artifact])
+  bqml_model_artifact = BQMLModel.create('model', projectId, datasetId, modelId)
+  artifact_utils.update_output_artifacts(executor_input, [bqml_model_artifact])

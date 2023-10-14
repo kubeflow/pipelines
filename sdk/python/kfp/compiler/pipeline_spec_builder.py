@@ -24,16 +24,17 @@ from google.protobuf import json_format
 from google.protobuf import struct_pb2
 import kfp
 from kfp.compiler import compiler_utils
-from kfp.components import for_loop
-from kfp.components import pipeline_channel
-from kfp.components import pipeline_context
-from kfp.components import pipeline_task
-from kfp.components import placeholders
-from kfp.components import structures
-from kfp.components import tasks_group
-from kfp.components import utils
-from kfp.components.types import artifact_types
-from kfp.components.types import type_utils
+from kfp.dsl import component_factory
+from kfp.dsl import for_loop
+from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_context
+from kfp.dsl import pipeline_task
+from kfp.dsl import placeholders
+from kfp.dsl import structures
+from kfp.dsl import tasks_group
+from kfp.dsl import utils
+from kfp.dsl.types import artifact_types
+from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
@@ -44,8 +45,6 @@ group_type_to_dsl_class = {
     tasks_group.TasksGroupType.FOR_LOOP: tasks_group.ParallelFor,
     tasks_group.TasksGroupType.EXIT_HANDLER: tasks_group.ExitHandler,
 }
-
-_SINGLE_OUTPUT_NAME = 'Output'
 
 
 def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
@@ -302,11 +301,6 @@ def build_task_spec_for_task(
                 'str, int, float, bool, dict, and list.'
                 f'Got {input_value} of type {type(input_value)}.')
 
-    if task._ignore_upstream_failure_tag:
-        pipeline_task_spec.trigger_policy.strategy = (
-            pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
-            .ALL_UPSTREAM_TASKS_COMPLETED)
-
     return pipeline_task_spec
 
 
@@ -340,7 +334,8 @@ def build_component_spec_for_task(
     """
     for input_name, input_spec in (task.component_spec.inputs or {}).items():
         if not is_exit_task and type_utils.is_task_final_status_type(
-                input_spec.type) and not is_compiled_component:
+                input_spec.type
+        ) and not is_compiled_component and not task._ignore_upstream_failure_tag:
             raise ValueError(
                 f'PipelineTaskFinalStatus can only be used in an exit task. Parameter {input_name} of a non exit task has type PipelineTaskFinalStatus.'
             )
@@ -631,7 +626,7 @@ def build_component_spec_for_group(
         else:
             component_spec.output_definitions.parameters[
                 output_name].parameter_type = type_utils.get_parameter_type(
-                    channel.channel_type)
+                    output.channel_type)
 
     return component_spec
 
@@ -709,22 +704,38 @@ def _update_task_spec_for_loop_group(
         input_name=pipeline_task_spec.parameter_iterator.item_input)
 
 
-def _resolve_condition_operands(
-    left_operand: Union[str, pipeline_channel.PipelineChannel],
-    right_operand: Union[str, pipeline_channel.PipelineChannel],
-) -> Tuple[str, str]:
-    """Resolves values and PipelineChannels for condition operands.
+def _binary_operations_to_cel_conjunctive(
+        operations: List[pipeline_channel.ConditionOperation]) -> str:
+    """Converts a list of ConditionOperation to a CEL string with placeholders.
+    Each ConditionOperation will be joined the others via the conjunctive (&&).
 
     Args:
-        left_operand: The left operand of a condition expression.
-        right_operand: The right operand of a condition expression.
+        operations: The binary operations to convert to convert and join.
 
     Returns:
-        A tuple of the resolved operands values:
-        (left_operand_value, right_operand_value).
+        The binary operations as a CEL string.
     """
+    operands = [
+        _single_binary_operation_to_cel_condition(operation=bin_op)
+        for bin_op in operations
+    ]
+    return ' && '.join(operands)
 
-    # Pre-scan the operand to get the type of constant value if there's any.
+
+def _single_binary_operation_to_cel_condition(
+        operation: pipeline_channel.ConditionOperation) -> str:
+    """Converts a ConditionOperation to a CEL string with placeholders.
+
+    Args:
+        operation: The binary operation to convert to a string.
+
+    Returns:
+        The binary operation as a CEL string.
+    """
+    left_operand = operation.left_operand
+    right_operand = operation.right_operand
+
+    # cannot make comparisons involving particular types
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
             parameter_type = type_utils.get_parameter_type(
@@ -738,8 +749,10 @@ def _resolve_condition_operands(
                 input_name = compiler_utils.additional_input_name_for_pipeline_channel(
                     value_or_reference)
                 raise ValueError(
-                    f'Conditional requires scalar parameter values for comparison. Found input "{input_name}" of type {value_or_reference.channel_type} in pipeline definition instead.'
+                    f'Conditional requires primitive parameter values for comparison. Found input "{input_name}" of type {value_or_reference.channel_type} in pipeline definition instead.'
                 )
+
+    # ensure the types compared are the same or compatible
     parameter_types = set()
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
@@ -822,11 +835,16 @@ def _resolve_condition_operands(
 
         operand_values.append(operand_value)
 
-    return tuple(operand_values)
+    left_operand_value, right_operand_value = tuple(operand_values)
+
+    condition_string = (
+        f'{left_operand_value} {operation.operator} {right_operand_value}')
+
+    return f'!({condition_string})' if operation.negate else condition_string
 
 
 def _update_task_spec_for_condition_group(
-    group: tasks_group.Condition,
+    group: tasks_group._ConditionBase,
     pipeline_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
 ) -> None:
     """Updates PipelineTaskSpec for condition group.
@@ -835,15 +853,9 @@ def _update_task_spec_for_condition_group(
         group: The condition group to update task spec for.
         pipeline_task_spec: The pipeline task spec to update in place.
     """
-    left_operand_value, right_operand_value = _resolve_condition_operands(
-        group.condition.left_operand, group.condition.right_operand)
-
-    condition_string = (
-        f'{left_operand_value} {group.condition.operator} {right_operand_value}'
-    )
+    condition = _binary_operations_to_cel_conjunctive(group.conditions)
     pipeline_task_spec.trigger_policy.CopyFrom(
-        pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(
-            condition=condition_string))
+        pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(condition=condition))
 
 
 def build_task_spec_for_exit_task(
@@ -954,7 +966,7 @@ def build_task_spec_for_group(
             group=group,
             pipeline_task_spec=pipeline_task_spec,
         )
-    elif isinstance(group, tasks_group.Condition):
+    elif isinstance(group, tasks_group._ConditionBase):
         _update_task_spec_for_condition_group(
             group=group,
             pipeline_task_spec=pipeline_task_spec,
@@ -1236,17 +1248,14 @@ def build_spec_by_group(
             _build_dag_outputs(subgroup_component_spec,
                                subgroup_output_channels)
 
-        elif isinstance(subgroup, tasks_group.Condition):
+        elif isinstance(subgroup, tasks_group._ConditionBase):
 
             # "Punch the hole", adding inputs needed by its subgroups or
             # tasks.
             condition_subgroup_channels = list(subgroup_input_channels)
-            for operand in [
-                    subgroup.condition.left_operand,
-                    subgroup.condition.right_operand,
-            ]:
-                if isinstance(operand, pipeline_channel.PipelineChannel):
-                    condition_subgroup_channels.append(operand)
+
+            compiler_utils.get_channels_from_condition(
+                subgroup.conditions, condition_subgroup_channels)
 
             subgroup_component_spec = build_component_spec_for_group(
                 input_pipeline_channels=condition_subgroup_channels,
@@ -1277,6 +1286,20 @@ def build_spec_by_group(
                 is_parent_component_root=is_parent_component_root,
             )
 
+        # handles the conditional group wrapping only
+        elif isinstance(subgroup, tasks_group.ConditionBranches):
+            subgroup_component_spec = build_component_spec_for_group(
+                input_pipeline_channels=subgroup_input_channels,
+                output_pipeline_channels={},
+            )
+
+            subgroup_task_spec = build_task_spec_for_group(
+                group=subgroup,
+                pipeline_channels=subgroup_input_channels,
+                tasks_in_current_dag=tasks_in_current_dag,
+                is_parent_component_root=is_parent_component_root,
+            )
+
         else:
             raise RuntimeError(
                 f'Unexpected task/group type: Got {subgroup} of type '
@@ -1289,6 +1312,11 @@ def build_spec_by_group(
             subgroup_task_spec.dependent_tasks.extend(
                 [utils.sanitize_task_name(dep) for dep in group_dependencies])
 
+        # Modify the task inputs for PipelineTaskFinalStatus if ignore_upstream_failure is used
+        # Must be done after dependencies are added
+        if isinstance(subgroup, pipeline_task.PipelineTask):
+            modify_task_for_ignore_upstream_failure(
+                task=subgroup, pipeline_task_spec=subgroup_task_spec)
         # Add component spec
         subgroup_component_name = utils.make_name_unique_by_adding_index(
             name=subgroup_component_name,
@@ -1313,6 +1341,42 @@ def build_spec_by_group(
         task_name_to_component_spec=task_name_to_component_spec,
         pipeline_spec=pipeline_spec,
     )
+
+
+def modify_task_for_ignore_upstream_failure(
+    task: pipeline_task.PipelineTask,
+    pipeline_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+):
+    if task._ignore_upstream_failure_tag:
+        pipeline_task_spec.trigger_policy.strategy = (
+            pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
+            .ALL_UPSTREAM_TASKS_COMPLETED)
+
+        for input_name, input_spec in (task.component_spec.inputs or
+                                       {}).items():
+            if not type_utils.is_task_final_status_type(input_spec.type):
+                continue
+
+            if len(pipeline_task_spec.dependent_tasks) == 0:
+                if task.parent_task_group.group_type == tasks_group.TasksGroupType.PIPELINE:
+                    raise compiler_utils.InvalidTopologyException(
+                        f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task. Got task '{pipeline_task_spec.task_info.name} with no upstream dependencies."
+                    )
+                else:
+                    # TODO: permit additional PipelineTaskFinalStatus flexibility by "punching the hole" through Condition and ParallelFor groups
+                    raise compiler_utils.InvalidTopologyException(
+                        f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope. Got task '{pipeline_task_spec.task_info.name}' beneath a 'dsl.{group_type_to_dsl_class[task.parent_task_group.group_type].__name__}' that does not also contain the upstream dependent task."
+                    )
+
+            # if >1 dependent task, ambiguous to which upstream task the PipelineTaskFinalStatus should correspond, since there is no ExitHandler that bundles these together
+            if len(pipeline_task_spec.dependent_tasks) > 1:
+                raise compiler_utils.InvalidTopologyException(
+                    f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task. Got {len(pipeline_task_spec.dependent_tasks)} dependent tasks: {pipeline_task_spec.dependent_tasks}."
+                )
+
+            pipeline_task_spec.inputs.parameters[
+                input_name].task_final_status.producer_task = pipeline_task_spec.dependent_tasks[
+                    0]
 
 
 def platform_config_to_platform_spec(
@@ -1760,7 +1824,7 @@ def convert_pipeline_outputs_to_dict(
     if pipeline_outputs is None:
         return {}
     elif isinstance(pipeline_outputs, pipeline_channel.PipelineChannel):
-        return {_SINGLE_OUTPUT_NAME: pipeline_outputs}
+        return {component_factory.SINGLE_OUTPUT_NAME: pipeline_outputs}
     elif isinstance(pipeline_outputs, tuple) and hasattr(
             pipeline_outputs, '_asdict'):
         return dict(pipeline_outputs._asdict())
@@ -1770,7 +1834,7 @@ def convert_pipeline_outputs_to_dict(
 
 def write_pipeline_spec_to_file(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-    pipeline_description: str,
+    pipeline_description: Union[str, None],
     platform_spec: pipeline_spec_pb2.PlatformSpec,
     package_path: str,
 ) -> None:

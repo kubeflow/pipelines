@@ -33,6 +33,11 @@ async function getValueFromDetailsTable(key) {
   return rowText.substr(`${key}\n`.length);
 }
 
+async function clearDefaultInput() {
+  await browser.keys(['Control', 'a'])
+  await browser.keys('Backspace');
+}
+
 describe('deploy helloworld sample run', () => {
   before(async () => {
     await browser.url('/');
@@ -49,7 +54,9 @@ describe('deploy helloworld sample run', () => {
     await $('#localPackageBtn').click();
     const remoteFilePath = await browser.uploadFile('./helloworld.yaml');
     await $('#dropZone input[type="file"]').addValue(remoteFilePath);
-    await $('#newPipelineName').setValue(pipelineName);
+    await $('#newPipelineName').click();
+    await clearDefaultInput()
+    await browser.keys(pipelineName)
     await $('#createNewPipelineOrVersionBtn').click();
     await browser.waitUntil(async () => {
       return new URL(await browser.getUrl()).hash.startsWith('#/pipelines/details');
@@ -99,22 +106,16 @@ describe('deploy helloworld sample run', () => {
       reverse: true,
     });
 
-    await browser.keys('Tab');
+    await $('#runNameInput').click();
+    await clearDefaultInput()
     await browser.keys(runName);
 
-    await browser.keys('Tab');
+    await $('#descriptionInput').click();
     await browser.keys(runDescription);
-
-    // Skip over "choose experiment" button
-    await browser.keys('Tab');
-    // Skip over service account help button
-    await browser.keys('Tab');
-    // Skip over "service account" textbox
-    await browser.keys('Tab');
-    // Skip over "Run Type" radio button
-    await browser.keys('Tab');
-
-    await browser.keys('Tab');
+    
+    // the parameter name is "message" in this testing pipeline 
+    await $('input#newRunPipelineParam0').click();
+    await clearDefaultInput()
     await browser.keys(outputParameterValue);
 
     // Deploy
@@ -179,6 +180,11 @@ describe('deploy helloworld sample run', () => {
     );
   });
 
+  it('displays run description inputs correctly', async () => {
+    const descriptionValue = await getValueFromDetailsTable('Description');
+    assert.equal(descriptionValue, runDescription, 'run description is not shown correctly');
+  });
+
   it('displays run inputs correctly', async () => {
     const paramValue = await getValueFromDetailsTable('message');
     assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
@@ -230,21 +236,14 @@ describe('deploy helloworld sample run', () => {
 
     await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout, reverse: true });
 
+    await $('#runNameInput').click();
     await browser.keys(runWithoutExperimentName);
 
-    await browser.keys('Tab');
+    await $('#descriptionInput').click();
     await browser.keys(runWithoutExperimentDescription);
-
-    // Skip over "choose experiment" button
-    await browser.keys('Tab');
-    // Skip over service account help button
-    await browser.keys('Tab');
-    // Skip over "service account" textbox
-    await browser.keys('Tab');
-    // Skip over "Run Type" radio button
-    await browser.keys('Tab');
-
-    await browser.keys('Tab');
+    
+    await $('input#newRunPipelineParam0').click();
+    await clearDefaultInput()
     await browser.keys(outputParameterValue);
 
     // Deploy

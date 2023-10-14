@@ -590,6 +590,10 @@ describe('NewRun', () => {
       const expectedPipeline = await screen.findByText(newPipeline.name);
       fireEvent.click(expectedPipeline);
 
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
       const usePipelineButton = screen.getByText('Use this pipeline');
       fireEvent.click(usePipelineButton);
 
@@ -668,6 +672,32 @@ describe('NewRun', () => {
       expect(tree.state('pipelineName')).toEqual(oldPipeline.name);
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
       await TestUtils.flushPromises();
+    });
+
+    it('enables choose button for pipeline version after clicking cancel in selector', async () => {
+      tree = shallow(<TestNewRun {...generateProps()} />);
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${
+        QUERY_PARAMS.pipelineVersionId
+      }=${MOCK_PIPELINE.default_version!.id}`;
+      render(<NewRun {...props} />);
+
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      // Choose button is enabled in the beginning
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
+
+      const choosePipelineBtn = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineBtn); // Open pipeline selector
+
+      const cancelBtn = screen.getAllByText('Cancel')[0];
+      fireEvent.click(cancelBtn);
+
+      // Choose button is still enabled after clicking Cancel in selector
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
     });
   });
 
@@ -748,6 +778,10 @@ describe('NewRun', () => {
       const expectedPipeline = await screen.findByText(newPipeline.name);
       fireEvent.click(expectedPipeline);
 
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
       const usePipelineButton = screen.getByText('Use this pipeline');
       fireEvent.click(usePipelineButton);
 
@@ -763,6 +797,10 @@ describe('NewRun', () => {
 
       const expectedPipelineVersion = await screen.findByText(latestPipelineVersion.name);
       fireEvent.click(expectedPipelineVersion);
+
+      await waitFor(() => {
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+      });
 
       const usePipelineVersionBtn = screen.getByText('Use this pipeline version');
       fireEvent.click(usePipelineVersionBtn);
@@ -1645,6 +1683,10 @@ describe('NewRun', () => {
       const expectedPipeline = await screen.findByText(pipelineWithParams.name);
       fireEvent.click(expectedPipeline);
 
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
       const usePipelineButton = screen.getByText('Use this pipeline');
       fireEvent.click(usePipelineButton);
 
@@ -1657,37 +1699,65 @@ describe('NewRun', () => {
       await screen.findByDisplayValue('prefilled value 1');
       await screen.findByLabelText('param-2');
       await screen.findByDisplayValue('prefilled value 2');
-    });
+    }, 10000);
 
     it('trims whitespace from the pipeline params', async () => {
-      tree = mount(
-        <MemoryRouter>
-          <TestNewRun {...generateProps()} />
-        </MemoryRouter>,
-      );
-      await TestUtils.flushPromises();
-      const instance = tree.find(TestNewRun).instance() as TestNewRun;
-      fillRequiredFields(instance);
+      tree = shallow(<TestNewRun {...generateProps()} />);
 
-      // Select a pipeline with parameters
-      const pipeline = newMockPipeline();
+      const pipelineWithParams = newMockPipeline();
       const pipelineVersionWithParams = newMockPipeline();
       pipelineVersionWithParams.id = 'pipeline-version-with-params';
       pipelineVersionWithParams.parameters = [
         { name: 'param-1', value: '  whitespace on either side  ' },
         { name: 'param-2', value: 'value 2' },
       ];
-      getPipelineSpy.mockImplementationOnce(() => pipeline);
+
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+      const listPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+      listPipelineSpy.mockImplementation(() => {
+        const response: ApiListPipelinesResponse = {
+          pipelines: [pipelineWithParams],
+          total_size: 1,
+        };
+        return response;
+      });
+
+      render(
+        <CommonTestWrapper>
+          <NewRun
+            {...generateProps()}
+            namespace=''
+            existingPipelineId=''
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId=''
+            handlePipelineVersionIdChange={jest.fn()}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const choosePipelineButton = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineButton);
+
+      getPipelineSpy.mockImplementationOnce(() => pipelineWithParams);
       getPipelineVersionSpy.mockImplementationOnce(() => pipelineVersionWithParams);
-      instance.setState({ unconfirmedSelectedPipeline: pipeline });
-      instance.setState({ unconfirmedSelectedPipelineVersion: pipelineVersionWithParams });
-      instance._pipelineSelectorClosed(true);
-      instance._pipelineVersionSelectorClosed(true);
-      tree
-        .find('#startNewRunBtn')
-        .hostNodes()
-        .simulate('click');
-      await TestUtils.flushPromises();
+
+      const expectedPipeline = await screen.findByText(pipelineWithParams.name);
+      fireEvent.click(expectedPipeline);
+
+      await waitFor(() => {
+        expect(getPipelineSpy).toHaveBeenCalled();
+      });
+
+      const usePipelineButton = screen.getByText('Use this pipeline');
+      fireEvent.click(usePipelineButton);
+
+      await waitFor(() => {
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+      });
+
+      const startNewRunBtn = screen.getByText('Start');
+      fireEvent.click(startNewRunBtn);
 
       expect(startRunSpy).toHaveBeenCalledTimes(1);
       expect(startRunSpy).toHaveBeenLastCalledWith(

@@ -44,7 +44,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='pipeline-with-env', pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-with-env')
 def my_pipeline():
     print_env_op().set_env_variable(name='ENV1', value='val1')
     print_env_2_op().set_env_variable(

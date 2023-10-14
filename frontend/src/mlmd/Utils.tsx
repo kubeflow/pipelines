@@ -116,4 +116,5 @@ export function getMetadataValue(value?: Value): string | number | Struct | unde
     case Value.ValueCase.VALUE_NOT_SET:
       return '';
   }
+  return '';
 }

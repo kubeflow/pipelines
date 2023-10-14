@@ -15,6 +15,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from kfp.dsl import ConcatPlaceholder
@@ -27,7 +28,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_ml_global_explain_job(
-    project: str,
     model: Input[BQMLModel],
     destination_table: Output[BQTable],
     gcp_resources: OutputPath(str),
@@ -37,31 +37,20 @@ def bigquery_ml_global_explain_job(
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery global explain fetching job and waits for it to finish.
 
   Args:
-      project: Project to run BigQuery model creation job.
-      location: Location of the job to create the BigQuery
-        model. If not set, default to `US` multi-region.  For more details,
-        see
-        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model: BigQuery ML model for global
-        explain. For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
-      class_level_explain: For classification
-          models, if class_level_explain is set to TRUE then global feature
-          importances are returned for each class. Otherwise, the global
-          feature importance of the entire model is returned rather than that
-          of each class. By default, class_level_explain is set to FALSE. This
-          option only applies to classification models. Regression models only
-          have model-level global feature importance.
+      location: Location of the job to create the BigQuery model. If not set, default to `US` multi-region.  For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model: BigQuery ML model for global explain. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+      class_level_explain: For classification models, if class_level_explain is set to TRUE then global feature importances are returned for each class. Otherwise, the global feature importance of the entire model is returned rather than that of each class. By default, class_level_explain is set to FALSE. This option only applies to classification models. Regression models only have model-level global feature importance.
+      project: Project to run BigQuery model creation job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       destination_table: Describes the table where the global explain results should be stored.
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

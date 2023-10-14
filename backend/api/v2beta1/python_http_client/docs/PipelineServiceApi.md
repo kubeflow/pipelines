@@ -131,7 +131,7 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    body = kfp_server_api.V2beta1Pipeline() # V2beta1Pipeline | Required input. Pipeline (parent) to be created.
+    body = kfp_server_api.V2beta1CreatePipelineAndVersionRequest() # V2beta1CreatePipelineAndVersionRequest | 
 
     try:
         # Creates a new pipeline and a new pipeline version in a single transaction.
@@ -145,7 +145,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2beta1Pipeline**](V2beta1Pipeline.md)| Required input. Pipeline (parent) to be created. | 
+ **body** | [**V2beta1CreatePipelineAndVersionRequest**](V2beta1CreatePipelineAndVersionRequest.md)|  | 
 
 ### Return type
 

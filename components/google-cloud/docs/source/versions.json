@@ -1,0 +1,57 @@
+[
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.4.1",
+    "title": "2.4.1",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.4.0",
+    "title": "2.4.0",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.3.1",
+    "title": "2.3.1",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.3.0",
+    "title": "2.3.0",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.2.0",
+    "title": "2.2.0",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.1.1",
+    "title": "2.1.1",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.1.0",
+    "title": "2.1.0",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.0.0",
+    "title": "2.0.0",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.0.0b5",
+    "title": "2.0.0b5",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.0.0b4",
+    "title": "2.0.0b4",
+    "aliases": []
+  },
+  {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.0.0b3",
+    "title": "2.0.0b3",
+    "aliases": []
+  }
+]

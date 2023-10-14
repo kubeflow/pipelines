@@ -168,6 +168,15 @@ pipelines:
     - module: pipeline_with_metadata_fields
       name: dataset_concatenator
       execute: false
+    - module: if_else
+      name: flip_coin_pipeline
+      execute: false
+    - module: if_elif_else
+      name: roll_die_pipeline
+      execute: false
+    - module: if_elif_else_complex
+      name: lucky_number_pipeline
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true
@@ -230,8 +239,12 @@ components:
       execute: false
     - module: component_with_metadata_fields
       name: dataset_joiner
+      execute: false
     - module: component_with_task_final_status
       name: exit_comp
+      execute: false
+    - module: containerized_python_component
+      name: concat_message
       execute: false
 v1_components:
   test_data_dir: sdk/python/test_data/v1_component_yaml

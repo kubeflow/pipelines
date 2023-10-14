@@ -24,31 +24,20 @@ def wait_gcp_resources(
     output__gcp_resources: OutputPath(str),
 ):
   # fmt: off
-  """Receives a GCP Resource, polling the resource status and waits for it to
-  finish. Currently this component only support waiting on a DataflowJob
-  resource.
+  """Waits for the completion of one or more GCP resources by polling for
+  completion statuses.
 
-  To use this component, first create a component that outputs a JSON formatted gcp_resources proto, then pass it to the wait component.
+  Currently this component only supports waiting on a [DataflowJob](https://cloud.google.com/config-connector/docs/reference/resource-docs/dataflow/dataflowjob) resource. To use this component, first create a component that outputs a `gcp_resources` proto as JSON, then pass it to this component's `gcp_resources` parameter. See [details](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) on how to create a `gcp_resources` proto as a component output.
 
-  For details on how to create a Json serialized gcp_resources proto as output, see
-  https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto
+  ```
+  dataflow_python_op = gcpc.v1.dataflow.LaunchPythonOp( python_file_path=... ) dataflow_wait_op = WaitGcpResourcesOp( gcp_resources=dataflow_python_op.outputs["gcp_resources"] )
+  ```
 
   Args:
-    gcp_resources: Serialized JSON of gcp_resources proto, indicating the resource to wait on by this component
-        For details, see https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto
+    gcp_resources: Serialized JSON of `gcp_resources` proto, indicating the resource(s) this component should wait on.
 
   Returns:
-    gcp_resources: The final result of the gcp resource, including the error information, if exists.
-
-  Examples::
-
-    dataflow_python_op = gcpc.v1.dataflow.LaunchPythonOp(
-        python_file_path = ...
-    )
-
-    dataflow_wait_op = gcpc.v1.wait_gcp_resources.WaitGcp_ResourcesOp(
-        gcp_resources = dataflow_python_op.outputs["gcp_resources"]
-    )
+    gcp_resources: The `gcp_resource`, including any relevant error information.
   """
   # fmt: on
   return dsl.ContainerSpec(

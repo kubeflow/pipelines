@@ -25,10 +25,6 @@ spec:
             value: "86400"
           - name: NUM_WORKERS
             value: "2"
-          - name: KUBEFLOW_USERID_HEADER
-            value: kubeflow-userid
-          - name: KUBEFLOW_USERID_PREFIX
-            value: ""
         image: gcr.io/ml-pipeline/persistenceagent:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent
@@ -36,4 +32,15 @@ spec:
           requests:
             cpu: 120m
             memory: 500Mi
+        volumeMounts:
+          - mountPath: /var/run/secrets/kubeflow/tokens
+            name: persistenceagent-sa-token
       serviceAccountName: ml-pipeline-persistenceagent
+      volumes:
+        - name: persistenceagent-sa-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: persistenceagent-sa-token
+                  expirationSeconds: 3600
+                  audience: pipelines.kubeflow.org

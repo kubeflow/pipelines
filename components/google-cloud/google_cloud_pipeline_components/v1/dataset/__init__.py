@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Manage datasets via `Vertex AI Datasets <https://cloud.google.com/vertex-ai/docs/training/using-managed-datasets>`_."""
+# fmt: off
+"""Manage datasets via [Vertex AI Datasets](https://cloud.google.com/vertex-ai/docs/training/using-managed-datasets)."""
+# fmt: on
 
 from google_cloud_pipeline_components.v1.dataset.create_image_dataset.component import image_dataset_create as ImageDatasetCreateOp
 from google_cloud_pipeline_components.v1.dataset.create_tabular_dataset.component import tabular_dataset_create as TabularDatasetCreateOp

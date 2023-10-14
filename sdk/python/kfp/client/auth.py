@@ -16,7 +16,7 @@ from contextlib import contextmanager
 import json
 import logging
 import os
-from typing import Any, Callable, Dict, Generator, Iterable, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 from webbrowser import open_new_tab
@@ -38,7 +38,7 @@ OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
 LOCAL_KFP_CREDENTIAL = os.path.expanduser('~/.config/kfp/credentials.json')
 
 
-def get_gcp_access_token() -> Union[str, None]:
+def get_gcp_access_token() -> Optional[str]:
     """Gets GCP access token for the current Application Default Credentials.
 
     Returns:
@@ -60,7 +60,7 @@ def get_gcp_access_token() -> Union[str, None]:
 
 
 def get_auth_token(client_id: str, other_client_id: str,
-                   other_client_secret: str) -> Tuple[Union[str, None], bool]:
+                   other_client_secret: str) -> Tuple[Optional[str], bool]:
     """Gets auth token from default service account or user account.
 
     Returns:
@@ -122,7 +122,7 @@ def get_auth_token(client_id: str, other_client_id: str,
     return token, is_refresh_token
 
 
-def get_auth_token_from_sa(client_id: str) -> Union[str, None]:
+def get_auth_token_from_sa(client_id: str) -> Optional[str]:
     """Gets auth token from default service account.
 
     Returns:
@@ -135,8 +135,7 @@ def get_auth_token_from_sa(client_id: str) -> Union[str, None]:
 
 
 def get_service_account_credentials(
-        client_id: str
-) -> Union[google.oauth2.service_account.Credentials, None]:
+        client_id: str) -> Optional[google.oauth2.service_account.Credentials]:
     """Figure out what environment we're running in and get some preliminary
     information about the service account.
 
@@ -262,7 +261,8 @@ def get_auth_code(client_id: str) -> Tuple[str, str]:
                 'scope=openid%20email&access_type=offline&'
                 f'redirect_uri={redirect_uri}')
     authorization_response = None
-    if ('SSH_CONNECTION' in os.environ) or ('SSH_CLIENT' in os.environ):
+    if ('SSH_CONNECTION' in os.environ) or ('SSH_CLIENT'
+                                            in os.environ) or is_ipython():
         try:
             print((
                 'SSH connection detected. Please follow the instructions below.'
@@ -318,7 +318,7 @@ def get_auth_response_ssh(host: str, port: int, auth_url: str) -> str:
 
 
 def get_auth_response_local(host: str, port: int,
-                            auth_url: str) -> Union[str, None]:
+                            auth_url: str) -> Optional[str]:
     """Fetches OAuth authorization response URL using a local web-server.
 
     Args:
@@ -510,3 +510,15 @@ def fetch_auth_token_from_response(url: str) -> str:
     if isinstance(access_code, list):
         access_code = str(access_code.pop(0))
     return access_code
+
+
+def is_ipython() -> bool:
+    """Returns whether we are running in notebook."""
+    try:
+        import IPython
+        ipy = IPython.get_ipython()
+        if ipy is None:
+            return False
+    except ImportError:
+        return False
+    return True

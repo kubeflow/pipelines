@@ -52,7 +52,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='simple-two-step-pipeline', pipeline_root='dummy_root')
+@dsl.pipeline(name='simple-two-step-pipeline')
 def my_pipeline(text: str = 'Hello world!'):
     component_1 = component_op_1(text=text).set_display_name('Producer')
     component_2 = component_op_2(

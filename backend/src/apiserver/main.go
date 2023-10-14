@@ -35,6 +35,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -59,9 +60,10 @@ func main() {
 	flag.Parse()
 
 	initConfig()
-	clientManager := newClientManager()
+	clientManager := cm.NewClientManager()
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
 	)
 	err := loadSamples(resourceManager)
 	if err != nil {
@@ -119,8 +121,8 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		s,
 		server.NewVisualizationServer(
 			resourceManager,
-			common.GetStringConfig(visualizationServiceHost),
-			common.GetStringConfig(visualizationServicePort),
+			common.GetStringConfig(cm.VisualizationServiceHost),
+			common.GetStringConfig(cm.VisualizationServicePort),
 		))
 	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 

@@ -15,5 +15,6 @@ V1 Components
    forecasting
    hyperparameter_tuning_job
    model
+   model_evaluation
    vertex_notification_email
    wait_gcp_resources

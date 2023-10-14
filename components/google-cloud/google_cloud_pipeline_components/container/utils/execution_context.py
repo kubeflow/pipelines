@@ -21,7 +21,7 @@ class ExecutionContext:
   """Execution context for running inside Google Cloud Pipeline Components.
 
   The base class is aware of the GCPC environment and can cascade
-  a pipeline cancel event to the operation through ``on_cancel`` handler.
+  a pipeline cancel event to the operation through `on_cancel` handler.
   Args:
       on_cancel: optional, function to handle KFP cancel event.
   """

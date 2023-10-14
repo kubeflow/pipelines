@@ -16,7 +16,7 @@ import unittest
 
 from absl.testing import parameterized
 from kfp.compiler import compiler_utils
-from kfp.components import pipeline_channel
+from kfp.dsl import pipeline_channel
 
 
 class TestAdditionalInputNameForPipelineChannel(parameterized.TestCase):

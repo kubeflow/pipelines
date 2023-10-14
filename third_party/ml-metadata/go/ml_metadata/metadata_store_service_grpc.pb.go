@@ -83,6 +83,10 @@ type MetadataStoreServiceClient interface {
 	// For new artifacts, type must be specified.
 	// For old artifacts, type must be unchanged or unspecified.
 	//
+	// It is not guaranteed that the created or updated artifacts will share the
+	// same `create_time_since_epoch` or `last_update_time_since_epoch`
+	// timestamps.
+	//
 	// Args:
 	//   artifacts: A list of artifacts to insert or update.
 	//
@@ -96,6 +100,10 @@ type MetadataStoreServiceClient interface {
 	// For new executions, type must be specified.
 	// For old executions, type must be unchanged or unspecified.
 	//
+	// It is not guaranteed that the created or updated executions will share the
+	// same `create_time_since_epoch` or `last_update_time_since_epoch`
+	// timestamps.
+	//
 	// Args:
 	//   executions: A list of executions to insert or update.
 	//
@@ -107,6 +115,10 @@ type MetadataStoreServiceClient interface {
 	//
 	// The execution_id and artifact_id must already exist.
 	// Once created, events cannot be modified.
+	// AlreadyExists error will be raised if duplicated events are found.
+	//
+	// It is not guaranteed that the created or updated events will share the
+	// same `milliseconds_since_epoch` timestamps.
 	//
 	// Args:
 	//   events: A list of events to insert or update.
@@ -117,9 +129,16 @@ type MetadataStoreServiceClient interface {
 	// input/output Event. The `contexts` describe the associations of the
 	// execution and the attributions of the artifacts.
 	//
-	// If an execution_id, artifact_id or context_id is specified, it is an
-	// update, otherwise it does an insertion. For insertion, type must be
-	// specified.
+	// If an execution_id is specified, it is an update on the corresponding
+	// execution, otherwise it does an insertion.
+	// For insertion, type must be specified. Same rule applies to artifacts
+	// and contexts in the request. Corresponding errors may raised. For example:
+	// AlreadyExists error will be raised if duplicated executions, artifacts
+	// or events are found.
+	//
+	// It is not guaranteed that the created or updated executions, artifacts,
+	// contexts and events will share the same `create_time_since_epoch`,
+	// `last_update_time_since_epoch`, or `milliseconds_since_epoch` timestamps.
 	//
 	// Args:
 	//   execution: An execution to insert or update.
@@ -130,12 +149,46 @@ type MetadataStoreServiceClient interface {
 	//   An execution id and a list of artifacts and contexts ids index-aligned
 	//   with the input.
 	PutExecution(ctx context.Context, in *PutExecutionRequest, opts ...grpc.CallOption) (*PutExecutionResponse, error)
+	// Inserts or updates a lineage subgraph (i.e. a collection of event edges
+	// and its executions, artifacts, and related contexts) atomically. The
+	// `event_edges` include an Event and the indices of the corresponding
+	// execution and artifact from the input list of executions and artifacts. The
+	// `contexts` describe the associations of the Execution and the attributions
+	// of the Artifact.
+	//
+	// If an execution_id is specified, it is an update on the corresponding
+	// Execution, otherwise it does an insertion. For insertion, type must be
+	// specified. These rules apply to Artifacts and Contexts as well.
+	// Corresponding errors may be raised. For example: AlreadyExists error will
+	// be raised if duplicated executions, artifacts, or events are found.
+	//
+	// It is not guaranteed that the created or updated executions, artifacts,
+	// contexts and events will share the same `create_time_since_epoch`,
+	// `last_update_time_since_epoch`, or `milliseconds_since_epoch` timestamps.
+	//
+	// Args:
+	//   executions: A list of executions to insert or update.
+	//   artifacts: A list of artifacts to insert or update.
+	//   contexts: A list of contexts to insert and/or create associations and
+	//       attributions with.
+	//   event_edges: A list of events to insert with the indices of the
+	//       corresponding execution and artifact from the input lists of
+	//       executions and artifacts.
+	//
+	// Returns:
+	//   Lists of execution, artifact, and context ids index-aligned with the
+	//   inputs.
+	PutLineageSubgraph(ctx context.Context, in *PutLineageSubgraphRequest, opts ...grpc.CallOption) (*PutLineageSubgraphResponse, error)
 	// Inserts or updates contexts in database and returns a list of context ids.
 	//
 	// If an context_id is specified for a context, it is an update.
 	// If an context_id is unspecified, it will insert a new context.
 	// For new contexts, type must be specified.
 	// For old contexts, type must be unchanged or unspecified.
+	//
+	// It is not guaranteed that the created or updated contexts will share the
+	// same `create_time_since_epoch` or `last_update_time_since_epoch`
+	// timestamps.
 	//
 	// Args:
 	//   contexts: A list of contexts to insert or update.
@@ -229,6 +282,18 @@ type MetadataStoreServiceClient interface {
 	GetEventsByExecutionIDs(ctx context.Context, in *GetEventsByExecutionIDsRequest, opts ...grpc.CallOption) (*GetEventsByExecutionIDsResponse, error)
 	// Gets all events with matching artifact ids.
 	GetEventsByArtifactIDs(ctx context.Context, in *GetEventsByArtifactIDsRequest, opts ...grpc.CallOption) (*GetEventsByArtifactIDsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetArtifactsByExternalIds(ctx context.Context, in *GetArtifactsByExternalIdsRequest, opts ...grpc.CallOption) (*GetArtifactsByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetExecutionsByExternalIds(ctx context.Context, in *GetExecutionsByExternalIdsRequest, opts ...grpc.CallOption) (*GetExecutionsByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetContextsByExternalIds(ctx context.Context, in *GetContextsByExternalIdsRequest, opts ...grpc.CallOption) (*GetContextsByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetArtifactTypesByExternalIds(ctx context.Context, in *GetArtifactTypesByExternalIdsRequest, opts ...grpc.CallOption) (*GetArtifactTypesByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetExecutionTypesByExternalIds(ctx context.Context, in *GetExecutionTypesByExternalIdsRequest, opts ...grpc.CallOption) (*GetExecutionTypesByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetContextTypesByExternalIds(ctx context.Context, in *GetContextTypesByExternalIdsRequest, opts ...grpc.CallOption) (*GetContextTypesByExternalIdsResponse, error)
 	// Gets all context that an artifact is attributed to.
 	GetContextsByArtifact(ctx context.Context, in *GetContextsByArtifactRequest, opts ...grpc.CallOption) (*GetContextsByArtifactResponse, error)
 	// Gets all context that an execution is associated with.
@@ -237,14 +302,26 @@ type MetadataStoreServiceClient interface {
 	GetParentContextsByContext(ctx context.Context, in *GetParentContextsByContextRequest, opts ...grpc.CallOption) (*GetParentContextsByContextResponse, error)
 	// Gets all children contexts that a context is related.
 	GetChildrenContextsByContext(ctx context.Context, in *GetChildrenContextsByContextRequest, opts ...grpc.CallOption) (*GetChildrenContextsByContextResponse, error)
+	// Batch getting all the parent contexts that a list of contexts are related.
+	GetParentContextsByContexts(ctx context.Context, in *GetParentContextsByContextsRequest, opts ...grpc.CallOption) (*GetParentContextsByContextsResponse, error)
+	// Batch getting all the children contexts that a list of contexts are
+	// related.
+	GetChildrenContextsByContexts(ctx context.Context, in *GetChildrenContextsByContextsRequest, opts ...grpc.CallOption) (*GetChildrenContextsByContextsResponse, error)
 	// Gets all direct artifacts that a context attributes to.
 	GetArtifactsByContext(ctx context.Context, in *GetArtifactsByContextRequest, opts ...grpc.CallOption) (*GetArtifactsByContextResponse, error)
 	// Gets all direct executions that a context associates with.
 	GetExecutionsByContext(ctx context.Context, in *GetExecutionsByContextRequest, opts ...grpc.CallOption) (*GetExecutionsByContextResponse, error)
+	// TODO(b/283852485): Deprecate GetLineageGraph API after migration to
+	// GetLineageSubgraph API.
 	// The transaction performs a constrained transitive closure and returns a
 	// lineage subgraph satisfying the conditions and constraints specified in
 	// the GetLineageGraphRequest.
 	GetLineageGraph(ctx context.Context, in *GetLineageGraphRequest, opts ...grpc.CallOption) (*GetLineageGraphResponse, error)
+	// Gets a lineage subgraph by performing graph traversal from a list of
+	// interested nodes.
+	// A lineage subgraph without node details (e.g., external_id, properties)
+	// will be returned.
+	GetLineageSubgraph(ctx context.Context, in *GetLineageSubgraphRequest, opts ...grpc.CallOption) (*GetLineageSubgraphResponse, error)
 }
 
 type metadataStoreServiceClient struct {
@@ -321,6 +398,15 @@ func (c *metadataStoreServiceClient) PutEvents(ctx context.Context, in *PutEvent
 func (c *metadataStoreServiceClient) PutExecution(ctx context.Context, in *PutExecutionRequest, opts ...grpc.CallOption) (*PutExecutionResponse, error) {
 	out := new(PutExecutionResponse)
 	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/PutExecution", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataStoreServiceClient) PutLineageSubgraph(ctx context.Context, in *PutLineageSubgraphRequest, opts ...grpc.CallOption) (*PutLineageSubgraphResponse, error) {
+	out := new(PutLineageSubgraphResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/PutLineageSubgraph", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -570,6 +656,60 @@ func (c *metadataStoreServiceClient) GetEventsByArtifactIDs(ctx context.Context,
 	return out, nil
 }
 
+func (c *metadataStoreServiceClient) GetArtifactsByExternalIds(ctx context.Context, in *GetArtifactsByExternalIdsRequest, opts ...grpc.CallOption) (*GetArtifactsByExternalIdsResponse, error) {
+	out := new(GetArtifactsByExternalIdsResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetArtifactsByExternalIds", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataStoreServiceClient) GetExecutionsByExternalIds(ctx context.Context, in *GetExecutionsByExternalIdsRequest, opts ...grpc.CallOption) (*GetExecutionsByExternalIdsResponse, error) {
+	out := new(GetExecutionsByExternalIdsResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetExecutionsByExternalIds", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataStoreServiceClient) GetContextsByExternalIds(ctx context.Context, in *GetContextsByExternalIdsRequest, opts ...grpc.CallOption) (*GetContextsByExternalIdsResponse, error) {
+	out := new(GetContextsByExternalIdsResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetContextsByExternalIds", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataStoreServiceClient) GetArtifactTypesByExternalIds(ctx context.Context, in *GetArtifactTypesByExternalIdsRequest, opts ...grpc.CallOption) (*GetArtifactTypesByExternalIdsResponse, error) {
+	out := new(GetArtifactTypesByExternalIdsResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetArtifactTypesByExternalIds", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataStoreServiceClient) GetExecutionTypesByExternalIds(ctx context.Context, in *GetExecutionTypesByExternalIdsRequest, opts ...grpc.CallOption) (*GetExecutionTypesByExternalIdsResponse, error) {
+	out := new(GetExecutionTypesByExternalIdsResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetExecutionTypesByExternalIds", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataStoreServiceClient) GetContextTypesByExternalIds(ctx context.Context, in *GetContextTypesByExternalIdsRequest, opts ...grpc.CallOption) (*GetContextTypesByExternalIdsResponse, error) {
+	out := new(GetContextTypesByExternalIdsResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetContextTypesByExternalIds", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *metadataStoreServiceClient) GetContextsByArtifact(ctx context.Context, in *GetContextsByArtifactRequest, opts ...grpc.CallOption) (*GetContextsByArtifactResponse, error) {
 	out := new(GetContextsByArtifactResponse)
 	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetContextsByArtifact", in, out, opts...)
@@ -606,6 +746,24 @@ func (c *metadataStoreServiceClient) GetChildrenContextsByContext(ctx context.Co
 	return out, nil
 }
 
+func (c *metadataStoreServiceClient) GetParentContextsByContexts(ctx context.Context, in *GetParentContextsByContextsRequest, opts ...grpc.CallOption) (*GetParentContextsByContextsResponse, error) {
+	out := new(GetParentContextsByContextsResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetParentContextsByContexts", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataStoreServiceClient) GetChildrenContextsByContexts(ctx context.Context, in *GetChildrenContextsByContextsRequest, opts ...grpc.CallOption) (*GetChildrenContextsByContextsResponse, error) {
+	out := new(GetChildrenContextsByContextsResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetChildrenContextsByContexts", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *metadataStoreServiceClient) GetArtifactsByContext(ctx context.Context, in *GetArtifactsByContextRequest, opts ...grpc.CallOption) (*GetArtifactsByContextResponse, error) {
 	out := new(GetArtifactsByContextResponse)
 	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetArtifactsByContext", in, out, opts...)
@@ -627,6 +785,15 @@ func (c *metadataStoreServiceClient) GetExecutionsByContext(ctx context.Context,
 func (c *metadataStoreServiceClient) GetLineageGraph(ctx context.Context, in *GetLineageGraphRequest, opts ...grpc.CallOption) (*GetLineageGraphResponse, error) {
 	out := new(GetLineageGraphResponse)
 	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetLineageGraph", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metadataStoreServiceClient) GetLineageSubgraph(ctx context.Context, in *GetLineageSubgraphRequest, opts ...grpc.CallOption) (*GetLineageSubgraphResponse, error) {
+	out := new(GetLineageSubgraphResponse)
+	err := c.cc.Invoke(ctx, "/ml_metadata.MetadataStoreService/GetLineageSubgraph", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -702,6 +869,10 @@ type MetadataStoreServiceServer interface {
 	// For new artifacts, type must be specified.
 	// For old artifacts, type must be unchanged or unspecified.
 	//
+	// It is not guaranteed that the created or updated artifacts will share the
+	// same `create_time_since_epoch` or `last_update_time_since_epoch`
+	// timestamps.
+	//
 	// Args:
 	//   artifacts: A list of artifacts to insert or update.
 	//
@@ -715,6 +886,10 @@ type MetadataStoreServiceServer interface {
 	// For new executions, type must be specified.
 	// For old executions, type must be unchanged or unspecified.
 	//
+	// It is not guaranteed that the created or updated executions will share the
+	// same `create_time_since_epoch` or `last_update_time_since_epoch`
+	// timestamps.
+	//
 	// Args:
 	//   executions: A list of executions to insert or update.
 	//
@@ -726,6 +901,10 @@ type MetadataStoreServiceServer interface {
 	//
 	// The execution_id and artifact_id must already exist.
 	// Once created, events cannot be modified.
+	// AlreadyExists error will be raised if duplicated events are found.
+	//
+	// It is not guaranteed that the created or updated events will share the
+	// same `milliseconds_since_epoch` timestamps.
 	//
 	// Args:
 	//   events: A list of events to insert or update.
@@ -736,9 +915,16 @@ type MetadataStoreServiceServer interface {
 	// input/output Event. The `contexts` describe the associations of the
 	// execution and the attributions of the artifacts.
 	//
-	// If an execution_id, artifact_id or context_id is specified, it is an
-	// update, otherwise it does an insertion. For insertion, type must be
-	// specified.
+	// If an execution_id is specified, it is an update on the corresponding
+	// execution, otherwise it does an insertion.
+	// For insertion, type must be specified. Same rule applies to artifacts
+	// and contexts in the request. Corresponding errors may raised. For example:
+	// AlreadyExists error will be raised if duplicated executions, artifacts
+	// or events are found.
+	//
+	// It is not guaranteed that the created or updated executions, artifacts,
+	// contexts and events will share the same `create_time_since_epoch`,
+	// `last_update_time_since_epoch`, or `milliseconds_since_epoch` timestamps.
 	//
 	// Args:
 	//   execution: An execution to insert or update.
@@ -749,12 +935,46 @@ type MetadataStoreServiceServer interface {
 	//   An execution id and a list of artifacts and contexts ids index-aligned
 	//   with the input.
 	PutExecution(context.Context, *PutExecutionRequest) (*PutExecutionResponse, error)
+	// Inserts or updates a lineage subgraph (i.e. a collection of event edges
+	// and its executions, artifacts, and related contexts) atomically. The
+	// `event_edges` include an Event and the indices of the corresponding
+	// execution and artifact from the input list of executions and artifacts. The
+	// `contexts` describe the associations of the Execution and the attributions
+	// of the Artifact.
+	//
+	// If an execution_id is specified, it is an update on the corresponding
+	// Execution, otherwise it does an insertion. For insertion, type must be
+	// specified. These rules apply to Artifacts and Contexts as well.
+	// Corresponding errors may be raised. For example: AlreadyExists error will
+	// be raised if duplicated executions, artifacts, or events are found.
+	//
+	// It is not guaranteed that the created or updated executions, artifacts,
+	// contexts and events will share the same `create_time_since_epoch`,
+	// `last_update_time_since_epoch`, or `milliseconds_since_epoch` timestamps.
+	//
+	// Args:
+	//   executions: A list of executions to insert or update.
+	//   artifacts: A list of artifacts to insert or update.
+	//   contexts: A list of contexts to insert and/or create associations and
+	//       attributions with.
+	//   event_edges: A list of events to insert with the indices of the
+	//       corresponding execution and artifact from the input lists of
+	//       executions and artifacts.
+	//
+	// Returns:
+	//   Lists of execution, artifact, and context ids index-aligned with the
+	//   inputs.
+	PutLineageSubgraph(context.Context, *PutLineageSubgraphRequest) (*PutLineageSubgraphResponse, error)
 	// Inserts or updates contexts in database and returns a list of context ids.
 	//
 	// If an context_id is specified for a context, it is an update.
 	// If an context_id is unspecified, it will insert a new context.
 	// For new contexts, type must be specified.
 	// For old contexts, type must be unchanged or unspecified.
+	//
+	// It is not guaranteed that the created or updated contexts will share the
+	// same `create_time_since_epoch` or `last_update_time_since_epoch`
+	// timestamps.
 	//
 	// Args:
 	//   contexts: A list of contexts to insert or update.
@@ -848,6 +1068,18 @@ type MetadataStoreServiceServer interface {
 	GetEventsByExecutionIDs(context.Context, *GetEventsByExecutionIDsRequest) (*GetEventsByExecutionIDsResponse, error)
 	// Gets all events with matching artifact ids.
 	GetEventsByArtifactIDs(context.Context, *GetEventsByArtifactIDsRequest) (*GetEventsByArtifactIDsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetArtifactsByExternalIds(context.Context, *GetArtifactsByExternalIdsRequest) (*GetArtifactsByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetExecutionsByExternalIds(context.Context, *GetExecutionsByExternalIdsRequest) (*GetExecutionsByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetContextsByExternalIds(context.Context, *GetContextsByExternalIdsRequest) (*GetContextsByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetArtifactTypesByExternalIds(context.Context, *GetArtifactTypesByExternalIdsRequest) (*GetArtifactTypesByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetExecutionTypesByExternalIds(context.Context, *GetExecutionTypesByExternalIdsRequest) (*GetExecutionTypesByExternalIdsResponse, error)
+	// Gets all the artifacts with matching external ids.
+	GetContextTypesByExternalIds(context.Context, *GetContextTypesByExternalIdsRequest) (*GetContextTypesByExternalIdsResponse, error)
 	// Gets all context that an artifact is attributed to.
 	GetContextsByArtifact(context.Context, *GetContextsByArtifactRequest) (*GetContextsByArtifactResponse, error)
 	// Gets all context that an execution is associated with.
@@ -856,14 +1088,26 @@ type MetadataStoreServiceServer interface {
 	GetParentContextsByContext(context.Context, *GetParentContextsByContextRequest) (*GetParentContextsByContextResponse, error)
 	// Gets all children contexts that a context is related.
 	GetChildrenContextsByContext(context.Context, *GetChildrenContextsByContextRequest) (*GetChildrenContextsByContextResponse, error)
+	// Batch getting all the parent contexts that a list of contexts are related.
+	GetParentContextsByContexts(context.Context, *GetParentContextsByContextsRequest) (*GetParentContextsByContextsResponse, error)
+	// Batch getting all the children contexts that a list of contexts are
+	// related.
+	GetChildrenContextsByContexts(context.Context, *GetChildrenContextsByContextsRequest) (*GetChildrenContextsByContextsResponse, error)
 	// Gets all direct artifacts that a context attributes to.
 	GetArtifactsByContext(context.Context, *GetArtifactsByContextRequest) (*GetArtifactsByContextResponse, error)
 	// Gets all direct executions that a context associates with.
 	GetExecutionsByContext(context.Context, *GetExecutionsByContextRequest) (*GetExecutionsByContextResponse, error)
+	// TODO(b/283852485): Deprecate GetLineageGraph API after migration to
+	// GetLineageSubgraph API.
 	// The transaction performs a constrained transitive closure and returns a
 	// lineage subgraph satisfying the conditions and constraints specified in
 	// the GetLineageGraphRequest.
 	GetLineageGraph(context.Context, *GetLineageGraphRequest) (*GetLineageGraphResponse, error)
+	// Gets a lineage subgraph by performing graph traversal from a list of
+	// interested nodes.
+	// A lineage subgraph without node details (e.g., external_id, properties)
+	// will be returned.
+	GetLineageSubgraph(context.Context, *GetLineageSubgraphRequest) (*GetLineageSubgraphResponse, error)
 	mustEmbedUnimplementedMetadataStoreServiceServer()
 }
 
@@ -894,6 +1138,9 @@ func (UnimplementedMetadataStoreServiceServer) PutEvents(context.Context, *PutEv
 }
 func (UnimplementedMetadataStoreServiceServer) PutExecution(context.Context, *PutExecutionRequest) (*PutExecutionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PutExecution not implemented")
+}
+func (UnimplementedMetadataStoreServiceServer) PutLineageSubgraph(context.Context, *PutLineageSubgraphRequest) (*PutLineageSubgraphResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PutLineageSubgraph not implemented")
 }
 func (UnimplementedMetadataStoreServiceServer) PutContexts(context.Context, *PutContextsRequest) (*PutContextsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PutContexts not implemented")
@@ -976,6 +1223,24 @@ func (UnimplementedMetadataStoreServiceServer) GetEventsByExecutionIDs(context.C
 func (UnimplementedMetadataStoreServiceServer) GetEventsByArtifactIDs(context.Context, *GetEventsByArtifactIDsRequest) (*GetEventsByArtifactIDsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEventsByArtifactIDs not implemented")
 }
+func (UnimplementedMetadataStoreServiceServer) GetArtifactsByExternalIds(context.Context, *GetArtifactsByExternalIdsRequest) (*GetArtifactsByExternalIdsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactsByExternalIds not implemented")
+}
+func (UnimplementedMetadataStoreServiceServer) GetExecutionsByExternalIds(context.Context, *GetExecutionsByExternalIdsRequest) (*GetExecutionsByExternalIdsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetExecutionsByExternalIds not implemented")
+}
+func (UnimplementedMetadataStoreServiceServer) GetContextsByExternalIds(context.Context, *GetContextsByExternalIdsRequest) (*GetContextsByExternalIdsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetContextsByExternalIds not implemented")
+}
+func (UnimplementedMetadataStoreServiceServer) GetArtifactTypesByExternalIds(context.Context, *GetArtifactTypesByExternalIdsRequest) (*GetArtifactTypesByExternalIdsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactTypesByExternalIds not implemented")
+}
+func (UnimplementedMetadataStoreServiceServer) GetExecutionTypesByExternalIds(context.Context, *GetExecutionTypesByExternalIdsRequest) (*GetExecutionTypesByExternalIdsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetExecutionTypesByExternalIds not implemented")
+}
+func (UnimplementedMetadataStoreServiceServer) GetContextTypesByExternalIds(context.Context, *GetContextTypesByExternalIdsRequest) (*GetContextTypesByExternalIdsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetContextTypesByExternalIds not implemented")
+}
 func (UnimplementedMetadataStoreServiceServer) GetContextsByArtifact(context.Context, *GetContextsByArtifactRequest) (*GetContextsByArtifactResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetContextsByArtifact not implemented")
 }
@@ -988,6 +1253,12 @@ func (UnimplementedMetadataStoreServiceServer) GetParentContextsByContext(contex
 func (UnimplementedMetadataStoreServiceServer) GetChildrenContextsByContext(context.Context, *GetChildrenContextsByContextRequest) (*GetChildrenContextsByContextResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetChildrenContextsByContext not implemented")
 }
+func (UnimplementedMetadataStoreServiceServer) GetParentContextsByContexts(context.Context, *GetParentContextsByContextsRequest) (*GetParentContextsByContextsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetParentContextsByContexts not implemented")
+}
+func (UnimplementedMetadataStoreServiceServer) GetChildrenContextsByContexts(context.Context, *GetChildrenContextsByContextsRequest) (*GetChildrenContextsByContextsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetChildrenContextsByContexts not implemented")
+}
 func (UnimplementedMetadataStoreServiceServer) GetArtifactsByContext(context.Context, *GetArtifactsByContextRequest) (*GetArtifactsByContextResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactsByContext not implemented")
 }
@@ -996,6 +1267,9 @@ func (UnimplementedMetadataStoreServiceServer) GetExecutionsByContext(context.Co
 }
 func (UnimplementedMetadataStoreServiceServer) GetLineageGraph(context.Context, *GetLineageGraphRequest) (*GetLineageGraphResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLineageGraph not implemented")
+}
+func (UnimplementedMetadataStoreServiceServer) GetLineageSubgraph(context.Context, *GetLineageSubgraphRequest) (*GetLineageSubgraphResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLineageSubgraph not implemented")
 }
 func (UnimplementedMetadataStoreServiceServer) mustEmbedUnimplementedMetadataStoreServiceServer() {}
 
@@ -1150,6 +1424,24 @@ func _MetadataStoreService_PutExecution_Handler(srv interface{}, ctx context.Con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MetadataStoreServiceServer).PutExecution(ctx, req.(*PutExecutionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetadataStoreService_PutLineageSubgraph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutLineageSubgraphRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).PutLineageSubgraph(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/PutLineageSubgraph",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).PutLineageSubgraph(ctx, req.(*PutLineageSubgraphRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1640,6 +1932,114 @@ func _MetadataStoreService_GetEventsByArtifactIDs_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MetadataStoreService_GetArtifactsByExternalIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactsByExternalIdsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetArtifactsByExternalIds(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetArtifactsByExternalIds",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetArtifactsByExternalIds(ctx, req.(*GetArtifactsByExternalIdsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetadataStoreService_GetExecutionsByExternalIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetExecutionsByExternalIdsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetExecutionsByExternalIds(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetExecutionsByExternalIds",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetExecutionsByExternalIds(ctx, req.(*GetExecutionsByExternalIdsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetadataStoreService_GetContextsByExternalIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetContextsByExternalIdsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetContextsByExternalIds(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetContextsByExternalIds",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetContextsByExternalIds(ctx, req.(*GetContextsByExternalIdsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetadataStoreService_GetArtifactTypesByExternalIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactTypesByExternalIdsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetArtifactTypesByExternalIds(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetArtifactTypesByExternalIds",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetArtifactTypesByExternalIds(ctx, req.(*GetArtifactTypesByExternalIdsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetadataStoreService_GetExecutionTypesByExternalIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetExecutionTypesByExternalIdsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetExecutionTypesByExternalIds(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetExecutionTypesByExternalIds",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetExecutionTypesByExternalIds(ctx, req.(*GetExecutionTypesByExternalIdsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetadataStoreService_GetContextTypesByExternalIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetContextTypesByExternalIdsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetContextTypesByExternalIds(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetContextTypesByExternalIds",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetContextTypesByExternalIds(ctx, req.(*GetContextTypesByExternalIdsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MetadataStoreService_GetContextsByArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetContextsByArtifactRequest)
 	if err := dec(in); err != nil {
@@ -1712,6 +2112,42 @@ func _MetadataStoreService_GetChildrenContextsByContext_Handler(srv interface{},
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MetadataStoreService_GetParentContextsByContexts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetParentContextsByContextsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetParentContextsByContexts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetParentContextsByContexts",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetParentContextsByContexts(ctx, req.(*GetParentContextsByContextsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetadataStoreService_GetChildrenContextsByContexts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChildrenContextsByContextsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetChildrenContextsByContexts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetChildrenContextsByContexts",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetChildrenContextsByContexts(ctx, req.(*GetChildrenContextsByContextsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MetadataStoreService_GetArtifactsByContext_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetArtifactsByContextRequest)
 	if err := dec(in); err != nil {
@@ -1766,6 +2202,24 @@ func _MetadataStoreService_GetLineageGraph_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MetadataStoreService_GetLineageSubgraph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLineageSubgraphRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetadataStoreServiceServer).GetLineageSubgraph(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ml_metadata.MetadataStoreService/GetLineageSubgraph",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetadataStoreServiceServer).GetLineageSubgraph(ctx, req.(*GetLineageSubgraphRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MetadataStoreService_ServiceDesc is the grpc.ServiceDesc for MetadataStoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1804,6 +2258,10 @@ var MetadataStoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PutExecution",
 			Handler:    _MetadataStoreService_PutExecution_Handler,
+		},
+		{
+			MethodName: "PutLineageSubgraph",
+			Handler:    _MetadataStoreService_PutLineageSubgraph_Handler,
 		},
 		{
 			MethodName: "PutContexts",
@@ -1914,6 +2372,30 @@ var MetadataStoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MetadataStoreService_GetEventsByArtifactIDs_Handler,
 		},
 		{
+			MethodName: "GetArtifactsByExternalIds",
+			Handler:    _MetadataStoreService_GetArtifactsByExternalIds_Handler,
+		},
+		{
+			MethodName: "GetExecutionsByExternalIds",
+			Handler:    _MetadataStoreService_GetExecutionsByExternalIds_Handler,
+		},
+		{
+			MethodName: "GetContextsByExternalIds",
+			Handler:    _MetadataStoreService_GetContextsByExternalIds_Handler,
+		},
+		{
+			MethodName: "GetArtifactTypesByExternalIds",
+			Handler:    _MetadataStoreService_GetArtifactTypesByExternalIds_Handler,
+		},
+		{
+			MethodName: "GetExecutionTypesByExternalIds",
+			Handler:    _MetadataStoreService_GetExecutionTypesByExternalIds_Handler,
+		},
+		{
+			MethodName: "GetContextTypesByExternalIds",
+			Handler:    _MetadataStoreService_GetContextTypesByExternalIds_Handler,
+		},
+		{
 			MethodName: "GetContextsByArtifact",
 			Handler:    _MetadataStoreService_GetContextsByArtifact_Handler,
 		},
@@ -1930,6 +2412,14 @@ var MetadataStoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MetadataStoreService_GetChildrenContextsByContext_Handler,
 		},
 		{
+			MethodName: "GetParentContextsByContexts",
+			Handler:    _MetadataStoreService_GetParentContextsByContexts_Handler,
+		},
+		{
+			MethodName: "GetChildrenContextsByContexts",
+			Handler:    _MetadataStoreService_GetChildrenContextsByContexts_Handler,
+		},
+		{
 			MethodName: "GetArtifactsByContext",
 			Handler:    _MetadataStoreService_GetArtifactsByContext_Handler,
 		},
@@ -1940,6 +2430,10 @@ var MetadataStoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetLineageGraph",
 			Handler:    _MetadataStoreService_GetLineageGraph_Handler,
+		},
+		{
+			MethodName: "GetLineageSubgraph",
+			Handler:    _MetadataStoreService_GetLineageSubgraph_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

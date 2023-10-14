@@ -19,21 +19,23 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           <div
             className="cardTitle"
           >
-            Recurring run configs
+            <span>
+              Recurring run configs
+            </span>
+            <WithStyles(Button)
+              className="cardBtn"
+              disableRipple={true}
+              id="manageExperimentRecurringRunsBtn"
+              onClick={[Function]}
+            >
+              Manage
+            </WithStyles(Button)>
           </div>
           <div
             className="cardContent recurringRunsActive"
           >
             1 active
           </div>
-          <WithStyles(Button)
-            className="cardBtn"
-            disableRipple={true}
-            id="manageExperimentRecurringRunsBtn"
-            onClick={[Function]}
-          >
-            Manage
-          </WithStyles(Button)>
         </div>
       </WithStyles(Paper)>
       <WithStyles(Paper)
@@ -270,21 +272,23 @@ exports[`ExperimentDetails removes all description text after second newline and
           <div
             className="cardTitle"
           >
-            Recurring run configs
+            <span>
+              Recurring run configs
+            </span>
+            <WithStyles(Button)
+              className="cardBtn"
+              disableRipple={true}
+              id="manageExperimentRecurringRunsBtn"
+              onClick={[Function]}
+            >
+              Manage
+            </WithStyles(Button)>
           </div>
           <div
             className="cardContent"
           >
             0 active
           </div>
-          <WithStyles(Button)
-            className="cardBtn"
-            disableRipple={true}
-            id="manageExperimentRecurringRunsBtn"
-            onClick={[Function]}
-          >
-            Manage
-          </WithStyles(Button)>
         </div>
       </WithStyles(Paper)>
       <WithStyles(Paper)
@@ -534,21 +538,23 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           <div
             className="cardTitle"
           >
-            Recurring run configs
+            <span>
+              Recurring run configs
+            </span>
+            <WithStyles(Button)
+              className="cardBtn"
+              disableRipple={true}
+              id="manageExperimentRecurringRunsBtn"
+              onClick={[Function]}
+            >
+              Manage
+            </WithStyles(Button)>
           </div>
           <div
             className="cardContent"
           >
             0 active
           </div>
-          <WithStyles(Button)
-            className="cardBtn"
-            disableRipple={true}
-            id="manageExperimentRecurringRunsBtn"
-            onClick={[Function]}
-          >
-            Manage
-          </WithStyles(Button)>
         </div>
       </WithStyles(Paper)>
       <WithStyles(Paper)
@@ -785,21 +791,23 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           <div
             className="cardTitle"
           >
-            Recurring run configs
+            <span>
+              Recurring run configs
+            </span>
+            <WithStyles(Button)
+              className="cardBtn"
+              disableRipple={true}
+              id="manageExperimentRecurringRunsBtn"
+              onClick={[Function]}
+            >
+              Manage
+            </WithStyles(Button)>
           </div>
           <div
             className="cardContent"
           >
             0 active
           </div>
-          <WithStyles(Button)
-            className="cardBtn"
-            disableRipple={true}
-            id="manageExperimentRecurringRunsBtn"
-            onClick={[Function]}
-          >
-            Manage
-          </WithStyles(Button)>
         </div>
       </WithStyles(Paper)>
       <WithStyles(Paper)

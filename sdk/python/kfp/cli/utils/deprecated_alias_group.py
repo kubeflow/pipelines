@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import click
 
@@ -58,7 +58,7 @@ def deprecated_alias_group_factory(
 
         def resolve_command(
             self, ctx: click.Context, args: List[str]
-        ) -> Tuple[Union[str, None], Union[click.Command, None], List[str]]:
+        ) -> Tuple[Optional[str], Optional[click.Command], List[str]]:
             # always return the full command name
             _, cmd, args = super().resolve_command(ctx, args)
             return cmd.name, cmd, args  # type: ignore

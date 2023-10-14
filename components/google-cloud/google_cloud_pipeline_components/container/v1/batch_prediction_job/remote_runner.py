@@ -19,8 +19,8 @@ import re
 
 from google.api_core import retry
 from google.cloud.aiplatform import explain
+from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
@@ -197,7 +197,7 @@ def create_batch_prediction_job(
     )
 
     vertex_uri_prefix = f'https://{location}-aiplatform.googleapis.com/v1/'
-    vertex_batch_predict_job_artifact = VertexBatchPredictionJob(
+    vertex_batch_predict_job_artifact = VertexBatchPredictionJob.create(
         'batchpredictionjob',
         vertex_uri_prefix + get_job_response.name,
         get_job_response.name,
@@ -216,7 +216,7 @@ def create_batch_prediction_job(
       try:
         project = match.group('project')
         dataset = match.group('dataset')
-        bigquery_output_table_artifact = BQTable(
+        bigquery_output_table_artifact = BQTable.create(
             'bigquery_output_table',
             project,
             dataset,
@@ -241,6 +241,6 @@ def create_batch_prediction_job(
           )
       )
 
-    artifact_util.update_output_artifacts(executor_input, output_artifacts)
+    artifact_utils.update_output_artifacts(executor_input, output_artifacts)
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])

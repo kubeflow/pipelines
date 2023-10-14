@@ -15,13 +15,22 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/go-sql-driver/mysql"
 )
 
-func CreateMySQLConfig(user, password string, mysqlServiceHost string,
-	mysqlServicePort string, dbName string, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string,
+const (
+	MYSQL_TEXT_FORMAT string = "longtext not null"
+	MYSQL_EXIST_ERROR string = "database exists"
+
+	PGX_TEXT_FORMAT string = "text"
+	PGX_EXIST_ERROR string = "already exists"
+)
+
+func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
+	dbName, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string,
 ) *mysql.Config {
 	params := map[string]string{
 		"charset":              "utf8",
@@ -43,4 +52,27 @@ func CreateMySQLConfig(user, password string, mysqlServiceHost string,
 		DBName:               dbName,
 		AllowNativePasswords: true,
 	}
+}
+
+func CreatePostgreSQLConfig(user, password, postgresHost, dbName string, postgresPort uint16,
+) string {
+	var b bytes.Buffer
+	if dbName != "" {
+		fmt.Fprintf(&b, "database=%s ", dbName)
+	}
+	if user != "" {
+		fmt.Fprintf(&b, "user=%s ", user)
+	}
+	if password != "" {
+		fmt.Fprintf(&b, "password=%s ", password)
+	}
+	if postgresHost != "" {
+		fmt.Fprintf(&b, "host=%s ", postgresHost)
+	}
+	if postgresPort != 0 {
+		fmt.Fprintf(&b, "port=%d ", postgresPort)
+	}
+	fmt.Fprint(&b, "sslmode=disable")
+
+	return b.String()
 }

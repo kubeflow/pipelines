@@ -27,7 +27,7 @@ def make_name(name: str) -> str:
     return name
 
 
-@dsl.pipeline(name='pipeline-with-importer', pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-with-importer')
 def my_pipeline(name: str = 'default-name',
                 int_input: int = 1,
                 pipeline_input_artifact_uri: str = DEFAULT_ARTIFACT_URI,

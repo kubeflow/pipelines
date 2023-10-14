@@ -436,12 +436,12 @@ const (
 	maxMetricsCountLimit = 50
 )
 
-func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact, user string) ([]*api.RunMetric, []error) {
+func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.RunMetric, []error) {
 	runID := w.Labels[LabelKeyWorkflowRunId]
 	runMetrics := make([]*api.RunMetric, 0, len(w.Status.Nodes))
 	partialFailures := make([]error, 0, len(w.Status.Nodes))
 	for _, nodeStatus := range w.Status.Nodes {
-		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, retrieveArtifact, user)
+		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, retrieveArtifact)
 		if err != nil {
 			partialFailures = append(partialFailures, err)
 			continue
@@ -460,13 +460,13 @@ func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact, user str
 	return runMetrics, partialFailures
 }
 
-func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact RetrieveArtifact, user string) (
+func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact RetrieveArtifact) (
 	[]*api.RunMetric, error,
 ) {
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
-	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, retrieveArtifact, user)
+	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, retrieveArtifact)
 	if err != nil || metricsJSON == "" {
 		return nil, err
 	}
@@ -499,7 +499,7 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 }
 
 func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
-	retrieveArtifact RetrieveArtifact, user string,
+	retrieveArtifact RetrieveArtifact,
 ) (string, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
 		return "", nil // No output artifacts, skip the reporting
@@ -520,7 +520,7 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 		NodeId:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
 	}
-	artifactResponse, err := retrieveArtifact(artifactRequest, user)
+	artifactResponse, err := retrieveArtifact(artifactRequest)
 	if err != nil {
 		return "", err
 	}

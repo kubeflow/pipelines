@@ -55,7 +55,7 @@ interface NewRunParametersProps {
   // ComponentInputsSpec_ParameterSpec
   specParameters: SpecParameters;
   clonedRuntimeConfig?: PipelineSpecRuntimeConfig;
-  handlePipelineRootChange?: (pipelineRoot: string) => void;
+  handlePipelineRootChange?: (pipelineRoot?: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
   setIsValidInput?: (isValid: boolean) => void;
 }
@@ -166,7 +166,13 @@ function convertNonUserInputParamToString(
 }
 
 function NewRunParametersV2(props: NewRunParametersProps) {
-  const { specParameters, clonedRuntimeConfig, handleParameterChange, setIsValidInput } = props;
+  const {
+    specParameters,
+    clonedRuntimeConfig,
+    handlePipelineRootChange,
+    handleParameterChange,
+    setIsValidInput,
+  } = props;
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
@@ -220,6 +226,13 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     }
   }, [clonedRuntimeConfig, specParameters, handleParameterChange, setIsValidInput]);
 
+  useEffect(() => {
+    if (clonedRuntimeConfig?.pipeline_root) {
+      setCustomPipelineRootChecked(true);
+      setCustomPipelineRoot(clonedRuntimeConfig.pipeline_root);
+    }
+  }, [clonedRuntimeConfig]);
+
   return (
     <div>
       <div className={commonCss.header}>Pipeline Root</div>
@@ -242,6 +255,9 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                 setCustomPipelineRootChecked(checked);
                 if (!checked) {
                   setCustomPipelineRoot(undefined);
+                  if (handlePipelineRootChange) {
+                    handlePipelineRootChange(undefined);
+                  }
                 }
               }}
               inputProps={{ 'aria-label': 'Set custom pipeline root.' }}
@@ -257,6 +273,9 @@ function NewRunParametersV2(props: NewRunParametersProps) {
           value={customPipelineRoot || ''}
           onChange={ev => {
             setCustomPipelineRoot(ev.target.value);
+            if (handlePipelineRootChange) {
+              handlePipelineRootChange(ev.target.value);
+            }
           }}
           className={classes(commonCss.textField, css.textfield)}
         />

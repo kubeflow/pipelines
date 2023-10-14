@@ -171,8 +171,8 @@ class PipelineServiceApi(object):
         >>> thread = api.create_pipeline_and_version(body, async_req=True)
         >>> result = thread.get()
 
-        :param body: Required input. Pipeline (parent) to be created. (required)
-        :type body: V2beta1Pipeline
+        :param body: (required)
+        :type body: V2beta1CreatePipelineAndVersionRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -199,8 +199,8 @@ class PipelineServiceApi(object):
         >>> thread = api.create_pipeline_and_version_with_http_info(body, async_req=True)
         >>> result = thread.get()
 
-        :param body: Required input. Pipeline (parent) to be created. (required)
-        :type body: V2beta1Pipeline
+        :param body: (required)
+        :type body: V2beta1CreatePipelineAndVersionRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code

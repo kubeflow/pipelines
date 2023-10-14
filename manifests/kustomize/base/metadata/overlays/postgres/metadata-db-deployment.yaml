@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-postgres-db
+  labels:
+    component: db
+spec:
+  selector:
+    matchLabels:
+      component: db
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      name: db
+      labels:
+        component: db
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+      - name: db-container
+        image: postgres
+        env:
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
+        envFrom:
+        - configMapRef:
+            name: metadata-postgres-db-parameters
+        - secretRef:
+            name: metadata-postgres-db-secrets
+        ports:
+        - name: postgres
+          containerPort: 5432
+        volumeMounts:
+        - name: metadata-postgres
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: metadata-postgres
+        persistentVolumeClaim:
+          claimName: metadata-postgres
+

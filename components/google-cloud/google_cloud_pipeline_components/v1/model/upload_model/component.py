@@ -15,8 +15,10 @@
 from typing import Dict
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import UnmanagedContainerModel
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
+from kfp import dsl
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -28,7 +30,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def model_upload(
-    project: str,
     display_name: str,
     gcp_resources: OutputPath(str),
     model: Output[VertexModel],
@@ -40,69 +41,32 @@ def model_upload(
     explanation_parameters: Dict[str, str] = {},
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Uploads a model and returns a Model representing the uploaded Model
-  resource.
-
-  For more details, see
-  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload.
+  """[Uploads](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload) a Google Cloud Vertex [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models) and returns a Model artifact representing the uploaded Model resource, with a tag for the particular version. See [Model upload](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload) method for more information.
 
   Args:
-      project: Project to upload this model to.
-      location: Optional location to upload this model to. If
-        not set, default to us-central1.
-      display_name: The display name of the Model. The name
-        can be up to 128 characters long and can be consist of any UTF-8
-        characters.
-      description: The description of the model.
-      parent_model: An artifact of a model
-        which to upload a new version to. Only specify this field when
-        uploading a new version.
-      unmanaged_container_model: The unmanaged container model to be uploaded.  The model can
-        be passed from an upstream step, or imported via an importer.
+      location: Optional location to upload this Model to. If not set, defaults to `us-central1`.
+      display_name: The display name of the Model. The name can be up to 128 characters long and can be consist of any UTF-8 characters. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)
+      description: The description of the Model. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)
+      parent_model: An artifact of a model which to upload a new version to. Only specify this field when uploading a new version. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload#request-body)
+      unmanaged_container_model: The unmanaged container model to be uploaded.  The Model can be passed from an upstream step or imported via a KFP `dsl.importer`. Example:
 
-        Examples::
+        from kfp import dsl
+        from google_cloud_pipeline_components.types import artifact_types
 
-          from kfp.dsl import importer
-          from
-          google_cloud_pipeline_components.google_cloud_pipeline_components.types
-          import artifact_types
+        importer_spec = dsl.importer( artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model', artifact_class=artifact_types.UnmanagedContainerModel, metadata={ 'containerSpec': { 'imageUri': 'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod' } })
 
-          importer_spec = importer(
-            artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',
-            artifact_class=artifact_types.UnmanagedContainerModel, metadata={
-              'containerSpec': { 'imageUri':
-                'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod'
-                }
-            })
-
-      explanation_metadata: Metadata describing the Model's
-        input and output for explanation. Both `explanation_metadata` and
-        `explanation_parameters` must be passed together when used.  For more
-        details, see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
-      explanation_parameters: Parameters to configure
-        explaining for Model's predictions.  For more details, see
-        https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
-      encryption_spec_key_name: Customer-managed encryption
-        key spec for a Model. If set, this Model and all sub-resources of this
-        Model will be secured by this key.  Has the form:
-        ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
-        The key needs to be in the same region as where the compute resource
-        is created.
-      labels: The labels with user-defined metadata to
-        organize your model.  Label keys and values can be no longer than 64
-        characters (Unicode codepoints), can only contain lowercase letters,
-        numeric characters, underscores and dashes. International characters
-        are allowed.  See https://goo.gl/xmQnxf for more information and
-        examples of labels.
+      explanation_metadata: Metadata describing the Model's input and output for explanation. Both `explanation_metadata` and `explanation_parameters` must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)
+      explanation_parameters: Parameters to configure explaining for Model's predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)
+      encryption_spec_key_name: Customer-managed encryption key spec for a Model. If set, this Model and all sub-resources of this Model will be secured by this key.  Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
+      labels: The labels with user-defined metadata to organize your model.  Label keys and values can be no longer than 64 characters (Unicode codepoints), can only contain lowercase letters, numeric characters, underscores and dashes. International characters are allowed.  See https://goo.gl/xmQnxf for more information and examples of labels.
+      project: Project to upload this Model to. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      model: Artifact tracking the created model.
-      gcp_resources: Serialized gcp_resources proto tracking the upload model's long
-          running operation. For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      model: Artifact tracking the created Model version.
+      gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the upload Model's long-running operation.
   """
   # fmt: on
   return ContainerSpec(
@@ -136,6 +100,9 @@ def model_upload(
               '"}',
               ', "labels": ',
               labels,
+              ', "pipeline_job": "',
+              f'projects/{project}/locations/{location}/pipelineJobs/{dsl.PIPELINE_JOB_ID_PLACEHOLDER}',
+              '"',
               '}',
           ]),
           '--project',
@@ -148,10 +115,10 @@ def model_upload(
           '{{$}}',
           IfPresentPlaceholder(
               input_name='parent_model',
-              then=ConcatPlaceholder([
-                  '--parent_model_name ',
+              then=[
+                  '--parent_model_name',
                   parent_model.metadata['resourceName'],
-              ]),
+              ],
           ),
       ],
   )

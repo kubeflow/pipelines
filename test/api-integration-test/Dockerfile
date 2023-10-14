@@ -1,7 +1,8 @@
 # This image has the script to kick off the ML pipeline API integration test,
 # and upload the result to GCS
 
-FROM golang:1.20
+# TODO: Temporarily pin to an old image as the newer one broke the tests (#9650)
+FROM golang:1.20.4
 
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud

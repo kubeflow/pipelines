@@ -24,6 +24,8 @@ var (
 	initializeTimeout   = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
 	runIntegrationTests = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
 	runUpgradeTests     = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
+	runPostgreSQLTests  = flag.Bool("runPostgreSQLTests", false, "Run integration test with PostgreSQL")
+	localTest           = flag.Bool("localTest", false, "Run integration test locally")
 )
 
 /**

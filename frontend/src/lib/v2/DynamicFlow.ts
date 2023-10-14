@@ -263,12 +263,14 @@ export function updateFlowElementsState(
     }
     return flowGraph;
   }
-
   for (let elem of elems) {
     let updatedElem = Object.assign({}, elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
-      const taskName = getTaskKeyFromNodeKey(elem.id);
-      const executions = getExecutionsUnderDAG(taskNameToExecution, taskName, executionLayers);
+      const executions = getExecutionsUnderDAG(
+        taskNameToExecution,
+        getTaskLabelByPipelineFlowElement(elem),
+        executionLayers,
+      );
       if (executions) {
         (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
@@ -291,8 +293,11 @@ export function updateFlowElementsState(
       (updatedElem.data as ArtifactFlowElementData).mlmdId = linkedArtifact?.artifact?.getId();
     } else if (NodeTypeNames.SUB_DAG === elem.type) {
       // TODO: Update sub-dag state based on future design.
-      const taskName = getTaskKeyFromNodeKey(elem.id);
-      const executions = getExecutionsUnderDAG(taskNameToExecution, taskName, executionLayers);
+      const executions = getExecutionsUnderDAG(
+        taskNameToExecution,
+        getTaskLabelByPipelineFlowElement(elem),
+        executionLayers,
+      );
       if (executions) {
         (updatedElem.data as SubDagFlowElementData).state = executions[0]?.getLastKnownState();
         (updatedElem.data as SubDagFlowElementData).mlmdId = executions[0]?.getId();
@@ -301,6 +306,12 @@ export function updateFlowElementsState(
     flowGraph.push(updatedElem);
   }
   return flowGraph;
+}
+
+function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {
+  const taskLabel = elem.data?.label;
+  if (taskLabel === undefined) return getTaskKeyFromNodeKey(elem.id);
+  return taskLabel;
 }
 
 function getExecutionsUnderDAG(
@@ -337,9 +348,9 @@ export function getNodeMlmdInfo(
   );
 
   if (NodeTypeNames.EXECUTION === elem.type) {
-    const taskName = getTaskKeyFromNodeKey(elem.id);
+    const taskLabel = getTaskLabelByPipelineFlowElement(elem);
     const executions = taskNameToExecution
-      .get(taskName)
+      .get(taskLabel)
       ?.filter(exec => exec.getId() === elem.data?.mlmdId);
     return executions ? { execution: executions[0] } : {};
   } else if (NodeTypeNames.ARTIFACT === elem.type) {
@@ -361,9 +372,9 @@ export function getNodeMlmdInfo(
     return { execution, linkedArtifact };
   } else if (NodeTypeNames.SUB_DAG === elem.type) {
     // TODO: Update sub-dag state based on future design.
-    const taskName = getTaskKeyFromNodeKey(elem.id);
+    const taskLabel = getTaskLabelByPipelineFlowElement(elem);
     const executions = taskNameToExecution
-      .get(taskName)
+      .get(taskLabel)
       ?.filter(exec => exec.getId() === elem.data?.mlmdId);
     return executions ? { execution: executions[0] } : {};
   }
