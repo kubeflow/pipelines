@@ -4553,13 +4553,10 @@ class TestDslOneOf(unittest.TestCase):
 
     # Data type validation (e.g., dsl.OneOf(artifact, param) fails) and similar is covered in pipeline_channel_test.py.
 
-    # To help narrow the tests further (we already test lots of aspects in the following cases), we choose focus on dsl.OneOf behavior, not the conditional logic if If/Elif/Else. This is more verbose, but more maintainable and the behavior under test is clearer.
+    # To help narrow the tests further (we already test lots of aspects in the following cases), we choose focus on the dsl.OneOf behavior, not the conditional logic if If/Elif/Else. This is more verbose, but more maintainable and the behavior under test is clearer.
 
     def test_if_else_returned(self):
-        # if/else
-        # returned
-        # parameters
-        # different output keys
+        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline() -> str:
@@ -4596,39 +4593,31 @@ class TestDslOneOf(unittest.TestCase):
         parameter_selectors = roll_die_pipeline.pipeline_spec.components[
             'comp-condition-branches-1'].dag.outputs.parameters[
                 'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+
         self.assertEqual(
-            parameter_selectors[0].output_parameter_key,
-            'pipelinechannel--print-and-return-Output',
-        )
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
         self.assertEqual(
-            parameter_selectors[0].producer_subtask,
-            'condition-2',
-        )
-        self.assertEqual(
-            parameter_selectors[1].output_parameter_key,
-            'pipelinechannel--print-and-return-with-output-key-output_key',
-        )
-        self.assertEqual(
-            parameter_selectors[1].producer_subtask,
-            'condition-3',
-        )
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-3',
+            ))
         # surfaced as output
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.root.dag.outputs
-            .parameters['Output'].value_from_parameter.producer_subtask,
-            'condition-branches-1',
-        )
-        self.assertEqual(
-            roll_die_pipeline.pipeline_spec.root.dag.outputs
-            .parameters['Output'].value_from_parameter.output_parameter_key,
-            'pipelinechannel--condition-branches-1-oneof-1',
+            .parameters['Output'].value_from_parameter,
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                producer_subtask='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
         )
 
     def test_if_elif_else_returned(self):
-        # if/elif/else
-        # returned
-        # parameters
-        # different output keys
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline() -> str:
@@ -4675,46 +4664,35 @@ class TestDslOneOf(unittest.TestCase):
             'comp-condition-branches-1'].dag.outputs.parameters[
                 'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
         self.assertEqual(
-            parameter_selectors[0].output_parameter_key,
-            'pipelinechannel--print-and-return-Output',
-        )
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
         self.assertEqual(
-            parameter_selectors[0].producer_subtask,
-            'condition-2',
-        )
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
         self.assertEqual(
-            parameter_selectors[1].output_parameter_key,
-            'pipelinechannel--print-and-return-2-Output',
-        )
-        self.assertEqual(
-            parameter_selectors[1].producer_subtask,
-            'condition-3',
-        )
-        self.assertEqual(
-            parameter_selectors[2].output_parameter_key,
-            'pipelinechannel--print-and-return-with-output-key-output_key',
-        )
-        self.assertEqual(
-            parameter_selectors[2].producer_subtask,
-            'condition-4',
-        )
+            parameter_selectors[2],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-4',
+            ))
         # surfaced as output
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.root.dag.outputs
-            .parameters['Output'].value_from_parameter.producer_subtask,
-            'condition-branches-1',
-        )
-        self.assertEqual(
-            roll_die_pipeline.pipeline_spec.root.dag.outputs
-            .parameters['Output'].value_from_parameter.output_parameter_key,
-            'pipelinechannel--condition-branches-1-oneof-1',
+            .parameters['Output'].value_from_parameter,
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                producer_subtask='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
         )
 
     def test_if_elif_else_consumed(self):
-        # tests if/elif/else
-        # returned
-        # parameters
-        # different output keys
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf passed to a consumer task, and different output keys on dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline():
@@ -4762,47 +4740,36 @@ class TestDslOneOf(unittest.TestCase):
             'comp-condition-branches-1'].dag.outputs.parameters[
                 'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
         self.assertEqual(
-            parameter_selectors[0].output_parameter_key,
-            'pipelinechannel--print-and-return-Output',
-        )
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
         self.assertEqual(
-            parameter_selectors[0].producer_subtask,
-            'condition-2',
-        )
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
         self.assertEqual(
-            parameter_selectors[1].output_parameter_key,
-            'pipelinechannel--print-and-return-2-Output',
-        )
-        self.assertEqual(
-            parameter_selectors[1].producer_subtask,
-            'condition-3',
-        )
-        self.assertEqual(
-            parameter_selectors[2].output_parameter_key,
-            'pipelinechannel--print-and-return-with-output-key-output_key',
-        )
-        self.assertEqual(
-            parameter_selectors[2].producer_subtask,
-            'condition-4',
-        )
+            parameter_selectors[2],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-4',
+            ))
         # consumed from condition-branches
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.root.dag.tasks['print-and-return-3']
-            .inputs.parameters['text'].task_output_parameter.producer_task,
-            'condition-branches-1',
-        )
-        self.assertEqual(
-            roll_die_pipeline.pipeline_spec.root.dag.tasks['print-and-return-3']
-            .inputs.parameters['text'].task_output_parameter
-            .output_parameter_key,
-            'pipelinechannel--condition-branches-1-oneof-1',
+            .inputs.parameters['text'].task_output_parameter,
+            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec
+            .TaskOutputParameterSpec(
+                producer_task='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
         )
 
     def test_if_else_consumed_and_returned(self):
-        # tests if/else
-        # consumed and returned
-        # parameters
-        # same output key
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
 
         @dsl.pipeline
         def flip_coin_pipeline() -> str:
@@ -4841,52 +4808,41 @@ class TestDslOneOf(unittest.TestCase):
             'comp-condition-branches-1'].dag.outputs.parameters[
                 'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
         self.assertEqual(
-            parameter_selectors[0].output_parameter_key,
-            'pipelinechannel--print-and-return-Output',
-        )
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
         self.assertEqual(
-            parameter_selectors[0].producer_subtask,
-            'condition-2',
-        )
-        self.assertEqual(
-            parameter_selectors[1].output_parameter_key,
-            'pipelinechannel--print-and-return-2-Output',
-        )
-        self.assertEqual(
-            parameter_selectors[1].producer_subtask,
-            'condition-3',
-        )
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
         # consumed from condition-branches
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.root.dag
             .tasks['print-and-return-3'].inputs.parameters['text']
-            .task_output_parameter.producer_task,
-            'condition-branches-1',
-        )
-        self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag
-            .tasks['print-and-return-3'].inputs.parameters['text']
-            .task_output_parameter.output_parameter_key,
-            'pipelinechannel--condition-branches-1-oneof-1',
+            .task_output_parameter,
+            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec
+            .TaskOutputParameterSpec(
+                producer_task='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
         )
 
         # surfaced as output
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.root.dag.outputs
-            .parameters['Output'].value_from_parameter.producer_subtask,
-            'condition-branches-1',
-        )
-        self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.outputs
-            .parameters['Output'].value_from_parameter.output_parameter_key,
-            'pipelinechannel--condition-branches-1-oneof-1',
+            .parameters['Output'].value_from_parameter,
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                producer_subtask='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
         )
 
     def test_if_else_consumed_and_returned_artifacts(self):
-        # tests if/else
-        # consumed and returned
-        # artifacts
-        # same output key
+        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
 
         @dsl.pipeline
         def flip_coin_pipeline() -> Artifact:
@@ -4927,48 +4883,41 @@ class TestDslOneOf(unittest.TestCase):
             'comp-condition-branches-1'].dag.outputs.artifacts[
                 'pipelinechannel--condition-branches-1-oneof-1'].artifact_selectors
         self.assertEqual(
-            artifact_selectors[0].output_artifact_key,
-            'pipelinechannel--print-and-return-as-artifact-a',
-        )
+            artifact_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                output_artifact_key='pipelinechannel--print-and-return-as-artifact-a',
+                producer_subtask='condition-2',
+            ))
         self.assertEqual(
-            artifact_selectors[0].producer_subtask,
-            'condition-2',
-        )
-        self.assertEqual(
-            artifact_selectors[1].output_artifact_key,
-            'pipelinechannel--print-and-return-as-artifact-2-a',
-        )
-        self.assertEqual(
-            artifact_selectors[1].producer_subtask,
-            'condition-3',
-        )
+            artifact_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                output_artifact_key='pipelinechannel--print-and-return-as-artifact-2-a',
+                producer_subtask='condition-3',
+            ))
+
         # consumed from condition-branches
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.root.dag.tasks['print-artifact']
-            .inputs.artifacts['a'].task_output_artifact.producer_task,
-            'condition-branches-1',
-        )
-        self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.tasks['print-artifact']
-            .inputs.artifacts['a'].task_output_artifact.output_artifact_key,
-            'pipelinechannel--condition-branches-1-oneof-1',
+            .inputs.artifacts['a'].task_output_artifact,
+            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
+            .TaskOutputArtifactSpec(
+                producer_task='condition-branches-1',
+                output_artifact_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
         )
 
         # surfaced as output
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.root.dag.outputs
-            .artifacts['Output'].artifact_selectors[0].producer_subtask,
-            'condition-branches-1',
-        )
-        self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.root.dag.outputs
-            .artifacts['Output'].artifact_selectors[0].output_artifact_key,
-            'pipelinechannel--condition-branches-1-oneof-1',
+            .artifacts['Output'].artifact_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                producer_subtask='condition-branches-1',
+                output_artifact_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
         )
 
     def test_nested_under_condition_consumed(self):
-        # nested under loop and condition
-        # artifact
+        """Uses If, Else, and OneOf nested under a parent If."""
 
         @dsl.pipeline
         def flip_coin_pipeline(execute_pipeline: bool):
@@ -5012,38 +4961,29 @@ class TestDslOneOf(unittest.TestCase):
             'comp-condition-branches-2'].dag.outputs.artifacts[
                 'pipelinechannel--condition-branches-2-oneof-1'].artifact_selectors
         self.assertEqual(
-            artifact_selectors[0].output_artifact_key,
-            'pipelinechannel--print-and-return-as-artifact-a',
-        )
+            artifact_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                output_artifact_key='pipelinechannel--print-and-return-as-artifact-a',
+                producer_subtask='condition-3',
+            ))
         self.assertEqual(
-            artifact_selectors[0].producer_subtask,
-            'condition-3',
-        )
-        self.assertEqual(
-            artifact_selectors[1].output_artifact_key,
-            'pipelinechannel--print-and-return-as-artifact-2-a',
-        )
-        self.assertEqual(
-            artifact_selectors[1].producer_subtask,
-            'condition-4',
-        )
+            artifact_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                output_artifact_key='pipelinechannel--print-and-return-as-artifact-2-a',
+                producer_subtask='condition-4',
+            ))
         # consumed from condition-branches
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.components['comp-condition-1'].dag
-            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact
-            .producer_task,
-            'condition-branches-2',
-        )
-        self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-1'].dag
-            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact
-            .output_artifact_key,
-            'pipelinechannel--condition-branches-2-oneof-1',
+            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact,
+            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
+            .TaskOutputArtifactSpec(
+                producer_task='condition-branches-2',
+                output_artifact_key='pipelinechannel--condition-branches-2-oneof-1',
+            ),
         )
 
     def test_nested_under_condition_returned_raises(self):
-        # nested under loop and condition
-        # artifact
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
                 f'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.'
@@ -5063,9 +5003,7 @@ class TestDslOneOf(unittest.TestCase):
                                      print_task_2.outputs['a'])
 
     def test_deeply_nested_consumed(self):
-        # nested under loop and condition and exit handler
-        # consumed
-        # artifact
+        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-DAGs."""
 
         @dsl.pipeline
         def flip_coin_pipeline(execute_pipeline: bool):
@@ -5089,21 +5027,15 @@ class TestDslOneOf(unittest.TestCase):
         # consumed from condition-branches
         self.assertEqual(
             flip_coin_pipeline.pipeline_spec.components['comp-condition-4'].dag
-            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact
-            .producer_task,
-            'condition-branches-5',
-        )
-        self.assertEqual(
-            flip_coin_pipeline.pipeline_spec.components['comp-condition-4'].dag
-            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact
-            .output_artifact_key,
-            'pipelinechannel--condition-branches-5-oneof-1',
+            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact,
+            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
+            .TaskOutputArtifactSpec(
+                producer_task='condition-branches-5',
+                output_artifact_key='pipelinechannel--condition-branches-5-oneof-1',
+            ),
         )
 
     def test_deeply_nested_returned_raises(self):
-        # nested under loop and condition
-        # returned
-        # artifact
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
@@ -5169,7 +5101,61 @@ class TestDslOneOf(unittest.TestCase):
                 return dsl.OneOf(print_task_1.outputs['a'],
                                  print_task_2.outputs['a'])
 
+    def test_oneof_in_condition(self):
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested one level"""
+
+        @dsl.pipeline
+        def roll_die_pipeline(repeat_on: str = 'Got heads!'):
+            flip_coin_task = roll_three_sided_die()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                t1 = print_and_return(text='Got heads!')
+            with dsl.Elif(flip_coin_task.output == 'tails'):
+                t2 = print_and_return(text='Got tails!')
+            with dsl.Else():
+                t3 = print_and_return_with_output_key(text='Draw!')
+            x = dsl.OneOf(t1.output, t2.output, t3.outputs['output_key'])
+
+            with dsl.If(x == repeat_on):
+                print_and_return(text=x)
+
+        # condition-branches surfaces
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].output_definitions
+            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
+            'comp-condition-branches-1'].dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        self.assertEqual(
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
+        self.assertEqual(
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
+        self.assertEqual(
+            parameter_selectors[2],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-4',
+            ))
+        # condition points to correct upstream output
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.root.dag.tasks['condition-5']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1'] == inputs.parameter_values['pipelinechannel--repeat_on']"
+        )
+
     def test_consumed_in_nested_groups(self):
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested multiple levels"""
 
         @dsl.pipeline
         def roll_die_pipeline(
@@ -5201,29 +5187,23 @@ class TestDslOneOf(unittest.TestCase):
             'comp-condition-branches-1'].dag.outputs.parameters[
                 'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
         self.assertEqual(
-            parameter_selectors[0].output_parameter_key,
-            'pipelinechannel--print-and-return-Output',
-        )
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
         self.assertEqual(
-            parameter_selectors[0].producer_subtask,
-            'condition-2',
-        )
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
         self.assertEqual(
-            parameter_selectors[1].output_parameter_key,
-            'pipelinechannel--print-and-return-2-Output',
-        )
-        self.assertEqual(
-            parameter_selectors[1].producer_subtask,
-            'condition-3',
-        )
-        self.assertEqual(
-            parameter_selectors[2].output_parameter_key,
-            'pipelinechannel--print-and-return-with-output-key-output_key',
-        )
-        self.assertEqual(
-            parameter_selectors[2].producer_subtask,
-            'condition-4',
-        )
+            parameter_selectors[2],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-4',
+            ))
         # condition points to correct upstream output
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.components['comp-condition-6']
@@ -5255,64 +5235,6 @@ class TestDslOneOf(unittest.TestCase):
                 print_and_return(
                     text=f"Final result: {dsl.OneOf(t1.output, t2.output, t3.outputs['output_key'])}"
                 )
-
-    def test_oneof_in_condition(self):
-
-        @dsl.pipeline
-        def roll_die_pipeline(repeat_on: str = 'Got heads!'):
-            flip_coin_task = roll_three_sided_die()
-            with dsl.If(flip_coin_task.output == 'heads'):
-                t1 = print_and_return(text='Got heads!')
-            with dsl.Elif(flip_coin_task.output == 'tails'):
-                t2 = print_and_return(text='Got tails!')
-            with dsl.Else():
-                t3 = print_and_return_with_output_key(text='Draw!')
-            x = dsl.OneOf(t1.output, t2.output, t3.outputs['output_key'])
-
-            with dsl.If(x == repeat_on):
-                print_and_return(text=x)
-
-        # condition-branches surfaces
-        self.assertEqual(
-            roll_die_pipeline.pipeline_spec
-            .components['comp-condition-branches-1'].output_definitions
-            .parameters['pipelinechannel--condition-branches-1-oneof-1']
-            .parameter_type,
-            type_utils.STRING,
-        )
-        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
-            'comp-condition-branches-1'].dag.outputs.parameters[
-                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
-        self.assertEqual(
-            parameter_selectors[0].output_parameter_key,
-            'pipelinechannel--print-and-return-Output',
-        )
-        self.assertEqual(
-            parameter_selectors[0].producer_subtask,
-            'condition-2',
-        )
-        self.assertEqual(
-            parameter_selectors[1].output_parameter_key,
-            'pipelinechannel--print-and-return-2-Output',
-        )
-        self.assertEqual(
-            parameter_selectors[1].producer_subtask,
-            'condition-3',
-        )
-        self.assertEqual(
-            parameter_selectors[2].output_parameter_key,
-            'pipelinechannel--print-and-return-with-output-key-output_key',
-        )
-        self.assertEqual(
-            parameter_selectors[2].producer_subtask,
-            'condition-4',
-        )
-        # condition points to correct upstream output
-        self.assertEqual(
-            roll_die_pipeline.pipeline_spec.root.dag.tasks['condition-5']
-            .trigger_policy.condition,
-            "inputs.parameter_values['pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1'] == inputs.parameter_values['pipelinechannel--repeat_on']"
-        )
 
     def test_type_checking_parameters(self):
         with self.assertRaisesRegex(
