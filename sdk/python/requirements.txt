@@ -43,7 +43,7 @@ idna==3.3
     # via requests
 kfp-pipeline-spec==0.2.2
     # via -r requirements.in
-kfp-server-api==2.0.0-rc.1
+kfp-server-api==2.0.2
     # via -r requirements.in
 kubernetes==23.6.0
     # via -r requirements.in
@@ -90,9 +90,7 @@ six==1.16.0
     #   python-dateutil
 tabulate==0.8.10
     # via -r requirements.in
-typing-extensions==4.5.0 ; python_version < "3.9"
-    # via -r requirements.in
-urllib3==1.26.12
+urllib3==1.26.18
     # via
     #   -r requirements.in
     #   kfp-server-api
