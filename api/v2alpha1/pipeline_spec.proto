@@ -40,6 +40,10 @@ message PipelineJob {
     // passed into [PipelineJob.pipeline_spec][] to replace the placeholders
     // at runtime.
     map<string, google.protobuf.Value> parameter_values = 3;
+    // The input artifact constants provided the pipeline job.
+    // Keys in input_artifacts and artifact_values must be collectively unique
+    // (disjoint sets).
+    map<string, ArtifactList> artifact_values = 6;
   }
 
   // Runtime config of the pipeline.
@@ -192,6 +196,9 @@ message ComponentInputsSpec {
     // The description for this input artifact of the component.
     // Should not exceed 1024 characters.
     string description = 4;
+
+    // If is_optional = true, the ArtifactSpec may have a default
+    ArtifactList default_value = 5;
   }
   // Definition of a parameter input.
   message ParameterSpec {
@@ -284,6 +291,8 @@ message TaskInputsSpec {
       TaskOutputArtifactSpec task_output_artifact = 3;
       // Pass the input artifact from parent component input artifact.
       string component_input_artifact = 4;
+      // Constant value which is determined at compile time.
+      ArtifactList constant = 6;
     }
     reserved 5;
   }
