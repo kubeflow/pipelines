@@ -56,6 +56,7 @@ def model_batch_predict(
     accelerator_count: int = 0,
     starting_replica_count: int = 0,
     max_replica_count: int = 0,
+    service_account: str = '',
     manual_batch_tuning_parameters_batch_size: int = 0,
     generate_explanation: bool = False,
     explanation_metadata: Dict[str, str] = {},
@@ -88,6 +89,7 @@ def model_batch_predict(
       accelerator_count: The number of accelerators to attach to the `machine_type`. Only used if `machine_type` is set.  For more details about the machine spec, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec
       starting_replica_count: The number of machine replicas used at the start of the batch operation. If not set, Vertex AI decides starting number, not greater than `max_replica_count`. Only used if `machine_type` is set.
       max_replica_count: The maximum number of machine replicas the batch operation may be scaled to. Only used if `machine_type` is set.
+      service_account: The service account that the DeployedModel's container runs as. If not specified, a system generated one will be used, which has minimal permissions and the custom container, if used, may not have enough permission to access other Google Cloud resources. Users deploying the Model must have the iam.serviceAccounts.actAs permission on this service account.
       manual_batch_tuning_parameters_batch_size: The number of the records (e.g. instances) of the operation given in each batch to a machine replica. Machine type, and size of a single record should be considered when setting this parameter, higher value speeds up the batch operation's execution, but too high value will result in a whole batch not fitting in a machine's memory, and the whole operation will fail.
       generate_explanation: Generate explanation along with the batch prediction results. This will cause the batch prediction output to include explanations based on the `prediction_format`: - `bigquery`: output includes a column named `explanation`. The value is a struct that conforms to the [aiplatform.gapic.Explanation] object. - `jsonl`: The JSON objects on each line include an additional entry keyed `explanation`. The value of the entry is a JSON object that conforms to the [aiplatform.gapic.Explanation] object. - `csv`: Generating explanations for CSV format is not supported.  If this field is set to true, either the Model.explanation_spec or explanation_metadata and explanation_parameters must be populated.
       explanation_metadata: Explanation metadata configuration for this BatchPredictionJob. Can be specified only if `generate_explanation` is set to `True`.  This value overrides the value of `Model.explanation_metadata`. All fields of `explanation_metadata` are optional in the request. If a field of the `explanation_metadata` object is not populated, the corresponding field of the `Model.explanation_metadata` object is inherited.  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
@@ -197,6 +199,9 @@ def model_batch_predict(
               ', "max_replica_count": ',
               max_replica_count,
               '}',
+              ', "service_account": "',
+              service_account,
+              '"',
               ', "manual_batch_tuning_parameters": {',
               '"batch_size": ',
               manual_batch_tuning_parameters_batch_size,
