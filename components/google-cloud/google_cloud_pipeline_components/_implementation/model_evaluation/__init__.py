@@ -25,6 +25,8 @@ from google_cloud_pipeline_components._implementation.model_evaluation.feature_a
 from google_cloud_pipeline_components._implementation.model_evaluation.feature_extractor.component import feature_extractor_error_analysis as FeatureExtractorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.import_evaluated_annotation.component import evaluated_annotation_import as ModelImportEvaluatedAnnotationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.import_evaluation.component import model_evaluation_import as ModelImportEvaluationOp
+from google_cloud_pipeline_components._implementation.model_evaluation.llm_chat.evaluation_llm_chat_pipeline import evaluation_llm_chat_pipeline
+from google_cloud_pipeline_components._implementation.model_evaluation.llm_chat_preprocessor.component import llm_chat_preprocessor as LLMChatPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_classification_postprocessor.component import llm_classification_predictions_postprocessor_graph_component as LLMEvaluationClassificationPredictionsPostprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_embedding.evaluation_llm_embedding_pipeline import evaluation_llm_embedding_pipeline
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_embedding_retrieval.component import llm_embedding_retrieval as LLMEmbeddingRetrievalOp
@@ -38,6 +40,7 @@ from google_cloud_pipeline_components._implementation.model_evaluation.text2sql.
 
 
 __all__ = [
+    'evaluation_llm_chat_pipeline',
     'evaluation_llm_safety_bias_pipeline',
     'evaluation_llm_embedding_pipeline',
     'evaluation_llm_text2sql_pipeline',
@@ -48,6 +51,7 @@ __all__ = [
     'EvaluatedAnnotationOp',
     'FeatureAttributionGraphComponentOp',
     'FeatureExtractorOp',
+    'LLMChatPreprocessorOp',
     'LLMEmbeddingRetrievalOp',
     'LLMEvaluationClassificationPredictionsPostprocessorOp',
     'LLMEvaluationTextGenerationOp',
