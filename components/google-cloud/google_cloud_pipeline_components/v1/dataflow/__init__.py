@@ -15,8 +15,10 @@
 """Create [Google Cloud Dataflow](https://cloud.google.com/dataflow) jobs from within Vertex AI Pipelines."""
 # fmt: on
 
+from google_cloud_pipeline_components.v1.dataflow.flex_template.component import dataflow_flex_template as DataflowFlexTemplateJobOp
 from google_cloud_pipeline_components.v1.dataflow.python_job.component import dataflow_python as DataflowPythonJobOp
 
 __all__ = [
     'DataflowPythonJobOp',
+    'DataflowFlexTemplateJobOp',
 ]

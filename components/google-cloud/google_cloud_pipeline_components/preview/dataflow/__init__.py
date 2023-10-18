@@ -13,7 +13,7 @@
 # limitations under the License.
 """Dataflow preview components."""
 
-from google_cloud_pipeline_components.preview.dataflow.flex_template.component import dataflow_flex_template as DataflowFlexTemplateJobOp
+from google_cloud_pipeline_components.v1.dataflow import DataflowFlexTemplateJobOp
 
 __all__ = [
     'DataflowFlexTemplateJobOp',
