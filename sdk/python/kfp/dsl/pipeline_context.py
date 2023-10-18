@@ -182,6 +182,7 @@ class Pipeline:
             group: A TasksGroup. Typically it is one of ExitHandler, Condition,
                 and ParallelFor.
         """
+        group.parent_task_group = self.get_parent_group()
         self.groups[-1].groups.append(group)
         self.groups.append(group)
 
@@ -194,6 +195,9 @@ class Pipeline:
         of the pipeline definition."""
         groups = self.groups[-1].groups
         return groups[-1] if groups else None
+
+    def get_parent_group(self) -> 'tasks_group.TasksGroup':
+        return self.groups[-1]
 
     def remove_task_from_groups(self, task: pipeline_task.PipelineTask):
         """Removes a task from the pipeline.

@@ -59,18 +59,24 @@ def lucky_number_pipeline(add_drumroll: bool = True,
             even_or_odd_task = is_even_or_odd(num=int_task.output)
 
             with dsl.If(even_or_odd_task.output == 'even'):
-                print_and_return(text='Got a low even number!')
+                t1 = print_and_return(text='Got a low even number!')
             with dsl.Else():
-                print_and_return(text='Got a low odd number!')
+                t2 = print_and_return(text='Got a low odd number!')
+
+            repeater_task = print_and_return(
+                text=dsl.OneOf(t1.output, t2.output))
 
         with dsl.Elif(int_task.output > 5000):
 
             even_or_odd_task = is_even_or_odd(num=int_task.output)
 
             with dsl.If(even_or_odd_task.output == 'even'):
-                print_and_return(text='Got a high even number!')
+                t3 = print_and_return(text='Got a high even number!')
             with dsl.Else():
-                print_and_return(text='Got a high odd number!')
+                t4 = print_and_return(text='Got a high odd number!')
+
+            repeater_task = print_and_return(
+                text=dsl.OneOf(t3.output, t4.output))
 
         with dsl.Else():
             print_and_return(

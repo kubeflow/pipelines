@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp import compiler
 from kfp import dsl
 
 
@@ -28,15 +27,19 @@ def print_and_return(text: str) -> str:
 
 
 @dsl.pipeline
-def flip_coin_pipeline():
+def flip_coin_pipeline() -> str:
     flip_coin_task = flip_coin()
     with dsl.If(flip_coin_task.output == 'heads'):
-        print_and_return(text='Got heads!')
+        print_task_1 = print_and_return(text='Got heads!')
     with dsl.Else():
-        print_and_return(text='Got tails!')
+        print_task_2 = print_and_return(text='Got tails!')
+    x = dsl.OneOf(print_task_1.output, print_task_2.output)
+    print_and_return(text=x)
+    return x
 
 
 if __name__ == '__main__':
+    from kfp import compiler
     compiler.Compiler().compile(
         pipeline_func=flip_coin_pipeline,
         package_path=__file__.replace('.py', '.yaml'))

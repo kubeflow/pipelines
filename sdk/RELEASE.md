@@ -3,6 +3,7 @@
 ## Features
 
 ## Breaking changes
+* Support collecting outputs from conditional branches using `dsl.OneOf` [\#10067](https://github.com/kubeflow/pipelines/pull/10067)
 
 ## Deprecations
 

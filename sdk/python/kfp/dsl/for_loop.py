@@ -274,6 +274,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineChannel):
         return f'{loop_arg_name}{self.SUBVAR_NAME_DELIMITER}{subvar_name}'
 
 
+# TODO: migrate Collected to OneOfMixin style implementation
 class Collected(pipeline_channel.PipelineChannel):
     """For collecting into a list the output from a task in dsl.ParallelFor
     loops.
@@ -313,3 +314,13 @@ class Collected(pipeline_channel.PipelineChannel):
             channel_type=channel_type,
             task_name=output.task_name,
         )
+        self._validate_no_oneof_channel(self.output)
+
+    def _validate_no_oneof_channel(
+        self, channel: Union[pipeline_channel.PipelineParameterChannel,
+                             pipeline_channel.PipelineArtifactChannel]
+    ) -> None:
+        if isinstance(channel, pipeline_channel.OneOfMixin):
+            raise ValueError(
+                f'dsl.{pipeline_channel.OneOf.__name__} cannot be used inside of dsl.{Collected.__name__}.'
+            )
