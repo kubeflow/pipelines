@@ -128,11 +128,35 @@ def build_task_spec_for_task(
             task._task_spec.retry_policy.to_proto())
 
     for input_name, input_value in task.inputs.items():
+        # since LoopArgument and LoopArgumentVariable are narrower types than PipelineParameterChannel, start with it
+        if isinstance(input_value, for_loop.LoopArgument):
 
-        if isinstance(input_value,
-                      pipeline_channel.PipelineArtifactChannel) or (
-                          isinstance(input_value, for_loop.Collected) and
-                          input_value.is_artifact_channel):
+            component_input_parameter = (
+                compiler_utils.additional_input_name_for_pipeline_channel(
+                    input_value))
+            assert component_input_parameter in parent_component_inputs.parameters, \
+                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+            pipeline_task_spec.inputs.parameters[
+                input_name].component_input_parameter = (
+                    component_input_parameter)
+
+        elif isinstance(input_value, for_loop.LoopArgumentVariable):
+
+            component_input_parameter = (
+                compiler_utils.additional_input_name_for_pipeline_channel(
+                    input_value.loop_argument))
+            assert component_input_parameter in parent_component_inputs.parameters, \
+                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+            pipeline_task_spec.inputs.parameters[
+                input_name].component_input_parameter = (
+                    component_input_parameter)
+            pipeline_task_spec.inputs.parameters[
+                input_name].parameter_expression_selector = (
+                    f'parseJson(string_value)["{input_value.subvar_name}"]')
+        elif isinstance(input_value,
+                        pipeline_channel.PipelineArtifactChannel) or (
+                            isinstance(input_value, for_loop.Collected) and
+                            input_value.is_artifact_channel):
 
             if input_value.task_name:
                 # Value is produced by an upstream task.
@@ -199,31 +223,6 @@ def build_task_spec_for_task(
                 pipeline_task_spec.inputs.parameters[
                     input_name].component_input_parameter = (
                         component_input_parameter)
-
-        elif isinstance(input_value, for_loop.LoopArgument):
-
-            component_input_parameter = (
-                compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value))
-            assert component_input_parameter in parent_component_inputs.parameters, \
-                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-            pipeline_task_spec.inputs.parameters[
-                input_name].component_input_parameter = (
-                    component_input_parameter)
-
-        elif isinstance(input_value, for_loop.LoopArgumentVariable):
-
-            component_input_parameter = (
-                compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value.loop_argument))
-            assert component_input_parameter in parent_component_inputs.parameters, \
-                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-            pipeline_task_spec.inputs.parameters[
-                input_name].component_input_parameter = (
-                    component_input_parameter)
-            pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{input_value.subvar_name}"]')
 
         elif isinstance(input_value, str):
             # Handle extra input due to string concat
@@ -572,7 +571,7 @@ def build_importer_spec_for_task(
         importer_spec.metadata.CopyFrom(metadata_protobuf_struct)
 
     if isinstance(task.importer_spec.artifact_uri,
-                  pipeline_channel.PipelineParameterChannel):
+                  pipeline_channel.PipelineChannel):
         importer_spec.artifact_uri.runtime_parameter = 'uri'
     elif isinstance(task.importer_spec.artifact_uri, str):
         importer_spec.artifact_uri.constant.string_value = task.importer_spec.artifact_uri
