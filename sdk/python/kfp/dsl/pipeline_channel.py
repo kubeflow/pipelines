@@ -313,7 +313,7 @@ class OneOfMixin(PipelineChannel):
         # In the downstream compiler logic, we get to treat this output like a
         # normal task output.
         return compiler_utils.additional_input_name_for_pipeline_channel(
-            f'{self.condition_branches_group.name}-oneof-{self.condition_branches_group._get_oneof_id()}'
+            f'{self.condition_branches_group.name}-oneof-{self.condition_branches_group.get_oneof_id()}'
         )
 
     def _validate_channels(
@@ -350,25 +350,19 @@ class OneOfMixin(PipelineChannel):
         self, channels: List[Union[PipelineParameterChannel,
                                    PipelineArtifactChannel]]
     ) -> None:
-        readable_name_map = {
-            PipelineParameterChannel: 'parameter',
-            PipelineArtifactChannel: 'artifact',
-            OneOfParameter: 'parameter',
-            OneOfArtifact: 'artifact',
-        }
-        # if channels[0] is any subclass of a PipelineParameterChannel
-        # check the rest of the channels against that parent type
-        # ensures check permits OneOfParameter and PipelineParameterChannel
-        # to be passed to OneOf together
-        if isinstance(channels[0], PipelineParameterChannel):
-            expected_type = PipelineParameterChannel
-        else:
-            expected_type = PipelineArtifactChannel
 
-        for i, channel in enumerate(channels[1:], start=1):
-            if not isinstance(channel, expected_type):
+        first_channel = channels[0]
+        if isinstance(first_channel, PipelineParameterChannel):
+            first_channel_type = PipelineParameterChannel
+        else:
+            first_channel_type = PipelineArtifactChannel
+
+        for channel in channels:
+            # if not all channels match the first channel's type, then there
+            # is a mix of parameter and artifact channels
+            if not isinstance(channel, first_channel_type):
                 raise TypeError(
-                    f'Task outputs passed to dsl.{OneOf.__name__} must be the same type. Got two channels with different types: {readable_name_map[expected_type]} at index 0 and {readable_name_map[type(channel)]} at index {i}.'
+                    f'Task outputs passed to dsl.{OneOf.__name__} must be the same type. Found a mix of parameters and artifacts passed to dsl.{OneOf.__name__}.'
                 )
 
     def _validate_has_else_group(
@@ -391,7 +385,7 @@ class OneOfMixin(PipelineChannel):
         # the combination of OneOf and an f-string is not common, so prefer
         # deferring implementation
         raise NotImplementedError(
-            f'dsl.{OneOf.__name__} is not yet supported in f-strings.')
+            f'dsl.{OneOf.__name__} does not support string interpolation.')
 
     @property
     def pattern(self) -> str:
@@ -411,7 +405,7 @@ class OneOfMixin(PipelineChannel):
 # isinstance(<some channel>, PipelineParameterChannel/PipelineArtifactChannel)
 # checks continue to behave in desirable ways
 class OneOfParameter(PipelineParameterChannel, OneOfMixin):
-    """OneOf that results in an parameter channel for all downstream tasks."""
+    """OneOf that results in a parameter channel for all downstream tasks."""
 
     def __init__(self, channels: List[PipelineParameterChannel]) -> None:
         self.channels = channels

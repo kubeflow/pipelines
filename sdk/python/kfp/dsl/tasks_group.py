@@ -153,7 +153,7 @@ class ConditionBranches(TasksGroup):
             is_root=False,
         )
 
-    def _get_oneof_id(self) -> int:
+    def get_oneof_id(self) -> int:
         """Incrementor for uniquely identifying a OneOf for the parent
         ConditionBranches group.
 

@@ -5221,7 +5221,7 @@ class TestDslOneOf(unittest.TestCase):
     def test_oneof_in_fstring(self):
         with self.assertRaisesRegex(
                 NotImplementedError,
-                f'dsl\.OneOf is not yet supported in f-strings\.'):
+                f'dsl\.OneOf does not support string interpolation\.'):
 
             @dsl.pipeline
             def roll_die_pipeline():

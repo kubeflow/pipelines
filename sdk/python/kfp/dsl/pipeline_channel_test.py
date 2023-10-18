@@ -357,7 +357,7 @@ class TestOneOfRequiresSameType(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 TypeError,
-                r'Task outputs passed to dsl\.OneOf must be the same type\. Got two channels with different types: artifact at index 0 and parameter at index 1\.'
+                r'Task outputs passed to dsl\.OneOf must be the same type\. Found a mix of parameters and artifacts passed to dsl\.OneOf\.'
         ):
 
             @dsl.pipeline
