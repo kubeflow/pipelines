@@ -5,6 +5,7 @@
 * Set display names for `preview.llm` pipelines.
 * Add sliced evaluation metrics support for custom and unstructured AutoML models in evaluation pipeline.
 * Support `service_account` in `ModelBatchPredictOp`.
+* Release `DataflowFlexTemplateJobOp` to GA namespace (`v1.dataflow.DataflowFlexTemplateJobOp`).
 
 ## Release 2.4.1
 * Disable caching for LLM pipeline tasks that store temporary artifacts.
