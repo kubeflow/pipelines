@@ -3,7 +3,7 @@
 * Support `incremental_train_base_model`, `parent_model`, `is_default_version`, `model_version_aliases`, `model_version_description` in `AutoMLImageTrainingJobRunOp`.
 * Add `preview.automl.vision` and `DataConverterJobOp`.
 * Set display names for `preview.llm` pipelines.
-* Add sliced evaluation metrics support for custom and unstructured AutoML models in evaluation pipeline.
+* Add sliced evaluation metrics support for custom and unstructured AutoML models in evaluation pipeline and evaluation pipeline with feature attribution.
 * Support `service_account` in `ModelBatchPredictOp`.
 * Release `DataflowFlexTemplateJobOp` to GA namespace (`v1.dataflow.DataflowFlexTemplateJobOp`).
 
