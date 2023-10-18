@@ -13,10 +13,14 @@
 # limitations under the License.
 """Tests for kfp.dsl.pipeline_channel."""
 
+from typing import List
 import unittest
 
 from absl.testing import parameterized
 from kfp import dsl
+from kfp.dsl import Artifact
+from kfp.dsl import Dataset
+from kfp.dsl import Output
 from kfp.dsl import pipeline_channel
 
 
@@ -156,18 +160,228 @@ class PipelineChannelTest(parameterized.TestCase):
         self.assertListEqual([p1, p2, p3], params)
 
 
+@dsl.component
+def string_comp() -> str:
+    return 'text'
+
+
+@dsl.component
+def list_comp() -> List[str]:
+    return ['text']
+
+
+@dsl.component
+def roll_three_sided_die() -> str:
+    import random
+    val = random.randint(0, 2)
+
+    if val == 0:
+        return 'heads'
+    elif val == 1:
+        return 'tails'
+    else:
+        return 'draw'
+
+
+@dsl.component
+def print_and_return(text: str) -> str:
+    print(text)
+    return text
+
+
 class TestCanAccessTask(unittest.TestCase):
 
     def test(self):
 
-        @dsl.component
-        def comp() -> str:
-            return 'text'
-
         @dsl.pipeline
         def my_pipeline():
-            op1 = comp()
+            op1 = string_comp()
             self.assertEqual(op1.output.task, op1)
+
+
+class TestOneOfAndCollectedNotComposable(unittest.TestCase):
+
+    def test_collected_in_oneof(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                'dsl.Collected cannot be used inside of dsl.OneOf.'):
+
+            @dsl.pipeline
+            def my_pipeline(x: str):
+                with dsl.If(x == 'foo'):
+                    t1 = list_comp()
+                with dsl.Else():
+                    with dsl.ParallelFor([1, 2, 3]):
+                        t2 = string_comp()
+                    collected = dsl.Collected(t2.output)
+                # test cases doesn't return or pass to task to ensure validation is in the OneOf
+                dsl.OneOf(t1.output, collected)
+
+    def test_oneof_in_collected(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                'dsl.OneOf cannot be used inside of dsl.Collected.'):
+
+            @dsl.pipeline
+            def my_pipeline(x: str):
+                with dsl.ParallelFor([1, 2, 3]):
+                    with dsl.If(x == 'foo'):
+                        t1 = string_comp()
+                    with dsl.Else():
+                        t2 = string_comp()
+                    oneof = dsl.OneOf(t1.output, t2.output)
+                # test cases doesn't return or pass to task to ensure validation is in the Collected constructor
+                dsl.Collected(oneof)
+
+
+class TestOneOfRequiresSameType(unittest.TestCase):
+
+    def test_same_parameter_type(self):
+
+        @dsl.pipeline
+        def my_pipeline(x: str) -> str:
+            with dsl.If(x == 'foo'):
+                t1 = string_comp()
+            with dsl.Else():
+                t2 = string_comp()
+            return dsl.OneOf(t1.output, t2.output)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.components['comp-condition-branches-1']
+            .output_definitions.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'].parameter_type,
+            3)
+
+    def test_different_parameter_types(self):
+
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Task outputs passed to dsl\.OneOf must be the same type. Got two channels with different types: String at index 0 and typing\.List\[str\] at index 1\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(x: str) -> str:
+                with dsl.If(x == 'foo'):
+                    t1 = string_comp()
+                with dsl.Else():
+                    t2 = list_comp()
+                return dsl.OneOf(t1.output, t2.output)
+
+    def test_same_artifact_type(self):
+
+        @dsl.component
+        def artifact_comp(out: Output[Artifact]):
+            with open(out.path, 'w') as f:
+                f.write('foo')
+
+        @dsl.pipeline
+        def my_pipeline(x: str) -> Artifact:
+            with dsl.If(x == 'foo'):
+                t1 = artifact_comp()
+            with dsl.Else():
+                t2 = artifact_comp()
+            return dsl.OneOf(t1.outputs['out'], t2.outputs['out'])
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.components['comp-condition-branches-1']
+            .output_definitions
+            .artifacts['pipelinechannel--condition-branches-1-oneof-1']
+            .artifact_type.schema_title,
+            'system.Artifact',
+        )
+        self.assertEqual(
+            my_pipeline.pipeline_spec.components['comp-condition-branches-1']
+            .output_definitions
+            .artifacts['pipelinechannel--condition-branches-1-oneof-1']
+            .artifact_type.schema_version,
+            '0.0.1',
+        )
+
+    def test_different_artifact_type(self):
+
+        @dsl.component
+        def artifact_comp_one(out: Output[Artifact]):
+            with open(out.path, 'w') as f:
+                f.write('foo')
+
+        @dsl.component
+        def artifact_comp_two(out: Output[Dataset]):
+            with open(out.path, 'w') as f:
+                f.write('foo')
+
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Task outputs passed to dsl\.OneOf must be the same type. Got two channels with different types: system.Artifact@0.0.1 at index 0 and system.Dataset@0.0.1 at index 1\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(x: str) -> Artifact:
+                with dsl.If(x == 'foo'):
+                    t1 = artifact_comp_one()
+                with dsl.Else():
+                    t2 = artifact_comp_two()
+                return dsl.OneOf(t1.outputs['out'], t2.outputs['out'])
+
+    def test_different_artifact_type_due_to_list(self):
+        # if we ever support list of artifact outputs from components, this test will fail, which is good because it needs to be changed
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Output lists of artifacts are only supported for pipelines\. Got output list of artifacts for output parameter 'out' of component 'artifact-comp-two'\."
+        ):
+
+            @dsl.component
+            def artifact_comp_one(out: Output[Artifact]):
+                with open(out.path, 'w') as f:
+                    f.write('foo')
+
+            @dsl.component
+            def artifact_comp_two(out: Output[List[Artifact]]):
+                with open(out.path, 'w') as f:
+                    f.write('foo')
+
+            @dsl.pipeline
+            def my_pipeline(x: str) -> Artifact:
+                with dsl.If(x == 'foo'):
+                    t1 = artifact_comp_one()
+                with dsl.Else():
+                    t2 = artifact_comp_two()
+                return dsl.OneOf(t1.outputs['out'], t2.outputs['out'])
+
+    def test_parameters_mixed_with_artifacts(self):
+
+        @dsl.component
+        def artifact_comp(out: Output[Artifact]):
+            with open(out.path, 'w') as f:
+                f.write('foo')
+
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Task outputs passed to dsl\.OneOf must be the same type\. Found a mix of parameters and artifacts passed to dsl\.OneOf\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(x: str) -> str:
+                with dsl.If(x == 'foo'):
+                    t1 = artifact_comp()
+                with dsl.Else():
+                    t2 = string_comp()
+                return dsl.OneOf(t1.output, t2.output)
+
+    def test_no_else_raises(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'dsl\.OneOf must include an output from a task in a dsl\.Else group to ensure at least one output is available at runtime\.'
+        ):
+
+            @dsl.pipeline
+            def roll_die_pipeline():
+                flip_coin_task = roll_three_sided_die()
+                with dsl.If(flip_coin_task.output == 'heads'):
+                    t1 = print_and_return(text='Got heads!')
+                with dsl.Elif(flip_coin_task.output == 'tails'):
+                    t2 = print_and_return(text='Got tails!')
+                print_and_return(text=dsl.OneOf(t1.output, t2.output))
 
 
 if __name__ == '__main__':
