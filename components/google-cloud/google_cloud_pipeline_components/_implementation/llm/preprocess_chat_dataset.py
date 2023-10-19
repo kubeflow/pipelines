@@ -44,9 +44,10 @@ def preprocess_chat_dataset(
   """
   # fmt: on
   # pylint: disable=g-import-not-at-top
+  import dataclasses
   import json
   import os
-  from typing import List, Mapping, Any
+  from typing import Any, Callable, List, Mapping
   import apache_beam as beam
   # pylint: enable=g-import-not-at-top
 
@@ -58,18 +59,51 @@ def preprocess_chat_dataset(
   MESSAGES_KEY = 'messages'
   AUTHOR_KEY = 'author'
   CONTENT_KEY = 'content'
-  GLOBAL_PREFIX = 'Only answer after [assistant] and never reply as [user]:'
-  CONTEXT_PREFIX = '[SYSTEM]:'
   AUTHOR_USER = 'user'
   AUTHOR_ASSISTANT = 'assistant'
-  USER_PREFIX = '[user]:'
-  ASSISTANT_PREFIX = '[assistant]:'
-  AUTHOR_ENCODING_PREFIX_MAPPING = {
-      AUTHOR_USER: USER_PREFIX,
-      AUTHOR_ASSISTANT: ASSISTANT_PREFIX,
-  }
   VALID_AUTHORS = {AUTHOR_USER, AUTHOR_ASSISTANT}
+
   # pylint: enable=invalid-name
+  @dataclasses.dataclass
+  class PromptSchema:
+    global_prefix: str
+    user_prefix: str
+    user_postfix: str
+    assistant_prefix: str
+    assistant_postfix: str
+    get_system_message: Callable[[str], str]  # pytype: disable=invalid-annotation
+
+  def _get_chat_bison_001_system_message(context: str) -> str:
+    return f'[SYSTEM]:{context}\n\n' if context else ''
+
+  chat_bison_001_schema = PromptSchema(
+      global_prefix=(
+          'Only answer after [assistant] and never reply as [user]:\n'
+      ),
+      get_system_message=_get_chat_bison_001_system_message,
+      user_prefix='[user]:',
+      user_postfix='\n',
+      assistant_prefix='[assistant]:',
+      assistant_postfix='\n',
+  )
+
+  def _get_chat_llama_system_message(context: str) -> str:
+    return f'<<SYS>>\n{context}\n<</SYS>>\n\n' if context else ''
+
+  chat_llama_schema = PromptSchema(
+      global_prefix='<s>[INST] ',
+      get_system_message=_get_chat_llama_system_message,
+      user_prefix='',
+      user_postfix=' [/INST]',
+      assistant_prefix=' ',
+      assistant_postfix='</s><s>[INST] ',
+  )
+
+  MODEL_TO_SCHEMA_MAPPING = {  # pylint: disable=invalid-name
+      'chat-bison@001': chat_bison_001_schema,
+      'llama-2-7b-chat': chat_llama_schema,
+      'llama-2-13b-chat': chat_llama_schema,
+  }
 
   def get_gcs_path(input_path: str, allow_local_files: bool) -> str:
     """Gets the /gcs/ path for a given URI."""
@@ -107,8 +141,9 @@ def preprocess_chat_dataset(
   class ChatDatasetProcessor(beam.DoFn):
     """Converts chat data from input format to the format expected by the model."""
 
-    def __init__(self, default_context: str = ''):
+    def __init__(self, default_context: str, prompt_schema: PromptSchema):
       self._default_context = default_context
+      self._schema = prompt_schema
 
     def _get_messages_or_fail(
         self, element: Mapping[str, Any]
@@ -143,31 +178,41 @@ def preprocess_chat_dataset(
       context = element.get(CONTEXT_KEY, self._default_context)
       messages = self._get_messages_or_fail(element)
 
-      per_conversation_context = (
-          f'{CONTEXT_PREFIX}{context}\n\n' if context else ''
-      )
-      message_prefix = f'{GLOBAL_PREFIX}\n{per_conversation_context}'
-      message_history = []
+      message_history = [
+          self._schema.global_prefix,
+          self._schema.get_system_message(context),
+      ]
       for message in messages:
         author = self._get_author_or_fail(message)
         content = self._get_content_or_fail(message)
-        if author == AUTHOR_ASSISTANT:
-          joined_messages = '\n'.join(message_history)
-          input_text = f'{message_prefix}{joined_messages}\n{ASSISTANT_PREFIX}'
-          yield {INPUT_TEXT_KEY: input_text, OUTPUT_TEXT_KEY: content}
-        message_history.append(
-            f'{AUTHOR_ENCODING_PREFIX_MAPPING[author]}{content}'
-        )
+        if author == AUTHOR_USER:
+          message_history.append(
+              f'{self._schema.user_prefix}{content}{self._schema.user_postfix}'
+          )
+        elif author == AUTHOR_ASSISTANT:
+          message_history.append(self._schema.assistant_prefix)
+          input_text = ''.join(message_history)
+          yield {INPUT_TEXT_KEY: input_text.rstrip(), OUTPUT_TEXT_KEY: content}
+          message_history = [
+              input_text,
+              f'{content}{self._schema.assistant_postfix}',
+          ]
+        else:
+          raise ValueError(
+              f'Unknown author {author}. Must be one of {VALID_AUTHORS}.'
+          )
 
   # ]
 
   processed_dataset_uri = get_gcs_path(processed_dataset_uri, allow_local_files)
 
   # Reuse the input dataset if no preprocessing is needed.
-  if large_model_reference.lower() != 'chat-bison@001':
+  if large_model_reference.lower() not in MODEL_TO_SCHEMA_MAPPING:
     with open(processed_dataset_uri, 'w') as f:
       f.write(input_dataset_uri)
     return
+
+  prompt_schema = MODEL_TO_SCHEMA_MAPPING[large_model_reference]
 
   # Provide gs:// paths for datasets processed by Beam.
   input_dataset_uri = get_gs_path(input_dataset_uri, allow_local_files)
@@ -186,7 +231,11 @@ def preprocess_chat_dataset(
         | 'Read JSON from input dataset'
         >> beam.io.ReadFromText(input_dataset_uri, coder=JsonCoder())
         | 'Process chat dataset'
-        >> beam.ParDo(ChatDatasetProcessor(default_context=default_context))
+        >> beam.ParDo(
+            ChatDatasetProcessor(
+                default_context=default_context, prompt_schema=prompt_schema
+            )
+        )
         | 'Write processed JSON to output file'
         >> beam.io.WriteToText(
             file_path_prefix=processed_dataset_prefix,
