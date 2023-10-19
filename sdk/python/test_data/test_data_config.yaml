@@ -180,6 +180,15 @@ pipelines:
     - module: if_elif_else_with_oneof_parameters
       name: outer_pipeline
       execute: false
+    - module: pythonic_artifact_with_single_return
+      name: make_language_model_pipeline
+      execute: false
+    - module: pythonic_artifacts_with_multiple_returns
+      name: split_datasets_and_return_first
+      execute: false
+    - module: pythonic_artifacts_with_list_of_artifacts
+      name: make_and_join_datasets
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true

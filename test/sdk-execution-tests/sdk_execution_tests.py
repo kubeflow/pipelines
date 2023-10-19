@@ -65,7 +65,9 @@ def create_test_case_parameters() -> List[TestCase]:
     return parameters
 
 
-def wait(run_result: client.client.RunPipelineResult) -> kfp_server_api.V2beta1Run:
+def wait(
+        run_result: client.client.RunPipelineResult
+) -> kfp_server_api.V2beta1Run:
     return kfp_client.wait_for_run_completion(
         run_id=run_result.run_id, timeout=int(TIMEOUT_SECONDS))
 
@@ -104,16 +106,14 @@ def get_kfp_package_path() -> str:
     return path
 
 
-partial_component_decorator = functools.partial(
+dsl.component = functools.partial(
     dsl.component, kfp_package_path=get_kfp_package_path())
 
 
 @pytest.mark.asyncio_cooperative
 @pytest.mark.parametrize('test_case', create_test_case_parameters())
-async def test(test_case: TestCase, mocker) -> None:
+async def test(test_case: TestCase) -> None:
     """Asynchronously runs all samples and test that they succeed."""
-    mocker.patch.object(dsl, 'component', partial_component_decorator)
-
     event_loop = asyncio.get_running_loop()
     try:
         run_url, run_result = run(test_case)
@@ -123,3 +123,7 @@ async def test(test_case: TestCase, mocker) -> None:
 
     api_run = await event_loop.run_in_executor(None, wait, run_result)
     assert api_run.state == 'SUCCEEDED', f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
+
+
+if __name__ == '__main__':
+    pytest.main()
