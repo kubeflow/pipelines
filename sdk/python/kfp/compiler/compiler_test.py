@@ -5690,5 +5690,34 @@ class TestPythonicArtifactAuthoring(unittest.TestCase):
                 return dsl.ContainerSpec(image='alpine', command=['pwd'])
 
 
+class TestPipelineSpecAttributeUniqueError(unittest.TestCase):
+
+    def test_compiles(self):
+        # in a previous version of the KFP SDK there was an error when:
+        # - a component has a dsl.OutputPath parameter
+        # - the pipeline has an existing component by a different name
+        # - the user calls component.pipeline_spec inside their pipeline definition
+        # this was resolved coincidentally in
+        # https://github.com/kubeflow/pipelines/pull/10067, so test that it
+        # doesn't come back
+
+        @dsl.container_component
+        def existing_comp():
+            return dsl.ContainerSpec(
+                image='alpine', command=['echo'], args=['foo'])
+
+        @dsl.container_component
+        def issue_comp(v: dsl.OutputPath(str)):
+            return dsl.ContainerSpec(image='alpine', command=['echo'], args=[v])
+
+        @dsl.pipeline
+        def my_pipeline():
+            existing_comp()
+            issue_comp.pipeline_spec
+
+        # should compile without error
+        self.assertTrue(my_pipeline.pipeline_spec)
+
+
 if __name__ == '__main__':
     unittest.main()
