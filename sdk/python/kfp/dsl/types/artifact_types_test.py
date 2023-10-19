@@ -13,18 +13,20 @@
 # limitations under the License.
 """Tests for kfp.components.types.artifact_types."""
 
+import contextlib
 import json
 import os
 import unittest
 
 from absl.testing import parameterized
+from kfp import dsl
 from kfp.dsl.types import artifact_types
 
 
-class ArtifactsTest(parameterized.TestCase):
+class ArtifactsTest(unittest.TestCase):
 
     def test_complex_metrics(self):
-        metrics = artifact_types.ClassificationMetrics()
+        metrics = dsl.ClassificationMetrics()
         metrics.log_roc_data_point(threshold=0.1, tpr=98.2, fpr=96.2)
         metrics.log_roc_data_point(threshold=24.3, tpr=24.5, fpr=98.4)
         metrics.set_confusion_matrix_categories(['dog', 'cat', 'horses'])
@@ -41,7 +43,7 @@ class ArtifactsTest(parameterized.TestCase):
             self.assertEqual(expected_json, metrics.metadata)
 
     def test_complex_metrics_bulk_loading(self):
-        metrics = artifact_types.ClassificationMetrics()
+        metrics = dsl.ClassificationMetrics()
         metrics.log_roc_curve(
             fpr=[85.1, 85.1, 85.1],
             tpr=[52.6, 52.6, 52.6],
@@ -55,6 +57,93 @@ class ArtifactsTest(parameterized.TestCase):
         ) as json_file:
             expected_json = json.load(json_file)
             self.assertEqual(expected_json, metrics.metadata)
+
+
+@contextlib.contextmanager
+def set_temporary_task_root(task_root: str):
+    artifact_types.CONTAINER_TASK_ROOT = task_root
+    try:
+        yield
+    finally:
+        artifact_types.CONTAINER_TASK_ROOT = None
+
+
+class TestGetUri(unittest.TestCase):
+
+    def test_raise_if_no_env_var(self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r"'dsl\.get_uri' can only be called at task runtime\. The task root is unknown in the current environment\."
+        ):
+            dsl.get_uri()
+
+    def test_default_gcs(self):
+        with set_temporary_task_root(
+                '/gcs/my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789'
+        ):
+            self.assertEqual(
+                'gs://my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789/Output',
+                dsl.get_uri())
+
+    def test_default_s3(self):
+        with set_temporary_task_root(
+                '/s3/my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789'
+        ):
+            self.assertEqual(
+                's3://my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789/Output',
+                dsl.get_uri())
+
+    def test_default_minio(self):
+        with set_temporary_task_root(
+                '/minio/my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789'
+        ):
+            self.assertEqual(
+                'minio://my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789/Output',
+                dsl.get_uri())
+
+    def test_suffix_arg_gcs(self):
+        with set_temporary_task_root(
+                '/gcs/my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789'
+        ):
+            self.assertEqual(
+                'gs://my_bucket/123456789/abc-09-14-2023-14-21-53/foo_123456789/model',
+                dsl.get_uri('model'))
+
+    def test_suffix_arg_tmp_no_suffix(self):
+        with set_temporary_task_root('/tmp/kfp_outputs'):
+            with self.assertWarnsRegex(
+                    RuntimeWarning,
+                    r'dsl\.get_uri is not yet supported by the KFP backend\. Please specify a URI explicitly\.'
+            ):
+                actual = dsl.get_uri('model')
+                self.assertEqual('', actual)
+
+    def test_suffix_arg_tmp_with_suffix(self):
+        with set_temporary_task_root('/tmp/kfp_outputs'):
+            with self.assertWarnsRegex(
+                    RuntimeWarning,
+                    r'dsl\.get_uri is not yet supported by the KFP backend\. Please specify a URI explicitly\.'
+            ):
+                actual = dsl.get_uri('model')
+                self.assertEqual('', actual)
+
+
+class TestConvertLocalPathToRemotePath(parameterized.TestCase):
+
+    @parameterized.parameters([{
+        'local_path': local_path,
+        'expected': expected
+    } for local_path, expected in [
+        ('/gcs/foo/bar', 'gs://foo/bar'),
+        ('/minio/foo/bar', 'minio://foo/bar'),
+        ('/s3/foo/bar', 's3://foo/bar'),
+        ('/tmp/kfp_outputs', '/tmp/kfp_outputs'),
+        ('/some/random/path', '/some/random/path'),
+    ]])
+    def test_gcs(self, local_path, expected):
+        actual = artifact_types.convert_local_path_to_remote_path(local_path)
+        self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':

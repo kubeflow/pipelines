@@ -33,6 +33,7 @@ from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
+from kfp.dsl import Dataset
 from kfp.dsl import graph_component
 from kfp.dsl import Input
 from kfp.dsl import Model
@@ -5277,6 +5278,416 @@ class TestDslOneOf(unittest.TestCase):
                 with dsl.Else():
                     t4 = print_and_return(text='First flip was not heads!')
                 return dsl.OneOf(t3, t4.output)
+
+
+class TestPythonicArtifactAuthoring(unittest.TestCase):
+    # python component
+    def test_pythonic_input_artifact(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Artifact):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.parameters)
+
+        @dsl.component
+        def standard_style(in_artifact: Input[Artifact]):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_input_artifact_optional(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Optional[Artifact] = None):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.parameters)
+
+        @dsl.component
+        def standard_style(in_artifact: Optional[Input[Artifact]] = None):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_input_list_of_artifacts(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: List[Artifact]):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            'system.Artifact',
+        )
+        self.assertTrue(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].is_artifact_list)
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.parameters)
+
+        @dsl.component
+        def standard_style(in_artifact: Input[List[Artifact]]):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_input_list_of_artifacts_optional(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Optional[List[Artifact]] = None):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            'system.Artifact',
+        )
+        self.assertTrue(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].is_artifact_list)
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.parameters)
+
+        @dsl.component
+        def standard_style(in_artifact: Optional[Input[List[Artifact]]] = None):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_output_artifact(self):
+
+        @dsl.component
+        def pythonic_style() -> Artifact:
+            return Artifact(uri='gs://my_bucket/foo')
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['Output'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.parameters)
+
+        @dsl.component
+        def standard_style(named_output: Output[Artifact]):
+            return Artifact(uri='gs://my_bucket/foo')
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['Output'].artifact_type.schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .output_definitions.artifacts['named_output'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_output_artifact_multiple_returns(self):
+
+        @dsl.component
+        def pythonic_style() -> NamedTuple('outputs', a=Artifact, d=Dataset):
+            a = Artifact(uri='gs://my_bucket/foo/artifact')
+            d = Artifact(uri='gs://my_bucket/foo/dataset')
+            outputs = NamedTuple('outputs', a=Artifact, d=Dataset)
+            return outputs(a=a, d=d)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['a'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['d'].artifact_type.schema_title,
+            'system.Dataset',
+        )
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.parameters)
+
+        @dsl.component
+        def standard_style(a: Output[Artifact], d: Output[Dataset]):
+            a.uri = 'gs://my_bucket/foo/artifact'
+            d.uri = 'gs://my_bucket/foo/dataset'
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['a'].artifact_type.schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .output_definitions.artifacts['a'].artifact_type.schema_title,
+        )
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['d'].artifact_type.schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .output_definitions.artifacts['d'].artifact_type.schema_title,
+        )
+
+    def test_pythonic_output_list_artifacts(self):
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Output lists of artifacts are only supported for pipelines\. Got output list of artifacts for output parameter 'Output' of component 'pythonic-style'\."
+        ):
+
+            @dsl.component
+            def pythonic_style() -> List[Artifact]:
+                pass
+
+    def test_mixed_component_authoring_styles(self):
+        # can be permitted, since the expected behavior is unambiguous
+
+        # in traditional; out pythonic
+        @dsl.component
+        def back_compat_style(in_artifact: Input[Artifact]) -> Artifact:
+            print(in_artifact)
+            return Artifact(uri='gs://my_bucket/foo')
+
+        self.assertTrue(back_compat_style.pipeline_spec)
+
+        # out traditional; in pythonic
+        @dsl.component
+        def mixed_style(in_artifact: Artifact, out_artifact: Output[Artifact]):
+            print(in_artifact)
+            out_artifact.uri = 'gs://my_bucket/foo'
+
+        self.assertTrue(mixed_style.pipeline_spec)
+
+    # pipeline
+    def test_pipeline_input_artifact(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Artifact):
+            print(in_artifact)
+
+        @dsl.pipeline
+        def my_pipeline(in_artifact: Artifact):
+            pythonic_style(in_artifact=in_artifact)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.input_definitions
+            .artifacts['in_artifact'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+
+    def test_pipeline_input_artifact_optional(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Optional[Artifact] = None):
+            print(in_artifact)
+
+        @dsl.pipeline
+        def my_pipeline(in_artifact: Optional[Artifact] = None):
+            pythonic_style(in_artifact=in_artifact)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.input_definitions
+            .artifacts['in_artifact'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+
+    def test_pipeline_input_list_of_artifacts(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: List[Artifact]):
+            print(in_artifact)
+
+        @dsl.pipeline
+        def my_pipeline(in_artifact: List[Artifact]):
+            pythonic_style(in_artifact=in_artifact)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.input_definitions
+            .artifacts['in_artifact'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+        self.assertTrue(my_pipeline.pipeline_spec.root.input_definitions
+                        .artifacts['in_artifact'].is_artifact_list)
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+
+    def test_pipeline_input_list_of_artifacts_optional(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Optional[List[Artifact]] = None):
+            print(in_artifact)
+
+        @dsl.pipeline
+        def my_pipeline(in_artifact: Optional[List[Artifact]] = None):
+            pythonic_style(in_artifact=in_artifact)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.input_definitions
+            .artifacts['in_artifact'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+
+    def test_pipeline_output_artifact(self):
+
+        @dsl.component
+        def pythonic_style() -> Artifact:
+            return Artifact(uri='gs://my_bucket/foo')
+
+        @dsl.pipeline
+        def my_pipeline() -> Artifact:
+            return pythonic_style().output
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.output_definitions
+            .artifacts['Output'].artifact_type.schema_title, 'system.Artifact')
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.output_definitions.parameters)
+
+    def test_pipeline_output_list_of_artifacts(self):
+
+        @dsl.component
+        def noop() -> Artifact:
+            # write artifact
+            return Artifact(uri='gs://my_bucket/foo/bar')
+
+        @dsl.pipeline
+        def my_pipeline() -> List[Artifact]:
+            with dsl.ParallelFor([1, 2, 3]):
+                t = noop()
+
+            return dsl.Collected(t.output)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.output_definitions
+            .artifacts['Output'].artifact_type.schema_title, 'system.Artifact')
+        self.assertTrue(my_pipeline.pipeline_spec.root.output_definitions
+                        .artifacts['Output'].is_artifact_list)
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.output_definitions.parameters)
+
+    # container
+    def test_container_input_artifact(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\."
+        ):
+
+            @dsl.container_component
+            def comp(in_artifact: Artifact):
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_input_artifact_optional(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\."
+        ):
+
+            @dsl.container_component
+            def comp(in_artifact: Optional[Artifact] = None):
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_input_list_of_artifacts(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\."
+        ):
+
+            @dsl.container_component
+            def comp(in_artifact: List[Artifact]):
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_input_list_of_artifacts_optional(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\."
+        ):
+
+            @dsl.container_component
+            def comp(in_artifact: Optional[List[Artifact]] = None):
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_output_artifact(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Return annotation should be either ContainerSpec or omitted for container components\.'
+        ):
+
+            @dsl.container_component
+            def comp() -> Artifact:
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_output_list_of_artifact(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Return annotation should be either ContainerSpec or omitted for container components\.'
+        ):
+
+            @dsl.container_component
+            def comp() -> List[Artifact]:
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
 
 
 if __name__ == '__main__':
