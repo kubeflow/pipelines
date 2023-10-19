@@ -28,7 +28,14 @@ RUN pip3 install -U google-cloud-storage
 RUN pip3 install -U google-api-python-client
 
 # Required by dataflow_launcher
-RUN pip3 install -U "apache_beam[gcp]"
+# Pin to `2.50.0` for compatibility with `google-cloud-aiplatform`, which
+# depends on `shapely<3.0.0dev`.
+# Prefer an exact pin, since GCPC's apache_beam version must match the
+# version the in custom Dataflow worker images for the Dataflow job to succeed.
+# Inexact pins risk that the apache_beam in GCPC drifts away from a
+# user-specified version in the image.
+# From docs: """When running your pipeline, launch the pipeline using the Apache Beam SDK with the same version and language version as the SDK on your custom container image. This step avoids unexpected errors from incompatible dependencies or SDKs.""" https://cloud.google.com/dataflow/docs/guides/using-custom-containers#before_you_begin_2
+RUN pip3 install -U "apache_beam[gcp]==2.50.0"
 
 # Required for sklearn/train_test_split_jsonl
 RUN pip3 install -U "fsspec>=0.7.4" "gcsfs>=0.6.0" "pandas<=1.3.5" "scikit-learn<=1.0.2"
