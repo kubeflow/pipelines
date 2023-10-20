@@ -76,12 +76,12 @@ describe('StaticNodeDetailsV2', () => {
     expect(screen.getAllByText('STRING').length).toEqual(2);
 
     screen.getByText('Image');
-    screen.getByText('python:3.7');
+    screen.getByText('python:3.9');
 
     screen.getByText('Command');
     expect(screen.getAllByText('sh').length).toEqual(2);
     // The yaml file we used in this test has command as follow:
-    /* 
+    /*
       sh
       -c
 
@@ -131,7 +131,7 @@ describe('StaticNodeDetailsV2', () => {
     expect(screen.getAllByText('STRING').length).toEqual(1);
 
     screen.getByText('Image');
-    screen.getByText('python:3.7');
+    screen.getByText('python:3.9');
 
     screen.getByText('Command');
     expect(screen.getAllByText('sh').length).toEqual(2);
