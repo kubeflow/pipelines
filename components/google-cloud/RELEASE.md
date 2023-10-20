@@ -11,6 +11,9 @@
 * Make `model_checkpoint` optional for `preview.llm.infer_pipeline`. If not provided, the base model associated with the `large_model_reference` will be used.
 * Bump `apache_beam[gcp]` version in GCPC container image from `<2.34.0` to `==2.50.0` for compatibility with `google-cloud-aiplatform`, which depends on `shapely<3.0.0dev`. Note: upgrades to `google-cloud-pipeline-components`>=2.5.0 and later may require using a Dataflow worker image with `apache_beam==2.50.0`.
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+* Add support for customizing model_parameters (maxOutputTokens, topK, topP, and
+ temperature) in LLM eval text generation and LLM eval text classification
+  pipelines.
 
 ## Release 2.4.1
 * Disable caching for LLM pipeline tasks that store temporary artifacts.
