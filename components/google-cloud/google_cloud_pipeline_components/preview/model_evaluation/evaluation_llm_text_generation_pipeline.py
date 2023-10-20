@@ -11,16 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Vertex LLM standalone Evaluation for text generation task."""
+"""Vertex Gen AI Evaluation for Text Generation/QA/Summarization tasks."""
 
-from typing import List, NamedTuple
+from typing import Dict, List, NamedTuple
 
 from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationTextGenerationOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from kfp import dsl
-from kfp.dsl import Metrics
 
 _PIPELINE_NAME = 'evaluation-llm-text-generation-pipeline'
 
@@ -31,6 +30,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     location: str,
     batch_predict_gcs_source_uris: List[str],
     batch_predict_gcs_destination_output_uri: str,
+    batch_predict_model_parameters: Dict[str, str] = {},
     model_name: str = 'publishers/google/models/text-bison@001',
     evaluation_task: str = 'text-generation',
     batch_predict_instances_format: str = 'jsonl',
@@ -41,7 +41,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     encryption_spec_key_name: str = '',
     evaluation_display_name: str = 'evaluation-llm-text-generation-pipeline-{{$.pipeline_job_uuid}}',
 ) -> NamedTuple(
-    'outputs', evaluation_metrics=Metrics, evaluation_resource_name=str
+    'outputs', evaluation_metrics=dsl.Metrics, evaluation_resource_name=str
 ):
   # fmt: off
   """LLM Text Generation Evaluation pipeline.
@@ -58,6 +58,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     evaluation_task: The task that the large language model will be evaluated on. The evaluation component computes a set of metrics relevant to that specific task. Currently supported tasks are: `summarization`, `question-answering`, `text-generation`.
     batch_predict_instances_format: The format in which instances are given, must be one of the Model's supportedInputStorageFormats. Only "jsonl" is currently supported. For more details about this input config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
     batch_predict_predictions_format: The format in which Vertex AI gives the predictions. Must be one of the Model's supportedOutputStorageFormats. Only "jsonl" is currently supported. For more details about this output config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
+    batch_predict_model_parameters: A map of parameters that govern the predictions. Some acceptable parameters include: maxOutputTokens, topK, topP, and temperature.
     machine_type: The machine type of this custom job. If not set, defaulted to `e2-highmem-16`. More details: https://cloud.google.com/compute/docs/machine-resource
     service_account: Sets the default service account for workload run-as account. The service account running the pipeline (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account) submitting jobs must have act-as permission on this run-as account. If unspecified, the Vertex AI Custom Code Service Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents) for the CustomJob's project.
     network: The full name of the Compute Engine network to which the job should be peered. For example, `projects/12345/global/networks/myVPC`. Format is of the form `projects/{project}/global/networks/{network}`. Where `{project}` is a project number, as in `12345`, and `{network}` is a network name, as in `myVPC`. To specify this field, you must have already configured VPC Network Peering for Vertex AI (https://cloud.google.com/vertex-ai/docs/general/vpc-peering). If left unspecified, the job is not peered with any network.
@@ -71,7 +72,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
   # fmt: on
   outputs = NamedTuple(
       'outputs',
-      evaluation_metrics=Metrics,
+      evaluation_metrics=dsl.Metrics,
       evaluation_resource_name=str,
   )
 
@@ -93,6 +94,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       instances_format=batch_predict_instances_format,
       predictions_format=batch_predict_predictions_format,
       gcs_destination_output_uri_prefix=batch_predict_gcs_destination_output_uri,
+      model_parameters=batch_predict_model_parameters,
       encryption_spec_key_name=encryption_spec_key_name,
   )
 
