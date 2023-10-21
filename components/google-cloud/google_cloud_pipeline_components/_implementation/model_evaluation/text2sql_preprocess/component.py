@@ -24,7 +24,7 @@ from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 @container_component
 def text2sql_evaluation_preprocess(
     gcp_resources: OutputPath(str),
-    model_inference_input_path: OutputPath(str),
+    model_inference_input_path: OutputPath(list),
     project: str,
     location: str,
     evaluation_data_source_path: str,
@@ -72,7 +72,7 @@ def text2sql_evaluation_preprocess(
   Returns:
       gcp_resources (str):
         Serialized gcp_resources proto tracking the custom job.
-      model_inference_input_path (str):
+      model_inference_input_path (list):
         The GCS path to save preprocessed data to run batch
         prediction to get table names.
   """
