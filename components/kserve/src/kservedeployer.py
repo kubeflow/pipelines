@@ -313,7 +313,7 @@ def main():
         "--resource-limits",
         type=json.loads,
         help="CPU and Memory limits for Model Serving",
-        default="{'cpu': '1', 'memory': '1Gi'}",
+        default='{"cpu": "1", "memory": "1Gi"}',
     )
     parser.add_argument(
         "--custom-model-spec",
