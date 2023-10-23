@@ -6,6 +6,7 @@
 * Support collecting outputs from conditional branches using `dsl.OneOf` [\#10067](https://github.com/kubeflow/pipelines/pull/10067)
 
 ## Deprecations
+* Add notice of Python 3.7 support removal on April 23, 2024 [\#10139](https://github.com/kubeflow/pipelines/pull/10139)
 
 ## Bug fixes and other changes
 * Fix type on `dsl.ParallelFor` sub-DAG output when a `dsl.Collected` is used. Non-functional fix. [\#10069](https://github.com/kubeflow/pipelines/pull/10069)
