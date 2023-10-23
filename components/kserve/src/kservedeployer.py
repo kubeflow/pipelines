@@ -21,7 +21,7 @@ import time
 import yaml
 
 from kubernetes import client
-from kubernetes import V1ResourceRequirements
+from kubernetes.client.models import V1ResourceRequirements
 
 from kserve import constants
 from kserve import KServeClient
