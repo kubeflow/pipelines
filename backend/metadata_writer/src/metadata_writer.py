@@ -94,14 +94,14 @@ def output_name_to_argo(name: str) -> str:
     # See https://github.com/kubeflow/pipelines/blob/39975e3cde7ba4dcea2bca835b92d0fe40b1ae3c/sdk/python/kfp/compiler/_k8s_helper.py#L33
     return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-', name)).strip('-')
 
-def is_s3_endpoint(endpoint: str) -> bool:
-    return re.search('^.*s3.*amazonaws.com.*$', endpoint)
+def is_minio_endpoint(endpoint: str) -> bool:
+    return "minio" in endpoint
 
 def get_object_store_provider(endpoint: str) -> bool:
-    if is_s3_endpoint(endpoint):
-        return 's3'
-    else:
+    if is_minio_endpoint(endpoint):
         return 'minio'
+    else:
+        return 's3'
 
 def argo_artifact_to_uri(artifact: dict) -> str:
     # s3 here means s3 compatible object storage. not AWS S3.
