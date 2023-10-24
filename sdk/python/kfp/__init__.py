@@ -18,6 +18,17 @@ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
 __version__ = '2.3.0'
 
+import sys
+import warnings
+
+if sys.version_info < (3, 8):
+    warnings.warn(
+        ('Python 3.7 has reached end-of-life. KFP will drop support for Python 3.7 on April 23, 2024. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.8. See https://devguide.python.org/versions/ for more details.'
+        ),
+        FutureWarning,
+        stacklevel=2,
+    )
+
 TYPE_CHECK = True
 
 import os
