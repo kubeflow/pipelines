@@ -16,7 +16,9 @@
 from google_cloud_pipeline_components import utils as gcpc_utils
 from google_cloud_pipeline_components._implementation.model_evaluation import utils
 from google_cloud_pipeline_components._implementation.model_evaluation import version
+from kfp.dsl import Artifact
 from kfp.dsl import container_component
+from kfp.dsl import Input
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
@@ -24,10 +26,11 @@ from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 @container_component
 def text2sql_evaluation_validate_and_process(
     gcp_resources: OutputPath(str),
-    model_inference_input_path: OutputPath(str),
+    model_inference_input_path: OutputPath(list),
     project: str,
     location: str,
-    model_inference_results_path: str,
+    model_inference_type: str,
+    model_inference_results_directory: Input[Artifact],
     tables_metadata_path: str,
     prompt_template_path: str = '',
     display_name: str = 'text2sql-evaluation-validate-and-process',
@@ -41,8 +44,11 @@ def text2sql_evaluation_validate_and_process(
   Args:
       project: Required. The GCP project that runs the pipeline component.
       location: Required. The GCP region that runs the pipeline component.
-      model_inference_results_path: Required. The path for json file containing
-        text2sql model inference results from the last step.
+      model_inference_type: Required. Model inference type to differentiate
+        model inference results validataion steps, values can be table_name_case
+        or column_name_case.
+      model_inference_results_directory: Required. The directory to store all of
+        files containing text2sql model inference results from the last step.
       tables_metadata_path: Required. The path for json file containing database
         metadata, including table names, schema fields.
       prompt_template_path: Required. The path for json file containing prompt
@@ -86,7 +92,8 @@ def text2sql_evaluation_validate_and_process(
               f'--text2sql_validate_and_process={True}',
               f'--project={project}',
               f'--location={location}',
-              f'--model_inference_results_path={model_inference_results_path}',
+              f'--model_inference_type={model_inference_type}',
+              f'--model_inference_results_directory={model_inference_results_directory.path}',
               f'--tables_metadata_path={tables_metadata_path}',
               f'--prompt_template_path={prompt_template_path}',
               f'--root_dir={PIPELINE_ROOT_PLACEHOLDER}',
