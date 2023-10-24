@@ -19,6 +19,7 @@ from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.llm import bulk_inferrer
 from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
+from google_cloud_pipeline_components._implementation.llm import preprocess_chat_dataset
 from google_cloud_pipeline_components._implementation.llm import private_text_importer
 import kfp
 
@@ -48,7 +49,7 @@ def infer_pipeline(
   Args:
     large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
     model_checkpoint: Optional Cloud storage path to the model checkpoint. If not provided, the default checkpoint for the `large_model_reference` will be used.
-    prompt_dataset: Cloud storage path to an unlabled prompt dataset used for reinforcement learning. The dataset format is jsonl. Each example in the dataset must have an `input_text` field that contains the prompt.
+    prompt_dataset: Cloud storage path to an unlabled JSONL dataset that contains prompts. Text datasets must contain an `input_text` field that contains the prompt. Chat datasets must contain at least 1 message in a `messages` field. Each message must be valid JSON that contains `author` and `content` fields, where valid `author` values are `user` and `assistant` and `content` must be non-empty. Each row may contain multiple messages, but the first and last author must be the `user`. An optional `context` field may be provided for each example in a chat dataset. If provided, the `context` will preprended to the message `content`. The `instruction` serves as the default context. (Useful if most messages use the same system-level context.) Any context provided in the example will override the default value.
     prompt_sequence_length: Maximum tokenized sequence length for input text. Higher values increase memory overhead. This value should be at most 8192. Default value is 512.
     target_sequence_length:  Maximum tokenized sequence length for target text. Higher values increase memory overhead. This value should be at most 1024. Default value is 64.
     sampling_strategy: This field specifies the sampling strategy. The valid options are 'greedy' and 'temperature_sampling'.
@@ -70,6 +71,17 @@ def infer_pipeline(
       reference_model_path=model_checkpoint,
   ).set_display_name('Resolve Model Metadata')
 
+  processed_dataset = preprocess_chat_dataset.preprocess_chat_dataset(
+      large_model_reference=large_model_reference,
+      input_dataset_uri=prompt_dataset,
+      default_context=instruction,
+      is_prompt_dataset=True,
+  ).set_display_name('Preprocess Dataset')
+
+  resolved_text_instruction = function_based.resolve_instruction(
+      large_model_reference=large_model_reference,
+      instruction=instruction,
+  ).set_display_name('Resolve Instruction')
   prompt_dataset_image_uri = function_based.resolve_private_image_uri(
       image_name='text_importer',
   ).set_display_name('Resolve Prompt Dataset Image URI')
@@ -77,7 +89,7 @@ def infer_pipeline(
       private_text_importer.PrivateTextImporter(
           project=project,
           location=location,
-          input_text=prompt_dataset,
+          input_text=processed_dataset.outputs['processed_dataset_uri'],
           inputs_field_name=prompt_column,
           targets_field_name='',  # ignore targets_field_name
           output_split_name=env.TRAIN_SPLIT,
@@ -85,7 +97,7 @@ def infer_pipeline(
               'large_model_reference'
           ],
           image_uri=prompt_dataset_image_uri.output,
-          instruction=instruction,
+          instruction=resolved_text_instruction.output,
       )
       .set_display_name('Import Prompt Dataset')
       .set_caching_options(False)
