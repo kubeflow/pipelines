@@ -73,10 +73,6 @@ def evaluation_llm_text2sql_pipeline(
       must be one of the Model's supportedInputStorageFormats. If not set,
       default to "jsonl".  For more details about this input config, see
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
-    batch_predict_instances_format: The format in which perdictions are made,
-      must be one of the Model's supportedInputStorageFormats. If not set,
-      default to "jsonl".  For more details about this input config, see
-      https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
     machine_type: The machine type of this custom job. If not set, defaulted to
       `e2-highmem-16`. More details:
       https://cloud.google.com/compute/docs/machine-resource
@@ -148,9 +144,11 @@ def evaluation_llm_text2sql_pipeline(
       location=location,
       sql_dialect=sql_dialect,
       evaluation_method=evaluation_method,
-      # TODO(bozhengbz) Add value to model_inference_results_path
-      # when model batch prediction component is added.
-      model_inference_results_path='gs://test/model_inference_results.json',
+      # TODO(bozhengbz) Change value to model_inference_results_directory
+      # when sql query model batch prediction component is added.
+      model_inference_results_directory=batch_predict_table_names_task.outputs[
+          'gcs_output_directory'
+      ],
       tables_metadata_path=tables_metadata_path,
       machine_type=machine_type,
       service_account=service_account,
