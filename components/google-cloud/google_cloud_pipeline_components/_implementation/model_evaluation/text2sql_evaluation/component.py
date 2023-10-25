@@ -16,7 +16,9 @@
 from google_cloud_pipeline_components import utils as gcpc_utils
 from google_cloud_pipeline_components._implementation.model_evaluation import utils
 from google_cloud_pipeline_components._implementation.model_evaluation import version
+from kfp.dsl import Artifact
 from kfp.dsl import container_component
+from kfp.dsl import Input
 from kfp.dsl import Metrics
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
@@ -33,7 +35,7 @@ def text2sql_evaluation(
     location: str,
     sql_dialect: str,
     evaluation_method: str,
-    model_inference_results_path: str,
+    model_inference_results_directory: Input[Artifact],
     tables_metadata_path: str,
     display_name: str = 'text2sql-evaluation',
     machine_type: str = 'e2-highmem-16',
@@ -49,8 +51,8 @@ def text2sql_evaluation(
       sql_dialect: Required. SQL dialect type, e.g. bigquery, mysql, etc.
       evaluation_method: Required. Text2SQL evaluation method, value can be
         'parser', 'execution', 'all'.
-      model_inference_results_path: Required. The path for json file containing
-        text2sql model inference results from the last step.
+      model_inference_results_directory: Required. The path for json file
+        containing text2sql model inference results from the last step.
       tables_metadata_path: Required. The path for json file containing database
         metadata, including table names, schema fields.
       display_name: The name of the Evaluation job.
@@ -98,7 +100,7 @@ def text2sql_evaluation(
               f'--location={location}',
               f'--sql_dialect={sql_dialect}',
               f'--evaluation_method={evaluation_method}',
-              f'--model_inference_results_path={model_inference_results_path}',
+              f'--model_inference_results_directory={model_inference_results_directory.path}',
               f'--tables_metadata_path={tables_metadata_path}',
               f'--root_dir={PIPELINE_ROOT_PLACEHOLDER}',
               f'--gcp_resources={gcp_resources}',
