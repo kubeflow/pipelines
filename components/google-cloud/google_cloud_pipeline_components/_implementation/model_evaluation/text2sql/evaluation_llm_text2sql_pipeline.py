@@ -110,7 +110,7 @@ def evaluation_llm_text2sql_pipeline(
   )
 
   batch_predict_table_names_task = ModelBatchPredictOp(
-      job_display_name='text2sql-batch-predict-table-names-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+      job_display_name='text2sql-batch-prediction-table-names-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
       model=get_vertex_model_task.outputs['artifact'],
       location=location,
       instances_format=batch_predict_instances_format,
@@ -124,11 +124,43 @@ def evaluation_llm_text2sql_pipeline(
       project=project,
   )
 
-  _ = Text2SQLEvaluationValidateAndProcessOp(
+  validate_table_names_and_process_task = Text2SQLEvaluationValidateAndProcessOp(
       project=project,
       location=location,
       model_inference_type='table_name_case',
       model_inference_results_directory=batch_predict_table_names_task.outputs[
+          'gcs_output_directory'
+      ],
+      tables_metadata_path=tables_metadata_path,
+      prompt_template_path=prompt_template_path,
+      machine_type=machine_type,
+      service_account=service_account,
+      network=network,
+      encryption_spec_key_name=encryption_spec_key_name,
+  )
+
+  batch_predict_column_names_task = ModelBatchPredictOp(
+      job_display_name='text2sql-batch-prediction-column-names-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+      model=get_vertex_model_task.outputs['artifact'],
+      location=location,
+      instances_format=batch_predict_instances_format,
+      predictions_format=batch_predict_predictions_format,
+      gcs_source_uris=validate_table_names_and_process_task.outputs[
+          'model_inference_input_path'
+      ],
+      model_parameters=model_parameters,
+      gcs_destination_output_uri_prefix=(
+          f'{PIPELINE_ROOT_PLACEHOLDER}/batch_predict_column_names_output'
+      ),
+      encryption_spec_key_name=encryption_spec_key_name,
+      project=project,
+  )
+
+  _ = Text2SQLEvaluationValidateAndProcessOp(
+      project=project,
+      location=location,
+      model_inference_type='column_name_case',
+      model_inference_results_directory=batch_predict_column_names_task.outputs[
           'gcs_output_directory'
       ],
       tables_metadata_path=tables_metadata_path,
