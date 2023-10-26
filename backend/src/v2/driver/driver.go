@@ -768,7 +768,11 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("parent DAG input parameters %+v", inputParams)
+	inputArtifacts, err := mlmd.GetInputArtifactsByExecutionID(ctx, dag.Execution.GetID())
+	if err != nil {
+		return nil, err
+	}
+	glog.Infof("parent DAG input parameters: %+v, artifacts: %+v", inputParams, inputArtifacts)
 	inputs = &pipelinespec.ExecutorInput_Inputs{
 		ParameterValues: make(map[string]*structpb.Value),
 		Artifacts:       make(map[string]*pipelinespec.ArtifactList),
@@ -998,7 +1002,15 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		}
 		switch t := artifactSpec.Kind.(type) {
 		case *pipelinespec.TaskInputsSpec_InputArtifactSpec_ComponentInputArtifact:
-			return nil, artifactError(fmt.Errorf("component input artifact not implemented yet"))
+			inputArtifactName := artifactSpec.GetComponentInputArtifact()
+			if inputArtifactName == "" {
+				return nil, artifactError(fmt.Errorf("component input artifact key is empty"))
+			}
+			v, ok := inputArtifacts[inputArtifactName]
+			if !ok {
+				return nil, artifactError(fmt.Errorf("parent DAG does not have input artifact %s", inputArtifactName))
+			}
+			inputs.Artifacts[name] = v
 
 		case *pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact:
 			taskOutput := artifactSpec.GetTaskOutputArtifact()
