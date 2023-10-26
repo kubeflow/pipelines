@@ -20,6 +20,7 @@ from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.llm import deploy_llm_model
 from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
+from google_cloud_pipeline_components._implementation.llm import preprocess_chat_dataset
 from google_cloud_pipeline_components._implementation.llm import private_text_comparison_importer
 from google_cloud_pipeline_components._implementation.llm import private_text_importer
 from google_cloud_pipeline_components._implementation.llm import reinforcer
@@ -61,8 +62,8 @@ def rlhf_pipeline(
   """Performs reinforcement learning from human feedback.
 
   Args:
-    prompt_dataset: Cloud storage path to an unlabled prompt dataset used for reinforcement learning. The dataset format is jsonl. Each example in the dataset must have an `input_text` field that contains the prompt.
-    preference_dataset: Cloud storage path to a human preference dataset used to train a reward model. The dataset format is jsonl. Each example in the dataset must contain the following fields: `input_text` that contains the prompt, `candidate_0` and `candidate_1` that contain candidate responses, `choice` that specifies the preferred candidate.
+    prompt_dataset: Cloud storage path to an unlabled JSONL dataset that contains prompts. Text datasets must contain an `input_text` field that contains the prompt. Chat datasets must contain at least 1 message in a `messages` field. Each message must be valid JSON that contains `author` and `content` fields, where valid `author` values are `user` and `assistant` and `content` must be non-empty. Each row may contain multiple messages, but the first and last author must be the `user`. An optional `context` field may be provided for each example in a chat dataset. If provided, the `context` will preprended to the message `content`. The `instruction` serves as the default context. (Useful if most messages use the same system-level context.) Any context provided in the example will override the default value.
+    preference_dataset: Cloud storage path to a human preference JSONL dataset used to train a reward model. Each example in a preference dataset must contain `candidate_0` and `candidate_1` fields that contain candidate responses, `choice` that specifies the preferred candidate and either `input_text` (if tuning a text model) or `messages` (if tuning a chat model). Chat datasets must contain at least 1 message in a `messages` field. Each message must be valid JSON that contains `author` and `content` fields, where valid `author` values are `user` and `assistant` and `content` must be non-empty. Each row may contain multiple messages, but the first and last author must be the `user`. An optional `context` field may be provided for each example in a chat dataset. If provided, the `context` will preprended to the message `content`. The `instruction` serves as the default context. (Useful if most messages use the same system-level context.) Any context provided in the example will override the default value.
     large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
     model_display_name: Name of the fine-tuned model shown in the Model Registry. If not provided, a default name will be created.
     prompt_sequence_length: Maximum tokenized sequence length for input text. Higher values increase memory overhead. This value should be at most 8192. Default value is 512.
@@ -99,6 +100,13 @@ def rlhf_pipeline(
       large_model_reference=large_model_reference,
   ).set_display_name('Resolve Model Metadata')
 
+  processed_dataset = preprocess_chat_dataset.preprocess_chat_dataset(
+      large_model_reference=large_model_reference,
+      input_dataset_uri=prompt_dataset,
+      default_context=instruction,
+      dataset_type='prompt',
+  ).set_display_name('Preprocess Prompt Dataset')
+
   prompt_dataset_image_uri = function_based.resolve_private_image_uri(
       image_name='text_importer'
   ).set_display_name('Resolve Prompt Dataset Image URI')
@@ -106,7 +114,7 @@ def rlhf_pipeline(
       private_text_importer.PrivateTextImporter(
           project=project,
           location=location,
-          input_text=prompt_dataset,
+          input_text=processed_dataset.outputs['processed_dataset_uri'],
           inputs_field_name=prompt_column,
           # Target field name does not matter because this field is not used.
           targets_field_name='non_existent_targets_field_name',
@@ -121,6 +129,15 @@ def rlhf_pipeline(
       .set_caching_options(False)
   )
 
+  processed_preference_dataset = (
+      preprocess_chat_dataset.preprocess_chat_dataset(
+          large_model_reference=large_model_reference,
+          input_dataset_uri=preference_dataset,
+          default_context=instruction,
+          dataset_type='preference',
+      ).set_display_name('Preprocess Prompt Dataset')
+  )
+
   preference_dataset_image_uri = function_based.resolve_private_image_uri(
       image_name='text_comparison_importer'
   ).set_display_name('Resolve Preference Dataset Image URI')
@@ -131,7 +148,9 @@ def rlhf_pipeline(
       private_text_comparison_importer.PrivateTextComparisonImporter(
           project=project,
           location=location,
-          input_text=preference_dataset,
+          input_text=processed_preference_dataset.outputs[
+              'processed_dataset_uri'
+          ],
           inputs_field_name=prompt_column,
           comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
           choice_field_name=choice_column,
