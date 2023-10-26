@@ -175,12 +175,12 @@ class ReadWriteTest(parameterized.TestCase):
         """Tests serialization and deserialization consistency and correctness.
 
         Args:
-            name (str): '{test_group_name}-{test_case_name}'. Useful for print statements/debugging.
-            test_case (str): Test case name (without file extension).
-            test_data_dir (str): The directory containing the test case files.
-            function (str, optional): The function name to compile.
-            read (bool): Whether the pipeline/component supports deserialization from YAML (IR, except for V1 component YAML back compatability tests).
-            write (bool): Whether the pipeline/component supports compilation from a Python file.
+            name: '{test_group_name}-{test_case_name}'. Useful for print statements/debugging.
+            test_case: Test case name (without file extension).
+            test_data_dir: The directory containing the test case files.
+            function: The function name to compile.
+            read: Whether the pipeline/component supports deserialization from YAML (IR, except for V1 component YAML back compatability tests).
+            write: Whether the pipeline/component supports compilation from a Python file.
         """
         yaml_file = os.path.join(test_data_dir, f'{test_case}.yaml')
         py_file = os.path.join(test_data_dir, f'{test_case}.py')
