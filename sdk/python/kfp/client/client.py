@@ -32,6 +32,7 @@ from google.protobuf import json_format
 from kfp import compiler
 from kfp.client import auth
 from kfp.client import set_volume_credentials
+from kfp.client.token_credentials_base import TokenCredentialsBase
 from kfp.dsl import base_component
 from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
@@ -150,7 +151,7 @@ class Client:
         proxy: Optional[str] = None,
         ssl_ca_cert: Optional[str] = None,
         kube_context: Optional[str] = None,
-        credentials: Optional[str] = None,
+        credentials: Optional[TokenCredentialsBase] = None,
         ui_host: Optional[str] = None,
         verify_ssl: Optional[bool] = None,
     ) -> None:
@@ -221,7 +222,7 @@ class Client:
         proxy: Optional[str],
         ssl_ca_cert: Optional[str],
         kube_context: Optional[str],
-        credentials: Optional[str],
+        credentials: Optional[TokenCredentialsBase],
         verify_ssl: Optional[bool],
     ) -> kfp_server_api.Configuration:
         config = kfp_server_api.Configuration()
