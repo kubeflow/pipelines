@@ -1,5 +1,47 @@
 # Changelog
 
+### [2.0.3](https://github.com/kubeflow/pipelines/compare/2.0.2...2.0.3) (2023-10-27)
+
+
+### Features
+
+* **backend:** Support consuming parent DAG input artifact ([\#10162](https://github.com/kubeflow/pipelines/issues/10162)) ([52f5cf5](https://github.com/kubeflow/pipelines/commit/52f5cf51c4a6c233aae57125561c0fc95c4fd20f))
+* **backend:** Update driver and launcher images ([\#10164](https://github.com/kubeflow/pipelines/issues/10164)) ([c0093ec](https://github.com/kubeflow/pipelines/commit/c0093ecef6bc5f056efa135d019267327115d79d))
+* **components:** [endpoint_batch_predict] Initialize component ([0d75611](https://github.com/kubeflow/pipelines/commit/0d7561199751e83b4d7e1603c3d32d4088a7e208))
+* **components:** [text2sql] Generate column names by model batch predict ([1bee8be](https://github.com/kubeflow/pipelines/commit/1bee8be071a91f44c0129837c381863327cb337d))
+* **components:** [text2sql] Generate table names by model batch prediction ([ebb4245](https://github.com/kubeflow/pipelines/commit/ebb42450d0b07eaa8de35a3f6b70eacb5f26f0d8))
+* **components:** [text2sql] Implement preprocess component logic ([21079b5](https://github.com/kubeflow/pipelines/commit/21079b5910e597a38b67853f3ecfb3929344371e))
+* **components:** [text2sql] Initialize  preprocess component and integrate with text2sql pipeline ([9aa750e](https://github.com/kubeflow/pipelines/commit/9aa750e62f6e225d037ecdda9bf7cab95f05675d))
+* **components:** [text2sql] Initialize evaluation component ([ea93979](https://github.com/kubeflow/pipelines/commit/ea93979eed02e131bd20180da149b9465670dfe1))
+* **components:** [text2sql] Initialize validate and process component ([633ddeb](https://github.com/kubeflow/pipelines/commit/633ddeb07e9212d2e373dba8d20a0f6d67ab037d))
+* **components:** Add ability to preprocess chat llama datasets to `_implementation.llm.chat_dataset_preprocessor` ([99fd201](https://github.com/kubeflow/pipelines/commit/99fd2017a76660f30d0a04b71542cbef45783633))
+* **components:** Add question_answer support for AutoSxS default instructions ([412216f](https://github.com/kubeflow/pipelines/commit/412216f832a848bfc61ce289aed819d7f2860fdd))
+* **components:** Add sliced evaluation metrics support for custom and unstructured AutoML models in evaluation feature attribution pipeline ([d8a0660](https://github.com/kubeflow/pipelines/commit/d8a0660df525f5695015e507e981bceff836dd3d))
+* **components:** Add sliced evaluation metrics support for custom and unstructured AutoML models in evaluation pipeline ([0487f9a](https://github.com/kubeflow/pipelines/commit/0487f9a8b1d8ab0d96d757bd4b598ffd353ecc81))
+* **components:** add support for customizing model_parameters in LLM eval text generation and LLM eval text classification pipelines ([d53ddda](https://github.com/kubeflow/pipelines/commit/d53dddab1c8a042e58e06ff6eb38be82fefddb0a))
+* **components:** Make `model_checkpoint` optional for `preview.llm.infer_pipeline` ([e8fb699](https://github.com/kubeflow/pipelines/commit/e8fb6990dfdf036c941c522f9b384ff679b38ca6))
+* **components:** migrate `DataflowFlexTemplateJobOp` to GA namespace (now `v1.dataflow.DataflowFlexTemplateJobOp`) ([faba922](https://github.com/kubeflow/pipelines/commit/faba9223ee846d459f7bb497a6faa3c153dcf430))
+* **components:** Set display names for SFT, RLHF and LLM inference pipelines ([1386a82](https://github.com/kubeflow/pipelines/commit/1386a826ba2bcdbc19eb2007ca43f6acd1031e4d))
+* **components:** Support service account in kubeflow model_batch_predict component ([1682ce8](https://github.com/kubeflow/pipelines/commit/1682ce8adeb2c55a155588eae7492b2f0a8b783a))
+* **components:** Update image tag used by llm pipelines ([4d71fda](https://github.com/kubeflow/pipelines/commit/4d71fdac3fc92dd4d54c6be3a28725667b8f3c5e))
+* **sdk:** support a Pythonic artifact authoring style ([\#9932](https://github.com/kubeflow/pipelines/issues/9932)) ([8d00d0e](https://github.com/kubeflow/pipelines/commit/8d00d0eb9a1442ed994b6a90acea88604efc6423))
+* **sdk:** support collecting outputs from conditional branches using `dsl.OneOf` ([\#10067](https://github.com/kubeflow/pipelines/issues/10067)) ([2d3171c](https://github.com/kubeflow/pipelines/commit/2d3171cbfec626055e59b8a58ce83fb54ecad113))
+
+
+### Bug Fixes
+
+* **components:** [text2sql] Turn model_inference_results_path to model_inference_results_directory and remove duplicate comment ([570e56d](https://github.com/kubeflow/pipelines/commit/570e56dd09af32e173cf041eed7497e4533ec186))
+* **frontend:** Replace twitter artifactory endpoint with npm endpoint. ([\#10099](https://github.com/kubeflow/pipelines/issues/10099)) ([da6a360](https://github.com/kubeflow/pipelines/commit/da6a3601468282c0592eae8e89a3d97b982e2d43))
+* **sdk:** fix bug when `dsl.importer` argument is provided by loop variable ([\#10116](https://github.com/kubeflow/pipelines/issues/10116)) ([73d51c8](https://github.com/kubeflow/pipelines/commit/73d51c8a23afad97efb6d7e7436c081fa22ce24d))
+* **sdk:** Fix OOB for IPython and refactor. Closes [\#10075](https://github.com/kubeflow/pipelines/issues/10075). ([\#10094](https://github.com/kubeflow/pipelines/issues/10094)) ([c903271](https://github.com/kubeflow/pipelines/commit/c9032716ab2013df56cb1078a703d48ed8e36fb4))
+* **sdk:** type annotation for client credentials ([\#10158](https://github.com/kubeflow/pipelines/issues/10158)) ([02e00e8](https://github.com/kubeflow/pipelines/commit/02e00e8439e9753dbf82856ac9c5a7cec8ce3243))
+
+
+### Other Pull Requests
+
+* feat(components) Extend kserve component ([\#10136](https://github.com/kubeflow/pipelines/issues/10136)) ([2054b7c](https://github.com/kubeflow/pipelines/commit/2054b7c45d4831c787115563c8be0048abcb9be1))
+* No public description ([0e240db](https://github.com/kubeflow/pipelines/commit/0e240db39799cb0afbd8c7f982ffdd4f9eb58121))
+
 ### [2.0.2](https://github.com/kubeflow/pipelines/compare/2.0.0...2.0.2) (2023-10-11)
 
 
