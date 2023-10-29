@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import ast
 from distutils.util import strtobool
 import json
 import os
@@ -21,6 +22,8 @@ import time
 import yaml
 
 from kubernetes import client
+from kubernetes.client import V1Container
+from kubernetes.client import V1EnvVar
 from kubernetes.client.models import V1ResourceRequirements
 
 from kserve import constants
@@ -36,6 +39,7 @@ from kserve import V1beta1TFServingSpec
 from kserve import V1beta1TorchServeSpec
 from kserve import V1beta1TritonSpec
 from kserve import V1beta1XGBoostSpec
+from kserve import V1beta1TransformerSpec
 from kserve.api.watch import isvc_watch
 
 
@@ -95,6 +99,34 @@ def create_predictor_spec(framework, runtime_version, resource_requests, resourc
     return predictor_spec
 
 
+def create_transformer_spec(resource_requests, resource_limits, docker_image, 
+                            image_args, storage_uri, service_account, min_replicas, 
+                            max_replicas, request_timeout):
+    """
+    Create and return V1beta1TransformerSpec to be used in a V1beta1InferenceServiceSpec
+    object.
+    """
+    if docker_image:
+        return V1beta1TransformerSpec(
+            min_replicas=(min_replicas if min_replicas >= 0 else None),
+            max_replicas=(max_replicas if max_replicas > 0 and max_replicas >= min_replicas else None),
+            service_account_name=service_account,
+            timeout=request_timeout,
+            containers=[V1Container(
+                name="kserve-transformer",
+                image=docker_image,
+                args=(image_args if image_args else None),
+                env=[(V1EnvVar(name="STORAGE_URI", value=storage_uri) if storage_uri else None)],
+                resources=V1ResourceRequirements(
+                    requests=resource_requests, 
+                    limits=resource_limits
+                )
+            )]
+        )
+    else:
+        return None
+
+
 def create_custom_container_spec(custom_model_spec):
     """
     Given a JSON container spec, return a V1Container object
@@ -146,7 +178,7 @@ def create_custom_container_spec(custom_model_spec):
     )
 
 
-def create_inference_service(metadata, predictor_spec):
+def create_inference_service(metadata, transformer_spec, predictor_spec):
     """
     Build and return V1beta1InferenceService object.
     """
@@ -155,6 +187,7 @@ def create_inference_service(metadata, predictor_spec):
         kind=constants.KSERVE_KIND,
         metadata=metadata,
         spec=V1beta1InferenceServiceSpec(
+            transformer=transformer_spec,
             predictor=predictor_spec
         ),
     )
@@ -187,10 +220,14 @@ def submit_api_request(kserve_client, action, name, isvc, namespace=None,
         return outputs
 
 
-def perform_action(action, model_name, model_uri, canary_traffic_percent, namespace, framework, 
-                   runtime_version, resource_requests, resource_limits, custom_model_spec, 
-                   service_account, inferenceservice_yaml, request_timeout, autoscaling_target=0, 
-                   enable_istio_sidecar=True, watch_timeout=300, min_replicas=0, max_replicas=0):
+def perform_action(action, model_name, namespace, pred_model_uri, pred_canary_traffic_percent, 
+                   pred_framework, pred_runtime_version, pred_resource_requests, 
+                   pred_resource_limits, pred_custom_model_spec, service_account, 
+                   inferenceservice_yaml, pred_request_timeout, transf_resource_requests, 
+                   transf_uri, transf_request_timeout, transf_resource_limits, transf_image, 
+                   transf_args, autoscaling_target=0, enable_istio_sidecar=True, 
+                   watch_timeout=300, pred_min_replicas=0, pred_max_replicas=0, 
+                   transf_min_replicas=0, transf_max_replicas=0):
     """
     Perform the specified action. If the action is not 'delete' and `inferenceService_yaml`
     was provided, the dict representation of the YAML will be sent directly to the
@@ -227,18 +264,24 @@ def perform_action(action, model_name, model_uri, canary_traffic_percent, namesp
 
         # If a custom model container spec was provided, build the V1Container
         # object using it.
-        containers = []
-        if custom_model_spec:
-            containers = [create_custom_container_spec(custom_model_spec)]
+        pred_containers = []
+        if pred_custom_model_spec:
+            pred_containers = [create_custom_container_spec(pred_custom_model_spec)]
 
-        # Build the V1beta1PredictorSpec.
+        # Build the V1beta1PredictorSpec and V1beta1TransformerSpec
         predictor_spec = create_predictor_spec(
-            framework, runtime_version, resource_requests, resource_limits, 
-            model_uri, canary_traffic_percent, service_account, min_replicas, 
-            max_replicas, containers, request_timeout
+            pred_framework, pred_runtime_version, pred_resource_requests, pred_resource_limits, 
+            pred_model_uri, pred_canary_traffic_percent, service_account, pred_min_replicas, 
+            pred_max_replicas, pred_containers, pred_request_timeout
         )
 
-        isvc = create_inference_service(metadata, predictor_spec)
+        transformer_spec = create_transformer_spec(
+            transf_resource_requests, transf_resource_limits, transf_image, transf_args, 
+            transf_uri, service_account, transf_min_replicas, transf_max_replicas,
+            transf_request_timeout
+        )
+        
+        isvc = create_inference_service(metadata, transformer_spec, predictor_spec)
 
     if action == "create":
         submit_api_request(kserve_client, 'create', model_name, isvc, namespace,
@@ -271,64 +314,16 @@ def main():
         "--action", type=str, help="Action to execute on KServe", default="create"
     )
     parser.add_argument(
-        "--model-name", type=str, help="Name to give to the deployed model"
-    )
-    parser.add_argument(
-        "--model-uri",
-        type=str,
-        help="Path of the S3, GCS or PVC directory containing the model",
-    )
-    parser.add_argument(
-        "--canary-traffic-percent",
-        type=str,
-        help="The traffic split percentage between the candidate model and the last ready model",
-        default="100",
+        "--model-name", type=str, help="Name to give to the deployed InferenceService"
     )
     parser.add_argument(
         "--namespace",
         type=str,
-        help="Kubernetes namespace where the KServe service is deployed",
+        help="Kubernetes namespace where the InferenceService is deployed",
         default="",
-    )
-    parser.add_argument(
-        "--framework",
-        type=str,
-        help="Model serving framework to use. Available frameworks: " +
-             str(list(AVAILABLE_FRAMEWORKS.keys())),
-        default=""
-    )
-    parser.add_argument(
-        "--runtime-version",
-        type=str,
-        help="Runtime Version of Machine Learning Framework",
-        default="latest"
-    )
-    parser.add_argument(
-        "--resource-requests",
-        type=json.loads,
-        help="CPU and Memory requests for Model Serving",
-        default='{"cpu": "0.5", "memory": "512Mi"}',
-    )
-    parser.add_argument(
-        "--resource-limits",
-        type=json.loads,
-        help="CPU and Memory limits for Model Serving",
-        default='{"cpu": "1", "memory": "1Gi"}',
-    )
-    parser.add_argument(
-        "--custom-model-spec",
-        type=json.loads,
-        help="The container spec for a custom model runtime",
-        default="{}",
     )
     parser.add_argument(
         "--autoscaling-target", type=str, help="Autoscaling target number", default="0"
-    )
-    parser.add_argument(
-        "--service-account",
-        type=str,
-        help="Service account containing s3 credentials",
-        default="",
     )
     parser.add_argument(
         "--enable-istio-sidecar",
@@ -337,53 +332,169 @@ def main():
         default="True"
     )
     parser.add_argument(
+        "--enable-isvc-status",
+        type=strtobool,
+        help="Specifies whether to store the inference service status as the output parameter",
+        default="True"
+    )
+    parser.add_argument(
         "--inferenceservice-yaml",
         type=yaml.safe_load,
         help="Raw InferenceService serialized YAML for deployment",
         default="{}"
     )
+    parser.add_argument(
+        "--watch-timeout",
+        type=str,
+        help="Timeout seconds for watching until InferenceService becomes ready",
+        default="300"
+    )
+    parser.add_argument(
+        "--service-account",
+        type=str,
+        help="Service account containing AWS S3, GCP or ABS credentials",
+        default="",
+    )
+
+    parser.add_argument(
+        "--pred-min-replicas", 
+        type=str, 
+        help="Minimum number of Predictor replicas", 
+        default="-1"
+    )
+    parser.add_argument(
+        "--pred-max-replicas", 
+        type=str, 
+        help="Maximum number of Predictor replicas", 
+        default="-1"
+    )
+    parser.add_argument(
+        "--pred-model-uri",
+        type=str,
+        help="Path of the S3, GCS or ABS compatible directory containing the Predictor model",
+    )
+    parser.add_argument(
+        "--pred-canary-traffic-percent",
+        type=str,
+        help="The traffic split percentage between the candidate model and the last ready model",
+        default="100",
+    )
+    parser.add_argument(
+        "--pred-framework",
+        type=str,
+        help="Model serving framework to use for the Predictor. Available frameworks: " +
+             str(list(AVAILABLE_FRAMEWORKS.keys())),
+        default=""
+    )
+    parser.add_argument(
+        "--pred-runtime-version",
+        type=str,
+        help="Runtime Version of Machine Learning Framework",
+        default="latest"
+    )
+    parser.add_argument(
+        "--pred-resource-requests",
+        type=json.loads,
+        help="CPU and Memory requests for the Predictor",
+        default='{"cpu": "0.5", "memory": "512Mi"}',
+    )
+    parser.add_argument(
+        "--pred-resource-limits",
+        type=json.loads,
+        help="CPU and Memory limits for the Predictor",
+        default='{"cpu": "1", "memory": "1Gi"}',
+    )
+    parser.add_argument(
+        "--pred-request-timeout",
+        type=str,
+        help="Specifies the number of seconds to wait before timing out a request to the Predictor",
+        default="60"
+    )
+    parser.add_argument(
+        "--pred-custom-model-spec",
+        type=json.loads,
+        help="The container spec for a custom Predictor runtime",
+        default="{}",
+    )
+
+    parser.add_argument(
+        "--transf-min-replicas", 
+        type=str, 
+        help="Minimum number of Transformer replicas", 
+        default="-1"
+    )
+    parser.add_argument(
+        "--transf-max-replicas", 
+        type=str, 
+        help="Maximum number of Transformer replicas", 
+        default="-1"
+    )
+    parser.add_argument(
+        "--transf-image",
+        type=str,
+        help="Docker image used for the Transformer pod container",
+    )
+    parser.add_argument(
+        "--transf-args",
+        type=str,
+        help="Arguments to the entrypoint of the Transformer pod container, overwrites CMD",
+    )
+    parser.add_argument(
+        "--transf-uri",
+        type=str,
+        help="Path of the S3, GCS or ABS compatible directory containing the Transformer. Not necessary if the whole pre-/postprocessing logic is in the docker image",
+    )
+    parser.add_argument(
+        "--transf-resource-requests",
+        type=json.loads,
+        help="CPU and Memory requests for the Transformer",
+        default='{"cpu": "0.5", "memory": "512Mi"}',
+    )
+    parser.add_argument(
+        "--transf-resource-limits",
+        type=json.loads,
+        help="CPU and Memory limits for the Transformer",
+        default='{"cpu": "1", "memory": "1Gi"}',
+    )
+    parser.add_argument(
+        "--transf-request-timeout",
+        type=str,
+        help="Specifies the number of seconds to wait before timing out a request to the Transformer",
+        default="60"
+    )
+
     parser.add_argument("--output-path", type=str, help="Path to store URI output")
-    parser.add_argument("--watch-timeout",
-                        type=str,
-                        help="Timeout seconds for watching until InferenceService becomes ready.",
-                        default="300")
-    parser.add_argument(
-        "--min-replicas", type=str, help="Minimum number of replicas", default="-1"
-    )
-    parser.add_argument(
-        "--max-replicas", type=str, help="Maximum number of replicas", default="-1"
-    )
-    parser.add_argument("--request-timeout",
-                        type=str,
-                        help="Specifies the number of seconds to wait before timing out a request to the component.",
-                        default="60")
-    parser.add_argument("--enable-isvc-status",
-                        type=strtobool,
-                        help="Specifies whether to store the inference service status as the output parameter",
-                        default="True")
 
     args = parser.parse_args()
 
     action = args.action.lower()
     model_name = args.model_name
-    model_uri = args.model_uri
-    canary_traffic_percent = int(args.canary_traffic_percent)
     namespace = args.namespace
-    framework = args.framework.lower()
-    runtime_version = args.runtime_version.lower()
-    resource_requests = args.resource_requests
-    resource_limits = args.resource_limits
-    output_path = args.output_path
-    custom_model_spec = args.custom_model_spec
     autoscaling_target = int(args.autoscaling_target)
-    service_account = args.service_account
     enable_istio_sidecar = args.enable_istio_sidecar
+    enable_isvc_status = args.enable_isvc_status
     inferenceservice_yaml = args.inferenceservice_yaml
     watch_timeout = int(args.watch_timeout)
-    min_replicas = int(args.min_replicas)
-    max_replicas = int(args.max_replicas)
-    request_timeout = int(args.request_timeout)
-    enable_isvc_status = args.enable_isvc_status
+    service_account = args.service_account
+    pred_min_replicas = int(args.pred_min_replicas)
+    pred_max_replicas = int(args.pred_max_replicas)
+    pred_model_uri = args.pred_model_uri
+    pred_canary_traffic_percent = int(args.pred_canary_traffic_percent)
+    pred_framework = args.pred_framework.lower()
+    pred_runtime_version = args.pred_runtime_version.lower()
+    pred_resource_requests = args.pred_resource_requests
+    pred_resource_limits = args.pred_resource_limits
+    pred_request_timeout = int(args.pred_request_timeout)
+    pred_custom_model_spec = args.pred_custom_model_spec
+    transf_min_replicas = int(args.transf_min_replicas)
+    transf_max_replicas = int(args.transf_max_replicas)
+    transf_image = args.transf_image
+    transf_args = ast.literal_eval(args.transf_args) 
+    transf_uri = args.transf_uri
+    transf_resource_requests = args.transf_resource_requests
+    transf_resource_limits = args.transf_resource_limits
+    transf_request_timeout = int(args.transf_request_timeout)
+    output_path = args.output_path
 
     # Default the namespace.
     if not namespace:
@@ -400,30 +511,38 @@ def main():
     # If the action isn't a delete, require 'model-uri' and 'framework' only if an Isvc YAML
     # or custom model container spec are not provided.
     if action != 'delete':
-        if not inferenceservice_yaml and not custom_model_spec and not (model_uri and framework):
+        if not inferenceservice_yaml and not pred_custom_model_spec and not (pred_model_uri and pred_framework):
             parser.error('Arguments for {} and {} are required when performing "{}" action'.format(
-                'model_uri', 'framework', action
+                'pred_model_uri', 'pred_framework', action
         ))
 
     model_status = perform_action(
         action=action,
         model_name=model_name,
-        model_uri=model_uri,
-        canary_traffic_percent=canary_traffic_percent,
         namespace=namespace,
-        framework=framework,
-        runtime_version=runtime_version,
-        resource_requests=resource_requests,
-        resource_limits=resource_limits,
-        custom_model_spec=custom_model_spec,
         autoscaling_target=autoscaling_target,
-        service_account=service_account,
         enable_istio_sidecar=enable_istio_sidecar,
         inferenceservice_yaml=inferenceservice_yaml,
-        request_timeout=request_timeout,
         watch_timeout=watch_timeout,
-        min_replicas=min_replicas,
-        max_replicas=max_replicas
+        service_account=service_account,
+        pred_min_replicas=pred_min_replicas,
+        pred_max_replicas=pred_max_replicas,
+        pred_model_uri=pred_model_uri,
+        pred_canary_traffic_percent=pred_canary_traffic_percent,
+        pred_framework=pred_framework,
+        pred_runtime_version=pred_runtime_version,
+        pred_resource_requests=pred_resource_requests,
+        pred_resource_limits=pred_resource_limits,
+        pred_custom_model_spec=pred_custom_model_spec,
+        pred_request_timeout=pred_request_timeout,
+        transf_min_replicas=transf_min_replicas,
+        transf_max_replicas=transf_max_replicas,
+        transf_image=transf_image,
+        transf_args=transf_args,
+        transf_uri=transf_uri,
+        transf_resource_requests=transf_resource_requests,
+        transf_resource_limits=transf_resource_limits,
+        transf_request_timeout=transf_request_timeout
     )
 
     print(model_status)
