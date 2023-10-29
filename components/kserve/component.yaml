@@ -42,7 +42,7 @@ implementation:
       --namespace,                   {inputValue: Namespace},
       --autoscaling-target,          {inputValue: Autoscaling Target},
       --enable-istio-sidecar,        {inputValue: Enable Istio Sidecar},
-      --enable-isvc-status,          {inputValue: Enable ISVC Status}
+      --enable-isvc-status,          {inputValue: Enable ISVC Status},
       --inferenceservice-yaml,       {inputValue: InferenceService YAML},
       --watch-timeout,               {inputValue: Watch Timeout},
       --service-account,             {inputValue: Service Account},
