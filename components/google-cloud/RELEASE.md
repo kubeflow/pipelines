@@ -1,4 +1,5 @@
 ## Upcoming release
+* Bump supported KFP versions to kfp>=2.0.0b10,<=2.4.0
 
 ## Release 2.5.0
 * Upload tensorboard metrics from `preview.llm.rlhf_pipeline` if a `tensorboard_resource_id` is provided at runtime.
