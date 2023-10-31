@@ -156,7 +156,7 @@ def evaluation_llm_text2sql_pipeline(
       project=project,
   )
 
-  _ = Text2SQLEvaluationValidateAndProcessOp(
+  validate_column_names_and_process_task = Text2SQLEvaluationValidateAndProcessOp(
       project=project,
       location=location,
       model_inference_type='column_name_case',
@@ -171,14 +171,29 @@ def evaluation_llm_text2sql_pipeline(
       encryption_spec_key_name=encryption_spec_key_name,
   )
 
+  batch_prediction_sql_queries_task = ModelBatchPredictOp(
+      job_display_name='text2sql-batch-prediction-sql-queries-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+      model=get_vertex_model_task.outputs['artifact'],
+      location=location,
+      instances_format=batch_predict_instances_format,
+      predictions_format=batch_predict_predictions_format,
+      gcs_source_uris=validate_column_names_and_process_task.outputs[
+          'model_inference_input_path'
+      ],
+      model_parameters=model_parameters,
+      gcs_destination_output_uri_prefix=(
+          f'{PIPELINE_ROOT_PLACEHOLDER}/batch_prediction_sql_queris_output'
+      ),
+      encryption_spec_key_name=encryption_spec_key_name,
+      project=project,
+  )
+
   _ = Text2SQLEvaluationOp(
       project=project,
       location=location,
       sql_dialect=sql_dialect,
       evaluation_method=evaluation_method,
-      # TODO(bozhengbz) Change value to model_inference_results_directory
-      # when sql query model batch prediction component is added.
-      model_inference_results_directory=batch_predict_table_names_task.outputs[
+      model_inference_results_directory=batch_prediction_sql_queries_task.outputs[
           'gcs_output_directory'
       ],
       tables_metadata_path=tables_metadata_path,
