@@ -17,6 +17,8 @@ from typing import Optional
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import _placeholders
+# pylint: disable-next=g-importing-member, g-multiple-import
+from google_cloud_pipeline_components.preview.automl.vision.json_utils import Concat, IfPresent, Json
 from kfp import dsl
 
 
@@ -61,6 +63,51 @@ def data_converter(
     gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the CustomJob.
   """
   # fmt: on
+  payload = {
+      'display_name': display_name,
+      'job_spec': {
+          'worker_pool_specs': [{
+              'machine_spec': {
+                  'machine_type': machine_type,
+              },
+              'replica_count': 1,
+              'container_spec': {
+                  'image_uri': 'us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/data-converter',
+                  'args': [
+                      '--enable_input_validation',
+                      'true',
+                      '--input_file_path',
+                      input_file_path,
+                      '--input_file_type',
+                      input_file_type,
+                      '--objective',
+                      objective,
+                      '--output_dir',
+                      output_dir,
+                      IfPresent(
+                          input_name='output_shape',
+                          then=Concat('--output_shape', output_shape),
+                      ),
+                      IfPresent(
+                          input_name='split_ratio',
+                          then=Concat('--split_ratio', split_ratio),
+                      ),
+                      IfPresent(
+                          input_name='num_shard',
+                          then=Concat('--num_shard', num_shard),
+                      ),
+                  ],
+              },
+          }],
+          'scheduling': {'timeout': timeout},
+          'service_account': IfPresent(
+              input_name='service_account',
+              then=service_account,
+          ),
+          'enable_web_access': False,
+      },
+      'encryption_spec': {'kms_key_name': encryption_spec_key_name},
+  }
   return dsl.ContainerSpec(
       image=_image.GCPC_IMAGE_TAG,
       command=[
@@ -73,75 +120,7 @@ def data_converter(
           '--type',
           'CustomJob',
           '--payload',
-          dsl.ConcatPlaceholder([
-              '{',
-              '"display_name": "',
-              display_name,
-              '",',
-              '"job_spec": {',
-              '"worker_pool_specs": [{',
-              '"machine_spec": {',
-              '"machine_type": "',
-              machine_type,
-              '"},',
-              '"replica_count": 1,',
-              '"container_spec": {',
-              (
-                  '"image_uri":'
-                  ' "us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/data-converter",'
-              ),
-              '"args": [',
-              '"--enable_input_validation","true",',
-              '"--input_file_path", "',
-              input_file_path,
-              '",',
-              '"--input_file_type", "',
-              input_file_type,
-              '",',
-              '"--objective", "',
-              objective,
-              '",',
-              '"--output_dir", "',
-              output_dir,
-              '"',
-              dsl.IfPresentPlaceholder(
-                  input_name='output_shape',
-                  then=dsl.ConcatPlaceholder(
-                      [',"--output_shape","', output_shape, '"']
-                  ),
-              ),
-              dsl.IfPresentPlaceholder(
-                  input_name='split_ratio',
-                  then=dsl.ConcatPlaceholder(
-                      [',"--split_ratio","', split_ratio, '"']
-                  ),
-              ),
-              dsl.IfPresentPlaceholder(
-                  input_name='num_shard',
-                  then=dsl.ConcatPlaceholder(
-                      [',"--num_shard","', num_shard, '"']
-                  ),
-              ),
-              ']}}],',
-              '"scheduling": {',
-              '"timeout": "',
-              timeout,
-              '"',
-              '},',
-              dsl.IfPresentPlaceholder(
-                  input_name='service_account',
-                  then=dsl.ConcatPlaceholder(
-                      ['"service_account": "', service_account, '",']
-                  ),
-              ),
-              '"enable_web_access": false',
-              '},',
-              '"encryption_spec": {',
-              '"kms_key_name": "',
-              encryption_spec_key_name,
-              '"',
-              '}}',
-          ]),
+          Json(payload),
           '--project',
           project,
           '--location',
