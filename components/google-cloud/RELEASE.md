@@ -16,6 +16,7 @@
  temperature) in LLM eval text generation and LLM eval text classification
   pipelines.
 * Add ability to perform inference with chat datasets to `preview.llm.infer_pipeline`.
+* Add ability to tune chat models with `preview.llm.rlhf_pipeline`.
 
 ## Release 2.4.1
 * Disable caching for LLM pipeline tasks that store temporary artifacts.
