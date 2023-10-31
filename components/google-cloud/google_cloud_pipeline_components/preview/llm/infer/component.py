@@ -75,7 +75,7 @@ def infer_pipeline(
       large_model_reference=large_model_reference,
       input_dataset_uri=prompt_dataset,
       default_context=instruction,
-      is_prompt_dataset=True,
+      dataset_type='prompt',
   ).set_display_name('Preprocess Dataset')
 
   resolved_text_instruction = function_based.resolve_instruction(
