@@ -134,7 +134,7 @@ def endpoint_batch_predict(
   )
 
 
-@dsl.pipeline(name='EvaludationLLMEndpointBatchPredictOp')
+@dsl.pipeline(name='evaluation-llm-endpoint-batch-predict')
 def evaluation_llm_endpoint_batch_predict_pipeline_graph_component(
     project: str,
     location: str,
