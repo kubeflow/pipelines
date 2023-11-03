@@ -13,11 +13,13 @@
 # limitations under the License.
 """Endpoint batch predict component used in KFP pipelines."""
 
-from typing import Dict, NamedTuple, Optional, Union
+from typing import Dict, List, NamedTuple, Optional, Union
 from google_cloud_pipeline_components import utils as gcpc_utils
 from google_cloud_pipeline_components._implementation.model_evaluation import utils
 from kfp import dsl
+from kfp.dsl import Artifact
 from kfp.dsl import container_component
+from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
@@ -26,19 +28,31 @@ _IMAGE_URI = 'gcr.io/model-evaluation-dev/llm_eval:wjess-test'
 
 @dsl.component
 def add_json_escape_parameters(parameters: dict) -> str:
+  if not parameters:
+    return
   import json
 
   json_escaped_parameters = json.dumps(parameters).replace('"', '\\"')
   return json_escaped_parameters
 
 
+@dsl.component
+def add_json_escape_paths(paths: list) -> str:
+  if not paths:
+    return
+  import json
+
+  json_escaped_paths = json.dumps(paths).replace('"', '\\"')
+  return json_escaped_paths
+
+
 @container_component
 def endpoint_batch_predict(
     gcp_resources: OutputPath(str),
-    gcs_output_directory: OutputPath(str),
+    gcs_output_directory: Output[Artifact],
     project: str,
     location: str,
-    source_gcs_uri: str,
+    source_gcs_uris: str,
     gcs_destination_output_uri_prefix: Optional[str] = '',
     model_parameters: Optional[str] = None,
     endpoint_id: Optional[str] = '',
@@ -55,7 +69,7 @@ def endpoint_batch_predict(
   Args:
       project: Required. The GCP project that runs the pipeline component.
       location: Required. The GCP region that runs the pipeline component.
-      source_gcs_uri: Google Cloud Storage URI to your instances to run
+      source_gcs_uris: Google Cloud Storage URI(-s) to your instances to run
         prediction on. The stored file format should be jsonl and each line
         contains one Prediction instance. Instance should match Deployed model's
         instance schema
@@ -115,13 +129,13 @@ def endpoint_batch_predict(
               f'--endpoint_batch_predict={True}',
               f'--project={project}',
               f'--location={location}',
-              f'--source_gcs_uri={source_gcs_uri}',
+              f'--source_gcs_uris={source_gcs_uris}',
               f'--model_parameters={model_parameters}',
               f'--gcs_destination_output_uri_prefix={gcs_destination_output_uri_prefix}',
               f'--endpoint_id={endpoint_id}',
               f'--publisher_model={publisher_model}',
               f'--qms_override={qms_override}',
-              f'--gcs_output_directory={gcs_output_directory}',
+              f'--gcs_output_directory={gcs_output_directory.path}',
               f'--root_dir={PIPELINE_ROOT_PLACEHOLDER}',
               f'--gcp_resources={gcp_resources}',
               '--executor_input={{$.json_escape[1]}}',
@@ -138,27 +152,27 @@ def endpoint_batch_predict(
 def evaluation_llm_endpoint_batch_predict_pipeline_graph_component(
     project: str,
     location: str,
-    source_gcs_uri: str,
+    source_gcs_uris: List[str],
     gcs_destination_output_uri_prefix: str = f'{PIPELINE_ROOT_PLACEHOLDER}/batch_predict_output',
     model_parameters: Optional[Dict[str, Union[int, float]]] = {},
     endpoint_id: Optional[str] = '',
     publisher_model: Optional[str] = '',
-    qms_override: Optional[Dict[str, Union[int, float]]] = None,
+    qms_override: Optional[Dict[str, Union[int, float]]] = {},
     display_name: str = 'endpoint_batch_predict',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
     network: str = '',
     encryption_spec_key_name: str = '',
-) -> NamedTuple('outputs', gcs_output_directory=str):
+) -> NamedTuple('outputs', gcs_output_directory=Artifact):
   """The LLM Evaluation Text2SQL Pipeline.
 
   Args:
     project: Required. The GCP project that runs the pipeline components.
     location: Required. The GCP region that runs the pipeline components.
-    source_gcs_uri: Google Cloud Storage URI to your instances to run prediction
-      on. The stored file format should be jsonl and each line contains one
-      Prediction instance. Instance should match Deployed model's instance
-      schema
+    source_gcs_uris: Google Cloud Storage URI to your instances to run
+      prediction on. The stored file format should be jsonl and each line
+      contains one Prediction instance. Instance should match Deployed model's
+      instance schema
     gcs_destination_output_uri_prefix: The Google Cloud Storage location of the
       directory where the output is to be written to. In the given directory a
       new directory is created. Its name is
@@ -199,15 +213,15 @@ def evaluation_llm_endpoint_batch_predict_pipeline_graph_component(
 
   Returns:
     NamedTuple:
-      gcs_output_directory (str):
-        GCS directory where endpoint batch prediction results are stored.
+      gcs_output_directory:
+        Artifact tracking the batch prediction job output.
   """
-  outputs = NamedTuple('outputs', gcs_output_directory=str)
+  outputs = NamedTuple('outputs', gcs_output_directory=Artifact)
 
   endpoint_batch_predict_task = endpoint_batch_predict(
       project=project,
       location=location,
-      source_gcs_uri=source_gcs_uri,
+      source_gcs_uris=add_json_escape_paths(paths=source_gcs_uris).output,
       gcs_destination_output_uri_prefix=gcs_destination_output_uri_prefix,
       model_parameters=add_json_escape_parameters(
           parameters=model_parameters
