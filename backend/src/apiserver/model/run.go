@@ -337,10 +337,6 @@ func (r Run) GetValueOfPrimaryKey() string {
 	return r.UUID
 }
 
-func GetRunTablePrimaryKeyColumn() string {
-	return "UUID"
-}
-
 // PrimaryKeyColumnName returns the primary key for model Run.
 func (r *Run) PrimaryKeyColumnName() string {
 	return "UUID"
