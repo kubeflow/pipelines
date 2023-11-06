@@ -42,7 +42,7 @@ type PipelineVersion struct {
 	Status PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl   string `gorm:"column:CodeSourceUrl;"`
-	Description     string `gorm:"column:Description; not null; size:65535;"`     // Set size to large number so it will be stored as longtext
+	Description     string `gorm:"column:Description; size:65535;"`               // Set size to large number so it will be stored as longtext
 	PipelineSpec    string `gorm:"column:PipelineSpec; not null; size:33554432;"` // Same as common.MaxFileLength (32MB in server). Argo imposes 700kB limit
 	PipelineSpecURI string `gorm:"column:PipelineSpecURI; not null; size:65535;"` // Can store references to ObjectStore files
 }
