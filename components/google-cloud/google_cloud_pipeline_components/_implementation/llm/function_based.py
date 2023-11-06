@@ -194,7 +194,8 @@ def resolve_reference_model_metadata(
       't5-small': reference_model_metadata(
           large_model_reference='T5_SMALL',
           reference_model_path=(
-              'gs://t5-data/pretrained_models/t5x/flan_t5_small/'
+              'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
+              'safe_flan_t5/small/v1/checkpoint_1200000/'
           ),
           reward_model_reference='T5_SMALL',
           reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_small',
@@ -203,7 +204,8 @@ def resolve_reference_model_metadata(
       't5-large': reference_model_metadata(
           large_model_reference='T5_LARGE',
           reference_model_path=(
-              'gs://t5-data/pretrained_models/t5x/flan_t5_large/'
+              'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
+              'safe_flan_t5/large/v1/checkpoint_1200000/'
           ),
           reward_model_reference='T5_LARGE',
           reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_large',
@@ -211,7 +213,10 @@ def resolve_reference_model_metadata(
       ),
       't5-xl': reference_model_metadata(
           large_model_reference='T5_XL',
-          reference_model_path='gs://t5-data/pretrained_models/t5x/flan_t5_xl/',
+          reference_model_path=(
+              'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
+              'safe_flan_t5/xl/v1/checkpoint_1200000/'
+          ),
           reward_model_reference='T5_XL',
           reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xl',
           is_supported=True,
@@ -219,7 +224,8 @@ def resolve_reference_model_metadata(
       't5-xxl': reference_model_metadata(
           large_model_reference='T5_XXL',
           reference_model_path=(
-              'gs://t5-data/pretrained_models/t5x/flan_t5_xxl/'
+              'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
+              'safe_flan_t5/xxl/v1/checkpoint_1190000/'
           ),
           reward_model_reference='T5_XL',
           reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xl',
