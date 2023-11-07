@@ -2825,7 +2825,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231002_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -2947,8 +2947,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -2965,7 +2965,7 @@ deploymentSpec:
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -3035,7 +3035,7 @@ deploymentSpec:
           \    return re.sub(r'^/gcs/', r'gs://', path)\n\n  master_worker_pool_spec\
           \ = {\n      'replica_count': 1,\n      'machine_spec': {\n          'machine_type':\
           \ machine_type,\n      },\n      'container_spec': {\n          'image_uri':\
-          \ 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/xgboost-training:20231002_0125',\n\
+          \ 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/xgboost-training:20231029_0125',\n\
           \          'args': [\n              f'--job_dir={get_gcs_path(job_dir)}',\n\
           \              f'--instance_schema_path={get_gcs_path(instance_schema_uri)}',\n\
           \              f'--prediction_schema_path={get_gcs_path(prediction_schema_uri)}',\n\
@@ -3048,7 +3048,7 @@ deploymentSpec:
           \              f'--baseline_path={get_gcs_path(instance_baseline)}',\n \
           \             f'--eval_metric={eval_metric}',\n              f'--disable_default_eval_metric={disable_default_eval_metric}',\n\
           \              f'--seed={seed}',\n              f'--seed_per_iteration={seed_per_iteration}',\n\
-          \              '--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/xgboost-prediction-server:20231002_0125',\n\
+          \              '--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/xgboost-prediction-server:20231029_0125',\n\
           \          ],\n      },\n  }\n\n  # Add optional arguments if set\n  if\
           \ weight_column:\n    master_worker_pool_spec['container_spec']['args'].append(\n\
           \        f'--weight_column={weight_column}'\n    )\n\n  # Add accelerator_type\
@@ -3138,7 +3138,7 @@ deploymentSpec:
           \ = {\n      'instanceSchemaUri': instance_schema_uri,\n      'predictionSchemaUri':\
           \ prediction_schema_uri,\n  }\n  unmanaged_container_model.uri = os.path.join(\n\
           \      trials_dir, 'trial_{}'.format(best_trial['id']), 'model'\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
     exec-get-prediction-type-for-xgboost:
       container:
         args:
@@ -3757,7 +3757,7 @@ deploymentSpec:
           \          'model_display_name',\n      ],\n  )(\n      data_source_csv_filenames,\n\
           \      data_source_bigquery_table_path,\n      model_display_name,\n  )\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
     exec-split-materialized-data:
       container:
         args:
@@ -3803,7 +3803,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125
     exec-training-configurator-and-validator:
       container:
         args:
@@ -3848,7 +3848,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125
     exec-xgboost-hyperparameter-tuning-job:
       container:
         args:

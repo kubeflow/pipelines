@@ -5788,7 +5788,7 @@ deploymentSpec:
         - '{"display_name": "automl-forecasting-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
           "encryption_spec": {"kms_key_name": "{{$.inputs.parameters[''encryption_spec_key_name'']}}"},
           "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec":
-          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231002_0125",
+          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
           "args": ["forecasting_mp_ensemble", "--transform_output_path={{$.inputs.artifacts[''transform_output''].uri}}",
           "--error_file_path={{$.inputs.parameters[''root_dir'']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
           "--metadata_path={{$.inputs.artifacts[''metadata''].uri}}", "--tuning_result_input_path={{$.inputs.artifacts[''tuning_result_input''].uri}}",
@@ -5822,7 +5822,7 @@ deploymentSpec:
         - '{"display_name": "automl-forecasting-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
           "encryption_spec": {"kms_key_name": "{{$.inputs.parameters[''encryption_spec_key_name'']}}"},
           "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec":
-          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231002_0125",
+          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
           "args": ["forecasting_mp_ensemble", "--transform_output_path={{$.inputs.artifacts[''transform_output''].uri}}",
           "--error_file_path={{$.inputs.parameters[''root_dir'']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
           "--metadata_path={{$.inputs.artifacts[''metadata''].uri}}", "--tuning_result_input_path={{$.inputs.artifacts[''tuning_result_input''].uri}}",
@@ -5857,11 +5857,11 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231002_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
           "\", \"args\": [\"forecasting_mp_l2l_stage_1_tuner", "\", \"--region=",
           "{{$.inputs.parameters[''location'']}}", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--training_docker_uri=",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231002_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
           "\", \"--reduce_search_space_mode=", "{{$.inputs.parameters[''reduce_search_space_mode'']}}",
           "\", \"--component_id={{$.pipeline_task_uuid}}", "\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train",
@@ -5900,11 +5900,11 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231002_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
           "\", \"args\": [\"forecasting_mp_l2l_stage_2_tuner", "\", \"--region=",
           "{{$.inputs.parameters[''location'']}}", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--training_docker_uri=",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231002_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
           "\", \"--component_id={{$.pipeline_task_uuid}}", "\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train",
           "\", \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -5943,7 +5943,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231002_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -6267,8 +6267,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -6285,7 +6285,7 @@ deploymentSpec:
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -6455,10 +6455,10 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20231002_0125',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20231002_0125',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20231002_0125',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20231002_0125',\n\
+          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20231029_0125',\n\
+          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20231029_0125',\n\
+          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20231029_0125',\n\
+          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20231029_0125',\n\
           \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
           \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
           \    )\n  return images[model_type]\n\n"
@@ -6491,10 +6491,10 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20231002_0125',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20231002_0125',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20231002_0125',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20231002_0125',\n\
+          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20231029_0125',\n\
+          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20231029_0125',\n\
+          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20231029_0125',\n\
+          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20231029_0125',\n\
           \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
           \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
           \    )\n  return images[model_type]\n\n"
@@ -6527,7 +6527,7 @@ deploymentSpec:
           \ str) -> str:\n  \"\"\"Generates the BP output's target column name.\"\"\
           \"\n  if forecasting_type == 'quantile':\n    return f'predicted_{target_column}.quantile_predictions'\n\
           \  return f'predicted_{target_column}.value'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
     exec-get-predictions-column-2:
       container:
         args:
@@ -6556,7 +6556,7 @@ deploymentSpec:
           \ str) -> str:\n  \"\"\"Generates the BP output's target column name.\"\"\
           \"\n  if forecasting_type == 'quantile':\n    return f'predicted_{target_column}.quantile_predictions'\n\
           \  return f'predicted_{target_column}.value'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
     exec-importer:
       importer:
         artifactUri:
@@ -7094,7 +7094,7 @@ deploymentSpec:
           \          'model_display_name',\n          'transformations',\n      ],\n\
           \  )(\n      data_source_csv_filenames,\n      data_source_bigquery_table_path,\n\
           \      model_display_name,\n      transformations,\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
     exec-split-materialized-data:
       container:
         args:
@@ -7140,7 +7140,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125
     exec-string-not-empty:
       container:
         args:
@@ -7206,7 +7206,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
     exec-table-to-uri-2:
       container:
         args:
@@ -7242,7 +7242,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
     exec-training-configurator-and-validator:
       container:
         args:
@@ -7287,7 +7287,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125
 pipelineInfo:
   description: The Sequence to Sequence (Seq2Seq) Forecasting pipeline.
   name: sequence-to-sequence-forecasting

@@ -97,7 +97,7 @@ def training_configurator_and_validator(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231002_0125',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125',
       command=[],
       args=[
           'training_configurator_and_validator',
