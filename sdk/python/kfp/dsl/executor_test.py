@@ -29,6 +29,7 @@ from kfp.dsl import Output
 from kfp.dsl.task_final_status import PipelineTaskFinalStatus
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types.artifact_types import Artifact
+from kfp.dsl.types.artifact_types import ClassificationMetrics
 from kfp.dsl.types.artifact_types import Dataset
 from kfp.dsl.types.artifact_types import Metrics
 from kfp.dsl.types.artifact_types import Model
@@ -1609,6 +1610,113 @@ class ExecutorTest(parameterized.TestCase):
             test_func, executor_input)
 
         self.assertDictEqual(output_metadata, {})
+
+    def test_output_artifact_with_infinity_and_nan_values(self):
+        executor_output = """\
+      {
+      "outputs":
+        {
+          "artifacts": {
+            "metrics": {
+              "artifacts": [
+                {
+                  "name": "metrics",
+                  "uri": "minio://mlpipeline/v2/artifacts/metrics-testing/1234/wine-classification/metrics",
+                  "metadata": {
+                    "confidenceMetrics": [
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "outputFile": "%(test_dir)s/output_metadata.json"
+        }
+      }
+      """
+
+        def test_func(metrics: Output[ClassificationMetrics] = None):
+            metrics.log_roc_data_point(threshold=float('inf'), tpr=0.0, fpr=0.0)
+            metrics.log_roc_data_point(threshold=1.0, tpr=0.34, fpr=0.0)
+            metrics.log_roc_data_point(threshold=0.8, tpr=float('nan'), fpr=0.0)
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_output)
+
+        self.assertDictEqual(
+            output_metadata, {
+                'artifacts': {
+                    'metrics': {
+                        'artifacts': [{
+                            'name':
+                                'metrics',
+                            'uri':
+                                'minio://mlpipeline/v2/artifacts/metrics-testing/1234/wine-classification/metrics',
+                            'metadata': {
+                                'confidenceMetrics': [{
+                                    'confidenceThreshold': 'Infinity',
+                                    'recall': 0.0,
+                                    'falsePositiveRate': 0.0
+                                }, {
+                                    'confidenceThreshold': 1.0,
+                                    'recall': 0.34,
+                                    'falsePositiveRate': 0.0
+                                }, {
+                                    'confidenceThreshold': 0.8,
+                                    'recall': 'NaN',
+                                    'falsePositiveRate': 0.0
+                                }]
+                            }
+                        }]
+                    }
+                }
+            })
+
+    def test_output_artifact_with_infinity_and_nan_values2(self):
+        executor_output = """\
+      {
+        "outputs": {
+          "artifacts": {
+            "output_artifact_one": {
+              "artifacts": [
+                {
+                  "metadata": {},
+                  "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                  "type": {
+                    "schemaTitle": "system.Model"
+                  },
+                  "uri": "gs://some-bucket/output_artifact_one"
+                }
+              ]
+            }
+          },
+          "outputFile": "%(test_dir)s/output_metadata.json"
+        }
+      }
+      """
+
+        def test_func(output_artifact_one: Output[Model]):
+            output_artifact_one.metadata['accuracy'] = float('nan')
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_output)
+
+        self.assertDictEqual(
+            output_metadata, {
+                'artifacts': {
+                    'output_artifact_one': {
+                        'artifacts': [{
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'gs://some-bucket/output_artifact_one',
+                            'metadata': {
+                                'accuracy': 'NaN'
+                            },
+                        }]
+                    }
+                }
+            })
 
 
 class TestDictToArtifact(parameterized.TestCase):

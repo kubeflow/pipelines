@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 import json
+import math
 import os
 import re
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -276,7 +277,7 @@ class Executor:
             runtime_artifact = {
                 'name': artifact.name,
                 'uri': artifact.uri,
-                'metadata': artifact.metadata,
+                'metadata': self.__check_inf_and_nan_values(artifact.metadata),
             }
             artifacts_list = {'artifacts': [runtime_artifact]}
 
@@ -295,9 +296,27 @@ class Executor:
         if write_file:
             makedirs_recursively(self.executor_output_path)
             with open(self.executor_output_path, 'w') as f:
+
                 f.write(json.dumps(self.excutor_output))
             return self.executor_output_path
         return None
+
+    def __check_inf_and_nan_values(self, metadata: object) -> object:
+        if isinstance(metadata, float):
+            if metadata == float('inf'):
+                metadata = 'Infinity'
+            elif math.isnan(metadata):
+                metadata = 'NaN'
+            elif metadata == -float('inf'):
+                metadata = '-Infinity'
+        elif isinstance(metadata, list):
+            for index, name in enumerate(metadata):
+                metadata[index] = self.__check_inf_and_nan_values(name)
+        elif isinstance(metadata, dict):
+            for name, value in metadata.items():
+                metadata[name] = self.__check_inf_and_nan_values(value)
+
+        return metadata
 
     def execute(self) -> Optional[str]:
         """Executes the function and writes the executor output file. The

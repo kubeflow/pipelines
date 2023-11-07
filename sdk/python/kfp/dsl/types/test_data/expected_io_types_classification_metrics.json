@@ -7,8 +7,18 @@
       "falsePositiveRate": 96.2
     },
     {
+      "confidenceThreshold": Infinity,
+      "recall": 98.2,
+      "falsePositiveRate": 96.2
+    },
+    {
       "confidenceThreshold": 24.3,
       "recall": 24.5,
+      "falsePositiveRate": 98.4
+    },
+    {
+      "confidenceThreshold": 32.9,
+      "recall": NaN,
       "falsePositiveRate": 98.4
     }
   ],

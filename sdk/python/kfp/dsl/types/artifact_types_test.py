@@ -25,10 +25,14 @@ from kfp.dsl.types import artifact_types
 
 class ArtifactsTest(unittest.TestCase):
 
+    maxDiff = None
+
     def test_complex_metrics(self):
         metrics = dsl.ClassificationMetrics()
         metrics.log_roc_data_point(threshold=0.1, tpr=98.2, fpr=96.2)
+        metrics.log_roc_data_point(threshold=float('inf'), tpr=98.2, fpr=96.2)
         metrics.log_roc_data_point(threshold=24.3, tpr=24.5, fpr=98.4)
+        metrics.log_roc_data_point(threshold=32.9, tpr=float('nan'), fpr=98.4)
         metrics.set_confusion_matrix_categories(['dog', 'cat', 'horses'])
         metrics.log_confusion_matrix_row('dog', [2, 6, 0])
         metrics.log_confusion_matrix_cell('cat', 'dog', 3)
@@ -40,7 +44,7 @@ class ArtifactsTest(unittest.TestCase):
                     'expected_io_types_classification_metrics.json')
         ) as json_file:
             expected_json = json.load(json_file)
-            self.assertEqual(expected_json, metrics.metadata)
+            self.assertEqual(str(expected_json), str(metrics.metadata))
 
     def test_complex_metrics_bulk_loading(self):
         metrics = dsl.ClassificationMetrics()
