@@ -32,7 +32,7 @@ def model_evaluation_text_generation(
     project: str,
     location: str,
     evaluation_task: str = 'text-generation',
-    target_field_name: str = 'instance.ground_truth',
+    target_field_name: str = 'instance.output_text',
     prediction_field_name: str = 'predictions.content',
     predictions_format: str = 'jsonl',
     joined_predictions_gcs_source: dsl.Input[Artifact] = None,
