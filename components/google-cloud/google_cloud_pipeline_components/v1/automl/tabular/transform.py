@@ -109,7 +109,7 @@ def automl_tabular_transform(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231002_0125',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125',
                   (
                       '", "args": ["transform", "--is_mp=true",'
                       ' "--transform_output_artifact_path='
@@ -168,7 +168,7 @@ def automl_tabular_transform(
                   '", "--dataflow_machine_type=',
                   dataflow_machine_type,
                   '", "--dataflow_worker_container_image=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231002_0125',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125',
                   '", "--dataflow_disk_size_gb=',
                   dataflow_disk_size_gb,
                   '", "--dataflow_subnetwork_fully_qualified=',
