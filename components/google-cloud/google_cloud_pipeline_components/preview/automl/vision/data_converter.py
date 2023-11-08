@@ -29,7 +29,7 @@ def data_converter(
     input_file_path: str,
     input_file_type: str,
     objective: str,
-    output_dir: dsl.OutputPath(str),
+    output_dir: dsl.Output[dsl.Artifact],
     gcp_resources: dsl.OutputPath(str),
     location: str = 'us-central1',
     timeout: str = '604800s',
@@ -59,7 +59,7 @@ def data_converter(
     encryption_spec_key_name: Customer-managed encryption key options for the CustomJob. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key.
     project: Project to create the custom training job in. Defaults to the project in which the PipelineJob is run.
   Returns:
-    output_dir: Cloud Storage directory storing converted data and pipeline information.
+    output_dir: Cloud Storage directory storing converted data.
     gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the CustomJob.
   """
   # fmt: on
@@ -83,7 +83,7 @@ def data_converter(
                       '--objective',
                       objective,
                       '--output_dir',
-                      output_dir,
+                      output_dir.path,
                       IfPresent(
                           input_name='output_shape',
                           then=Concat('--output_shape', output_shape),
