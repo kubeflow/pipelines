@@ -16,6 +16,10 @@
 import json
 import logging
 import re
+from typing import (
+    Any,
+    Dict,
+)
 
 from google.api_core import retry
 from google.cloud.aiplatform import explain
@@ -27,6 +31,9 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import jso
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
 from kfp import dsl
+
+from google.protobuf import struct_pb2
+from google.protobuf import json_format
 
 UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME = 'unmanaged_container_model'
 LABELS_PAYLOAD_KEY = 'labels'
@@ -81,10 +88,20 @@ def _add_bigquery_scheme(job_spec):
   return job_spec
 
 
+def _sanitize_model_parameters(job_spec: Dict[str, Any]) -> Dict[str, Any]:
+  """If the job_spec contains model_parameters dict, convert to google.protobuf.Value for the job client to recognize."""
+  if 'model_parameters' in job_spec:
+    job_spec['model_parameters'] = json_format.ParseDict(
+        job_spec['model_parameters'], struct_pb2.Value()
+    )
+  return job_spec
+
+
 def sanitize_job_spec(job_spec):
   """Cleans job spec before calling the Batch Prediction API."""
   job_spec = _sanitize_explanation_metadata(job_spec)
   job_spec = _add_bigquery_scheme(job_spec)
+  job_spec = _sanitize_model_parameters(job_spec)
   return job_spec
 
 
