@@ -58,6 +58,7 @@ def endpoint_batch_predict(
     endpoint_id: Optional[str] = '',
     publisher_model: Optional[str] = '',
     qms_override: Optional[str] = None,
+    enable_retry: bool = False,
     display_name: str = 'endpoint_batch_predict',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
@@ -91,6 +92,8 @@ def endpoint_batch_predict(
         dictionary, for example {'text-bison': 20}. For deployed model which
         doesn't have google-vertex-llm-tuning-base-model-id label, override the
         default here.
+      enable_retry: Retry for Service Unavailable error. When enabled, the
+        component resend the request in 60 seconds
       display_name: The name of the Evaluation job.
       machine_type: The machine type of this custom job. If not set, defaulted
         to `e2-highmem-16`. More details:
@@ -135,6 +138,7 @@ def endpoint_batch_predict(
               f'--endpoint_id={endpoint_id}',
               f'--publisher_model={publisher_model}',
               f'--qms_override={qms_override}',
+              f'--enable_retry={enable_retry}',
               f'--gcs_output_directory={gcs_output_directory.path}',
               f'--root_dir={PIPELINE_ROOT_PLACEHOLDER}',
               f'--gcp_resources={gcp_resources}',
@@ -158,6 +162,7 @@ def evaluation_llm_endpoint_batch_predict_pipeline_graph_component(
     endpoint_id: Optional[str] = '',
     publisher_model: Optional[str] = '',
     qms_override: Optional[Dict[str, Union[int, float]]] = {},
+    enable_retry: Optional[bool] = False,
     display_name: str = 'endpoint_batch_predict',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
@@ -190,6 +195,8 @@ def evaluation_llm_endpoint_batch_predict_pipeline_graph_component(
       of a LLM for this pipeline. Should be provided as a dictionary, for
       example {'text-bison': 20}. For deployed model which doesn't have
       google-vertex-llm-tuning-base-model-id label, override the default here.
+    enable_retry: Retry for Service Unavailable error. When enabled, the
+      component resend the request in 60 seconds
     display_name: The name of the Evaluation job.
     machine_type: The machine type of this custom job. If not set, defaulted to
       `e2-highmem-16`. More details:
@@ -229,6 +236,7 @@ def evaluation_llm_endpoint_batch_predict_pipeline_graph_component(
       endpoint_id=endpoint_id,
       publisher_model=publisher_model,
       qms_override=add_json_escape_parameters(parameters=qms_override).output,
+      enable_retry=enable_retry,
       display_name=display_name,
       machine_type=machine_type,
       service_account=service_account,
