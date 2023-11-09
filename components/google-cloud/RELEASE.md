@@ -2,6 +2,7 @@
 * Bump supported KFP versions to kfp>=2.0.0b10,<=2.4.0
 * Add LLM Eval pipeline parameter for customizing eval dataset reference ground truth field
 * Fix the output parameter `output_dir` of `preview.automl.vision.DataConverterJobOp`.
+* Fix batch prediction model parameters payload sanitization error .
 
 ## Release 2.5.0
 * Upload tensorboard metrics from `preview.llm.rlhf_pipeline` if a `tensorboard_resource_id` is provided at runtime.
