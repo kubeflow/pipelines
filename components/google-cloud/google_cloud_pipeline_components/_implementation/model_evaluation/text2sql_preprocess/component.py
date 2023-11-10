@@ -30,6 +30,7 @@ def text2sql_evaluation_preprocess(
     evaluation_data_source_path: str,
     tables_metadata_path: str,
     prompt_template_path: str = '',
+    model_name: str = '',
     display_name: str = 'text2sql-evaluation-preprocess',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
@@ -48,6 +49,9 @@ def text2sql_evaluation_preprocess(
         metadata, including table names, schema fields.
       prompt_template_path: Required. The path for json file containing prompt
         template. Will provide default value if users do not sepecify.
+      model_name: The Model used to run text2sql evaluation. Must be a first
+        party publisher model. Supported model name values are code-bison,
+        code-gecko, text-bison.
       display_name: The name of the Evaluation job.
       machine_type: The machine type of this custom job. If not set, defaulted
         to `e2-highmem-16`. More details:
@@ -90,6 +94,7 @@ def text2sql_evaluation_preprocess(
               f'--evaluation_data_source_path={evaluation_data_source_path}',
               f'--tables_metadata_path={tables_metadata_path}',
               f'--prompt_template_path={prompt_template_path}',
+              f'--model_name={model_name}',
               f'--root_dir={PIPELINE_ROOT_PLACEHOLDER}',
               f'--gcp_resources={gcp_resources}',
               f'--model_inference_input_path={model_inference_input_path}',
