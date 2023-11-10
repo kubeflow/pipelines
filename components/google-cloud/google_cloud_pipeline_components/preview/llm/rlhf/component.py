@@ -21,10 +21,9 @@ from google_cloud_pipeline_components._implementation.llm import deploy_llm_mode
 from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import preprocess_chat_dataset
-from google_cloud_pipeline_components._implementation.llm import private_text_comparison_importer
 from google_cloud_pipeline_components._implementation.llm import private_text_importer
 from google_cloud_pipeline_components._implementation.llm import reinforcer
-from google_cloud_pipeline_components._implementation.llm import reward_model_trainer
+from google_cloud_pipeline_components._implementation.llm import reward_model_graph
 from google_cloud_pipeline_components._implementation.llm import upload_llm_model
 from google_cloud_pipeline_components._implementation.llm import upload_tensorboard_metrics
 from google_cloud_pipeline_components.preview.llm.infer import component
@@ -86,11 +85,8 @@ def rlhf_pipeline(
   """
   # fmt: on
   policy_model_lora_dim = 1
-  reward_model_lora_dim = 0
   batch_size = 64
   prompt_column = 'input_text'
-  candidate_columns = ['candidate_0', 'candidate_1']
-  choice_column = 'choice'
   upload_location = 'us-central1'
   machine_spec = function_based.resolve_machine_spec(
       location=location, use_test_spec=env.get_use_test_machine_spec()
@@ -129,91 +125,24 @@ def rlhf_pipeline(
       .set_caching_options(False)
   )
 
-  processed_preference_dataset = (
-      preprocess_chat_dataset.preprocess_chat_dataset(
+  reward_model_preparer = (
+      reward_model_graph.pipeline(
+          preference_dataset=preference_dataset,
           large_model_reference=large_model_reference,
-          input_dataset_uri=preference_dataset,
-          default_context=instruction,
-          dataset_type='preference',
-      ).set_display_name('Preprocess Prompt Dataset')
-  )
-
-  preference_dataset_image_uri = function_based.resolve_private_image_uri(
-      image_name='text_comparison_importer'
-  ).set_display_name('Resolve Preference Dataset Image URI')
-  comma_separated_candidates_field_names = (
-      function_based.convert_to_delimited_string(items=candidate_columns)
-  )
-  preference_dataset_importer = (
-      private_text_comparison_importer.PrivateTextComparisonImporter(
-          project=project,
-          location=location,
-          input_text=processed_preference_dataset.outputs[
-              'processed_dataset_uri'
-          ],
-          inputs_field_name=prompt_column,
-          comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
-          choice_field_name=choice_column,
-          split=env.TRAIN_SPLIT,
-          large_model_reference=reference_model_metadata.outputs[
-              'reward_model_reference'
-          ],
-          image_uri=preference_dataset_image_uri.output,
+          prompt_sequence_length=prompt_sequence_length,
+          target_sequence_length=target_sequence_length,
           instruction=instruction,
-      )
-      .set_display_name('Import Preference Dataset')
-      .set_caching_options(False)
-  )
-
-  reward_model_image_uri = function_based.resolve_private_image_uri(
-      image_name='reward_model',
-      accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
-  ).set_display_name('Resolve Reward Model Image URI')
-  reward_model = (
-      reward_model_trainer.RewardModelTrainer(
+          reward_model_learning_rate_multiplier=reward_model_learning_rate_multiplier,
+          reward_model_train_steps=reward_model_train_steps,
           project=project,
           location=location,
-          input_model_path=reference_model_metadata.outputs[
-              'reward_model_path'
-          ],
-          input_dataset_path=preference_dataset_importer.outputs[
-              'output_dataset_path'
-          ],
-          train_steps=reward_model_train_steps,
-          accelerator_type=machine_spec.outputs['accelerator_type'],
-          accelerator_count=machine_spec.outputs['accelerator_count'],
-          large_model_reference=reference_model_metadata.outputs[
-              'reward_model_reference'
-          ],
-          machine_type=machine_spec.outputs['machine_type'],
-          image_uri=reward_model_image_uri.output,
-          inputs_sequence_length=prompt_sequence_length,
-          targets_sequence_length=target_sequence_length,
-          batch_size=batch_size,
-          learning_rate_multiplier=reward_model_learning_rate_multiplier,
-          lora_dim=reward_model_lora_dim,
+          tensorboard_resource_id=tensorboard_resource_id,
       )
-      .set_display_name('Reward Model Trainer')
-      .set_caching_options(False)
-  )
+  ).set_display_name('Train Reward Model')
 
   has_tensorboard_id = function_based.value_exists(
       value=tensorboard_resource_id
-  ).set_display_name('Resolve Tensorboard Resource ID')
-  with kfp.dsl.Condition(  # pytype: disable=wrong-arg-types
-      has_tensorboard_id.output == True,  # pylint: disable=singleton-comparison, g-explicit-bool-comparison
-      name='Upload Reward Model Tensorboard Metrics',
-  ):
-    _ = upload_tensorboard_metrics.upload_tensorboard_metrics(
-        tensorboard_resource_id=tensorboard_resource_id,
-        metrics_directory=reward_model.outputs['tensorboard_metrics'],
-        experiment_name=(
-            'reward-model-tuner-'
-            f'{kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER}-'
-            f'{kfp.dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
-        ),
-    ).set_display_name('Reward Model Tensorboard Metrics Uploader')
+  ).set_display_name('Resolve TensorBoard Resource ID')
 
   rl_image_uri = function_based.resolve_private_image_uri(
       image_name='reinforcer',
@@ -227,7 +156,9 @@ def rlhf_pipeline(
           input_reference_model_path=reference_model_metadata.outputs[
               'reference_model_path'
           ],
-          input_reward_model_path=reward_model.outputs['output_model_path'],
+          input_reward_model_path=reward_model_preparer.outputs[
+              'reward_model_output_path'
+          ],
           input_dataset_path=prompt_dataset_importer.outputs[
               'imported_data_path'
           ],
@@ -255,7 +186,7 @@ def rlhf_pipeline(
 
   with kfp.dsl.Condition(  # pytype: disable=wrong-arg-types
       has_tensorboard_id.output == True,  # pylint: disable=singleton-comparison, g-explicit-bool-comparison
-      name='Upload Reinforcement Learning Tensorboard Metrics',
+      name='Upload Reinforcement Learning TensorBoard Metrics',
   ):
     _ = upload_tensorboard_metrics.upload_tensorboard_metrics(
         tensorboard_resource_id=tensorboard_resource_id,
@@ -265,7 +196,7 @@ def rlhf_pipeline(
             f'{kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER}-'
             f'{kfp.dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
         ),
-    ).set_display_name('Reinforcement Learning Tensorboard Metrics Uploader')
+    ).set_display_name('Reinforcement Learning TensorBoard Metrics Uploader')
 
   should_perform_inference = function_based.value_exists(
       value=eval_dataset
