@@ -11,13 +11,13 @@ All development requirement versions are pinned in [requirements-dev.txt](https:
 ### Testing
 We suggest running unit tests using [`pytest`](https://docs.pytest.org/en/7.1.x/). From the project root, the following runs all KFP SDK unit tests:
 ```sh
-pytest sdk/python
+pytest
 ```
 
 To run tests in parallel for faster execution, you can run the tests using the `pytest-xdist` plugin:
 
 ```sh
-pytest sdk/python -n auto
+pytest -n auto
 ```
 
 ### Code Style
