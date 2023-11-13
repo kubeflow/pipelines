@@ -2,8 +2,8 @@ from kfp.v2 import dsl
 
 @dsl.component(base_image='python:3.8',packages_to_install=['google-cloud-aiplatform==1.36.0'])
 def vertex_deploy_model_to_endpoint(
-    model_id: str,           # '/projects/{PROJECT_ID}/locations/{region}/models/{MODEL_ID}'
-    endpoint_id: str,        # '/projects/{PROJECT_ID}/locations/{region}/endpoints/{ENDPOINT_ID}'
+    model_id: str,           # '/projects/{PROJECT_ID}/locations/{REGION}/models/{MODEL_ID}'
+    endpoint_id: str,        # '/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}'
     machine_type: str,
     min_replica_count: int,
     max_replica_count: int,
