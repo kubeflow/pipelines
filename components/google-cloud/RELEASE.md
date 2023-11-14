@@ -6,6 +6,8 @@
 * Add ability to perform inference with chat datasets to `preview.llm.infer_pipeline`.
 * Add ability to tune chat models with `preview.llm.rlhf_pipeline`.
 * Group `preview.llm.rlhf_pipeline` components for better readability.
+* Add support add environment variable support to GCPC's `create_custom_training_job_from_component` (both `v1` and `preview` namespaces)
+
 
 ## Release 2.5.0
 * Upload tensorboard metrics from `preview.llm.rlhf_pipeline` if a `tensorboard_resource_id` is provided at runtime.
