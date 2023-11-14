@@ -68,6 +68,7 @@ def create_custom_training_job_from_component(
     nfs_mounts: Optional[List[Dict[str, str]]] = None,
     base_output_directory: str = '',
     labels: Optional[Dict[str, str]] = None,
+    env: Optional[List[Dict[str, str]]] = None,
 ) -> Callable:
   # fmt: off
   """Convert a KFP component into Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
@@ -94,6 +95,7 @@ def create_custom_training_job_from_component(
       nfs_mounts: A list of [NfsMount](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount) resource specs in Json dict format. For more details about mounting NFS for CustomJob, see [Mount an NFS share for custom training](https://cloud.google.com/vertex-ai/docs/training/train-nfs-share).
       base_output_directory: The Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).
       labels: The labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).
+      env: Environment variables to be passed to the container. Takes the form `[{'name': '...', 'value': '...'}]`. Maximum limit is 100.
 
    Returns:
       A KFP component with CustomJob specification applied.
@@ -153,6 +155,7 @@ def create_custom_training_job_from_component(
           'args': _replace_executor_placeholder(
               user_component_container.get('args', [])
           ),
+          'env': env or [],
       },
   }
   if accelerator_type:
