@@ -3,6 +3,8 @@
 * Add LLM Eval pipeline parameter for customizing eval dataset reference ground truth field
 * Fix the output parameter `output_dir` of `preview.automl.vision.DataConverterJobOp`.
 * Fix batch prediction model parameters payload sanitization error .
+* Add ability to perform inference with chat datasets to `preview.llm.infer_pipeline`.
+* Add ability to tune chat models with `preview.llm.rlhf_pipeline`.
 * Group `preview.llm.rlhf_pipeline` components for better readability.
 
 ## Release 2.5.0
@@ -19,8 +21,6 @@
 * Add support for customizing model_parameters (maxOutputTokens, topK, topP, and
  temperature) in LLM eval text generation and LLM eval text classification
   pipelines.
-* Add ability to perform inference with chat datasets to `preview.llm.infer_pipeline`.
-* Add ability to tune chat models with `preview.llm.rlhf_pipeline`.
 
 ## Release 2.4.1
 * Disable caching for LLM pipeline tasks that store temporary artifacts.
