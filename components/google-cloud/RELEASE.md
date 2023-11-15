@@ -1,6 +1,8 @@
 ## Upcoming release
 * Bump supported KFP versions to kfp>=2.0.0b10,<=2.4.0
 * Add LLM Eval pipeline parameter for customizing eval dataset reference ground truth field
+* Create new eval dataset preprocessor for formatting eval dataset in tuning dataset format.
+* Support customizing eval dataset format in Eval LLM Text Generation Pipeline (`preview.model_evaluation.evaluation_llm_text_generation_pipeline`) and LLM Text Classification Pipeline (`preview.model_evaluation.evaluation_llm_classification_pipeline`). Include new LLM Eval Preprocessor component in both pipelines.
 * Fix the output parameter `output_dir` of `preview.automl.vision.DataConverterJobOp`.
 * Fix batch prediction model parameters payload sanitization error .
 * Add ability to perform inference with chat datasets to `preview.llm.infer_pipeline`.
