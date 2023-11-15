@@ -90,7 +90,7 @@ pyasn1==0.4.8
     #   rsa
 pyasn1-modules==0.2.8
     # via google-auth
-pydantic==1.9.1
+pydantic==2.4.2
     # via -r requirements.in
 pyparsing==3.0.9
     # via httplib2

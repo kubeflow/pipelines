@@ -17,7 +17,11 @@ import textwrap
 import unittest
 from unittest import mock
 
-import pydantic
+try:
+    import pydantic.v1 as pydantic
+except ImportError:
+    import pydantic
+
 from absl.testing import parameterized
 from kfp.v2.components.experimental import structures
 
