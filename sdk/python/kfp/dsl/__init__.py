@@ -35,6 +35,8 @@ __all__ = [
     'PIPELINE_JOB_ID_PLACEHOLDER',
     'PIPELINE_TASK_NAME_PLACEHOLDER',
     'PIPELINE_TASK_ID_PLACEHOLDER',
+    'PIPELINE_TASK_EXECUTOR_OUTPUT_PATH_PLACEHOLDER',
+    'PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER',
     'PIPELINE_ROOT_PLACEHOLDER',
     'PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER',
     'PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER',
@@ -131,6 +133,33 @@ PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
             print_op(
                 msg='Task ID:',
                 value=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
+            )
+"""
+
+PIPELINE_TASK_EXECUTOR_OUTPUT_PATH_PLACEHOLDER = '{{$.outputs.output_file}}'
+"""A placeholder used to obtain the path to the executor_output.json file within the task container.
+
+    Example:
+      ::
+
+        @dsl.pipeline
+        def my_pipeline():
+            create_artifact_with_metadata(
+                metadata={'foo': 'bar'},
+                executor_output_destination=dsl.PIPELINE_TASK_EXECUTOR_OUTPUT_PATH_PLACEHOLDER,
+            )
+"""
+
+PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
+"""A placeholder used to obtain executor input message passed to the task.
+
+    Example:
+      ::
+
+        @dsl.pipeline
+        def my_pipeline():
+            custom_container_op(
+                executor_input=dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER,
             )
 """
 

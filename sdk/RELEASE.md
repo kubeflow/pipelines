@@ -1,6 +1,7 @@
 # Current Version (in development)
 
 ## Features
+* Add support for `dsl.PIPELINE_TASK_EXECUTOR_OUTPUT_PATH_PLACEHOLDER` and `dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER` [\#10240](https://github.com/kubeflow/pipelines/pull/10240)
 
 ## Breaking changes
 
