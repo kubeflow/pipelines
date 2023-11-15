@@ -361,9 +361,10 @@ def make_input_spec(annotation: Any,
     annotation = canonicalize_annotation(annotation)
     input_output_spec_args = make_input_output_spec_args(annotation)
 
-    if (type_annotations.issubclass_of_artifact(annotation) or
+    if (
+            type_annotations.issubclass_of_artifact(annotation) or
             input_output_spec_args['is_artifact_list']
-       ) and inspect_param.default not in {None, inspect._empty}:
+    ) and inspect_param.default is not None and inspect_param.default is not inspect._empty:
         raise ValueError(
             f'Optional Input artifacts may only have default value None. Got: {inspect_param.default}.'
         )

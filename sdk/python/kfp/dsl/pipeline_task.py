@@ -22,6 +22,7 @@ import warnings
 
 from kfp.dsl import constants
 from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_task_base
 from kfp.dsl import placeholders
 from kfp.dsl import structures
 from kfp.dsl import utils
@@ -32,7 +33,7 @@ _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
     task.component_spec.name)
 
 
-class PipelineTask:
+class PipelineTask(pipeline_task_base.PipelineTaskBase):
     """Represents a pipeline task (instantiated component).
 
     **Note:** ``PipelineTask`` should not be constructed by pipeline authors directly, but instead obtained via an instantiated component (see example).
@@ -65,7 +66,7 @@ class PipelineTask:
     def __init__(
         self,
         component_spec: structures.ComponentSpec,
-        args: Mapping[str, Any],
+        args: Dict[str, Any],
     ):
         """Initilizes a PipelineTask instance."""
         # import within __init__ to avoid circular import
@@ -173,9 +174,9 @@ class PipelineTask:
     @property
     def inputs(
         self
-    ) -> List[Union[type_utils.PARAMETER_TYPES,
-                    pipeline_channel.PipelineChannel]]:
-        """The list of actual inputs passed to the task."""
+    ) -> Dict[str, Union[type_utils.PARAMETER_TYPES,
+                         pipeline_channel.PipelineChannel]]:
+        """The inputs passed to the task."""
         return self._inputs
 
     @property

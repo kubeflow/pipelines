@@ -129,12 +129,12 @@ class TestGetUri(unittest.TestCase):
                 self.assertEqual('', actual)
 
 
-class TestConvertLocalPathToRemotePath(parameterized.TestCase):
+class TestConvertContainerPathPathToRemotePath(parameterized.TestCase):
 
     @parameterized.parameters([{
-        'local_path': local_path,
+        'container_path': container_path,
         'expected': expected
-    } for local_path, expected in [
+    } for container_path, expected in [
         ('/gcs/foo/bar', 'gs://foo/bar'),
         ('/minio/foo/bar', 'minio://foo/bar'),
         ('/s3/foo/bar', 's3://foo/bar'),
@@ -142,7 +142,7 @@ class TestConvertLocalPathToRemotePath(parameterized.TestCase):
         ('/some/random/path', '/some/random/path'),
     ]])
     def test_gcs(self, local_path, expected):
-        actual = artifact_types.convert_local_path_to_remote_path(local_path)
+        actual = artifact_types.convert_container_path_to_remote(local_path)
         self.assertEqual(actual, expected)
 
 
