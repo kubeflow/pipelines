@@ -16,12 +16,14 @@
 from typing import Dict, List, NamedTuple
 
 from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationClassificationPredictionsPostprocessorOp
+from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
 from google_cloud_pipeline_components.types.artifact_types import ClassificationMetrics
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from google_cloud_pipeline_components.v1.model_evaluation.classification_component import model_evaluation_classification as ModelEvaluationClassificationOp
 from kfp import dsl
+# pylint: disable=unused-argument, unexpected-keyword-arg
 
 _PIPELINE_NAME = 'evaluation-llm-classification-pipeline'
 
@@ -36,6 +38,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
     model_name: str = 'publishers/google/models/text-bison@001',
     evaluation_task: str = 'text-classification',
     evaluation_class_labels: List[str] = [],
+    input_field_name: str = 'input_text',
     batch_predict_instances_format: str = 'jsonl',
     batch_predict_predictions_format: str = 'jsonl',
     batch_predict_model_parameters: Dict[str, str] = {},
@@ -67,6 +70,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
     model_name: The Model name used to run evaluation. Must be a publisher Model or a managed Model sharing the same ancestor location. Starting this job has no impact on any existing deployments of the Model and their resources.
     evaluation_task: The task that the large language model will be evaluated on. The evaluation component computes a set of metrics relevant to that specific task. Currently supported Classification tasks is: `text-classification`.
     evaluation_class_labels: The JSON array of class names for the target_field, in the same order they appear in the batch predictions input file.
+    input_field_name: The field name of the input eval dataset instances that contains the input prompts to the LLM.
     batch_predict_instances_format: The format in which instances are given, must be one of the Model's supportedInputStorageFormats. For more details about this input config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
     batch_predict_predictions_format: The format in which Vertex AI gives the predictions. Must be one of the Model's supportedOutputStorageFormats. For more details about this output config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_model_parameters: A map of parameters that govern the predictions. Some acceptable parameters include: maxOutputTokens, topK, topP, and temperature.
@@ -102,12 +106,24 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
   )
   get_vertex_model_task.set_display_name('get-vertex-model')
 
+  eval_dataset_preprocessor_task = LLMEvaluationPreprocessorOp(
+      project=project,
+      location=location,
+      gcs_source_uris=batch_predict_gcs_source_uris,
+      input_field_name=input_field_name,
+      machine_type=machine_type,
+      service_account=service_account,
+      network=network,
+      encryption_spec_key_name=encryption_spec_key_name,
+  )
   batch_predict_task = ModelBatchPredictOp(
       project=project,
       location=location,
       model=get_vertex_model_task.outputs['artifact'],
       job_display_name='evaluation-batch-predict-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
-      gcs_source_uris=batch_predict_gcs_source_uris,
+      gcs_source_uris=eval_dataset_preprocessor_task.outputs[
+          'preprocessed_gcs_source_uris'
+      ],
       instances_format=batch_predict_instances_format,
       predictions_format=batch_predict_predictions_format,
       gcs_destination_output_uri_prefix=batch_predict_gcs_destination_output_uri,
