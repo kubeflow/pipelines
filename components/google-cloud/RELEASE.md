@@ -1,4 +1,5 @@
 ## Upcoming release
+## Release 2.6.0
 * Bump supported KFP versions to kfp>=2.0.0b10,<=2.4.0
 * Add LLM Eval pipeline parameter for customizing eval dataset reference ground truth field
 * Create new eval dataset preprocessor for formatting eval dataset in tuning dataset format.
@@ -8,8 +9,8 @@
 * Add ability to perform inference with chat datasets to `preview.llm.infer_pipeline`.
 * Add ability to tune chat models with `preview.llm.rlhf_pipeline`.
 * Group `preview.llm.rlhf_pipeline` components for better readability.
-* Add support add environment variable support to GCPC's `create_custom_training_job_from_component` (both `v1` and `preview` namespaces)
-
+* Add environment variable support to GCPC's `create_custom_training_job_from_component` (both `v1` and `preview` namespaces)
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.5.0
 * Upload tensorboard metrics from `preview.llm.rlhf_pipeline` if a `tensorboard_resource_id` is provided at runtime.
