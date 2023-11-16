@@ -20,7 +20,13 @@ from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
 from kfp.components import _components
 from kfp.components import structures as v1_structures
-import pydantic
+
+try:
+    import pydantic.v1 as pydantic
+    # from pydantic.v1 import BaseModel, Field, validator, root_validator, ValidationError
+except ImportError:
+    import pydantic
+    # from pydantic import BaseModel, Field, validator, root_validator, ValidationError
 import yaml
 
 
