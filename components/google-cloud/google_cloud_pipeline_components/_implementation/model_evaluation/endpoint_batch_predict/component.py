@@ -169,7 +169,7 @@ def evaluation_llm_endpoint_batch_predict_pipeline_graph_component(
     network: str = '',
     encryption_spec_key_name: str = '',
 ) -> NamedTuple('outputs', gcs_output_directory=Artifact):
-  """The LLM Evaluation Text2SQL Pipeline.
+  """The First Party Model Endpoint Batch Predict Pipeline.
 
   Args:
     project: Required. The GCP project that runs the pipeline components.
