@@ -18,14 +18,9 @@ spec:
     spec:
       containers:
         - command:
-          - /bin/sh
-          - -c
-          # See https://github.com/kubeflow/gcp-blueprints/issues/184.
-          - |
-            echo "logs are hidden because volume is too excessive" &&
-            /root/manager 2> /dev/null
-          # A customized image with https://github.com/kubernetes-sigs/application/pull/127
-          image: gcr.io/ml-pipeline/application-crd-controller:1.0-beta-non-cluster-role
+          - /kube-app-manager
+          # Built from https://github.com/kubernetes-sigs/application master branch on the date specified in the image tag.
+          image: gcr.io/ml-pipeline/application-crd-controller:20231101
           imagePullPolicy: IfNotPresent
           name: manager
           env:
