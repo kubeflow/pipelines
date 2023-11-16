@@ -159,7 +159,7 @@ COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER = structures.ComponentSpec(
             ],
             args=[
                 '--executor_input',
-                placeholders.ExecutorInputPlaceholder(),
+                dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER,
                 '--function_name',
                 'test_function',
             ])),
