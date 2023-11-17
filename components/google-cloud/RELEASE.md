@@ -1,4 +1,7 @@
 ## Upcoming release
+* Fix `v1.automl.training_job.AutoMLImageTrainingJobRunOp` `ModuleNotFoundError`
+
+
 ## Release 2.6.0
 * Bump supported KFP versions to kfp>=2.0.0b10,<=2.4.0
 * Add LLM Eval pipeline parameter for customizing eval dataset reference ground truth field
