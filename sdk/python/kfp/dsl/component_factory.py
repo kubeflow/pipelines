@@ -23,6 +23,7 @@ import warnings
 
 import docstring_parser
 import kfp
+from kfp import dsl
 from kfp.dsl import container_component_artifact_channel
 from kfp.dsl import container_component_class
 from kfp.dsl import graph_component
@@ -479,7 +480,7 @@ def _get_command_and_args_for_lightweight_component(
 
     args = [
         '--executor_input',
-        placeholders.ExecutorInputPlaceholder(),
+        dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER,
         '--function_to_execute',
         func.__name__,
     ]
@@ -497,7 +498,7 @@ def _get_command_and_args_for_containerized_component(
 
     args = [
         '--executor_input',
-        placeholders.ExecutorInputPlaceholder()._to_string(),
+        dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER,
         '--function_to_execute',
         function_name,
     ]
