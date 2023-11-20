@@ -102,9 +102,15 @@ class BaseComponent(abc.ABC):
                 f'{self.name}() missing {len(missing_arguments)} required '
                 f'{argument_or_arguments}: {arguments}.')
 
-        # TODO: remove feature flag
+        from kfp.dsl import graph_component
         if not TEMPORARILY_BLOCK_LOCAL_EXECUTION and pipeline_context.Pipeline.get_default_pipeline(
         ) is None:
+            if isinstance(self, graph_component.GraphComponent):
+                # there is other validation in kfp/local/ to infer whether the user is attemping to execute a pipeline locally
+                # we add this GraphComponent check here which will catch cases where the executed pipeline is defined in Python in the module
+                # the kfp/local/ validation can check when the pipeline is a YamlComponent (i.e., loaded from YAML)
+                raise NotImplementedError(
+                    'Local pipeline execution is not currently supported.')
             return task_dispatcher.run_single_component(
                 pipeline_spec=self.pipeline_spec,
                 arguments=kwargs,

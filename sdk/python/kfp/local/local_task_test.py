@@ -16,6 +16,7 @@ import unittest
 
 from kfp import dsl
 from kfp.local import local_task
+from kfp.local import testing_utilities
 
 
 class TestLocalTask(unittest.TestCase):
@@ -49,7 +50,7 @@ class TestLocalTask(unittest.TestCase):
         )
         self.assertEqual(task.outputs['int_output'], 1)
         self.assertEqual(task.outputs['str_output'], 'foo')
-        assert_artifacts_equal(
+        testing_utilities.assert_artifacts_equal(
             self,
             task.outputs['dataset_output'],
             dsl.Dataset(
@@ -129,19 +130,6 @@ class TestLocalTask(unittest.TestCase):
                 r"Task configuration methods are not supported for local execution\. Got call to '\.ignore_upstream_failure\(\)'\."
         ):
             task.ignore_upstream_failure()
-
-
-def assert_artifacts_equal(
-    test_class: unittest.TestCase,
-    a1: dsl.Artifact,
-    a2: dsl.Artifact,
-) -> None:
-    test_class.assertEqual(a1.name, a2.name)
-    test_class.assertEqual(a1.uri, a2.uri)
-    test_class.assertEqual(a1.metadata, a2.metadata)
-    test_class.assertEqual(a1.schema_title, a2.schema_title)
-    test_class.assertEqual(a1.schema_version, a2.schema_version)
-    test_class.assertIsInstance(a1, type(a2))
 
 
 if __name__ == '__main__':
