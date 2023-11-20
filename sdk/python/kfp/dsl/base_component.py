@@ -16,10 +16,15 @@
 import abc
 from typing import List
 
+from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
+from kfp.dsl import pipeline_task_base
 from kfp.dsl import structures
 from kfp.dsl.types import type_utils
+from kfp.local import task_dispatcher
 from kfp.pipeline_spec import pipeline_spec_pb2
+
+TEMPORARILY_BLOCK_LOCAL_EXECUTION = True
 
 
 class BaseComponent(abc.ABC):
@@ -63,7 +68,7 @@ class BaseComponent(abc.ABC):
                     f'Output lists of artifacts are only supported for pipelines. Got output list of artifacts for output parameter {output_name!r} of component {self.name!r}.'
                 )
 
-    def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
+    def __call__(self, *args, **kwargs) -> pipeline_task_base.PipelineTaskBase:
         """Creates a PipelineTask object.
 
         The arguments are generated on the fly based on component input
@@ -97,6 +102,13 @@ class BaseComponent(abc.ABC):
                 f'{self.name}() missing {len(missing_arguments)} required '
                 f'{argument_or_arguments}: {arguments}.')
 
+        # TODO: remove feature flag
+        if not TEMPORARILY_BLOCK_LOCAL_EXECUTION and pipeline_context.Pipeline.get_default_pipeline(
+        ) is None:
+            return task_dispatcher.run_single_component(
+                pipeline_spec=self.pipeline_spec,
+                arguments=kwargs,
+            )
         return pipeline_task.PipelineTask(
             component_spec=self.component_spec,
             args=task_inputs,
