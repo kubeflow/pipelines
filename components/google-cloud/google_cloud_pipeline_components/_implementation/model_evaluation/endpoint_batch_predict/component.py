@@ -23,7 +23,7 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
-_IMAGE_URI = 'us-docker.pkg.dev/vertex-evaluation/public/llm:wjess-fishfooding'
+_IMAGE_URI = 'us-docker.pkg.dev/vertex-evaluation/public/llm:navekshasood-test'
 
 
 @dsl.component
