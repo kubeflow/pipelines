@@ -1602,427 +1602,280 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
             .runtime_value.constant.bool_value)
 
 
-class TestValidLegalTopologies(unittest.TestCase):
+class TestTopologyValidation(unittest.TestCase):
 
-    def test_inside_of_root_group_permitted(self):
-
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
-
-            one = print_op(message='1')
-            two = print_op(message='2')
-            three = print_op(message=str(return_1_task.output))
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_upstream_inside_deeper_condition_blocked(self):
+    def test_invalid_condition_1(self):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
         ):
 
-            @dsl.pipeline()
-            def my_pipeline():
-                return_1_task = return_1()
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                with dsl.Condition(foo == 'bar'):
+                    one = print_and_return(text='foo')
+                # one may never execute. so one.output is not available
+                two = print_and_return(text=one.output)
 
-                one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
-                    two = print_op(message='2')
+    def test_invalid_condition_2(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+        ):
 
-                three = print_op(message='3').after(two)
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                with dsl.Condition(foo == 'bar'):
+                    one = print_and_return(text='foo')
+                # one may never execute. in that case, how should two be handled?
+                two = print_and_return(text='baz').after(one)
 
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
+    def test_invalid_condition_3(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+        ):
 
-    def test_upstream_in_the_same_condition_permitted(self):
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                with dsl.Condition(foo == 'bar'):
+                    with dsl.Condition(foo == 'bar'):
+                        one = print_and_return(text='foo')
+                    # one may never execute. in that case, how should two be handled?
+                    two = print_and_return(text='baz').after(one)
 
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
+    def test_invalid_condition_4(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+        ):
 
-            with dsl.Condition(return_1_task.output == 1):
-                one = return_1()
-                two = print_op(message='2')
-                three = print_op(message=str(one.output))
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                with dsl.Condition(foo == 'foo'):
+                    one = print_and_return(text='foo')
+                # even though they are at the same level of the pipeline, two cannot depend on one
+                with dsl.Condition(foo == 'bar'):
+                    two = print_and_return(text='bar').after(one)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+    def test_valid_condition_1(self):
 
-    def test_downstream_inside_deeper_condition_permitted(self):
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            with dsl.Condition(foo == 'bar'):
+                one = print_and_return(text='foo')
+                two = print_and_return(text=one.output)
 
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-            one = print_op(message='1')
-            with dsl.Condition(return_1_task.output == 1):
-                two = print_op(message='2')
-                three = print_op(message='3').after(one)
+    def test_valid_condition_2(self):
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            with dsl.Condition(foo == 'bar'):
+                one = print_and_return(text='foo')
+                two = print_and_return(text='baz').after(one)
 
-    def test_downstream_and_upstream_in_different_condition_on_same_level_blocked(
-            self):
+        self.assertTrue(my_pipeline.pipeline_spec)
+
+    def test_valid_condition_3(self):
+
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            with dsl.Condition(foo == 'bar'):
+                with dsl.Condition(foo == 'bar'):
+                    one = print_and_return(text='foo')
+                    two = print_and_return(text='baz').after(one)
+
+        self.assertTrue(my_pipeline.pipeline_spec)
+
+    def test_valid_condition_4(self):
+
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            with dsl.Condition(foo == 'bar'):
+                one = print_and_return(text='foo')
+                with dsl.Condition(foo == 'bar'):
+                    two = print_and_return(text='baz').after(one)
+
+        self.assertTrue(my_pipeline.pipeline_spec)
+
+    def test_invalid_exithandler_1(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                exit_task = print_and_return(text='foo')
+                with dsl.ExitHandler(exit_task=exit_task):
+                    one = print_and_return(text='foo')
+                # cannot depend on task in exit handler
+                two = print_and_return(text=one.output)
+
+    def test_invalid_exithandler_2(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                exit_task = print_and_return(text='foo')
+                with dsl.ExitHandler(exit_task=exit_task):
+                    one = print_and_return(text='foo')
+                # cannot depend on task in exit handler
+                two = print_and_return(text='baz').after(one)
+
+    def test_invalid_exithandler_3(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                exit_task = print_and_return(text='foo')
+                with dsl.ExitHandler(exit_task=exit_task):
+                    one = print_and_return(text='foo')
+                with dsl.Condition(foo == 'bar'):
+                    # cannot depend on task in exit handler
+                    two = print_and_return(text=one.output)
+
+    def test_invalid_exithandler_4(self):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-4 which depends on upstream task print-and-return-2 within an uncommon dsl.ExitHandler context\.'
         ):
 
-            @dsl.pipeline()
+            @dsl.pipeline
             def my_pipeline():
-                return_1_task = return_1()
+                exit_task_1 = print_and_return(text='foo')
+                with dsl.ExitHandler(exit_task_1):
+                    one = print_and_return(text='bar')
 
-                one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
-                    two = print_op(message='2')
+                exit_task_2 = print_and_return(text='baz')
+                with dsl.ExitHandler(exit_task_2):
+                    # even though they are at the same level of the pipeline, two cannot depend on one
+                    two = print_and_return(text='bat').after(one)
 
-                with dsl.Condition(return_1_task.output == 1):
-                    three = print_op(message='3').after(two)
+    def test_valid_exithandler_1(self):
 
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            exit_task = print_and_return(text='foo')
+            with dsl.ExitHandler(exit_task=exit_task):
+                one = print_and_return(text='foo')
+                two = print_and_return(text=one.output)
 
-    def test_downstream_inside_deeper_nested_condition_permitted(self):
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
-            return_1_task2 = return_1()
+    def test_valid_exithandler_2(self):
 
-            with dsl.Condition(return_1_task.output == 1):
-                one = return_1()
-                with dsl.Condition(return_1_task2.output == 1):
-                    two = print_op(message='2')
-                    three = print_op(message=str(one.output))
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            exit_task = print_and_return(text='foo')
+            with dsl.ExitHandler(exit_task=exit_task):
+                one = print_and_return(text='foo')
+                two = print_and_return(text='baz').after(one)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-    def test_upstream_inside_deeper_nested_condition_blocked(self):
-
+    def test_invalid_parallelfor_1(self):
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.'
         ):
 
-            @dsl.pipeline()
+            @dsl.pipeline
             def my_pipeline():
-                return_1_task = return_1()
+                with dsl.ParallelFor([1, 2, 3]):
+                    one = print_and_return(text='foo')
+                # requires dsl.Collected
+                two = print_and_return(text=one.output)
 
-                with dsl.Condition(return_1_task.output == 1):
-                    one = print_op(message='1')
-                    with dsl.Condition(return_1_task.output == 1):
-                        two = print_op(message='2')
-                    three = print_op(message='3').after(two)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_upstream_in_same_for_loop_with_downstream_permitted(self):
-
-        @dsl.pipeline()
-        def my_pipeline():
-            args_generator = args_generator_op()
-
-            with dsl.ParallelFor(args_generator.output):
-                one = print_op(message='1')
-                two = print_op(message='3').after(one)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_not_in_same_for_loop_with_upstream_blocked(self):
-
+    def test_invalid_parallelfor_2(self):
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-op-2 which depends on upstream task print-op within an uncommon dsl\.ParallelFor context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.'
         ):
 
-            @dsl.pipeline()
-            def my_pipeline():
-                args_generator = args_generator_op()
+            @dsl.pipeline
+            def my_pipeline(text: str):
+                with dsl.ParallelFor([1, 2, 3]):
+                    one = print_and_return(text='foo')
+                # requires dsl.Collected
+                with dsl.Condition(text == 'foo'):
+                    # it shouldn't matter if print_and_return is nested in a condition
+                    # it still needs dsl.Collected
+                    two = print_and_return(text=one.output)
 
-                with dsl.ParallelFor(args_generator.output):
-                    one = print_op(message='1')
-                two = print_op(message='3').after(one)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_not_in_same_for_loop_with_upstream_seperate_blocked(
-            self):
-
+    def test_invalid_parallelfor_3(self):
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-op-2 which depends on upstream task print-op within an uncommon dsl\.ParallelFor context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.'
         ):
 
-            @dsl.pipeline()
+            @dsl.pipeline
             def my_pipeline():
-                args_generator = args_generator_op()
+                with dsl.ParallelFor([1, 2, 3]):
+                    one = print_and_return(text='foo')
+                with dsl.ParallelFor([1, 2, 3]):
+                    # requires dsl.Collected
+                    two = print_and_return(text=one.output)
 
-                with dsl.ParallelFor(args_generator.output):
-                    one = print_op(message='1')
-
-                with dsl.ParallelFor(args_generator.output):
-                    two = print_op(message='3').after(one)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
-
-        with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Downstream tasks in a nested ParallelFor group cannot depend on an upstream task in a shallower ParallelFor group.'
-        ):
-
-            @dsl.pipeline()
-            def my_pipeline():
-                args_generator = args_generator_op()
-
-                with dsl.ParallelFor(args_generator.output):
-                    one = print_op(message='1')
-
-                    with dsl.ParallelFor(args_generator.output):
-                        two = print_op(message='3').after(one)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_inner_parallelfor_can_iter_over_upstream_output(self):
-
-        @dsl.component
-        def str_to_list(string: str) -> List:
-            return [string]
+    def test_valid_parallelfor_1(self):
 
         @dsl.pipeline
         def my_pipeline():
-            with dsl.ParallelFor(['a', 'b', 'c']) as itema:
-                t1 = str_to_list(string=itema)
-                with dsl.ParallelFor(t1.output) as itemb:
-                    print_and_return(text=itemb)
+            # first for loop will run
+            with dsl.ParallelFor([1, 2, 3]) as item:
+                one = print_and_return(text='foo')
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+            # second for loop will run after first
+            with dsl.ParallelFor([1, 2, 3]) as item:
+                # when calling .after on a task in an uncommon upstream loop, it refers to all instances of the task
+                two = print_and_return(text='bar').after(one)
 
-    def test_permitted_nested_parallelfor_complex(self):
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-        @dsl.component
-        def str_to_list(string: str) -> List:
-            return [string]
+    def test_valid_parallelfor_2(self):
 
         @dsl.pipeline
         def my_pipeline():
-
-            # for-loop-2
-            with dsl.ParallelFor(['a', 'b', 'c']) as itema:
-                t1 = str_to_list(string=itema)
-                t2 = str_to_list(string=itema)
-
-                sequential_task1 = print_and_return(text=itema)
-                print_and_return(text=sequential_task1.output)
-
-                # for-loop-3
-                with dsl.ParallelFor(t1.output) as itemb:
-                    t3 = str_to_list(string=itema)
-                    with dsl.ParallelFor(t3.output) as itemc:
-                        print_and_return(text=itemc)
-                    with dsl.ParallelFor(t2.output) as itemd:
-                        print_and_return(text=itemd)
-                with dsl.ParallelFor(t2.output) as iteme:
-                    print_and_return(text=iteme)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_in_condition_nested_in_a_for_loop(self):
-
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
+            one = print_and_return(text='foo')
 
             with dsl.ParallelFor([1, 2, 3]):
-                one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
-                    two = print_op(message='2').after(one)
+                # refers to only one task
+                two = print_and_return(text='bar').after(one)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-    def test_downstream_in_a_for_loop_nested_in_a_condition(self):
+    def test_valid_parallelfor_3(self):
 
-        @dsl.pipeline()
+        @dsl.pipeline
         def my_pipeline():
-            return_1_task = return_1()
-
-            with dsl.Condition(return_1_task.output == 1):
-                one = print_op(message='1')
-                with dsl.ParallelFor([1, 2, 3]):
-                    two = print_op(message='2').after(one)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_in_a_nested_for_loop_not_related_to_upstream(self):
-
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
-
             with dsl.ParallelFor([1, 2, 3]):
-                one = print_op(message='1')
+                one = print_and_return(text='foo')
+            # refers to all instances of one
+            two = print_and_return(text='bar').after(one)
+
+        self.assertTrue(my_pipeline.pipeline_spec)
+
+    def test_valid_parallelfor_4(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor([1, 2, 3]):
                 with dsl.ParallelFor([1, 2, 3]):
-                    two = print_op(message='2').after(return_1_task)
+                    one = print_and_return(text='foo')
+                # refers to all instances of one in the inner loop
+                two = print_and_return(text='bar').after(one)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-
-class TestCannotUseAfterCrossDAG(unittest.TestCase):
-
-    def test_inner_task_prevented(self):
-        with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-4 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
-        ):
-
-            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-            def my_pipeline():
-                first_exit_task = print_op(message='First exit task.')
-
-                with dsl.ExitHandler(first_exit_task):
-                    first_print_op = print_op(
-                        message='Inside first exit handler.')
-
-                second_exit_task = print_op(message='Second exit task.')
-                with dsl.ExitHandler(second_exit_task):
-                    print_op(message='Inside second exit handler.').after(
-                        first_print_op)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_exit_handler_task_prevented(self):
-        with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-4 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
-        ):
-
-            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-            def my_pipeline():
-                first_exit_task = print_op(message='First exit task.')
-
-                with dsl.ExitHandler(first_exit_task):
-                    first_print_op = print_op(
-                        message='Inside first exit handler.')
-
-                second_exit_task = print_op(message='Second exit task.')
-                with dsl.ExitHandler(second_exit_task):
-                    x = print_op(message='Inside second exit handler.')
-                    x.after(first_print_op)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_within_same_exit_handler_permitted(self):
-
-        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-        def my_pipeline():
-            first_exit_task = print_op(message='First exit task.')
-
-            with dsl.ExitHandler(first_exit_task):
-                first_print_op = print_op(
-                    message='First task inside first exit handler.')
-                second_print_op = print_op(
-                    message='Second task inside first exit handler.').after(
-                        first_print_op)
-
-            second_exit_task = print_op(message='Second exit task.')
-            with dsl.ExitHandler(second_exit_task):
-                print_op(message='Inside second exit handler.')
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_outside_of_condition_blocked(self):
-        with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op within an uncommon dsl\.Condition context\.'
-        ):
-
-            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-            def my_pipeline():
-                return_1_task = return_1()
-
-                with dsl.Condition(return_1_task.output == 1):
-                    one = print_op(message='1')
-                    two = print_op(message='2')
-                three = print_op(message='3').after(one)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_inside_of_condition_permitted(self):
-
-        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-        def my_pipeline():
-            return_1_task = return_1()
-
-            with dsl.Condition(return_1_task.output == '1'):
-                one = print_op(message='1')
-                two = print_op(message='2').after(one)
-            three = print_op(message='3')
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+        self.assertTrue(my_pipeline.pipeline_spec)
 
 
 class TestYamlComments(unittest.TestCase):
