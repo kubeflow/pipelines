@@ -107,6 +107,7 @@ describe('/artifacts', () => {
             endPoint: 's3.amazonaws.com',
             region: 'us-east-1',
             secretKey: 'awsSecret123',
+            useSSL: true,
           });
           done(err);
         });
@@ -129,6 +130,7 @@ describe('/artifacts', () => {
             endPoint: 's3.amazonaws.com',
             region: 'us-east-1',
             secretKey: 'awsSecret123',
+            useSSL: true,
           });
           done(err);
         });
@@ -152,6 +154,7 @@ describe('/artifacts', () => {
             endPoint: 's3.amazonaws.com',
             region: 'eu-central-1',
             secretKey: 'awsSecret123',
+            useSSL: true,
           });
           done(err);
         });
