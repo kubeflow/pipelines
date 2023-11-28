@@ -16,6 +16,7 @@ package argocompiler
 
 import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"os"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
@@ -23,7 +24,10 @@ import (
 
 const (
 	volumeNameKFPLauncher = "kfp-launcher"
+	DefaultLauncherImage = "gcr.io/ml-pipeline/kfp-launcher@sha256:80cf120abd125db84fa547640fd6386c4b2a26936e0c2b04a7d3634991a850a4"
+	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
 )
+
 
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
 	err := c.saveComponentSpec(name, component)
@@ -50,6 +54,14 @@ type containerDriverInputs struct {
 	parentDagID      string
 	iterationIndex   string // optional, when this is an iteration task
 	kubernetesConfig string // optional, used when Kubernetes config is not empty
+}
+
+func GetLauncherImage() string {
+    launcherImage := os.Getenv(LauncherImageEnvVar)
+    if launcherImage == "" {
+        launcherImage = DefaultLauncherImage
+    }
+    return launcherImage
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
@@ -226,7 +238,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
-				Image:   c.launcherImage,
+				Image:   GetLauncherImage(),
 				Command: []string{"launcher-v2", "--copy", component.KFPLauncherPath},
 				VolumeMounts: []k8score.VolumeMount{{
 					Name:      volumeNameKFPLauncher,
