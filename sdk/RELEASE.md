@@ -8,6 +8,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Support `.after()` referencing task in a `dsl.ParallelFor` group  [\#10257](https://github.com/kubeflow/pipelines/pull/10257)
 
 ## Documentation updates
 
