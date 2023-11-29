@@ -189,6 +189,9 @@ pipelines:
     - module: pythonic_artifacts_with_list_of_artifacts
       name: make_and_join_datasets
       execute: false
+    - module: cross_loop_after_topology
+      name: my_pipeline
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true
