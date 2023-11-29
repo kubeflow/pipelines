@@ -9,6 +9,7 @@
 
 ## Bug fixes and other changes
 * Support `.after()` referencing task in a `dsl.ParallelFor` group  [\#10257](https://github.com/kubeflow/pipelines/pull/10257)
+* Support Python 3.12 [\#10271](https://github.com/kubeflow/pipelines/pull/10271)
 
 ## Documentation updates
 
