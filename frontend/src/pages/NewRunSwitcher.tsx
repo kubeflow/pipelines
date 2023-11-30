@@ -115,9 +115,30 @@ function NewRunSwitcher(props: PageProps) {
     },
     { enabled: !!pipelineId && !!pipelineVersionId, staleTime: Infinity, cacheTime: 0 },
   );
-
   const pipelineSpecInVersion = pipelineVersion?.pipeline_spec;
   const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
+
+  const { isFetching: v1TemplateStrIsFetching, data: v1Template } = useQuery<string, Error>(
+    ['v1PipelineVersionTemplate', pipelineVersionIdParam],
+    async () => {
+      if (!(pipelineId && pipelineVersionId)) {
+        throw new Error('Pipeline id or pipeline Version ID is missing');
+      }
+
+      let v1TemplateResponse;
+      if (pipelineVersionId) {
+        v1TemplateResponse = await Apis.pipelineServiceApi.getPipelineVersionTemplate(
+          pipelineVersionId,
+        );
+        return v1TemplateResponse.template || '';
+      } else {
+        v1TemplateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
+      }
+      return v1TemplateResponse.template || '';
+    },
+    { enabled: !!pipelineId || !!pipelineVersionId, staleTime: Infinity, cacheTime: 0 },
+  );
+  const v1TemplateStr = v1Template || '';
 
   const { isFetching: experimentIsFetching, data: experiment } = useQuery<V2beta1Experiment, Error>(
     ['experiment', experimentId],
@@ -130,16 +151,18 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
-  // Two possible sources for template string
+  // Three possible sources for template string
   // 1. pipelineManifest: pipeline_spec stored in run or recurring run created by SDK
   // 2. templateStrFromSpec: pipeline_spec stored in pipeline_version
-  const templateString = pipelineManifest ?? templateStrFromSpec;
+  // 3. v1TemplateStr: pipelines created by v1 API (no pipeline_spec field)
+  const templateString = pipelineManifest ?? (templateStrFromSpec || v1TemplateStr);
 
   if (
     v2RunIsFetching ||
     recurringRunIsFetching ||
     pipelineIsFetching ||
     pipelineVersionIsFetching ||
+    v1TemplateStrIsFetching ||
     experimentIsFetching
   ) {
     return <div>Currently loading pipeline information</div>;
