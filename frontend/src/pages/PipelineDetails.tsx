@@ -32,7 +32,7 @@ import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from 'src/third_party/mlmd/argo_template';
-import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
+import { ApiGetTemplateResponse, ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import {
   V2beta1ListPipelineVersionsResponse,
   V2beta1Pipeline,
@@ -623,6 +623,18 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   private async _getTemplateString(pipelineVersion?: V2beta1PipelineVersion): Promise<string> {
     if (pipelineVersion?.pipeline_spec) {
       return JsYaml.safeDump(pipelineVersion.pipeline_spec);
+    }
+
+    // Handle v1 pipelines created by v1 API (no pipeline_spec field)
+    let v1TemplateResponse: ApiGetTemplateResponse;
+    if (pipelineVersion?.pipeline_version_id) {
+      v1TemplateResponse = await Apis.pipelineServiceApi.getPipelineVersionTemplate(
+        pipelineVersion.pipeline_version_id,
+      );
+      return v1TemplateResponse.template || '';
+    } else if (pipelineVersion?.pipeline_id) {
+      v1TemplateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineVersion.pipeline_id);
+      return v1TemplateResponse.template || '';
     } else {
       logger.error('No template string is found');
       return '';

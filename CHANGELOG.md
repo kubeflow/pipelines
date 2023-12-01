@@ -1,5 +1,43 @@
 # Changelog
 
+### [2.0.4](https://github.com/kubeflow/pipelines/compare/2.0.3...2.0.4) (2023-12-01)
+
+
+### Features
+
+* **components:** [endpoint_batch_predict] add retry function for retryable error ([a54ac75](https://github.com/kubeflow/pipelines/commit/a54ac75c8ce94919969e939ec6d93d7959f2bd35))
+* **components:** [third party model inference] Initialize component ([1e089e6](https://github.com/kubeflow/pipelines/commit/1e089e6f6d2529bd396f4cdd27a0cad3bf7824a6))
+* **components:** Add ability to tune chat model with `preview.llm.rlhf_pipeline` ([f67cbfa](https://github.com/kubeflow/pipelines/commit/f67cbfa81f7d4caf63879e5e544ad55c0f3d7940))
+* **components:** Add chat dataset preprocessor to `preview.llm.infer_pipeline` ([d8f2c14](https://github.com/kubeflow/pipelines/commit/d8f2c140cecf0e1b9a5437e8eb46731e89cc6b41))
+* **components:** add environment variable support to GCPC's `create_custom_training_job_from_component` ([91f50da](https://github.com/kubeflow/pipelines/commit/91f50da23505b680e77201c14a5ffaf1824bc919))
+* **components:** add LLM Eval pipeline parameter for customizing eval dataset reference ground truth field ([f6aad5e](https://github.com/kubeflow/pipelines/commit/f6aad5e4e0448583490ef688ecb23af74caf4dab))
+* **components:** Add tuning dataset support to LLM Eval Text Generation and Text Classification Pipelines. Include new LLM Eval Preprocessor component to both pipelines ([b55ed6e](https://github.com/kubeflow/pipelines/commit/b55ed6e4b4ffced24a7fbd020406c4909df84381))
+* **components:** Create new eval dataset preprocessor for formatting eval dataset ([6cfad2b](https://github.com/kubeflow/pipelines/commit/6cfad2b348649341211a8a9cad7ea9329c130fae))
+* **components:** Edit embedding pipeline to use generic batch predict component to support multilingual embeddings model ([397b1c9](https://github.com/kubeflow/pipelines/commit/397b1c97be1ef3baf37b664ca56ee119f9bbe7d3))
+* **components:** Enable endpoint_batch_predict component to take in publisher model by either model_address + model_id or just model_id ([1f69834](https://github.com/kubeflow/pipelines/commit/1f698349f14871b85c4e68fcc1ed475220eaf9e6))
+* **components:** Fix batch prediction model parameters payload sanitization error(batch prediction job) ([fb4512d](https://github.com/kubeflow/pipelines/commit/fb4512dc0ac0201b900932fd1598f4d382f039ee))
+* **components:** Group `preview.llm.rlhf_pipeline` components for more readability ([c23b720](https://github.com/kubeflow/pipelines/commit/c23b720f1058bc44ea41a3e4bcdfdc4e3505c47f))
+* **components:** Group `preview.llm.rlhf_pipeline` components for more readability ([bcd5922](https://github.com/kubeflow/pipelines/commit/bcd59220f4cee29b317cc209e0e006dee0a258a8))
+* **components:** Group `preview.llm.rlhf_pipeline` components for more readability ([a927984](https://github.com/kubeflow/pipelines/commit/a9279843946183429f6572516acee6523de36e53))
+* **components:** Update image tag used by RLHF components ([4a5cbbf](https://github.com/kubeflow/pipelines/commit/4a5cbbfb8d5ccf721fc29c61605deb8df7926750))
+* **sdk:** add executor output path and executor input message placeholders ([\#10240](https://github.com/kubeflow/pipelines/issues/10240)) ([d3323c0](https://github.com/kubeflow/pipelines/commit/d3323c06f3d5a66323dd8fb2eb06eb4a0924476b))
+* **sdk:** add local execution config #localexecution ([\#10234](https://github.com/kubeflow/pipelines/issues/10234)) ([0d7913c](https://github.com/kubeflow/pipelines/commit/0d7913ce4ed35fe762ba5021dee2d4b09b5efca9))
+* **sdk:** support `.after()` referencing task in `ParallelFor` group ([\#10257](https://github.com/kubeflow/pipelines/issues/10257)) ([11f60d8](https://github.com/kubeflow/pipelines/commit/11f60d813a3bbf5549c993a8384771be37d337e5))
+
+
+### Bug Fixes
+
+* **backend:** Pipeline and PipelineVersion Description column value should be optional. ([\#10205](https://github.com/kubeflow/pipelines/issues/10205)) ([0948561](https://github.com/kubeflow/pipelines/commit/0948561fdabc6dff29c3171ed69614e4b9b9061a))
+* **components:** fix GCPC AutoMLImageTrainingJobRunOp ModuleNotFoundError ([9f278f3](https://github.com/kubeflow/pipelines/commit/9f278f3682662b24b46be2d9ef4a783bcc1f9b0c))
+* **frontend:** Support running old v1 pipeline. Fix [\#10153](https://github.com/kubeflow/pipelines/issues/10153) ([\#10276](https://github.com/kubeflow/pipelines/issues/10276)) ([f5cb2d7](https://github.com/kubeflow/pipelines/commit/f5cb2d7d6f9dd60be047d77486cd861ad9b0293c))
+
+
+### Other Pull Requests
+
+* feat(components):[text2sql] Integration with first party LLM model inference pipeline ([71e5a93](https://github.com/kubeflow/pipelines/commit/71e5a938efeebebeb88c3077e1b9d88097e60c9b))
+* No public description ([a8dd311](https://github.com/kubeflow/pipelines/commit/a8dd3117d5e07656b19bccdd4a0cac8860b9c2fd))
+* feat(components):[text2sql] Generate SQL queries by model batch prediction ([2910d0b](https://github.com/kubeflow/pipelines/commit/2910d0bb5276daf5aeb79d6ba7c09f7856b899e4))
+
 ### [2.0.3](https://github.com/kubeflow/pipelines/compare/2.0.2...2.0.3) (2023-10-27)
 
 

@@ -504,7 +504,7 @@ class TestDeserializeV1ComponentYamlDefault(parameterized.TestCase):
         res = type_utils.deserialize_v1_component_yaml_default(type_, default)
         # check type first since equals check is insufficient since 1.0 == 1
         self.assertIsInstance(res, expected_type)
-        self.assertEquals(res, expected_val)
+        self.assertEqual(res, expected_val)
 
     @parameterized.parameters([
         {
@@ -578,7 +578,7 @@ class TestDeserializeV1ComponentYamlDefault(parameterized.TestCase):
         res = type_utils.deserialize_v1_component_yaml_default(type_, default)
         # check type first since equals check is insufficient since 1.0 == 1
         self.assertIsInstance(res, expected_type)
-        self.assertEquals(res, expected_val)
+        self.assertEqual(res, expected_val)
 
 
 class TestTypeChecking(parameterized.TestCase):
