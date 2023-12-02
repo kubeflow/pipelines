@@ -86,6 +86,12 @@ def _install_completion(shell: str) -> None:
     '--other-client-secret',
     help=parsing.get_param_descr(client.Client, 'other_client_secret'))
 @click.option(
+    '--cookies',
+    help=parsing.get_param_descr(client.Client, 'cookies'))
+@click.option(
+    '--ssl-ca-cert',
+    help=parsing.get_param_descr(client.Client, 'ssl_ca_cert'))
+@click.option(
     '--output',
     type=click.Choice(list(map(lambda x: x.name, OutputFormat))),
     default=OutputFormat.table.name,
@@ -95,7 +101,7 @@ def _install_completion(shell: str) -> None:
 @click.version_option(version=kfp.__version__, message='%(prog)s %(version)s')
 def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
         other_client_id: str, other_client_secret: str, output: OutputFormat,
-        show_completion: str, install_completion: str):
+        show_completion: str, install_completion: str, ssl_ca_cert: str, cookies: str):
     """Kubeflow Pipelines CLI."""
     if show_completion:
         click.echo(_create_completion(show_completion))
@@ -113,6 +119,7 @@ def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
         # Do not create a client for these subcommands
         return
     ctx.obj['client'] = client.Client(endpoint, iap_client_id, namespace,
-                                      other_client_id, other_client_secret)
+                                      other_client_id, other_client_secret, 
+                                      ssl_ca_cert=ssl_ca_cert, cookies=cookies)
     ctx.obj['namespace'] = namespace
     ctx.obj['output'] = output
