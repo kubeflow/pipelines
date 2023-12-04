@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Deprecated. See kfp.components.types.type_utils instead.
+"""Deprecated. See kfp.dsl.types.type_utils instead.
 
 This module will be removed in KFP v2.0.
 """
 import warnings
-from kfp.components.types import type_utils
+from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import inspect
 from typing import Union, Type
@@ -27,7 +27,7 @@ from kfp.components.types import artifact_types
 
 warnings.warn(
     'Module kfp.dsl.type_utils is deprecated and will be removed'
-    ' in KFP v2.0. Please use from kfp.components.types.type_utils instead.',
+    ' in KFP v2.0. Please use from kfp.dsl.types.type_utils instead.',
     category=FutureWarning)
 
 is_parameter_type = type_utils.is_parameter_type
