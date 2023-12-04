@@ -217,7 +217,9 @@ def delete_version(ctx: click.Context, pipeline_id: str, version_id: str):
 
 @pipeline.command()
 @click.argument('pipeline-id')
-@click.option('--name', is_flag=True)
+@click.option('--name',
+              is_flag=True,
+              help="Retrive pipeline information by it's name.")
 @click.pass_context
 def get(ctx: click.Context, pipeline_id: str, name: bool):
     """Get information about a pipeline."""
