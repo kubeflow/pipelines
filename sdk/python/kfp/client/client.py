@@ -1482,6 +1482,17 @@ class Client:
         """
         return self._pipelines_api.get_pipeline(pipeline_id=pipeline_id)
 
+    def get_pipeline_by_name(self, pipeline_name: str) -> kfp_server_api.V2beta1Pipeline:
+        """Gets pipeline details.
+
+        Args:
+            pipeline_id: ID of the pipeline.
+
+        Returns:
+            ``V2beta1Pipeline`` object.
+        """
+        return self._pipelines_api.get_pipeline_by_name(pipeline_name)
+
     def delete_pipeline(self, pipeline_id: str) -> dict:
         """Deletes a pipeline.
 

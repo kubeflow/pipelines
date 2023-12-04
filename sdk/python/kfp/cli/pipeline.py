@@ -217,13 +217,17 @@ def delete_version(ctx: click.Context, pipeline_id: str, version_id: str):
 
 @pipeline.command()
 @click.argument('pipeline-id')
+@click.option('--name', is_flag=True)
 @click.pass_context
-def get(ctx: click.Context, pipeline_id: str):
+def get(ctx: click.Context, pipeline_id: str, name: bool):
     """Get information about a pipeline."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    pipeline = client_obj.get_pipeline(pipeline_id)
+    if name:
+        pipeline = client_obj.get_pipeline_by_name(pipeline_id)
+    else:
+        pipeline = client_obj.get_pipeline(pipeline_id)
     output.print_output(
         pipeline,
         output.ModelType.PIPELINE,
