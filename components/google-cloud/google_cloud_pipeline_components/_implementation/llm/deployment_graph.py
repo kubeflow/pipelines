@@ -75,22 +75,16 @@ def pipeline(
           'large_model_reference'
       ]
   ).set_display_name('Resolve Upload Model')
-  upload_task = (
-      upload_llm_model.upload_llm_model(
-          project=_placeholders.PROJECT_ID_PLACEHOLDER,
-          location=upload_location,
-          regional_endpoint=regional_endpoint.output,
-          artifact_uri=adapter_artifact.output,
-          model_display_name=display_name.output,
-          model_reference_name='text-bison@001',
-          upload_model=upload_model.output,
-      )
-      .set_env_variable(
-          name='VERTEX_AI_PIPELINES_RUN_LABELS',
-          value=json.dumps({'tune-type': 'rlhf'}),
-      )
-      .set_display_name('Upload Model')
-  )
+  upload_task = upload_llm_model.upload_llm_model(
+      project=_placeholders.PROJECT_ID_PLACEHOLDER,
+      location=upload_location,
+      regional_endpoint=regional_endpoint.output,
+      artifact_uri=adapter_artifact.output,
+      model_display_name=display_name.output,
+      model_reference_name='text-bison@001',
+      upload_model=upload_model.output,
+      tune_type='rlhf',
+  ).set_display_name('Upload Model')
   deploy_model = function_based.resolve_deploy_model(
       deploy_model=deploy_model,
       large_model_reference=reference_model_metadata.outputs[

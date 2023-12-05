@@ -34,6 +34,7 @@ def upload_llm_model(
     gcp_resources: dsl.OutputPath(str),
     encryption_spec_key_name: str = '',
     upload_model: bool = True,
+    tune_type: str = '',
 ):
   """Uploads LLM model.
 
@@ -48,6 +49,8 @@ def upload_llm_model(
       upload_model: Whether to upload the model to the Model Registry. Default
         is ``True``. If ``False``, the model will not be uploaded and output
         artifacts will contain empty strings.
+      tune_type: Method used to tune the model, e.g. ``rlhf``. If present, this
+        value is used to set the ``tune-type`` run label during model upload.
 
   Returns:
       model_resource_name: Path to the created Model on Model Registry.
@@ -76,6 +79,8 @@ def upload_llm_model(
     labels['google-vertex-llm-tuning-base-model-id'] = (
         model_reference_name.replace('@', '-')
     )
+    if tune_type:
+      labels['tune-type'] = tune_type
 
     model_upload_payload = {
         'model': {
