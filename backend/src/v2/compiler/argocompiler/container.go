@@ -16,6 +16,7 @@ package argocompiler
 
 import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"os"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
@@ -23,6 +24,10 @@ import (
 
 const (
 	volumeNameKFPLauncher = "kfp-launcher"
+	DefaultLauncherImage = "gcr.io/ml-pipeline/kfp-launcher@sha256:80cf120abd125db84fa547640fd6386c4b2a26936e0c2b04a7d3634991a850a4"
+	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
+	DefaultDriverImage = "gcr.io/ml-pipeline/kfp-driver@sha256:8e60086b04d92b657898a310ca9757631d58547e76bbbb8bfc376d654bef1707"
+	DriverImageEnvVar   = "V2_DRIVER_IMAGE"
 )
 
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
@@ -50,6 +55,22 @@ type containerDriverInputs struct {
 	parentDagID      string
 	iterationIndex   string // optional, when this is an iteration task
 	kubernetesConfig string // optional, used when Kubernetes config is not empty
+}
+
+func GetLauncherImage() string {
+    launcherImage := os.Getenv(LauncherImageEnvVar)
+    if launcherImage == "" {
+        launcherImage = DefaultLauncherImage
+    }
+    return launcherImage
+}
+
+func GetDriverImage() string {
+    driverImage := os.Getenv(DriverImageEnvVar)
+    if driverImage == "" {
+        driverImage = DefaultDriverImage
+    }
+    return driverImage
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
@@ -111,7 +132,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:   c.driverImage,
+			Image:   GetDriverImage(),
 			Command: []string{"driver"},
 			Args: []string{
 				"--type", "CONTAINER",
@@ -226,7 +247,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
-				Image:   c.launcherImage,
+				Image:   GetLauncherImage(),
 				Command: []string{"launcher-v2", "--copy", component.KFPLauncherPath},
 				VolumeMounts: []k8score.VolumeMount{{
 					Name:      volumeNameKFPLauncher,
