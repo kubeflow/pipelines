@@ -1,5 +1,6 @@
 ## Upcoming release
 * Fix `v1.automl.training_job.AutoMLImageTrainingJobRunOp` `ModuleNotFoundError`
+* Append `tune-type` to existing labels when uploading models tuned by `preview.llm.rlhf_pipeline` instead of overriding them.
 
 
 ## Release 2.6.0
