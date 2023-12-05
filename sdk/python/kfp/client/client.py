@@ -1486,7 +1486,7 @@ class Client:
         """Gets pipeline details.
 
         Args:
-            pipeline_id: ID of the pipeline.
+            pipeline_name: Display Name of the pipeline.
 
         Returns:
             ``V2beta1Pipeline`` object.
