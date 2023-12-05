@@ -25,6 +25,8 @@ spec:
             value: "86400"
           - name: NUM_WORKERS
             value: "2"
+          - name: LOG_LEVEL
+            value: "info"
         image: gcr.io/ml-pipeline/persistenceagent:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent

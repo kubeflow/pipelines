@@ -45,5 +45,6 @@ COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
 COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 
 ENV NAMESPACE ""
+ENV LOG_LEVEL info
 
-CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE}
+CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE} --logLevel=${LOG_LEVEL}
