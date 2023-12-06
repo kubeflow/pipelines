@@ -16,14 +16,13 @@
 This module will be removed in KFP v2.0.
 """
 import warnings
-from kfp.dsl.types import type_utils
+from kfp.dsl.types import type_utils, artifact_types
 from kfp.pipeline_spec import pipeline_spec_pb2
 import inspect
 from typing import Union, Type
 import re
 from typing import List, Optional
 from kfp.deprecated.components import _structures
-from kfp.components.types import artifact_types
 
 warnings.warn(
     'Module kfp.dsl.type_utils is deprecated and will be removed'
