@@ -14,19 +14,22 @@
 """Pipeline task class and operations."""
 
 import copy
-import inspect
 import itertools
-import re
 from typing import Any, Dict, List, Mapping, Optional, Union
 import warnings
 
-from kfp.dsl import constants
+from kfp.dsl import final_task_state
+from kfp.dsl import future_task_state
 from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_task_state_abc
 from kfp.dsl import placeholders
 from kfp.dsl import structures
 from kfp.dsl import utils
 from kfp.dsl.types import type_utils
+from kfp.local import task_dispatcher
 from kfp.pipeline_spec import pipeline_spec_pb2
+
+TEMPORARILY_BLOCK_LOCAL_EXECUTION = True
 
 _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
     task.component_spec.name)
@@ -65,11 +68,16 @@ class PipelineTask:
     def __init__(
         self,
         component_spec: structures.ComponentSpec,
-        args: Mapping[str, Any],
+        args: Dict[str, Any],
     ):
         """Initilizes a PipelineTask instance."""
-        # import within __init__ to avoid circular import
+
+        from kfp.dsl import pipeline_context
+        from kfp.dsl import pipeline_task_state_abc
         from kfp.dsl.tasks_group import TasksGroup
+
+        self.state: pipeline_task_state_abc.PipelineTaskState = future_task_state.FutureTaskState(
+            self)
 
         self.parent_task_group: Union[None, TasksGroup] = None
         args = args or {}
@@ -140,7 +148,7 @@ class PipelineTask:
 
         self._inputs = args
 
-        self._channel_inputs = [
+        self.channel_inputs = [
             value for _, value in args.items()
             if isinstance(value, pipeline_channel.PipelineChannel)
         ] + pipeline_channel.extract_pipeline_channels_from_any([
@@ -148,69 +156,14 @@ class PipelineTask:
             if not isinstance(value, pipeline_channel.PipelineChannel)
         ])
 
-    @property
-    def platform_spec(self) -> pipeline_spec_pb2.PlatformSpec:
-        """PlatformSpec for all tasks in the pipeline as task.
-
-        Only for use on tasks created from GraphComponents.
-        """
-        if self.pipeline_spec:
-            return self.component_spec.platform_spec
-
-        # can only create primitive task platform spec at compile-time, since the executor label is not known until then
-        raise ValueError(
-            f'Can only access {".platform_spec"!r} property on a tasks created from pipelines. Use {".platform_config"!r} for tasks created from primitive components.'
-        )
-
-    @property
-    def name(self) -> str:
-        """The name of the task.
-
-        Unique within its parent group.
-        """
-        return self._task_spec.name
-
-    @property
-    def inputs(
-        self
-    ) -> List[Union[type_utils.PARAMETER_TYPES,
-                    pipeline_channel.PipelineChannel]]:
-        """The list of actual inputs passed to the task."""
-        return self._inputs
-
-    @property
-    def channel_inputs(self) -> List[pipeline_channel.PipelineChannel]:
-        """The list of all channel inputs passed to the task.
-
-        :meta private:
-        """
-        return self._channel_inputs
-
-    @property
-    def output(self) -> pipeline_channel.PipelineChannel:
-        """The single output of the task.
-
-        Used when a task has exactly one output parameter.
-        """
-        if len(self._outputs) != 1:
-            raise AttributeError(
-                'The task has multiple outputs. Please reference the output by its name.'
+        if not TEMPORARILY_BLOCK_LOCAL_EXECUTION and pipeline_context.Pipeline.get_default_pipeline(
+        ) is None:
+            self._outputs = task_dispatcher.run_single_component(
+                pipeline_spec=self.pipeline_spec,
+                arguments=args,
             )
-        return list(self._outputs.values())[0]
-
-    @property
-    def outputs(self) -> Mapping[str, pipeline_channel.PipelineChannel]:
-        """The dictionary of outputs of the task.
-
-        Used when a task has more the one output or uses an
-        ``OutputPath`` or ``Output[Artifact]`` type annotation.
-        """
-        return self._outputs
-
-    @property
-    def dependent_tasks(self) -> List[str]:
-        """A list of the dependent task names."""
-        return self._task_spec.dependent_tasks
+            self.state: pipeline_task_state_abc.PipelineTaskState = final_task_state.FinalTaskState(
+                self)
 
     def _extract_container_spec_and_convert_placeholders(
         self, component_spec: structures.ComponentSpec
@@ -236,6 +189,52 @@ class PipelineTask:
         ]
         return container_spec
 
+    @property
+    def platform_spec(self) -> pipeline_spec_pb2.PlatformSpec:
+        """PlatformSpec for all tasks in the pipeline as task.
+
+        Only for use on tasks created from GraphComponents.
+        """
+        return self.state.platform_spec
+
+    @property
+    def name(self) -> str:
+        """The name of the task.
+
+        Unique within its parent group.
+        """
+        return self.state.name
+
+    @property
+    def inputs(
+        self
+    ) -> Dict[str, Union[type_utils.PARAMETER_TYPES,
+                         pipeline_channel.PipelineChannel]]:
+        """The inputs passed to the task."""
+        return self.state.inputs
+
+    @property
+    def output(self) -> pipeline_channel.PipelineChannel:
+        """The single output of the task.
+
+        Used when a task has exactly one output parameter.
+        """
+        return self.state.output
+
+    @property
+    def outputs(self) -> Mapping[str, pipeline_channel.PipelineChannel]:
+        """The dictionary of outputs of the task.
+
+        Used when a task has more the one output or uses an
+        ``OutputPath`` or ``Output[Artifact]`` type annotation.
+        """
+        return self.state.outputs
+
+    @property
+    def dependent_tasks(self) -> List[str]:
+        """A list of the dependent task names."""
+        return self.state.dependent_tasks
+
     def set_caching_options(self, enable_caching: bool) -> 'PipelineTask':
         """Sets caching options for the task.
 
@@ -245,40 +244,8 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._task_spec.enable_caching = enable_caching
+        self.state.set_caching_options(enable_caching=enable_caching)
         return self
-
-    def _ensure_container_spec_exists(self) -> None:
-        """Ensures that the task has a container spec."""
-        caller_method_name = inspect.stack()[1][3]
-
-        if self.container_spec is None:
-            raise ValueError(
-                f'{caller_method_name} can only be used on single-step components, not pipelines used as components, or special components like importers.'
-            )
-
-    def _validate_cpu_request_limit(self, cpu: str) -> float:
-        """Validates cpu request/limit string and converts to its numeric
-        value.
-
-        Args:
-            cpu: CPU requests or limits. This string should be a number or a
-                number followed by an "m" to indicate millicores (1/1000). For
-                more information, see `Specify a CPU Request and a CPU Limit
-                <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
-
-        Raises:
-            ValueError if the cpu request/limit string value is invalid.
-
-        Returns:
-            The numeric value (float) of the cpu request/limit.
-        """
-        if re.match(r'([0-9]*[.])?[0-9]+m?$', cpu) is None:
-            raise ValueError(
-                'Invalid cpu string. Should be float or integer, or integer'
-                ' followed by "m".')
-
-        return float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
 
     def set_cpu_request(self, cpu: str) -> 'PipelineTask':
         """Sets CPU request (minimum) for the task.
@@ -292,16 +259,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._ensure_container_spec_exists()
-
-        cpu = self._validate_cpu_request_limit(cpu)
-
-        if self.container_spec.resources is not None:
-            self.container_spec.resources.cpu_request = cpu
-        else:
-            self.container_spec.resources = structures.ResourceSpec(
-                cpu_request=cpu)
-
+        self.state.set_cpu_request(cpu=cpu)
         return self
 
     def set_cpu_limit(self, cpu: str) -> 'PipelineTask':
@@ -316,16 +274,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._ensure_container_spec_exists()
-
-        cpu = self._validate_cpu_request_limit(cpu)
-
-        if self.container_spec.resources is not None:
-            self.container_spec.resources.cpu_limit = cpu
-        else:
-            self.container_spec.resources = structures.ResourceSpec(
-                cpu_limit=cpu)
-
+        self.state.set_cpu_limit(cpu=cpu)
         return self
 
     def set_accelerator_limit(self, limit: int) -> 'PipelineTask':
@@ -338,19 +287,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._ensure_container_spec_exists()
-
-        if isinstance(limit, str):
-            if re.match(r'[1-9]\d*$', limit) is None:
-                raise ValueError(f'{"limit"!r} must be positive integer.')
-            limit = int(limit)
-
-        if self.container_spec.resources is not None:
-            self.container_spec.resources.accelerator_count = limit
-        else:
-            self.container_spec.resources = structures.ResourceSpec(
-                accelerator_count=limit)
-
+        self.state.set_accelerator_limit(limit=limit)
         return self
 
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
@@ -368,59 +305,8 @@ class PipelineTask:
         warnings.warn(
             f'{self.set_gpu_limit.__name__!r} is deprecated. Please use {self.set_accelerator_limit.__name__!r} instead.',
             category=DeprecationWarning)
-        return self.set_accelerator_limit(gpu)
-
-    def _validate_memory_request_limit(self, memory: str) -> float:
-        """Validates memory request/limit string and converts to its numeric
-        value.
-
-        Args:
-            memory: Memory requests or limits. This string should be a number or
-               a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G",
-               "Gi", "M", "Mi", "K", or "Ki".
-
-        Raises:
-            ValueError if the memory request/limit string value is invalid.
-
-        Returns:
-            The numeric value (float) of the memory request/limit.
-        """
-        if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
-                    memory) is None:
-            raise ValueError(
-                'Invalid memory string. Should be a number or a number '
-                'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
-                '"Gi", "M", "Mi", "K", "Ki".')
-
-        if memory.endswith('E'):
-            memory = float(memory[:-1]) * constants._E / constants._G
-        elif memory.endswith('Ei'):
-            memory = float(memory[:-2]) * constants._EI / constants._G
-        elif memory.endswith('P'):
-            memory = float(memory[:-1]) * constants._P / constants._G
-        elif memory.endswith('Pi'):
-            memory = float(memory[:-2]) * constants._PI / constants._G
-        elif memory.endswith('T'):
-            memory = float(memory[:-1]) * constants._T / constants._G
-        elif memory.endswith('Ti'):
-            memory = float(memory[:-2]) * constants._TI / constants._G
-        elif memory.endswith('G'):
-            memory = float(memory[:-1])
-        elif memory.endswith('Gi'):
-            memory = float(memory[:-2]) * constants._GI / constants._G
-        elif memory.endswith('M'):
-            memory = float(memory[:-1]) * constants._M / constants._G
-        elif memory.endswith('Mi'):
-            memory = float(memory[:-2]) * constants._MI / constants._G
-        elif memory.endswith('K'):
-            memory = float(memory[:-1]) * constants._K / constants._G
-        elif memory.endswith('Ki'):
-            memory = float(memory[:-2]) * constants._KI / constants._G
-        else:
-            # By default interpret as a plain integer, in the unit of Bytes.
-            memory = float(memory) / constants._G
-
-        return memory
+        self.state.set_accelerator_limit(limit=gpu)
+        return self
 
     def set_memory_request(self, memory: str) -> 'PipelineTask':
         """Sets memory request (minimum) for the task.
@@ -433,16 +319,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._ensure_container_spec_exists()
-
-        memory = self._validate_memory_request_limit(memory)
-
-        if self.container_spec.resources is not None:
-            self.container_spec.resources.memory_request = memory
-        else:
-            self.container_spec.resources = structures.ResourceSpec(
-                memory_request=memory)
-
+        self.state.set_memory_request(memory=memory)
         return self
 
     def set_memory_limit(self, memory: str) -> 'PipelineTask':
@@ -456,16 +333,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._ensure_container_spec_exists()
-
-        memory = self._validate_memory_request_limit(memory)
-
-        if self.container_spec.resources is not None:
-            self.container_spec.resources.memory_limit = memory
-        else:
-            self.container_spec.resources = structures.ResourceSpec(
-                memory_limit=memory)
-
+        self.state.set_memory_limit(memory=memory)
         return self
 
     def set_retry(self,
@@ -484,13 +352,11 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._task_spec.retry_policy = structures.RetryPolicy(
-            max_retry_count=num_retries,
+        self.state.set_retry(
             backoff_duration=backoff_duration,
             backoff_factor=backoff_factor,
             backoff_max_duration=backoff_max_duration,
         )
-        return self
 
     def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
         """Sets accelerator type to use when executing this task.
@@ -504,7 +370,8 @@ class PipelineTask:
         warnings.warn(
             f'{self.add_node_selector_constraint.__name__!r} is deprecated. Please use {self.set_accelerator_type.__name__!r} instead.',
             category=DeprecationWarning)
-        return self.set_accelerator_type(accelerator)
+        self.state.set_accelerator_type(accelerator=accelerator)
+        return self
 
     def set_accelerator_type(self, accelerator: str) -> 'PipelineTask':
         """Sets accelerator type to use when executing this task.
@@ -515,16 +382,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._ensure_container_spec_exists()
-
-        if self.container_spec.resources is not None:
-            self.container_spec.resources.accelerator_type = accelerator
-            if self.container_spec.resources.accelerator_count is None:
-                self.container_spec.resources.accelerator_count = 1
-        else:
-            self.container_spec.resources = structures.ResourceSpec(
-                accelerator_count=1, accelerator_type=accelerator)
-
+        self.state.set_accelerator_type(accelerator=accelerator)
         return self
 
     def set_display_name(self, name: str) -> 'PipelineTask':
@@ -536,7 +394,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._task_spec.display_name = name
+        self.state.set_display_name(name=name)
         return self
 
     def set_env_variable(self, name: str, value: str) -> 'PipelineTask':
@@ -549,13 +407,7 @@ class PipelineTask:
         Returns:
             Self return to allow chained setting calls.
         """
-        self._ensure_container_spec_exists()
-
-        if self.container_spec.env is not None:
-            self.container_spec.env[name] = value
-        else:
-            self.container_spec.env = {name: value}
-        return self
+        self.state.set_env_variable(name=name, value=value)
 
     def after(self, *tasks) -> 'PipelineTask':
         """Specifies an explicit dependency on other tasks by requiring this
@@ -575,9 +427,7 @@ class PipelineTask:
                 task1 = my_component(text='1st task')
                 task2 = my_component(text='2nd task').after(task1)
         """
-        for task in tasks:
-            self._run_after.append(task.name)
-            self._task_spec.dependent_tasks.append(task.name)
+        self.state.after(*tasks)
         return self
 
     def ignore_upstream_failure(self) -> 'PipelineTask':
@@ -601,22 +451,7 @@ class PipelineTask:
                 clean_up_task = print_op(
                     message=task.output).ignore_upstream_failure()
         """
-
-        for input_spec_name, input_spec in (self.component_spec.inputs or
-                                            {}).items():
-            if type_utils.is_task_final_status_type(input_spec.type):
-                continue
-            argument_value = self._inputs[input_spec_name]
-            if (isinstance(argument_value, pipeline_channel.PipelineChannel)
-               ) and (not input_spec.optional) and (argument_value.task_name
-                                                    is not None):
-                raise ValueError(
-                    f'Tasks can only use .ignore_upstream_failure() if all input parameters that accept arguments created by an upstream task have a default value, in case the upstream task fails to produce its output. Input parameter task {self.name!r}`s {input_spec_name!r} argument is an output of an upstream task {argument_value.task_name!r}, but {input_spec_name!r} has no default value.'
-                )
-
-        self._ignore_upstream_failure_tag = True
-
-        return self
+        self.state.ignore_upstream_failure()
 
 
 # TODO: this function should ideally be in the function kfp.dsl.structures.check_placeholder_references_valid_io_name, which does something similar, but this causes the exception to be raised at component definition time, rather than compile time. This would break tests that load v1 component YAML, even though that YAML is invalid.
