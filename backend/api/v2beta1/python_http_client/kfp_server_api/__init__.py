@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-__version__ = "2.0.4"
+__version__ = "2.0.5"
 
 # import apis into sdk package
 from kfp_server_api.api.auth_service_api import AuthServiceApi
