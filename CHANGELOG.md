@@ -1,5 +1,22 @@
 # Changelog
 
+### [2.0.5](https://github.com/kubeflow/pipelines/compare/2.0.4...2.0.5) (2023-12-08)
+
+
+### Features
+
+* **backend:** Parameterizing v2 Launcher and Driver Images ([\#10269](https://github.com/kubeflow/pipelines/issues/10269)) ([23a2bc3](https://github.com/kubeflow/pipelines/commit/23a2bc3ba370e28a5ef5f0e0df1e40ec8f7888b9))
+
+
+### Bug Fixes
+
+* **components:** Append `tune-type` label when uploading models tuned by `preview.llm.rlhf_pipeline` ([708b8bd](https://github.com/kubeflow/pipelines/commit/708b8bd62357b1323e1a5127d5d914d7325bbdee))
+
+
+### Other Pull Requests
+
+* Update SECURITY.md ([\#10279](https://github.com/kubeflow/pipelines/issues/10279)) ([1499c4a](https://github.com/kubeflow/pipelines/commit/1499c4ae895613a7ff2458b2bd5ef98a548a33cb))
+
 ### [2.0.4](https://github.com/kubeflow/pipelines/compare/2.0.3...2.0.4) (2023-12-01)
 
 
