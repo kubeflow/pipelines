@@ -495,3 +495,18 @@ def resolve_instruction(
   """
   instruction = instruction or ''
   return instruction if 'chat' not in large_model_reference.lower() else ''
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def resolve_num_microbatches(large_model_reference: str) -> int:
+  """Resolves the number of microbatches to use during training.
+
+  Args:
+    large_model_reference: Base model tuned by the pipeline.
+
+  Returns:
+    Number of microbatches to break the total batch size into during training.
+  """
+  if 'llama' in large_model_reference.lower():
+    return 2
+  return 0

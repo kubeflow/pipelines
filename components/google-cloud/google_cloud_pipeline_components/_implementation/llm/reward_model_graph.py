@@ -118,6 +118,11 @@ def pipeline(
       accelerator_type=machine_spec.outputs['accelerator_type'],
       accelerator_count=machine_spec.outputs['accelerator_count'],
   ).set_display_name('Resolve Reward Model Image URI')
+  num_microbatches = function_based.resolve_num_microbatches(
+      large_model_reference=reference_model_metadata.outputs[
+          'reward_model_reference'
+      ]
+  ).set_display_name('Resolve Number of Microbatches')
   reward_model = (
       reward_model_trainer.RewardModelTrainer(
           project=project,
@@ -141,6 +146,7 @@ def pipeline(
           batch_size=batch_size,
           learning_rate_multiplier=reward_model_learning_rate_multiplier,
           lora_dim=lora_dim,
+          num_microbatches=num_microbatches.output,
       )
       .set_display_name('Reward Model Trainer')
       .set_caching_options(False)
