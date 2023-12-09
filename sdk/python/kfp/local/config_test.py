@@ -28,7 +28,6 @@ class LocalRunnerConfigTest(unittest.TestCase):
         config.LocalExecutionConfig(
             pipeline_root='my/local/root',
             runner=local.SubprocessRunner(use_venv=True),
-            cleanup=True,
             raise_on_error=True,
         )
 
@@ -36,7 +35,6 @@ class LocalRunnerConfigTest(unittest.TestCase):
 
         self.assertEqual(instance.pipeline_root, 'my/local/root')
         self.assertEqual(instance.runner, local.SubprocessRunner(use_venv=True))
-        self.assertIs(instance.cleanup, True)
         self.assertIs(instance.raise_on_error, True)
 
     def test_local_runner_config_is_singleton(self):
@@ -44,13 +42,11 @@ class LocalRunnerConfigTest(unittest.TestCase):
         config.LocalExecutionConfig(
             pipeline_root='my/local/root',
             runner=local.SubprocessRunner(),
-            cleanup=True,
             raise_on_error=True,
         )
         config.LocalExecutionConfig(
             pipeline_root='other/local/root',
             runner=local.SubprocessRunner(use_venv=False),
-            cleanup=False,
             raise_on_error=False,
         )
 
@@ -59,7 +55,6 @@ class LocalRunnerConfigTest(unittest.TestCase):
         self.assertEqual(instance.pipeline_root, 'other/local/root')
         self.assertEqual(instance.runner,
                          local.SubprocessRunner(use_venv=False))
-        self.assertFalse(instance.cleanup, False)
         self.assertFalse(instance.raise_on_error, False)
 
 
@@ -73,26 +68,22 @@ class TestInitCalls(unittest.TestCase):
         local.init(
             pipeline_root='my/local/root',
             runner=local.SubprocessRunner(use_venv=True),
-            cleanup=True,
         )
 
         instance = config.LocalExecutionConfig.instance
 
         self.assertEqual(instance.pipeline_root, 'my/local/root')
         self.assertEqual(instance.runner, local.SubprocessRunner(use_venv=True))
-        self.assertTrue(instance.cleanup, True)
 
     def test_init_more_than_once(self):
         """Test config instance attributes with multiple init() calls."""
         local.init(
             pipeline_root='my/local/root',
             runner=local.SubprocessRunner(),
-            cleanup=True,
         )
         local.init(
             pipeline_root='other/local/root',
             runner=local.SubprocessRunner(use_venv=False),
-            cleanup=False,
             raise_on_error=False,
         )
 
@@ -101,7 +92,6 @@ class TestInitCalls(unittest.TestCase):
         self.assertEqual(instance.pipeline_root, 'other/local/root')
         self.assertEqual(instance.runner,
                          local.SubprocessRunner(use_venv=False))
-        self.assertFalse(instance.cleanup, False)
         self.assertFalse(instance.raise_on_error, False)
 
 
