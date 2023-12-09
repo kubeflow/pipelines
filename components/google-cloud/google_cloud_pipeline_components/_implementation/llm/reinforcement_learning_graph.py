@@ -117,6 +117,11 @@ def pipeline(
       accelerator_type=machine_spec.outputs['accelerator_type'],
       accelerator_count=machine_spec.outputs['accelerator_count'],
   ).set_display_name('Resolve Reinforcer Image URI')
+  num_microbatches = function_based.resolve_num_microbatches(
+      large_model_reference=reference_model_metadata.outputs[
+          'large_model_reference'
+      ]
+  ).set_display_name('Resolve Number of Microbatches')
   rl_model = (
       reinforcer.Reinforcer(
           project=project,
@@ -145,6 +150,7 @@ def pipeline(
           learning_rate_multiplier=reinforcement_learning_rate_multiplier,
           kl_coeff=kl_coeff,
           lora_dim=lora_dim,
+          num_microbatches=num_microbatches.output,
       )
       .set_display_name('Reinforcer')
       .set_caching_options(False)

@@ -39,6 +39,7 @@ def RewardModelTrainer(  # pylint: disable=invalid-name
     batch_size: int = 64,
     learning_rate_multiplier: float = 1.0,
     lora_dim: int = 0,
+    num_microbatches: int = 0,
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Trains a reward model.
 
@@ -47,8 +48,8 @@ def RewardModelTrainer(  # pylint: disable=invalid-name
     location: Location used to run the job.
     input_model_path: Path to the base model to fine tune.
     input_dataset_path: Path to dataset to use to train a reward model.
-    train_steps: Number of training steps. These are the number of steps
-      on top of any steps used to train the base model.
+    train_steps: Number of training steps. These are the number of steps on top
+      of any steps used to train the base model.
     accelerator_type: Type of TPU accelerator. Can be either TPU_V2 or TPU_V3.
     accelerator_count: Number of TPU accelerators.
     large_model_reference: Predefined model used to create the ``input_model``.
@@ -64,6 +65,9 @@ def RewardModelTrainer(  # pylint: disable=invalid-name
       then use full-tuning.
     learning_rate_multiplier: Constant multiplied by the base learning rate used
       to adjust the learning rate when training a reward model.
+    num_microbatches: Number of microbatches to break the total batch size into
+      during training. If <= 1, the model is trained on the full batch size
+      directly.
 
   Returns:
     output_model: Trained reward model.
@@ -98,6 +102,7 @@ def RewardModelTrainer(  # pylint: disable=invalid-name
                   f'{kfp.dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
               ),
               f'--lora_dim={lora_dim}',
+              f'--num_microbatches={num_microbatches}',
           ],
       ),
       gcp_resources=gcp_resources,
