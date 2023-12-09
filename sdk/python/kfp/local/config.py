@@ -32,7 +32,6 @@ class LocalExecutionConfig:
         cls,
         runner: SubprocessRunner,
         pipeline_root: str,
-        cleanup: bool,
         raise_on_error: bool,
     ) -> 'LocalExecutionConfig':
         # singleton pattern
@@ -43,12 +42,10 @@ class LocalExecutionConfig:
         self,
         runner: SubprocessRunner,
         pipeline_root: str,
-        cleanup: bool,
         raise_on_error: bool,
     ) -> None:
         self.runner = runner
         self.pipeline_root = pipeline_root
-        self.cleanup = cleanup
         self.raise_on_error = raise_on_error
 
 
@@ -56,7 +53,6 @@ def init(
     # more runner types will eventually be supported
     runner: SubprocessRunner,
     pipeline_root: str = './local_outputs',
-    cleanup: bool = False,
     raise_on_error: bool = True,
 ) -> None:
     """Initializes a local execution session.
@@ -66,13 +62,11 @@ def init(
     Args:
         runner: The runner to use. Currently only SubprocessRunner is supported.
         pipeline_root: Destination for task outputs.
-        cleanup: Whether to ensure outputs are cleaned up after execution. If True, the task will be run in a temporary directory, rather than pipeline_root.
         raise_on_error: If True, raises an exception when a local task execution fails. If Falls, fails gracefully and does not terminal the current program.
     """
     # updates a global config
     LocalExecutionConfig(
         runner=runner,
         pipeline_root=pipeline_root,
-        cleanup=cleanup,
         raise_on_error=raise_on_error,
     )
