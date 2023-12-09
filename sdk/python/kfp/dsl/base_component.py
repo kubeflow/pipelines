@@ -16,10 +16,14 @@
 import abc
 from typing import List
 
+from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
 from kfp.dsl import structures
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+
+# TODO: remove feature flag
+TEMPORARILY_BLOCK_LOCAL_EXECUTION = True
 
 
 class BaseComponent(abc.ABC):
@@ -100,6 +104,8 @@ class BaseComponent(abc.ABC):
         return pipeline_task.PipelineTask(
             component_spec=self.component_spec,
             args=task_inputs,
+            execute_locally=not TEMPORARILY_BLOCK_LOCAL_EXECUTION and
+            pipeline_context.Pipeline.get_default_pipeline() is None,
         )
 
     @property
