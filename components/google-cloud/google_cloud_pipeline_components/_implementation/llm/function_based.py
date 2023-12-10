@@ -302,8 +302,8 @@ def resolve_reference_model_metadata(
       'llama-2-13b': reference_model_metadata(
           large_model_reference='LLAMA_2_13B',
           reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',
-          reward_model_reference='LLAMA_2_13B',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',
+          reward_model_reference='LLAMA_2_7B',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',
           is_supported=True,
       ),
       'llama-2-7b-chat': reference_model_metadata(
@@ -316,8 +316,8 @@ def resolve_reference_model_metadata(
       'llama-2-13b-chat': reference_model_metadata(
           large_model_reference='LLAMA_2_13B_CHAT',
           reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b_chat/',
-          reward_model_reference='LLAMA_2_13B',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',
+          reward_model_reference='LLAMA_2_7B',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',
           is_supported=True,
       ),
   }
