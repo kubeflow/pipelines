@@ -72,7 +72,8 @@ class BaseComponentTest(unittest.TestCase):
                 'input2': 100,
                 'input3': 1.23,
                 'input4': 3.21,
-            })
+            },
+            in_pipeline_scope=False)
 
     @patch.object(pipeline_task, 'PipelineTask', autospec=True)
     def test_instantiate_component_omitting_arguments_with_default(
@@ -85,7 +86,8 @@ class BaseComponentTest(unittest.TestCase):
             args={
                 'input1': 'hello',
                 'input2': 100,
-            })
+            },
+            in_pipeline_scope=False)
 
     def test_instantiate_component_with_positional_arugment(self):
         with self.assertRaisesRegex(
