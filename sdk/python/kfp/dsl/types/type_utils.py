@@ -227,6 +227,10 @@ def _get_type_string_from_component_argument(
     if argument_type in _TYPE_TO_TYPE_NAME:
         return _TYPE_TO_TYPE_NAME[argument_type]
 
+    if isinstance(argument_value, artifact_types.Artifact):
+        raise ValueError(
+            f'Input artifacts are not supported. Got input artifact of type {argument_value.__class__.__name__!r}.'
+        )
     raise ValueError(
         f'Constant argument inputs must be one of type {list(_TYPE_TO_TYPE_NAME.values())} Got: {argument_value!r} of type {type(argument_value)!r}.'
     )

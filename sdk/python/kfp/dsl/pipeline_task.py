@@ -28,7 +28,6 @@ from kfp.dsl import placeholders
 from kfp.dsl import structures
 from kfp.dsl import utils
 from kfp.dsl.types import type_utils
-from kfp.local import task_dispatcher
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 TEMPORARILY_BLOCK_LOCAL_EXECUTION = True
@@ -99,7 +98,8 @@ class PipelineTask:
         self,
         component_spec: structures.ComponentSpec,
         args: Dict[str, Any],
-    ):
+        execute_locally: bool = False,
+    ) -> None:
         """Initilizes a PipelineTask instance."""
         # import within __init__ to avoid circular import
         from kfp.dsl.tasks_group import TasksGroup
@@ -181,21 +181,27 @@ class PipelineTask:
             if not isinstance(value, pipeline_channel.PipelineChannel)
         ])
 
-        from kfp.dsl import pipeline_context
+        if execute_locally:
+            self._execute_locally(args=args)
 
-        # TODO: remove feature flag
-        if not TEMPORARILY_BLOCK_LOCAL_EXECUTION and pipeline_context.Pipeline.get_default_pipeline(
-        ) is None:
-            self._execute_locally()
-
-    def _execute_locally(self) -> None:
+    def _execute_locally(self, args: Dict[str, Any]) -> None:
         """Execute the pipeline task locally.
 
         Set the task state to FINAL and update the outputs.
         """
+        from kfp.local import task_dispatcher
+
+        if self.pipeline_spec is not None:
+            raise NotImplementedError(
+                'Local pipeline execution is not currently supported.')
+
+        # TODO: remove feature flag
+        if TEMPORARILY_BLOCK_LOCAL_EXECUTION:
+            return
+
         self._outputs = task_dispatcher.run_single_component(
-            pipeline_spec=self.pipeline_spec,
-            arguments=self.args,
+            pipeline_spec=self.component_spec.to_pipeline_spec(),
+            arguments=args,
         )
         self.state = TaskState.FINAL
 
