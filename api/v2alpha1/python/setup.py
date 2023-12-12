@@ -26,7 +26,7 @@ setuptools.setup(
     url='https://github.com/kubeflow/pipelines',
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
     python_requires='>=3.7.0,<3.13.0',
-    install_requires=['protobuf>=3.13.0,<4'],
+    install_requires=['protobuf>=4.21.1,<5'],
     include_package_data=True,
     license='Apache 2.0',
 )
