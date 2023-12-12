@@ -21,6 +21,7 @@ NAME = 'kfp-kubernetes'
 REQUIREMENTS = [
     'protobuf>=4.21.1,<5',
     # bump version when platform-specific compilation is released and tests no longer install kfp from source
+    # TODO: bump to next version
     'kfp>=2.0.0-beta.13,<3',
 ]
 DEV_REQUIREMENTS = [
