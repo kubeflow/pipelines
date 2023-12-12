@@ -18,15 +18,20 @@ source_root=$(pwd)
 pip install --upgrade pip
 pip install wheel
 
-pip install 'kfp>=2.0.0,<3.0.0'
+pip install sdk/python
+apt-get update && apt-get install -y protobuf-compiler
+pushd api
+make clean python
+popd
+python3 -m pip install api/v2alpha1/python
+pip install api/v2alpha1/python
 
 # generate Python proto code from source
-apt-get update -y
-apt-get install -y protobuf-compiler
-
 pushd "$source_root/kubernetes_platform"
 make clean python
 popd
 
+# rust needed for transitive deps in dev extras on Python:3.12
+apt-get install rustc -y
 pip install -e "$source_root/kubernetes_platform/python[dev]"
 pytest "$source_root/kubernetes_platform/python/test" -n auto

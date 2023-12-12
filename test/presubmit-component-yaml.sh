@@ -17,6 +17,11 @@ source_root=$(pwd)
 
 python3 -m pip install --upgrade pip
 python3 -m pip install sdk/python
+apt-get update && apt-get install -y protobuf-compiler
+pushd api
+make clean python
+popd
+python3 -m pip install api/v2alpha1/python
 
 # Test loading all component.yaml definitions
 "$source_root/components/test_load_all_components.sh"
