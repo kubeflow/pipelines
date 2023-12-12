@@ -12,7 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Objects for configuring local execution."""
+import abc
 import dataclasses
+
+
+class LocalRunnerType(abc.ABC):
+    """The ABC for user-facing Runner configurations.
+
+    Subclasses should be a dataclass.
+
+    They should implement a .validate() method.
+    """
+
+    @abc.abstractmethod
+    def validate(self) -> None:
+        """Validates that the configuration arguments provided by the user are
+        valid."""
+        raise NotImplementedError
 
 
 @dataclasses.dataclass
