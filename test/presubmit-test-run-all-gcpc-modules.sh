@@ -17,6 +17,11 @@ source_root=$(pwd)
 
 pip install --upgrade pip
 pip install $source_root/sdk/python
+apt-get update && apt-get install -y protobuf-compiler
+pushd api
+make clean python
+popd
+python3 -m pip install api/v2alpha1/python
 pip install components/google-cloud
 pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
 
