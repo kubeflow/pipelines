@@ -29,6 +29,7 @@ from kfp.dsl import OutputPath
 def model_evaluation_text_generation(
     gcp_resources: OutputPath(str),
     evaluation_metrics: Output[Metrics],
+    row_based_metrics: Output[Metrics],
     project: str,
     location: str,
     evaluation_task: str = 'text-generation',
@@ -38,6 +39,7 @@ def model_evaluation_text_generation(
     joined_predictions_gcs_source: dsl.Input[Artifact] = None,
     predictions_gcs_source: dsl.Input[Artifact] = None,
     ground_truth_gcs_source: str = '',
+    enable_row_based_metrics: bool = False,
     display_name: str = 'model-evaluation-text-generation',
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
@@ -106,11 +108,14 @@ def model_evaluation_text_generation(
       created.
 
   Returns:
-    evaluation_metrics: `Metrics` artifact representing the language model
-      evaluation metrics.
     gcp_resources: Serialized gcp_resources proto tracking the custom job.
       For more details, see
       https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+    evaluation_metrics: `Metrics` artifact representing the language model
+      evaluation metrics.
+    row_based_metrics: `Metrics` artifact representing the language model
+      evaluation metrics of each instance. This is only available if
+      enable_row_based_metrics is set to True.
   """
   return gcpc_utils.build_serverless_customjob_container_spec(
       project=project,
@@ -128,6 +133,8 @@ def model_evaluation_text_generation(
               f'--predictions_gcs_source={predictions_gcs_source.uri}',
               f'--ground_truth_gcs_source={ground_truth_gcs_source}',
               f'--evaluation_metrics_output_path={evaluation_metrics.path}',
+              f'--enable_row_based_metrics={enable_row_based_metrics}',
+              f'--row_based_metrics_output_path={row_based_metrics.path}',
               '--executor_input={{$.json_escape[1]}}',
           ],
           service_account=service_account,

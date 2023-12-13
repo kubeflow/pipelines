@@ -31,6 +31,7 @@ def model_evaluation_import(
     gcp_resources: dsl.OutputPath(str),
     evaluation_resource_name: dsl.OutputPath(str),
     metrics: Optional[Input[Metrics]] = None,
+    row_based_metrics: Optional[Input[Metrics]] = None,
     problem_type: Optional[str] = None,
     classification_metrics: Optional[Input[ClassificationMetrics]] = None,
     forecasting_metrics: Optional[Input[ForecastingMetrics]] = None,
@@ -59,6 +60,8 @@ def model_evaluation_import(
     model: Vertex model resource that will be the parent resource of the
       uploaded evaluation.
     metrics: Path of metrics generated from an evaluation component.
+    row_based_metrics:
+      Path of row_based_metrics generated from an evaluation component.
     problem_type: The problem type of the metrics being imported to the
       VertexModel. `classification`, `regression`, `forecasting`,
       `text-generation`, `question-answering`, and `summarization` are the
@@ -104,6 +107,13 @@ def model_evaluation_import(
                   metrics.uri,
                   "--metrics_explanation",
                   metrics.metadata["explanation_gcs_path"],
+              ],
+          ),
+          dsl.IfPresentPlaceholder(
+              input_name="row_based_metrics",
+              then=[
+                  "--row_based_metrics",
+                  row_based_metrics.uri,
               ],
           ),
           dsl.IfPresentPlaceholder(

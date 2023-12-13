@@ -40,6 +40,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     batch_predict_instances_format: str = 'jsonl',
     batch_predict_predictions_format: str = 'jsonl',
     batch_predict_model_parameters: Dict[str, str] = {},
+    enable_row_based_metrics: bool = False,
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
     network: str = '',
@@ -74,7 +75,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
 
   Returns:
     evaluation_metrics: Metrics Artifact for LLM Text Generation.
-    evaluation_resource_name: If run on an user's managed VertexModel, the imported evaluation resource name. Empty if run on a publisher model.
+    evaluation_resource_name: If run on a user's managed VertexModel, the imported evaluation resource name. Empty if run on a publisher model.
   """
   # fmt: on
   outputs = NamedTuple(
@@ -123,6 +124,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       evaluation_task=evaluation_task,
       target_field_name=f'instance.{target_field_name}',
       predictions_format=batch_predict_predictions_format,
+      enable_row_based_metrics=enable_row_based_metrics,
       joined_predictions_gcs_source=batch_predict_task.outputs[
           'gcs_output_directory'
       ],
@@ -134,6 +136,9 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
 
   import_evaluation_task = ModelImportEvaluationOp(
       metrics=eval_task.outputs['evaluation_metrics'],
+      row_based_metrics=eval_task.outputs['row_based_metrics']
+      if enable_row_based_metrics
+      else None,
       model=get_vertex_model_task.outputs['artifact'],
       problem_type=evaluation_task,
       dataset_type=batch_predict_predictions_format,
