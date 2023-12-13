@@ -13,7 +13,7 @@
 # limitations under the License.
 """Python function-based components used in KFP pipelies."""
 import functools
-from typing import List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components._implementation.llm import env
@@ -510,3 +510,65 @@ def resolve_num_microbatches(large_model_reference: str) -> int:
   if 'llama' in large_model_reference.lower():
     return 2
   return 0
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def read_file(path: str) -> str:
+  """Reads the contents of the given file."""
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  import re
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+
+  path = re.sub('^gs://', '/gcs/', path)
+  with open(path, 'r') as f:
+    return f.read()
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def get_usage_metric(metadata: Dict[str, Any], key: str) -> bool:  # pytype: disable=unsupported-operands
+  """Extracts a single usage metric from metadata."""
+  return metadata[key]
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def dump_dict(value: Dict[Any, Any]) -> str:
+  """Dumps the given dict to a JSON string."""
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  import json
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+
+  return json.dumps(value).replace('"', '\\"')
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def dump_list(value: List[Any]) -> str:
+  """Dumps the given dict to a JSON string."""
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  import json
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+
+  return json.dumps(value).replace('"', '\\"')
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def identity(
+    x: str,
+) -> str:
+  return x
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def get_uri(artifact: dsl.Input[dsl.Artifact], is_dir: bool = False) -> str:  # pytype: disable=unsupported-operands
+  """Extracts the URI from an artifact."""
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  import os
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+
+  if is_dir:
+    return os.path.join(artifact.uri, '*')
+  return artifact.uri
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def get_empty_string() -> str:
+  return ''
