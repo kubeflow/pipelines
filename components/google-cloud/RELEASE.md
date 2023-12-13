@@ -2,6 +2,7 @@
 * Fix `v1.automl.training_job.AutoMLImageTrainingJobRunOp` `ModuleNotFoundError`
 * Append `tune-type` to existing labels when uploading models tuned by `preview.llm.rlhf_pipeline` instead of overriding them.
 * Use `llama-2-7b` for the base reward model when tuning `llama-2-13b` with the `preview.llm.rlhf_pipeline`
+* Release AutoSxS pipeline to preview and add related files to _implementation.
 
 ## Release 2.6.0
 * Bump supported KFP versions to kfp>=2.0.0b10,<=2.4.0
