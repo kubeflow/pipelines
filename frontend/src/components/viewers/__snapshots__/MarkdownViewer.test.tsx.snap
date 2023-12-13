@@ -14,7 +14,10 @@ exports[`MarkdownViewer renders some basic markdown 1`] = `
     </h1>
     <p>
       <a
+        class="link"
         href="http://example.com"
+        rel="noopener"
+        target="_blank"
       >
         some link here
       </a>
