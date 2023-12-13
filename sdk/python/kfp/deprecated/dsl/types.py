@@ -19,7 +19,7 @@ Feature stage:
 from typing import Dict, Union
 import warnings
 
-from kfp.components.types import type_utils
+from kfp.deprecated.dsl import type_utils
 
 
 class BaseType:
