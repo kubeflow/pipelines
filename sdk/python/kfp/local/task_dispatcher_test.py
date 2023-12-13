@@ -122,7 +122,7 @@ class TestSupportOfComponentTypes(
         my_pipeline = testing_utilities.compile_and_load_component(my_pipeline)
         with self.assertRaisesRegex(
                 NotImplementedError,
-                'Local pipeline execution is not currently supported\.',
+                r'Local pipeline execution is not currently supported\.',
         ):
             my_pipeline()
 
@@ -142,7 +142,7 @@ class TestSupportOfComponentTypes(
         my_pipeline = testing_utilities.compile_and_load_component(my_pipeline)
         with self.assertRaisesRegex(
                 NotImplementedError,
-                'Local pipeline execution is not currently supported\.',
+                r'Local pipeline execution is not currently supported\.',
         ):
             my_pipeline()
 
@@ -160,7 +160,7 @@ class TestSupportOfComponentTypes(
 
         with self.assertRaisesRegex(
                 NotImplementedError,
-                'Local pipeline execution is not currently supported\.',
+                r'Local pipeline execution is not currently supported\.',
         ):
             my_pipeline(string='foo')
 
