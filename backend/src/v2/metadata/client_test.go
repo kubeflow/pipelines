@@ -143,7 +143,7 @@ func Test_GetPipeline_Twice(t *testing.T) {
 	// The second call to GetPipeline won't fail because it avoid inserting to MLMD again.
 	samePipeline, err := client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource, pipelineRoot)
 	fatalIf(err)
-	if (pipeline.GetCtxID() != samePipeline.GetCtxID()) {
+	if pipeline.GetCtxID() != samePipeline.GetCtxID() {
 		t.Errorf("Expect pipeline context ID %d, actual is %d", pipeline.GetCtxID(), samePipeline.GetCtxID())
 	}
 }
@@ -212,6 +212,27 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func Test_appendToPipelineRoot(t *testing.T) {
+	// Const define the artifact name
+	const (
+		pipelineName      = "my-pipeline-name"
+		runID             = "my-run-id"
+		pipelineRoot      = "minio://mlpipeline/v2/artifacts"
+		pipelineRootQuery = "?query=string&another=query"
+	)
+	// Test output uri generation with plain pipeline root, i.e. without any query strings
+	plainResult := metadata.AppendToPipelineRoot(pipelineRoot, []string{pipelineName, runID})
+	if plainResult != fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID) {
+		t.Errorf("Expected %s, got %s", fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID), plainResult)
+	}
+
+	// Make sure query strings in the pipeline root are correctly preserved (added to the end)
+	queryResult := metadata.AppendToPipelineRoot(fmt.Sprintf("%s%s", pipelineRoot, pipelineRootQuery), []string{pipelineName, runID})
+	if queryResult != fmt.Sprintf("%s/%s/%s%s", pipelineRoot, pipelineName, runID, pipelineRootQuery) {
+		t.Errorf("Expected %s, got %s", fmt.Sprintf("%s/%s/%s%s", pipelineRoot, pipelineName, runID, pipelineRootQuery), queryResult)
+	}
 }
 
 func Test_DAG(t *testing.T) {

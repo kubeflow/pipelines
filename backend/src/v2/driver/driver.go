@@ -17,9 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -1062,7 +1060,7 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{
 				{
-					Uri:      generateOutputURI(pipelineRoot, name, taskName),
+					Uri:      metadata.AppendToPipelineRoot(pipelineRoot, []string{taskName, name}),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},
@@ -1076,20 +1074,6 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 		}
 	}
 	return outputs
-}
-
-func generateOutputURI(root, artifactName string, taskName string) string {
-	// split the query part off the root, if it exists.
-	// we will append it back later to the full URI.
-	querySplit := strings.Split(root, "?")
-	query := ""
-	if len(querySplit) > 1 {
-		root = querySplit[0]
-		query = "?" + querySplit[1]
-	}
-	// we cannot path.Join(root, taskName, artifactName), because root
-	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
-	return fmt.Sprintf("%s/%s%s", strings.TrimRight(root, "/"), path.Join(taskName, artifactName), query)
 }
 
 var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
