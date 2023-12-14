@@ -1,10 +1,13 @@
 ## Upcoming release
 
+## Release 2.8.0
+* Release AutoSxS pipeline to preview.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
 ## Release 2.7.0
 * Fix `v1.automl.training_job.AutoMLImageTrainingJobRunOp` `ModuleNotFoundError`.
 * Append `tune-type` to existing labels when uploading models tuned by `preview.llm.rlhf_pipeline` instead of overriding them.
 * Use `llama-2-7b` for the base reward model when tuning `llama-2-13b` with the `preview.llm.rlhf_pipeline`
-* Release AutoSxS pipeline to preview and add related files to _implementation.
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.6.0
