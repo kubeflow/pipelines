@@ -15,6 +15,7 @@ package driver
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -604,4 +605,21 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.podSpec)
 		})
 	}
+}
+
+func Test_generateOutputURI(t *testing.T) {
+	// Const define the artifact name
+	const (
+		artifactName      = "artifact"
+		taskName          = "my-task-name"
+		pipelineRoot      = "minio://mlpipeline/v2/artifacts"
+		pipelineRootQuery = "?query=string&another=query"
+	)
+	// Test output uri generation with plain pipeline root, i.e. without any query strings
+	plainResult := generateOutputURI(pipelineRoot, artifactName, taskName)
+	assert.Equal(t, fmt.Sprintf("%s/%s/%s", pipelineRoot, taskName, artifactName), plainResult)
+
+	// Make sure query strings in the pipeline root are correctly preserved (added to the end)
+	queryResult := generateOutputURI(fmt.Sprintf("%s%s", pipelineRoot, pipelineRootQuery), artifactName, taskName)
+	assert.Equal(t, fmt.Sprintf("%s/%s/%s%s", pipelineRoot, taskName, artifactName, pipelineRootQuery), queryResult)
 }
