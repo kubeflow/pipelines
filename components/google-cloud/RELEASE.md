@@ -1,4 +1,5 @@
 ## Upcoming release
+* Use `large_model_reference` for `model_reference_name` when uploading models from `preview.llm.rlhf_pipeline` instead of hardcoding value as `text-bison@001`.
 
 ## Release 2.8.0
 * Release AutoSxS pipeline to preview.
