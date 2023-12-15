@@ -81,7 +81,7 @@ def pipeline(
       regional_endpoint=regional_endpoint.output,
       artifact_uri=adapter_artifact.output,
       model_display_name=display_name.output,
-      model_reference_name='text-bison@001',
+      model_reference_name=large_model_reference,
       upload_model=upload_model.output,
       tune_type='rlhf',
   ).set_display_name('Upload Model')
