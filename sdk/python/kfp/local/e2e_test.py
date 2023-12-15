@@ -358,8 +358,6 @@ class TestExceptionHandling(testing_utilities.LocalRunnerEnvironmentTestCase):
 
     def test_user_code_no_exception_if_not_raise_on_error(self, runner):
         local.init(runner=runner, raise_on_error=False)
-        captured_output = io.StringIO()
-        sys.stdout = captured_output
 
         @dsl.component
         def fail_comp():
