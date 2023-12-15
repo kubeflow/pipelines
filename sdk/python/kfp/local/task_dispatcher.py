@@ -17,6 +17,7 @@ from typing import Any, Dict
 from kfp import local
 from kfp.local import config
 from kfp.local import executor_input_utils
+from kfp.local import executor_output_utils
 from kfp.local import placeholder_utils
 from kfp.local import status
 from kfp.local import subprocess_task_handler
@@ -114,9 +115,10 @@ def _run_single_component_implementation(
     task_status = task_handler.run()
 
     if task_status == status.Status.SUCCESS:
-        # TODO: get outputs
-        # TODO: add tests for subprocess runner when outputs are collectable
-        outputs = {}
+        outputs = executor_output_utils.get_outputs_for_task(
+            executor_input=executor_input,
+            component_spec=component_spec,
+        )
 
     elif task_status == status.Status.FAILURE:
         msg = f'Local execution exited with status {task_status.name}.'

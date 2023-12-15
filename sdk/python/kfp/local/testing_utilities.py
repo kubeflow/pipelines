@@ -26,6 +26,7 @@ from unittest import mock
 
 from absl.testing import parameterized
 from google.protobuf import json_format
+from google.protobuf import message
 from kfp import components
 from kfp import dsl
 from kfp.local import config as local_config
@@ -77,6 +78,17 @@ class MockedDatetimeTestCase(unittest.TestCase):
             wraps=datetime.datetime(2023, 10, 10, 13, 32, 59, 420710))
         self.mock_datetime.now.return_value = mock_now
         mock_now.strftime.return_value = '2023-10-10-13-32-59-420710'
+
+
+def write_proto_to_json_file(
+    proto_message: message.Message,
+    file_path: str,
+) -> None:
+    """Writes proto_message to file_path as JSON."""
+    json_string = json_format.MessageToJson(proto_message)
+
+    with open(file_path, 'w') as json_file:
+        json_file.write(json_string)
 
 
 def compile_and_load_component(
