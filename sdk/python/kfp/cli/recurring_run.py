@@ -139,6 +139,7 @@ def create(ctx: click.Context,
 
     # Ensure we only split on the first equals char so the value can contain
     # equals signs too.
+    print(args)
     split_args: List = [arg.split('=', 1) for arg in args or []]
     params: Dict[str, Any] = dict(split_args)
     recurring_run = client_obj.create_recurring_run(
@@ -200,6 +201,7 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
         page_token=page_token,
         page_size=max_size,
         sort_by=sort_by,
+        namespace=namespace,
         filter=filter)
     output.print_output(
         response.recurring_runs or [],
