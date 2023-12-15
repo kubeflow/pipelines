@@ -60,6 +60,11 @@ class LocalExecutionConfig:
         pipeline_root: str,
         raise_on_error: bool,
     ) -> None:
+        permitted_runners = (SubprocessRunner,)
+        if not isinstance(runner, permitted_runners):
+            raise ValueError(
+                f'Got unknown runner {runner} of type {runner.__class__.__name__}. Runner should be one of the following types: {". ".join(prunner.__name__ for prunner in permitted_runners)}.'
+            )
         self.runner = runner
         self.pipeline_root = pipeline_root
         self.raise_on_error = raise_on_error

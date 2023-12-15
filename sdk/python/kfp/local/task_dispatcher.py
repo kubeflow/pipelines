@@ -18,6 +18,9 @@ from kfp import local
 from kfp.local import config
 from kfp.local import executor_input_utils
 from kfp.local import placeholder_utils
+from kfp.local import status
+from kfp.local import subprocess_task_handler
+from kfp.local import task_handler_interface
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
@@ -38,12 +41,14 @@ def run_single_component(
         raise RuntimeError(
             f"Local environment not initialized. Please run '{local.__name__}.{local.init.__name__}()' before executing tasks locally."
         )
-
+    # all global state should be accessed here
+    # do not access local config state downstream
     return _run_single_component_implementation(
         pipeline_spec=pipeline_spec,
         arguments=arguments,
         pipeline_root=config.LocalExecutionConfig.instance.pipeline_root,
         runner=config.LocalExecutionConfig.instance.runner,
+        raise_on_error=config.LocalExecutionConfig.instance.raise_on_error,
     )
 
 
@@ -52,6 +57,7 @@ def _run_single_component_implementation(
     arguments: Dict[str, Any],
     pipeline_root: str,
     runner: config.LocalRunnerType,
+    raise_on_error: bool,
 ) -> Dict[str, Any]:
     """The implementation of a single component runner."""
 
@@ -90,5 +96,39 @@ def _run_single_component_implementation(
         pipeline_root=pipeline_root,
     )
 
-    # TODO: call task handler and return outputs
-    return {}
+    runner_type = type(runner)
+    task_handler_map: Dict[
+        local.LocalRunnerType, task_handler_interface.ITaskHandler] = {
+            local.SubprocessRunner:
+                subprocess_task_handler.SubprocessTaskHandler,
+        }
+    TaskHandler = task_handler_map[runner_type]
+    # TODO: add logging throughout for observability of state, execution progress, outputs, errors, etc.
+    task_handler = TaskHandler(
+        image=image,
+        full_command=full_command,
+        pipeline_root=pipeline_root,
+        runner=runner,
+    )
+
+    task_status = task_handler.run()
+
+    if task_status == status.Status.SUCCESS:
+        # TODO: get outputs
+        # TODO: add tests for subprocess runner when outputs are collectable
+        outputs = {}
+
+    elif task_status == status.Status.FAILURE:
+        msg = f'Local execution exited with status {task_status.name}.'
+        if raise_on_error:
+            raise RuntimeError(msg)
+        else:
+            # TODO: replace with robust logging
+            print(msg)
+        outputs = {}
+
+    else:
+        # for developers; user should never hit this
+        raise ValueError(f'Got unknown status: {task_status}')
+
+    return outputs
