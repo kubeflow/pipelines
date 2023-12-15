@@ -89,9 +89,13 @@ def _run_single_component_implementation(
     image = container['image']
     # TODO: handler container component placeholders when
     # ContainerRunner is implemented
+    executor_input_dict = executor_input_utils.executor_input_to_dict(
+        executor_input=executor_input,
+        component_spec=component_spec,
+    )
     full_command = placeholder_utils.replace_placeholders(
         full_command=full_command,
-        executor_input=executor_input,
+        executor_input_dict=executor_input_dict,
         pipeline_resource_name=pipeline_resource_name,
         task_resource_name=task_resource_name,
         pipeline_root=pipeline_root,

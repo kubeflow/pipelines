@@ -16,6 +16,7 @@ import datetime
 import os
 from typing import Any, Dict
 
+from google.protobuf import json_format
 from kfp.compiler import pipeline_spec_builder
 from kfp.dsl import utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -130,3 +131,30 @@ def make_artifact_list(
             metadata={},
         )
     ])
+
+
+def executor_input_to_dict(
+    executor_input: pipeline_spec_pb2.ExecutorInput,
+    component_spec: pipeline_spec_pb2.ComponentSpec,
+) -> Dict[str, Any]:
+    """Converts the executor input to a dictionary.
+
+    Since protobuf value represents ints and floats the same way, we
+    cast ints to their correct type. This should be called before
+    replacing placeholders with values.
+
+    This is consistent with the remote backend behavior.
+    """
+    executor_input_dict = json_format.MessageToDict(executor_input)
+    inputs_typed_int = [
+        in_param_name for in_param_name, parameter_spec in
+        component_spec.input_definitions.parameters.items()
+        if parameter_spec.parameter_type ==
+        pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_INTEGER
+    ]
+    for param_name, param_value in executor_input_dict.get('inputs', {}).get(
+            'parameterValues', {}).items():
+        if param_name in inputs_typed_int:
+            executor_input_dict['inputs']['parameterValues'][param_name] = int(
+                param_value)
+    return executor_input_dict
