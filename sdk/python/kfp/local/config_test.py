@@ -94,6 +94,14 @@ class TestInitCalls(unittest.TestCase):
                          local.SubprocessRunner(use_venv=False))
         self.assertFalse(instance.raise_on_error, False)
 
+    def test_runner_validation(self):
+        """Test config instance attributes with multiple init() calls."""
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Got unknown runner foo of type str\. Runner should be one of the following types: SubprocessRunner\.'
+        ):
+            local.init(runner='foo')
+
 
 if __name__ == '__main__':
     unittest.main()
