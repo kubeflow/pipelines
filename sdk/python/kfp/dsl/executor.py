@@ -191,7 +191,7 @@ class Executor:
             origin_type = getattr(annotation_type, '__origin__',
                                   None) or annotation_type
             # relax float-typed return to allow both int and float.
-            if origin_type in {int, float}:
+            if origin_type == float:
                 accepted_types = (int, float)
             # TODO: relax str-typed return to allow all primitive types?
             else:
