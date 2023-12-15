@@ -33,9 +33,10 @@ def load_executor_output(
     return executor_output
 
 
-def cast_ints_as_floats_to_ints(
-    outputs_dict: Dict[str, Any],
-    outputs_typed_int: List[str],
+def cast_protobuf_numbers(
+    output_parameters: Dict[str, Any],
+    output_parameter_types: Dict[
+        str, pipeline_spec_pb2.ComponentOutputsSpec.ParameterSpec],
 ) -> Dict[str, Any]:
     """Casts output fields that are typed as NUMBER_INTEGER to a Python int.
 
@@ -44,9 +45,16 @@ def cast_ints_as_floats_to_ints(
     struct_pb2.Value to a dict/json, int will be upcast to float, even
     if the component output specifies int.
     """
-    for float_output_key in outputs_typed_int:
-        outputs_dict[float_output_key] = int(outputs_dict[float_output_key])
-    return outputs_dict
+    output_parameter_types = [
+        output_param_name
+        for output_param_name, parameter_spec in output_parameter_types.items()
+        if parameter_spec.parameter_type ==
+        pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_INTEGER
+    ]
+    for float_output_key in output_parameter_types:
+        output_parameters[float_output_key] = int(
+            output_parameters[float_output_key])
+    return output_parameters
 
 
 def get_outputs_from_executor_output(
@@ -74,15 +82,9 @@ def get_outputs_from_executor_output(
         for param_name, value in executor_output.parameter_values.items()
     }
     # process the special case of protobuf ints
-    outputs_typed_int = [
-        output_param_name for output_param_name, parameter_spec in
-        component_spec.output_definitions.parameters.items()
-        if parameter_spec.parameter_type ==
-        pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_INTEGER
-    ]
-    output_parameters = cast_ints_as_floats_to_ints(
+    output_parameters = cast_protobuf_numbers(
         output_parameters,
-        outputs_typed_int,
+        component_spec.output_definitions.parameters,
     )
 
     # collect artifact outputs from executor output
