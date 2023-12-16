@@ -11,7 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for task_dispatcher.py."""
+"""Tests for task_dispatcher.py. Tested across multiple runner types.
+
+The difference between these tests and the E2E test are that E2E tests
+focus on how the runner should behave to be local execution conformant,
+whereas these tests focus on how the task dispatcher should behave,
+irrespective of the runner. While there will inevitably some overlap, we
+should seek to minimize it.
+"""
 import unittest
 
 from absl.testing import parameterized
@@ -19,6 +26,11 @@ from kfp import dsl
 from kfp import local
 from kfp.dsl import Artifact
 from kfp.local import testing_utilities
+
+ALL_RUNNERS = [
+    (local.SubprocessRunner(use_venv=False),),
+    (local.SubprocessRunner(use_venv=True),),
+]
 
 
 class TestLocalExecutionValidation(
@@ -37,10 +49,7 @@ class TestLocalExecutionValidation(
             identity(x='foo')
 
 
-@parameterized.parameters([
-    (local.SubprocessRunner(use_venv=False),),
-    (local.SubprocessRunner(use_venv=True),),
-])
+@parameterized.parameters(ALL_RUNNERS)
 class TestArgumentValidation(parameterized.TestCase):
 
     def test_no_argument_no_default(self, runner):
@@ -93,12 +102,9 @@ class TestArgumentValidation(parameterized.TestCase):
             identity(a=Artifact(name='a', uri='gs://bucket/foo'))
 
 
-@parameterized.parameters([
-    (local.SubprocessRunner(use_venv=False),),
-    (local.SubprocessRunner(use_venv=True),),
-])
-class TestLocalPipelineBlocked(testing_utilities.LocalRunnerEnvironmentTestCase
-                              ):
+@parameterized.parameters(ALL_RUNNERS)
+class TestSupportOfComponentTypes(
+        testing_utilities.LocalRunnerEnvironmentTestCase):
 
     def test_local_pipeline_unsupported_two_tasks(self, runner):
         local.init(runner=runner)
@@ -157,6 +163,25 @@ class TestLocalPipelineBlocked(testing_utilities.LocalRunnerEnvironmentTestCase
                 'Local pipeline execution is not currently supported\.',
         ):
             my_pipeline(string='foo')
+
+    def test_can_run_loaded_component(self, runner):
+        local.init(runner=runner)
+
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
+
+        loaded_identity = testing_utilities.compile_and_load_component(identity)
+
+        actual = loaded_identity(x='hello').output
+        expected = 'hello'
+        # since == is overloaded for dsl.Condition, if local execution is not
+        # "hit", then actual will be a channel and actual == expected evaluates
+        # to ConditionOperation. Since ConditionOperation is truthy,
+        # this may result in a false negative test result. For this reason,
+        # we perform an isinstance check first.
+        self.assertIsInstance(actual, str)
+        self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':
