@@ -17,9 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -1062,8 +1060,9 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{
 				{
-					// Split off any query strings first
-					Uri:      fmt.Sprintf("%s/%s", strings.TrimRight(strings.Split(pipelineRoot, "?")[0], "/"), path.Join(taskName, name)),
+					// Do not preserve the query string for output artifacts, as otherwise
+					// they'd appear in file and artifact names.
+					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},

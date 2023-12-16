@@ -214,7 +214,7 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 	wg.Wait()
 }
 
-func Test_appendToPipelineRoot(t *testing.T) {
+func Test_GenerateOutputURI(t *testing.T) {
 	// Const define the artifact name
 	const (
 		pipelineName      = "my-pipeline-name"
@@ -222,16 +222,49 @@ func Test_appendToPipelineRoot(t *testing.T) {
 		pipelineRoot      = "minio://mlpipeline/v2/artifacts"
 		pipelineRootQuery = "?query=string&another=query"
 	)
-	// Test output uri generation with plain pipeline root, i.e. without any query strings
-	plainResult := metadata.AppendToPipelineRoot(pipelineRoot, []string{pipelineName, runID})
-	if plainResult != fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID) {
-		t.Errorf("Expected %s, got %s", fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID), plainResult)
+	tests := []struct {
+		name                string
+		queryString         string
+		paths               []string
+		preserveQueryString bool
+		want                string
+	}{
+		{
+			name:                "plain pipeline root without preserveQueryString",
+			queryString:         "",
+			paths:               []string{pipelineName, runID},
+			preserveQueryString: false,
+			want:                fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID),
+		},
+		{
+			name:                "plain pipeline root with preserveQueryString",
+			queryString:         "",
+			paths:               []string{pipelineName, runID},
+			preserveQueryString: true,
+			want:                fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID),
+		},
+		{
+			name:                "pipeline root with query string without preserveQueryString",
+			queryString:         pipelineRootQuery,
+			paths:               []string{pipelineName, runID},
+			preserveQueryString: false,
+			want:                fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID),
+		},
+		{
+			name:                "pipeline root with query string with preserveQueryString",
+			queryString:         pipelineRootQuery,
+			paths:               []string{pipelineName, runID},
+			preserveQueryString: true,
+			want:                fmt.Sprintf("%s/%s/%s%s", pipelineRoot, pipelineName, runID, pipelineRootQuery),
+		},
 	}
-
-	// Make sure query strings in the pipeline root are correctly preserved (added to the end)
-	queryResult := metadata.AppendToPipelineRoot(fmt.Sprintf("%s%s", pipelineRoot, pipelineRootQuery), []string{pipelineName, runID})
-	if queryResult != fmt.Sprintf("%s/%s/%s%s", pipelineRoot, pipelineName, runID, pipelineRootQuery) {
-		t.Errorf("Expected %s, got %s", fmt.Sprintf("%s/%s/%s%s", pipelineRoot, pipelineName, runID, pipelineRootQuery), queryResult)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := metadata.GenerateOutputURI(fmt.Sprintf("%s%s", pipelineRoot, tt.queryString), tt.paths, tt.preserveQueryString)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("GenerateOutputURI() = %v, want %v\nDiff (-want, +got)\n%s", got, tt.want, diff)
+			}
+		})
 	}
 }
 

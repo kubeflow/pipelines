@@ -260,17 +260,17 @@ func (e *Execution) FingerPrint() string {
 	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
 }
 
-// AppendToPipelineRoot appends the specified paths to the pipeline root.
-// It preserves the query part of the pipeline root by splitting it off and
-// appending it back to the full URI.
-func AppendToPipelineRoot(pipelineRoot string, paths []string) string {
-	// split the query part off the root, if it exists.
-	// we will append it back later to the full URI.
+// GenerateOutputURI appends the specified paths to the pipeline root.
+// It may be configured to preserve the query part of the pipeline root
+// by splitting it off and appending it back to the full URI.
+func GenerateOutputURI(pipelineRoot string, paths []string, preserveQueryString bool) string {
 	querySplit := strings.Split(pipelineRoot, "?")
 	query := ""
-	if len(querySplit) > 1 {
+	if len(querySplit) == 2 {
 		pipelineRoot = querySplit[0]
-		query = "?" + querySplit[1]
+		if preserveQueryString {
+			query = "?" + querySplit[1]
+		}
 	} else if len(querySplit) > 2 {
 		// this should never happen, but just in case.
 		glog.Warningf("Unexpected pipeline root: %v", pipelineRoot)
@@ -292,7 +292,7 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace
 		keyNamespace:    stringValue(namespace),
 		keyResourceName: stringValue(runResource),
 		// pipeline root of this run
-		keyPipelineRoot: stringValue(AppendToPipelineRoot(pipelineRoot, []string{pipelineName, runID})),
+		keyPipelineRoot: stringValue(GenerateOutputURI(pipelineRoot, []string{pipelineName, runID}, true)),
 	}
 	runContext, err := c.getOrInsertContext(ctx, runID, pipelineRunContextType, metadata)
 	glog.Infof("Pipeline Run Context: %+v", runContext)
