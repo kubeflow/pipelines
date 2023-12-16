@@ -95,6 +95,9 @@ def run_local_subprocess(full_command: List[str]) -> int:
     with subprocess.Popen(
             full_command,
             stdout=subprocess.PIPE,
+            # no change to behavior in terminal for user,
+            # but allows more seamless capture/testing of subprocess logs
+            stderr=subprocess.STDOUT,
             text=True,
             # buffer line-by-line
             bufsize=1,

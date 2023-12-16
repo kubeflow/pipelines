@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for working with placeholders."""
+import json
 import random
-from typing import List
+from typing import Any, Dict, List
 
-from google.protobuf import json_format
 from kfp import dsl
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 def make_random_id():
@@ -27,7 +26,7 @@ def make_random_id():
 
 def replace_placeholders(
     full_command: List[str],
-    executor_input: str,
+    executor_input_dict: Dict[str, Any],
     pipeline_resource_name: str,
     task_resource_name: str,
     pipeline_root: str,
@@ -38,7 +37,7 @@ def replace_placeholders(
     return [
         replace_placeholder_for_element(
             element=el,
-            executor_input=executor_input,
+            executor_input_dict=executor_input_dict,
             pipeline_resource_name=pipeline_resource_name,
             task_resource_name=task_resource_name,
             pipeline_root=pipeline_root,
@@ -50,7 +49,7 @@ def replace_placeholders(
 
 def replace_placeholder_for_element(
     element: str,
-    executor_input: pipeline_spec_pb2.ExecutorInput,
+    executor_input_dict: Dict[str, Any],
     pipeline_resource_name: str,
     task_resource_name: str,
     pipeline_root: str,
@@ -59,14 +58,22 @@ def replace_placeholder_for_element(
 ) -> str:
     """Replaces placeholders for a single element."""
     PLACEHOLDERS = {
-        r'{{$.outputs.output_file}}': executor_input.outputs.output_file,
-        r'{{$.outputMetadataUri}}': executor_input.outputs.output_file,
-        r'{{$}}': json_format.MessageToJson(executor_input),
-        dsl.PIPELINE_JOB_NAME_PLACEHOLDER: pipeline_resource_name,
-        dsl.PIPELINE_JOB_ID_PLACEHOLDER: pipeline_job_id,
-        dsl.PIPELINE_TASK_NAME_PLACEHOLDER: task_resource_name,
-        dsl.PIPELINE_TASK_ID_PLACEHOLDER: pipeline_task_id,
-        dsl.PIPELINE_ROOT_PLACEHOLDER: pipeline_root,
+        r'{{$.outputs.output_file}}':
+            executor_input_dict['outputs']['outputFile'],
+        r'{{$.outputMetadataUri}}':
+            executor_input_dict['outputs']['outputFile'],
+        r'{{$}}':
+            json.dumps(executor_input_dict),
+        dsl.PIPELINE_JOB_NAME_PLACEHOLDER:
+            pipeline_resource_name,
+        dsl.PIPELINE_JOB_ID_PLACEHOLDER:
+            pipeline_job_id,
+        dsl.PIPELINE_TASK_NAME_PLACEHOLDER:
+            task_resource_name,
+        dsl.PIPELINE_TASK_ID_PLACEHOLDER:
+            pipeline_task_id,
+        dsl.PIPELINE_ROOT_PLACEHOLDER:
+            pipeline_root,
     }
     for placeholder, value in PLACEHOLDERS.items():
         element = element.replace(placeholder, value)

@@ -89,7 +89,8 @@ class Artifact:
             return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len('minio://'):]
         elif self.uri.startswith('s3://'):
             return _S3_LOCAL_MOUNT_PREFIX + self.uri[len('s3://'):]
-        return None
+        # uri == path for local execution
+        return self.uri
 
     def _set_path(self, path: str) -> None:
         self.uri = convert_local_path_to_remote_path(path)

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for placeholder_utils.py."""
 
+import json
 import unittest
 
 from absl.testing import parameterized
@@ -55,6 +56,8 @@ json_format.ParseDict(
         }
     }, executor_input)
 
+EXECUTOR_INPUT_DICT = json_format.MessageToDict(executor_input)
+
 
 class TestReplacePlaceholders(unittest.TestCase):
     # most of the logic is tested in TestReplacePlaceholderForElement, so this is just a basic test to invoke the code and make sure the placeholder resolution is applied correctly to every element in the list
@@ -68,14 +71,14 @@ class TestReplacePlaceholders(unittest.TestCase):
         ]
         actual = placeholder_utils.replace_placeholders(
             full_command=full_command,
-            executor_input=executor_input,
+            executor_input_dict=EXECUTOR_INPUT_DICT,
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
             task_resource_name='comp',
             pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
         )
         expected = [
             'echo',
-            f'something before the placeholder {json_format.MessageToJson(executor_input)}',
+            f'something before the placeholder {json.dumps(EXECUTOR_INPUT_DICT)}',
             'something else',
             '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json',
         ]
@@ -87,7 +90,7 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
     @parameterized.parameters([
         (
             '{{$}}',
-            json_format.MessageToJson(executor_input),
+            json.dumps(EXECUTOR_INPUT_DICT),
         ),
         (
             '{{$.outputs.output_file}}',
@@ -121,7 +124,7 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
     def test(self, element: str, expected: str):
         actual = placeholder_utils.replace_placeholder_for_element(
             element=element,
-            executor_input=executor_input,
+            executor_input_dict=EXECUTOR_INPUT_DICT,
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
             task_resource_name='comp',
             pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
@@ -133,7 +136,7 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
     @parameterized.parameters([
         (
             '{{$}}invalidjson',
-            json_format.MessageToJson(executor_input) + 'invalidjson',
+            json.dumps(EXECUTOR_INPUT_DICT) + 'invalidjson',
         ),
         (
             '{{$.pipeline_job_name}}/{{$.pipeline_task_name}}',
@@ -148,7 +151,7 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
                                                expected: str):
         actual = placeholder_utils.replace_placeholder_for_element(
             element=element,
-            executor_input=executor_input,
+            executor_input_dict=EXECUTOR_INPUT_DICT,
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
             task_resource_name='comp',
             pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
