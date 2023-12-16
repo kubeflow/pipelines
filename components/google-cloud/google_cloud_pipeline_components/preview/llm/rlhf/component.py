@@ -128,7 +128,7 @@ def rlhf_pipeline(
     )
 
   llm_model_handler = deployment_graph.pipeline(
-      output_adapter_path=rl_model_pipeline.outputs['output_model_path'],
+      output_adapter_path=rl_model_pipeline.outputs['output_adapter_path'],
       large_model_reference=large_model_reference,
       model_display_name=model_display_name,
       deploy_model=deploy_model,
