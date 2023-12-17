@@ -19,12 +19,16 @@ whereas these tests focus on how the task dispatcher should behave,
 irrespective of the runner. While there will inevitably some overlap, we
 should seek to minimize it.
 """
+import io
 import unittest
+from unittest import mock
 
 from absl.testing import parameterized
 from kfp import dsl
 from kfp import local
 from kfp.dsl import Artifact
+from kfp.dsl import Model
+from kfp.dsl import Output
 from kfp.local import testing_utilities
 
 ALL_RUNNERS = [
@@ -182,6 +186,100 @@ class TestSupportOfComponentTypes(
         # we perform an isinstance check first.
         self.assertIsInstance(actual, str)
         self.assertEqual(actual, expected)
+
+
+@parameterized.parameters(ALL_RUNNERS)
+class TestExceptionHandlingAndLogging(
+        testing_utilities.LocalRunnerEnvironmentTestCase):
+
+    @mock.patch('sys.stdout', new_callable=io.StringIO)
+    def test_user_code_throws_exception_if_raise_on_error(
+        self,
+        runner,
+        mock_stdout,
+    ):
+        local.init(runner=runner, raise_on_error=True)
+
+        @dsl.component
+        def fail_comp():
+            raise Exception('String to match on')
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r"Task \x1b\[96m'fail-comp'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m",
+        ):
+            fail_comp()
+
+        self.assertIn(
+            'Exception: String to match on',
+            mock_stdout.getvalue(),
+        )
+
+    @mock.patch('sys.stdout', new_callable=io.StringIO)
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    def test_user_code_no_exception_if_not_raise_on_error(
+        self,
+        runner,
+        mock_stderr,
+        mock_stdout,
+    ):
+        local.init(runner=runner, raise_on_error=False)
+
+        @dsl.component
+        def fail_comp():
+            raise Exception('String to match on')
+
+        task = fail_comp()
+        self.assertDictEqual(task.outputs, {})
+
+        self.assertRegex(
+            mock_stderr.getvalue(),
+            r"\d+:\d+:\d+\.\d+ - ERROR - Task \x1b\[96m'fail-comp'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m",
+        )
+        self.assertIn(
+            'Exception: String to match on',
+            mock_stdout.getvalue(),
+        )
+
+    @mock.patch('sys.stdout', new_callable=io.StringIO)
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    def test_all_logs(
+        self,
+        runner,
+        mock_stderr,
+        mock_stdout,
+    ):
+        local.init(runner=runner)
+
+        @dsl.component
+        def many_type_component(
+            num: int,
+            model: Output[Model],
+        ) -> str:
+            print('Inside of my component!')
+            model.metadata['foo'] = 'bar'
+            return 'hello' * num
+
+        many_type_component(num=2)
+
+        # outer process logs in stderr
+        outer_log_regex = (
+            r"\d+:\d+:\d+\.\d+ - INFO - Executing task \x1b\[96m'many-type-component'\x1b\[0m\n"
+            + r'\d+:\d+:\d+\.\d+ - INFO - Streamed logs:\n\n' +
+            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m finished with status \x1b\[92mSUCCESS\x1b\[0m\n"
+            +
+            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m outputs:\n    Output: hellohello\n    model: Model\( name=model,\n                  uri=\./local_outputs/many-type-component-\d+-\d+-\d+-\d+-\d+-\d+-\d+/many-type-component/model,\n                  metadata={'foo': 'bar'} \)\n\n"
+        )
+
+        self.assertRegex(
+            mock_stderr.getvalue(),
+            outer_log_regex,
+        )
+        # inner process logs in stdout
+        self.assertIn('[KFP Executor', mock_stdout.getvalue())
+        self.assertIn('Got executor_input:', mock_stdout.getvalue())
+        self.assertIn('Inside of my component!', mock_stdout.getvalue())
+        self.assertIn('Wrote executor output file to', mock_stdout.getvalue())
 
 
 if __name__ == '__main__':
