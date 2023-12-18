@@ -95,8 +95,10 @@ def run_local_subprocess(full_command: List[str]) -> int:
     with subprocess.Popen(
             full_command,
             stdout=subprocess.PIPE,
-            # no change to behavior in terminal for user,
-            # but allows more seamless capture/testing of subprocess logs
+            # No change to behavior in terminal for user,
+            # but inner process logs redirected to stdout. This separates from
+            # the outer process logs which, per logging module default, go to
+            # stderr.
             stderr=subprocess.STDOUT,
             text=True,
             # buffer line-by-line

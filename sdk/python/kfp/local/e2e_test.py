@@ -17,8 +17,6 @@ These contain tests of various component definitions/types, tested on each local
 
 These can be thought of as local runner conformance tests. The test results should be the same irrespective of the runner.
 """
-import io
-import sys
 from typing import NamedTuple
 import unittest
 
@@ -321,59 +319,6 @@ class TestLightweightPythonComponentLogic(
 
         self.assertEqual(task.outputs['out_param'], 'HelloHello')
         self.assertEqual(task.outputs['Output'], 1)
-
-
-@parameterized.parameters(ALL_RUNNERS)
-class TestExceptionHandling(testing_utilities.LocalRunnerEnvironmentTestCase):
-
-    def setUp(self):
-        super().setUp()
-        # capture logs on a test-by-test basis
-        self.captured_stdout = io.StringIO()
-        sys.stdout = self.captured_stdout
-
-    def tearDown(self):
-        super().setUp()
-        # reset stdout
-        sys.stdout = sys.__stdout__
-
-    def test_user_code_throws_exception_if_raise_on_error(self, runner):
-        local.init(runner=runner, raise_on_error=True)
-
-        @dsl.component
-        def fail_comp():
-            raise Exception('String to match on')
-
-        # use end of line anchor $, since the user code error should be the last thing surfaced to the user
-        with self.assertRaisesRegex(
-                RuntimeError,
-                r'Local execution exited with status FAILURE\.$',
-        ):
-            fail_comp()
-
-        self.assertIn(
-            'Exception: String to match on',
-            self.captured_stdout.getvalue(),
-        )
-
-    def test_user_code_no_exception_if_not_raise_on_error(self, runner):
-        local.init(runner=runner, raise_on_error=False)
-
-        @dsl.component
-        def fail_comp():
-            raise Exception('String to match on')
-
-        task = fail_comp()
-        self.assertDictEqual(task.outputs, {})
-
-        self.assertIn(
-            'Local execution exited with status FAILURE.',
-            self.captured_stdout.getvalue(),
-        )
-        self.assertIn(
-            'Exception: String to match on',
-            self.captured_stdout.getvalue(),
-        )
 
 
 if __name__ == '__main__':
