@@ -62,8 +62,7 @@ def model_evaluation_text_generation(
     target_field_name: The full name path of the features target field in the
       predictions file. Formatted to be able to find nested columns, delimited
       by `.`. Alternatively referred to as the ground truth (or
-      ground_truth_column) field. If not set, defaulted to
-      `inputs.ground_truth`.
+      ground_truth_column) field. If not set, defaulted to `inputs.output_text`.
     prediction_field_name: The full name path of the prediction field in the
       prediction file. Formatted to be able to find nested columns, delimited by
       `.`. If not set, defaulted to `predictions.content`.
