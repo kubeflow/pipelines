@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for config.py."""
+import os
 import unittest
+from unittest import mock
 
 from kfp import local
 from kfp.local import config
@@ -89,7 +91,8 @@ class TestInitCalls(unittest.TestCase):
 
         instance = config.LocalExecutionConfig.instance
 
-        self.assertEqual(instance.pipeline_root, 'other/local/root')
+        self.assertEqual(instance.pipeline_root,
+                         os.path.abspath('other/local/root'))
         self.assertEqual(instance.runner,
                          local.SubprocessRunner(use_venv=False))
         self.assertFalse(instance.raise_on_error, False)
@@ -101,6 +104,17 @@ class TestInitCalls(unittest.TestCase):
                 r'Got unknown runner foo of type str\. Runner should be one of the following types: SubprocessRunner\.'
         ):
             local.init(runner='foo')
+
+
+class TestDockerRunner(unittest.TestCase):
+
+    def test_import_error(self):
+        with mock.patch.dict('sys.modules', {'docker': None}):
+            with self.assertRaisesRegex(
+                    ImportError,
+                    r"Package 'docker' must be installed to use 'DockerRunner'\. Install it using 'pip install docker'\."
+            ):
+                local.DockerRunner()
 
 
 if __name__ == '__main__':

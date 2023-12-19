@@ -15,6 +15,7 @@
 import contextlib
 import io
 import unittest
+from unittest import mock
 
 from absl.testing import parameterized
 from kfp import dsl
@@ -25,19 +26,17 @@ from kfp.local import testing_utilities
 
 class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
 
-    def test_basic(self):
+    @mock.patch('sys.stdout', new_callable=io.StringIO)
+    def test_basic(self, mock_stdout):
         local.init(runner=local.SubprocessRunner(use_venv=True))
 
         @dsl.component
         def comp():
             print('foobar!')
 
-        buffer = io.StringIO()
+        comp()
 
-        with contextlib.redirect_stdout(buffer):
-            comp()
-
-        output = buffer.getvalue().strip()
+        output = mock_stdout.getvalue().strip()
 
         self.assertContainsSubsequence(output, 'foobar!')
 

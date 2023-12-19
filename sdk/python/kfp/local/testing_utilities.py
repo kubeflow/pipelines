@@ -13,14 +13,12 @@
 # limitations under the License.
 """Utilities for testing local execution."""
 
-import contextlib
 import datetime
 import functools
 import os
 import pathlib
-import shutil
 import tempfile
-from typing import Iterator
+from typing import Any, Callable, Dict
 import unittest
 from unittest import mock
 
@@ -30,6 +28,7 @@ from google.protobuf import message
 from kfp import components
 from kfp import dsl
 from kfp.local import config as local_config
+from kfp.local import docker_task_handler
 
 _LOCAL_KFP_PACKAGE_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -38,21 +37,54 @@ _LOCAL_KFP_PACKAGE_PATH = os.path.join(
 )
 
 
+def modify_volumes_decorator(
+        original_method: Callable[..., Any]) -> Callable[..., Any]:
+
+    def wrapper(self, *args, **kwargs) -> Dict[str, Any]:
+        original_volumes = original_method(self, *args, **kwargs)
+        LOCAL_KFP_VOLUME = {
+            _LOCAL_KFP_PACKAGE_PATH: {
+                'bind': _LOCAL_KFP_PACKAGE_PATH,
+                'mode': 'rw'
+            }
+        }
+        original_volumes.update(LOCAL_KFP_VOLUME)
+        return original_volumes
+
+    return wrapper
+
+
 class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
     """Test class that uses an isolated filesystem and updates the
     dsl.component decorator to install from the local KFP source, rather than
     the latest release."""
 
     def setUp(self):
-        # start each test case without an uninitialized environment
+        # ENTER: start each test case without an uninitialized environment
         local_config.LocalExecutionConfig.instance = None
-        with contextlib.ExitStack() as stack:
-            stack.enter_context(isolated_filesystem())
-            self._working_dir = pathlib.Path.cwd()
-            self.addCleanup(stack.pop_all().close)
+
+        # ENTER: use tempdir for all tests
+        self.working_dir = pathlib.Path.cwd()
+        self.temp_dir = tempfile.TemporaryDirectory()
+        os.chdir(self.temp_dir.name)
+
+        # ENTER: mount KFP dir to enable install from source for docker runner
+        self.original_get_volumes_to_mount = docker_task_handler.DockerTaskHandler.get_volumes_to_mount
+        docker_task_handler.DockerTaskHandler.get_volumes_to_mount = modify_volumes_decorator(
+            docker_task_handler.DockerTaskHandler.get_volumes_to_mount)
+
+    def tearDown(self):
+        # EXIT: use tempdir for all tests
+        # os.chmod(self.temp_dir.name, 0o777)
+        # self.temp_dir.cleanup()
+        os.chdir(self.working_dir)
+
+        # EXIT: mount KFP dir to enable install from source for docker runner
+        docker_task_handler.DockerTaskHandler.get_volumes_to_mount = self.original_get_volumes_to_mount
 
     @classmethod
     def setUpClass(cls):
+        # ENTER: use local KFP package path for subprocess runner
         from kfp.dsl import pipeline_task
         pipeline_task.TEMPORARILY_BLOCK_LOCAL_EXECUTION = False
         cls.original_component, dsl.component = dsl.component, functools.partial(
@@ -60,6 +92,7 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        # EXIT: use local KFP package path for subprocess runner
         from kfp.dsl import pipeline_task
         pipeline_task.TEMPORARILY_BLOCK_LOCAL_EXECUTION = True
         dsl.component = cls.original_component
@@ -98,18 +131,3 @@ def compile_and_load_component(
     YamlComponent."""
     return components.load_component_from_text(
         json_format.MessageToJson(base_component.pipeline_spec))
-
-
-@contextlib.contextmanager
-def isolated_filesystem() -> Iterator[str]:
-    cwd = os.getcwd()
-    dt = tempfile.mkdtemp()
-    os.chdir(dt)
-
-    try:
-        yield dt
-    finally:
-        os.chdir(cwd)
-
-        with contextlib.suppress(OSError):
-            shutil.rmtree(dt)
