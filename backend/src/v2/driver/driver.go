@@ -17,9 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -1062,7 +1060,9 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{
 				{
-					Uri:      generateOutputURI(pipelineRoot, name, taskName),
+					// Do not preserve the query string for output artifacts, as otherwise
+					// they'd appear in file and artifact names.
+					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},
@@ -1076,12 +1076,6 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 		}
 	}
 	return outputs
-}
-
-func generateOutputURI(root, artifactName string, taskName string) string {
-	// we cannot path.Join(root, taskName, artifactName), because root
-	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
-	return fmt.Sprintf("%s/%s", strings.TrimRight(root, "/"), path.Join(taskName, artifactName))
 }
 
 var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
