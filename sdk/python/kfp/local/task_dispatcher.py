@@ -17,6 +17,7 @@ from typing import Any, Dict
 
 from kfp import local
 from kfp.local import config
+from kfp.local import docker_task_handler
 from kfp.local import executor_input_utils
 from kfp.local import executor_output_utils
 from kfp.local import logging_utils
@@ -108,6 +109,8 @@ def _run_single_component_implementation(
         local.LocalRunnerType, task_handler_interface.ITaskHandler] = {
             local.SubprocessRunner:
                 subprocess_task_handler.SubprocessTaskHandler,
+            local.DockerRunner:
+                docker_task_handler.DockerTaskHandler,
         }
     TaskHandler = task_handler_map[runner_type]
 
