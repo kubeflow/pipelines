@@ -13,11 +13,13 @@
 # limitations under the License.
 """The KFP local runner."""
 
+from kfp.local.config import DockerRunner
 from kfp.local.config import init
 from kfp.local.config import SubprocessRunner
 
 # TODO: uncomment when local execution is publicly available
 # __all__ = [
-#     'SubprocessRunner',
 #     'init',
+#     'SubprocessRunner',
+#     'DockerRunner',
 # ]

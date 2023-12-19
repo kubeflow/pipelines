@@ -35,6 +35,8 @@ from kfp.local import testing_utilities
 # this may result in a false negative test result. For this reason,
 # we perform an isinstance check first.
 
+# TODO: since Docker runner is mocked, move these tests to
+# the subprocess_runner_test.py file
 ALL_RUNNERS = [
     (local.SubprocessRunner(use_venv=False),),
     (local.SubprocessRunner(use_venv=True),),
@@ -45,7 +47,7 @@ ALL_RUNNERS = [
 class TestLightweightPythonComponentLogic(
         testing_utilities.LocalRunnerEnvironmentTestCase):
 
-    def test_str_input(self, runner):
+    def test_single_output_simple_case(self, runner):
         local.init(runner=runner)
 
         @dsl.component
@@ -57,79 +59,66 @@ class TestLightweightPythonComponentLogic(
         self.assertIsInstance(actual, str)
         self.assertEqual(actual, expected)
 
-    def test_int_input(self, runner):
+    def test_many_primitives_in_and_out(self, runner):
         local.init(runner=runner)
 
         @dsl.component
-        def identity(x: int) -> int:
-            return x
+        def identity(
+            string: str,
+            integer: int,
+            decimal: float,
+            boolean: bool,
+            l: list,
+            d: dict,
+        ) -> NamedTuple(
+                'Outputs',
+                string=str,
+                integer=int,
+                decimal=float,
+                boolean=bool,
+                l=list,
+                d=dict):
+            Outputs = NamedTuple(
+                'Outputs',
+                string=str,
+                integer=int,
+                decimal=float,
+                boolean=bool,
+                l=list,
+                d=dict)
+            return Outputs(
+                string=string,
+                integer=integer,
+                decimal=decimal,
+                boolean=boolean,
+                l=l,
+                d=d,
+            )
 
-        actual = identity(x=1).output
-        expected = 1
-        self.assertIsInstance(actual, int)
-        self.assertEqual(actual, expected)
+        task = identity(
+            string='foo',
+            integer=1,
+            decimal=3.14,
+            boolean=True,
+            l=['a', 'b'],
+            d={'x': 'y'})
+        self.assertIsInstance(task.outputs['string'], str)
+        self.assertEqual(task.outputs['string'], 'foo')
 
-    def test_float_input(self, runner):
-        local.init(runner=runner)
+        self.assertIsInstance(task.outputs['integer'], int)
+        self.assertEqual(task.outputs['integer'], 1)
 
-        @dsl.component
-        def identity(x: float) -> float:
-            return x
+        self.assertIsInstance(task.outputs['decimal'], float)
+        self.assertEqual(task.outputs['decimal'], 3.14)
 
-        actual = identity(x=1.0).output
-        expected = 1.0
-        self.assertIsInstance(actual, float)
-        self.assertEqual(actual, expected)
+        self.assertIsInstance(task.outputs['boolean'], bool)
+        self.assertTrue(task.outputs['boolean'])
 
-    def test_bool_input(self, runner):
-        local.init(runner=runner)
+        self.assertIsInstance(task.outputs['l'], list)
+        self.assertEqual(task.outputs['l'], ['a', 'b'])
 
-        @dsl.component
-        def identity(x: bool) -> bool:
-            return x
-
-        actual = identity(x=True).output
-        self.assertIsInstance(actual, bool)
-        self.assertTrue(actual)
-
-    def test_list_input(self, runner):
-        local.init(runner=runner)
-
-        @dsl.component
-        def identity(x: list) -> list:
-            return x
-
-        actual = identity(x=['a', 'b']).output
-        expected = ['a', 'b']
-        self.assertIsInstance(actual, list)
-        self.assertEqual(actual, expected)
-
-    def test_dict_input(self, runner):
-        local.init(runner=runner)
-
-        @dsl.component
-        def identity(x: dict) -> dict:
-            return x
-
-        actual = identity(x={'a': 'b'}).output
-        expected = {'a': 'b'}
-        self.assertIsInstance(actual, dict)
-        self.assertEqual(actual, expected)
-
-    def test_multiple_parameter_outputs(self, runner):
-        local.init(runner=runner)
-        from typing import NamedTuple
-
-        @dsl.component
-        def return_twice(x: str) -> NamedTuple('Outputs', x=str, y=str):
-            Outputs = NamedTuple('Output', x=str, y=str)
-            return Outputs(x=x, y=x)
-
-        local_task = return_twice(x='foo')
-        self.assertIsInstance(local_task.outputs['x'], str)
-        self.assertEqual(local_task.outputs['x'], 'foo')
-        self.assertIsInstance(local_task.outputs['y'], str)
-        self.assertEqual(local_task.outputs['y'], 'foo')
+        self.assertIsInstance(task.outputs['d'], dict)
+        self.assertEqual(task.outputs['d'], {'x': 'y'})
 
     def test_single_output_not_available(self, runner):
         local.init(runner=runner)
@@ -292,18 +281,6 @@ class TestLightweightPythonComponentLogic(
         actual = identity().output
         expected = 'identity'
         self.assertIsInstance(actual, str)
-        self.assertEqual(actual, expected)
-
-    def test_int_input_uses_default(self, runner):
-        local.init(runner=runner)
-
-        @dsl.component
-        def identity(x: int = 1) -> int:
-            return 1
-
-        actual = identity().output
-        expected = 1
-        self.assertIsInstance(actual, int)
         self.assertEqual(actual, expected)
 
     def test_outputpath(self, runner):

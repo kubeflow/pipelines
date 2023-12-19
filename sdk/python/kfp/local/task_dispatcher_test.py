@@ -20,6 +20,8 @@ irrespective of the runner. While there will inevitably some overlap, we
 should seek to minimize it.
 """
 import io
+import os
+import sys
 import unittest
 from unittest import mock
 
@@ -37,14 +39,19 @@ ALL_RUNNERS = [
 ]
 
 
+def skip_if_python_3_12_or_greater(reason):
+    return unittest.skipIf(sys.version_info >= (3, 12), reason)
+
+
+@dsl.component
+def identity(x: str) -> str:
+    return x
+
+
 class TestLocalExecutionValidation(
         testing_utilities.LocalRunnerEnvironmentTestCase):
 
     def test_env_not_initialized(self):
-
-        @dsl.component
-        def identity(x: str) -> str:
-            return x
 
         with self.assertRaisesRegex(
                 RuntimeError,
@@ -59,20 +66,12 @@ class TestArgumentValidation(parameterized.TestCase):
     def test_no_argument_no_default(self, runner):
         local.init(runner=runner)
 
-        @dsl.component
-        def identity(x: str) -> str:
-            return x
-
         with self.assertRaisesRegex(
                 TypeError, r'identity\(\) missing 1 required argument: x'):
             identity()
 
     def test_default_wrong_type(self, runner):
         local.init(runner=runner)
-
-        @dsl.component
-        def identity(x: str) -> str:
-            return x
 
         with self.assertRaisesRegex(
                 dsl.types.type_utils.InconsistentTypeException,
@@ -83,10 +82,6 @@ class TestArgumentValidation(parameterized.TestCase):
     def test_extra_argument(self, runner):
         local.init(runner=runner)
 
-        @dsl.component
-        def identity(x: str) -> str:
-            return x
-
         with self.assertRaisesRegex(
                 TypeError,
                 r'identity\(\) got an unexpected keyword argument "y"\.'):
@@ -96,14 +91,14 @@ class TestArgumentValidation(parameterized.TestCase):
         local.init(runner=runner)
 
         @dsl.component
-        def identity(a: Artifact) -> Artifact:
+        def artifact_identity(a: Artifact) -> Artifact:
             return a
 
         with self.assertRaisesRegex(
                 ValueError,
                 r"Input artifacts are not supported. Got input artifact of type 'Artifact'."
         ):
-            identity(a=Artifact(name='a', uri='gs://bucket/foo'))
+            artifact_identity(a=Artifact(name='a', uri='gs://bucket/foo'))
 
 
 @parameterized.parameters(ALL_RUNNERS)
@@ -113,14 +108,10 @@ class TestSupportOfComponentTypes(
     def test_local_pipeline_unsupported_two_tasks(self, runner):
         local.init(runner=runner)
 
-        @dsl.component
-        def identity(string: str) -> str:
-            return string
-
         @dsl.pipeline
         def my_pipeline():
-            identity(string='foo')
-            identity(string='bar')
+            identity(x='foo')
+            identity(x='bar')
 
         # compile and load into a YamlComponent to ensure the NotImplementedError isn't simply being thrown because this is a GraphComponent
         my_pipeline = testing_utilities.compile_and_load_component(my_pipeline)
@@ -134,13 +125,9 @@ class TestSupportOfComponentTypes(
             self, runner):
         local.init(runner=runner)
 
-        @dsl.component
-        def identity(string: str) -> str:
-            return string
-
         @dsl.pipeline
         def my_pipeline():
-            identity(string='foo')
+            identity(x='foo')
 
         # compile and load into a YamlComponent to ensure the NotImplementedError isn't simply being thrown because this is a GraphComponent
         my_pipeline = testing_utilities.compile_and_load_component(my_pipeline)
@@ -153,14 +140,10 @@ class TestSupportOfComponentTypes(
     def test_local_pipeline_unsupported_if_is_graph_component(self, runner):
         local.init(runner=runner)
 
-        @dsl.component
-        def identity(string: str) -> str:
-            return string
-
         # even if there is one task with the same interface as the pipeline, the code should catch that the pipeline is a GraphComponent and throw the NotImplementedError
         @dsl.pipeline
         def my_pipeline(string: str) -> str:
-            return identity(string=string).output
+            return identity(x=string).output
 
         with self.assertRaisesRegex(
                 NotImplementedError,
@@ -168,12 +151,12 @@ class TestSupportOfComponentTypes(
         ):
             my_pipeline(string='foo')
 
+    @skip_if_python_3_12_or_greater(
+        'Cannot install from source on a loaded component, so need relased version of KFP that supports 3.12'
+    )
     def test_can_run_loaded_component(self, runner):
-        local.init(runner=runner)
-
-        @dsl.component
-        def identity(x: str) -> str:
-            return x
+        # use venv to avoid installing non-local KFP into test process
+        local.init(runner=local.SubprocessRunner(use_venv=True))
 
         loaded_identity = testing_utilities.compile_and_load_component(identity)
 
@@ -268,7 +251,7 @@ class TestExceptionHandlingAndLogging(
             + r'\d+:\d+:\d+\.\d+ - INFO - Streamed logs:\n\n' +
             r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m finished with status \x1b\[92mSUCCESS\x1b\[0m\n"
             +
-            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m outputs:\n    Output: hellohello\n    model: Model\( name=model,\n                  uri=\./local_outputs/many-type-component-\d+-\d+-\d+-\d+-\d+-\d+-\d+/many-type-component/model,\n                  metadata={'foo': 'bar'} \)\n\n"
+            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m outputs:\n    Output: hellohello\n    model: Model\( name=model,\n                  uri=[a-zA-Z0-9/_\.-]+/local_outputs/many-type-component-\d+-\d+-\d+-\d+-\d+-\d+-\d+/many-type-component/model,\n                  metadata={'foo': 'bar'} \)\n\n"
         )
 
         self.assertRegex(
@@ -280,6 +263,38 @@ class TestExceptionHandlingAndLogging(
         self.assertIn('Got executor_input:', mock_stdout.getvalue())
         self.assertIn('Inside of my component!', mock_stdout.getvalue())
         self.assertIn('Wrote executor output file to', mock_stdout.getvalue())
+
+
+@parameterized.parameters(ALL_RUNNERS)
+class TestPipelineRootPaths(testing_utilities.LocalRunnerEnvironmentTestCase):
+
+    def test_relpath(self, runner):
+        local.init(runner=runner, pipeline_root='relpath_root')
+
+        # define in test to force install from source
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
+
+        task = identity(x='foo')
+        self.assertIsInstance(task.output, str)
+        self.assertEqual(task.output, 'foo')
+
+    def test_abspath(self, runner):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local.init(
+                runner=runner,
+                pipeline_root=os.path.join(tmpdir, 'asbpath_root'))
+
+            # define in test to force install from source
+            @dsl.component
+            def identity(x: str) -> str:
+                return x
+
+            task = identity(x='foo')
+            self.assertIsInstance(task.output, str)
+            self.assertEqual(task.output, 'foo')
 
 
 if __name__ == '__main__':
