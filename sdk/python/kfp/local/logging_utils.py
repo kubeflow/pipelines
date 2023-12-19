@@ -16,6 +16,7 @@ import builtins
 import contextlib
 import datetime
 import logging
+import sys
 from typing import Any, Dict, Generator, List
 
 from kfp import dsl
@@ -52,7 +53,11 @@ def local_logger_context() -> Generator[None, None, None]:
         fmt='%(asctime)s - %(levelname)s - %(message)s',
         datefmt='%H:%M:%S.%f',
     )
-    handler = logging.StreamHandler()
+    # use sys.stdout so that both inner process and outer process logs
+    # go to stdout
+    # this is needed for logs to present sequentially in a colab notebook,
+    # since stderr will print above stdout
+    handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
     logger.handlers.clear()
     logger.addHandler(handler)
