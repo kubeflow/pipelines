@@ -26,7 +26,10 @@ json_format.ParseDict(
     {
         'inputs': {
             'parameterValues': {
-                'boolean': False
+                'boolean': False,
+                'dictionary': {
+                    'foo': 'bar'
+                },
             }
         },
         'outputs': {
@@ -47,7 +50,11 @@ json_format.ParseDict(
                         },
                         'uri':
                             '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
-                        'metadata': {}
+                        'metadata': {
+                            'foo': {
+                                'bar': 'baz'
+                            }
+                        }
                     }]
                 }
             },
@@ -87,6 +94,9 @@ class TestReplacePlaceholders(unittest.TestCase):
 
 class TestReplacePlaceholderForElement(parameterized.TestCase):
 
+    # TODO: consider supporting JSON escape
+    # TODO: update when input artifact constants supported
+    # TODO: update when output lists of artifacts are supported
     @parameterized.parameters([
         (
             '{{$}}',
@@ -121,7 +131,7 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
             '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
         ),
     ])
-    def test(self, element: str, expected: str):
+    def test_constant_placeholders(self, element: str, expected: str):
         actual = placeholder_utils.replace_placeholder_for_element(
             element=element,
             executor_input_dict=EXECUTOR_INPUT_DICT,
@@ -159,6 +169,103 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
             pipeline_task_id='987654321',
         )
         self.assertEqual(actual, expected)
+
+    @parameterized.parameters([
+        (
+            "{{$.inputs.parameters[''boolean'']}}",
+            json.dumps(False),
+        ),
+        (
+            "{{$.outputs.artifacts[''out_a''].metadata}}",
+            json.dumps({'foo': {
+                'bar': 'baz'
+            }}),
+        ),
+        (
+            "{{$.outputs.parameters[''Output''].output_file}}",
+            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output',
+        ),
+        (
+            "{{$.outputs.artifacts[''out_a''].uri}}",
+            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
+        ),
+        (
+            "{{$.outputs.artifacts[''out_a''].path}}",
+            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
+        ),
+        (
+            "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}",
+            json.dumps({'bar': 'baz'}),
+        ),
+    ])
+    def test_io_placeholders(self, element: str, expected: str):
+        actual = placeholder_utils.replace_placeholder_for_element(
+            element=element,
+            executor_input_dict=EXECUTOR_INPUT_DICT,
+            pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
+            task_resource_name='comp',
+            pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            pipeline_job_id='123456789',
+            pipeline_task_id='987654321',
+        )
+        self.assertEqual(actual, expected)
+
+    @parameterized.parameters([
+        (
+            "my-prefix-{{$.inputs.parameters[''boolean'']}}-suffix",
+            'my-prefix-false-suffix',
+        ),
+        (
+            "prefix{{$.outputs.parameters[''Output''].output_file}}/suffix",
+            'prefix/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output/suffix',
+        ),
+        (
+            "prefix{{$.inputs.parameters[''dictionary'']}}suffix",
+            'prefix{"foo": "bar"}suffix',
+        ),
+    ])
+    def test_io_placeholder_with_string_concat(self, element: str,
+                                               expected: str):
+        actual = placeholder_utils.replace_placeholder_for_element(
+            element=element,
+            executor_input_dict=EXECUTOR_INPUT_DICT,
+            pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
+            task_resource_name='comp',
+            pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            pipeline_job_id='123456789',
+            pipeline_task_id='987654321',
+        )
+        self.assertEqual(actual, expected)
+
+
+class TestGetValueUsingPath(unittest.TestCase):
+
+    def test_valid_path(self):
+        actual = placeholder_utils.get_value_using_path(
+            {'a': {
+                'b': {
+                    'c': 10
+                }
+            }},
+            ['a', 'b', 'c'],
+        )
+        expected = 10
+        self.assertEqual(actual, expected)
+
+    def test_invalid_path(self):
+        actual = placeholder_utils.get_value_using_path(
+            {'a': {
+                'b': {
+                    'c': 10
+                }
+            }},
+            ['a', 'x'],
+        )
+        self.assertIsNone(actual)
+
+    def test_empty_path(self):
+        with self.assertRaisesRegex(ValueError, r'path cannot be empty\.'):
+            placeholder_utils.get_value_using_path({'a': 20}, [])
 
 
 if __name__ == '__main__':

@@ -86,12 +86,12 @@ def _run_single_component_implementation(
         component_spec.executor_label]
 
     container = executor_spec['container']
-    full_command = list(container['command']) + list(container['args'])
-
-    # image + full_command are "inputs" to local execution
     image = container['image']
-    # TODO: handler container component placeholders when
-    # ContainerRunner is implemented
+
+    command = list(container['command']) if 'command' in container else []
+    args = list(container['args']) if 'args' in container else []
+    full_command = command + args
+
     executor_input_dict = executor_input_utils.executor_input_to_dict(
         executor_input=executor_input,
         component_spec=component_spec,

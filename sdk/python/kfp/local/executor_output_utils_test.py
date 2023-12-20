@@ -153,19 +153,23 @@ class TestLoadExecutorOutput(unittest.TestCase):
             path = os.path.join(tempdir, 'executor_output.json')
             testing_utilities.write_proto_to_json_file(executor_output, path)
 
-            result = executor_output_utils.load_executor_output(path)
-            self.assertIsInstance(result, pipeline_spec_pb2.ExecutorOutput)
+            actual = executor_output_utils.load_executor_output(path)
+            expected = pipeline_spec_pb2.ExecutorOutput()
+            expected.parameter_values['foo'].CopyFrom(
+                struct_pb2.Value(string_value='foo_value'))
             self.assertEqual(
-                result.parameter_values['foo'],
-                struct_pb2.Value(string_value='foo_value'),
+                actual.SerializeToString(deterministic=True),
+                expected.SerializeToString(deterministic=True),
             )
 
     def test_not_exists(self):
         non_existent_path = 'non_existent_path.json'
-
-        with self.assertRaisesRegex(FileNotFoundError,
-                                    r'No such file or directory:'):
-            executor_output_utils.load_executor_output(non_existent_path)
+        actual = executor_output_utils.load_executor_output(non_existent_path)
+        expected = pipeline_spec_pb2.ExecutorOutput()
+        self.assertEqual(
+            actual.SerializeToString(deterministic=True),
+            expected.SerializeToString(deterministic=True),
+        )
 
 
 class TestGetOutputsFromExecutorOutput(unittest.TestCase):

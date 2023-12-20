@@ -14,7 +14,8 @@
 """Utilities for working with placeholders."""
 import json
 import random
-from typing import Any, Dict, List
+import re
+from typing import Any, Dict, List, Optional
 
 from kfp import dsl
 
@@ -47,6 +48,77 @@ def replace_placeholders(
     ]
 
 
+def get_value_using_path(
+    dictionary: Dict[str, Any],
+    path: List[str],
+) -> Optional[Any]:
+    list_or_dict = dictionary
+    if not path:
+        raise ValueError('path cannot be empty.')
+    try:
+        for p in path:
+            list_or_dict = list_or_dict[p]
+        return list_or_dict
+    except KeyError:
+        return None
+
+
+def convert_placeholder_parts_to_path(parts: List[str]) -> List[str]:
+    # if inputs, parameters --> parameterValues
+    if parts[0] == 'inputs' and parts[1] == 'parameters':
+        parts[1] = 'parameterValues'
+
+    # if outputs, parameter output_file --> outputFile
+    if parts[0] == 'outputs' and parts[1] == 'parameters' and parts[
+            3] == 'output_file':
+        parts[3] = 'outputFile'
+
+    # if artifacts...
+    if parts[1] == 'artifacts':
+
+        # ...need to get nested artifact object...
+        parts.insert(3, 'artifacts')
+        # ...and first entry in list with index 0
+        parts.insert(4, 0)
+
+        # for local, path is the uri
+        if parts[5] == 'path':
+            parts[5] = 'uri'
+
+    return parts
+
+
+def resolve_io_placeholders(
+    executor_input: Dict[str, Any],
+    command: str,
+) -> str:
+    placeholders = re.findall(r'\{\{\$\.(.*?)\}\}', command)
+
+    # e.g., placeholder = "inputs.parameters[''text'']"
+    for placeholder in placeholders:
+        if 'json_escape' in placeholder:
+            raise ValueError('JSON escape placeholders are not supported.')
+
+        # e.g., parts = ['inputs', 'parameters', '', 'text', '', '']
+        parts = re.split(r'\.|\[|\]|\'\'|\'', placeholder)
+
+        # e.g., nonempty_parts = ['inputs', 'parameters', 'text']
+        nonempty_parts = [part for part in parts if part]
+
+        # e.g., path = ['inputs', 'parameterValues', 'text']
+        path = convert_placeholder_parts_to_path(nonempty_parts)
+
+        # e.g., path = ['inputs', 'parameterValues', 'text']
+        value = get_value_using_path(executor_input, path)
+        if value is not None:
+            if not isinstance(value, str):
+                value = json.dumps(value)
+            command = command.replace('{{$.' + placeholder + '}}', value)
+
+    return command
+
+
+# TODO: support concat and if-present placeholders
 def replace_placeholder_for_element(
     element: str,
     executor_input_dict: Dict[str, Any],
@@ -75,7 +147,10 @@ def replace_placeholder_for_element(
         dsl.PIPELINE_ROOT_PLACEHOLDER:
             pipeline_root,
     }
+
+    # match on literal for constant placeholders
     for placeholder, value in PLACEHOLDERS.items():
         element = element.replace(placeholder, value)
 
-    return element
+    # match differently for non-constant placeholders (i.e., have key(s))
+    return resolve_io_placeholders(executor_input_dict, element)

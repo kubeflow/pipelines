@@ -32,6 +32,16 @@ class DockerMockTestCase(unittest.TestCase):
         patcher = mock.patch('docker.from_env')
         self.mocked_docker_client = patcher.start().return_value
 
+        mock_container = mock.Mock()
+        self.mocked_docker_client.containers.run.return_value = mock_container
+        # mock successful run
+        mock_container.logs.return_value = [
+            'fake'.encode('utf-8'),
+            'container'.encode('utf-8'),
+            'logs'.encode('utf-8'),
+        ]
+        mock_container.wait.return_value = {'StatusCode': 0}
+
     def teardown(self):
         super().tearDown()
         self.docker_mock.reset_mock()
@@ -48,7 +58,7 @@ class TestRunDockerContainer(DockerMockTestCase):
         )
 
         self.mocked_docker_client.containers.run.assert_called_once_with(
-            image='alpine',
+            image='alpine:latest',
             command=['echo', 'foo'],
             detach=True,
             stdout=True,
@@ -68,7 +78,7 @@ class TestRunDockerContainer(DockerMockTestCase):
             }},
         )
         self.mocked_docker_client.containers.run.assert_called_once_with(
-            image='alpine',
+            image='alpine:latest',
             command=['cat', '/localdir/docker_task_handler_test.py'],
             detach=True,
             stdout=True,
@@ -84,9 +94,7 @@ class TestDockerTaskHandler(DockerMockTestCase):
     def test_get_volumes_to_mount(self):
         handler = docker_task_handler.DockerTaskHandler(
             image='alpine',
-            # TODO: update to not use executor_main once container components
-            # supported
-            full_command=['kfp.dsl.executor_main', 'something else'],
+            full_command=['echo', 'foo'],
             pipeline_root=os.path.abspath('my_root'),
             runner=local.DockerRunner(),
         )
@@ -102,17 +110,15 @@ class TestDockerTaskHandler(DockerMockTestCase):
     def test_run(self):
         handler = docker_task_handler.DockerTaskHandler(
             image='alpine',
-            # TODO: update to not use executor_main once container components
-            # supported
-            full_command=['kfp.dsl.executor_main', 'something else'],
+            full_command=['echo', 'foo'],
             pipeline_root=os.path.abspath('my_root'),
             runner=local.DockerRunner(),
         )
 
         handler.run()
         self.mocked_docker_client.containers.run.assert_called_once_with(
-            image='alpine',
-            command=['kfp.dsl.executor_main', 'something else'],
+            image='alpine:latest',
+            command=['echo', 'foo'],
             detach=True,
             stdout=True,
             stderr=True,
@@ -131,32 +137,37 @@ class TestDockerTaskHandler(DockerMockTestCase):
         ):
             docker_task_handler.DockerTaskHandler(
                 image='alpine',
-                # TODO: update to not use executor_main once container components
-                # supported
-                full_command=['kfp.dsl.executor_main', 'something else'],
+                full_command=['echo', 'foo'],
                 pipeline_root='my_relpath',
                 runner=local.DockerRunner(),
             ).run()
 
 
-class TestPullImage(DockerMockTestCase):
+class TestAddLatestTagIfNotPresent(unittest.TestCase):
 
-    def test_with_tag(self):
-        docker_task_handler.pull_image(
-            client=docker.from_env(), image='foo:123')
-        self.mocked_docker_client.images.pull.assert_called_once_with(
-            repository='foo', tag='123')
+    def test_no_tag(self):
+        actual = docker_task_handler.add_latest_tag_if_not_present(
+            image='alpine')
+        expected = 'alpine:latest'
+        self.assertEqual(actual, expected)
 
-    def test_with_no_tag(self):
-        docker_task_handler.pull_image(client=docker.from_env(), image='foo')
-        self.mocked_docker_client.images.pull.assert_called_once_with(
-            repository='foo', tag='latest')
+    def test_latest_tag(self):
+        actual = docker_task_handler.add_latest_tag_if_not_present(
+            image='alpine:latest')
+        expected = 'alpine:latest'
+        self.assertEqual(actual, expected)
+
+    def test_no_tag(self):
+        actual = docker_task_handler.add_latest_tag_if_not_present(
+            image='alpine:123')
+        expected = 'alpine:123'
+        self.assertEqual(actual, expected)
 
 
 class TestE2E(DockerMockTestCase,
               testing_utilities.LocalRunnerEnvironmentTestCase):
 
-    def test(self):
+    def test_python(self):
         local.init(runner=local.DockerRunner())
 
         @dsl.component
@@ -166,8 +177,8 @@ class TestE2E(DockerMockTestCase,
 
         try:
             artifact_maker(x='foo')
-        except Exception:
-            # cannot get outputs if they aren't created due to mock
+        # cannot get outputs if they aren't created due to mock
+        except FileNotFoundError:
             pass
 
         run_mock = self.mocked_docker_client.containers.run
@@ -179,6 +190,65 @@ class TestE2E(DockerMockTestCase,
         )
         self.assertTrue(
             any('def artifact_maker' in c for c in kwargs['command']))
+        self.assertTrue(kwargs['detach'])
+        self.assertTrue(kwargs['stdout'])
+        self.assertTrue(kwargs['stderr'])
+        root_vol_key = [
+            key for key in kwargs['volumes'].keys() if 'local_outputs' in key
+        ][0]
+        self.assertEqual(kwargs['volumes'][root_vol_key]['bind'], root_vol_key)
+        self.assertEqual(kwargs['volumes'][root_vol_key]['mode'], 'rw')
+
+    def test_empty_container_component(self):
+        local.init(runner=local.DockerRunner())
+
+        @dsl.container_component
+        def comp():
+            return dsl.ContainerSpec(image='alpine')
+
+        try:
+            comp()
+        # cannot get outputs if they aren't created due to mock
+        except FileNotFoundError:
+            pass
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:latest',
+        )
+        self.assertEqual(kwargs['command'], [])
+
+    def test_container_component(self):
+        local.init(runner=local.DockerRunner())
+
+        @dsl.container_component
+        def artifact_maker(x: str,):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=['sh', '-c', f'echo prefix-{x}'],
+            )
+
+        try:
+            artifact_maker(x='foo')
+        # cannot get outputs if they aren't created due to mock
+        except FileNotFoundError:
+            pass
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:latest',
+        )
+        self.assertEqual(kwargs['command'], [
+            'sh',
+            '-c',
+            'echo prefix-foo',
+        ])
         self.assertTrue(kwargs['detach'])
         self.assertTrue(kwargs['stdout'])
         self.assertTrue(kwargs['stderr'])
