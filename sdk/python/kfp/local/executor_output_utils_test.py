@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for executor_output_utils.py."""
 
+import json
 import os
 import tempfile
 from typing import List
@@ -580,19 +581,55 @@ class AddTypeToExecutorOutput(unittest.TestCase):
 
 class TestSpecialDslOutputPathRead(parameterized.TestCase):
 
-    @parameterized.parameters([('foo', 'foo', True)])
-    def test(self, written_string, expected_object, is_string):
+    @parameterized.parameters([
+        ('foo', 'foo',
+         pipeline_spec_pb2.ParameterType.ParameterTypeEnum.STRING),
+        ('foo', 'foo',
+         pipeline_spec_pb2.ParameterType.ParameterTypeEnum.STRING),
+        ('true', True,
+         pipeline_spec_pb2.ParameterType.ParameterTypeEnum.BOOLEAN),
+        ('True', True,
+         pipeline_spec_pb2.ParameterType.ParameterTypeEnum.BOOLEAN),
+        ('false', False,
+         pipeline_spec_pb2.ParameterType.ParameterTypeEnum.BOOLEAN),
+        ('False', False,
+         pipeline_spec_pb2.ParameterType.ParameterTypeEnum.BOOLEAN),
+        (json.dumps({'x': 'y'}), {
+            'x': 'y'
+        }, pipeline_spec_pb2.ParameterType.ParameterTypeEnum.STRUCT),
+        ('3.14', 3.14,
+         pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_DOUBLE),
+        ('100', 100,
+         pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_INTEGER),
+    ])
+    def test(self, written, expected, dtype):
         with tempfile.TemporaryDirectory() as tempdir:
             output_file = os.path.join(tempdir, 'Output')
             with open(output_file, 'w') as f:
-                f.write(written_string)
+                f.write(written)
 
             actual = executor_output_utils.special_dsl_outputpath_read(
-                output_file,
-                is_string=is_string,
+                parameter_name='name',
+                output_file=output_file,
+                dtype=dtype,
             )
 
-        self.assertEqual(actual, expected_object)
+        self.assertEqual(actual, expected)
+
+    def test_exception(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_file = os.path.join(tempdir, 'Output')
+            with open(output_file, 'w') as f:
+                f.write(str({'x': 'y'}))
+            with self.assertRaisesRegex(
+                    ValueError,
+                    r"Could not deserialize output 'name' from path"):
+                executor_output_utils.special_dsl_outputpath_read(
+                    parameter_name='name',
+                    output_file=output_file,
+                    dtype=pipeline_spec_pb2.ParameterType.ParameterTypeEnum
+                    .STRUCT,
+                )
 
 
 def assert_artifacts_equal(
