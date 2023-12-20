@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import os
+import pathlib
 from typing import Optional
 import unittest
 from unittest import mock
@@ -20,6 +22,7 @@ import docker
 from kfp import dsl
 from kfp import local
 from kfp.dsl import Artifact
+from kfp.dsl import Dataset
 from kfp.dsl import Output
 from kfp.local import docker_task_handler
 from kfp.local import testing_utilities
@@ -43,9 +46,10 @@ class DockerMockTestCase(unittest.TestCase):
         ]
         mock_container.wait.return_value = {'StatusCode': 0}
 
-    def teardown(self):
+    @classmethod
+    def teardown(cls):
         super().tearDown()
-        self.docker_mock.reset_mock()
+        cls.docker_mock.reset_mock()
 
 
 class TestRunDockerContainer(DockerMockTestCase):
@@ -165,8 +169,10 @@ class TestAddLatestTagIfNotPresent(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-class TestE2E(DockerMockTestCase,
-              testing_utilities.LocalRunnerEnvironmentTestCase):
+class TestE2E(
+        DockerMockTestCase,
+        testing_utilities.MockedDatetimeTestCase,
+):
 
     def setUp(self):
         super().setUp()
@@ -179,11 +185,8 @@ class TestE2E(DockerMockTestCase,
             with open(a.path, 'w') as f:
                 f.write(x)
 
-        try:
-            artifact_maker(x='foo')
-        # cannot get outputs if they aren't created due to mock
-        except FileNotFoundError:
-            pass
+        # NOTE: outputs cannot be collected since run is mocked
+        artifact_maker(x='foo')
 
         run_mock = self.mocked_docker_client.containers.run
         run_mock.assert_called_once()
@@ -209,11 +212,8 @@ class TestE2E(DockerMockTestCase,
         def comp():
             return dsl.ContainerSpec(image='alpine')
 
-        try:
-            comp()
-        # cannot get outputs if they aren't created due to mock
-        except FileNotFoundError:
-            pass
+        # NOTE: outputs cannot be collected since run is mocked
+        comp()
 
         run_mock = self.mocked_docker_client.containers.run
         run_mock.assert_called_once()
@@ -233,11 +233,8 @@ class TestE2E(DockerMockTestCase,
                 command=['sh', '-c', f'echo prefix-{x}'],
             )
 
-        try:
-            artifact_maker(x='foo')
-        # cannot get outputs if they aren't created due to mock
-        except FileNotFoundError:
-            pass
+        # NOTE: outputs cannot be collected since run is mocked
+        artifact_maker(x='foo')
 
         run_mock = self.mocked_docker_client.containers.run
         run_mock.assert_called_once()
@@ -525,6 +522,102 @@ class TestE2E(DockerMockTestCase,
             'alpine:latest',
         )
         self.assertEqual(kwargs['command'], ['echo', 'another thing'])
+
+    def test_all_params(self):
+        local.init(runner=local.DockerRunner())
+
+        @dsl.container_component
+        def comp(
+                str_in: str,
+                int_in: int,
+                float_in: float,
+                bool_in: bool,
+                dict_in: dict,
+                list_in: list,
+                str_out: dsl.OutputPath(str),
+                int_out: dsl.OutputPath(int),
+                float_out: dsl.OutputPath(float),
+                bool_out: dsl.OutputPath(bool),
+                dict_out: dsl.OutputPath(dict),
+                list_out: dsl.OutputPath(list),
+        ):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    'sh',
+                    '-c',
+                ],
+                args=[
+                    'echo "{{$}}" && '
+                    f'mkdir -p $(dirname {str_out}) && echo -n {str_in} > {str_out} && '
+                    f'mkdir -p $(dirname {int_out}) && echo -n {int_in} > {int_out} && '
+                    f'mkdir -p $(dirname {float_out}) && echo -n {float_in} > {float_out} && '
+                    f'mkdir -p $(dirname {bool_out}) && echo -n {bool_in} > {bool_out} && '
+                    f"mkdir -p $(dirname {dict_out}) && echo -n '{dict_in}'  > {dict_out} && "
+                    f"mkdir -p $(dirname {list_out}) && echo -n '{list_in}' > {list_out}"
+                ],
+            )
+
+        run_mock = self.mocked_docker_client.containers.run
+
+        # NOTE: outputs cannot be collected since run is mocked
+        with contextlib.suppress(KeyError):
+            comp(
+                str_in='foo',
+                int_in=100,
+                float_in=2.718,
+                bool_in=False,
+                dict_in={'x': 'y'},
+                list_in=['a', 'b', 'c'],
+            )
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        run_mock.reset_mock()
+        project_root = str(pathlib.Path(__file__).resolve().parents[4])
+        self.assertEqual(kwargs['command'], [
+            'sh',
+            '-c',
+            'echo "{"inputs": {"parameterValues": {"str_in": "foo", "int_in": 100, "float_in": 2.718, "bool_in": false, "dict_in": {"x": "y"}, "list_in": ["a", "b", "c"]}}, "outputs": {"parameters": {"str_out": {"outputFile": "REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/str_out"}, "int_out": {"outputFile": "REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/int_out"}, "float_out": {"outputFile": "REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/float_out"}, "bool_out": {"outputFile": "REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/bool_out"}, "dict_out": {"outputFile": "REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/dict_out"}, "list_out": {"outputFile": "REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/list_out"}}, "outputFile": "REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/executor_output.json"}}" && mkdir -p $(dirname REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/str_out) && echo -n foo > REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/str_out && mkdir -p $(dirname REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/int_out) && echo -n 100 > REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/int_out && mkdir -p $(dirname REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/float_out) && echo -n 2.718 > REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/float_out && mkdir -p $(dirname REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/bool_out) && echo -n false > REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/bool_out && mkdir -p $(dirname REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/dict_out) && echo -n \'{"x": "y"}\'  > REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/dict_out && mkdir -p $(dirname REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/list_out) && echo -n \'["a", "b", "c"]\' > REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/list_out'
+            .replace('REPLACE_PATH', project_root),
+        ])
+
+    def test_output_artifact(self):
+        local.init(runner=local.DockerRunner())
+
+        @dsl.container_component
+        def comp(
+            text: str,
+            dataset: Output[Dataset],
+        ):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    'sh',
+                    '-c',
+                ],
+                args=[
+                    'echo "{{$}}" && '
+                    f'mkdir -p $(dirname {dataset.path}) && echo -n {text} > {dataset.path}'
+                ],
+            )
+
+        run_mock = self.mocked_docker_client.containers.run
+
+        # NOTE: outputs cannot be collected since run is mocked
+        with contextlib.suppress(KeyError):
+            comp(text='foo')
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        run_mock.reset_mock()
+        project_root = str(pathlib.Path(__file__).resolve().parents[4])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'sh', '-c',
+                'echo "{"inputs": {"parameterValues": {"text": "foo"}}, "outputs": {"artifacts": {"dataset": {"artifacts": [{"name": "dataset", "type": {"schemaTitle": "system.Dataset", "schemaVersion": "0.0.1"}, "uri": "REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/dataset", "metadata": {}}]}}, "outputFile": "REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/executor_output.json"}}" && mkdir -p $(dirname REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/dataset) && echo -n foo > REPLACE_PATH/local_outputs/comp-2023-10-10-13-32-59-420710/comp/dataset'
+                .replace('REPLACE_PATH', project_root)
+            ],
+        )
 
 
 if __name__ == '__main__':

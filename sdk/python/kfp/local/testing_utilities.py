@@ -18,7 +18,6 @@ import functools
 import os
 import pathlib
 import tempfile
-from typing import Any, Callable, Dict
 import unittest
 from unittest import mock
 
@@ -28,30 +27,12 @@ from google.protobuf import message
 from kfp import components
 from kfp import dsl
 from kfp.local import config as local_config
-from kfp.local import docker_task_handler
 
 _LOCAL_KFP_PACKAGE_PATH = os.path.join(
     os.path.dirname(__file__),
     os.path.pardir,
     os.path.pardir,
 )
-
-
-def modify_volumes_decorator(
-        original_method: Callable[..., Any]) -> Callable[..., Any]:
-
-    def wrapper(self, *args, **kwargs) -> Dict[str, Any]:
-        original_volumes = original_method(self, *args, **kwargs)
-        LOCAL_KFP_VOLUME = {
-            _LOCAL_KFP_PACKAGE_PATH: {
-                'bind': _LOCAL_KFP_PACKAGE_PATH,
-                'mode': 'rw'
-            }
-        }
-        original_volumes.update(LOCAL_KFP_VOLUME)
-        return original_volumes
-
-    return wrapper
 
 
 class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
@@ -68,18 +49,10 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         os.chdir(self.temp_dir.name)
 
-        # ENTER: mount KFP dir to enable install from source for docker runner
-        self.original_get_volumes_to_mount = docker_task_handler.DockerTaskHandler.get_volumes_to_mount
-        docker_task_handler.DockerTaskHandler.get_volumes_to_mount = modify_volumes_decorator(
-            docker_task_handler.DockerTaskHandler.get_volumes_to_mount)
-
     def tearDown(self):
         # EXIT: use tempdir for all tests
         self.temp_dir.cleanup()
         os.chdir(self.working_dir)
-
-        # EXIT: mount KFP dir to enable install from source for docker runner
-        docker_task_handler.DockerTaskHandler.get_volumes_to_mount = self.original_get_volumes_to_mount
 
     @classmethod
     def setUpClass(cls):
