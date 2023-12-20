@@ -28,6 +28,10 @@ def load_executor_output(
         executor_output_path: str) -> pipeline_spec_pb2.ExecutorOutput:
     """Loads the ExecutorOutput message from a path."""
     executor_output = pipeline_spec_pb2.ExecutorOutput()
+
+    if not os.path.isfile(executor_output_path):
+        return executor_output
+
     with open(executor_output_path) as f:
         json_format.Parse(f.read(), executor_output)
     return executor_output
