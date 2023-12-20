@@ -14,7 +14,6 @@
 import os
 from typing import Any, Dict, List
 
-from kfp.dsl import component_factory
 from kfp.local import config
 from kfp.local import status
 from kfp.local import task_handler_interface
@@ -30,8 +29,6 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
         pipeline_root: str,
         runner: config.DockerRunner,
     ) -> None:
-        # TODO: remove when full placeholder support is added
-        self.validate_not_container_component(full_command)
         self.image = image
         self.full_command = full_command
         self.pipeline_root = pipeline_root
@@ -50,9 +47,11 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
 
     def run(self) -> status.Status:
         """Runs the Docker container and returns the status."""
+        # nest docker import in case not available in user env so that
+        # this module is runnable, even if not using DockerRunner
+        import docker
+        client = docker.from_env()
         try:
-            import docker
-            client = docker.from_env()
             volumes = self.get_volumes_to_mount()
             return_code = run_docker_container(
                 client=client,
@@ -64,23 +63,11 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
             client.close()
         return status.Status.SUCCESS if return_code == 0 else status.Status.FAILURE
 
-    def validate_not_container_component(
-        self,
-        full_command: List[str],
-    ) -> None:
-        if not any(component_factory.EXECUTOR_MODULE in part
-                   for part in full_command):
-            raise RuntimeError(
-                f'The {config.DockerRunner.__name__} only supports running Lightweight Python Components. You are attempting to run a Container Component.'
-            )
 
-
-def pull_image(client: 'docker.DockerClient', image: str) -> None:
-    if ':' in image:
-        repository, tag = image.split(':')
-    else:
-        repository, tag = image, 'latest'
-    client.images.pull(repository=repository, tag=tag)
+def add_latest_tag_if_not_present(image: str) -> str:
+    if ':' not in image:
+        image = f'{image}:latest'
+    return image
 
 
 def run_docker_container(
@@ -89,14 +76,16 @@ def run_docker_container(
     command: List[str],
     volumes: Dict[str, Any],
 ) -> int:
+    image = add_latest_tag_if_not_present(image=image)
     image_exists = any(
         image in existing_image.tags for existing_image in client.images.list())
     if image_exists:
-        print(f'Found image {image!r}')
+        print(f'Found image {image!r}\n')
     else:
         print(f'Pulling image {image!r}')
-        pull_image(client, image)
-        print('Image pull complete')
+        repository, tag = image.split(':')
+        client.images.pull(repository=repository, tag=tag)
+        print('Image pull complete\n')
     container = client.containers.run(
         image=image,
         command=command,
