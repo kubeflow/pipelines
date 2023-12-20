@@ -21,6 +21,7 @@ should seek to minimize it.
 """
 import io
 import os
+import re
 import sys
 import unittest
 from unittest import mock
@@ -199,11 +200,9 @@ class TestExceptionHandlingAndLogging(
         )
 
     @mock.patch('sys.stdout', new_callable=io.StringIO)
-    @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_user_code_no_exception_if_not_raise_on_error(
         self,
         runner,
-        mock_stderr,
         mock_stdout,
     ):
         local.init(runner=runner, raise_on_error=False)
@@ -216,7 +215,7 @@ class TestExceptionHandlingAndLogging(
         self.assertDictEqual(task.outputs, {})
 
         self.assertRegex(
-            mock_stderr.getvalue(),
+            mock_stdout.getvalue(),
             r"\d+:\d+:\d+\.\d+ - ERROR - Task \x1b\[96m'fail-comp'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m",
         )
         self.assertIn(
@@ -225,11 +224,9 @@ class TestExceptionHandlingAndLogging(
         )
 
     @mock.patch('sys.stdout', new_callable=io.StringIO)
-    @mock.patch('sys.stderr', new_callable=io.StringIO)
     def test_all_logs(
         self,
         runner,
-        mock_stderr,
         mock_stdout,
     ):
         local.init(runner=runner)
@@ -245,24 +242,30 @@ class TestExceptionHandlingAndLogging(
 
         many_type_component(num=2)
 
-        # outer process logs in stderr
-        outer_log_regex = (
-            r"\d+:\d+:\d+\.\d+ - INFO - Executing task \x1b\[96m'many-type-component'\x1b\[0m\n"
-            + r'\d+:\d+:\d+\.\d+ - INFO - Streamed logs:\n\n' +
-            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m finished with status \x1b\[92mSUCCESS\x1b\[0m\n"
-            +
-            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m outputs:\n    Output: hellohello\n    model: Model\( name=model,\n                  uri=[a-zA-Z0-9/_\.-]+/local_outputs/many-type-component-\d+-\d+-\d+-\d+-\d+-\d+-\d+/many-type-component/model,\n                  metadata={'foo': 'bar'} \)\n\n"
-        )
+        # inner process logs correctly nested inside outer process logs
+        outer_log_regex_sections = [
+            r"\d+:\d+:\d+\.\d+ - INFO - Executing task \x1b\[96m'many-type-component'\x1b\[0m\n",
+            r'\d+:\d+:\d+\.\d+ - INFO - Streamed logs:\n\n',
+            r'.*',
+            r'Looking for component ',
+            r'.*',
+            r'Loading KFP component ',
+            r'.*',
+            r'Got executor_input:',
+            r'.*',
+            r'Inside of my component!',
+            r'.*',
+            r'Wrote executor output file to',
+            r'.*',
+            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m finished with status \x1b\[92mSUCCESS\x1b\[0m\n",
+            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m outputs:\n    Output: hellohello\n    model: Model\( name=model,\n                  uri=[a-zA-Z0-9/_\.-]+/local_outputs/many-type-component-\d+-\d+-\d+-\d+-\d+-\d+-\d+/many-type-component/model,\n                  metadata={'foo': 'bar'} \)\n\n",
+        ]
 
         self.assertRegex(
-            mock_stderr.getvalue(),
-            outer_log_regex,
+            mock_stdout.getvalue(),
+            # use dotall os that .* include newline characters
+            re.compile(''.join(outer_log_regex_sections), re.DOTALL),
         )
-        # inner process logs in stdout
-        self.assertIn('[KFP Executor', mock_stdout.getvalue())
-        self.assertIn('Got executor_input:', mock_stdout.getvalue())
-        self.assertIn('Inside of my component!', mock_stdout.getvalue())
-        self.assertIn('Wrote executor output file to', mock_stdout.getvalue())
 
 
 @parameterized.parameters(ALL_RUNNERS)
