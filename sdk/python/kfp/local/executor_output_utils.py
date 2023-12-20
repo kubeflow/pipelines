@@ -99,18 +99,32 @@ def get_outputs_from_executor_output(
     return {**output_parameters, **output_artifacts}
 
 
-def special_dsl_outputpath_read(output_file: str, is_string: bool) -> Any:
+def special_dsl_outputpath_read(
+    parameter_name: str,
+    output_file: str,
+    dtype: pipeline_spec_pb2.ParameterType.ParameterTypeEnum,
+) -> Any:
     """Reads the text in dsl.OutputPath files in the same way as the remote
     backend.
 
-    Basically deserialize all types as JSON, but also support strings
-    that are written directly without quotes (e.g., `foo` instead of
-    `"foo"`).
+    In brief: read strings as strings and JSON load everything else.
     """
-    with open(output_file) as f:
-        parameter_value = f.read()
-    # TODO: verify this is the correct special handling of OutputPath
-    return parameter_value if is_string else json.loads(parameter_value)
+    try:
+        with open(output_file) as f:
+            value = f.read()
+
+        if dtype == pipeline_spec_pb2.ParameterType.ParameterTypeEnum.STRING:
+            value = value
+        elif dtype == pipeline_spec_pb2.ParameterType.ParameterTypeEnum.BOOLEAN:
+            # permit true/True and false/False, consistent with remote BE
+            value = json.loads(value.lower())
+        else:
+            value = json.loads(value)
+        return value
+    except Exception as e:
+        raise ValueError(
+            f'Could not deserialize output {parameter_name!r} from path {output_file}'
+        ) from e
 
 
 def merge_dsl_output_file_parameters_to_executor_output(
@@ -123,11 +137,11 @@ def merge_dsl_output_file_parameters_to_executor_output(
     for parameter_key, output_parameter in executor_input.outputs.parameters.items(
     ):
         if os.path.exists(output_parameter.output_file):
-            is_string = component_spec.output_definitions.parameters[
-                parameter_key].parameter_type == pipeline_spec_pb2.ParameterType.ParameterTypeEnum.STRING
             parameter_value = special_dsl_outputpath_read(
-                output_parameter.output_file,
-                is_string,
+                parameter_name=parameter_key,
+                output_file=output_parameter.output_file,
+                dtype=component_spec.output_definitions
+                .parameters[parameter_key].parameter_type,
             )
             executor_output.parameter_values[parameter_key].CopyFrom(
                 pipeline_spec_builder.to_protobuf_value(parameter_value))
