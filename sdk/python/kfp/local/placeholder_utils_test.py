@@ -94,6 +94,9 @@ class TestReplacePlaceholders(unittest.TestCase):
 
 class TestReplacePlaceholderForElement(parameterized.TestCase):
 
+    # TODO: consider supporting JSON escape
+    # TODO: update when input artifact constants supported
+    # TODO: update when output lists of artifacts are supported
     @parameterized.parameters([
         (
             '{{$}}',
@@ -173,60 +176,15 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
             json.dumps(False),
         ),
         (
+            "{{$.outputs.artifacts[''out_a''].metadata}}",
+            json.dumps({'foo': {
+                'bar': 'baz'
+            }}),
+        ),
+        (
             "{{$.outputs.parameters[''Output''].output_file}}",
             '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output',
         ),
-        # (
-        #     "{{$.inputs.parameters['$0'].json_escape[0]}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.inputs.parameters['$0'].json_escape[1]}}",
-        #     '',
-        # ),
-        # TODO: add input lists of artifacts when supported
-        # (
-        #     "{{$.inputs.artifacts['foo']}}",
-        #     '',
-        # ),
-        # TODO: add input artifact constants when supported
-        # (
-        #     "{{$.inputs.artifacts['foo'].uri}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.inputs.artifacts['foo'].path}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.inputs.artifacts['foo'].value}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.inputs.artifacts['foo'].metadata}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.inputs.artifacts['foo'].metadata.json_escape[1]}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.inputs.artifacts['foo'].metadata['$1'].json_escape[0]}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.inputs.artifacts['foo'].metadata['$1'].json_escape[1]}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.inputs.artifacts[foo].metadata['$1']}}",
-        #     '',
-        # ),
-        # TODO: add output lists of artifacts when supported
-        # (
-        #     "{{$.outputs.artifacts[''out_a'']}}",
-        #     '',
-        # ),
         (
             "{{$.outputs.artifacts[''out_a''].uri}}",
             '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
@@ -235,25 +193,6 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
             "{{$.outputs.artifacts[''out_a''].path}}",
             '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
         ),
-        (
-            "{{$.outputs.artifacts[''out_a''].metadata}}",
-            json.dumps({'foo': {
-                'bar': 'baz'
-            }}),
-        ),
-        # TODO: consider supporting JSON escape
-        # (
-        #     "{{$.outputs.artifacts[''out_a''].metadata.json_escape[1]}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.outputs.artifacts[''out_a''].metadata[''foo''].json_escape[0]}}",
-        #     '',
-        # ),
-        # (
-        #     "{{$.outputs.artifacts[''out_a''].metadata[''foo''].json_escape[1]}}",
-        #     '',
-        # ),
         (
             "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}",
             json.dumps({'bar': 'baz'}),
