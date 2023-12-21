@@ -41,6 +41,7 @@ def autosxs_arbiter(
     task: str,
     judgments: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
     judgments_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    error_messages: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
     gcp_resources: dsl.OutputPath(str),
     metadata: dsl.OutputPath(str),
     human_preference_column: str = '',
@@ -67,6 +68,7 @@ def autosxs_arbiter(
   Returns:
     judgments: Individual judgments used to calculate the win rates.
     judgments_uri: URI of the Judgments Artifact.
+    error_messages: Error messages of failed samples of each evaluation example.
     gcp_resources: Tracker for GCP resources created by this component.
     metadata: Computed runtime metrics metadata from this component.
   """
