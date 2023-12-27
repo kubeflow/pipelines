@@ -13,6 +13,8 @@
 # limitations under the License.
 """LLM embedding evaluation pipeline based on information retrieval (IR) task."""
 
+from typing import Dict, Optional, Union
+from google_cloud_pipeline_components._implementation.model_evaluation.endpoint_batch_predict.component import evaluation_llm_endpoint_batch_predict_pipeline_graph_component as LLMEndpointBatchPredictOp
 from google_cloud_pipeline_components._implementation.model_evaluation.import_evaluation.component import model_evaluation_import as ModelImportEvaluationOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_embedding_retrieval.component import llm_embedding_retrieval as LLMEmbeddingRetrievalOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_information_retrieval_preprocessor.component import llm_information_retrieval_preprocessor as LLMInformationRetrievalPreprocessorOp
@@ -34,6 +36,8 @@ def evaluation_llm_embedding_pipeline(
     query_gcs_source: str,
     golden_docs_gcs_source: str,
     model_name: str,
+    qms_override: Optional[Dict[str, Union[int, float]]] = {},
+    model_parameters: Optional[Dict[str, Union[int, float]]] = {},
     embedding_chunking_function: str = 'langchain-RecursiveCharacterTextSplitter',
     embedding_chunk_size: int = 0,
     embedding_chunk_overlap: int = 0,
@@ -65,7 +69,14 @@ def evaluation_llm_embedding_pipeline(
     query_gcs_source: The gcs location for json file containing query documents.
     golden_docs_gcs_source: The gcs location for csv file containing mapping of
       each query to the golden docs.
-    model_name: The path for model to generate embeddings.
+    model_name: The path for model to generate embeddings, example,
+      'publishers/google/models/textembedding-gecko-multilingual@latest'
+    qms_override: Manual control of a large language model's qms. Write up when
+      there's an approved quota increase for a LLM. Write down when limiting qms
+      of a LLM for this pipeline. Should be provided as a dictionary, for
+      example {'text-bison': 20}. For deployed model which doesn't have
+      google-vertex-llm-tuning-base-model-id label, override the default here.
+    model_parameters: The parameters that govern the prediction.
     embedding_chunking_function: function used to split a document into chunks.
       Supported values are `langchain-RecursiveCharacterTextSplitter` and
       `sentence-splitter`. langchain-RecursiveCharacterTextSplitter:
@@ -157,37 +168,75 @@ def evaluation_llm_embedding_pipeline(
   )
   get_vertex_model_task.set_display_name('get-vertex-model')
 
-  batch_predict_corpus = ModelBatchPredictOp(
-      project=project,
+  batch_predict_corpus = LLMEndpointBatchPredictOp(
+      display_name=(
+          'batch-prediction-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}'
+      ),
+      publisher_model=model_name,
+      qms_override=qms_override,
       location=location,
-      model=get_vertex_model_task.outputs['artifact'],
-      job_display_name='evaluation-batch-predict-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
-      gcs_source_uris=preprocessing_task.outputs[
+      source_gcs_uris=preprocessing_task.outputs[
           'predictions_corpus_gcs_source'
       ],
-      instances_format=batch_predict_instances_format,
-      predictions_format=batch_predict_predictions_format,
+      model_parameters=model_parameters,
       gcs_destination_output_uri_prefix=(
           f'{PIPELINE_ROOT_PLACEHOLDER}/batch_predict_output'
       ),
+      service_account=service_account,
       encryption_spec_key_name=encryption_spec_key_name,
+      project=project,
   )
 
-  batch_predict_query = ModelBatchPredictOp(
-      project=project,
+  batch_predict_query = LLMEndpointBatchPredictOp(
+      display_name=(
+          'batch-prediction-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}'
+      ),
+      publisher_model=model_name,
+      qms_override=qms_override,
       location=location,
-      model=get_vertex_model_task.outputs['artifact'],
-      job_display_name='evaluation-batch-predict-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
-      gcs_source_uris=preprocessing_task.outputs[
+      source_gcs_uris=preprocessing_task.outputs[
           'predictions_query_gcs_source'
       ],
-      instances_format=batch_predict_instances_format,
-      predictions_format=batch_predict_predictions_format,
+      model_parameters=model_parameters,
       gcs_destination_output_uri_prefix=(
           f'{PIPELINE_ROOT_PLACEHOLDER}/batch_predict_output'
       ),
+      service_account=service_account,
       encryption_spec_key_name=encryption_spec_key_name,
+      project=project,
   )
+
+  # batch_predict_corpus = ModelBatchPredictOp(
+  #     project=project,
+  #     location=location,
+  #     model=get_vertex_model_task.outputs['artifact'],
+  #     job_display_name='evaluation-batch-predict-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+  #     gcs_source_uris=preprocessing_task.outputs[
+  #         'predictions_corpus_gcs_source'
+  #     ],
+  #     instances_format=batch_predict_instances_format,
+  #     predictions_format=batch_predict_predictions_format,
+  #     gcs_destination_output_uri_prefix=(
+  #         f'{PIPELINE_ROOT_PLACEHOLDER}/batch_predict_output'
+  #     ),
+  #     encryption_spec_key_name=encryption_spec_key_name,
+  # )
+
+  # batch_predict_query = ModelBatchPredictOp(
+  #     project=project,
+  #     location=location,
+  #     model=get_vertex_model_task.outputs['artifact'],
+  #     job_display_name='evaluation-batch-predict-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
+  #     gcs_source_uris=preprocessing_task.outputs[
+  #         'predictions_query_gcs_source'
+  #     ],
+  #     instances_format=batch_predict_instances_format,
+  #     predictions_format=batch_predict_predictions_format,
+  #     gcs_destination_output_uri_prefix=(
+  #         f'{PIPELINE_ROOT_PLACEHOLDER}/batch_predict_output'
+  #     ),
+  #     encryption_spec_key_name=encryption_spec_key_name,
+  # )
 
   # TODO(b/290838262): Revisit if/when the concurrent jobs limit is increased/removed.
   batch_predict_query.after(batch_predict_corpus)

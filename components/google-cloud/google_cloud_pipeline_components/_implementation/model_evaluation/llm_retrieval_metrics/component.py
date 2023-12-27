@@ -9,7 +9,7 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
-
+# pylint: disable=g-import-not-at-top, g-doc-args
 @container_component
 def llm_retrieval_metrics(
     gcp_resources: OutputPath(str),

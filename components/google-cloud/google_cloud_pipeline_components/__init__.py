@@ -15,6 +15,8 @@
 import sys
 import warnings
 
+from google_cloud_pipeline_components.version import __version__
+
 if sys.version_info < (3, 8):
   warnings.warn(
       (

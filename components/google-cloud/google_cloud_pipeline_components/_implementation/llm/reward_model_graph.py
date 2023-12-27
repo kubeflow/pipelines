@@ -36,6 +36,8 @@ def pipeline(
     large_model_reference: str,
     prompt_sequence_length: int = 512,
     target_sequence_length: int = 64,
+    batch_size: int = 64,
+    lora_dim: int = 0,
     reward_model_learning_rate_multiplier: float = 1.0,
     reward_model_train_steps: int = 1000,
     instruction: Optional[str] = None,
@@ -51,6 +53,8 @@ def pipeline(
     large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
     prompt_sequence_length: Maximum tokenized sequence length for input text. Higher values increase memory overhead. This value should be at most 8192. Default value is 512.
     target_sequence_length:  Maximum tokenized sequence length for target text. Higher values increase memory overhead. This value should be at most 1024. Default value is 64.
+    batch_size: Number of examples in each finetuning step. Default is 64.
+    lora_dim: The rank of the LoRA adapter. If >0, then use LoRA-tuning. If =0, then use full-tuning.
     reward_model_learning_rate_multiplier: Constant used to adjust the base learning rate used when training a reward model. Multiply by a number > 1 to increase the magnitude of updates applied at each training step or multiply by a number < 1 to decrease the magnitude of updates. Default value is 1.0.
     reward_model_train_steps: Number of steps to use when training a reward model. Default value is 1000.
     instruction: This field lets the model know what task it needs to perform. Base models have been trained over a large set of varied instructions. You can give a simple and intuitive description of the task and the model will follow it, e.g. "Classify this movie review as positive or negative" or "Translate this sentence to Danish". Do not specify this if your dataset already prepends the instruction to the inputs field.
@@ -62,8 +66,6 @@ def pipeline(
     reward_model_output_path: Path to the trained reward model.
   """
   # fmt: on
-  reward_model_lora_dim = 0
-  batch_size = 64
   prompt_column = 'input_text'
   candidate_columns = ['candidate_0', 'candidate_1']
   choice_column = 'choice'
@@ -116,6 +118,11 @@ def pipeline(
       accelerator_type=machine_spec.outputs['accelerator_type'],
       accelerator_count=machine_spec.outputs['accelerator_count'],
   ).set_display_name('Resolve Reward Model Image URI')
+  num_microbatches = function_based.resolve_num_microbatches(
+      large_model_reference=reference_model_metadata.outputs[
+          'reward_model_reference'
+      ]
+  ).set_display_name('Resolve Number of Microbatches')
   reward_model = (
       reward_model_trainer.RewardModelTrainer(
           project=project,
@@ -138,7 +145,8 @@ def pipeline(
           targets_sequence_length=target_sequence_length,
           batch_size=batch_size,
           learning_rate_multiplier=reward_model_learning_rate_multiplier,
-          lora_dim=reward_model_lora_dim,
+          lora_dim=lora_dim,
+          num_microbatches=num_microbatches.output,
       )
       .set_display_name('Reward Model Trainer')
       .set_caching_options(False)

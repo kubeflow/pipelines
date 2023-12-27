@@ -21,7 +21,7 @@ def args_generator_op() -> str:
 
 
 # TODO(Bobgy): how can we make this component with type float?
-# got error: kfp.components.types.type_utils.InconsistentTypeException:
+# got error: kfp.dsl.types.type_utils.InconsistentTypeException:
 # Incompatible argument passed to the input "s" of component "Print op": Argument
 # type "STRING" is incompatible with the input type "NUMBER_DOUBLE"
 @dsl.component

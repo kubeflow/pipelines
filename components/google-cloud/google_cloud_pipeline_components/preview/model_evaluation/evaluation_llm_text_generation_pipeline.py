@@ -15,11 +15,14 @@
 
 from typing import Dict, List, NamedTuple
 
+from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationTextGenerationOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from kfp import dsl
+# pylint: disable=unused-argument, unexpected-keyword-arg
+
 
 _PIPELINE_NAME = 'evaluation-llm-text-generation-pipeline'
 
@@ -32,10 +35,12 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     batch_predict_gcs_destination_output_uri: str,
     model_name: str = 'publishers/google/models/text-bison@001',
     evaluation_task: str = 'text-generation',
+    input_field_name: str = 'input_text',
     target_field_name: str = 'output_text',
     batch_predict_instances_format: str = 'jsonl',
     batch_predict_predictions_format: str = 'jsonl',
     batch_predict_model_parameters: Dict[str, str] = {},
+    enable_row_based_metrics: bool = False,
     machine_type: str = 'e2-highmem-16',
     service_account: str = '',
     network: str = '',
@@ -57,6 +62,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     batch_predict_gcs_destination_output_uri: The Google Cloud Storage location of the directory where the eval pipeline output is to be written to.
     model_name: The Model name used to run evaluation. Must be a publisher Model or a managed Model sharing the same ancestor location. Starting this job has no impact on any existing deployments of the Model and their resources.
     evaluation_task: The task that the large language model will be evaluated on. The evaluation component computes a set of metrics relevant to that specific task. Currently supported tasks are: `summarization`, `question-answering`, `text-generation`.
+    input_field_name: The field name of the input eval dataset instances that contains the input prompts to the LLM.
     target_field_name: The field name of the eval dataset instance that contains an example reference text response. Alternatively referred to as the ground truth (or ground_truth_column) field. If not set, defaulted to `output_text`.
     batch_predict_instances_format: The format in which instances are given, must be one of the Model's supportedInputStorageFormats. Only "jsonl" is currently supported. For more details about this input config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
     batch_predict_predictions_format: The format in which Vertex AI gives the predictions. Must be one of the Model's supportedOutputStorageFormats. Only "jsonl" is currently supported. For more details about this output config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
@@ -69,7 +75,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
 
   Returns:
     evaluation_metrics: Metrics Artifact for LLM Text Generation.
-    evaluation_resource_name: If run on an user's managed VertexModel, the imported evaluation resource name. Empty if run on a publisher model.
+    evaluation_resource_name: If run on a user's managed VertexModel, the imported evaluation resource name. Empty if run on a publisher model.
   """
   # fmt: on
   outputs = NamedTuple(
@@ -87,12 +93,24 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
   )
   get_vertex_model_task.set_display_name('get-vertex-model')
 
+  eval_dataset_preprocessor_task = LLMEvaluationPreprocessorOp(
+      project=project,
+      location=location,
+      gcs_source_uris=batch_predict_gcs_source_uris,
+      input_field_name=input_field_name,
+      machine_type=machine_type,
+      service_account=service_account,
+      network=network,
+      encryption_spec_key_name=encryption_spec_key_name,
+  )
   batch_predict_task = ModelBatchPredictOp(
       project=project,
       location=location,
       model=get_vertex_model_task.outputs['artifact'],
       job_display_name='evaluation-batch-predict-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
-      gcs_source_uris=batch_predict_gcs_source_uris,
+      gcs_source_uris=eval_dataset_preprocessor_task.outputs[
+          'preprocessed_gcs_source_uris'
+      ],
       instances_format=batch_predict_instances_format,
       predictions_format=batch_predict_predictions_format,
       gcs_destination_output_uri_prefix=batch_predict_gcs_destination_output_uri,
@@ -106,6 +124,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       evaluation_task=evaluation_task,
       target_field_name=f'instance.{target_field_name}',
       predictions_format=batch_predict_predictions_format,
+      enable_row_based_metrics=enable_row_based_metrics,
       joined_predictions_gcs_source=batch_predict_task.outputs[
           'gcs_output_directory'
       ],
@@ -117,6 +136,9 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
 
   import_evaluation_task = ModelImportEvaluationOp(
       metrics=eval_task.outputs['evaluation_metrics'],
+      row_based_metrics=eval_task.outputs['row_based_metrics']
+      if enable_row_based_metrics
+      else None,
       model=get_vertex_model_task.outputs['artifact'],
       problem_type=evaluation_task,
       dataset_type=batch_predict_predictions_format,

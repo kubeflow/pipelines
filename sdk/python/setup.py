@@ -92,13 +92,14 @@ setuptools.setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.7.0,<3.12.0',
+    python_requires='>=3.7.0,<3.13.0',
     include_package_data=True,
     entry_points={
         'console_scripts': [

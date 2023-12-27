@@ -22,8 +22,6 @@ import unittest
 from kfp import compiler
 from kfp import components
 from kfp.components import placeholders
-from kfp.components import python_component
-from kfp.components import structures
 import pytest
 import yaml
 
@@ -80,7 +78,8 @@ def load_pipeline_spec_and_platform_spec(
 
 
 def handle_placeholders(
-        component_spec: structures.ComponentSpec) -> structures.ComponentSpec:
+        component_spec: 'structures.ComponentSpec'
+) -> 'structures.ComponentSpec':
     if component_spec.implementation.container is not None:
         if component_spec.implementation.container.command is not None:
             component_spec.implementation.container.command = [
@@ -96,7 +95,8 @@ def handle_placeholders(
 
 
 def handle_expected_diffs(
-        component_spec: structures.ComponentSpec) -> structures.ComponentSpec:
+        component_spec: 'structures.ComponentSpec'
+) -> 'structures.ComponentSpec':
     """Strips some component spec fields that should be ignored when comparing
     with golden result."""
     # Ignore description when comparing components specs read in from v1 component YAML and from IR YAML, because non lightweight Python components defined in v1 YAML can have a description field, but IR YAML does not preserve this field unless the component is a lightweight Python function-based component
@@ -112,7 +112,7 @@ class TestReadWrite:
 
     def _compile_and_load_component(
         self, compilable: Union[Callable[..., Any],
-                                python_component.PythonComponent]):
+                                'python_component.PythonComponent']):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_file = os.path.join(tmp_dir, 're_compiled_output.yaml')
             compiler.Compiler().compile(compilable, tmp_file)
@@ -120,7 +120,7 @@ class TestReadWrite:
 
     def _compile_and_read_yaml(
         self, compilable: Union[Callable[..., Any],
-                                python_component.PythonComponent]
+                                'python_component.PythonComponent']
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_file = os.path.join(tmp_dir, 're_compiled_output.yaml')

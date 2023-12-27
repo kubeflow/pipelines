@@ -43,6 +43,11 @@ describe('PipelineDetails', () => {
   const historyPushSpy = jest.fn();
   const getV1PipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getV1PipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+  const getV1TemplateSpy = jest.spyOn(Apis.pipelineServiceApi, 'getTemplate');
+  const getV1PipelineVersionTemplateSpy = jest.spyOn(
+    Apis.pipelineServiceApi,
+    'getPipelineVersionTemplate',
+  );
   const listV1PipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
   const getV1RunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const getV1RecurringRunSpy = jest.spyOn(Apis.jobServiceApi, 'getJob');
@@ -188,6 +193,10 @@ describe('PipelineDetails', () => {
 
     getV1PipelineSpy.mockImplementation(() => Promise.resolve(testV1Pipeline));
     getV1PipelineVersionSpy.mockImplementation(() => Promise.resolve(testV1PipelineVersion));
+    getV1TemplateSpy.mockImplementation(() => Promise.resolve({ template: 'test template' }));
+    getV1PipelineVersionTemplateSpy.mockImplementation(() =>
+      Promise.resolve({ template: 'test version template' }),
+    );
     listV1PipelineVersionsSpy.mockImplementation(() =>
       Promise.resolve({ versions: [testV1PipelineVersion] }),
     );
@@ -588,7 +597,8 @@ describe('PipelineDetails', () => {
 
   it(
     'uses an empty string and does not show error ' +
-      'when pipeline_spec in the response of getPipelineVersion() is undefined',
+      'when pipeline_spec in the response of getPipelineVersion() is undefined' +
+      'and v1 getPipelineVersionTemplate() returns empty string',
     async () => {
       jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
         if (featureKey === features.FeatureKey.V2_ALPHA) {
@@ -602,10 +612,45 @@ describe('PipelineDetails', () => {
         pipeline_version_id: 'test-pipeline-version-id',
         pipeline_spec: undefined, // empty pipeline_spec
       });
+      getV1PipelineVersionTemplateSpy.mockResolvedValue({ template: '' });
       render(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
       await waitFor(() => {
         expect(getV2PipelineVersionSpy).toHaveBeenCalled();
+        expect(getV1PipelineVersionTemplateSpy).toHaveBeenCalled();
+        // empty template string from empty pipeline_spec and it won't call createGraph()
+        expect(createGraphSpy).toHaveBeenCalledTimes(0);
+      });
+
+      // No errors
+      expect(updateBannerSpy).toHaveBeenCalledTimes(1); // Once to clear banner
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
+    },
+  );
+
+  it(
+    'uses an empty string and does not show error ' +
+      'when pipeline_spec in the response of getPipelineVersion() is undefined' +
+      'and v1 getTemplate() returns empty string',
+    async () => {
+      jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+        if (featureKey === features.FeatureKey.V2_ALPHA) {
+          return true;
+        }
+        return false;
+      });
+      getV2PipelineVersionSpy.mockResolvedValue({
+        display_name: 'test-pipeline-version',
+        pipeline_id: 'test-pipeline-id',
+        pipeline_version_id: undefined,
+        pipeline_spec: undefined, // empty pipeline_spec
+      });
+      getV1TemplateSpy.mockResolvedValue({ template: '' });
+      render(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
+
+      await waitFor(() => {
+        expect(getV2PipelineVersionSpy).toHaveBeenCalled();
+        expect(getV1TemplateSpy).toHaveBeenCalled(); // because no pipeline version id
         // empty template string from empty pipeline_spec and it won't call createGraph()
         expect(createGraphSpy).toHaveBeenCalledTimes(0);
       });

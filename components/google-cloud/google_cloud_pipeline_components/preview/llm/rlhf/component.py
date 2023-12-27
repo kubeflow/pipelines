@@ -13,19 +13,13 @@
 # limitations under the License.
 """Defines a pipeline that performs reinforcement learning from human feedback."""
 
-import json
 from typing import NamedTuple, Optional
 
 from google_cloud_pipeline_components import _placeholders
-from google_cloud_pipeline_components._implementation.llm import deploy_llm_model
-from google_cloud_pipeline_components._implementation.llm import env
+from google_cloud_pipeline_components._implementation.llm import deployment_graph
 from google_cloud_pipeline_components._implementation.llm import function_based
-from google_cloud_pipeline_components._implementation.llm import preprocess_chat_dataset
-from google_cloud_pipeline_components._implementation.llm import private_text_importer
-from google_cloud_pipeline_components._implementation.llm import reinforcer
+from google_cloud_pipeline_components._implementation.llm import reinforcement_learning_graph
 from google_cloud_pipeline_components._implementation.llm import reward_model_graph
-from google_cloud_pipeline_components._implementation.llm import upload_llm_model
-from google_cloud_pipeline_components._implementation.llm import upload_tensorboard_metrics
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
 
@@ -84,48 +78,7 @@ def rlhf_pipeline(
     endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
   # fmt: on
-  policy_model_lora_dim = 1
-  batch_size = 64
-  prompt_column = 'input_text'
-  upload_location = 'us-central1'
-  machine_spec = function_based.resolve_machine_spec(
-      location=location, use_test_spec=env.get_use_test_machine_spec()
-  ).set_display_name('Resolve Machine Spec')
-
-  reference_model_metadata = function_based.resolve_reference_model_metadata(
-      large_model_reference=large_model_reference,
-  ).set_display_name('Resolve Model Metadata')
-
-  processed_dataset = preprocess_chat_dataset.preprocess_chat_dataset(
-      large_model_reference=large_model_reference,
-      input_dataset_uri=prompt_dataset,
-      default_context=instruction,
-      dataset_type='prompt',
-  ).set_display_name('Preprocess Prompt Dataset')
-
-  prompt_dataset_image_uri = function_based.resolve_private_image_uri(
-      image_name='text_importer'
-  ).set_display_name('Resolve Prompt Dataset Image URI')
-  prompt_dataset_importer = (
-      private_text_importer.PrivateTextImporter(
-          project=project,
-          location=location,
-          input_text=processed_dataset.outputs['processed_dataset_uri'],
-          inputs_field_name=prompt_column,
-          # Target field name does not matter because this field is not used.
-          targets_field_name='non_existent_targets_field_name',
-          output_split_name=env.TRAIN_SPLIT,
-          large_model_reference=reference_model_metadata.outputs[
-              'large_model_reference'
-          ],
-          image_uri=prompt_dataset_image_uri.output,
-          instruction=instruction,
-      )
-      .set_display_name('Import Prompt Dataset')
-      .set_caching_options(False)
-  )
-
-  reward_model_preparer = (
+  reward_model_pipeline = (
       reward_model_graph.pipeline(
           preference_dataset=preference_dataset,
           large_model_reference=large_model_reference,
@@ -140,63 +93,22 @@ def rlhf_pipeline(
       )
   ).set_display_name('Train Reward Model')
 
-  has_tensorboard_id = function_based.value_exists(
-      value=tensorboard_resource_id
-  ).set_display_name('Resolve TensorBoard Resource ID')
-
-  rl_image_uri = function_based.resolve_private_image_uri(
-      image_name='reinforcer',
-      accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
-  ).set_display_name('Resolve Reinforcer Image URI')
-  rl_model = (
-      reinforcer.Reinforcer(
-          project=project,
-          location=location,
-          input_reference_model_path=reference_model_metadata.outputs[
-              'reference_model_path'
-          ],
-          input_reward_model_path=reward_model_preparer.outputs[
-              'reward_model_output_path'
-          ],
-          input_dataset_path=prompt_dataset_importer.outputs[
-              'imported_data_path'
-          ],
-          train_steps=reinforcement_learning_train_steps,
-          accelerator_type=machine_spec.outputs['accelerator_type'],
-          accelerator_count=machine_spec.outputs['accelerator_count'],
-          large_model_reference=reference_model_metadata.outputs[
-              'large_model_reference'
-          ],
-          reward_model_reference=reference_model_metadata.outputs[
-              'reward_model_reference'
-          ],
-          machine_type=machine_spec.outputs['machine_type'],
-          image_uri=rl_image_uri.output,
-          inputs_sequence_length=prompt_sequence_length,
-          targets_sequence_length=target_sequence_length,
-          batch_size=batch_size,
-          learning_rate_multiplier=reinforcement_learning_rate_multiplier,
-          kl_coeff=kl_coeff,
-          lora_dim=policy_model_lora_dim,
-      )
-      .set_display_name('Reinforcer')
-      .set_caching_options(False)
-  )
-
-  with kfp.dsl.Condition(  # pytype: disable=wrong-arg-types
-      has_tensorboard_id.output == True,  # pylint: disable=singleton-comparison, g-explicit-bool-comparison
-      name='Upload Reinforcement Learning TensorBoard Metrics',
-  ):
-    _ = upload_tensorboard_metrics.upload_tensorboard_metrics(
-        tensorboard_resource_id=tensorboard_resource_id,
-        metrics_directory=rl_model.outputs['tensorboard_metrics'],
-        experiment_name=(
-            'rl-model-tuner-'
-            f'{kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER}-'
-            f'{kfp.dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
-        ),
-    ).set_display_name('Reinforcement Learning TensorBoard Metrics Uploader')
+  rl_model_pipeline = reinforcement_learning_graph.pipeline(
+      prompt_dataset=prompt_dataset,
+      input_reward_model_path=reward_model_pipeline.outputs[
+          'reward_model_output_path'
+      ],
+      large_model_reference=large_model_reference,
+      prompt_sequence_length=prompt_sequence_length,
+      target_sequence_length=target_sequence_length,
+      reinforcement_learning_rate_multiplier=reinforcement_learning_rate_multiplier,
+      reinforcement_learning_train_steps=reinforcement_learning_train_steps,
+      kl_coeff=kl_coeff,
+      instruction=instruction,
+      project=project,
+      location=location,
+      tensorboard_resource_id=tensorboard_resource_id,
+  ).set_display_name('Reinforcement Learning')
 
   should_perform_inference = function_based.value_exists(
       value=eval_dataset
@@ -208,63 +120,23 @@ def rlhf_pipeline(
         project=project,
         location=location,
         large_model_reference=large_model_reference,
-        model_checkpoint=rl_model.outputs['output_model_path'],
+        model_checkpoint=rl_model_pipeline.outputs['output_model_path'],
         prompt_dataset=eval_dataset,
         prompt_sequence_length=prompt_sequence_length,
         target_sequence_length=target_sequence_length,
         instruction=instruction,
     )
 
-  adapter_artifact = kfp.dsl.importer(
-      artifact_uri=rl_model.outputs['output_adapter_path'],
-      artifact_class=kfp.dsl.Artifact,
-  ).set_display_name('Import Tuned Adapter')
-  regional_endpoint = function_based.resolve_regional_endpoint(
-      upload_location=upload_location
-  ).set_display_name('Resolve Regional Endpoint')
-  display_name = function_based.resolve_model_display_name(
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
-      ],
+  llm_model_handler = deployment_graph.pipeline(
+      output_adapter_path=rl_model_pipeline.outputs['output_adapter_path'],
+      large_model_reference=large_model_reference,
       model_display_name=model_display_name,
-  ).set_display_name('Resolve Model Display Name')
-  upload_model = function_based.resolve_upload_model(
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
-      ]
-  ).set_display_name('Resolve Upload Model')
-  upload_task = (
-      upload_llm_model.upload_llm_model(
-          project=_placeholders.PROJECT_ID_PLACEHOLDER,
-          location=upload_location,
-          regional_endpoint=regional_endpoint.output,
-          artifact_uri=adapter_artifact.output,
-          model_display_name=display_name.output,
-          model_reference_name='text-bison@001',
-          upload_model=upload_model.output,
-      )
-      .set_env_variable(
-          name='VERTEX_AI_PIPELINES_RUN_LABELS',
-          value=json.dumps({'tune-type': 'rlhf'}),
-      )
-      .set_display_name('Upload Model')
-  )
-  deploy_model = function_based.resolve_deploy_model(
       deploy_model=deploy_model,
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
-      ],
-  ).set_display_name('Resolve Deploy Model')
-  deploy_task = deploy_llm_model.create_endpoint_and_deploy_model(
-      project=_placeholders.PROJECT_ID_PLACEHOLDER,
-      location=upload_location,
-      model_resource_name=upload_task.outputs['model_resource_name'],
-      display_name=display_name.output,
-      regional_endpoint=regional_endpoint.output,
-      deploy_model=deploy_model.output,
-  ).set_display_name('Deploy Model')
+  ).set_display_name('Upload and Deploy Tuned Model')
 
   return PipelineOutput(
-      model_resource_name=upload_task.outputs['model_resource_name'],
-      endpoint_resource_name=deploy_task.outputs['endpoint_resource_name'],
+      model_resource_name=llm_model_handler.outputs['model_resource_name'],
+      endpoint_resource_name=llm_model_handler.outputs[
+          'endpoint_resource_name'
+      ],
   )

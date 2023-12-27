@@ -1,9 +1,30 @@
 ## Upcoming release
+* Use `large_model_reference` for `model_reference_name` when uploading models from `preview.llm.rlhf_pipeline` instead of hardcoding value as `text-bison@001`.
+* Disable caching when resolving model display names for RLHF-tuned models so a unique name is generated on each `preview.llm.rlhf_pipeline` run.
+* Upload the tuned adapter to Model Registry instead of model checkpoint from `preview.llm.rlhf_pipeline`.
+
+## Release 2.8.0
+* Release AutoSxS pipeline to preview.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.7.0
+* Fix `v1.automl.training_job.AutoMLImageTrainingJobRunOp` `ModuleNotFoundError`.
+* Append `tune-type` to existing labels when uploading models tuned by `preview.llm.rlhf_pipeline` instead of overriding them.
+* Use `llama-2-7b` for the base reward model when tuning `llama-2-13b` with the `preview.llm.rlhf_pipeline`
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.6.0
 * Bump supported KFP versions to kfp>=2.0.0b10,<=2.4.0
 * Add LLM Eval pipeline parameter for customizing eval dataset reference ground truth field
+* Create new eval dataset preprocessor for formatting eval dataset in tuning dataset format.
+* Support customizing eval dataset format in Eval LLM Text Generation Pipeline (`preview.model_evaluation.evaluation_llm_text_generation_pipeline`) and LLM Text Classification Pipeline (`preview.model_evaluation.evaluation_llm_classification_pipeline`). Include new LLM Eval Preprocessor component in both pipelines.
 * Fix the output parameter `output_dir` of `preview.automl.vision.DataConverterJobOp`.
 * Fix batch prediction model parameters payload sanitization error .
+* Add ability to perform inference with chat datasets to `preview.llm.infer_pipeline`.
+* Add ability to tune chat models with `preview.llm.rlhf_pipeline`.
 * Group `preview.llm.rlhf_pipeline` components for better readability.
+* Add environment variable support to GCPC's `create_custom_training_job_from_component` (both `v1` and `preview` namespaces)
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.5.0
 * Upload tensorboard metrics from `preview.llm.rlhf_pipeline` if a `tensorboard_resource_id` is provided at runtime.
@@ -19,8 +40,6 @@
 * Add support for customizing model_parameters (maxOutputTokens, topK, topP, and
  temperature) in LLM eval text generation and LLM eval text classification
   pipelines.
-* Add ability to perform inference with chat datasets to `preview.llm.infer_pipeline`.
-* Add ability to tune chat models with `preview.llm.rlhf_pipeline`.
 
 ## Release 2.4.1
 * Disable caching for LLM pipeline tasks that store temporary artifacts.

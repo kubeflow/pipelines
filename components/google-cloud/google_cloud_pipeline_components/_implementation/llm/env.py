@@ -16,7 +16,7 @@ import os
 
 
 def get_private_image_tag() -> str:
-  return os.getenv('PRIVATE_IMAGE_TAG', '20231031_0507_RC00')
+  return os.getenv('PRIVATE_IMAGE_TAG') or '20231213_0507_RC00'
 
 
 def get_use_test_machine_spec() -> bool:
@@ -26,14 +26,24 @@ def get_use_test_machine_spec() -> bool:
 
 # Variables associated with private images:
 CLOUD_ML_REGION = os.getenv('CLOUD_ML_REGION', 'europe-west4')
-PRIVATE_ARTIFACT_REGISTRY_PROJECT: str = os.getenv(
-    'PRIVATE_ARTIFACT_REGISTRY_PROJECT', 'vertex-ai-restricted'
+PRIVATE_ARTIFACT_REGISTRY_PROJECT: str = (
+    os.getenv(
+        'PRIVATE_ARTIFACT_REGISTRY_PROJECT',
+    )
+    or 'vertex-ai-restricted'
 )
-PRIVATE_ARTIFACT_REGISTRY_LOCATION: str = os.getenv(
-    'PRIVATE_ARTIFACT_REGISTRY_LOCATION', 'us'
+PRIVATE_ARTIFACT_REGISTRY_LOCATION: str = (
+    os.getenv(
+        'PRIVATE_ARTIFACT_REGISTRY_LOCATION',
+    )
+    or 'us'
 )
-PRIVATE_ARTIFACT_REGISTRY: str = os.getenv('PRIVATE_ARTIFACT_REGISTRY', 'rlhf')
-PRIVATE_IMAGE_NAME_PREFIX: str = os.getenv('PRIVATE_IMAGE_NAME_PREFIX', 'rlhf_')
+PRIVATE_ARTIFACT_REGISTRY: str = (
+    os.getenv('PRIVATE_ARTIFACT_REGISTRY') or 'rlhf'
+)
+PRIVATE_IMAGE_NAME_PREFIX: str = (
+    os.getenv('PRIVATE_IMAGE_NAME_PREFIX') or 'rlhf_'
+)
 PRIVATE_IMAGE_TAG: str = get_private_image_tag()
 
 # Dataset variables:

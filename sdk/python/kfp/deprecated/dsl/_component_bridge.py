@@ -29,8 +29,8 @@ from kfp.deprecated.dsl import _pipeline_param
 from kfp.deprecated.dsl import component_spec as dsl_component_spec
 from kfp.deprecated.dsl import dsl_utils
 from kfp.deprecated.dsl import types
+from kfp.deprecated.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.components.types import type_utils
 
 # Placeholder to represent the output directory hosting all the generated URIs.
 # Its actual value will be specified during pipeline compilation.

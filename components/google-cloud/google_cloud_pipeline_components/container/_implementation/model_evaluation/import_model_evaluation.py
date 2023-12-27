@@ -57,6 +57,9 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument('--metrics', dest='metrics', type=str, default='')
 parser.add_argument(
+    '--row_based_metrics', dest='row_based_metrics', type=str, default=''
+)
+parser.add_argument(
     '--classification_metrics',
     dest='classification_metrics',
     type=str,
@@ -274,6 +277,11 @@ def main(argv):
           'pipeline_job_resource_name': parsed_args.pipeline_job_resource_name,
           'evaluation_dataset_type': parsed_args.dataset_type,
           'evaluation_dataset_path': dataset_paths or None,
+          'row_based_metrics_path': (
+              parsed_args.row_based_metrics
+              if parsed_args.row_based_metrics
+              else None
+          ),
       }.items()
       if value
   }

@@ -13,7 +13,7 @@
 # limitations under the License.
 """Python function-based components used in KFP pipelies."""
 import functools
-from typing import List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components._implementation.llm import env
@@ -302,8 +302,8 @@ def resolve_reference_model_metadata(
       'llama-2-13b': reference_model_metadata(
           large_model_reference='LLAMA_2_13B',
           reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',
-          reward_model_reference='LLAMA_2_13B',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',
+          reward_model_reference='LLAMA_2_7B',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',
           is_supported=True,
       ),
       'llama-2-7b-chat': reference_model_metadata(
@@ -316,8 +316,8 @@ def resolve_reference_model_metadata(
       'llama-2-13b-chat': reference_model_metadata(
           large_model_reference='LLAMA_2_13B_CHAT',
           reference_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b_chat/',
-          reward_model_reference='LLAMA_2_13B',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_13b/',
+          reward_model_reference='LLAMA_2_7B',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/llama/t5x_llama_2_7b/',
           is_supported=True,
       ),
   }
@@ -495,3 +495,80 @@ def resolve_instruction(
   """
   instruction = instruction or ''
   return instruction if 'chat' not in large_model_reference.lower() else ''
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def resolve_num_microbatches(large_model_reference: str) -> int:
+  """Resolves the number of microbatches to use during training.
+
+  Args:
+    large_model_reference: Base model tuned by the pipeline.
+
+  Returns:
+    Number of microbatches to break the total batch size into during training.
+  """
+  if 'llama' in large_model_reference.lower():
+    return 2
+  return 0
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def read_file(path: str) -> str:
+  """Reads the contents of the given file."""
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  import re
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+
+  path = re.sub('^gs://', '/gcs/', path)
+  with open(path, 'r') as f:
+    return f.read()
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def get_usage_metric(metadata: Dict[str, Any], key: str) -> bool:  # pytype: disable=unsupported-operands
+  """Extracts a single usage metric from metadata."""
+  return metadata[key]
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def dump_dict(value: Dict[Any, Any]) -> str:
+  """Dumps the given dict to a JSON string."""
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  import json
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+
+  return json.dumps(value).replace('"', '\\"')
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def dump_list(value: List[Any]) -> str:
+  """Dumps the given dict to a JSON string."""
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  import json
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+
+  return json.dumps(value).replace('"', '\\"')
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def identity(
+    x: str,
+) -> str:
+  return x
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def get_uri(artifact: dsl.Input[dsl.Artifact], is_dir: bool = False) -> str:  # pytype: disable=unsupported-operands
+  """Extracts the URI from an artifact."""
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+  import os
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+
+  if is_dir:
+    return os.path.join(artifact.uri, '*')
+  return artifact.uri
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def get_empty_string() -> str:
+  return ''

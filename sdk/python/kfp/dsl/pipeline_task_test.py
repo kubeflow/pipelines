@@ -377,5 +377,134 @@ class TestPlatformSpecificFunctionality(unittest.TestCase):
                 t.platform_spec
 
 
+class TestTaskInFinalState(unittest.TestCase):
+    """Tests PipelineTask in the state FINAL.
+
+    Many properties and methods will be blocked.
+
+    Also tests that the .output and .outputs behavior behaves as expected when the outputs are values, not placeholders, as will be the case when PipelineTask is in the state FINAL.
+    """
+
+    def test_output_property(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.state = pipeline_task.TaskState.FINAL
+        task._outputs = {'Output': 1}
+        self.assertEqual(task.output, 1)
+        self.assertEqual(task.outputs['Output'], 1)
+
+    def test_outputs_property(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.state = pipeline_task.TaskState.FINAL
+        task._outputs = {
+            'int_output':
+                1,
+            'str_output':
+                'foo',
+            'dataset_output':
+                dsl.Dataset(
+                    name='dataset_output',
+                    uri='foo/bar/dataset_output',
+                    metadata={'key': 'value'})
+        }
+        self.assertEqual(task.outputs['int_output'], 1)
+        self.assertEqual(task.outputs['str_output'], 'foo')
+        assert_artifacts_equal(
+            self,
+            task.outputs['dataset_output'],
+            dsl.Dataset(
+                name='dataset_output',
+                uri='foo/bar/dataset_output',
+                metadata={'key': 'value'}),
+        )
+
+    def test_platform_spec_property(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.state = pipeline_task.TaskState.FINAL
+        with self.assertRaisesRegex(
+                Exception,
+                r'Platform-specific features are not supported for local execution\.'
+        ):
+            task.platform_spec
+
+    def test_name_property(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.state = pipeline_task.TaskState.FINAL
+        self.assertEqual(task.name, 'component1')
+
+    def test_inputs_property(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.state = pipeline_task.TaskState.FINAL
+        self.assertEqual(task.inputs, {'input1': 'value'})
+
+    def test_dependent_tasks_property(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.state = pipeline_task.TaskState.FINAL
+        with self.assertRaisesRegex(
+                Exception,
+                r'Task has no dependent tasks since it is executed independently\.'
+        ):
+            task.dependent_tasks
+
+    def test_sampling_of_task_configuration_methods(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.state = pipeline_task.TaskState.FINAL
+        with self.assertRaisesRegex(
+                Exception,
+                r"Task configuration methods are not supported for local execution\. Got call to '\.set_caching_options\(\)'\."
+        ):
+            task.set_caching_options(enable_caching=True)
+        with self.assertRaisesRegex(
+                Exception,
+                r"Task configuration methods are not supported for local execution\. Got call to '\.set_env_variable\(\)'\."
+        ):
+            task.set_env_variable(name='foo', value='BAR')
+        with self.assertRaisesRegex(
+                Exception,
+                r"Task configuration methods are not supported for local execution\. Got call to '\.ignore_upstream_failure\(\)'\."
+        ):
+            task.ignore_upstream_failure()
+
+
+def assert_artifacts_equal(
+    test_class: unittest.TestCase,
+    a1: dsl.Artifact,
+    a2: dsl.Artifact,
+) -> None:
+    test_class.assertEqual(a1.name, a2.name)
+    test_class.assertEqual(a1.uri, a2.uri)
+    test_class.assertEqual(a1.metadata, a2.metadata)
+    test_class.assertEqual(a1.schema_title, a2.schema_title)
+    test_class.assertEqual(a1.schema_version, a2.schema_version)
+    test_class.assertIsInstance(a1, type(a2))
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,12 +1,15 @@
 # Current Version (in development)
 
 ## Features
+* Add support for `dsl.PIPELINE_TASK_EXECUTOR_OUTPUT_PATH_PLACEHOLDER` and `dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER` [\#10240](https://github.com/kubeflow/pipelines/pull/10240)
 
 ## Breaking changes
 
 ## Deprecations
 
 ## Bug fixes and other changes
+* Support `.after()` referencing task in a `dsl.ParallelFor` group  [\#10257](https://github.com/kubeflow/pipelines/pull/10257)
+* Support Python 3.12 [\#10271](https://github.com/kubeflow/pipelines/pull/10271)
 
 ## Documentation updates
 

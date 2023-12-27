@@ -30,10 +30,13 @@ from google_cloud_pipeline_components._implementation.model_evaluation.llm_class
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_embedding.evaluation_llm_embedding_pipeline import evaluation_llm_embedding_pipeline
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_embedding_retrieval.component import llm_embedding_retrieval as LLMEmbeddingRetrievalOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_evaluation.component import model_evaluation_text_generation as LLMEvaluationTextGenerationOp
+from google_cloud_pipeline_components._implementation.model_evaluation.llm_evaluation_preprocessor.component import llm_evaluation_dataset_preprocessor_graph_component as LLMEvaluationPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_information_retrieval_preprocessor.component import llm_information_retrieval_preprocessor as LLMInformationRetrievalPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_retrieval_metrics.component import llm_retrieval_metrics as LLMRetrievalMetricsOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_safety_bias.component import llm_safety_bias_metrics as LLMSafetyBiasMetricsOp
 from google_cloud_pipeline_components._implementation.model_evaluation.llm_safety_bias.evaluation_llm_safety_bias_pipeline import evaluation_llm_safety_bias_pipeline
+from google_cloud_pipeline_components._implementation.model_evaluation.model_inference.component import model_inference_and_evaluation_component
+from google_cloud_pipeline_components._implementation.model_evaluation.model_inference.component import model_inference_component
 from google_cloud_pipeline_components._implementation.model_evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
 from google_cloud_pipeline_components._implementation.model_evaluation.text2sql.evaluation_llm_text2sql_pipeline import evaluation_llm_text2sql_pipeline
 
@@ -52,6 +55,7 @@ __all__ = [
     'FeatureExtractorOp',
     'LLMEmbeddingRetrievalOp',
     'LLMEvaluationClassificationPredictionsPostprocessorOp',
+    'LLMEvaluationPreprocessorOp',
     'LLMEvaluationTextGenerationOp',
     'LLMInformationRetrievalPreprocessorOp',
     'LLMRetrievalMetricsOp',
@@ -60,4 +64,6 @@ __all__ = [
     'ModelImportEvaluatedAnnotationOp',
     'ModelImportEvaluationOp',
     'TargetFieldDataRemoverOp',
+    'model_inference_component',
+    'model_inference_and_evaluation_component',
 ]

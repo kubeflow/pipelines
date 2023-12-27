@@ -23,7 +23,7 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
-_IMAGE_URI = 'gcr.io/model-evaluation-dev/llm_eval:wjess-test'
+_IMAGE_URI = 'us-docker.pkg.dev/vertex-evaluation/public/llm:wjess-fishfooding'
 
 
 @dsl.component
@@ -169,7 +169,7 @@ def evaluation_llm_endpoint_batch_predict_pipeline_graph_component(
     network: str = '',
     encryption_spec_key_name: str = '',
 ) -> NamedTuple('outputs', gcs_output_directory=Artifact):
-  """The LLM Evaluation Text2SQL Pipeline.
+  """The First Party Model Endpoint Batch Predict Pipeline.
 
   Args:
     project: Required. The GCP project that runs the pipeline components.

@@ -544,9 +544,7 @@ def check_placeholder_references_valid_io_name(
         for arg in arg.items:
             check_placeholder_references_valid_io_name(inputs_dict,
                                                        outputs_dict, arg)
-    elif not isinstance(
-            arg, placeholders.ExecutorInputPlaceholder) and not isinstance(
-                arg, str):
+    elif not isinstance(arg, str):
         raise TypeError(f'Unexpected argument "{arg}" of type {type(arg)}.')
 
 

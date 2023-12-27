@@ -116,7 +116,7 @@ class Executor:
         else:
             artifact_cls = annotation
         return create_artifact_instance(
-            runtime_artifact, artifact_cls=artifact_cls)
+            runtime_artifact, fallback_artifact_cls=artifact_cls)
 
     def get_input_artifact(self, name: str) -> Optional[dsl.Artifact]:
         return self.input_artifacts.get(name)
@@ -364,14 +364,13 @@ class Executor:
 
 def create_artifact_instance(
     runtime_artifact: Dict,
-    artifact_cls=dsl.Artifact,
+    fallback_artifact_cls=dsl.Artifact,
 ) -> type:
     """Creates an artifact class instances from a runtime artifact
     dictionary."""
     schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
-
     artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
-        schema_title, artifact_cls)
+        schema_title, fallback_artifact_cls)
     return artifact_cls._from_executor_fields(
         uri=runtime_artifact.get('uri', ''),
         name=runtime_artifact.get('name', ''),

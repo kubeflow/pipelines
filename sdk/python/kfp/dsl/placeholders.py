@@ -18,6 +18,7 @@ import abc
 import json
 from typing import Any, Dict, List, Optional, Union
 
+from kfp import dsl
 from kfp.dsl import utils
 from kfp.dsl.types import type_utils
 
@@ -40,12 +41,6 @@ class Placeholder(abc.ABC):
         """Used for comparing placeholders in tests."""
         return isinstance(other,
                           self.__class__) and self.__dict__ == other.__dict__
-
-
-class ExecutorInputPlaceholder(Placeholder):
-
-    def _to_string(self) -> str:
-        return '{{$}}'
 
 
 class InputValuePlaceholder(Placeholder):
@@ -417,7 +412,7 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
         ])
 
     elif first_key == 'executorInput':
-        return ExecutorInputPlaceholder()
+        return dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER
 
     elif 'if' in arg:
         if_ = arg['if']

@@ -43,6 +43,7 @@ def Reinforcer(  # pylint: disable=invalid-name
     learning_rate_multiplier: float = 1.0,
     kl_coeff: float = 0.1,
     lora_dim: int = 0,
+    num_microbatches: int = 0,
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Trains a model using reinforcement learning.
 
@@ -53,8 +54,8 @@ def Reinforcer(  # pylint: disable=invalid-name
     input_reward_model_path: Path to the reward model to use during
       reinforcement learning.
     input_dataset_path: Path to training dataset.
-    train_steps: Number of training steps. These are the number of steps
-      on top of any steps used to train the base model.
+    train_steps: Number of training steps. These are the number of steps on top
+      of any steps used to train the base model.
     targets_length: Maximum decoder steps. Outputs will be at most this length.
     accelerator_type: Type of TPU accelerator. Can be either TPU_V2 or TPU_V3.
     accelerator_count: Number of TPU accelerators.
@@ -75,6 +76,9 @@ def Reinforcer(  # pylint: disable=invalid-name
       then use full-tuning.
     learning_rate_multiplier: Constant multiplied by the base learning rate used
       to adjust the learning rate during reinforcement learning.
+    num_microbatches: Number of microbatches to break the total batch size into
+      during training. If <= 1, the model is trained on the full batch size
+      directly.
 
   Returns:
     output_model_path: Path to the trained model checkpoint.
@@ -110,6 +114,7 @@ def Reinforcer(  # pylint: disable=invalid-name
               f'--learning_rate_multiplier={learning_rate_multiplier}',
               f'--kl_coeff={kl_coeff}',
               f'--lora_dim={lora_dim}',
+              f'--num_microbatches={num_microbatches}',
           ],
       ),
       gcp_resources=gcp_resources,
