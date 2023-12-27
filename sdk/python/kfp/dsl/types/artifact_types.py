@@ -85,9 +85,9 @@ class Artifact:
     def _get_path(self) -> Optional[str]:
         if self.uri.startswith('gs://'):
             return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len('gs://'):]
-        elif self.uri.startswith('minio://'):
+        if self.uri.startswith('minio://'):
             return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len('minio://'):]
-        elif self.uri.startswith('s3://'):
+        if self.uri.startswith('s3://'):
             return _S3_LOCAL_MOUNT_PREFIX + self.uri[len('s3://'):]
         # uri == path for local execution
         return self.uri
@@ -99,9 +99,9 @@ class Artifact:
 def convert_local_path_to_remote_path(path: str) -> str:
     if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
         return 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
-    elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
+    if path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
         return 'minio://' + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
-    elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
+    if path.startswith(_S3_LOCAL_MOUNT_PREFIX):
         return 's3://' + path[len(_S3_LOCAL_MOUNT_PREFIX):]
     return path
 
@@ -335,12 +335,17 @@ class SlicedClassificationMetrics(Artifact):
 
     schema_title = 'system.SlicedClassificationMetrics'
 
+    def __init__(self, **kwargs):
+        """initialise _sliced_metrics."""
+        self._sliced_metrics = {}
+        super().__init__(**kwargs)
+
     def _upsert_classification_metrics_for_slice(self, slice: str) -> None:
         """Upserts the classification metrics instance for a slice."""
         if slice not in self._sliced_metrics:
             self._sliced_metrics[slice] = ClassificationMetrics()
 
-    def _update_metadata(self, slice: str) -> None:
+    def _update_metadata(self) -> None:
         """Updates metadata to adhere to the metrics schema."""
         self.metadata = {'evaluationSlices': []}
         for slice in self._sliced_metrics.keys():
@@ -352,32 +357,34 @@ class SlicedClassificationMetrics(Artifact):
             }
             self.metadata['evaluationSlices'].append(slice_metrics)
 
-    def log_roc_reading(self, slice: str, threshold: float, tpr: float,
-                        fpr: float) -> None:
+    def log_roc_data_point(self, slice: str, fpr: float, tpr: float,
+                           threshold: float) -> None:
         """Logs a single data point in the ROC curve of a slice to metadata.
 
         Args:
           slice: String representing slice label.
-          threshold: Thresold value for the data point.
-          tpr: True positive rate value of the data point.
           fpr: False positive rate value of the data point.
+          tpr: True positive rate value of the data point.
+          threshold: Threshold value for the data point.
         """
 
         self._upsert_classification_metrics_for_slice(slice)
-        self._sliced_metrics[slice].log_roc_reading(threshold, tpr, fpr)
-        self._update_metadata(slice)
+        self._sliced_metrics[slice].log_roc_data_point(fpr, tpr, threshold)
+        self._update_metadata()
 
-    def load_roc_readings(self, slice: str,
-                          readings: List[List[float]]) -> None:
-        """Bulk loads ROC curve readings for a slice.
+    def log_roc_curve(self, slice: str, fpr: List[float], tpr: List[float],
+                      threshold: List[float]) -> None:
+        """logs a ROC curve for this slice.
 
         Args:
           slice: String representing slice label.
-          readings: A 2-dimensional list providing ROC curve data points. The expected order of the data points is: threshold, true positive rate, false positive rate.
+          fpr: List of false positive rate values.
+          tpr: List of true positive rate values.
+          threshold: List of threshold values.
         """
         self._upsert_classification_metrics_for_slice(slice)
-        self._sliced_metrics[slice].load_roc_readings(readings)
-        self._update_metadata(slice)
+        self._sliced_metrics[slice].log_roc_curve(fpr, tpr, threshold)
+        self._update_metadata()
 
     def set_confusion_matrix_categories(self, slice: str,
                                         categories: List[str]) -> None:
@@ -392,7 +399,7 @@ class SlicedClassificationMetrics(Artifact):
         """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].set_confusion_matrix_categories(categories)
-        self._update_metadata(slice)
+        self._update_metadata()
 
     def log_confusion_matrix_row(self, slice: str, row_category: str,
                                  row: List[int]) -> None:
@@ -408,7 +415,7 @@ class SlicedClassificationMetrics(Artifact):
         """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].log_confusion_matrix_row(row_category, row)
-        self._update_metadata(slice)
+        self._update_metadata()
 
     def log_confusion_matrix_cell(self, slice: str, row_category: str,
                                   col_category: str, value: int) -> None:
@@ -426,10 +433,10 @@ class SlicedClassificationMetrics(Artifact):
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].log_confusion_matrix_cell(
             row_category, col_category, value)
-        self._update_metadata(slice)
+        self._update_metadata()
 
-    def load_confusion_matrix(self, slice: str, categories: List[str],
-                              matrix: List[List[int]]) -> None:
+    def log_confusion_matrix(self, slice: str, categories: List[str],
+                             matrix: List[List[int]]) -> None:
         """Bulk loads the whole confusion matrix for a slice.
 
         Args:
@@ -438,9 +445,8 @@ class SlicedClassificationMetrics(Artifact):
           matrix: Complete confusion matrix.
         """
         self._upsert_classification_metrics_for_slice(slice)
-        self._sliced_metrics[slice].log_confusion_matrix_cell(
-            categories, matrix)
-        self._update_metadata(slice)
+        self._sliced_metrics[slice].log_confusion_matrix(categories, matrix)
+        self._update_metadata()
 
 
 class HTML(Artifact):

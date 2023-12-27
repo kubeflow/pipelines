@@ -1,0 +1,59 @@
+{
+  "evaluationSlices": [
+    {
+      "slice": "slice1",
+      "sliceClassificationMetrics": {
+        "confidenceMetrics": [
+          {
+            "confidenceThreshold": 0.12,
+            "recall": 27.5,
+            "falsePositiveRate": 86.32
+          },
+          {
+            "confidenceThreshold": 26.3,
+            "recall": 98.6,
+            "falsePositiveRate": 66.4
+          }
+        ]
+      }
+    },
+    {
+      "slice": "slice2",
+      "sliceClassificationMetrics": {
+        "confidenceMetrics": [
+          {
+            "confidenceThreshold": 0.15,
+            "recall": 28.5,
+            "falsePositiveRate": 84.32
+          },
+          {
+            "confidenceThreshold": 26.6,
+            "recall": 93.6,
+            "falsePositiveRate": 56.4
+          }
+        ]
+      }
+    },
+    {
+      "slice": "slice3",
+      "sliceClassificationMetrics": {
+        "confusionMatrix":
+        {
+          "annotationSpecs":
+          [
+            {"displayName": "dog"},
+            {"displayName": "cat"},
+            {"displayName": "horses"}
+          ],
+          "rows":
+            [
+              {"row" : [2, 6, 0]},
+              {"row" : [3, 0, 0]},
+              {"row" : [0, 0, 3]}
+            ]
+        }
+      }
+    }
+  ],
+  "testtest": 2.0
+}
