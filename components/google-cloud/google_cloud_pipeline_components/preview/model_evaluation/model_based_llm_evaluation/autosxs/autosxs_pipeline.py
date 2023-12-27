@@ -108,64 +108,30 @@ def autosxs_pipeline(
     bigquery_destination_prefix: str = '',
     experimental_args: Dict[str, Any] = {},
 ):
+  # fmt: off
   """Evaluates two models side-by-side using an arbiter model.
 
   Args:
-    evaluation_dataset: A BigQuery table or comma-separated list of GCS paths to
-      a JSONL dataset containing evaluation examples.
-    task: Evaluation task in the form {task}@{version}. task can be one of
-      "summarization", "question_answer". Version is an integer with 3 digits or
-      "latest". Ex: summarization@001 or question_answer@latest.
+    evaluation_dataset: A BigQuery table or comma-separated list of GCS paths to a JSONL dataset containing evaluation examples.
+    task: Evaluation task in the form `{task}@{version}`. task can be one of `[summarization, question_answer]`. Version is an integer with 3 digits or "latest". Ex: `summarization@001` or `question_answer@latest`.
     id_columns: The columns which distinguish unique evaluation examples.
-    model_a: A fully-qualified model resource name
-      (`projects/{project}/locations/{location}/models/{model}@{version}`) or
-      publisher model resource name (`publishers/{publisher}/models/{model}`).
-      This parameter is optional if Model A responses are specified.
-    model_b: A fully-qualified model resource name
-      (`projects/{project}/locations/{location}/models/{model}@{version}`) or
-      publisher model resource name (`publishers/{publisher}/models/{model}`).
-      This parameter is optional if Model B responses are specified.
-    autorater_prompt_parameters: Map of autorater prompt parameters to columns
-      or templates. The expected parameters are: inference_instruction - Details
-      on how to perform a task. inference_context - Content to reference to
-      perform the task. Example - `{'inference_context': {'column':
-      'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the
-      AutoRater's context.
-    model_a_prompt_parameters: Map of Model A prompt template parameters to
-      columns or templates. This parameter is optional if Model A predictions
-      are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the
-      evaluation dataset's `my_prompt` column for the prompt parameter named
-      `prompt`.
-    model_b_prompt_parameters: Map of Model B prompt template parameters to
-      columns or templates. This parameter is optional if Model B predictions
-      are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the
-      evaluation dataset's `my_prompt` column for the prompt parameter named
-      `prompt`.
-    response_column_a: Either the name of a column in the evaluation dataset
-      containing predefined predictions, or the name of the column in the Model
-      A output containing predictions. If no value is provided, the correct
-      model output column name will attempt to be inferred.
-    response_column_b: Either the name of a column in the evaluation dataset
-      containing predefined predictions, or the name of the column in the Model
-      B output containing predictions. If no value is provided, the correct
-      model output column name will attempt to be inferred.
-    model_a_parameters: The parameters that govern the predictions from model A,
-      such as temperature or maximum output tokens.
-    model_b_parameters: The parameters that govern the predictions from model B,
-      such as temperature or maximum output tokens.
-    human_preference_column: The column containing ground truth winners for each
-      example. Providing this parameter adds additional metrics for checking the
-      AutoRater alignment with human preferences.
-    project: Project used to run custom jobs. Default is the same project used
-      to run the pipeline.
-    location: Location used to run custom jobs. Default is the same location
-      used to run the pipeline.
-    judgments_format: The format to write judgments to. Can be either 'json' or
-      'bigquery'.
-    bigquery_destination_prefix: BigQuery table to write judgments to if the
-      specified format is 'bigquery'.
+    model_a: A fully-qualified model resource name (`projects/{project}/locations/{location}/models/{model}@{version}`) or publisher model resource name (`publishers/{publisher}/models/{model}`).  This parameter is optional if Model A responses are specified.
+    model_b: A fully-qualified model resource name (`projects/{project}/locations/{location}/models/{model}@{version}`) or publisher model resource name (`publishers/{publisher}/models/{model}`).  This parameter is optional if Model B responses are specified.
+    autorater_prompt_parameters: Map of autorater prompt parameters to columns or templates. The expected parameters are: `inference_instruction` (details on how to perform a task) and `inference_context` (content to reference to perform the task). As an example, `{'inference_context': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the AutoRater's context.
+    model_a_prompt_parameters: Map of Model A prompt template parameters to columns or templates. This parameter is optional if Model A predictions are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the prompt parameter named `prompt`.
+    model_b_prompt_parameters: Map of Model B prompt template parameters to columns or templates. This parameter is optional if Model B predictions are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the prompt parameter named `prompt`.
+    response_column_a: Either the name of a column in the evaluation dataset containing predefined predictions, or the name of the column in the Model A output containing predictions. If no value is provided, the correct model output column name will attempt to be inferred.
+    response_column_b: Either the name of a column in the evaluation dataset containing predefined predictions, or the name of the column in the Model B output containing predictions. If no value is provided, the correct model output column name will attempt to be inferred.
+    model_a_parameters: The parameters that govern the predictions from model A, such as temperature or maximum output tokens.
+    model_b_parameters: The parameters that govern the predictions from model B, such as temperature or maximum output tokens.
+    human_preference_column: The column containing ground truth winners for each example. Providing this parameter adds additional metrics for checking the AutoRater alignment with human preferences.
+    project: Project used to run custom jobs. Default is the same project used to run the pipeline.
+    location: Location used to run custom jobs. Default is the same location used to run the pipeline.
+    judgments_format: The format to write judgments to. Can be either `[json, bigquery]`.
+    bigquery_destination_prefix: BigQuery table to write judgments to if the specified format is 'bigquery'.
     experimental_args: Experimentally released arguments. Subject to change.
   """
+  # fmt: on
   prediction_inputs_a = task_preprocess.task_preprocess(
       evaluation_dataset=evaluation_dataset,
       task=task,
