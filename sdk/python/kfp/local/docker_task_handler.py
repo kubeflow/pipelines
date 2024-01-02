@@ -95,5 +95,7 @@ def run_docker_container(
         volumes=volumes,
     )
     for line in container.logs(stream=True):
-        print(line.decode())
+        # the inner logs should already have trailing \n
+        # we do not need to add another
+        print(line.decode(), end='')
     return container.wait()['StatusCode']
