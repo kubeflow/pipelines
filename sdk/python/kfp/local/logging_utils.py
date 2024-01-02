@@ -101,10 +101,10 @@ def make_log_lines_for_artifact(artifact: dsl.Artifact,) -> List[str]:
     """Returns a list of log lines that represent a single artifact output."""
     artifact_class_name_and_paren = f'{artifact.__class__.__name__}( '
     # name
-    artifact_lines = [f'{artifact_class_name_and_paren}name={artifact.name},']
+    artifact_lines = [f"{artifact_class_name_and_paren}name='{artifact.name}',"]
     newline_spaces = len(artifact_class_name_and_paren) * ' '
     # uri
-    artifact_lines.append(f'{newline_spaces}uri={artifact.uri},')
+    artifact_lines.append(f"{newline_spaces}uri='{artifact.uri}',")
     # metadata
     artifact_lines.append(f'{newline_spaces}metadata={artifact.metadata} )')
     return artifact_lines
@@ -135,6 +135,7 @@ def make_log_lines_for_outputs(outputs: Dict[str, Any]) -> List[str]:
 
         # present params
         else:
+            value = f"'{value}'" if isinstance(value, str) else value
             output_lines.append(f'{key_chars}{value}')
 
     return output_lines
