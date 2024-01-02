@@ -13,6 +13,17 @@
 # limitations under the License.
 """Placeholders for use in component authoring."""
 
-# prefer not using placeholder suffix like KFP does for reduce verbosity
+# prefer not using PIPELINE_TASK_ prefix like KFP does for reduced verbosity
 PROJECT_ID_PLACEHOLDER = "{{$.pipeline_google_cloud_project_id}}"
 LOCATION_PLACEHOLDER = "{{$.pipeline_google_cloud_location}}"
+
+
+# omit placeholder type annotation to avoid dependency on KFP SDK internals
+# placeholder is type kfp.dsl.placeholders.Placeholder
+def json_escape(placeholder, level: int) -> str:
+  if level not in {0, 1}:
+    raise ValueError(f"Invalid level: {level}")
+  # Placeholder implements __str__
+  s = str(placeholder)
+
+  return s.replace("}}", f".json_escape[{level}]}}}}")
