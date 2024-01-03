@@ -75,8 +75,7 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
 
     def tearDown(self):
         # EXIT: use tempdir for all tests
-        # os.chmod(self.temp_dir.name, 0o777)
-        # self.temp_dir.cleanup()
+        self.temp_dir.cleanup()
         os.chdir(self.working_dir)
 
         # EXIT: mount KFP dir to enable install from source for docker runner

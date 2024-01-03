@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for task_dispatcher.py. Tested across multiple runner types.
+"""Tests for task_dispatcher.py.
 
 The difference between these tests and the E2E test are that E2E tests
 focus on how the runner should behave to be local execution conformant,
@@ -22,7 +22,6 @@ should seek to minimize it.
 import io
 import os
 import re
-import sys
 import unittest
 from unittest import mock
 
@@ -34,25 +33,23 @@ from kfp.dsl import Model
 from kfp.dsl import Output
 from kfp.local import testing_utilities
 
-ALL_RUNNERS = [
-    (local.SubprocessRunner(use_venv=False),),
-    (local.SubprocessRunner(use_venv=True),),
-]
-
-
-def skip_if_python_3_12_or_greater(reason):
-    return unittest.skipIf(sys.version_info >= (3, 12), reason)
-
-
-@dsl.component
-def identity(x: str) -> str:
-    return x
+# NOTE: uses SubprocessRunner throughout to test the taks dispatcher behavior
+# NOTE: When testing SubprocessRunner, use_venv=True throughout to avoid
+# modifying current code under test.
+# If the dsl.component mocks are modified in a way that makes them not work,
+# the code may install kfp from PyPI rather from source. To mitigate the
+# impact of such an error we should not install into the main test process'
+# environment.
 
 
 class TestLocalExecutionValidation(
         testing_utilities.LocalRunnerEnvironmentTestCase):
 
     def test_env_not_initialized(self):
+
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
 
         with self.assertRaisesRegex(
                 RuntimeError,
@@ -61,18 +58,26 @@ class TestLocalExecutionValidation(
             identity(x='foo')
 
 
-@parameterized.parameters(ALL_RUNNERS)
 class TestArgumentValidation(parameterized.TestCase):
 
-    def test_no_argument_no_default(self, runner):
-        local.init(runner=runner)
+    def test_no_argument_no_default(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
 
         with self.assertRaisesRegex(
                 TypeError, r'identity\(\) missing 1 required argument: x'):
+
             identity()
 
-    def test_default_wrong_type(self, runner):
-        local.init(runner=runner)
+    def test_default_wrong_type(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
 
         with self.assertRaisesRegex(
                 dsl.types.type_utils.InconsistentTypeException,
@@ -80,16 +85,20 @@ class TestArgumentValidation(parameterized.TestCase):
         ):
             identity(x=1)
 
-    def test_extra_argument(self, runner):
-        local.init(runner=runner)
+    def test_extra_argument(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
 
         with self.assertRaisesRegex(
                 TypeError,
                 r'identity\(\) got an unexpected keyword argument "y"\.'):
             identity(x='foo', y='bar')
 
-    def test_input_artifact_provided(self, runner):
-        local.init(runner=runner)
+    def test_input_artifact_provided(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
 
         @dsl.component
         def artifact_identity(a: Artifact) -> Artifact:
@@ -102,12 +111,15 @@ class TestArgumentValidation(parameterized.TestCase):
             artifact_identity(a=Artifact(name='a', uri='gs://bucket/foo'))
 
 
-@parameterized.parameters(ALL_RUNNERS)
 class TestSupportOfComponentTypes(
         testing_utilities.LocalRunnerEnvironmentTestCase):
 
-    def test_local_pipeline_unsupported_two_tasks(self, runner):
-        local.init(runner=runner)
+    def test_local_pipeline_unsupported_two_tasks(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
 
         @dsl.pipeline
         def my_pipeline():
@@ -122,9 +134,12 @@ class TestSupportOfComponentTypes(
         ):
             my_pipeline()
 
-    def test_local_pipeline_unsupported_one_task_different_interface(
-            self, runner):
-        local.init(runner=runner)
+    def test_local_pipeline_unsupported_one_task_different_interface(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
 
         @dsl.pipeline
         def my_pipeline():
@@ -138,8 +153,12 @@ class TestSupportOfComponentTypes(
         ):
             my_pipeline()
 
-    def test_local_pipeline_unsupported_if_is_graph_component(self, runner):
-        local.init(runner=runner)
+    def test_local_pipeline_unsupported_if_is_graph_component(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
 
         # even if there is one task with the same interface as the pipeline, the code should catch that the pipeline is a GraphComponent and throw the NotImplementedError
         @dsl.pipeline
@@ -152,12 +171,13 @@ class TestSupportOfComponentTypes(
         ):
             my_pipeline(string='foo')
 
-    @skip_if_python_3_12_or_greater(
-        'Cannot install from source on a loaded component, so need relased version of KFP that supports 3.12'
-    )
-    def test_can_run_loaded_component(self, runner):
+    def test_can_run_loaded_component(self):
         # use venv to avoid installing non-local KFP into test process
         local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        @dsl.component
+        def identity(x: str) -> str:
+            return x
 
         loaded_identity = testing_utilities.compile_and_load_component(identity)
 
@@ -172,17 +192,15 @@ class TestSupportOfComponentTypes(
         self.assertEqual(actual, expected)
 
 
-@parameterized.parameters(ALL_RUNNERS)
 class TestExceptionHandlingAndLogging(
         testing_utilities.LocalRunnerEnvironmentTestCase):
 
     @mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_user_code_throws_exception_if_raise_on_error(
-        self,
-        runner,
-        mock_stdout,
-    ):
-        local.init(runner=runner, raise_on_error=True)
+    def test_user_code_throws_exception_if_raise_on_error(self, mock_stdout):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=True),
+            raise_on_error=True,
+        )
 
         @dsl.component
         def fail_comp():
@@ -200,12 +218,11 @@ class TestExceptionHandlingAndLogging(
         )
 
     @mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_user_code_no_exception_if_not_raise_on_error(
-        self,
-        runner,
-        mock_stdout,
-    ):
-        local.init(runner=runner, raise_on_error=False)
+    def test_user_code_no_exception_if_not_raise_on_error(self, mock_stdout):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=True),
+            raise_on_error=False,
+        )
 
         @dsl.component
         def fail_comp():
@@ -224,12 +241,8 @@ class TestExceptionHandlingAndLogging(
         )
 
     @mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_all_logs(
-        self,
-        runner,
-        mock_stdout,
-    ):
-        local.init(runner=runner)
+    def test_all_logs(self, mock_stdout):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
 
         @dsl.component
         def many_type_component(
@@ -268,11 +281,12 @@ class TestExceptionHandlingAndLogging(
         )
 
 
-@parameterized.parameters(ALL_RUNNERS)
 class TestPipelineRootPaths(testing_utilities.LocalRunnerEnvironmentTestCase):
 
-    def test_relpath(self, runner):
-        local.init(runner=runner, pipeline_root='relpath_root')
+    def test_relpath(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=True),
+            pipeline_root='relpath_root')
 
         # define in test to force install from source
         @dsl.component
@@ -283,11 +297,11 @@ class TestPipelineRootPaths(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertIsInstance(task.output, str)
         self.assertEqual(task.output, 'foo')
 
-    def test_abspath(self, runner):
+    def test_abspath(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmpdir:
             local.init(
-                runner=runner,
+                runner=local.SubprocessRunner(use_venv=True),
                 pipeline_root=os.path.join(tmpdir, 'asbpath_root'))
 
             # define in test to force install from source
