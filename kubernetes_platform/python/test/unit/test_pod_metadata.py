@@ -81,13 +81,13 @@ class TestPodMetadata:
                         'executors': {
                             'exec-comp': {
                                 'podMetadata': {
-                                    'labels': {
-                                        'kubeflow.com/kfp': 'pipeline-node',
-                                        'kubeflow.com/common': 'test'
-                                    },
                                     'annotations': {
                                         'run_id': '123456',
                                         'experiment_id': '234567'
+                                    },
+                                    'labels': {
+                                        'kubeflow.com/kfp': 'pipeline-node',
+                                        'kubeflow.com/common': 'test'
                                     }
                                 }
                             }
