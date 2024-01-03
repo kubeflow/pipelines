@@ -68,12 +68,14 @@ def replace_placeholders(
 
 
 def flatten_list(l: List[Union[str, list, None]]) -> List[str]:
-    """Recursively flattens arbitrarily deeply nested lists, filtering out
+    """Iteratively flattens arbitrarily deeply nested lists, filtering out
     elements that are None."""
     result = []
-    for element in l:
+    stack = l.copy()
+    while stack:
+        element = stack.pop(0)
         if isinstance(element, list):
-            result.extend(flatten_list(element))
+            stack = element + stack
         elif element is not None:
             result.append(element)
     return result

@@ -270,7 +270,7 @@ class TestE2E(DockerMockTestCase,
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=['echo', x],
-                        else_=['echo', 'No artifact provided!'])
+                        else_=['echo', 'No input provided!'])
                 ])
 
         comp()
