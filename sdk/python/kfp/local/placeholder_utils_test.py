@@ -14,6 +14,7 @@
 """Tests for placeholder_utils.py."""
 
 import json
+from typing import List, Optional
 import unittest
 
 from absl.testing import parameterized
@@ -92,7 +93,7 @@ class TestReplacePlaceholders(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-class TestReplacePlaceholderForElement(parameterized.TestCase):
+class TestResolveIndividualPlaceholder(parameterized.TestCase):
 
     # TODO: consider supporting JSON escape
     # TODO: update when input artifact constants supported
@@ -132,7 +133,7 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
         ),
     ])
     def test_constant_placeholders(self, element: str, expected: str):
-        actual = placeholder_utils.replace_placeholder_for_element(
+        actual = placeholder_utils.resolve_individual_placeholder(
             element=element,
             executor_input_dict=EXECUTOR_INPUT_DICT,
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
@@ -159,7 +160,7 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
     ])
     def test_concatenated_placeholders_resolve(self, element: str,
                                                expected: str):
-        actual = placeholder_utils.replace_placeholder_for_element(
+        actual = placeholder_utils.resolve_individual_placeholder(
             element=element,
             executor_input_dict=EXECUTOR_INPUT_DICT,
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
@@ -174,6 +175,10 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
         (
             "{{$.inputs.parameters[''boolean'']}}",
             json.dumps(False),
+        ),
+        (
+            "{{$.inputs.parameters[''not_present'']}}",
+            json.dumps(None),
         ),
         (
             "{{$.outputs.artifacts[''out_a''].metadata}}",
@@ -199,7 +204,7 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
         ),
     ])
     def test_io_placeholders(self, element: str, expected: str):
-        actual = placeholder_utils.replace_placeholder_for_element(
+        actual = placeholder_utils.resolve_individual_placeholder(
             element=element,
             executor_input_dict=EXECUTOR_INPUT_DICT,
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
@@ -216,6 +221,10 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
             'my-prefix-false-suffix',
         ),
         (
+            "--param={{$.inputs.parameters[''not_present'']}}",
+            '--param=null',
+        ),
+        (
             "prefix{{$.outputs.parameters[''Output''].output_file}}/suffix",
             'prefix/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output/suffix',
         ),
@@ -226,7 +235,7 @@ class TestReplacePlaceholderForElement(parameterized.TestCase):
     ])
     def test_io_placeholder_with_string_concat(self, element: str,
                                                expected: str):
-        actual = placeholder_utils.replace_placeholder_for_element(
+        actual = placeholder_utils.resolve_individual_placeholder(
             element=element,
             executor_input_dict=EXECUTOR_INPUT_DICT,
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
@@ -266,6 +275,103 @@ class TestGetValueUsingPath(unittest.TestCase):
     def test_empty_path(self):
         with self.assertRaisesRegex(ValueError, r'path cannot be empty\.'):
             placeholder_utils.get_value_using_path({'a': 20}, [])
+
+
+class TestResolveStructPlaceholders(parameterized.TestCase):
+
+    @parameterized.parameters([
+        (
+            """{"Concat": ["a", "b", "c"]}""",
+            [],
+            'abc',
+        ),
+        (
+            """{"Concat": ["prefix", "-", "{{$.outputs.artifacts[''x''].uri}}"]}""",
+            [],
+            "prefix-{{$.outputs.artifacts[''x''].uri}}",
+        ),
+        (
+            """{"Concat": ["a", {"Concat": ["b", "c"]}]}""",
+            [],
+            'abc',
+        ),
+        (
+            """{"IfPresent": {"InputName": "x", "Then": ["foo"], "Else": ["bar"]}}""",
+            [],
+            ['bar'],
+        ),
+        (
+            """{"IfPresent": {"InputName": "x", "Then": ["foo"], "Else": ["bar"]}}""",
+            ['x'],
+            ['foo'],
+        ),
+        (
+            """{"Concat": ["a", {"Concat": ["b", {"Concat": ["c", "{{$.inputs.parameters[''input2'']}}"]}]}]}""",
+            [],
+            "abc{{$.inputs.parameters[''input2'']}}",
+        ),
+        (
+            """{"Concat": ["a", {"Concat": ["b", {"IfPresent": {"InputName": "foo", "Then": "c", "Else": "d"}}]}]}""",
+            [],
+            'abd',
+        ),
+        (
+            """{"Concat": ["--flag", {"Concat": ["=", {"IfPresent": {"InputName": "x", "Then": "thing", "Else": "otherwise"}}]}]}""",
+            ['x'],
+            '--flag=thing',
+        ),
+        (
+            """{"Concat": ["a", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag", "{{$.inputs.artifacts['input2'].path}}"]}, "Else": "b"}}, "c"]}""",
+            [],
+            'abc',
+        ),
+        (
+            """{"Concat": ["--flag", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["=", "{{$.inputs.artifacts['input2'].path}}"]}, "Else": "b"}}, "-suffix"]}""",
+            ['foo'],
+            "--flag={{$.inputs.artifacts['input2'].path}}-suffix",
+        ),
+        (
+            """{"Concat": ["a-", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag"]}, "Else": "{{$.inputs.artifacts['input2'].path}}"}}, "-c"]}""",
+            [],
+            "a-{{$.inputs.artifacts['input2'].path}}-c",
+        ),
+        (
+            """{"Concat": ["--", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["flag"]}, "Else": "{{$.inputs.artifacts['input2'].path}}"}}, "=c"]}""",
+            ['foo'],
+            '--flag=c',
+        ),
+        (
+            """{"Concat": ["--", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["flag"]}}}, "=c"]}""",
+            ['foo'],
+            '--flag=c',
+        ),
+        (
+            """{"Concat": ["--flag", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["=", "other", "_val"]}}}, "=foo"]}""",
+            [],
+            '--flag=foo',
+        ),
+        (
+            """{"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag"]}}}""",
+            ['foo'],
+            '--flag',
+        ),
+        (
+            """{"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag"]}}}""",
+            [],
+            None,
+        ),
+    ])
+    def test(
+        self,
+        placeholder: str,
+        provided_inputs: List[str],
+        expected: Optional[None],
+    ):
+        actual = placeholder_utils.resolve_struct_placeholders(
+            placeholder,
+            provided_inputs,
+        )
+        self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':

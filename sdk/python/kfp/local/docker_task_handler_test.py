@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Optional
 import unittest
 from unittest import mock
 
@@ -159,16 +160,19 @@ class TestAddLatestTagIfNotPresent(unittest.TestCase):
 
     def test_no_tag(self):
         actual = docker_task_handler.add_latest_tag_if_not_present(
-            image='alpine:123')
-        expected = 'alpine:123'
+            image='alpine:3.19.0')
+        expected = 'alpine:3.19.0'
         self.assertEqual(actual, expected)
 
 
 class TestE2E(DockerMockTestCase,
               testing_utilities.LocalRunnerEnvironmentTestCase):
 
-    def test_python(self):
+    def setUp(self):
+        super().setUp()
         local.init(runner=local.DockerRunner())
+
+    def test_python(self):
 
         @dsl.component
         def artifact_maker(x: str, a: Output[Artifact]):
@@ -200,7 +204,6 @@ class TestE2E(DockerMockTestCase,
         self.assertEqual(kwargs['volumes'][root_vol_key]['mode'], 'rw')
 
     def test_empty_container_component(self):
-        local.init(runner=local.DockerRunner())
 
         @dsl.container_component
         def comp():
@@ -222,7 +225,6 @@ class TestE2E(DockerMockTestCase,
         self.assertEqual(kwargs['command'], [])
 
     def test_container_component(self):
-        local.init(runner=local.DockerRunner())
 
         @dsl.container_component
         def artifact_maker(x: str,):
@@ -257,6 +259,272 @@ class TestE2E(DockerMockTestCase,
         ][0]
         self.assertEqual(kwargs['volumes'][root_vol_key]['bind'], root_vol_key)
         self.assertEqual(kwargs['volumes'][root_vol_key]['mode'], 'rw')
+
+    def test_if_present_with_string_omitted(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine:3.19.0',
+                command=[
+                    dsl.IfPresentPlaceholder(
+                        input_name='x',
+                        then=['echo', x],
+                        else_=['echo', 'No input provided!'])
+                ])
+
+        comp()
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:3.19.0',
+        )
+        self.assertEqual(kwargs['command'], [
+            'echo',
+            'No input provided!',
+        ])
+
+    def test_if_present_with_string_provided(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine:3.19.0',
+                command=[
+                    dsl.IfPresentPlaceholder(
+                        input_name='x',
+                        then=['echo', x],
+                        else_=['echo', 'No artifact provided!'])
+                ])
+
+        comp(x='foo')
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:3.19.0',
+        )
+        self.assertEqual(kwargs['command'], [
+            'echo',
+            'foo',
+        ])
+
+    def test_if_present_single_element_with_string_omitted(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine:3.19.0',
+                command=[
+                    'echo',
+                    dsl.IfPresentPlaceholder(
+                        input_name='x',
+                        then=x,
+                        else_='No artifact provided!',
+                    )
+                ])
+
+        comp()
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:3.19.0',
+        )
+        self.assertEqual(kwargs['command'], [
+            'echo',
+            'No artifact provided!',
+        ])
+
+    def test_if_present_single_element_with_string_provided(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine:3.19.0',
+                command=[
+                    'echo',
+                    dsl.IfPresentPlaceholder(
+                        input_name='x',
+                        then=x,
+                        else_='No artifact provided!',
+                    )
+                ])
+
+        comp(x='foo')
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:3.19.0',
+        )
+        self.assertEqual(kwargs['command'], [
+            'echo',
+            'foo',
+        ])
+
+    def test_concat_placeholder(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[dsl.ConcatPlaceholder(['prefix-', x, '-suffix'])])
+
+        comp()
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:latest',
+        )
+        self.assertEqual(kwargs['command'], ['prefix-null-suffix'])
+
+    def test_nested_concat_placeholder(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    'echo',
+                    dsl.ConcatPlaceholder(
+                        ['a', dsl.ConcatPlaceholder(['b', x, 'd'])])
+                ])
+
+        comp(x='c')
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:latest',
+        )
+        self.assertEqual(kwargs['command'], ['echo', 'abcd'])
+
+    def test_ifpresent_in_concat_provided(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    'echo',
+                    dsl.ConcatPlaceholder([
+                        'there ',
+                        dsl.ConcatPlaceholder([
+                            'is ',
+                            dsl.IfPresentPlaceholder(
+                                input_name='x',
+                                then='one thing',
+                                else_='another thing')
+                        ])
+                    ])
+                ])
+
+        comp(x='c')
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:latest',
+        )
+        self.assertEqual(kwargs['command'], ['echo', 'there is one thing'])
+
+    def test_ifpresent_in_concat_omitted(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    'echo',
+                    dsl.ConcatPlaceholder([
+                        'there ',
+                        dsl.ConcatPlaceholder([
+                            'is ',
+                            dsl.IfPresentPlaceholder(
+                                input_name='x',
+                                then='one thing',
+                                else_='another thing')
+                        ])
+                    ])
+                ])
+
+        comp()
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:latest',
+        )
+        self.assertEqual(kwargs['command'], ['echo', 'there is another thing'])
+
+    def test_concat_in_ifpresent_provided(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    'echo',
+                    dsl.IfPresentPlaceholder(
+                        input_name='x',
+                        then=dsl.ConcatPlaceholder([x]),
+                        else_=dsl.ConcatPlaceholder(['something', ' ', 'else']))
+                ])
+
+        comp(x='something')
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:latest',
+        )
+        self.assertEqual(kwargs['command'], ['echo', 'something'])
+
+    def test_concat_in_ifpresent_omitted(self):
+
+        @dsl.container_component
+        def comp(x: Optional[str] = None):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    'echo',
+                    dsl.IfPresentPlaceholder(
+                        input_name='x',
+                        then=dsl.ConcatPlaceholder([x]),
+                        else_=dsl.ConcatPlaceholder(['another', ' ', 'thing']))
+                ])
+
+        comp()
+
+        run_mock = self.mocked_docker_client.containers.run
+        run_mock.assert_called_once()
+        kwargs = run_mock.call_args[1]
+        self.assertEqual(
+            kwargs['image'],
+            'alpine:latest',
+        )
+        self.assertEqual(kwargs['command'], ['echo', 'another thing'])
 
 
 if __name__ == '__main__':
