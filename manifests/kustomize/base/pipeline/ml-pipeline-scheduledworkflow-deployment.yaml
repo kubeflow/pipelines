@@ -20,6 +20,8 @@ spec:
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-scheduledworkflow
         env:
+          - name: LOG_LEVEL
+            value: "info"
           - name: NAMESPACE
             valueFrom:
               fieldRef:
