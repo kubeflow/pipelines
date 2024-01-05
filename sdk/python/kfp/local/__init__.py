@@ -17,9 +17,8 @@ from kfp.local.config import DockerRunner
 from kfp.local.config import init
 from kfp.local.config import SubprocessRunner
 
-# TODO: uncomment when local execution is publicly available
-# __all__ = [
-#     'init',
-#     'SubprocessRunner',
-#     'DockerRunner',
-# ]
+__all__ = [
+    'init',
+    'SubprocessRunner',
+    'DockerRunner',
+]
