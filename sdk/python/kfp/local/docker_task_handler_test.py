@@ -284,7 +284,7 @@ class TestE2E(DockerMockTestCase,
         )
         self.assertEqual(kwargs['command'], [
             'echo',
-            'No artifact provided!',
+            'No input provided!',
         ])
 
     def test_if_present_with_string_provided(self):
