@@ -30,8 +30,6 @@ from kfp.dsl import utils
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
-TEMPORARILY_BLOCK_LOCAL_EXECUTION = True
-
 _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
     task.component_spec.name)
 
@@ -194,10 +192,6 @@ class PipelineTask:
         if self.pipeline_spec is not None:
             raise NotImplementedError(
                 'Local pipeline execution is not currently supported.')
-
-        # TODO: remove feature flag
-        if TEMPORARILY_BLOCK_LOCAL_EXECUTION:
-            return
 
         self._outputs = task_dispatcher.run_single_component(
             pipeline_spec=self.component_spec.to_pipeline_spec(),
