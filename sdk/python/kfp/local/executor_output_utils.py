@@ -49,15 +49,17 @@ def cast_protobuf_numbers(
     struct_pb2.Value to a dict/json, int will be upcast to float, even
     if the component output specifies int.
     """
-    output_parameter_types = [
+    int_output_keys = [
         output_param_name
         for output_param_name, parameter_spec in output_parameter_types.items()
         if parameter_spec.parameter_type ==
         pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_INTEGER
     ]
-    for float_output_key in output_parameter_types:
-        output_parameters[float_output_key] = int(
-            output_parameters[float_output_key])
+    for int_output_key in int_output_keys:
+        # avoid KeyError when the user never writes to the dsl.OutputPath
+        if int_output_key in output_parameters:
+            output_parameters[int_output_key] = int(
+                output_parameters[int_output_key])
     return output_parameters
 
 
