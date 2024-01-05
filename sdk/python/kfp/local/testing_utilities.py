@@ -84,16 +84,12 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
     @classmethod
     def setUpClass(cls):
         # ENTER: use local KFP package path for subprocess runner
-        from kfp.dsl import pipeline_task
-        pipeline_task.TEMPORARILY_BLOCK_LOCAL_EXECUTION = False
         cls.original_component, dsl.component = dsl.component, functools.partial(
             dsl.component, kfp_package_path=_LOCAL_KFP_PACKAGE_PATH)
 
     @classmethod
     def tearDownClass(cls):
         # EXIT: use local KFP package path for subprocess runner
-        from kfp.dsl import pipeline_task
-        pipeline_task.TEMPORARILY_BLOCK_LOCAL_EXECUTION = True
         dsl.component = cls.original_component
 
 
