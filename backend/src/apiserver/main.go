@@ -41,12 +41,14 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 var (
+	logLevelFlag       = flag.String("logLevel", "", "Defines the log level for the application.")
 	rpcPortFlag        = flag.String("rpcPortFlag", ":8887", "RPC Port")
 	httpPortFlag       = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
 	configPath         = flag.String("config", "", "Path to JSON file containing config")
@@ -76,6 +78,17 @@ func main() {
 			glog.Fatalf("Failed to create default experiment. Err: %v", err)
 		}
 	}
+
+	logLevel := *logLevelFlag
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	level, err := log.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatal("Invalid log level:", err)
+	}
+	log.SetLevel(level)
 
 	go startRpcServer(resourceManager)
 	startHttpProxy(resourceManager)

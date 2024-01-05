@@ -93,3 +93,4 @@ data:
   ## If this value doesn't include a unit abbreviation, the units will be assumed
   ## to be nanoseconds.
   ConMaxLifeTime: "120s"
+  LOG_LEVEL: "info"

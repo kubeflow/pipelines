@@ -17,6 +17,8 @@ spec:
     spec:
       containers:
       - env:
+        - name: LOG_LEVEL
+          value: "info"
         - name: AUTO_UPDATE_PIPELINE_DEFAULT_VERSION
           valueFrom:
             configMapKeyRef:
