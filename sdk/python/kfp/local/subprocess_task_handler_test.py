@@ -14,7 +14,7 @@
 """Tests for subprocess_local_task_handler.py."""
 import contextlib
 import io
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 import unittest
 from unittest import mock
 
@@ -416,6 +416,16 @@ class TestLightweightPythonComponentLogic(
 
         task = my_comp()
         self.assertEmpty(task.outputs)
+
+    def test_optional_param(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        @dsl.component
+        def my_comp(string: Optional[str] = None) -> str:
+            return 'is none' if string is None else 'not none'
+
+        task = my_comp()
+        self.assertEqual(task.output, 'is none')
 
 
 if __name__ == '__main__':
