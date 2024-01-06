@@ -85,9 +85,9 @@ class Artifact:
     def _get_path(self) -> Optional[str]:
         if self.uri.startswith('gs://'):
             return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len('gs://'):]
-        if self.uri.startswith('minio://'):
+        elif self.uri.startswith('minio://'):
             return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len('minio://'):]
-        if self.uri.startswith('s3://'):
+        elif self.uri.startswith('s3://'):
             return _S3_LOCAL_MOUNT_PREFIX + self.uri[len('s3://'):]
         # uri == path for local execution
         return self.uri
@@ -99,9 +99,9 @@ class Artifact:
 def convert_local_path_to_remote_path(path: str) -> str:
     if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
         return 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
-    if path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
+    elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
         return 'minio://' + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
-    if path.startswith(_S3_LOCAL_MOUNT_PREFIX):
+    elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
         return 's3://' + path[len(_S3_LOCAL_MOUNT_PREFIX):]
     return path
 
