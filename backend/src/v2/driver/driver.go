@@ -109,7 +109,6 @@ type Execution struct {
 	// only specified when this is a Container execution
 	Cached       *bool
 	PodSpecPatch string
-	PodMetadata  *metav1.ObjectMeta
 }
 
 func (e *Execution) WillTrigger() bool {
@@ -323,7 +322,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 
 	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
-	var podMetadata *metav1.ObjectMeta
 	if err != nil {
 		return execution, err
 	}
@@ -336,19 +334,12 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		if err != nil {
 			return execution, err
 		}
-		err = extendPodMetadata(podMetadata, opts.KubernetesExecutorConfig)
-		if err != nil {
-			return execution, err
-		}
 	}
 	podSpecPatchBytes, err := json.Marshal(podSpec)
 	if err != nil {
 		return execution, fmt.Errorf("JSON marshaling pod spec patch: %w", err)
 	}
 	execution.PodSpecPatch = string(podSpecPatchBytes)
-	if podMetadata != nil {
-		execution.PodMetadata = podMetadata
-	}
 	return execution, nil
 }
 
@@ -460,44 +451,6 @@ func initPodSpecPatch(
 		}},
 	}
 	return podSpec, nil
-}
-
-// Extends the PodMetadata to include Kubernetes-specific executor config.
-func extendPodMetadata(
-	podMetadata *metav1.ObjectMeta,
-	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,
-) error {
-	// Get pod metadata information
-	if kubernetesExecutorConfig.GetPodMetadata() != nil {
-		if kubernetesExecutorConfig.GetPodMetadata().GetLabels() != nil {
-			if podMetadata.Labels == nil {
-				podMetadata.Labels = kubernetesExecutorConfig.GetPodMetadata().GetLabels()
-			} else {
-				podMetadata.Labels = extendMetadataMap(podMetadata.Labels, kubernetesExecutorConfig.GetPodMetadata().GetLabels())
-			}
-		}
-		if kubernetesExecutorConfig.GetPodMetadata().GetAnnotations() != nil {
-			if podMetadata.Annotations == nil {
-				podMetadata.Annotations = kubernetesExecutorConfig.GetPodMetadata().GetAnnotations()
-			} else {
-				podMetadata.Annotations = extendMetadataMap(podMetadata.Annotations, kubernetesExecutorConfig.GetPodMetadata().GetAnnotations())
-			}
-		}
-	}
-	return nil
-}
-
-// Extends metadata map values, highPriorityMap should overwrites lowPriorityMap values
-// The original Map inputs should have higher priority since its defined by admin
-// TODO: Use maps.Copy after moving to go 1.21+
-func extendMetadataMap(
-	highPriorityMap map[string]string,
-	lowPriorityMap map[string]string,
-) map[string]string {
-	for k, v := range highPriorityMap {
-		lowPriorityMap[k] = v
-	}
-	return lowPriorityMap
 }
 
 // Extends the PodSpec to include Kubernetes-specific executor config.

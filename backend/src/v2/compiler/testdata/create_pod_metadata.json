@@ -1,0 +1,22 @@
+{
+    "platforms": {
+      "kubernetes": {
+        "deploymentSpec": {
+          "executors": {
+            "exec-hello-world": {
+              "podMetadata": {
+                "annotations": {
+                  "run_id": "123456",
+                  "experiment_id": "234567"
+                },
+                "labels": {
+                  "kubeflow.com/kfp": "pipeline-node",
+                  "kubeflow.com/common": "test"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
