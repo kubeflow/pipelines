@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	k8score "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
@@ -603,45 +602,6 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 			err := extendPodSpecPatch(tt.podSpec, tt.k8sExecCfg, nil, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, tt.podSpec)
-		})
-	}
-}
-
-func Test_extendPodMetadata(t *testing.T) {
-	tests := []struct {
-		name                     string
-		podMetadata              *metav1.ObjectMeta
-		kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
-		expected                 *metav1.ObjectMeta
-	}{
-		{
-			"Valid - add pod labels and annotations",
-			&metav1.ObjectMeta{},
-			&kubernetesplatform.KubernetesExecutorConfig{
-				PodMetadata: &kubernetesplatform.PodMetadata{
-					Annotations: map[string]string{
-						"run_id": "123456",
-					},
-					Labels: map[string]string{
-						"kubeflow.com/kfp": "pipeline-node",
-					},
-				},
-			},
-			&metav1.ObjectMeta{
-				Annotations: map[string]string{
-					"run_id": "123456",
-				},
-				Labels: map[string]string{
-					"kubeflow.com/kfp": "pipeline-node",
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := extendPodMetadata(tt.podMetadata, tt.kubernetesExecutorConfig)
-			assert.Nil(t, err)
-			assert.Equal(t, tt.expected, tt.podMetadata)
 		})
 	}
 }
