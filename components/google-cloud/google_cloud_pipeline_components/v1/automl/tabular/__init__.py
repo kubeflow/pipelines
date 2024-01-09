@@ -25,18 +25,20 @@ from google_cloud_pipeline_components.v1.automl.tabular.stage_1_tuner import aut
 from google_cloud_pipeline_components.v1.automl.tabular.stats_and_example_gen import tabular_stats_and_example_gen as StatsAndExampleGenOp
 from google_cloud_pipeline_components.v1.automl.tabular.training_configurator_and_validator import training_configurator_and_validator as TrainingConfiguratorAndValidatorOp
 from google_cloud_pipeline_components.v1.automl.tabular.transform import automl_tabular_transform as TransformOp
+from google_cloud_pipeline_components.v1.automl.tabular.utils import get_automl_tabular_pipeline_and_parameters
 from kfp import components
 
 __all__ = [
     'CvTrainerOp',
-    'InfraValidatorOp',
-    'Stage1TunerOp',
     'EnsembleOp',
-    'StatsAndExampleGenOp',
-    'TransformOp',
     'FinalizerOp',
+    'InfraValidatorOp',
     'SplitMaterializedDataOp',
+    'Stage1TunerOp',
+    'StatsAndExampleGenOp',
     'TrainingConfiguratorAndValidatorOp',
+    'TransformOp',
+    'get_automl_tabular_pipeline_and_parameters',
 ]
 
 automl_tabular_pipeline = components.load_component_from_file(
