@@ -56,10 +56,10 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
   models, performing the following generative tasks: `summarization`, `question-answering`, and `text-generation`.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    batch_predict_gcs_source_uris: Google Cloud Storage URI(-s) to your eval dataset instances data to run batch prediction on. The instances data should also contain the ground truth (target) data, used for evaluation. May contain wildcards. For more information on wildcards, see https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames. For more details about this input config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
-    batch_predict_gcs_destination_output_uri: The Google Cloud Storage location of the directory where the eval pipeline output is to be written to.
+    project: Required. The GCP project that runs the pipeline components.
+    location: Required. The GCP region that runs the pipeline components.
+    batch_predict_gcs_source_uris: Required. Google Cloud Storage URI(-s) to your eval dataset instances data to run batch prediction on. The instances data should also contain the ground truth (target) data, used for evaluation. May contain wildcards. For more information on wildcards, see https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames. For more details about this input config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
+    batch_predict_gcs_destination_output_uri: Required. The Google Cloud Storage location of the directory where the eval pipeline output is to be written to.
     model_name: The Model name used to run evaluation. Must be a publisher Model or a managed Model sharing the same ancestor location. Starting this job has no impact on any existing deployments of the Model and their resources.
     evaluation_task: The task that the large language model will be evaluated on. The evaluation component computes a set of metrics relevant to that specific task. Currently supported tasks are: `summarization`, `question-answering`, `text-generation`.
     input_field_name: The field name of the input eval dataset instances that contains the input prompts to the LLM.
