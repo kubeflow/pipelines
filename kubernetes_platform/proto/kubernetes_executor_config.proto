@@ -25,6 +25,7 @@ message KubernetesExecutorConfig {
     repeated SecretAsEnv secret_as_env = 2;
     repeated PvcMount pvc_mount = 3;
     NodeSelector node_selector = 4;
+    PodMetadata pod_metadata = 5;
 }
 
 message SecretAsVolume {
@@ -113,4 +114,11 @@ message NodeSelector {
     // map of label key to label value
     // corresponds to Pod.spec.nodeSelector field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
     map<string, string> labels = 1;
+}
+
+message PodMetadata {
+    // values of metadata spec such as labels and annotations for the pod object
+    // corresponds to Pod.metadata field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Pod
+    map<string, string> labels = 1;
+    map<string, string> annotations = 2;
 }
