@@ -39,6 +39,8 @@ def bigquery_query_job(
   # fmt: off
   """Launch a BigQuery query job and waits for it to finish.
 
+  Note: The total input commands/args to the component can be at most 50KB. This means the BigQuery query must be less than 50KB, since the input commands/args contain other non-query characters, including all parameter names, parameter values, and various JSON characters.
+
   Args:
       location: Location for creating the BigQuery job. If not set, default to `US` multi-region.  For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
       query: SQL query text to execute. Only standard SQL is supported.  If query are both specified in here and in job_configuration_query, the value in here will override the other one.
