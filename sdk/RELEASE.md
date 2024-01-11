@@ -3,6 +3,18 @@
 ## Features
 
 ## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.6.0
+
+## Features
+
+## Breaking changes
 * Soft breaking change for [Protobuf 3 EOL](https://protobuf.dev/support/version-support/#python). Migrate to `protobuf==4`. Drop support for `protobuf==3`. [\#10307](https://github.com/kubeflow/pipelines/pull/10307)
 
 ## Deprecations
