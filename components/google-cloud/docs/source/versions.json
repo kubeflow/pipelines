@@ -1,5 +1,10 @@
 [
   {
+    "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.8.1",
+    "title": "2.8.1",
+    "aliases": []
+  },
+  {
     "version": "https://google-cloud-pipeline-components.readthedocs.io/en/google-cloud-pipeline-components-2.8.0",
     "title": "2.8.0",
     "aliases": []

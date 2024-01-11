@@ -1,7 +1,10 @@
 ## Upcoming release
+
+## Release 2.8.1
 * Use `large_model_reference` for `model_reference_name` when uploading models from `preview.llm.rlhf_pipeline` instead of hardcoding value as `text-bison@001`.
 * Disable caching when resolving model display names for RLHF-tuned models so a unique name is generated on each `preview.llm.rlhf_pipeline` run.
 * Upload the tuned adapter to Model Registry instead of model checkpoint from `preview.llm.rlhf_pipeline`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.8.0
 * Release AutoSxS pipeline to preview.
