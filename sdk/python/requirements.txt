@@ -41,15 +41,15 @@ googleapis-common-protos==1.56.4
     # via google-api-core
 idna==3.3
     # via requests
-kfp-pipeline-spec==0.2.2
+kfp-pipeline-spec==0.3.0
     # via -r requirements.in
-kfp-server-api==2.0.0-rc.1
+kfp-server-api==2.0.5
     # via -r requirements.in
 kubernetes==23.6.0
     # via -r requirements.in
 oauthlib==3.2.0
     # via requests-oauthlib
-protobuf==3.20.1
+protobuf==4.25.1
     # via
     #   -r requirements.in
     #   google-api-core

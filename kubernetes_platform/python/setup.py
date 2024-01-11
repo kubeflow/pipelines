@@ -19,9 +19,9 @@ import setuptools
 
 NAME = 'kfp-kubernetes'
 REQUIREMENTS = [
-    'protobuf>=3.13.0,<4',
-    # bump version when platform-specific compilation is released and tests no longer install kfp from source
-    'kfp>=2.0.0-beta.13',
+    'protobuf>=4.21.1,<5',
+    # TODO: bump to 2.6.0 after next KFP SDK release with protobuf 4
+    'kfp>=2.5.0',
 ]
 DEV_REQUIREMENTS = [
     'docformatter==1.4',
