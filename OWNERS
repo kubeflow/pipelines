@@ -1,8 +1,19 @@
 approvers:
-  - chensun
-  - IronPan
-  - james-jwu
-  - zijianjoy
+  - accorvin
+  - DharmitD
+  - dsp-developers
+  - gmfrasca
+  - gregsheremeta
+  - HumairAK
+  - rimolive
 reviewers:
-  - chensun
-  - zijianjoy
+  - amadhusu
+  - DharmitD
+  - gmfrasca
+  - gregsheremeta
+  - hbelmiro
+  - HumairAK
+  - rimolive
+  - VaniHaripriya
+emeritus_approvers:
+  - harshad16
