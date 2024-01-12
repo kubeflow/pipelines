@@ -1,8 +1,10 @@
 ---
-name: ⚠️ Report Frontend Bug
+name: "⚠️ Report Frontend Bug"
 about: Report a Frontend bug on Kubeflow Pipelines
 title: "[frontend] <Bug Name>"
-labels: kind/bug, area/frontend
+labels: ''
+assignees: ''
+
 ---
 
 ### Environment
@@ -33,4 +35,4 @@ This may include information such as: a description of the process, code snippet
 ---
 
 <!-- Don't delete message below to encourage users to support your issue! -->
-Impacted by this bug? Give it a 👍. 
+Impacted by this bug? Give it a 👍.
