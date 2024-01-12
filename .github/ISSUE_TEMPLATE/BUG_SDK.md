@@ -1,8 +1,10 @@
 ---
-name: ⚠️ Report SDK Bug
+name: "⚠️ Report SDK Bug"
 about: Report a SDK bug on Kubeflow Pipelines
 title: "[sdk] <Bug Name>"
-labels: kind/bug, area/sdk
+labels: ''
+assignees: ''
+
 ---
 
 ### Environment
@@ -35,4 +37,4 @@ This may include information such as: a description of the process, code snippet
 ---
 
 <!-- Don't delete message below to encourage users to support your issue! -->
-Impacted by this bug? Give it a 👍. 
+Impacted by this bug? Give it a 👍.
