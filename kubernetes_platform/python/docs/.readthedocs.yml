@@ -2,8 +2,11 @@
 version: 2
 sphinx:
   configuration: kubernetes_platform/python/docs/conf.py
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.8"
 python:
-  version: 3.7
   install:
     - requirements: kubernetes_platform/python/docs/requirements.txt
     - method: pip
