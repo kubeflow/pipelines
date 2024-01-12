@@ -8804,9 +8804,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"l2l_cv_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325",
           "\", \"--component_id={{$.pipeline_task_uuid}}\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
           \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -8847,9 +8847,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"l2l_cv_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325",
           "\", \"--component_id={{$.pipeline_task_uuid}}\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
           \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -8890,7 +8890,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"ensemble\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
           "\", \"--model_output_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\",
           \"--custom_model_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
@@ -8902,7 +8902,7 @@ deploymentSpec:
           "\", \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
           "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--warmup_data=", "{{$.inputs.artifacts[''warmup_data''].uri}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231029_0125",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240108_1325",
           "\", \"--model_path=", "{{$.outputs.artifacts[''model''].uri}}", "\", \"--custom_model_path=",
           "{{$.outputs.artifacts[''model_without_custom_ops''].uri}}", "\", \"--explanation_metadata_path=",
           "{{$.outputs.parameters[''explanation_metadata''].output_file}}", ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
@@ -8931,7 +8931,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"ensemble\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
           "\", \"--model_output_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\",
           \"--custom_model_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
@@ -8943,7 +8943,7 @@ deploymentSpec:
           "\", \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
           "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--warmup_data=", "{{$.inputs.artifacts[''warmup_data''].uri}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231029_0125",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240108_1325",
           "\", \"--model_path=", "{{$.outputs.artifacts[''model''].uri}}", "\", \"--custom_model_path=",
           "{{$.outputs.artifacts[''model_without_custom_ops''].uri}}", "\", \"--explanation_metadata_path=",
           "{{$.outputs.parameters[''explanation_metadata''].output_file}}", ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
@@ -8972,7 +8972,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"ensemble\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
           "\", \"--model_output_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\",
           \"--custom_model_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
@@ -8984,7 +8984,7 @@ deploymentSpec:
           "\", \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
           "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--warmup_data=", "{{$.inputs.artifacts[''warmup_data''].uri}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231029_0125",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240108_1325",
           "\", \"--model_path=", "{{$.outputs.artifacts[''model''].uri}}", "\", \"--custom_model_path=",
           "{{$.outputs.artifacts[''model_without_custom_ops''].uri}}", "\", \"--explanation_metadata_path=",
           "{{$.outputs.parameters[''explanation_metadata''].output_file}}", ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
@@ -9013,7 +9013,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -9028,7 +9028,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240108_1325
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -9037,7 +9037,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240108_1325
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -9046,7 +9046,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240108_1325
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -9066,9 +9066,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"l2l_stage_1_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325",
           "\", \"--feature_selection_result_path=", "{{$.inputs.artifacts[''feature_ranking''].uri}}",
           "\", \"--disable_early_stopping=", "{{$.inputs.parameters[''disable_early_stopping'']}}",
           "\", \"--tune_feature_selection_rate=", "{{$.inputs.parameters[''tune_feature_selection_rate'']}}",
@@ -9113,9 +9113,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"l2l_stage_1_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325",
           "\", \"--feature_selection_result_path=", "{{$.inputs.artifacts[''feature_ranking''].uri}}",
           "\", \"--disable_early_stopping=", "{{$.inputs.parameters[''disable_early_stopping'']}}",
           "\", \"--tune_feature_selection_rate=", "{{$.inputs.parameters[''tune_feature_selection_rate'']}}",
@@ -9160,7 +9160,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"transform\", \"--is_mp=true\", \"--transform_output_artifact_path=",
           "{{$.outputs.artifacts[''transform_output''].uri}}", "\", \"--transform_output_path=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform\",
@@ -9181,7 +9181,7 @@ deploymentSpec:
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240108_1325",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
           "\", \"--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}",
@@ -9212,7 +9212,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"transform\", \"--is_mp=true\", \"--transform_output_artifact_path=",
           "{{$.outputs.artifacts[''transform_output''].uri}}", "\", \"--transform_output_path=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform\",
@@ -9233,7 +9233,7 @@ deploymentSpec:
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240108_1325",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
           "\", \"--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}",
@@ -10499,7 +10499,7 @@ deploymentSpec:
         - -u
         - -m
         - launcher
-        image: gcr.io/ml-pipeline/automl-tables-private:1.0.15
+        image: gcr.io/ml-pipeline/automl-tables-private:1.0.17
     exec-model-upload-2:
       container:
         args:
@@ -10528,7 +10528,7 @@ deploymentSpec:
         - -u
         - -m
         - launcher
-        image: gcr.io/ml-pipeline/automl-tables-private:1.0.15
+        image: gcr.io/ml-pipeline/automl-tables-private:1.0.17
     exec-model-upload-3:
       container:
         args:
@@ -10557,7 +10557,7 @@ deploymentSpec:
         - -u
         - -m
         - launcher
-        image: gcr.io/ml-pipeline/automl-tables-private:1.0.15
+        image: gcr.io/ml-pipeline/automl-tables-private:1.0.17
     exec-purge-unused-features:
       container:
         args:
@@ -10728,7 +10728,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"feature_selection\", \"--data_source=", "{{$.inputs.artifacts[''data_source''].uri}}",
           "\", \"--target_column=", "{{$.inputs.parameters[''target_column_name'']}}",
           "\", \"--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}",
@@ -10741,7 +10741,7 @@ deploymentSpec:
           \"--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\",
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240108_1325",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
@@ -10774,7 +10774,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240108_1325", "\",
           \"args\": [\"stats_generator\",", "\"--train_spec={\\\"prediction_type\\\":
           \\\"", "{{$.inputs.parameters[''prediction_type'']}}", "\\\", \\\"target_column\\\":
           \\\"", "{{$.inputs.parameters[''target_column_name'']}}", "\\\", \\\"optimization_objective\\\":
@@ -10807,7 +10807,7 @@ deploymentSpec:
           \"--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\",
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240108_1325",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
