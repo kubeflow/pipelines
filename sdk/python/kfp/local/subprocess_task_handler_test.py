@@ -14,7 +14,7 @@
 """Tests for subprocess_local_task_handler.py."""
 import contextlib
 import io
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 import unittest
 from unittest import mock
 
@@ -403,6 +403,29 @@ class TestLightweightPythonComponentLogic(
 
         self.assertEqual(task.outputs['out_param'], 'HelloHello')
         self.assertEqual(task.outputs['Output'], 1)
+
+    def test_outputpath_result_not_written(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        # use dsl.OutputPath(int) for more thorough testing
+        # want to ensure that the code that converts protobuf number to
+        # Python int permits unwritten outputs
+        @dsl.component
+        def my_comp(out_param: dsl.OutputPath(int)):
+            pass
+
+        task = my_comp()
+        self.assertEmpty(task.outputs)
+
+    def test_optional_param(self):
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        @dsl.component
+        def my_comp(string: Optional[str] = None) -> str:
+            return 'is none' if string is None else 'not none'
+
+        task = my_comp()
+        self.assertEqual(task.output, 'is none')
 
 
 if __name__ == '__main__':

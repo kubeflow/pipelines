@@ -1,7 +1,33 @@
 # Current Version (in development)
 
 ## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.6.0
+
+## Features
+
+## Breaking changes
+* Soft breaking change for [Protobuf 3 EOL](https://protobuf.dev/support/version-support/#python). Migrate to `protobuf==4`. Drop support for `protobuf==3`. [\#10307](https://github.com/kubeflow/pipelines/pull/10307)
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.5.0
+
+## Features
 * Add support for `dsl.PIPELINE_TASK_EXECUTOR_OUTPUT_PATH_PLACEHOLDER` and `dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER` [\#10240](https://github.com/kubeflow/pipelines/pull/10240)
+* Add support for local component execution using `local.init()`, `DockerRunner`, and `SubprocessRunner`
 
 ## Breaking changes
 

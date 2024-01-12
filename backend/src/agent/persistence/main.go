@@ -30,6 +30,7 @@ import (
 
 var (
 	masterURL                     string
+	logLevel                      string
 	kubeconfig                    string
 	initializeTimeout             time.Duration
 	timeout                       time.Duration
@@ -47,6 +48,7 @@ var (
 )
 
 const (
+	logLevelFlagName                      = "logLevel"
 	kubeconfigFlagName                    = "kubeconfig"
 	masterFlagName                        = "master"
 	initializationTimeoutFlagName         = "initializeTimeout"
@@ -85,6 +87,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error building schedule clientset: %s", err.Error())
 	}
+
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	level, err := log.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatal("Invalid log level:", err)
+	}
+	log.SetLevel(level)
 
 	clientParam := util.ClientParameters{QPS: float64(cfg.QPS), Burst: cfg.Burst}
 	execInformer := util.NewExecutionInformerOrFatal(util.ArgoWorkflow, namespace, time.Second*30, clientParam)
@@ -131,6 +143,7 @@ func main() {
 func init() {
 	flag.StringVar(&kubeconfig, kubeconfigFlagName, "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, masterFlagName, "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	flag.StringVar(&logLevel, logLevelFlagName, "", "Defines the log level for the application.")
 	flag.DurationVar(&initializeTimeout, initializationTimeoutFlagName, 2*time.Minute, "Duration to wait for initialization of the ML pipeline API server.")
 	flag.DurationVar(&timeout, timeoutFlagName, 1*time.Minute, "Duration to wait for calls to complete.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
