@@ -289,6 +289,9 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 }
 
 // Extends the PodMetadata to include Kubernetes-specific executor config.
+// Although the current podMetadata object is always empty, this function
+// doesn't overwrite the existing podMetadata because for security reasons
+// the existing podMetadata should have higher privilege than the user definition.
 func extendPodMetadata(
 	podMetadata *wfapi.Metadata,
 	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,

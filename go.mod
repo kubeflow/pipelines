@@ -17,7 +17,6 @@ require (
 	github.com/go-openapi/swag v0.19.15
 	github.com/go-openapi/validate v0.20.3
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/gogo/protobuf v1.3.2
 	github.com/golang/glog v1.0.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76
@@ -32,7 +31,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/kubeflow/pipelines/api v0.0.0-20230331215358-758c91f76784
-	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20230404213301-bd9f74e34de6
+	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240111221413-aac4408237df
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.14.16
@@ -62,7 +61,6 @@ require (
 )
 
 replace (
-	github.com/kubeflow/pipelines/kubernetes_platform => ./kubernetes_platform/
 	k8s.io/kubernetes => k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 )
