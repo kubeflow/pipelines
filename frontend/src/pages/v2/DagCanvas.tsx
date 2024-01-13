@@ -44,6 +44,8 @@ export default function DagCanvas({
   setFlowElements,
 }: DagCanvasProps) {
   const instanceRef = useRef<OnLoadParams | null>(null);
+  const prevLayer = useRef(layers);
+
   const onLoad = (reactFlowInstance: OnLoadParams) => {
     reactFlowInstance.fitView();
     instanceRef.current = reactFlowInstance;
@@ -62,10 +64,11 @@ export default function DagCanvas({
   });
 
   useEffect(() => {
-    if (instanceRef.current) {
+    if (instanceRef.current && prevLayer.current !== layers) {
       instanceRef.current.fitView();
     }
-  }, [elements]);
+    prevLayer.current = layers;
+  }, [elements, layers, prevLayer]);
 
   return (
     <>
