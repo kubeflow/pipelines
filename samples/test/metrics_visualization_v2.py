@@ -89,7 +89,7 @@ def wine_classification(metrics: Output[ClassificationMetrics]):
     y_predict = cross_val_predict(rfc, X_train, y_train, cv=3, method='predict')
     fpr, tpr, thresholds = roc_curve(
         y_true=y_train, y_score=y_scores[:, 1], pos_label=True)
-    metrics.log_roc_curve(fpr, tpr, thresholds)
+    metrics.log_roc_curve(fpr[1:], tpr[1:], thresholds[1:])
 
 
 @component(
