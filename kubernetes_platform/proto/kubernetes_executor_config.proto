@@ -138,7 +138,7 @@ message ConfigMapAsEnv {
 
     message ConfigMapKeyToEnvMap {
         // Corresponds to a key of the ConfigMap.
-        string configmap_key = 1;
+        string config_map_key = 1;
         // Env var to which configmap_key's data should be set.
         string env_var = 2;
     }
