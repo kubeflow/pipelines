@@ -33,6 +33,7 @@ message KubernetesExecutorConfig {
     repeated ConfigMapAsEnv config_map_as_env = 9;
     int64 active_deadline_seconds = 10;
     repeated FieldPathAsEnv field_path_as_env = 11;
+    repeated Toleration tolerations = 12;
 }
 
 message SecretAsVolume {
@@ -162,4 +163,12 @@ message FieldPathAsEnv {
 
     // Value of the field path string
     string field_path = 2;
+}
+
+message Toleration {
+    string key = 1;
+    string operator = 2;
+    string value = 3;
+    string effect = 4;
+    optional int64 toleration_seconds = 5;
 }
