@@ -26,6 +26,8 @@ message KubernetesExecutorConfig {
     repeated PvcMount pvc_mount = 3;
     NodeSelector node_selector = 4;
     PodMetadata pod_metadata = 5;
+    repeated ConfigMapAsVolume cm_as_volume = 6;
+    repeated ConfigMapAsEnv cm_as_env = 7;
 }
 
 message SecretAsVolume {
@@ -121,4 +123,16 @@ message PodMetadata {
     // corresponds to Pod.metadata field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Pod
     map<string, string> labels = 1;
     map<string, string> annotations = 2;
+}
+
+message ConfigMapAsVolume {
+    // Name of the ConfigMap.
+    string config_map_name = 1;
+    // Container path to mount the ConfigMap data.
+    string mount_path = 2;
+}
+
+message ConfigMapAsEnv {
+    // Name of the ConfigMap.
+    string config_map_name = 1;
 }
