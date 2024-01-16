@@ -22,7 +22,7 @@ from kfp import dsl
 
 
 # pylint: disable=g-import-not-at-top, g-doc-args, unexpected-keyword-arg
-@dsl.component
+@dsl.component(base_image=version.LLM_EVAL_IMAGE_TAG)
 def add_json_escape_to_list(input_list: List[str]) -> str:
   import json
 
