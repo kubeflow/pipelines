@@ -32,6 +32,7 @@ message KubernetesExecutorConfig {
     repeated ConfigMapAsVolume config_map_as_volume = 8;
     repeated ConfigMapAsEnv config_map_as_env = 9;
     int64 active_deadline_seconds = 10;
+    repeated Toleration tolerations = 11;
 }
 
 message SecretAsVolume {
@@ -153,4 +154,12 @@ message ConfigMapAsEnv {
 message ImagePullSecret {
     // Name of the image pull secret.
     string secret_name = 1;
+}
+
+message Toleration {
+    string key = 1;
+    string operator = 2;
+    string value = 3;
+    string effect = 4;
+    optional int64 toleration_seconds = 5;
 }
