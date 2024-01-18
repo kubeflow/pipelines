@@ -142,4 +142,6 @@ message ConfigMapAsEnv {
         // Env var to which configmap_key's data should be set.
         string env_var = 2;
     }
+
+    repeated ConfigMapKeyToEnvMap key_to_env = 2;
 }
