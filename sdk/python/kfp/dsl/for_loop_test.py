@@ -49,24 +49,38 @@ class ForLoopTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
-            'dict_type': 'Dict[str, int]',
+            'items': 
+                pipeline_channel.PipelineParameterChannel(
+                    name='param1',
+                    channel_type='List[str]',
+                ),
+            'value_type': None,
+        },
+        {
+            'items': [
+                {
+                    'a': 1
+                },
+                {
+                    'b': 2
+                },
+            ],
             'value_type': 'int',
         },
         {
-            'dict_type': 'typing.Mapping[str,float]',
+            'items': [
+                {
+                    'a': 2.3
+                },
+                {
+                    'b': 4.5
+                },
+            ],
             'value_type': 'float',
         },
-        {
-            'dict_type': 'typing.Mapping[str, Dict[str, str] ]',
-            'value_type': 'Dict[str, str]',
-        },
-        {
-            'dict_type': 'dict',
-            'value_type': None,
-        },
     )
-    def test_get_subvar_type(self, dict_type, value_type):
-        self.assertEqual(for_loop._get_subvar_type(dict_type), value_type)
+    def test_get_subvar_type(self, items, value_type):
+        self.assertEqual(for_loop._get_subvar_type(items), value_type)
 
     @parameterized.parameters(
         {

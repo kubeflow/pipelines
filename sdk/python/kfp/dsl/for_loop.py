@@ -42,8 +42,7 @@ def _get_loop_item_type(type_name: str) -> Optional[str]:
     match = re.match('(typing\.)?(?:\w+)(?:\[(?P<item_type>.+)\])', type_name)
     return match['item_type'].lstrip().rstrip() if match else None
 
-
-def _get_subvar_type(type_name: str) -> Optional[str]:
+def _get_subvar_type(items:Union[ItemList, pipeline_channel.PipelineParameterChannel]) -> Optional[str]:
     """Extracts the subvar type.
 
     This method is used for extract the value type from a dictionary type.
@@ -58,9 +57,15 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
     Returns:
         The dictionary value type or None if no match found.
     """
+    if (isinstance(items, pipeline_channel.PipelineChannel)):
+        return None
+    dict_key = next(iter(items[0]))
+    dict_value = items[0][dict_key]
+    dict_key_type = type(dict_key)
+    dict_value_type = type(dict_value)
     match = re.match(
-        '(typing\.)?(?:\w+)(?:\[\s*(?:\w+)\s*,\s*(?P<value_type>.+)\])',
-        type_name)
+        '(typing\.)?(?:\w+)(?:\[\s*(?:\w+)\s*,\s*(?P<value_type>.+)\])', 
+        f"Dict[{dict_key_type.__name__}, {dict_value_type.__name__}]")
     return match['value_type'].lstrip().rstrip() if match else None
 
 
@@ -243,7 +248,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
                 subvar_name=subvar_name,
             ),
             task_name=loop_argument.task_name,
-            channel_type=_get_subvar_type(loop_argument.channel_type) or
+            channel_type=_get_subvar_type(loop_argument.items_or_pipeline_channel) or
             'String',
         )
 
