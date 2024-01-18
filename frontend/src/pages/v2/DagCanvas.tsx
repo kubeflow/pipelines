@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, {useEffect, useRef} from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReactFlow, {
   Background,
   Controls,
