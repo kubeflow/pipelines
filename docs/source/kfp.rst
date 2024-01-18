@@ -9,3 +9,4 @@ API Reference
    components
    client
    registry
+   local
