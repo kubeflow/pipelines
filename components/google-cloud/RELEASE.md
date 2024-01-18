@@ -3,6 +3,7 @@
 * Disable caching when resolving model display names for RLHF-tuned models so a unique name is generated on each `preview.llm.rlhf_pipeline` run.
 * Upload the tuned adapter to Model Registry instead of model checkpoint from `preview.llm.rlhf_pipeline`.
 * Add Vertex model get component (`v1.model.ModelGetOp`).
+* Migrate to Protobuf 4 (`protobuf>=4.21.1,<5`). Require `kfp>=2.6.0`.
 
 ## Release 2.8.0
 * Release AutoSxS pipeline to preview.
