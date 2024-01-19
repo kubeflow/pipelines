@@ -1,0 +1,267 @@
+name: Build images for PRs
+on:
+  workflow_run:
+    workflows: ["Trigger build images for PRs"]
+    types:
+      - completed
+env:
+  QUAY_ORG: opendatahub
+  QUAY_ID: ${{ secrets.QUAY_ROBOT_USERNAME }}
+  QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+  GH_USER_EMAIL: 140449482+dsp-developers@users.noreply.github.com
+  GH_USER_NAME: dsp-developers
+jobs:
+  fetch-data:
+    name: Fetch workflow payload
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    outputs:
+      pr_state: ${{ steps.vars.outputs.pr_state }}
+      pr_number: ${{ steps.vars.outputs.pr_number }}
+      head_sha: ${{ steps.vars.outputs.head_sha }}
+      event_action: ${{ steps.vars.outputs.event_action }}
+    steps:
+      - name: 'Download artifact'
+        uses: actions/github-script@v3.1.0
+        with:
+          script: |
+            var artifacts = await github.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{github.event.workflow_run.id }},
+            });
+            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "pr"
+            })[0];
+            var download = await github.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+            var fs = require('fs');
+            fs.writeFileSync('${{github.workspace}}/pr.zip', Buffer.from(download.data));
+      - run: unzip pr.zip
+      - shell: bash
+        id: vars
+        run: |
+          pr_number=$(cat ./pr_number)
+          pr_state=$(cat ./pr_state)
+          head_sha=$(cat ./head_sha)
+          event_action=$(cat ./event_action)
+          echo "pr_number=${pr_number}" >> $GITHUB_OUTPUT
+          echo "pr_state=${pr_state}" >> $GITHUB_OUTPUT
+          echo "head_sha=${head_sha}" >> $GITHUB_OUTPUT
+          echo "event_action=${event_action}" >> $GITHUB_OUTPUT
+
+  build-pr-images:
+    name: Build DSP Images
+    if: needs.fetch-data.outputs.pr_state == 'open'
+    runs-on: ubuntu-latest
+    needs: fetch-data
+    env:
+      SOURCE_BRANCH: ${{ needs.fetch-data.outputs.head_sha }}
+      TARGET_IMAGE_TAG: pr-${{ needs.fetch-data.outputs.pr_number }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ds-pipelines-api-server
+            dockerfile: backend/Dockerfile
+          - image: ds-pipelines-frontend
+            dockerfile: frontend/Dockerfile
+          - image: ds-pipelines-cacheserver
+            dockerfile: backend/Dockerfile.cacheserver
+          - image: ds-pipelines-persistenceagent
+            dockerfile: backend/Dockerfile.persistenceagent
+          - image: ds-pipelines-scheduledworkflow
+            dockerfile: backend/Dockerfile.scheduledworkflow
+          - image: ds-pipelines-viewercontroller
+            dockerfile: backend/Dockerfile.viewercontroller
+          - image: ds-pipelines-artifact-manager
+            dockerfile: backend/artifact_manager/Dockerfile
+          - image: ds-pipelines-metadata-writer
+            dockerfile: backend/metadata_writer/Dockerfile
+          - image: ds-pipelines-metadata-grpc
+            dockerfile: third_party/ml-metadata/Dockerfile
+          - image: ds-pipelines-metadata-envoy
+            dockerfile: third_party/metadata_envoy/Dockerfile
+          - image: ds-pipelines-driver
+            dockerfile: backend/Dockerfile.driver
+          - image: ds-pipelines-launcher
+            dockerfile: backend/Dockerfile.launcher
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Image
+        uses: ./.github/actions/build
+        with:
+          OVERWRITE: true
+          IMAGE_REPO: ${{ matrix.image }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          GH_REPO: ${{ github.repository }}
+  
+  comment-on-pr:
+    name: Comment on PR after images built
+    runs-on: ubuntu-latest
+    needs: [fetch-data, build-pr-images]
+    concurrency:
+      group: ${{ github.workflow }}-comment-on-pr-${{ needs.fetch-data.outputs.pr_number }}
+      cancel-in-progress: true
+    env:
+      SOURCE_BRANCH: ${{ needs.fetch-data.outputs.head_sha }}
+      TARGET_IMAGE_TAG: pr-${{ needs.fetch-data.outputs.pr_number }}        
+    steps:
+      - uses: actions/checkout@v3
+      - name: Echo PR metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN_PROJECT_EDIT }}
+        run: |
+          echo ${{ needs.fetch-data.outputs.head_sha }}
+          echo ${{ needs.fetch-data.outputs.pr_number }}
+          echo ${{ needs.fetch-data.outputs.pr_state }}
+          echo ${{ needs.fetch-data.outputs.event_action }}
+      - name: Send comment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN_PROJECT_EDIT }}
+          FULLIMG_API_SERVER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-api-server:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_FRONTEND: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-frontend:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_CACHESERVER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-cacheserver:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_PERSISTENCEAGENT: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-persistenceagent:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_SCHEDULEDWORKFLOW: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-scheduledworkflow:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_VIEWERCONTROLLER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-viewercontroller:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_ARTIFACT_MANAGER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-artifact-manager:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_METADATA_WRITER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-metadata-writer:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_METADATA_ENVOY: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-metadata-envoy:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_METADATA_GRPC: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-metadata-grpc:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_DRIVER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-driver:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_LAUNCHER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-launcher:${{ env.TARGET_IMAGE_TAG }}
+        run: |
+          git config user.email "${{ env.GH_USER_EMAIL }}"
+          git config user.name "${{ env.GH_USER_NAME }}"
+
+          action=${{ needs.fetch-data.outputs.event_action }}
+
+          if [[ "$action" == "synchronize" ]]; then
+            echo "Change to PR detected. A new PR build was completed." >> /tmp/body-file.txt
+          fi
+
+          if [[ "$action" == "reopened" ]]; then
+            echo "PR was re-opened." >> /tmp/body-file.txt
+          fi
+
+          cat <<"EOF" >> /tmp/body-file.txt
+            A set of new images have been built to help with testing out this PR: 
+            **API Server**: `${{ env.FULLIMG_API_SERVER }}`
+            **DSP DRIVER**: `${{ env.FULLIMG_DRIVER }}`
+            **DSP LAUNCHER**: `${{ env.FULLIMG_LAUNCHER }}`
+            **Persistence Agent**: `${{ env.FULLIMG_PERSISTENCEAGENT }}`
+            **Scheduled Workflow Manager**: `${{ env.FULLIMG_SCHEDULEDWORKFLOW }}`
+            **CRD Viewer Controller**: `${{ env.FULLIMG_VIEWERCONTROLLER }}`
+            **Artifact Manager**: `${{ env.FULLIMG_ARTIFACT_MANAGER }}`
+            **MLMD Server**: `${{ env.FULLIMG_METADATA_GRPC }}`
+            **MLMD Writer**: `${{ env.FULLIMG_METADATA_WRITER }}`
+            **MLMD Envoy Proxy**: `${{ env.FULLIMG_METADATA_ENVOY }}`
+            **Cache Server**: `${{ env.FULLIMG_CACHESERVER }}`
+            **UI**: `${{ env.FULLIMG_FRONTEND }}`
+          EOF
+
+          gh pr comment ${{ needs.fetch-data.outputs.pr_number }} --body-file /tmp/body-file.txt
+
+          if [[ "$action" == "opened" || "$action" == "reopened" ]]; then
+          cat <<"EOF" >> /tmp/additional-comment.txt
+          An OCP cluster where you are logged in as cluster admin is required.
+
+          The Data Science Pipelines team recommends testing this using the Data Science Pipelines Operator.  Check [here](https://github.com/opendatahub-io/data-science-pipelines-operator) for more information on using the DSPO.
+
+          To use and deploy a DSP stack with these images (assuming the DSPO is deployed), first save the following YAML to a file named `dspa.pr-${{ needs.fetch-data.outputs.pr_number}}.yaml`:
+          ```yaml
+          apiVersion: datasciencepipelinesapplications.opendatahub.io/v1alpha1
+          kind: DataSciencePipelinesApplication
+          metadata:
+            name: pr-${{ needs.fetch-data.outputs.pr_number}}
+          spec:
+            apiServer:
+              image: "${{ env.FULLIMG_API_SERVER }}"
+              artifactImage: "${{ env.FULLIMG_ARTIFACT_MANAGER }}"
+              argoDriverImage: "${{ env.FULLIMG_DRIVER }}"
+              argoLauncherImage: "${{ env.FULLIMG_LAUNCHER }}"
+            persistenceAgent:
+              image: "${{ env.FULLIMG_PERSISTENCEAGENT }}"
+            scheduledWorkflow:
+              image: "${{ env.FULLIMG_SCHEDULEDWORKFLOW }}"
+            crdViewer:  
+              deploy: true  # Optional component
+              image: "${{ env.FULLIMG_VIEWERCONTROLLER }}"
+            mlmd:  
+              deploy: true  # Optional component
+              grpc:
+                image: "${{ env.FULLIMG_METADATA_GRPC }}"
+              envoy:
+                image: "${{ env.FULLIMG_METADATA_ENVOY }}"
+              writer:
+                image: "${{ env.FULLIMG_METADATA_WRITER }}"
+            mlpipelineUI:
+              deploy: true  # Optional component 
+              image: "${{ env.FULLIMG_FRONTEND }}"
+            objectStorage:
+              minio:
+                deploy: true
+                image: 'quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance'
+          ```
+
+          Then run the following:
+
+          ```bash
+          cd $(mktemp -d)
+          git clone git@github.com:opendatahub-io/data-science-pipelines.git
+          cd data-science-pipelines/
+          git fetch origin pull/${{ needs.fetch-data.outputs.pr_number }}/head
+          git checkout -b pullrequest ${{ env.SOURCE_BRANCH }}
+          oc apply -f dspa.pr-${{ needs.fetch-data.outputs.pr_number}}.yaml
+          ```
+
+          More instructions [here](https://github.com/opendatahub-io/data-science-pipelines-operator#deploy-dsp-instance) on how to deploy and test a Data Science Pipelines Application.
+
+          EOF
+          gh pr comment ${{ needs.fetch-data.outputs.pr_number }} --body-file /tmp/additional-comment.txt
+          fi
+  clean-pr-images:
+    name: Cleanup images if PR is closed
+    if: needs.fetch-data.outputs.pr_state == 'closed'
+    runs-on: ubuntu-latest
+    needs: fetch-data
+    env:
+      TARGET_IMAGE_TAG: pr-${{ needs.fetch-data.outputs.pr_number }}
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - ds-pipelines-api-server
+          - ds-pipelines-frontend
+          - ds-pipelines-cacheserver
+          - ds-pipelines-persistenceagent
+          - ds-pipelines-scheduledworkflow
+          - ds-pipelines-viewercontroller
+          - ds-pipelines-artifact-manager
+          - ds-pipelines-launcher
+          - ds-pipelines-driver
+          - ds-pipelines-metadata-writer
+          - ds-pipelines-metadata-grpc
+          - ds-pipelines-metadata-envoy
+    steps:
+      - name: Delete PR image
+        shell: bash
+        run: |
+          tag=$(curl --request GET 'https://quay.io/api/v1/repository/${{ env.QUAY_ORG }}/${{ matrix.image }}/tag/?specificTag=${{ env.TARGET_IMAGE_TAG }}')
+          exists=$(echo ${tag} | yq .tags - | yq any)
+          IMAGE=quay.io/${{ env.QUAY_ORG }}/${{ matrix.image }}:${{ env.TARGET_IMAGE_TAG }}
+          if [[ "$exists" == "true" ]]; then
+            echo "PR Closed deleting image...${{ matrix.image }}."
+            skopeo delete --creds ${{ env.QUAY_ID }}:${{ env.QUAY_TOKEN }} docker://${IMAGE}
+          else
+            echo "Deletion of image ${IMAGE} skipped because image already does not exist."
+          fi

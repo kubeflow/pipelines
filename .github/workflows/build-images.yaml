@@ -1,0 +1,108 @@
+name: Build images from sources.
+run-name: Build images from sources.
+on:
+  workflow_call:
+    inputs:
+      src_branch:
+        type: string
+        default: 'v1.0.x'
+        description: 'Source branch to build DSP from'
+        required: true
+      target_tag:
+        type: string
+        default: 'vx.y.z'
+        description: 'Target Image Tag'
+        required: true
+      quay_org:
+        type: string
+        default: 'opendatahub'
+        description: 'Quay Organization'
+        required: true
+      overwrite_imgs:
+        type: string
+        default: 'true'
+        description: 'Overwrite images in quay if they already exist for this release.'
+        required: true
+      fail_fast:
+        type: string
+        default: 'true'
+        description: 'Stop running entire Workflow if a single build fails'
+        required: true
+
+  workflow_dispatch:
+    inputs:
+      src_branch:
+        type: string
+        default: 'v1.0.x'
+        description: 'Source branch to build DSP from'
+        required: true
+      target_tag:
+        type: string
+        default: 'vx.y.z'
+        description: 'Target Image Tag'
+        required: true
+      quay_org:
+        type: string
+        default: 'opendatahub'
+        description: 'Quay Organization'
+        required: true
+      overwrite_imgs:
+        type: string
+        default: 'true'
+        description: 'Overwrite images in quay if they already exist for this release.'
+        required: true
+      fail_fast:
+        type: string
+        default: 'true'
+        description: 'Stop running entire Workflow if a single build fails'
+        required: true
+env:
+  SOURCE_BRANCH: ${{ inputs.src_branch }}
+  QUAY_ORG: ${{ inputs.quay_org }}
+  QUAY_ID: ${{ secrets.QUAY_ROBOT_USERNAME }}
+  QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+  TARGET_IMAGE_TAG: ${{ inputs.target_tag }}
+  OVERWRITE_IMAGES: ${{ inputs.overwrite_imgs }}
+jobs:
+  build-images-with-tag:
+    continue-on-error: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: ${{ inputs.fail_fast == 'true' }}
+      matrix:
+        include:
+          - image: ds-pipelines-api-server
+            dockerfile: backend/Dockerfile
+          - image: ds-pipelines-frontend
+            dockerfile: frontend/Dockerfile
+          - image: ds-pipelines-cacheserver
+            dockerfile: backend/Dockerfile.cacheserver
+          - image: ds-pipelines-persistenceagent
+            dockerfile: backend/Dockerfile.persistenceagent
+          - image: ds-pipelines-scheduledworkflow
+            dockerfile: backend/Dockerfile.scheduledworkflow
+          - image: ds-pipelines-viewercontroller
+            dockerfile: backend/Dockerfile.viewercontroller
+          - image: ds-pipelines-artifact-manager
+            dockerfile: backend/artifact_manager/Dockerfile
+          - image: ds-pipelines-metadata-writer
+            dockerfile: backend/metadata_writer/Dockerfile
+          - image: ds-pipelines-metadata-grpc
+            dockerfile: third_party/ml-metadata/Dockerfile
+          - image: ds-pipelines-metadata-envoy
+            dockerfile: third_party/metadata_envoy/Dockerfile
+          - image: ds-pipelines-driver
+            dockerfile: backend/Dockerfile.driver
+          - image: ds-pipelines-launcher
+            dockerfile: backend/Dockerfile.launcher
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/build
+        name: Build Image
+        with:
+          IMAGE_REPO: ${{ matrix.image }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          GH_REPO: ${{ github.repository }}
+          OVERWRITE: ${{ env.OVERWRITE_IMAGES }}
