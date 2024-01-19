@@ -14,7 +14,6 @@
 """Classes and methods that supports argument for ParallelFor."""
 
 import re
-import typing
 from typing import Any, Dict, List, Optional, Union
 
 from kfp.dsl import pipeline_channel
