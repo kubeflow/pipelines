@@ -17,6 +17,7 @@ package objectstore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -44,35 +45,24 @@ type Config struct {
 	QueryString string
 }
 
-func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (bucket *blob.Bucket, err error) {
+func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config, bucketSessionInfo string) (bucket *blob.Bucket, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("Failed to open bucket %q: %w", config.BucketName, err)
 		}
 	}()
-	if config.Scheme == "minio://" {
-		cred, err := getMinioCredential(ctx, k8sClient, namespace)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
-		}
-		sess, err := session.NewSession(&aws.Config{
-			Credentials:      cred,
-			Region:           aws.String("minio"),
-			Endpoint:         aws.String(MinioDefaultEndpoint()),
-			DisableSSL:       aws.Bool(true),
-			S3ForcePathStyle: aws.Bool(true),
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
-		}
-		minioBucket, err := s3blob.OpenBucket(ctx, sess, config.BucketName, nil)
+	sess, err := createBucketSession(ctx, namespace, bucketSessionInfo, k8sClient)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve credentials for bucket %s: %w", config.BucketName, err)
+	}
+	if sess != nil {
+		openedBucket, err := s3blob.OpenBucket(ctx, sess, config.BucketName, nil)
 		if err != nil {
 			return nil, err
 		}
 		// Directly calling s3blob.OpenBucket does not allow overriding prefix via bucketConfig.BucketURL().
 		// Therefore, we need to explicitly configure the prefixed bucket.
-		return blob.PrefixedBucket(minioBucket, config.Prefix), nil
+		return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 
 	}
 	return blob.OpenBucket(ctx, config.bucketURL())
@@ -339,4 +329,70 @@ func getMinioCredential(ctx context.Context, clientSet kubernetes.Interface, nam
 
 func getAWSCredential() (cred *credentials.Credentials, err error) {
 	return credentials.NewCredentials(&credentials.ChainProvider{}), nil
+}
+
+type SessionInfo struct {
+	Region       string
+	Endpoint     string
+	DisableSSL   bool
+	SecretName   string
+	AccessKeyKey string
+	SecretKeyKey string
+}
+
+func createBucketSession(ctx context.Context, namespace string, sessionInfoJSON string, client kubernetes.Interface) (*session.Session, error) {
+	if sessionInfoJSON == "" {
+		return nil, nil
+	}
+	sessionInfo := &SessionInfo{}
+	err := json.Unmarshal([]byte(sessionInfoJSON), sessionInfo)
+	if err != nil {
+		return nil, fmt.Errorf("Encountered error when attempting to unmarshall bucket session properties: %w", err)
+	}
+	creds, err := getBucketCredential(ctx, client, namespace, sessionInfo.SecretName, sessionInfo.SecretKeyKey, sessionInfo.AccessKeyKey)
+	if err != nil {
+		return nil, err
+	}
+	sess, err := session.NewSession(&aws.Config{
+		Credentials:      creds,
+		Region:           aws.String(sessionInfo.Region),
+		Endpoint:         aws.String(sessionInfo.Endpoint),
+		DisableSSL:       aws.Bool(sessionInfo.DisableSSL),
+		S3ForcePathStyle: aws.Bool(true),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
+	}
+	return sess, nil
+}
+
+func getBucketCredential(
+	ctx context.Context,
+	clientSet kubernetes.Interface,
+	namespace string,
+	secretName string,
+	bucketSecretKeyKey string,
+	bucketAccessKeyKey string,
+) (cred *credentials.Credentials, err error) {
+	defer func() {
+		if err != nil {
+			// wrap error before returning
+			err = fmt.Errorf("Failed to get Bucket credentials from secret name=%q namespace=%q: %w", secretName, namespace, err)
+		}
+	}()
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(
+		ctx,
+		secretName,
+		metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	accessKey := string(secret.Data[bucketAccessKeyKey])
+	secretKey := string(secret.Data[bucketSecretKeyKey])
+
+	if accessKey != "" && secretKey != "" {
+		cred = credentials.NewStaticCredentials(accessKey, secretKey, "")
+		return cred, err
+	}
+	return nil, fmt.Errorf("could not find specified keys '%s' or '%s'", bucketAccessKeyKey, bucketSecretKeyKey)
 }
