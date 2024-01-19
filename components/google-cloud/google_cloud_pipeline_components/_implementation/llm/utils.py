@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utility functions used to create custom Kubeflow components."""
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from google_cloud_pipeline_components._implementation.llm import env
 import kfp
@@ -28,6 +28,8 @@ def build_payload(
     accelerator_type: str = '',
     accelerator_count: int = 0,
     encryption_spec_key_name: str = '',
+    labels: Optional[Dict[str, str]] = None,
+    scheduling: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
   """Generates payload for a custom training job.
 
@@ -46,6 +48,8 @@ def build_payload(
       then all resources created by the CustomJob will be encrypted with the
       provided encryption key. Note that this is not supported for TPU at the
       moment.
+    labels: The labels with user-defined metadata to organize CustomJobs.
+    scheduling: Scheduling options for a CustomJob.
 
   Returns:
     Custom job payload.
@@ -85,6 +89,12 @@ def build_payload(
 
   if encryption_spec_key_name:
     payload['encryption_spec'] = {'kms_key_name': encryption_spec_key_name}
+
+  if labels:
+    payload['labels'] = labels
+
+  if scheduling:
+    payload['job_spec']['scheduling'] = scheduling
 
   return payload
 
