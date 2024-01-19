@@ -199,7 +199,8 @@ class LoopArgument(pipeline_channel.PipelineParameterChannel):
         return LoopArgument(
             items=raw_items,
             name_code=name_code,
-            channel_type=_get_first_element_type(raw_items))
+            channel_type=_get_first_element_type(raw_items),
+        )
 
     @classmethod
     def name_is_loop_argument(cls, name: str) -> bool:
