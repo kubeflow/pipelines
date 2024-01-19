@@ -1,0 +1,77 @@
+name: Build images for Master branch
+on:
+  push:
+    branches:
+      - master
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+env:
+  QUAY_ORG: opendatahub
+  QUAY_ID: ${{ secrets.QUAY_ROBOT_USERNAME }}
+  QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+  SOURCE_BRANCH: master
+jobs:
+  build-master-images:
+    continue-on-error: false
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ds-pipelines-api-server
+            dockerfile: backend/Dockerfile
+          - image: ds-pipelines-frontend
+            dockerfile: frontend/Dockerfile
+          - image: ds-pipelines-cacheserver
+            dockerfile: backend/Dockerfile.cacheserver
+          - image: ds-pipelines-persistenceagent
+            dockerfile: backend/Dockerfile.persistenceagent
+          - image: ds-pipelines-scheduledworkflow
+            dockerfile: backend/Dockerfile.scheduledworkflow
+          - image: ds-pipelines-viewercontroller
+            dockerfile: backend/Dockerfile.viewercontroller
+          - image: ds-pipelines-artifact-manager
+            dockerfile: backend/artifact_manager/Dockerfile
+          - image: ds-pipelines-metadata-writer
+            dockerfile: backend/metadata_writer/Dockerfile
+          - image: ds-pipelines-metadata-grpc
+            dockerfile: third_party/ml-metadata/Dockerfile
+          - image: ds-pipelines-metadata-envoy
+            dockerfile: third_party/metadata_envoy/Dockerfile
+          - image: ds-pipelines-driver
+            dockerfile: backend/Dockerfile.driver
+          - image: ds-pipelines-launcher
+            dockerfile: backend/Dockerfile.launcher
+    steps:
+      - uses: actions/checkout@v3
+      - name: Generate Tag
+        shell: bash
+        id: tags
+        env:
+          SOURCE_BRANCH: ${{ env.SOURCE_BRANCH }}
+        run: |
+          commit_sha=${{ github.event.after }}
+          tag=${SOURCE_BRANCH}-${commit_sha:0:7}
+          echo "tag=${tag}" >> $GITHUB_OUTPUT
+      - name: Build Image
+        uses: ./.github/actions/build
+        env:
+          IMG: quay.io/${{ env.QUAY_ORG }}/${{ matrix.image }}:${{ steps.tags.outputs.tag }}
+          TARGET_IMAGE_TAG: ${{ steps.tags.outputs.tag }}
+        with:
+          OVERWRITE: true
+          IMAGE_REPO: ${{ matrix.image }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          GH_REPO: ${{ github.repository }}
+      - name: Tag latest
+        shell: bash
+        env:
+          IMG: quay.io/${{ env.QUAY_ORG }}/${{ matrix.image }}
+          NEWEST_TAG: ${{ steps.tags.outputs.tag }}
+          SOURCE_BRANCH: ${{ env.SOURCE_BRANCH }}
+        run: |
+          podman tag ${IMG}:${NEWEST_TAG} ${IMG}:latest
+          podman push ${IMG}:latest
+          podman tag ${IMG}:${NEWEST_TAG} ${IMG}:${SOURCE_BRANCH}
+          podman push ${IMG}:${SOURCE_BRANCH}

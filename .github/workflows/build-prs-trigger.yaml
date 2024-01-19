@@ -1,0 +1,33 @@
+name: Trigger build images for PRs
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'guides/**'
+      - 'images/**'
+      - '**/README.md'
+    types:
+      - opened
+      - reopened
+      - closed
+      - synchronize
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  upload-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Save PR payload
+        shell: bash
+        run: |
+          mkdir -p ./pr
+          echo ${{ github.event.pull_request.number }} >> ./pr/pr_number
+          echo ${{ github.event.pull_request.state }} >> ./pr/pr_state
+          echo ${{ github.event.pull_request.head.sha }} >> ./pr/head_sha
+          echo ${{ github.event.action }} >> ./pr/event_action
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pr
+          path: pr/
