@@ -14,6 +14,7 @@
 """Classes and methods that supports argument for ParallelFor."""
 
 import re
+import typing
 from typing import Any, Dict, List, Optional, Union
 
 from kfp.dsl import pipeline_channel
@@ -62,6 +63,25 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
         '(typing\.)?(?:\w+)(?:\[\s*(?:\w+)\s*,\s*(?P<value_type>.+)\])',
         type_name)
     return match['value_type'].lstrip().rstrip() if match else None
+
+
+def _get_first_element_type(item_list: ItemList) -> str:
+    """Returns the type of the first element of ItemList.
+
+    Args:
+        item_list: It is the a list which for now the type is Union[int, float, str, Dict[str, Any]]]
+    Returns:
+        - A string representing the type of the first element (e.g., "int", "Dict[str, int]").
+    """
+    first_element = item_list[0]
+    if isinstance(first_element, dict):
+        key_type = type(list(
+            first_element.keys())[0]).__name__  # Get type of first key
+        value_type = type(list(
+            first_element.values())[0]).__name__  # Get type of first value
+        return f"dict[{key_type}, {value_type}]"
+    else:
+        return type(first_element).__name__
 
 
 class LoopArgument(pipeline_channel.PipelineParameterChannel):
@@ -180,8 +200,7 @@ class LoopArgument(pipeline_channel.PipelineParameterChannel):
         return LoopArgument(
             items=raw_items,
             name_code=name_code,
-            channel_type=type(raw_items[0]).__name__,
-        )
+            channel_type=_get_first_element_type(raw_items))
 
     @classmethod
     def name_is_loop_argument(cls, name: str) -> bool:
