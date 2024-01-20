@@ -52,7 +52,7 @@ def split_materialized_data(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240108_1325',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240119_0125',
       command=[
           'sh',
           '-ec',
