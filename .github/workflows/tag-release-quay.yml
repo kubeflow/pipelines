@@ -15,12 +15,8 @@ on:
 env:
   IMAGE_SERVER: quay.io/opendatahub/ds-pipelines-api-server
   IMAGE_UI: quay.io/opendatahub/ds-pipelines-frontend
-  IMAGE_CACHE: quay.io/opendatahub/ds-pipelines-cacheserver
   IMAGE_PA: quay.io/opendatahub/ds-pipelines-persistenceagent
   IMAGE_SWF: quay.io/opendatahub/ds-pipelines-scheduledworkflow
-  IMAGE_VC: quay.io/opendatahub/ds-pipelines-viewercontroller
-  IMAGE_ARTIFACT: quay.io/opendatahub/ds-pipelines-artifact-manager
-  IMAGE_MLMD_WRITER: quay.io/opendatahub/ds-pipelines-metadata-writer
   IMAGE_MLMD_ENVOY: quay.io/opendatahub/ds-pipelines-metadata-envoy
   IMAGE_MLMD_GRPC: quay.io/opendatahub/ds-pipelines-metadata-grpc
   IMAGE_LAUNCHER: quay.io/opendatahub/ds-pipelines-launcher
@@ -57,12 +53,8 @@ jobs:
         run: |
           skopeo copy docker://${IMAGE_SERVER}:main-${{ env.HASH }} docker://${IMAGE_SERVER}:${{ env.TAG }}
           skopeo copy docker://${IMAGE_UI}:main-${{ env.HASH }} docker://${IMAGE_UI}:${{ env.TAG }}
-          skopeo copy docker://${IMAGE_CACHE}:main-${{ env.HASH }} docker://${IMAGE_CACHE}:${{ env.TAG }}
           skopeo copy docker://${IMAGE_PA}:main-${{ env.HASH }} docker://${IMAGE_PA}:${{ env.TAG }}
           skopeo copy docker://${IMAGE_SWF}:main-${{ env.HASH }} docker://${IMAGE_SWF}:${{ env.TAG }}
-          skopeo copy docker://${IMAGE_VC}:main-${{ env.HASH }} docker://${IMAGE_VC}:${{ env.TAG }}
-          skopeo copy docker://${IMAGE_ARTIFACT}:main-${{ env.HASH }} docker://${IMAGE_ARTIFACT}:${{ env.TAG }}
-          skopeo copy docker://${IMAGE_MLMD_WRITER}:main-${{ env.HASH }} docker://${IMAGE_MLMD_WRITER}:${{ env.TAG }}
           skopeo copy docker://${IMAGE_MLMD_ENVOY}:main-${{ env.HASH }} docker://${IMAGE_MLMD_ENVOY}:${{ env.TAG }}
           skopeo copy docker://${IMAGE_MLMD_GRPC}:main-${{ env.HASH }} docker://${IMAGE_MLMD_GRPC}:${{ env.TAG }}
           skopeo copy docker://${IMAGE_LAUNCHER}:main-${{ env.HASH }} docker://${IMAGE_LAUNCHER}:${{ env.TAG }}
@@ -74,12 +66,8 @@ jobs:
         run: |
           skopeo copy docker://${IMAGE_SERVER}:main-${{ env.HASH }} docker://${IMAGE_SERVER}:latest
           skopeo copy docker://${IMAGE_UI}:main-${{ env.HASH }} docker://${IMAGE_UI}:latest
-          skopeo copy docker://${IMAGE_CACHE}:main-${{ env.HASH }} docker://${IMAGE_CACHE}:latest
           skopeo copy docker://${IMAGE_PA}:main-${{ env.HASH }} docker://${IMAGE_PA}:latest
           skopeo copy docker://${IMAGE_SWF}:main-${{ env.HASH }} docker://${IMAGE_SWF}:latest
-          skopeo copy docker://${IMAGE_VC}:main-${{ env.HASH }} docker://${IMAGE_VC}:latest
-          skopeo copy docker://${IMAGE_ARTIFACT}:main-${{ env.HASH }} docker://${IMAGE_ARTIFACT}:latest
-          skopeo copy docker://${IMAGE_MLMD_WRITER}:main-${{ env.HASH }} docker://${IMAGE_MLMD_WRITER}:latest
           skopeo copy docker://${IMAGE_MLMD_ENVOY}:main-${{ env.HASH }} docker://${IMAGE_MLMD_ENVOY}:latest
           skopeo copy docker://${IMAGE_MLMD_GRPC}:main-${{ env.HASH }} docker://${IMAGE_MLMD_GRPC}:latest
           skopeo copy docker://${IMAGE_LAUNCHER}:main-${{ env.HASH }} docker://${IMAGE_LAUNCHER}:latest

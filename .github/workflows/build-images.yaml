@@ -77,18 +77,10 @@ jobs:
             dockerfile: backend/Dockerfile
           - image: ds-pipelines-frontend
             dockerfile: frontend/Dockerfile
-          - image: ds-pipelines-cacheserver
-            dockerfile: backend/Dockerfile.cacheserver
           - image: ds-pipelines-persistenceagent
             dockerfile: backend/Dockerfile.persistenceagent
           - image: ds-pipelines-scheduledworkflow
             dockerfile: backend/Dockerfile.scheduledworkflow
-          - image: ds-pipelines-viewercontroller
-            dockerfile: backend/Dockerfile.viewercontroller
-          - image: ds-pipelines-artifact-manager
-            dockerfile: backend/artifact_manager/Dockerfile
-          - image: ds-pipelines-metadata-writer
-            dockerfile: backend/metadata_writer/Dockerfile
           - image: ds-pipelines-metadata-grpc
             dockerfile: third_party/ml-metadata/Dockerfile
           - image: ds-pipelines-metadata-envoy
