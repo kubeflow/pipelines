@@ -26,8 +26,8 @@ message KubernetesExecutorConfig {
     repeated PvcMount pvc_mount = 3;
     NodeSelector node_selector = 4;
     PodMetadata pod_metadata = 5;
-    repeated ConfigMapAsVolume cm_as_volume = 6;
-    repeated ConfigMapAsEnv cm_as_env = 7;
+    repeated ConfigMapAsVolume config_map_as_volume = 6;
+    repeated ConfigMapAsEnv config_map_as_env = 7;
 }
 
 message SecretAsVolume {
