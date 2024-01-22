@@ -57,8 +57,8 @@ def autosxs_arbiter(
     human_preference_column: Human preference column included in our inference
       output.
     task: Evaluation task in the form {task}@{version}. task can be one of
-      "summarization", "question_answer". Version is an integer with 3 digits or
-      "latest". Ex: summarization@001 or question_answer@latest.
+      "summarization", "question_answering". Version is an integer with 3 digits
+      or "latest". Ex: summarization@001 or question_answering@latest.
     judgments_format: The format to write judgments to. Can be either 'json' or
       'bigquery'.
     bigquery_destination_prefix: BigQuery table to write judgments to if the

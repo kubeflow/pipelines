@@ -2,6 +2,7 @@
 * Use `large_model_reference` for `model_reference_name` when uploading models from `preview.llm.rlhf_pipeline` instead of hardcoding value as `text-bison@001`.
 * Disable caching when resolving model display names for RLHF-tuned models so a unique name is generated on each `preview.llm.rlhf_pipeline` run.
 * Upload the tuned adapter to Model Registry instead of model checkpoint from `preview.llm.rlhf_pipeline`.
+* Fix the naming of AutoSxS's question answering task. "question_answer" -> "question_answering".
 * Add Vertex model get component (`v1.model.ModelGetOp`).
 * Migrate to Protobuf 4 (`protobuf>=4.21.1,<5`). Require `kfp>=2.6.0`.
 * Support setting version aliases in (`v1.model.ModelUploadOp`).
