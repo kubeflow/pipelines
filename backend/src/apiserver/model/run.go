@@ -352,22 +352,24 @@ func (r *Run) DefaultSortField() string {
 }
 
 var runAPIToModelFieldMap = map[string]string{
-	"run_id":           "UUID",        // v2beta1 API
-	"id":               "UUID",        // v1beta1 API
-	"display_name":     "DisplayName", // v2beta1 API
-	"name":             "DisplayName", // v1beta1 API
-	"created_at":       "CreatedAtInSec",
-	"finished_at":      "FinishedAtInSec",
-	"description":      "Description",
-	"scheduled_at":     "ScheduledAtInSec",
-	"storage_state":    "StorageState",
-	"status":           "Conditions",
-	"namespace":        "Namespace",               // v2beta1 API
-	"experiment_id":    "ExperimentId",            // v2beta1 API
-	"state":            "State",                   // v2beta1 API
-	"state_history":    "StateHistory",            // v2beta1 API
-	"runtime_details":  "PipelineRuntimeManifest", // v2beta1 API
-	"recurring_run_id": "RecurringRunId",          // v2beta1 API
+	"run_id":              "UUID",        // v2beta1 API
+	"id":                  "UUID",        // v1beta1 API
+	"display_name":        "DisplayName", // v2beta1 API
+	"name":                "DisplayName", // v1beta1 API
+	"created_at":          "CreatedAtInSec",
+	"finished_at":         "FinishedAtInSec",
+	"description":         "Description",
+	"scheduled_at":        "ScheduledAtInSec",
+	"storage_state":       "StorageState",
+	"status":              "Conditions",
+	"namespace":           "Namespace",               // v2beta1 API
+	"experiment_id":       "ExperimentId",            // v2beta1 API
+	"state":               "State",                   // v2beta1 API
+	"state_history":       "StateHistory",            // v2beta1 API
+	"runtime_details":     "PipelineRuntimeManifest", // v2beta1 API
+	"recurring_run_id":    "RecurringRunId",          // v2beta1 API
+	"pipeline_version_id": "PipelineVersionId",       // v2beta1 API
+	"pipeline_id":         "PipelineId",              // v2beta1 API
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.
