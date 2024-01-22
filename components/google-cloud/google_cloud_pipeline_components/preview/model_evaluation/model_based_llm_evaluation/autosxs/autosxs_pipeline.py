@@ -113,7 +113,7 @@ def autosxs_pipeline(
 
   Args:
     evaluation_dataset: A BigQuery table or comma-separated list of GCS paths to a JSONL dataset containing evaluation examples.
-    task: Evaluation task in the form `{task}@{version}`. task can be one of `[summarization, question_answer]`. Version is an integer with 3 digits or "latest". Ex: `summarization@001` or `question_answer@latest`.
+    task: Evaluation task in the form `{task}@{version}`. task can be one of `[summarization, question_answering]`. Version is an integer with 3 digits or "latest". Ex: `summarization@001` or `question_answering@latest`.
     id_columns: The columns which distinguish unique evaluation examples.
     model_a: A fully-qualified model resource name (`projects/{project}/locations/{location}/models/{model}@{version}`) or publisher model resource name (`publishers/{publisher}/models/{model}`).  This parameter is optional if Model A responses are specified.
     model_b: A fully-qualified model resource name (`projects/{project}/locations/{location}/models/{model}@{version}`) or publisher model resource name (`publishers/{publisher}/models/{model}`).  This parameter is optional if Model B responses are specified.

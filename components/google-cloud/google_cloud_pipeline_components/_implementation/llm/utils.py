@@ -123,9 +123,14 @@ def get_default_image_uri(image_name: str) -> str:
   Returns:
     URI of the image.
   """
+  if image_name.find('autosxs') != -1:
+    image_tag = env.get_autosxs_image_tag()
+  else:
+    image_tag = env.get_private_image_tag()
+
   return '/'.join([
       f'{env.PRIVATE_ARTIFACT_REGISTRY_LOCATION}-docker.pkg.dev',
       env.PRIVATE_ARTIFACT_REGISTRY_PROJECT,
       env.PRIVATE_ARTIFACT_REGISTRY,
-      f'{env.PRIVATE_IMAGE_NAME_PREFIX}{image_name}:{env.get_private_image_tag()}',
+      f'{env.PRIVATE_IMAGE_NAME_PREFIX}{image_name}:{image_tag}',
   ])
