@@ -72,18 +72,10 @@ jobs:
             dockerfile: backend/Dockerfile
           - image: ds-pipelines-frontend
             dockerfile: frontend/Dockerfile
-          - image: ds-pipelines-cacheserver
-            dockerfile: backend/Dockerfile.cacheserver
           - image: ds-pipelines-persistenceagent
             dockerfile: backend/Dockerfile.persistenceagent
           - image: ds-pipelines-scheduledworkflow
             dockerfile: backend/Dockerfile.scheduledworkflow
-          - image: ds-pipelines-viewercontroller
-            dockerfile: backend/Dockerfile.viewercontroller
-          - image: ds-pipelines-artifact-manager
-            dockerfile: backend/artifact_manager/Dockerfile
-          - image: ds-pipelines-metadata-writer
-            dockerfile: backend/metadata_writer/Dockerfile
           - image: ds-pipelines-metadata-grpc
             dockerfile: third_party/ml-metadata/Dockerfile
           - image: ds-pipelines-metadata-envoy
@@ -129,12 +121,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN_PROJECT_EDIT }}
           FULLIMG_API_SERVER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-api-server:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_FRONTEND: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-frontend:${{ env.TARGET_IMAGE_TAG }}
-          FULLIMG_CACHESERVER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-cacheserver:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_PERSISTENCEAGENT: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-persistenceagent:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_SCHEDULEDWORKFLOW: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-scheduledworkflow:${{ env.TARGET_IMAGE_TAG }}
-          FULLIMG_VIEWERCONTROLLER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-viewercontroller:${{ env.TARGET_IMAGE_TAG }}
-          FULLIMG_ARTIFACT_MANAGER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-artifact-manager:${{ env.TARGET_IMAGE_TAG }}
-          FULLIMG_METADATA_WRITER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-metadata-writer:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_METADATA_ENVOY: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-metadata-envoy:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_METADATA_GRPC: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-metadata-grpc:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_DRIVER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-driver:${{ env.TARGET_IMAGE_TAG }}
@@ -160,12 +148,8 @@ jobs:
             **DSP LAUNCHER**: `${{ env.FULLIMG_LAUNCHER }}`
             **Persistence Agent**: `${{ env.FULLIMG_PERSISTENCEAGENT }}`
             **Scheduled Workflow Manager**: `${{ env.FULLIMG_SCHEDULEDWORKFLOW }}`
-            **CRD Viewer Controller**: `${{ env.FULLIMG_VIEWERCONTROLLER }}`
-            **Artifact Manager**: `${{ env.FULLIMG_ARTIFACT_MANAGER }}`
             **MLMD Server**: `${{ env.FULLIMG_METADATA_GRPC }}`
-            **MLMD Writer**: `${{ env.FULLIMG_METADATA_WRITER }}`
             **MLMD Envoy Proxy**: `${{ env.FULLIMG_METADATA_ENVOY }}`
-            **Cache Server**: `${{ env.FULLIMG_CACHESERVER }}`
             **UI**: `${{ env.FULLIMG_FRONTEND }}`
           EOF
 
@@ -184,26 +168,21 @@ jobs:
           metadata:
             name: pr-${{ needs.fetch-data.outputs.pr_number}}
           spec:
+            dspVersion: v2
             apiServer:
               image: "${{ env.FULLIMG_API_SERVER }}"
-              artifactImage: "${{ env.FULLIMG_ARTIFACT_MANAGER }}"
               argoDriverImage: "${{ env.FULLIMG_DRIVER }}"
               argoLauncherImage: "${{ env.FULLIMG_LAUNCHER }}"
             persistenceAgent:
               image: "${{ env.FULLIMG_PERSISTENCEAGENT }}"
             scheduledWorkflow:
               image: "${{ env.FULLIMG_SCHEDULEDWORKFLOW }}"
-            crdViewer:  
-              deploy: true  # Optional component
-              image: "${{ env.FULLIMG_VIEWERCONTROLLER }}"
             mlmd:  
               deploy: true  # Optional component
               grpc:
                 image: "${{ env.FULLIMG_METADATA_GRPC }}"
               envoy:
                 image: "${{ env.FULLIMG_METADATA_ENVOY }}"
-              writer:
-                image: "${{ env.FULLIMG_METADATA_WRITER }}"
             mlpipelineUI:
               deploy: true  # Optional component 
               image: "${{ env.FULLIMG_FRONTEND }}"
@@ -242,14 +221,10 @@ jobs:
         image:
           - ds-pipelines-api-server
           - ds-pipelines-frontend
-          - ds-pipelines-cacheserver
           - ds-pipelines-persistenceagent
           - ds-pipelines-scheduledworkflow
-          - ds-pipelines-viewercontroller
-          - ds-pipelines-artifact-manager
           - ds-pipelines-launcher
           - ds-pipelines-driver
-          - ds-pipelines-metadata-writer
           - ds-pipelines-metadata-grpc
           - ds-pipelines-metadata-envoy
     steps:
