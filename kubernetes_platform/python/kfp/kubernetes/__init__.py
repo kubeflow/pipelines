@@ -21,8 +21,12 @@ __all__ = [
     'use_secret_as_env',
     'use_secret_as_volume',
     'add_node_selector',
+    'use_config_map_as_env',
+    'use_config_map_as_volume',
 ]
 
+from kfp.kubernetes.config_map import use_config_map_as_env
+from kfp.kubernetes.config_map import use_config_map_as_volume
 from kfp.kubernetes.node_selector import add_node_selector
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume

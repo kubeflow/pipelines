@@ -57,6 +57,42 @@ def pipeline():
                                     mount_path='/mnt/my_vol')
 ```
 
+### Secret: As environment variable
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def print_secret():
+    import os
+    print(os.environ['my-secret'])
+
+@dsl.pipeline
+def pipeline():
+    task = print_secret()
+    kubernetes.use_secret_as_env(task,
+                                 secret_name='my-secret',
+                                 secret_key_to_env={'password': 'SECRET_VAR'})
+```
+
+### Secret: As mounted volume
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def print_secret():
+    with open('/mnt/my_vol') as f:
+        print(f.read())
+
+@dsl.pipeline
+def pipeline():
+    task = print_secret()
+    kubernetes.use_secret_as_volume(task,
+                                    secret_name='my-secret',
+                                    mount_path='/mnt/my_vol')
+```
+
 ### PersistentVolumeClaim: Dynamically create PVC, mount, then delete
 ```python
 from kfp import dsl
