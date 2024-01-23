@@ -1,8 +1,10 @@
 ---
-name: 💡 Feature Request
+name: "\U0001F4A1 Feature Request"
 about: An idea to improve Kubeflow Pipelines
 title: "[feature] <Description>"
-labels: kind/feature
+labels: ''
+assignees: ''
+
 ---
 
 ### Feature Area
@@ -31,4 +33,4 @@ labels: kind/feature
 ---
 
 <!-- Don't delete message below to encourage users to support your feature request! -->
-Love this idea? Give it a 👍. 
+Love this idea? Give it a 👍.

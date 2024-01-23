@@ -1,8 +1,10 @@
 ---
 name: Bug Report
-title: "[bug] <Bug Name>"
 about: Report any other issue encountered with Kubeflow Pipelines
-labels: kind/bug
+title: "[bug] <Bug Name>"
+labels: ''
+assignees: ''
+
 ---
 
 ### Environment
@@ -45,4 +47,4 @@ This may include information such as: a description of the process, code snippet
 ---
 
 <!-- Don't delete message below to encourage users to support your issue! -->
-Impacted by this bug? Give it a 👍. 
+Impacted by this bug? Give it a 👍.
