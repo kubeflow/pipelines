@@ -363,7 +363,7 @@ var runAPIToModelFieldMap = map[string]string{
 	"storage_state":       "StorageState",
 	"status":              "Conditions",
 	"namespace":           "Namespace",               // v2beta1 API
-	"experiment_id":       "ExperimentId",            // v2beta1 API
+	"experiment_id":       "ExperimentUUID",          // v2beta1 API
 	"state":               "State",                   // v2beta1 API
 	"state_history":       "StateHistory",            // v2beta1 API
 	"runtime_details":     "PipelineRuntimeManifest", // v2beta1 API
