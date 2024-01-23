@@ -51,6 +51,12 @@ json_format.ParseDict(
                         },
                         'uri':
                             '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
+                        # include metadata on outputs since it allows us to
+                        # test the placeholder
+                        # "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}"
+                        # for comprehensive testing, but in practice metadata
+                        # will never be set on output artifacts since they
+                        # haven't been created yet
                         'metadata': {
                             'foo': {
                                 'bar': 'baz'
@@ -62,7 +68,8 @@ json_format.ParseDict(
             'outputFile':
                 '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json'
         }
-    }, executor_input)
+    },
+    executor_input)
 
 EXECUTOR_INPUT_DICT = json_format.MessageToDict(executor_input)
 
@@ -96,7 +103,6 @@ class TestReplacePlaceholders(unittest.TestCase):
 class TestResolveIndividualPlaceholder(parameterized.TestCase):
 
     # TODO: consider supporting JSON escape
-    # TODO: update when input artifact constants supported
     # TODO: update when output lists of artifacts are supported
     @parameterized.parameters([
         (
