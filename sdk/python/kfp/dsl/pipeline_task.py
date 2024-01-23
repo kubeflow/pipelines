@@ -193,7 +193,7 @@ class PipelineTask:
             raise NotImplementedError(
                 'Local pipeline execution is not currently supported.')
 
-        self._outputs = task_dispatcher.run_single_component(
+        self._outputs = task_dispatcher.run_single_task(
             pipeline_spec=self.component_spec.to_pipeline_spec(),
             arguments=args,
         )

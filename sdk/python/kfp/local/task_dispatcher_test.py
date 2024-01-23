@@ -271,7 +271,7 @@ class TestExceptionHandlingAndLogging(
             r'Wrote executor output file to',
             r'.*',
             r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m finished with status \x1b\[92mSUCCESS\x1b\[0m\n",
-            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m outputs:\n    Output: 'hellohello'\n    model: Model\( name='model',\n                  uri='[a-zA-Z0-9/_\.-]+/local_outputs/many-type-component-\d+-\d+-\d+-\d+-\d+-\d+-\d+/many-type-component/model',\n                  metadata={'foo': 'bar'} \)\n\n",
+            r"\d+:\d+:\d+\.\d+ - INFO - Task \x1b\[96m'many-type-component'\x1b\[0m outputs:\n    Output: 'hellohello'\n    model: Model\( name='model',\n                  uri='[a-zA-Z0-9/_\.-]+/local_outputs/many-type-component-\d+-\d+-\d+-\d+-\d+-\d+-\d+/many-type-component/model',\n                  metadata={'foo': 'bar'} \)\n",
         ]
 
         self.assertRegex(

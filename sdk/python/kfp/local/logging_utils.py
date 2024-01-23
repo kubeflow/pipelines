@@ -20,6 +20,7 @@ import sys
 from typing import Any, Dict, Generator, List
 
 from kfp import dsl
+from kfp.local import status
 
 
 class Color:
@@ -139,3 +140,16 @@ def make_log_lines_for_outputs(outputs: Dict[str, Any]) -> List[str]:
             output_lines.append(f'{key_chars}{value}')
 
     return output_lines
+
+
+def format_task_name(task_name: str) -> str:
+    return color_text(f'{task_name!r}', Color.CYAN)
+
+
+def format_status(task_status: status.Status) -> str:
+    if task_status == status.Status.SUCCESS:
+        return color_text(task_status.name, Color.GREEN)
+    elif task_status == status.Status.FAILURE:
+        return color_text(task_status.name, Color.RED)
+    else:
+        raise ValueError(f'Got unknown status: {task_status}')

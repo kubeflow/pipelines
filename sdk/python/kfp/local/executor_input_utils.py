@@ -17,6 +17,7 @@ import os
 from typing import Any, Dict
 
 from google.protobuf import json_format
+from google.protobuf import struct_pb2
 from kfp.compiler import pipeline_spec_builder
 from kfp.dsl import utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -60,7 +61,7 @@ def construct_executor_input(
             for param_name in output_parameter_keys
         },
         artifacts={
-            artifact_name: make_artifact_list(
+            artifact_name: artifact_type_schema_to_artifact_list(
                 name=artifact_name,
                 artifact_type=artifact_spec.artifact_type,
                 task_root=task_root,
@@ -116,7 +117,7 @@ def construct_local_task_root(
     )
 
 
-def make_artifact_list(
+def artifact_type_schema_to_artifact_list(
     name: str,
     artifact_type: pipeline_spec_pb2.ArtifactTypeSchema,
     task_root: str,
@@ -128,7 +129,7 @@ def make_artifact_list(
             type=artifact_type,
             uri=os.path.join(task_root, name),
             # metadata always starts empty for output artifacts
-            metadata={},
+            metadata=struct_pb2.Struct(),
         )
     ])
 

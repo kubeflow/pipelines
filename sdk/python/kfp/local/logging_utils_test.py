@@ -19,6 +19,7 @@ from unittest import mock
 
 from kfp import dsl
 from kfp.local import logging_utils
+from kfp.local import status
 
 
 class TestIndentedPrint(unittest.TestCase):
@@ -200,6 +201,32 @@ class TestMakeLogLinesForOutputs(unittest.TestCase):
         ]
 
         self.assertListEqual(actual, expected)
+
+
+class TestFormatStatus(unittest.TestCase):
+
+    def test_success_status(self):
+        self.assertEqual(
+            logging_utils.format_status(status.Status.SUCCESS),
+            '\x1b[92mSUCCESS\x1b[0m')
+
+    def test_failure_status(self):
+        self.assertEqual(
+            logging_utils.format_status(status.Status.FAILURE),
+            '\x1b[91mFAILURE\x1b[0m')
+
+    def test_invalid_status(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Got unknown status: INVALID_STATUS'):
+            logging_utils.format_status('INVALID_STATUS')
+
+
+class TestFormatTaskName(unittest.TestCase):
+
+    def test(self):
+        self.assertEqual(
+            logging_utils.format_task_name('my-task'),
+            '\x1b[96m\'my-task\'\x1b[0m')
 
 
 if __name__ == '__main__':
