@@ -59,6 +59,21 @@ class LocalRunnerConfigTest(unittest.TestCase):
                          local.SubprocessRunner(use_venv=False))
         self.assertFalse(instance.raise_on_error, False)
 
+    def test_validate_success(self):
+        config.LocalExecutionConfig(
+            pipeline_root='other/local/root',
+            runner=local.SubprocessRunner(use_venv=False),
+            raise_on_error=False,
+        )
+        config.LocalExecutionConfig.validate()
+
+    def test_validate_fail(self):
+        with self.assertRaisesRegex(
+                RuntimeError,
+                f"Local environment not initialized. Please run 'kfp\.local\.init\(\)' before executing tasks locally\."
+        ):
+            config.LocalExecutionConfig.validate()
+
 
 class TestInitCalls(unittest.TestCase):
 
