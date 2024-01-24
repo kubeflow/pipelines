@@ -31,9 +31,9 @@ if ! which kustomize; then
   # Download kustomize cli tool
   TOOL_DIR=${DIR}/bin
   mkdir -p ${TOOL_DIR}
-  # Use 2.0.3 because we want it to be compatible with kubectl apply -k.
-  # The change in https://github.com/kubernetes-sigs/kustomize/blob/master/docs/v2.1.0.md#envs-field broke backward compatibility.
-  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v2.0.3/kustomize_2.0.3_linux_amd64 \
+  # Use 5.0.3 because we want it to be compatible with latest kustomize syntax changes
+  # See discussions tracked in https://github.com/kubeflow/manifests/issues/2388.
+  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.0.3/kustomize_v5.0.3_linux_amd64.tar.gz \
     -O ${TOOL_DIR}/kustomize --no-verbose
   chmod +x ${TOOL_DIR}/kustomize
   PATH=${PATH}:${TOOL_DIR}
