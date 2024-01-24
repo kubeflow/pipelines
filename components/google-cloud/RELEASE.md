@@ -6,6 +6,7 @@
 * Add Vertex model get component (`v1.model.ModelGetOp`).
 * Migrate to Protobuf 4 (`protobuf>=4.21.1,<5`). Require `kfp>=2.6.0`.
 * Support setting version aliases in (`v1.model.ModelUploadOp`).
+* Only run `preview.llm.bulk_inference` pipeline after RLHF tuning for third-party models when `eval_dataset` is provided.
 
 ## Release 2.8.0
 * Release AutoSxS pipeline to preview.

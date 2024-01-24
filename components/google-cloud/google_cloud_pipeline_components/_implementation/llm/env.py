@@ -17,7 +17,7 @@ import os
 _DEFAULT_AUTOSXS_IMAGE_TAG = '20240116_0507_RC00'
 
 def get_private_image_tag() -> str:
-  return os.getenv('PRIVATE_IMAGE_TAG') or '20231213_0507_RC00'
+  return os.getenv('PRIVATE_IMAGE_TAG') or '20240124_0507_RC00'
 
 
 def get_autosxs_image_tag() -> str:

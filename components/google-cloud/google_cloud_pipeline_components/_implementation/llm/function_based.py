@@ -572,3 +572,31 @@ def get_uri(artifact: dsl.Input[dsl.Artifact], is_dir: bool = False) -> str:  # 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def get_empty_string() -> str:
   return ''
+
+
+@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
+def validate_rlhf_inputs(
+    large_model_reference: str,
+    eval_dataset: Optional[str] = None,
+) -> None:
+  """Checks user-provided arguments are valid for the RLHF pipeline."""
+  models_that_support_bulk_inference = {
+      't5-small',
+      't5-large',
+      't5-xl',
+      't5-xxl',
+      'llama-2-7b',
+      'llama-2-7b-chat',
+      'llama-2-13b',
+      'llama-2-13b-chat',
+  }
+  if (
+      eval_dataset
+      and large_model_reference not in models_that_support_bulk_inference
+  ):
+    raise ValueError(
+        f'eval_dataset not supported for {large_model_reference}. '
+        'Please set this value to None when tuning this model. '
+        'This model can be evaluated after tuning using Batch or Online '
+        'Prediction.'
+    )
