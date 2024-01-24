@@ -4,23 +4,23 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-  - ../../dev
-  - ../base
-  - namespace.yaml
+- ../../dev
+- ../base
+- namespace.yaml
 
-vars:
 # NOTE: var name must be unique globally to allow composition of multiple kustomize
 # packages. Therefore, we added prefix `kfp-dev-` to distinguish it from
 # others.
-- name: kfp-dev-namespace
-  objref:
     # ml-pipeline sa's metadata.namespace will be first transformed by namespace field in kustomization.yaml
     # so that we only need to change kustomization.yaml's namespace field for namespace customization.
+vars:
+- fieldref:
+    fieldPath: metadata.namespace
+  name: kfp-dev-namespace
+  objref:
+    apiVersion: v1
     kind: ServiceAccount
     name: ml-pipeline
-    apiVersion: v1
-  fieldref:
-    fieldpath: metadata.namespace
 configurations:
 - params.yaml
 

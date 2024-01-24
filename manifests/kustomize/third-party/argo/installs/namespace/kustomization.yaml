@@ -6,14 +6,13 @@ kind: Kustomization
 # * this does not include argo server.
 # * this separates cluster-scoped resources to its own folder.
 
+resources:
+  - ../../base
+  - ../../upstream/manifests/namespace-install/workflow-controller-rbac
 patches:
-  - path: ../../base
-  - path: ../../upstream/manifests/namespace-install/workflow-controller-rbac
-
-patchesJson6902:
-  - target:
-      version: v1
+  - path: workflow-controller-deployment-patch.json
+    target:
       group: apps
       kind: Deployment
       name: workflow-controller
-    path: workflow-controller-deployment-patch.json
+      version: v1
