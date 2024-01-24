@@ -44,7 +44,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   KFP_MANIFEST_DIR=${DIR}/manifests
 
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
-  kubectl apply -k .
+  kustomize build | kubectl apply -k .
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
@@ -64,7 +64,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   kustomize edit set image gcr.io/ml-pipeline/metadata-envoy=${GCR_IMAGE_BASE_DIR}/metadata-envoy:${GCR_IMAGE_TAG}
   cat kustomization.yaml
 
-  kubectl apply -k .
+  kustomize build | kubectl apply -f -
   popd
 else
   # exclude SDK release tags
@@ -75,13 +75,13 @@ else
   git checkout $KFP_LATEST_RELEASE
 
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
-  kubectl apply -k .
+  kustomize build | kubectl apply -k .
 
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
-  kubectl apply -k .
+  kustomize build | kubectl apply -k .
   popd
 
   # go back to previous commit
