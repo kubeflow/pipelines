@@ -298,18 +298,20 @@ func extendPodMetadata(
 ) {
 	// Get pod metadata information
 	if kubernetesExecutorConfig.GetPodMetadata() != nil {
-		if kubernetesExecutorConfig.GetPodMetadata().GetLabels() != nil {
+		labels := kubernetesExecutorConfig.GetPodMetadata().GetLabels()
+		if labels != nil {
 			if podMetadata.Labels == nil {
-				podMetadata.Labels = kubernetesExecutorConfig.GetPodMetadata().GetLabels()
+				podMetadata.Labels = labels
 			} else {
-				podMetadata.Labels = extendMetadataMap(podMetadata.Labels, kubernetesExecutorConfig.GetPodMetadata().GetLabels())
+				podMetadata.Labels = extendMetadataMap(podMetadata.Labels, labels)
 			}
 		}
-		if kubernetesExecutorConfig.GetPodMetadata().GetAnnotations() != nil {
+		annotations := kubernetesExecutorConfig.GetPodMetadata().GetAnnotations()
+		if annotations != nil {
 			if podMetadata.Annotations == nil {
-				podMetadata.Annotations = kubernetesExecutorConfig.GetPodMetadata().GetAnnotations()
+				podMetadata.Annotations = annotations
 			} else {
-				podMetadata.Annotations = extendMetadataMap(podMetadata.Annotations, kubernetesExecutorConfig.GetPodMetadata().GetAnnotations())
+				podMetadata.Annotations = extendMetadataMap(podMetadata.Annotations, annotations)
 			}
 		}
 	}

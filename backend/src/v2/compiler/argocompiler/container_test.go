@@ -51,6 +51,35 @@ func Test_extendPodMetadata(t *testing.T) {
 				},
 			},
 		},
+		{
+			"Valid - try overwrite default pod labels and annotations",
+			&wfapi.Metadata{
+				Annotations: map[string]string{
+					"run_id": "654321",
+				},
+				Labels: map[string]string{
+					"kubeflow.com/kfp": "default-node",
+				},
+			},
+			&kubernetesplatform.KubernetesExecutorConfig{
+				PodMetadata: &kubernetesplatform.PodMetadata{
+					Annotations: map[string]string{
+						"run_id": "123456",
+					},
+					Labels: map[string]string{
+						"kubeflow.com/kfp": "pipeline-node",
+					},
+				},
+			},
+			&wfapi.Metadata{
+				Annotations: map[string]string{
+					"run_id": "654321",
+				},
+				Labels: map[string]string{
+					"kubeflow.com/kfp": "default-node",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

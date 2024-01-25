@@ -48,6 +48,40 @@ class TestPodMetadata:
             }
         }
 
+    def test_add_same_one(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_pod_label(
+                task,
+                label_key='kubeflow.com/kfp',
+                label_value='pipeline-node',
+            )
+            kubernetes.add_pod_label(
+                task,
+                label_key='kubeflow.com/kfp',
+                label_value='pipeline-node2',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'podMetadata': {
+                                    'labels': {
+                                        'kubeflow.com/kfp': 'pipeline-node2'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     def test_add_two_and_mix(self):
 
         @dsl.pipeline
