@@ -33,7 +33,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     location: str,
     batch_predict_gcs_source_uris: List[str],
     batch_predict_gcs_destination_output_uri: str,
-    model_name: str = 'publishers/google/models/text-bison@001',
+    model_name: str = 'publishers/google/models/text-bison@002',
     evaluation_task: str = 'text-generation',
     input_field_name: str = 'input_text',
     target_field_name: str = 'output_text',

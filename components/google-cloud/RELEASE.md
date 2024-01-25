@@ -7,6 +7,7 @@
 * Migrate to Protobuf 4 (`protobuf>=4.21.1,<5`). Require `kfp>=2.6.0`.
 * Support setting version aliases in (`v1.model.ModelUploadOp`).
 * Only run `preview.llm.bulk_inference` pipeline after RLHF tuning for third-party models when `eval_dataset` is provided.
+* Update LLM Evaluation Pipelines to use `text-bison@002` model by default.
 
 ## Release 2.8.0
 * Release AutoSxS pipeline to preview.
