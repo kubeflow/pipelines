@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import Dict, List
 
 from kfp import compiler
 from kfp import dsl
@@ -23,6 +23,19 @@ from kfp.dsl import component
 def print_text(msg: str):
     print(msg)
 
+@component 
+def print_int(x: int): 
+    print(x)
+
+@component
+def list_dict_maker() -> List[dict[str, int]]:
+    return [{'a': 1, 'b': 2},
+            {'a': 2, 'b': 3},
+            {'a': 3, 'b': 4}]
+
+@component
+def complicated_list_maker() -> List[List[dict[str,int]]]:
+    return [[{'a': 1, 'b': 2}, {{'a': 2, 'b': 3}}],[{'a': 3, 'b': 4}, {'a': 4, 'b': 5}]]
 
 @dsl.pipeline(name='pipeline-with-loops')
 def my_pipeline(loop_parameter: List[str]):
@@ -52,6 +65,16 @@ def my_pipeline(loop_parameter: List[str]):
             print_text(msg=nested_item.A_a)
             print_text(msg=nested_item.B_b)
 
+    # Loop argument that is a static dictionary known at compile time.
+    dict_loop_argument = [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+    with dsl.ParallelFor(items=dict_loop_argument, parallelism=1) as item:
+        print_int(x=item.a)
+
+    # Loop argument that coming from the upstream component.
+    t = complicated_list_maker() 
+    with dsl.ParallelFor(t.output) as items: 
+        with dsl.ParallelFor(items) as item:
+            print_int(x=item.a)
 
 if __name__ == '__main__':
     compiler.Compiler().compile(

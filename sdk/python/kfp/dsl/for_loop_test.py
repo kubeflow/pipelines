@@ -78,7 +78,7 @@ class ForLoopTest(parameterized.TestCase):
                     'A_a': 2
                 },
             ],
-            'value_type': 'dict[str, int]',
+            'value_type': 'Dict[str, int]',
         },
         {
             'item_list': [1, 2, 3],
@@ -144,7 +144,7 @@ class ForLoopTest(parameterized.TestCase):
             'name_code':
                 '2',
             'expected_serialization_value':
-                '{{channel:task=;name=loop-item-param-2;type=dict[str, int];}}',
+                '{{channel:task=;name=loop-item-param-2;type=Dict[str, int];}}',
         },
     )
     def test_loop_argument_from_raw_items(self, raw_items, name_code,
