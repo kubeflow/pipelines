@@ -14,7 +14,8 @@
 """A collection of constants shared across components and pipelines."""
 import os
 
-_DEFAULT_AUTOSXS_IMAGE_TAG = '20240116_0507_RC00'
+_DEFAULT_AUTOSXS_IMAGE_TAG = '20240123_0507_RC00'
+
 
 def get_private_image_tag() -> str:
   return os.getenv('PRIVATE_IMAGE_TAG') or '20240124_0507_RC00'
