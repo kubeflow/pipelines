@@ -3,12 +3,6 @@
 # Inputs:
 #    loop_parameter: list
 components:
-  comp-complicated-list-maker:
-    executorLabel: exec-complicated-list-maker
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: LIST
   comp-for-loop-1:
     dag:
       tasks:
@@ -42,27 +36,6 @@ components:
           parameterType: LIST
         pipelinechannel--loop_parameter-loop-item:
           parameterType: STRING
-  comp-for-loop-10:
-    dag:
-      tasks:
-        print-int-2:
-          cachingOptions:
-            enableCache: true
-          componentRef:
-            name: comp-print-int-2
-          inputs:
-            parameters:
-              x:
-                componentInputParameter: pipelinechannel--complicated-list-maker-Output-loop-item-loop-item
-                parameterExpressionSelector: parseJson(string_value)["a"]
-          taskInfo:
-            name: print-int-2
-    inputDefinitions:
-      parameters:
-        pipelinechannel--complicated-list-maker-Output-loop-item:
-          parameterType: LIST
-        pipelinechannel--complicated-list-maker-Output-loop-item-loop-item:
-          parameterType: STRUCT
   comp-for-loop-2:
     dag:
       tasks:
@@ -178,24 +151,29 @@ components:
   comp-for-loop-9:
     dag:
       tasks:
-        for-loop-10:
+        print-int-2:
+          cachingOptions:
+            enableCache: true
           componentRef:
-            name: comp-for-loop-10
+            name: comp-print-int-2
           inputs:
             parameters:
-              pipelinechannel--complicated-list-maker-Output-loop-item:
-                componentInputParameter: pipelinechannel--complicated-list-maker-Output-loop-item
-          parameterIterator:
-            itemInput: pipelinechannel--complicated-list-maker-Output-loop-item-loop-item
-            items:
-              inputParameter: pipelinechannel--complicated-list-maker-Output-loop-item
+              x:
+                componentInputParameter: pipelinechannel--list-dict-maker-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
-            name: for-loop-10
+            name: print-int-2
     inputDefinitions:
       parameters:
-        pipelinechannel--complicated-list-maker-Output:
+        pipelinechannel--list-dict-maker-Output:
           parameterType: LIST
-        pipelinechannel--complicated-list-maker-Output-loop-item:
+        pipelinechannel--list-dict-maker-Output-loop-item:
+          parameterType: STRUCT
+  comp-list-dict-maker:
+    executorLabel: exec-list-dict-maker
+    outputDefinitions:
+      parameters:
+        Output:
           parameterType: LIST
   comp-print-int:
     executorLabel: exec-print-int
@@ -247,13 +225,13 @@ components:
           parameterType: STRING
 deploymentSpec:
   executors:
-    exec-complicated-list-maker:
+    exec-list-dict-maker:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - complicated_list_maker
+        - list_dict_maker
         command:
         - sh
         - -c
@@ -273,9 +251,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef complicated_list_maker() -> List[List[dict[str,int]]]:\n    return\
-          \ [[{'a': 1, 'b': 2}, {{'a': 2, 'b': 3}}],[{'a': 3, 'b': 4}, {'a': 4, 'b':\
-          \ 5}]]\n\n"
+          \ *\n\ndef list_dict_maker() -> List[Dict[str, int]]:\n    return [{'a':\
+          \ 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
         image: python:3.7
     exec-print-int:
       container:
@@ -303,7 +280,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_int(x: int): \n    print(x)\n\n"
+          \ *\n\ndef print_int(x: int):\n    print(x)\n\n"
         image: python:3.7
     exec-print-int-2:
       container:
@@ -331,7 +308,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_int(x: int): \n    print(x)\n\n"
+          \ *\n\ndef print_int(x: int):\n    print(x)\n\n"
         image: python:3.7
     exec-print-text:
       container:
@@ -506,13 +483,6 @@ pipelineInfo:
 root:
   dag:
     tasks:
-      complicated-list-maker:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-complicated-list-maker
-        taskInfo:
-          name: complicated-list-maker
       for-loop-1:
         componentRef:
           name: comp-for-loop-1
@@ -552,19 +522,26 @@ root:
         componentRef:
           name: comp-for-loop-9
         dependentTasks:
-        - complicated-list-maker
+        - list-dict-maker
         inputs:
           parameters:
-            pipelinechannel--complicated-list-maker-Output:
+            pipelinechannel--list-dict-maker-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: complicated-list-maker
+                producerTask: list-dict-maker
         parameterIterator:
-          itemInput: pipelinechannel--complicated-list-maker-Output-loop-item
+          itemInput: pipelinechannel--list-dict-maker-Output-loop-item
           items:
-            inputParameter: pipelinechannel--complicated-list-maker-Output
+            inputParameter: pipelinechannel--list-dict-maker-Output
         taskInfo:
           name: for-loop-9
+      list-dict-maker:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-list-dict-maker
+        taskInfo:
+          name: list-dict-maker
   inputDefinitions:
     parameters:
       loop_parameter:
