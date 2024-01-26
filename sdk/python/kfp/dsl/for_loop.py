@@ -184,7 +184,8 @@ class LoopArgument(pipeline_channel.PipelineParameterChannel):
         if channel.channel_type.startswith('typing.Dict'):
             loop_argument_channel_type = channel.channel_type
         else:
-            loop_argument_channel_type =_get_loop_item_type(channel.channel_type)
+            loop_argument_channel_type = _get_loop_item_type(
+                channel.channel_type)
         return LoopArgument(
             items=channel,
             name_override=channel.name + '-' + cls.LOOP_ITEM_NAME_BASE,
