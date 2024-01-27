@@ -26,15 +26,15 @@ def double(num: int) -> int:
 
 
 @dsl.component
-def print_artifact_name(var_artifact: Artifact) -> str:
-    print(var_artifact.name)
-    return var_artifact.name
+def print_artifact_name(artifact: Artifact) -> str:
+    print(artifact.name)
+    return artifact.name
 
 
 @dsl.component
-def print_dataset_name(var_dataset: Dataset) -> str:
-    print(var_dataset.name)
-    return var_dataset.name
+def print_dataset_name(dataset: Dataset) -> str:
+    print(dataset.name)
+    return dataset.name
 
 
 @dsl.component
@@ -75,11 +75,11 @@ def make_artifacts(
 def my_pipeline():
     make_artifacts_task = make_artifacts()
     with dsl.ParallelFor(items=make_artifacts_task.output) as item:
-        print_artifact_name(var_artifact=item)
+        print_artifact_name(artifact=item)
 
     make_datasets_task = make_datasets()
     with dsl.ParallelFor(items=make_datasets_task.output) as item:
-        print_dataset_name(var_dataset=item)
+        print_dataset_name(dataset=item)
 
 
 if __name__ == '__main__':

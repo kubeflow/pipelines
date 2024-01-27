@@ -11,7 +11,7 @@ components:
             name: comp-print-artifact-name
           inputs:
             artifacts:
-              var_artifact:
+              artifact:
                 componentInputArtifact: pipelinechannel--make-artifacts-Output-loop-item
           taskInfo:
             name: print-artifact-name
@@ -102,7 +102,7 @@ components:
             name: comp-print-dataset-name
           inputs:
             artifacts:
-              var_dataset:
+              dataset:
                 componentInputArtifact: pipelinechannel--make-datasets-Output-loop-item
           taskInfo:
             name: print-dataset-name
@@ -223,7 +223,7 @@ components:
     executorLabel: exec-print-artifact-name
     inputDefinitions:
       artifacts:
-        var_artifact:
+        artifact:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
@@ -235,7 +235,7 @@ components:
     executorLabel: exec-print-dataset-name
     inputDefinitions:
       artifacts:
-        var_dataset:
+        dataset:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
@@ -331,8 +331,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_artifact_name(var_artifact: Artifact) -> str:\n    print(var_artifact.name)\n\
-          \    return var_artifact.name\n\n"
+          \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
+          \    return artifact.name\n\n"
         image: python:3.7
     exec-print-dataset-name:
       container:
@@ -360,8 +360,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_dataset_name(var_dataset: Dataset) -> str:\n    print(var_dataset.name)\n\
-          \    return var_dataset.name\n\n"
+          \ *\n\ndef print_dataset_name(dataset: Dataset) -> str:\n    print(dataset.name)\n\
+          \    return dataset.name\n\n"
         image: python:3.7
 pipelineInfo:
   name: pipeline-parallelfor-artifacts
