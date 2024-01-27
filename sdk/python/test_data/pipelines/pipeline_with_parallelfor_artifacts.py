@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO(kglee): remove this
-# successful run: https://console.cloud.google.com/vertex-ai/locations/us-central1/pipelines/runs/pipeline-parallelfor-artifacts-20240124173851?project=186556260430
 from typing import List
 
 from kfp import compiler
