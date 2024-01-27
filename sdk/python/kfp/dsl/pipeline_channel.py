@@ -73,6 +73,8 @@ class PipelineChannel(abc.ABC):
         name: str,
         channel_type: Union[str, Dict],
         task_name: Optional[str] = None,
+        is_artifact_list: Optional[bool] = False,
+        value: Optional[type_utils.PARAMETER_TYPES] = None,
     ):
         """Initializes a PipelineChannel instance.
 
@@ -83,6 +85,10 @@ class PipelineChannel(abc.ABC):
             task_name: Optional; The name of the task that produces the pipeline
                 channel. If provided, the task name will be sanitized to be k8s
                 compatible.
+            is_artifact_list: Optional; True if `channel_type` represents a list
+                of the artifact type. Only applies when `channel_type` is an artifact.
+            value: The actual value of the pipeline channel. If provided, the
+                pipeline channel is "resolved" immediately.
 
         Raises:
             ValueError: If name or task_name contains invalid characters.
@@ -103,6 +109,8 @@ class PipelineChannel(abc.ABC):
         from kfp.dsl import pipeline_context
 
         self.pipeline = pipeline_context.Pipeline.get_default_pipeline()
+        self.is_artifact_list = is_artifact_list
+        self.value = value
 
     @property
     def task(self) -> Union['PipelineTask', 'TasksGroup']:
@@ -267,6 +275,7 @@ class PipelineArtifactChannel(PipelineChannel):
             channel_type: The type of the pipeline channel.
             task_name: Optional; the name of the task that produces the pipeline
                 channel.
+            is_artifact_list: True if `channel_type` represents a list of the artifact type.
 
         Raises:
             ValueError: If name or task_name contains invalid characters.
@@ -281,6 +290,7 @@ class PipelineArtifactChannel(PipelineChannel):
             name=name,
             channel_type=channel_type,
             task_name=task_name,
+            is_artifact_list=is_artifact_list,
         )
 
 

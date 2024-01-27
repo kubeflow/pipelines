@@ -220,6 +220,8 @@ def get_short_type_name(type_name: str) -> str:
       typing.Dict[str, str] -> Dict
       List -> List
       str -> str
+      system.Artifact@0.0.1 -> Artifact
+      system.Dataset@0.0.1 -> Dataset
 
     Args:
       type_name: The original type name.
@@ -227,8 +229,15 @@ def get_short_type_name(type_name: str) -> str:
     Returns:
       The short form type name or the original name if pattern doesn't match.
     """
-    match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-    return match['type'] if match else type_name
+    parameter_match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
+    artifact_match = re.match('(system\.)(?P<type>\w+)@(\d\.\d\.\d)', type_name)
+
+    if artifact_match:
+        return artifact_match['type']
+    elif parameter_match:
+        return parameter_match['type']
+    else:
+        return type_name
 
 
 def is_artifact_class(artifact_class_or_instance: Type) -> bool:
@@ -275,3 +284,9 @@ def is_generic_list(annotation: Any) -> bool:
     # handles built-in generics for python>=3.9
     built_in_generic_list = annotation == list
     return typing_generic_list or built_in_generic_list
+
+
+def is_artifact_subtype(type_name: str) -> bool:
+    """Checks if a type name is an Artifact subtype."""
+    match = re.match('(system\.)(\w+)@(\d\.\d\.\d)', type_name)
+    return True if match else False
