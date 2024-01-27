@@ -64,7 +64,7 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
     return match['value_type'].lstrip().rstrip() if match else None
 
 
-def _get_first_element_type(item_list: ItemList) -> Union[str, Dict]:
+def _get_first_element_type(item_list: ItemList) -> str:
     """Returns the type of the first element of ItemList.
 
     Args:
@@ -73,14 +73,12 @@ def _get_first_element_type(item_list: ItemList) -> Union[str, Dict]:
         A string representing the type of the first element (e.g., "int", "Dict[str, int]").
     """
     first_element = item_list[0]
-    # Do we need to have some input validation check here?
     if isinstance(first_element, Dict):
         key_type = type(list(
             first_element.keys())[0]).__name__  # Get type of first key
         value_type = type(list(
             first_element.values())[0]).__name__  # Get type of first value
         return f'Dict[{key_type}, {value_type}]'
-        # return first_element
     else:
         return type(first_element).__name__
 
