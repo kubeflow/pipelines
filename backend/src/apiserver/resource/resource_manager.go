@@ -1711,9 +1711,9 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 		v1.CreateOptions{},
 	)
 	if err != nil {
-		if err, ok := err.(net.Error); ok && err.Timeout() {
+		if err1, ok := err.(net.Error); ok && err1.Timeout() {
 			reportErr := util.NewUnavailableServerError(
-				err,
+				err1,
 				"Failed to create SubjectAccessReview for user '%s' (request: %+v) - try again later",
 				userIdentity,
 				resourceAttributes,
