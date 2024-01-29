@@ -56,7 +56,7 @@ def arbiter_preprocess(
       and responses.
     id_columns: The columns which distinguish unique evaluation examples.
     response_column_a: The column containing responses for model a.
-    response_column_b: The column containing responses for model a.
+    response_column_b: The column containing responses for model b.
     task: Task to evaluate.
     output_path: Path to write the path where preprocessed predictions are
       stored.

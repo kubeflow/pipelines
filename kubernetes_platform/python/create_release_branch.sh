@@ -49,5 +49,5 @@ else
     rm $REPO_ROOT/kubernetes_platform/.gitignore
 
 
-    echo "\nNext steps:\n\t- Add the version number to $PKG_ROOT/docs/conf.py\n\t- Add and commit the changes in this branch using 'git add $REPO_ROOT && git commit -m 'update for release' --no-verify'\n\t- Push branch using 'git push --set-upstream upstream $BRANCH_NAME'"
+    echo "\nNext steps:\n\tPush branch using 'git push --set-upstream upstream $BRANCH_NAME'"
 fi
