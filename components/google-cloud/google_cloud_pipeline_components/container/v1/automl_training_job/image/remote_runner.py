@@ -13,6 +13,7 @@
 # limitations under the License.
 """GCP remote runner for AutoML image training pipelines based on the AI Platform SDK."""
 
+import json
 import logging
 from typing import Any, Dict, Optional, Sequence
 
@@ -25,6 +26,7 @@ from google.cloud.aiplatform import schema
 from google.cloud.aiplatform import training_jobs
 from google.cloud.aiplatform_v1.types import model
 from google.cloud.aiplatform_v1.types import training_pipeline
+from google_cloud_pipeline_components.container.v1.aiplatform import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import pipeline_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 
@@ -195,6 +197,7 @@ def create_pipeline(
     project: str,
     location: str,
     gcp_resources: str,
+    executor_input: str,
     **kwargs: Dict[str, Any],
 ):
   """Create and poll AutoML Vision training pipeline status till it reaches a final state.
@@ -222,29 +225,39 @@ def create_pipeline(
     project: Project name.
     location: Location to start the training job.
     gcp_resources: URI for storing GCP resources.
+    executor_input: Pipeline executor input.
     **kwargs: Extra args for creating the payload.
   """
-  remote_runner = pipeline_remote_runner.PipelineRemoteRunner(
+  runner = pipeline_remote_runner.PipelineRemoteRunner(
       type, project, location, gcp_resources
   )
 
   try:
     # Create AutoML vision training pipeline if it does not exist
-    pipeline_name = remote_runner.check_if_pipeline_exists()
+    pipeline_name = runner.check_if_pipeline_exists()
     if pipeline_name is None:
       payload = create_payload(project, location, **kwargs)
       logging.info(
           'AutoML Vision training payload formatted: %s',
           payload,
       )
-      pipeline_name = remote_runner.create_pipeline(
+      pipeline_name = runner.create_pipeline(
           create_pipeline_with_client,
           payload,
       )
 
     # Poll AutoML Vision training pipeline status until
     # "PipelineState.PIPELINE_STATE_SUCCEEDED"
-    remote_runner.poll_pipeline(get_pipeline_with_client, pipeline_name)
+    pipeline = runner.poll_pipeline(get_pipeline_with_client, pipeline_name)
 
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
+    return  # No-op, suppressing uninitialized `pipeline` variable lint error.
+
+  # Writes artifact output on success.
+  if not isinstance(pipeline, training_pipeline.TrainingPipeline):
+    raise ValueError('Internal error: no training pipeline was created.')
+  remote_runner.write_to_artifact(
+      json.loads(executor_input),
+      pipeline.model_to_upload.name,
+  )
