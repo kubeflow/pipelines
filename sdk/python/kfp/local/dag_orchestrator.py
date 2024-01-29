@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Code for locally executing a DAG within a pipeline."""
+import copy
 from typing import Any, Dict, Optional, Tuple
 
 from kfp.local import config
@@ -53,7 +54,7 @@ def run_dag(
     from kfp.local import task_dispatcher
 
     # prepare IOStore for DAG
-    dag_arguments_with_defaults = bind_defaults_to_dag_arguments(
+    dag_arguments_with_defaults = join_user_inputs_and_defaults(
         dag_arguments=dag_arguments,
         dag_inputs_spec=dag_component_spec.input_definitions,
     )
@@ -70,7 +71,7 @@ def run_dag(
         implementation = component_spec.WhichOneof('implementation')
         # TODO: support pipeline-in-pipeline + control flow features
         if implementation == 'dag':
-            raise ValueError(
+            raise NotImplementedError(
                 'Control flow features and pipelines in pipelines are not yet supported by local pipeline execution.'
             )
         elif implementation != 'executor_label':
@@ -118,12 +119,12 @@ def run_dag(
     return status.Status.SUCCESS, None
 
 
-def bind_defaults_to_dag_arguments(
+def join_user_inputs_and_defaults(
     dag_arguments: Dict[str, Any],
     dag_inputs_spec: pipeline_spec_pb2.ComponentInputsSpec,
 ) -> Dict[str, Any]:
-    """For each required argument in dag_arguments which is missing, adds the
-    default argument.
+    """Collects user-provided arguments and default arguments (when no user-
+    provided argument) into a dictionary. Returns the dictionary.
 
     Args:
         dag_arguments: The user-provided arguments to the DAG.
@@ -134,15 +135,14 @@ def bind_defaults_to_dag_arguments(
     """
     from kfp.local import executor_output_utils
 
-    dag_arguments_with_defaults = {}
+    copied_dag_arguments = copy.deepcopy(dag_arguments)
+
     for input_name, input_spec in dag_inputs_spec.parameters.items():
-        if input_name not in dag_arguments:
-            dag_arguments_with_defaults[
+        if input_name not in copied_dag_arguments:
+            copied_dag_arguments[
                 input_name] = executor_output_utils.pb2_value_to_python(
                     input_spec.default_value)
-        else:
-            dag_arguments_with_defaults[input_name] = dag_arguments[input_name]
-    return dag_arguments_with_defaults
+    return copied_dag_arguments
 
 
 def make_task_arguments(
@@ -188,7 +188,7 @@ def make_task_arguments(
 
         # TODO: support dsl.ExitHandler
         elif input_spec.HasField('task_final_status'):
-            raise ValueError(
+            raise NotImplementedError(
                 "'dsl.ExitHandler' is not yet support for local execution.")
 
         else:
@@ -220,7 +220,7 @@ def validate_executor(
         executor: The ExecutorSpec to validate.
     """
     if executor.WhichOneof('spec') == 'importer':
-        raise ValueError(
+        raise NotImplementedError(
             "Importer is not yet supported by local pipeline execution. Found 'dsl.importer' task in pipeline."
         )
     elif executor.WhichOneof('spec') != 'container':
@@ -254,7 +254,7 @@ def get_dag_output_parameters(
                 value_from_parameter.output_parameter_key,
             )
         elif kind == 'value_from_oneof':
-            raise ValueError(
+            raise NotImplementedError(
                 "'dsl.OneOf' is not yet supported in local execution.")
         else:
             raise ValueError(

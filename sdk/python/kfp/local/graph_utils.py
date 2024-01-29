@@ -29,22 +29,22 @@ def topological_sort_tasks(
     Returns:
         A totally ordered stack of tasks. Tasks should be executed in the order they are popped off the right side of the stack.
     """
-    adj_list = build_adjacency_list(tasks)
-    return topological_sort(adj_list)
+    dependency_map = build_dependency_map(tasks)
+    return topological_sort(dependency_map)
 
 
-def build_adjacency_list(
+def build_dependency_map(
     tasks: Dict[str,
                 pipeline_spec_pb2.PipelineTaskSpec]) -> Dict[str, List[str]]:
-    """Builds an adjacency list from a dictionary of task name to
-    PipelineTaskSpec. This is a data structure simplification step, which
-    allows for a general topological_sort sort implementation.
+    """Builds a dictionary of task name to all upstream task names
+    (dependencies). This is a data structure simplification step, which allows
+    for a general topological_sort sort implementation.
 
     Args:
         tasks: The tasks in the pipeline.
 
     Returns:
-        An adjacency list of tasks name to a list of upstream tasks. The key task depends on all value tasks being executed first.
+        An dictionary of task name to all upstream tasks. The key task depends on all value tasks being executed first.
     """
     return {
         task_name: task_details.dependent_tasks
@@ -52,11 +52,11 @@ def build_adjacency_list(
     }
 
 
-def topological_sort(adj_list: Dict[str, List[str]]) -> List[str]:
-    """Topologicall sorts an adjacency list.
+def topological_sort(dependency_map: Dict[str, List[str]]) -> List[str]:
+    """Topologically sorts a dictionary of task names to upstream tasks.
 
     Args:
-        adj_list: An adjacency list of tasks name to a list of upstream tasks. The key task depends on all value tasks being executed first.
+        dependency_map: A dictionary of tasks name to a list of upstream tasks. The key task depends on all value tasks being executed first.
 
     Returns:
         A totally ordered stack of tasks. Tasks should be executed in the order they are popped off the right side of the stack.
@@ -64,16 +64,16 @@ def topological_sort(adj_list: Dict[str, List[str]]) -> List[str]:
 
     def dfs(node: str) -> None:
         visited.add(node)
-        for neighbor in adj_list[node]:
+        for neighbor in dependency_map[node]:
             if neighbor not in visited:
                 dfs(neighbor)
         result.append(node)
 
     # sort lists to force deterministic result
-    adj_list = {k: sorted(v) for k, v in adj_list.items()}
+    dependency_map = {k: sorted(v) for k, v in dependency_map.items()}
     visited: Set[str] = set()
     result = []
-    for node in adj_list:
+    for node in dependency_map:
         if node not in visited:
             dfs(node)
     return result[::-1]

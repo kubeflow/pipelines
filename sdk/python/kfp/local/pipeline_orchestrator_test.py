@@ -314,7 +314,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             )
 
         with self.assertRaisesRegex(
-                ValueError,
+                NotImplementedError,
                 r"Importer is not yet supported by local pipeline execution\. Found 'dsl\.importer' task in pipeline\."
         ):
             my_pipeline()
@@ -335,7 +335,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             inner_pipeline()
 
         with self.assertRaisesRegex(
-                ValueError,
+                NotImplementedError,
                 r'Control flow features and pipelines in pipelines are not yet supported by local pipeline execution\.'
         ):
             my_pipeline()
@@ -353,7 +353,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                 pass_op()
 
         with self.assertRaisesRegex(
-                ValueError,
+                NotImplementedError,
                 r'Control flow features and pipelines in pipelines are not yet supported by local pipeline execution\.'
         ):
             my_pipeline()
