@@ -3,6 +3,8 @@
 ## Features
 * Support local execution of sequential pipelines [\#10423](https://github.com/kubeflow/pipelines/pull/10423)
 
+* Support dsl.ParallelFor over list of Artifacts [\#10437](https://github.com/kubeflow/pipelines/pull/10437)
+
 ## Breaking changes
 
 ## Deprecations
