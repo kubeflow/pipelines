@@ -3,6 +3,13 @@ module github.com/kubeflow/pipelines/kubernetes_platform
 go 1.16
 
 require (
-	google.golang.org/genproto v0.0.0-20211026145609-4688e4c4e024
-	google.golang.org/protobuf v1.27.1
+	github.com/google/go-cmp v0.5.9 // indirect
+	google.golang.org/protobuf v1.30.0
+
+)
+
+replace (
+	github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.18
+	golang.org/x/net => golang.org/x/net v0.17.0
+	google.golang.org/grpc => google.golang.org/grpc v1.56.3
 )
