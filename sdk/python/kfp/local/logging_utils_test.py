@@ -229,5 +229,13 @@ class TestFormatTaskName(unittest.TestCase):
             '\x1b[96m\'my-task\'\x1b[0m')
 
 
+class TestFormatPipelineName(unittest.TestCase):
+
+    def test(self):
+        self.assertEqual(
+            logging_utils.format_pipeline_name('my-pipeline'),
+            '\033[95m\'my-pipeline\'\033[0m')
+
+
 if __name__ == '__main__':
     unittest.main()

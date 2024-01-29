@@ -31,7 +31,26 @@ json_format.ParseDict(
                 'dictionary': {
                     'foo': 'bar'
                 },
-            }
+            },
+            'artifacts': {
+                'in_a': {
+                    'artifacts': [{
+                        'name':
+                            'in_a',
+                        'type': {
+                            'schemaTitle': 'system.Dataset',
+                            'schemaVersion': '0.0.1'
+                        },
+                        'uri':
+                            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
+                        'metadata': {
+                            'foo': {
+                                'bar': 'baz'
+                            }
+                        }
+                    }]
+                }
+            },
         },
         'outputs': {
             'parameters': {
@@ -90,6 +109,7 @@ class TestReplacePlaceholders(unittest.TestCase):
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
             task_resource_name='comp',
             pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            unique_pipeline_id=placeholder_utils.make_random_id(),
         )
         expected = [
             'echo',
@@ -206,6 +226,24 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
         ),
         (
             "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}",
+            json.dumps({'bar': 'baz'}),
+        ),
+        (
+            "{{$.inputs.artifacts[''in_a''].metadata}}",
+            json.dumps({'foo': {
+                'bar': 'baz'
+            }}),
+        ),
+        (
+            "{{$.inputs.artifacts[''in_a''].uri}}",
+            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
+        ),
+        (
+            "{{$.inputs.artifacts[''in_a''].path}}",
+            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
+        ),
+        (
+            "{{$.inputs.artifacts[''in_a''].metadata[''foo'']}}",
             json.dumps({'bar': 'baz'}),
         ),
     ])

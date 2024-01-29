@@ -20,8 +20,8 @@ from typing import Any, Dict, List, Optional, Union
 from kfp import dsl
 
 
-def make_random_id():
-    """Makes a random 8 digit integer."""
+def make_random_id() -> str:
+    """Makes a random 8 digit integer as a string."""
     return str(random.randint(0, 99999999))
 
 
@@ -31,9 +31,15 @@ def replace_placeholders(
     pipeline_resource_name: str,
     task_resource_name: str,
     pipeline_root: str,
+    unique_pipeline_id: str,
 ) -> List[str]:
-    """Iterates over each element in the command and replaces placeholders."""
-    unique_pipeline_id = make_random_id()
+    """Iterates over each element in the command and replaces placeholders.
+
+    This should only be called once per each task, since the task's
+    random ID is created within the scope of the function. Multiple
+    calls on the same task will result in multiple random IDs per single
+    task.
+    """
     unique_task_id = make_random_id()
     provided_inputs = get_provided_inputs(executor_input_dict)
     full_command = [
