@@ -16,9 +16,9 @@ package v1beta1
 
 import (
 	"github.com/kubeflow/pipelines/backend/src/common"
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // +genclient

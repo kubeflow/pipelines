@@ -17,6 +17,7 @@ package util
 import (
 	"fmt"
 	"hash/fnv"
+	core "k8s.io/api/core/v1"
 	"math"
 	"sort"
 	"strconv"
@@ -25,7 +26,6 @@ import (
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (

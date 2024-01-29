@@ -16,6 +16,7 @@ package util
 
 import (
 	"encoding/json"
+	core "k8s.io/api/core/v1"
 	"testing"
 	"time"
 
@@ -23,7 +24,6 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestScheduledWorkflow_Getters(t *testing.T) {
