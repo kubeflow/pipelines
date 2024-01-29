@@ -34,6 +34,7 @@ from kfp.dsl import structures
 from kfp.dsl import tasks_group
 from kfp.dsl import utils
 from kfp.dsl.types import artifact_types
+from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -134,11 +135,18 @@ def build_task_spec_for_task(
             component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value))
-            assert component_input_parameter in parent_component_inputs.parameters, \
-                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-            pipeline_task_spec.inputs.parameters[
-                input_name].component_input_parameter = (
-                    component_input_parameter)
+            if component_input_parameter in parent_component_inputs.parameters:
+                pipeline_task_spec.inputs.parameters[
+                    input_name].component_input_parameter = (
+                        component_input_parameter)
+            elif component_input_parameter in parent_component_inputs.artifacts:
+                pipeline_task_spec.inputs.artifacts[
+                    input_name].component_input_artifact = (
+                        component_input_parameter)
+            else:
+                raise RuntimeError(
+                    f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                )
 
         elif isinstance(input_value, for_loop.LoopArgumentVariable):
 
@@ -693,9 +701,20 @@ def build_component_spec_for_group(
         else:
             # channel is one of PipelineParameterChannel, LoopArgument, or
             # LoopArgumentVariable.
-            component_spec.input_definitions.parameters[
-                input_name].parameter_type = type_utils.get_parameter_type(
-                    channel.channel_type)
+            if isinstance(channel, for_loop.LoopArgument
+                         ) and type_annotations.is_artifact_subtype(
+                             channel.channel_type):
+                component_spec.input_definitions.artifacts[
+                    input_name].artifact_type.CopyFrom(
+                        type_utils.bundled_artifact_to_artifact_proto(
+                            channel.channel_type))
+
+                component_spec.input_definitions.artifacts[
+                    input_name].is_artifact_list = channel.is_artifact_list
+            else:
+                component_spec.input_definitions.parameters[
+                    input_name].parameter_type = type_utils.get_parameter_type(
+                        channel.channel_type)
 
     for output_name, output in output_pipeline_channels.items():
         if isinstance(output, pipeline_channel.PipelineArtifactChannel):
@@ -750,10 +769,26 @@ def _update_task_spec_for_loop_group(
         loop_arguments_item = f'{input_parameter_name}-{for_loop.LoopArgument.LOOP_ITEM_NAME_BASE}'
         assert loop_arguments_item == loop_argument_item_name
 
-        pipeline_task_spec.parameter_iterator.items.input_parameter = (
-            input_parameter_name)
-        pipeline_task_spec.parameter_iterator.item_input = (
-            loop_argument_item_name)
+        if type_annotations.is_artifact_subtype(group.channel_type):
+            input_artifact_name = compiler_utils.additional_input_name_for_pipeline_channel(
+                loop_items_channel)
+
+            pipeline_task_spec.artifact_iterator.items.input_artifact = input_artifact_name
+            pipeline_task_spec.artifact_iterator.item_input = (
+                loop_argument_item_name)
+
+            _pop_input_from_task_spec(
+                task_spec=pipeline_task_spec,
+                input_name=pipeline_task_spec.artifact_iterator.item_input)
+        else:
+            pipeline_task_spec.parameter_iterator.items.input_parameter = (
+                input_parameter_name)
+            pipeline_task_spec.parameter_iterator.item_input = (
+                loop_argument_item_name)
+
+            _pop_input_from_task_spec(
+                task_spec=pipeline_task_spec,
+                input_name=pipeline_task_spec.parameter_iterator.item_input)
 
         # If the loop items itself is a loop arguments variable, handle the
         # subvar name.
@@ -777,13 +812,13 @@ def _update_task_spec_for_loop_group(
         pipeline_task_spec.parameter_iterator.item_input = (
             input_parameter_name)
 
+        _pop_input_from_task_spec(
+            task_spec=pipeline_task_spec,
+            input_name=pipeline_task_spec.parameter_iterator.item_input)
+
     if (group.parallelism_limit > 0):
         pipeline_task_spec.iterator_policy.parallelism_limit = (
             group.parallelism_limit)
-
-    _pop_input_from_task_spec(
-        task_spec=pipeline_task_spec,
-        input_name=pipeline_task_spec.parameter_iterator.item_input)
 
 
 def _binary_operations_to_cel_conjunctive(

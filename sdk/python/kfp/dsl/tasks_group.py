@@ -22,6 +22,7 @@ from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
+from kfp.dsl.types import type_annotations
 
 
 class TasksGroupType(str, enum.Enum):
@@ -455,8 +456,11 @@ class ParallelFor(TasksGroup):
         )
 
         if isinstance(items, pipeline_channel.PipelineChannel):
+            self.channel_type = str(items.channel_type)
             self.loop_argument = for_loop.LoopArgument.from_pipeline_channel(
-                items)
+                items,
+                is_artifact_list=False,
+            )
             self.items_is_pipeline_channel = True
         else:
             self.loop_argument = for_loop.LoopArgument.from_raw_items(
