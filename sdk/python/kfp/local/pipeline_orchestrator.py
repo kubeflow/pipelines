@@ -13,11 +13,10 @@
 # limitations under the License.
 """Code for locally executing a compiled pipeline."""
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List
 
 from kfp.local import config
 from kfp.local import dag_orchestrator
-from kfp.local import io
 from kfp.local import logging_utils
 from kfp.local import placeholder_utils
 from kfp.local import status
@@ -86,17 +85,17 @@ def _run_local_pipeline_implementation(
     }
     # convert to dict for consistency with executors
     components = dict(pipeline_spec.components.items())
-    io_store = io.IOStore()
-    dag_status, fail_task_name = dag_orchestrator.run_dag(
+    fail_stack: List[str] = []
+    outputs, dag_status = dag_orchestrator.run_dag(
         pipeline_resource_name=pipeline_resource_name,
         dag_component_spec=pipeline_spec.root,
         executors=executors,
         components=components,
         dag_arguments=arguments,
-        io_store=io_store,
         pipeline_root=pipeline_root,
         runner=runner,
         unique_pipeline_id=placeholder_utils.make_random_id(),
+        fail_stack=fail_stack,
     )
     if dag_status == status.Status.SUCCESS:
         status_with_color = logging_utils.format_status(status.Status.SUCCESS)
@@ -104,14 +103,11 @@ def _run_local_pipeline_implementation(
             logging.info(
                 f'Pipeline {pipeline_name_with_color} finished with status {status_with_color}'
             )
-        return dag_orchestrator.get_dag_outputs(
-            dag_outputs_spec=pipeline_spec.root.dag.outputs,
-            io_store=io_store,
-        )
+        return outputs
     elif dag_status == status.Status.FAILURE:
         log_and_maybe_raise_for_failure(
             pipeline_name=pipeline_name,
-            fail_task_name=fail_task_name,
+            fail_stack=fail_stack,
             raise_on_error=raise_on_error,
         )
         return {}
@@ -122,7 +118,7 @@ def _run_local_pipeline_implementation(
 def log_and_maybe_raise_for_failure(
     pipeline_name: str,
     raise_on_error: bool,
-    fail_task_name: Optional[str] = None,
+    fail_stack: List[str],
 ) -> None:
     """To be called if an inner pipeline task exits with failure status. Either
     logs error or throws exception, depending on raise_on_error.
@@ -130,12 +126,13 @@ def log_and_maybe_raise_for_failure(
     Args:
         pipeline_name: The name of the root pipeline.
         raise_on_error: Whether to raise on error.
-        fail_task_name: The name of the task that failed. None if no failure.
+        fail_stack: The stack of task failures, if any, starting with the innermost task that failed to the outermost pipeline. Excludes the root pipeline.
     """
     status_with_color = logging_utils.format_status(status.Status.FAILURE)
     pipeline_name_with_color = logging_utils.format_pipeline_name(pipeline_name)
-    task_name_with_color = logging_utils.format_task_name(fail_task_name)
-    msg = f'Pipeline {pipeline_name_with_color} finished with status {status_with_color}. Inner task failed: {task_name_with_color}.'
+    task_chain_with_color = ' inside '.join(
+        logging_utils.format_task_name(task_name) for task_name in fail_stack)
+    msg = f'Pipeline {pipeline_name_with_color} finished with status {status_with_color}. Inner task failed: {task_chain_with_color}.'
     if raise_on_error:
         raise RuntimeError(msg)
     with logging_utils.local_logger_context():
