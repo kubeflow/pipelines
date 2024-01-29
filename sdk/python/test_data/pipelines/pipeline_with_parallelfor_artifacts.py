@@ -16,13 +16,7 @@ from typing import List
 
 from kfp import compiler
 from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Dataset
-
-
-@dsl.component
-def double(num: int) -> int:
-    return 2 * num
+from kfp.dsl import Artifact, Dataset
 
 
 @dsl.component
@@ -30,20 +24,12 @@ def print_artifact_name(artifact: Artifact) -> str:
     print(artifact.name)
     return artifact.name
 
-
-@dsl.component
-def print_dataset_name(dataset: Dataset) -> str:
-    print(dataset.name)
-    return dataset.name
-
-
 @dsl.component
 def make_dataset(text: str) -> Dataset:
     dataset = Dataset(uri=dsl.get_uri(), metadata={'length': len(text)})
     with open(dataset.path, 'w') as f:
         f.write(text)
     return dataset
-
 
 @dsl.pipeline
 def make_datasets(
@@ -53,14 +39,12 @@ def make_datasets(
 
     return dsl.Collected(t1.output)
 
-
 @dsl.component
 def make_artifact(name: str) -> Artifact:
     artifact = Artifact(uri=dsl.get_uri(), metadata={'length': len(name)})
     with open(artifact.path, 'w') as f:
         f.write(name)
     return artifact
-
 
 @dsl.pipeline
 def make_artifacts(
@@ -79,7 +63,7 @@ def my_pipeline():
 
     make_datasets_task = make_datasets()
     with dsl.ParallelFor(items=make_datasets_task.output) as item:
-        print_dataset_name(dataset=item)
+        print_artifact_name(artifact=item)
 
 
 if __name__ == '__main__':
