@@ -114,63 +114,6 @@ class TestArgumentValidation(parameterized.TestCase):
 class TestSupportOfComponentTypes(
         testing_utilities.LocalRunnerEnvironmentTestCase):
 
-    def test_local_pipeline_unsupported_two_tasks(self):
-        local.init(runner=local.SubprocessRunner(use_venv=True))
-
-        @dsl.component
-        def identity(x: str) -> str:
-            return x
-
-        @dsl.pipeline
-        def my_pipeline():
-            identity(x='foo')
-            identity(x='bar')
-
-        # compile and load into a YamlComponent to ensure the NotImplementedError isn't simply being thrown because this is a GraphComponent
-        my_pipeline = testing_utilities.compile_and_load_component(my_pipeline)
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r'Local pipeline execution is not currently supported\.',
-        ):
-            my_pipeline()
-
-    def test_local_pipeline_unsupported_one_task_different_interface(self):
-        local.init(runner=local.SubprocessRunner(use_venv=True))
-
-        @dsl.component
-        def identity(x: str) -> str:
-            return x
-
-        @dsl.pipeline
-        def my_pipeline():
-            identity(x='foo')
-
-        # compile and load into a YamlComponent to ensure the NotImplementedError isn't simply being thrown because this is a GraphComponent
-        my_pipeline = testing_utilities.compile_and_load_component(my_pipeline)
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r'Local pipeline execution is not currently supported\.',
-        ):
-            my_pipeline()
-
-    def test_local_pipeline_unsupported_if_is_graph_component(self):
-        local.init(runner=local.SubprocessRunner(use_venv=True))
-
-        @dsl.component
-        def identity(x: str) -> str:
-            return x
-
-        # even if there is one task with the same interface as the pipeline, the code should catch that the pipeline is a GraphComponent and throw the NotImplementedError
-        @dsl.pipeline
-        def my_pipeline(string: str) -> str:
-            return identity(x=string).output
-
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r'Local pipeline execution is not currently supported\.',
-        ):
-            my_pipeline(string='foo')
-
     def test_can_run_loaded_component(self):
         # use venv to avoid installing non-local KFP into test process
         local.init(runner=local.SubprocessRunner(use_venv=True))

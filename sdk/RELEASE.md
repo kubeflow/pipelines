@@ -1,6 +1,7 @@
 # Current Version (in development)
 
 ## Features
+* Support local execution of sequential pipelines [\#10423](https://github.com/kubeflow/pipelines/pull/10423)
 
 ## Breaking changes
 
