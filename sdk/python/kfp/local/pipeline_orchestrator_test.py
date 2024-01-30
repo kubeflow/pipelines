@@ -303,21 +303,40 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             def my_pipeline():
                 print_model(model=dsl.Model(name='model', uri='/foo/bar/model'))
 
-    def test_importer_not_supported(self):
-        local.init(local.SubprocessRunner())
+    def test_importer(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def artifact_printer(a: Dataset):
+            print(a)
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
 
         @dsl.pipeline
-        def my_pipeline():
-            dsl.importer(
-                artifact_uri='/foo/bar',
-                artifact_class=dsl.Artifact,
-            )
+        def my_pipeline(greeting: str) -> Dataset:
+            world_op = identity(string='world')
+            message_op = identity(string='message')
+            imp_op = dsl.importer(
+                artifact_uri='/local/path/to/dataset',
+                artifact_class=Dataset,
+                metadata={
+                    message_op.output: [greeting, world_op.output],
+                })
+            artifact_printer(a=imp_op.outputs['artifact'])
+            return imp_op.outputs['artifact']
 
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r"Importer is not yet supported by local pipeline execution\. Found 'dsl\.importer' task in pipeline\."
-        ):
-            my_pipeline()
+        task = my_pipeline(greeting='hello')
+        output_model = task.output
+        self.assertIsInstance(output_model, Dataset)
+        self.assertEqual(output_model.name, 'artifact')
+        self.assertEqual(output_model.uri, '/local/path/to/dataset')
+        self.assertEqual(output_model.metadata, {
+            'message': ['hello', 'world'],
+        })
+        # importer doesn't have an output directory
+        self.assert_output_dir_contents(1, 3)
 
     def test_pipeline_in_pipeline_not_supported(self):
         local.init(local.SubprocessRunner())
@@ -417,6 +436,74 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             r'ERROR - Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'raise-component\'\x1b\[0m\.\n',
         )
         self.assertEqual(task.outputs, {})
+
+    def test_fstring_python_component(self):
+        local.init(runner=local.SubprocessRunner())
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.pipeline
+        def my_pipeline(string: str = 'baz') -> str:
+            op1 = identity(string=f'bar-{string}')
+            op2 = identity(string=f'foo-{op1.output}')
+            return op2.output
+
+        task = my_pipeline()
+        self.assertEqual(task.output, 'foo-bar-baz')
+
+
+class TestFstringContainerComponent(
+        testing_utilities.LocalRunnerEnvironmentTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        from kfp.local import subprocess_task_handler
+
+        # Temporarily removing these these validation calls is useful hack to
+        # test a ContainerComponent outside of a container.
+        # We do this here because we only want to test the very specific
+        # f-string logic in container components without the presence of
+        # Docker in the test environment.
+        cls.original_validate_image = subprocess_task_handler.SubprocessTaskHandler.validate_image
+        subprocess_task_handler.SubprocessTaskHandler.validate_image = lambda slf, image: None
+
+        cls.original_validate_not_container_component = subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component = lambda slf, full_command: None
+
+        cls.original_validate_not_containerized_python_component = subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component = lambda slf, full_command: None
+
+    @classmethod
+    def tearDownClass(cls):
+        from kfp.local import subprocess_task_handler
+
+        subprocess_task_handler.SubprocessTaskHandler.validate_image = cls.original_validate_image
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component = cls.original_validate_not_container_component
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component = cls.original_validate_not_containerized_python_component
+
+    def test_fstring_container_component(self):
+        local.init(runner=local.SubprocessRunner())
+
+        @dsl.container_component
+        def identity_container(string: str, outpath: dsl.OutputPath(str)):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    'sh',
+                    '-c',
+                    f"""mkdir -p $(dirname {outpath}) && printf '%s' {string} > {outpath}""",
+                ])
+
+        @dsl.pipeline
+        def my_pipeline(string: str = 'baz') -> str:
+            op1 = identity_container(string=f'bar-{string}')
+            op2 = identity_container(string=f'foo-{op1.output}')
+            return op2.output
+
+        task = my_pipeline()
+        self.assertEqual(task.output, 'foo-bar-baz')
 
 
 if __name__ == '__main__':
