@@ -303,21 +303,40 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             def my_pipeline():
                 print_model(model=dsl.Model(name='model', uri='/foo/bar/model'))
 
-    def test_importer_not_supported(self):
-        local.init(local.SubprocessRunner())
+    def test_importer(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def artifact_printer(a: Dataset):
+            print(a)
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
 
         @dsl.pipeline
-        def my_pipeline():
-            dsl.importer(
-                artifact_uri='/foo/bar',
-                artifact_class=dsl.Artifact,
-            )
+        def my_pipeline(greeting: str) -> Dataset:
+            world_op = identity(string='world')
+            message_op = identity(string='message')
+            imp_op = dsl.importer(
+                artifact_uri='/local/path/to/dataset',
+                artifact_class=Dataset,
+                metadata={
+                    message_op.output: [greeting, world_op.output],
+                })
+            artifact_printer(a=imp_op.outputs['artifact'])
+            return imp_op.outputs['artifact']
 
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r"Importer is not yet supported by local pipeline execution\. Found 'dsl\.importer' task in pipeline\."
-        ):
-            my_pipeline()
+        task = my_pipeline(greeting='hello')
+        output_model = task.output
+        self.assertIsInstance(output_model, Dataset)
+        self.assertEqual(output_model.name, 'artifact')
+        self.assertEqual(output_model.uri, '/local/path/to/dataset')
+        self.assertEqual(output_model.metadata, {
+            'message': ['hello', 'world'],
+        })
+        # importer doesn't have an output directory
+        self.assert_output_dir_contents(1, 3)
 
     def test_pipeline_in_pipeline_not_supported(self):
         local.init(local.SubprocessRunner())

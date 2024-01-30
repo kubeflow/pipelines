@@ -44,7 +44,7 @@ def get_param_to_custom_artifact_class(func: Callable) -> Dict[str, type]:
     typing.NamedTuple returns.
     """
     param_to_artifact_cls: Dict[str, type] = {}
-    kfp_artifact_classes = set(type_utils._ARTIFACT_CLASSES_MAPPING.values())
+    kfp_artifact_classes = set(type_utils.ARTIFACT_CLASSES_MAPPING.values())
 
     signature = inspect.signature(func)
     for name, param in signature.parameters.items():

@@ -684,14 +684,14 @@ class ComponentSpec:
                 schema_version = type_utils._GOOGLE_TYPES_VERSION
 
             elif isinstance(type_, str) and type_.lower(
-            ) in type_utils._ARTIFACT_CLASSES_MAPPING:
-                artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
+            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
                     type_.lower()]
                 schema_title = artifact_class.schema_title
                 schema_version = artifact_class.schema_version
 
             elif type_ is None or isinstance(type_, dict) or type_.lower(
-            ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
+            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
                 schema_title = artifact_types.Artifact.schema_title
                 schema_version = artifact_types.Artifact.schema_version
 
@@ -734,14 +734,14 @@ class ComponentSpec:
                 schema_version = type_utils._GOOGLE_TYPES_VERSION
 
             elif isinstance(type_, str) and type_.lower(
-            ) in type_utils._ARTIFACT_CLASSES_MAPPING:
-                artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
+            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
                     type_.lower()]
                 schema_title = artifact_class.schema_title
                 schema_version = artifact_class.schema_version
 
             elif type_ is None or isinstance(type_, dict) or type_.lower(
-            ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
+            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
                 schema_title = artifact_types.Artifact.schema_title
                 schema_version = artifact_types.Artifact.schema_version
 
