@@ -129,7 +129,7 @@ def build_task_spec_for_task(
             task._task_spec.retry_policy.to_proto())
 
     for input_name, input_value in task.inputs.items():
-        # Since LoopParameterArgumen andLoopArtifactArgument and LoopArgumentVariable are narrower
+        # Since LoopParameterArgument and LoopArtifactArgument and LoopArgumentVariable are narrower
         # types than PipelineParameterChannel, start with them.
         if isinstance(
                 input_value,

@@ -77,7 +77,7 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
     return match['value_type'].lstrip().rstrip() if match else None
 
 
-def _make_name(code: str):
+def _make_name(code: str) -> str:
     """Makes a name for a loop argument from a unique code."""
     return f'{LOOP_ITEM_PARAM_NAME_BASE}-{code}'
 
@@ -111,7 +111,7 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
 
     def __init__(
         self,
-        items: Union[ItemList, pipeline_channel.PipelineChannel],
+        items: Union[ItemList, pipeline_channel.PipelineParameterChannel],
         name_code: Optional[str] = None,
         name_override: Optional[str] = None,
         **kwargs,
@@ -125,8 +125,8 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
             name_code: A unique code used to identify these loop arguments.
                 Should match the code for the ParallelFor ops_group which created
                 these LoopArguments. This prevents parameter name collisions.
-            name_override: The override name for PipelineChannel.
-            **kwargs: Any other keyword arguments passed down to PipelineChannel.
+            name_override: The override name for PipelineParameterChannel.
+            **kwargs: Any other keyword arguments passed down to PipelineParameterChannel.
         """
         if (name_code is None) == (name_override is None):
             raise ValueError(
@@ -139,9 +139,9 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
             super().__init__(name=name_override, **kwargs)
 
         if not isinstance(items,
-                          (list, tuple, pipeline_channel.PipelineChannel)):
+                          (list, tuple, pipeline_channel.PipelineParameterChannel)):
             raise TypeError(
-                f'Expected list, tuple, or PipelineChannel, got {items}.')
+                f'Expected list, tuple, or PipelineParameterChannel, got {items}.')
 
         if isinstance(items, tuple):
             items = list(items)
@@ -176,9 +176,9 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
     @classmethod
     def from_pipeline_channel(
         cls,
-        channel: pipeline_channel.PipelineChannel,
+        channel: pipeline_channel.PipelineParameterChannel,
     ) -> 'LoopParameterArgument':
-        """Creates a LoopParameterArgument object from a PipelineChannel
+        """Creates a LoopParameterArgument object from a PipelineParameterChannel
         object."""
         return LoopParameterArgument(
             items=channel,
@@ -217,13 +217,13 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
 
 
     Attributes:
-        pipeline_channel: The PipelineChannel object this
+        pipeline_channel: The PipelineArtifactChannel object this
             LoopArtifactArgument is associated to.
     """
 
     def __init__(
         self,
-        items: pipeline_channel.PipelineChannel,
+        items: pipeline_channel.PipelineArtifactChannel,
         name_code: Optional[str] = None,
         name_override: Optional[str] = None,
         **kwargs,
@@ -231,13 +231,13 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
         """Initializes a LoopArtifactArgument object.
 
         Args:
-            items: The PipelineChannel object this LoopArtifactArgument is
+            items: The PipelineArtifactChannel object this LoopArtifactArgument is
                 associated to.
             name_code: A unique code used to identify these loop arguments.
                 Should match the code for the ParallelFor ops_group which created
                 these LoopArtifactArguments. This prevents parameter name collisions.
-            name_override: The override name for PipelineChannel.
-            **kwargs: Any other keyword arguments passed down to PipelineChannel.
+            name_override: The override name for PipelineArtifactChannel.
+            **kwargs: Any other keyword arguments passed down to PipelineArtifactChannel.
         """
         if (name_code is None) == (name_override is None):
             raise ValueError(
@@ -256,10 +256,10 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
     @classmethod
     def from_pipeline_channel(
         cls,
-        channel: pipeline_channel.PipelineChannel,
+        channel: pipeline_channel.PipelineArtifactChannel,
         is_artifact_list: bool = False,
     ) -> 'LoopArtifactArgument':
-        """Creates a LooArtifactArgument object from a PipelineChannel
+        """Creates a LoopArtifactArgument object from a PipelineArtifactChannel
         object."""
         return LoopArtifactArgument(
             items=channel,
@@ -268,6 +268,8 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
             channel_type=_get_loop_item_type(channel.channel_type) or 'String',
             is_artifact_list=is_artifact_list,
         )
+
+    # TODO: support artifact constants here.
 
 
 class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
@@ -383,24 +385,16 @@ class Collected(pipeline_channel.PipelineChannel):
         if isinstance(output, pipeline_channel.PipelineArtifactChannel):
             channel_type = output.channel_type
             self.is_artifact_channel = True
-            is_artifact_list = True
-        elif isinstance(output, pipeline_channel.PipelineChannel
-                       ) and type_annotations.is_artifact_subtype(
-                           output.channel_type):
-            channel_type = output.channel_type
-            self.is_artifact_channel = True
-            is_artifact_list = True
+            self.is_artifact_list = True
         else:
             channel_type = 'LIST'
             self.is_artifact_channel = False
-            is_artifact_list = False
+            self.is_artifact_list = False
 
-        # We need to pass in `is_artifact_list`` manually or it will be reset to False.
         super().__init__(
             output.name,
             channel_type=channel_type,
             task_name=output.task_name,
-            is_artifact_list=is_artifact_list,
         )
         self._validate_no_oneof_channel(self.output)
 

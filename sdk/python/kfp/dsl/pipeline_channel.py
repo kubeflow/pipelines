@@ -73,8 +73,6 @@ class PipelineChannel(abc.ABC):
         name: str,
         channel_type: Union[str, Dict],
         task_name: Optional[str] = None,
-        is_artifact_list: Optional[bool] = False,
-        value: Optional[type_utils.PARAMETER_TYPES] = None,
     ):
         """Initializes a PipelineChannel instance.
 
@@ -109,8 +107,6 @@ class PipelineChannel(abc.ABC):
         from kfp.dsl import pipeline_context
 
         self.pipeline = pipeline_context.Pipeline.get_default_pipeline()
-        self.is_artifact_list = is_artifact_list
-        self.value = value
 
     @property
     def task(self) -> Union['PipelineTask', 'TasksGroup']:
@@ -290,7 +286,6 @@ class PipelineArtifactChannel(PipelineChannel):
             name=name,
             channel_type=channel_type,
             task_name=task_name,
-            is_artifact_list=is_artifact_list,
         )
 
 
