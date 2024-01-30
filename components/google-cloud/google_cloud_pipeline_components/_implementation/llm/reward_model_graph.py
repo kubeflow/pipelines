@@ -24,7 +24,13 @@ from google_cloud_pipeline_components._implementation.llm import reward_model_tr
 from google_cloud_pipeline_components._implementation.llm import upload_tensorboard_metrics
 import kfp
 
-PipelineOutput = NamedTuple('Outputs', reward_model_output_path=str)
+PipelineOutput = NamedTuple(
+    'Outputs',
+    reward_model_base_path=str,
+    reward_model_adapter_path=str,
+    reward_dataset_path=str,
+    reward_lora_dim=int,
+)
 
 
 @kfp.dsl.pipeline(
@@ -37,7 +43,7 @@ def pipeline(
     prompt_sequence_length: int = 512,
     target_sequence_length: int = 64,
     batch_size: int = 64,
-    lora_dim: int = 0,
+    lora_dim: int = 1,
     reward_model_learning_rate_multiplier: float = 1.0,
     reward_model_train_steps: int = 1000,
     instruction: Optional[str] = None,
@@ -169,5 +175,12 @@ def pipeline(
         ),
     ).set_display_name('Reward Model TensorBoard Metrics Uploader')
   return PipelineOutput(
-      reward_model_output_path=reward_model.outputs['output_model_path']
+      reward_model_base_path=reference_model_metadata.outputs[
+          'reward_model_path'
+      ],
+      reward_model_adapter_path=reward_model.outputs['output_adapter_path'],
+      reward_dataset_path=preference_dataset_importer.outputs[
+          'output_dataset_path'
+      ],
+      reward_lora_dim=lora_dim,
   )

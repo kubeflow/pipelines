@@ -38,10 +38,13 @@ PipelineOutput = NamedTuple(
 def pipeline(
     prompt_dataset: str,
     input_reward_model_path: str,
+    input_reward_adapter_path: str,
+    input_preference_dataset_path: str,
     large_model_reference: str,
     prompt_sequence_length: int = 512,
     target_sequence_length: int = 64,
     lora_dim: int = 1,
+    reward_lora_dim: int = 1,
     batch_size: int = 64,
     reinforcement_learning_rate_multiplier: float = 1.0,
     reinforcement_learning_train_steps: int = 1000,
@@ -130,9 +133,11 @@ def pipeline(
               'reference_model_path'
           ],
           input_reward_model_path=input_reward_model_path,
+          input_reward_adapter_path=input_reward_adapter_path,
           input_dataset_path=prompt_dataset_importer.outputs[
               'imported_data_path'
           ],
+          input_preference_dataset_path=input_preference_dataset_path,
           train_steps=reinforcement_learning_train_steps,
           accelerator_type=machine_spec.outputs['accelerator_type'],
           accelerator_count=machine_spec.outputs['accelerator_count'],
@@ -150,6 +155,7 @@ def pipeline(
           learning_rate_multiplier=reinforcement_learning_rate_multiplier,
           kl_coeff=kl_coeff,
           lora_dim=lora_dim,
+          reward_lora_dim=reward_lora_dim,
           num_microbatches=num_microbatches.output,
       )
       .set_display_name('Reinforcer')

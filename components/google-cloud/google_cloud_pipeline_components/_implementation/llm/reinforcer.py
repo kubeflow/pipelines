@@ -33,7 +33,9 @@ def Reinforcer(  # pylint: disable=invalid-name
     targets_sequence_length: int,
     input_reference_model_path: str,
     input_reward_model_path: str,
+    input_reward_adapter_path: str,
     input_dataset_path: str,
+    input_preference_dataset_path: str,
     output_model_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     output_adapter_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     tensorboard_metrics: kfp.dsl.Output[kfp.dsl.Artifact],  # pytype: disable=unsupported-operands
@@ -43,6 +45,7 @@ def Reinforcer(  # pylint: disable=invalid-name
     learning_rate_multiplier: float = 1.0,
     kl_coeff: float = 0.1,
     lora_dim: int = 0,
+    reward_lora_dim: int = 0,
     num_microbatches: int = 0,
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Trains a model using reinforcement learning.
@@ -100,7 +103,9 @@ def Reinforcer(  # pylint: disable=invalid-name
           args=[
               f'--input_reference_model_path={input_reference_model_path}',
               f'--input_reward_model_path={input_reward_model_path}',
+              f'--input_reward_adapter_path={input_reward_adapter_path}',
               f'--input_dataset_path={input_dataset_path}',
+              f'--input_preference_dataset_path={input_preference_dataset_path}',
               f'--train_steps={train_steps}',
               f'--output_model_path={output_model_path}',
               f'--output_adapter_path={output_adapter_path}',
@@ -114,6 +119,7 @@ def Reinforcer(  # pylint: disable=invalid-name
               f'--learning_rate_multiplier={learning_rate_multiplier}',
               f'--kl_coeff={kl_coeff}',
               f'--lora_dim={lora_dim}',
+              f'reward_lora_dim={reward_lora_dim}',
               f'--num_microbatches={num_microbatches}',
           ],
       ),
