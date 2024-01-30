@@ -257,6 +257,67 @@ class TestConstructExecutorInput(unittest.TestCase):
             }, expected)
         self.assertEqual(actual, expected)
 
+    def test_fstring_case(self):
+        component_spec = pipeline_spec_pb2.ComponentSpec()
+        json_format.ParseDict(
+            {
+                'inputDefinitions': {
+                    'parameters': {
+                        'string': {
+                            'parameterType': 'STRING'
+                        }
+                    }
+                },
+                'outputDefinitions': {
+                    'parameters': {
+                        'Output': {
+                            'parameterType': 'STRING'
+                        }
+                    }
+                },
+                'executorLabel': 'exec-identity'
+            }, component_spec)
+        expected_executor_input = pipeline_spec_pb2.ExecutorInput()
+        json_format.ParseDict(
+            {
+                'inputs': {
+                    'parameterValues': {
+                        'pipelinechannel--string':
+                            'baz',
+                        'string':
+                            "bar-{{$.inputs.parameters['pipelinechannel--string']}}"
+                    }
+                },
+                'outputs': {
+                    'parameters': {
+                        'Output': {
+                            'outputFile':
+                                '/foo/bar/local_outputs/my-pipeline-2024-01-26-11-10-57XX-530768/identity/Output'
+                        }
+                    },
+                    'outputFile':
+                        '/foo/bar/local_outputs/my-pipeline-2024-01-26-11-10-57XX-530768/identity/executor_output.json'
+                }
+            }, expected_executor_input)
+        actual_executor_input = executor_input_utils.construct_executor_input(
+            component_spec=component_spec,
+            arguments={
+                'pipelinechannel--string':
+                    'baz',
+                # covers the case of an f-string, where the value of
+                # string includes an interpolation of
+                # pipelinechannel--string
+                'string':
+                    "bar-{{$.inputs.parameters['pipelinechannel--string']}}"
+            },
+            task_root='/foo/bar/local_outputs/my-pipeline-2024-01-26-11-10-57XX-530768/identity',
+            block_input_artifact=True,
+        )
+        self.assertEqual(
+            expected_executor_input,
+            actual_executor_input,
+        )
+
 
 class TestExecutorInputToDict(unittest.TestCase):
 
