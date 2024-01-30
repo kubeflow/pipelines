@@ -54,7 +54,7 @@ def run_single_task(
 
     # all global state should be accessed here
     # do not access local config state downstream
-    outputs, _ = _run_single_task_implementation(
+    outputs, _ = run_single_task_implementation(
         pipeline_resource_name=pipeline_resource_name,
         component_name=component_name,
         component_spec=component_spec,
@@ -78,7 +78,7 @@ def get_executor_spec(
 Outputs = Dict[str, Any]
 
 
-def _run_single_task_implementation(
+def run_single_task_implementation(
     pipeline_resource_name: str,
     component_name: str,
     component_spec: pipeline_spec_pb2.ComponentSpec,
