@@ -2,6 +2,7 @@
 
 ## Features
 * Support local execution of sequential pipelines [\#10423](https://github.com/kubeflow/pipelines/pull/10423)
+* Support local execution of `dsl.importer` components [\#10431](https://github.com/kubeflow/pipelines/pull/10431)
 
 ## Breaking changes
 

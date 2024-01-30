@@ -27,7 +27,7 @@ DEFAULT_ARTIFACT_SCHEMA_VERSION = '0.0.1'
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
-_ARTIFACT_CLASSES_MAPPING = {
+ARTIFACT_CLASSES_MAPPING = {
     'artifact': artifact_types.Artifact,
     'model': artifact_types.Model,
     'dataset': artifact_types.Dataset,
