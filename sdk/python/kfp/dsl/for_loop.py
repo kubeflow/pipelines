@@ -21,6 +21,9 @@ from kfp.dsl.types import type_annotations
 
 ItemList = List[Union[int, float, str, Dict[str, Any]]]
 
+LOOP_ITEM_NAME_BASE = 'loop-item'
+LOOP_ITEM_PARAM_NAME_BASE = 'loop-item-param'
+
 
 def _get_loop_item_type(type_name: str) -> Optional[str]:
     """Extracts the loop item type.
@@ -42,7 +45,7 @@ def _get_loop_item_type(type_name: str) -> Optional[str]:
     """
     parameter_match = re.match('(typing\.)?(?:\w+)(?:\[(?P<item_type>.+)\])',
                                type_name)
-    artifact_match = re.match('(system\.)(\w+)@(\d\.\d\.\d)', type_name)
+    artifact_match = re.match('(system\.|google\.)(?P<type>\w+)@(\d\.\d\.\d)', type_name)
 
     if parameter_match:
         return parameter_match['item_type'].lstrip().rstrip()
@@ -73,24 +76,37 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
     return match['value_type'].lstrip().rstrip() if match else None
 
 
-class LoopArgument(pipeline_channel.PipelineChannel):
-    """Represents the argument that are looped over in a ParallelFor loop.
+def _make_name(code: str):
+        """Makes a name for a loop argument from a unique code."""
+        return f'{LOOP_ITEM_PARAM_NAME_BASE}-{code}'
+
+
+def name_is_loop_argument(name: str) -> bool:
+        """Returns True if the given channel name looks like a loop argument.
+
+        Either it came from a withItems loop item or withParams loop
+        item.
+        """
+        return  ('-' + LOOP_ITEM_NAME_BASE) in name \
+          or (LOOP_ITEM_PARAM_NAME_BASE + '-') in name
+
+
+class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
+    """Represents the parameter arguments that are looped over in a ParallelFor loop.
 
     The class shouldn't be instantiated by the end user, rather it is
     created automatically by a ParallelFor ops group.
 
-    To create a LoopArgument instance, use one of its factory methods::
+    To create a LoopParameterArgument instance, use one of its factory methods::
 
-        LoopArgument.from_pipeline_channel(...)
-        LoopArgument.from_raw_items(...)
+        LoopParameterArgument.from_pipeline_channel(...)
+        LoopParameterArgument.from_raw_items(...)
 
 
     Attributes:
         items_or_pipeline_channel: The raw items or the PipelineChannel object this
             LoopArgument is associated to.
     """
-    LOOP_ITEM_NAME_BASE = 'loop-item'
-    LOOP_ITEM_PARAM_NAME_BASE = 'loop-item-param'
 
     def __init__(
         self,
@@ -99,7 +115,7 @@ class LoopArgument(pipeline_channel.PipelineChannel):
         name_override: Optional[str] = None,
         **kwargs,
     ):
-        """Initializes a LoopArguments object.
+        """Initializes a LoopParameterArgument object.
 
         Args:
             items: List of items to loop over.  If a list of dicts then, all
@@ -117,7 +133,7 @@ class LoopArgument(pipeline_channel.PipelineChannel):
                 'be specified.')
 
         if name_override is None:
-            super().__init__(name=self._make_name(name_code), **kwargs)
+            super().__init__(name=_make_name(name_code), **kwargs)
         else:
             super().__init__(name=name_override, **kwargs)
 
@@ -156,24 +172,18 @@ class LoopArgument(pipeline_channel.PipelineChannel):
                 subvar_name=name,
             ))
 
-    def _make_name(self, code: str):
-        """Makes a name for this loop argument from a unique code."""
-        return f'{self.LOOP_ITEM_PARAM_NAME_BASE}-{code}'
 
     @classmethod
     def from_pipeline_channel(
         cls,
         channel: pipeline_channel.PipelineChannel,
-        is_artifact_list: bool = False,
-    ) -> 'LoopArgument':
-        """Creates a LoopArgument object from a PipelineChannel object."""
-        return LoopArgument(
+    ) -> 'LoopParameterArgument':
+        """Creates a LoopParameterArgument object from a PipelineChannel object."""
+        return LoopParameterArgument(
             items=channel,
-            name_override=channel.name + '-' + cls.LOOP_ITEM_NAME_BASE,
+            name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
             task_name=channel.task_name,
             channel_type=_get_loop_item_type(channel.channel_type) or 'String',
-            is_artifact_list=is_artifact_list,
-            value=None,
         )
 
     @classmethod
@@ -181,27 +191,80 @@ class LoopArgument(pipeline_channel.PipelineChannel):
         cls,
         raw_items: ItemList,
         name_code: str,
-    ) -> 'LoopArgument':
-        """Creates a LoopArgument object from raw item list."""
+    ) -> 'LoopParameterArgument':
+        """Creates a LoopParameterArgument object from raw item list."""
         if len(raw_items) == 0:
             raise ValueError('Got an empty item list for loop argument.')
 
-        return LoopArgument(
+        return LoopParameterArgument(
             items=raw_items,
             name_code=name_code,
             channel_type=type(raw_items[0]).__name__,
-            value=None,
         )
+    
+
+class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
+    """Represents the artifact arguments that are looped over in a ParallelFor loop.
+
+    The class shouldn't be instantiated by the end user, rather it is
+    created automatically by a ParallelFor ops group.
+
+    To create a LoopArtifactArgument instance, use the factory method::
+
+        LoopArtifactArgument.from_pipeline_channel(...)
+
+
+    Attributes:
+        pipeline_channel: The PipelineChannel object this
+            LoopArtifactArgument is associated to.
+    """
+
+    def __init__(
+        self,
+        items: pipeline_channel.PipelineChannel,
+        name_code: Optional[str] = None,
+        name_override: Optional[str] = None,
+        **kwargs,
+    ):
+        """Initializes a LoopArtifactArgument object.
+
+        Args:
+            items: The PipelineChannel object this LoopArtifactArgument is
+                associated to.
+            name_code: A unique code used to identify these loop arguments.
+                Should match the code for the ParallelFor ops_group which created
+                these LoopArtifactArguments. This prevents parameter name collisions.
+            name_override: The override name for PipelineChannel.
+            **kwargs: Any other keyword arguments passed down to PipelineChannel.
+        """
+        if (name_code is None) == (name_override is None):
+            raise ValueError(
+                'Expect one and only one of `name_code` and `name_override` to '
+                'be specified.')
+
+        if name_override is None:
+            super().__init__(name=_make_name(name_code), **kwargs)
+        else:
+            super().__init__(name=name_override, **kwargs)
+
+        self.items_or_pipeline_channel = items
+        self.is_with_items_loop_argument = not isinstance(
+            items, pipeline_channel.PipelineArtifactChannel)
 
     @classmethod
-    def name_is_loop_argument(cls, name: str) -> bool:
-        """Returns True if the given channel name looks like a loop argument.
-
-        Either it came from a withItems loop item or withParams loop
-        item.
-        """
-        return  ('-' + cls.LOOP_ITEM_NAME_BASE) in name \
-          or (cls.LOOP_ITEM_PARAM_NAME_BASE + '-') in name
+    def from_pipeline_channel(
+        cls,
+        channel: pipeline_channel.PipelineChannel,
+        is_artifact_list: bool = False,
+    ) -> 'LoopArtifactArgument':
+        """Creates a LooArtifactArgument object from a PipelineChannel object."""
+        return LoopArtifactArgument(
+            items=channel,
+            name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
+            task_name=channel.task_name,
+            channel_type=_get_loop_item_type(channel.channel_type) or 'String',
+            is_artifact_list=is_artifact_list,
+        )
 
 
 class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
@@ -225,13 +288,13 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
 
     def __init__(
         self,
-        loop_argument: LoopArgument,
+        loop_argument: LoopParameterArgument,
         subvar_name: str,
     ):
         """Initializes a LoopArgumentVariable instance.
 
         Args:
-            loop_argument: The LoopArgument object this subvariable is based on
+            loop_argument: The LoopParameterArgument object this subvariable is based on
                 a subvariable to.
             subvar_name: The name of this subvariable, which is the name of the
                 dict key that spawned this subvariable.
@@ -314,7 +377,6 @@ class Collected(pipeline_channel.PipelineChannel):
         # we know all dsl.Collected instances are lists, so set `is_artifact_list``
         # for type checking, which occurs before dsl.Collected is updated to
         # it's "correct" channel during compilation
-        is_artifact_list = False
         if isinstance(output, pipeline_channel.PipelineArtifactChannel):
             channel_type = output.channel_type
             self.is_artifact_channel = True
@@ -328,8 +390,9 @@ class Collected(pipeline_channel.PipelineChannel):
         else:
             channel_type = 'LIST'
             self.is_artifact_channel = False
+            is_artifact_list = False
 
-        # We need to pass in `is_artifact_list`` manually ow it will be reset to False.
+        # We need to pass in `is_artifact_list`` manually or it will be reset to False.
         super().__init__(
             output.name,
             channel_type=channel_type,

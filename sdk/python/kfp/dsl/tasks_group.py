@@ -457,13 +457,18 @@ class ParallelFor(TasksGroup):
 
         if isinstance(items, pipeline_channel.PipelineChannel):
             self.channel_type = str(items.channel_type)
-            self.loop_argument = for_loop.LoopArgument.from_pipeline_channel(
-                items,
-                is_artifact_list=False,
-            )
+            if type_annotations.is_artifact_subtype(self.channel_type):
+                self.loop_argument = for_loop.LoopArtifactArgument.from_pipeline_channel(
+                    items,
+                    is_artifact_list=False,
+                )
+            else:
+                self.loop_argument = for_loop.LoopParameterArgument.from_pipeline_channel(
+                    items,
+                )
             self.items_is_pipeline_channel = True
         else:
-            self.loop_argument = for_loop.LoopArgument.from_raw_items(
+            self.loop_argument = for_loop.LoopParameterArgument.from_raw_items(
                 raw_items=items,
                 name_code=pipeline_context.Pipeline.get_default_pipeline()
                 .get_next_group_id(),
@@ -472,6 +477,6 @@ class ParallelFor(TasksGroup):
 
         self.parallelism_limit = parallelism
 
-    def __enter__(self) -> for_loop.LoopArgument:
+    def __enter__(self) -> Union[for_loop.LoopParameterArgument, for_loop.LoopArtifactArgument]:
         super().__enter__()
         return self.loop_argument

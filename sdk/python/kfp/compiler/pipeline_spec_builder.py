@@ -129,23 +129,24 @@ def build_task_spec_for_task(
             task._task_spec.retry_policy.to_proto())
 
     for input_name, input_value in task.inputs.items():
-        # since LoopArgument and LoopArgumentVariable are narrower types than PipelineParameterChannel, start with it
-        if isinstance(input_value, for_loop.LoopArgument):
+        # Since LoopParameterArgumen andLoopArtifactArgument and LoopArgumentVariable are narrower
+        # types than PipelineParameterChannel, start with them.
+        if isinstance(input_value, (for_loop.LoopParameterArgument, for_loop.LoopArtifactArgument)):
 
-            component_input_parameter = (
+            component_input_arg = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value))
-            if component_input_parameter in parent_component_inputs.parameters:
+            if component_input_arg in parent_component_inputs.parameters:
                 pipeline_task_spec.inputs.parameters[
                     input_name].component_input_parameter = (
-                        component_input_parameter)
-            elif component_input_parameter in parent_component_inputs.artifacts:
+                        component_input_arg)
+            elif component_input_arg in parent_component_inputs.artifacts:
                 pipeline_task_spec.inputs.artifacts[
                     input_name].component_input_artifact = (
-                        component_input_parameter)
+                        component_input_arg)
             else:
                 raise RuntimeError(
-                    f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                    f'component_input_arg: {component_input_arg} not found. All inputs: {parent_component_inputs}'
                 )
 
         elif isinstance(input_value, for_loop.LoopArgumentVariable):
@@ -699,11 +700,9 @@ def build_component_spec_for_group(
             component_spec.input_definitions.artifacts[
                 input_name].is_artifact_list = channel.is_artifact_list
         else:
-            # channel is one of PipelineParameterChannel, LoopArgument, or
-            # LoopArgumentVariable.
-            if isinstance(channel, for_loop.LoopArgument
-                         ) and type_annotations.is_artifact_subtype(
-                             channel.channel_type):
+            # channel is one of PipelineParameterChannel, LoopParameterArgument,
+            # LoopArtifactArgument, or LoopArgumentVariable.
+            if isinstance(channel, for_loop.LoopArtifactArgument):
                 component_spec.input_definitions.artifacts[
                     input_name].artifact_type.CopyFrom(
                         type_utils.bundled_artifact_to_artifact_proto(
@@ -766,7 +765,7 @@ def _update_task_spec_for_loop_group(
         loop_argument_item_name = compiler_utils.additional_input_name_for_pipeline_channel(
             group.loop_argument.full_name)
 
-        loop_arguments_item = f'{input_parameter_name}-{for_loop.LoopArgument.LOOP_ITEM_NAME_BASE}'
+        loop_arguments_item = f'{input_parameter_name}-{for_loop.LOOP_ITEM_NAME_BASE}'
         assert loop_arguments_item == loop_argument_item_name
 
         if type_annotations.is_artifact_subtype(group.channel_type):
@@ -1327,8 +1326,12 @@ def build_spec_by_group(
                 # Skip 'withItems' loop arguments if it's from an inner loop.
                 if isinstance(
                         channel,
-                    (for_loop.LoopArgument, for_loop.LoopArgumentVariable
-                    )) and channel.is_with_items_loop_argument:
+                        (
+                            for_loop.LoopParameterArgument,
+                            for_loop.LoopArtifactArgument,
+                            for_loop.LoopArgumentVariable,
+                        )
+                ) and channel.is_with_items_loop_argument:
                     withitems_loop_arg_found_in_self_or_upstream = False
                     for group_name in group_name_to_parent_groups[
                             subgroup.name][::-1]:
