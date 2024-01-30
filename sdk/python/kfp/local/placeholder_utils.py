@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for working with placeholders."""
+import functools
 import json
 import random
 import re
@@ -118,6 +119,49 @@ def resolve_self_references_in_executor_input(
                     pipeline_task_id=pipeline_task_id,
                 )
     return executor_input_dict
+
+
+def recursively_resolve_json_dict_placeholders(
+    obj: Any,
+    executor_input_dict: Dict[str, Any],
+    pipeline_resource_name: str,
+    task_resource_name: str,
+    pipeline_root: str,
+    pipeline_job_id: str,
+    pipeline_task_id: str,
+) -> Any:
+    """Recursively resolves any placeholders in a dictionary representation of
+    a JSON object.
+
+    These objects are very unlikely to be sufficiently large to exceed
+    max recursion depth of 1000 and an iterative implementation is much
+    less readable, so preferring recursive implementation.
+    """
+    inner_fn = functools.partial(
+        recursively_resolve_json_dict_placeholders,
+        executor_input_dict=executor_input_dict,
+        pipeline_resource_name=pipeline_resource_name,
+        task_resource_name=task_resource_name,
+        pipeline_root=pipeline_root,
+        pipeline_job_id=pipeline_job_id,
+        pipeline_task_id=pipeline_task_id,
+    )
+    if isinstance(obj, list):
+        return [inner_fn(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {inner_fn(key): inner_fn(value) for key, value in obj.items()}
+    elif isinstance(obj, str):
+        return resolve_individual_placeholder(
+            element=obj,
+            executor_input_dict=executor_input_dict,
+            pipeline_resource_name=pipeline_resource_name,
+            task_resource_name=task_resource_name,
+            pipeline_root=pipeline_root,
+            pipeline_job_id=pipeline_job_id,
+            pipeline_task_id=pipeline_task_id,
+        )
+    else:
+        return obj
 
 
 def flatten_list(l: List[Union[str, list, None]]) -> List[str]:
