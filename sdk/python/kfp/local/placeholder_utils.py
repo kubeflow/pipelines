@@ -41,6 +41,14 @@ def replace_placeholders(
     task.
     """
     unique_task_id = make_random_id()
+    executor_input_dict = resolve_self_references_in_executor_input(
+        executor_input_dict=executor_input_dict,
+        pipeline_resource_name=pipeline_resource_name,
+        task_resource_name=task_resource_name,
+        pipeline_root=pipeline_root,
+        pipeline_job_id=unique_pipeline_id,
+        pipeline_task_id=unique_task_id,
+    )
     provided_inputs = get_provided_inputs(executor_input_dict)
     full_command = [
         resolve_struct_placeholders(
@@ -71,6 +79,45 @@ def replace_placeholders(
                 f'Got unknown command element {resolved_el} of type {type(resolved_el)}.'
             )
     return resolved_command
+
+
+def resolve_self_references_in_executor_input(
+    executor_input_dict: Dict[str, Any],
+    pipeline_resource_name: str,
+    task_resource_name: str,
+    pipeline_root: str,
+    pipeline_job_id: str,
+    pipeline_task_id: str,
+) -> Dict[str, Any]:
+    """Resolve parameter placeholders that point to other parameter
+    placeholders in the same ExecutorInput message.
+
+    This occurs when passing f-strings to a component. For example:
+
+    my_comp(foo=f'bar-{upstream.output}')
+
+    May result in the ExecutorInput message:
+
+    {'inputs': {'parameterValues': {'pipelinechannel--identity-Output': 'foo',
+                                'string': "{{$.inputs.parameters['pipelinechannel--identity-Output']}}-bar"}},
+     'outputs': ...}
+
+    The placeholder "{{$.inputs.parameters['pipelinechannel--identity-Output']}}-bar" points to parameter 'pipelinechannel--identity-Output' with the value 'foo'. This function replaces "{{$.inputs.parameters['pipelinechannel--identity-Output']}}-bar" with 'foo'.
+    """
+    for k, v in executor_input_dict.get('inputs',
+                                        {}).get('parameterValues', {}).items():
+        if isinstance(v, str):
+            executor_input_dict['inputs']['parameterValues'][
+                k] = resolve_individual_placeholder(
+                    v,
+                    executor_input_dict=executor_input_dict,
+                    pipeline_resource_name=pipeline_resource_name,
+                    task_resource_name=task_resource_name,
+                    pipeline_root=pipeline_root,
+                    pipeline_job_id=pipeline_job_id,
+                    pipeline_task_id=pipeline_task_id,
+                )
+    return executor_input_dict
 
 
 def flatten_list(l: List[Union[str, list, None]]) -> List[str]:
@@ -139,6 +186,10 @@ def resolve_io_placeholders(
     executor_input: Dict[str, Any],
     command: str,
 ) -> str:
+    """Resolves placeholders in command using executor_input.
+
+    executor_input should not contain any unresolved placeholders.
+    """
     placeholders = re.findall(r'\{\{\$\.(.*?)\}\}', command)
 
     # e.g., placeholder = "inputs.parameters[''text'']"

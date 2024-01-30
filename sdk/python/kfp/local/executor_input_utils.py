@@ -35,6 +35,10 @@ def construct_executor_input(
     """Constructs the executor input message for a task execution."""
     input_parameter_keys = list(
         component_spec.input_definitions.parameters.keys())
+    # need to also add injected input parameters for f-string
+    input_parameter_keys += [
+        k for k, v in arguments.items() if not isinstance(v, dsl.Artifact)
+    ]
     input_artifact_keys = list(
         component_spec.input_definitions.artifacts.keys())
     if input_artifact_keys and block_input_artifact:

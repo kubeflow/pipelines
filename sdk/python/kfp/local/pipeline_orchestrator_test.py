@@ -418,6 +418,74 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         )
         self.assertEqual(task.outputs, {})
 
+    def test_fstring_python_component(self):
+        local.init(runner=local.SubprocessRunner())
+
+        @dsl.component
+        def identity(string: str) -> str:
+            return string
+
+        @dsl.pipeline
+        def my_pipeline(string: str = 'baz') -> str:
+            op1 = identity(string=f'bar-{string}')
+            op2 = identity(string=f'foo-{op1.output}')
+            return op2.output
+
+        task = my_pipeline()
+        self.assertEqual(task.output, 'foo-bar-baz')
+
+
+class TestFstringContainerComponent(
+        testing_utilities.LocalRunnerEnvironmentTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        from kfp.local import subprocess_task_handler
+
+        # Temporarily removing these these validation calls is useful hack to
+        # test a ContainerComponent outside of a container.
+        # We do this here because we only want to test the very specific
+        # f-string logic in container components without the presence of
+        # Docker in the test environment.
+        cls.original_validate_image = subprocess_task_handler.SubprocessTaskHandler.validate_image
+        subprocess_task_handler.SubprocessTaskHandler.validate_image = lambda slf, image: None
+
+        cls.original_validate_not_container_component = subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component = lambda slf, full_command: None
+
+        cls.original_validate_not_containerized_python_component = subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component = lambda slf, full_command: None
+
+    @classmethod
+    def tearDownClass(cls):
+        from kfp.local import subprocess_task_handler
+
+        subprocess_task_handler.SubprocessTaskHandler.validate_image = cls.original_validate_image
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_container_component = cls.original_validate_not_container_component
+        subprocess_task_handler.SubprocessTaskHandler.validate_not_containerized_python_component = cls.original_validate_not_containerized_python_component
+
+    def test_fstring_container_component(self):
+        local.init(runner=local.SubprocessRunner())
+
+        @dsl.container_component
+        def identity_container(string: str, outpath: dsl.OutputPath(str)):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    'sh',
+                    '-c',
+                    f"""mkdir -p $(dirname {outpath}) && printf '%s' {string} > {outpath}""",
+                ])
+
+        @dsl.pipeline
+        def my_pipeline(string: str = 'baz') -> str:
+            op1 = identity_container(string=f'bar-{string}')
+            op2 = identity_container(string=f'foo-{op1.output}')
+            return op2.output
+
+        task = my_pipeline()
+        self.assertEqual(task.output, 'foo-bar-baz')
+
 
 if __name__ == '__main__':
     unittest.main()
