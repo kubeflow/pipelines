@@ -16,6 +16,7 @@ package util
 
 import (
 	"encoding/json"
+	core "k8s.io/api/core/v1"
 	"math"
 	"strconv"
 	"testing"
@@ -27,7 +28,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestScheduledWorkflow_maxConcurrency(t *testing.T) {
