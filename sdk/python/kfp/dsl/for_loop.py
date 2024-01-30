@@ -45,7 +45,8 @@ def _get_loop_item_type(type_name: str) -> Optional[str]:
     """
     parameter_match = re.match('(typing\.)?(?:\w+)(?:\[(?P<item_type>.+)\])',
                                type_name)
-    artifact_match = re.match('(system\.|google\.)(?P<type>\w+)@(\d\.\d\.\d)', type_name)
+    artifact_match = re.match('(system\.|google\.)(?P<type>\w+)@(\d\.\d\.\d)',
+                              type_name)
 
     if parameter_match:
         return parameter_match['item_type'].lstrip().rstrip()
@@ -77,22 +78,22 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
 
 
 def _make_name(code: str):
-        """Makes a name for a loop argument from a unique code."""
-        return f'{LOOP_ITEM_PARAM_NAME_BASE}-{code}'
+    """Makes a name for a loop argument from a unique code."""
+    return f'{LOOP_ITEM_PARAM_NAME_BASE}-{code}'
 
 
 def name_is_loop_argument(name: str) -> bool:
-        """Returns True if the given channel name looks like a loop argument.
+    """Returns True if the given channel name looks like a loop argument.
 
-        Either it came from a withItems loop item or withParams loop
-        item.
-        """
-        return  ('-' + LOOP_ITEM_NAME_BASE) in name \
-          or (LOOP_ITEM_PARAM_NAME_BASE + '-') in name
+    Either it came from a withItems loop item or withParams loop item.
+    """
+    return  ('-' + LOOP_ITEM_NAME_BASE) in name \
+      or (LOOP_ITEM_PARAM_NAME_BASE + '-') in name
 
 
 class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
-    """Represents the parameter arguments that are looped over in a ParallelFor loop.
+    """Represents the parameter arguments that are looped over in a ParallelFor
+    loop.
 
     The class shouldn't be instantiated by the end user, rather it is
     created automatically by a ParallelFor ops group.
@@ -172,13 +173,13 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
                 subvar_name=name,
             ))
 
-
     @classmethod
     def from_pipeline_channel(
         cls,
         channel: pipeline_channel.PipelineChannel,
     ) -> 'LoopParameterArgument':
-        """Creates a LoopParameterArgument object from a PipelineChannel object."""
+        """Creates a LoopParameterArgument object from a PipelineChannel
+        object."""
         return LoopParameterArgument(
             items=channel,
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
@@ -201,10 +202,11 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
             name_code=name_code,
             channel_type=type(raw_items[0]).__name__,
         )
-    
+
 
 class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
-    """Represents the artifact arguments that are looped over in a ParallelFor loop.
+    """Represents the artifact arguments that are looped over in a ParallelFor
+    loop.
 
     The class shouldn't be instantiated by the end user, rather it is
     created automatically by a ParallelFor ops group.
@@ -257,7 +259,8 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
         channel: pipeline_channel.PipelineChannel,
         is_artifact_list: bool = False,
     ) -> 'LoopArtifactArgument':
-        """Creates a LooArtifactArgument object from a PipelineChannel object."""
+        """Creates a LooArtifactArgument object from a PipelineChannel
+        object."""
         return LoopArtifactArgument(
             items=channel,
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,

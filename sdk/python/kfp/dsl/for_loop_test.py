@@ -91,7 +91,8 @@ class ForLoopTest(parameterized.TestCase):
     )
     def test_loop_argument_from_pipeline_channel(self, channel,
                                                  expected_serialization_value):
-        loop_argument = for_loop.LoopParameterArgument.from_pipeline_channel(channel)
+        loop_argument = for_loop.LoopParameterArgument.from_pipeline_channel(
+            channel)
         self.assertEqual(loop_argument.items_or_pipeline_channel, channel)
         self.assertEqual(str(loop_argument), expected_serialization_value)
 
@@ -148,8 +149,7 @@ class ForLoopTest(parameterized.TestCase):
         },
     )
     def test_name_is_loop_argument(self, name, expected_result):
-        self.assertEqual(
-            for_loop.name_is_loop_argument(name), expected_result)
+        self.assertEqual(for_loop.name_is_loop_argument(name), expected_result)
 
     @parameterized.parameters(
         {

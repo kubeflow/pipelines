@@ -231,7 +231,8 @@ def get_short_type_name(type_name: str) -> str:
       The short form type name or the original name if pattern doesn't match.
     """
     parameter_match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-    artifact_match = re.match('(system\.|google\.)(?P<type>\w+)@(\d\.\d\.\d)', type_name)
+    artifact_match = re.match('(system\.|google\.)(?P<type>\w+)@(\d\.\d\.\d)',
+                              type_name)
 
     if artifact_match:
         return artifact_match['type']

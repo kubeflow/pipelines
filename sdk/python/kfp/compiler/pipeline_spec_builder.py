@@ -131,7 +131,9 @@ def build_task_spec_for_task(
     for input_name, input_value in task.inputs.items():
         # Since LoopParameterArgumen andLoopArtifactArgument and LoopArgumentVariable are narrower
         # types than PipelineParameterChannel, start with them.
-        if isinstance(input_value, (for_loop.LoopParameterArgument, for_loop.LoopArtifactArgument)):
+        if isinstance(
+                input_value,
+            (for_loop.LoopParameterArgument, for_loop.LoopArtifactArgument)):
 
             component_input_arg = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
@@ -1324,14 +1326,11 @@ def build_spec_by_group(
 
             for channel in subgroup_input_channels:
                 # Skip 'withItems' loop arguments if it's from an inner loop.
-                if isinstance(
-                        channel,
-                        (
-                            for_loop.LoopParameterArgument,
-                            for_loop.LoopArtifactArgument,
-                            for_loop.LoopArgumentVariable,
-                        )
-                ) and channel.is_with_items_loop_argument:
+                if isinstance(channel, (
+                        for_loop.LoopParameterArgument,
+                        for_loop.LoopArtifactArgument,
+                        for_loop.LoopArgumentVariable,
+                )) and channel.is_with_items_loop_argument:
                     withitems_loop_arg_found_in_self_or_upstream = False
                     for group_name in group_name_to_parent_groups[
                             subgroup.name][::-1]:
