@@ -697,9 +697,8 @@ def build_component_spec_for_group(
         input_name = compiler_utils.additional_input_name_for_pipeline_channel(
             channel)
 
-        if isinstance(channel, 
-                      (pipeline_channel.PipelineArtifactChannel,
-                       for_loop.LoopArtifactArgument)):
+        if isinstance(channel, (pipeline_channel.PipelineArtifactChannel,
+                                for_loop.LoopArtifactArgument)):
             component_spec.input_definitions.artifacts[
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
@@ -709,8 +708,7 @@ def build_component_spec_for_group(
         elif isinstance(channel,
                         (pipeline_channel.PipelineParameterChannel,
                          for_loop.LoopParameterArgument,
-                         for_loop.LoopArgumentVariable,
-                         for_loop.Collected)):
+                         for_loop.LoopArgumentVariable, for_loop.Collected)):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)

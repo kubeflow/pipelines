@@ -229,9 +229,11 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
 
         # We don't support nested lists so `is_artifact_list` is always False.
         if name_override is None:
-            super().__init__(name=_make_name(name_code), is_artifact_list=False, **kwargs)
+            super().__init__(
+                name=_make_name(name_code), is_artifact_list=False, **kwargs)
         else:
-            super().__init__(name=name_override, is_artifact_list=False, **kwargs)
+            super().__init__(
+                name=name_override, is_artifact_list=False, **kwargs)
 
         self.items_or_pipeline_channel = items
         self.is_with_items_loop_argument = not isinstance(

@@ -462,8 +462,7 @@ class ParallelFor(TasksGroup):
         elif isinstance(items, pipeline_channel.PipelineArtifactChannel):
             self.channel_type = str(items.channel_type)
             self.loop_argument = for_loop.LoopArtifactArgument.from_pipeline_channel(
-                items,
-            )
+                items)
             self.items_is_pipeline_channel = True
         else:
             self.loop_argument = for_loop.LoopParameterArgument.from_raw_items(
