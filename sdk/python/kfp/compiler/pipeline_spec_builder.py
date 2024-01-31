@@ -716,7 +716,7 @@ def build_component_spec_for_group(
                     channel.channel_type)
         else:
             raise TypeError(
-                f'Expected PipelineParameterChannel, PipelineArtifactChannel, LoopParameterArgument, LoopArtifactArgument, LoopArgumentVariable or Collected, got {type(channel)}'
+                f'Expected PipelineParameterChannel, PipelineArtifactChannel, LoopParameterArgument, LoopArtifactArgument, LoopArgumentVariable, or Collected, got {type(channel)}'
             )
 
     for output_name, output in output_pipeline_channels.items():
