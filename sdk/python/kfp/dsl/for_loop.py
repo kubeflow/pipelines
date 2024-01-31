@@ -17,7 +17,6 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from kfp.dsl import pipeline_channel
-from kfp.dsl.types import type_annotations
 
 ItemList = List[Union[int, float, str, Dict[str, Any]]]
 
@@ -228,10 +227,11 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
                 'Expect one and only one of `name_code` and `name_override` to '
                 'be specified.')
 
+        # We don't support nested lists so `is_artifact_list` is always False.
         if name_override is None:
-            super().__init__(name=_make_name(name_code), **kwargs)
+            super().__init__(name=_make_name(name_code), is_artifact_list=False, **kwargs)
         else:
-            super().__init__(name=name_override, **kwargs)
+            super().__init__(name=name_override, is_artifact_list=False, **kwargs)
 
         self.items_or_pipeline_channel = items
         self.is_with_items_loop_argument = not isinstance(
@@ -241,7 +241,6 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
     def from_pipeline_channel(
         cls,
         channel: pipeline_channel.PipelineArtifactChannel,
-        is_artifact_list: bool = False,
     ) -> 'LoopArtifactArgument':
         """Creates a LoopArtifactArgument object from a PipelineArtifactChannel
         object."""
@@ -250,7 +249,6 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
             task_name=channel.task_name,
             channel_type=channel.channel_type,
-            is_artifact_list=is_artifact_list,
         )
 
     # TODO: support artifact constants here.
