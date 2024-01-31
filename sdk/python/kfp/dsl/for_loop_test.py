@@ -129,8 +129,8 @@ class ForLoopTest(parameterized.TestCase):
                 '{{channel:task=task1;name=output1-loop-item;type=system.Dataset@0.0.1;}}',
         },
     )
-    def test_loop_artifact_argument_from_pipeline_channel(self, channel,
-                                                 expected_serialization_value):
+    def test_loop_artifact_argument_from_pipeline_channel(
+            self, channel, expected_serialization_value):
         loop_argument = for_loop.LoopArtifactArgument.from_pipeline_channel(
             channel)
         self.assertEqual(loop_argument.items_or_pipeline_channel, channel),
