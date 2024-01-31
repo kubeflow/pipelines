@@ -43,16 +43,8 @@ def _get_loop_item_type(type_name: str) -> Optional[str]:
     Returns:
         The collection item type or None if no match found.
     """
-    parameter_match = re.match('(typing\.)?(?:\w+)(?:\[(?P<item_type>.+)\])',
-                               type_name)
-    artifact_type = type_annotations.extract_artifact_subclass(type_name)
-
-    if parameter_match:
-        return parameter_match['item_type'].lstrip().rstrip()
-    elif artifact_type:
-        return type_name
-    else:
-        return None
+    match = re.match('(typing\.)?(?:\w+)(?:\[(?P<item_type>.+)\])', type_name)
+    return match['item_type'].lstrip().rstrip() if match else None
 
 
 def _get_subvar_type(type_name: str) -> Optional[str]:
@@ -266,7 +258,7 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
             items=channel,
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
             task_name=channel.task_name,
-            channel_type=_get_loop_item_type(channel.channel_type) or 'String',
+            channel_type=channel.channel_type,
             is_artifact_list=is_artifact_list,
         )
 
