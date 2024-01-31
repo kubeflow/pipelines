@@ -231,13 +231,12 @@ def get_short_type_name(type_name: str) -> str:
       The short form type name or the original name if pattern doesn't match.
     """
     parameter_match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-    artifact_match = re.match('(system\.|google\.)(?P<type>\w+)@(\d\.\d\.\d)',
-                              type_name)
+    artifact_type = extract_artifact_subclass(type_name)
 
-    if artifact_match:
-        return artifact_match['type']
-    elif parameter_match:
+    if parameter_match:
         return parameter_match['type']
+    elif artifact_type:
+        return artifact_type
     else:
         return type_name
 
@@ -288,7 +287,19 @@ def is_generic_list(annotation: Any) -> bool:
     return typing_generic_list or built_in_generic_list
 
 
-def is_artifact_subtype(type_name: str) -> bool:
-    """Checks if a type name is an Artifact subtype."""
+def extract_artifact_subclass(type_name: str) -> str:
+    """Extracts the Artifact class name.
+
+    For example::
+      system.Artifact@0.0.1 -> Artifact
+      system.Dataset@0.0.1 -> Dataset
+      google.VertexModel@0.0.1 -> VertexModel
+
+    Args:
+      type_name: The original type name.
+
+    Returns:
+      The Artifact class name or None if pattern doesn't match.
+    """
     match = re.match('(system\.|google\.)(?P<type>\w+)@(\d\.\d\.\d)', type_name)
-    return True if match else False
+    return match['type'] if match else None

@@ -777,7 +777,7 @@ def _update_task_spec_for_loop_group(
         loop_arguments_item = f'{input_parameter_name}-{for_loop.LOOP_ITEM_NAME_BASE}'
         assert loop_arguments_item == loop_argument_item_name
 
-        if type_annotations.is_artifact_subtype(group.channel_type):
+        if group.channel_is_artifact_subtype:
             input_artifact_name = compiler_utils.additional_input_name_for_pipeline_channel(
                 loop_items_channel)
 

@@ -45,12 +45,11 @@ def _get_loop_item_type(type_name: str) -> Optional[str]:
     """
     parameter_match = re.match('(typing\.)?(?:\w+)(?:\[(?P<item_type>.+)\])',
                                type_name)
-    artifact_match = re.match('(system\.|google\.)(?P<type>\w+)@(\d\.\d\.\d)',
-                              type_name)
+    artifact_type = type_annotations.extract_artifact_subclass(type_name)
 
     if parameter_match:
         return parameter_match['item_type'].lstrip().rstrip()
-    elif artifact_match:
+    elif artifact_type:
         return type_name
     else:
         return None
@@ -180,8 +179,8 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         cls,
         channel: pipeline_channel.PipelineParameterChannel,
     ) -> 'LoopParameterArgument':
-        """Creates a LoopParameterArgument object from a PipelineParameterChannel
-        object."""
+        """Creates a LoopParameterArgument object from a
+        PipelineParameterChannel object."""
         return LoopParameterArgument(
             items=channel,
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
