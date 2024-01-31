@@ -138,10 +138,12 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         else:
             super().__init__(name=name_override, **kwargs)
 
-        if not isinstance(items,
-                          (list, tuple, pipeline_channel.PipelineParameterChannel)):
+        if not isinstance(
+                items,
+            (list, tuple, pipeline_channel.PipelineParameterChannel)):
             raise TypeError(
-                f'Expected list, tuple, or PipelineParameterChannel, got {items}.')
+                f'Expected list, tuple, or PipelineParameterChannel, got {items}.'
+            )
 
         if isinstance(items, tuple):
             items = list(items)

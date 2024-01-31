@@ -131,25 +131,28 @@ def build_task_spec_for_task(
     for input_name, input_value in task.inputs.items():
         # Since LoopParameterArgument and LoopArtifactArgument and LoopArgumentVariable are narrower
         # types than PipelineParameterChannel, start with them.
-        if isinstance(
-                input_value,
-            (for_loop.LoopParameterArgument, for_loop.LoopArtifactArgument)):
 
-            component_input_arg = (
+        if isinstance(input_value, for_loop.LoopParameterArgument):
+
+            component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
                     input_value))
-            if component_input_arg in parent_component_inputs.parameters:
-                pipeline_task_spec.inputs.parameters[
-                    input_name].component_input_parameter = (
-                        component_input_arg)
-            elif component_input_arg in parent_component_inputs.artifacts:
-                pipeline_task_spec.inputs.artifacts[
-                    input_name].component_input_artifact = (
-                        component_input_arg)
-            else:
-                raise RuntimeError(
-                    f'component_input_arg: {component_input_arg} not found. All inputs: {parent_component_inputs}'
-                )
+            assert component_input_parameter in parent_component_inputs.parameters, \
+                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+            pipeline_task_spec.inputs.parameters[
+                input_name].component_input_parameter = (
+                    component_input_parameter)
+
+        elif isinstance(input_value, for_loop.LoopArtifactArgument):
+
+            component_input_artifact = (
+                compiler_utils.additional_input_name_for_pipeline_channel(
+                    input_value))
+            assert component_input_artifact in parent_component_inputs.artifacts, \
+                f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
+            pipeline_task_spec.inputs.artifacts[
+                input_name].component_input_artifact = (
+                    component_input_artifact)
 
         elif isinstance(input_value, for_loop.LoopArgumentVariable):
 
@@ -701,21 +704,25 @@ def build_component_spec_for_group(
                         channel.channel_type))
             component_spec.input_definitions.artifacts[
                 input_name].is_artifact_list = channel.is_artifact_list
-        else:
-            # channel is one of PipelineParameterChannel, LoopParameterArgument,
-            # LoopArtifactArgument, or LoopArgumentVariable.
-            if isinstance(channel, for_loop.LoopArtifactArgument):
-                component_spec.input_definitions.artifacts[
-                    input_name].artifact_type.CopyFrom(
-                        type_utils.bundled_artifact_to_artifact_proto(
-                            channel.channel_type))
+        elif isinstance(channel, for_loop.LoopArtifactArgument):
+            component_spec.input_definitions.artifacts[
+                input_name].artifact_type.CopyFrom(
+                    type_utils.bundled_artifact_to_artifact_proto(
+                        channel.channel_type))
 
-                component_spec.input_definitions.artifacts[
-                    input_name].is_artifact_list = channel.is_artifact_list
-            else:
-                component_spec.input_definitions.parameters[
-                    input_name].parameter_type = type_utils.get_parameter_type(
-                        channel.channel_type)
+            component_spec.input_definitions.artifacts[
+                input_name].is_artifact_list = channel.is_artifact_list
+        elif isinstance(channel,
+                        (pipeline_channel.PipelineParameterChannel,
+                         for_loop.LoopParameterArgument,
+                         for_loop.LoopArgumentVariable, for_loop.Collected)):
+            component_spec.input_definitions.parameters[
+                input_name].parameter_type = type_utils.get_parameter_type(
+                    channel.channel_type)
+        else:
+            raise TypeError(
+                f'Expected PipelineParameterChannel, PipelineArtifactChannel, LoopParameterArgument, LoopArtifactArgument, or LoopArgumentVariable, got {type(channel)}'
+            )
 
     for output_name, output in output_pipeline_channels.items():
         if isinstance(output, pipeline_channel.PipelineArtifactChannel):
