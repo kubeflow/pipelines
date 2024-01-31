@@ -19,6 +19,15 @@ from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 
 
+def name_is_loop_argument(name: str) -> bool:
+    """Returns True if the given channel name looks like a loop argument.
+
+    Either it came from a withItems loop item or withParams loop item.
+    """
+    return  ('-' + for_loop.LOOP_ITEM_NAME_BASE) in name \
+      or (for_loop.LOOP_ITEM_PARAM_NAME_BASE + '-') in name
+
+
 class ForLoopTest(parameterized.TestCase):
 
     @parameterized.parameters(
@@ -180,7 +189,7 @@ class ForLoopTest(parameterized.TestCase):
         },
     )
     def test_name_is_loop_argument(self, name, expected_result):
-        self.assertEqual(for_loop.name_is_loop_argument(name), expected_result)
+        self.assertEqual(name_is_loop_argument(name), expected_result)
 
     @parameterized.parameters(
         {

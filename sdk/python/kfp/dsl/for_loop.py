@@ -73,15 +73,6 @@ def _make_name(code: str) -> str:
     return f'{LOOP_ITEM_PARAM_NAME_BASE}-{code}'
 
 
-def name_is_loop_argument(name: str) -> bool:
-    """Returns True if the given channel name looks like a loop argument.
-
-    Either it came from a withItems loop item or withParams loop item.
-    """
-    return  ('-' + LOOP_ITEM_NAME_BASE) in name \
-      or (LOOP_ITEM_PARAM_NAME_BASE + '-') in name
-
-
 class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
     """Represents the parameter arguments that are looped over in a ParallelFor
     loop.
