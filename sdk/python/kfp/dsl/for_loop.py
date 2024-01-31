@@ -309,7 +309,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
 
     @property
     def items_or_pipeline_channel(
-            self) -> Union[ItemList, pipeline_channel.PipelineChannel]:
+            self) -> Union[ItemList, pipeline_channel.PipelineParameterChannel]:
         """Returns the loop argument items."""
         return self.loop_argument.items_or_pipeline_channel
 
