@@ -86,8 +86,8 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
 
 
     Attributes:
-        items_or_pipeline_channel: The raw items or the PipelineChannel object this
-            LoopArgument is associated to.
+        items_or_pipeline_channel: The raw items or the PipelineParameterChannel object
+        this LoopParameterArgument is associated to.
     """
 
     def __init__(
