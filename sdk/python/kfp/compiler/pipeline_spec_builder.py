@@ -709,13 +709,14 @@ def build_component_spec_for_group(
         elif isinstance(channel,
                         (pipeline_channel.PipelineParameterChannel,
                          for_loop.LoopParameterArgument,
-                         for_loop.LoopArgumentVariable, for_loop.Collected)):
+                         for_loop.LoopArgumentVariable,
+                         for_loop.Collected)):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)
         else:
             raise TypeError(
-                f'Expected PipelineParameterChannel, PipelineArtifactChannel, LoopParameterArgument, LoopArtifactArgument, or LoopArgumentVariable, got {type(channel)}'
+                f'Expected PipelineParameterChannel, PipelineArtifactChannel, LoopParameterArgument, LoopArtifactArgument, LoopArgumentVariable or Collected, got {type(channel)}'
             )
 
     for output_name, output in output_pipeline_channels.items():
