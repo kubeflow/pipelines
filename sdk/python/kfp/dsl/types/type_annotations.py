@@ -220,9 +220,6 @@ def get_short_type_name(type_name: str) -> str:
       typing.Dict[str, str] -> Dict
       List -> List
       str -> str
-      system.Artifact@0.0.1 -> Artifact
-      system.Dataset@0.0.1 -> Dataset
-      google.VertexModel@0.0.1 -> VertexModel
 
     Args:
       type_name: The original type name.
@@ -231,13 +228,9 @@ def get_short_type_name(type_name: str) -> str:
       The short form type name or the original name if pattern doesn't match.
     """
     parameter_match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-    artifact_match = re.match('(system\.|google\.)(?P<type>\w+)@(\d\.\d\.\d)',
-                              type_name)
 
     if parameter_match:
         return parameter_match['type']
-    elif artifact_match:
-        return artifact_match['type']
     else:
         return type_name
 
@@ -286,3 +279,8 @@ def is_generic_list(annotation: Any) -> bool:
     # handles built-in generics for python>=3.9
     built_in_generic_list = annotation == list
     return typing_generic_list or built_in_generic_list
+
+def issubtype_of_artifact(type_name: str) -> bool:
+    """Checks if a type is a subtype of a dsl.Artifact."""
+    match = re.match('(system\.|google\.)(\w+)@(\d\.\d\.\d)', type_name)
+    return True if match else False

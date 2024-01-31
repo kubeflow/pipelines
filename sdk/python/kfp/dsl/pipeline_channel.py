@@ -83,10 +83,6 @@ class PipelineChannel(abc.ABC):
             task_name: Optional; The name of the task that produces the pipeline
                 channel. If provided, the task name will be sanitized to be k8s
                 compatible.
-            is_artifact_list: Optional; True if `channel_type` represents a list
-                of the artifact type. Only applies when `channel_type` is an artifact.
-            value: The actual value of the pipeline channel. If provided, the
-                pipeline channel is "resolved" immediately.
 
         Raises:
             ValueError: If name or task_name contains invalid characters.

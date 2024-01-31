@@ -697,19 +697,13 @@ def build_component_spec_for_group(
         input_name = compiler_utils.additional_input_name_for_pipeline_channel(
             channel)
 
-        if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
+        if isinstance(channel, 
+                      (pipeline_channel.PipelineArtifactChannel,
+                       for_loop.LoopArtifactArgument)):
             component_spec.input_definitions.artifacts[
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         channel.channel_type))
-            component_spec.input_definitions.artifacts[
-                input_name].is_artifact_list = channel.is_artifact_list
-        elif isinstance(channel, for_loop.LoopArtifactArgument):
-            component_spec.input_definitions.artifacts[
-                input_name].artifact_type.CopyFrom(
-                    type_utils.bundled_artifact_to_artifact_proto(
-                        channel.channel_type))
-
             component_spec.input_definitions.artifacts[
                 input_name].is_artifact_list = channel.is_artifact_list
         elif isinstance(channel,
@@ -777,7 +771,7 @@ def _update_task_spec_for_loop_group(
         loop_arguments_item = f'{input_parameter_name}-{for_loop.LOOP_ITEM_NAME_BASE}'
         assert loop_arguments_item == loop_argument_item_name
 
-        if group.channel_is_artifact_subtype:
+        if type_annotations.issubtype_of_artifact(group.channel_type):
             input_artifact_name = compiler_utils.additional_input_name_for_pipeline_channel(
                 loop_items_channel)
 
