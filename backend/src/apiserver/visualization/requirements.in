@@ -9,7 +9,7 @@ jupyter_client==5.3.*
 markupsafe==2.0.1
 nbconvert==5.5.0
 nbformat==4.4.0
-scikit-learn==0.24.2
+scikit-learn==1.0.1
 tensorflow==2.10.1
 tensorflow-metadata==1.9.*
 tensorflow-model-analysis==0.40.*
