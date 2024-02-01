@@ -34,7 +34,6 @@ from kfp.dsl import structures
 from kfp.dsl import tasks_group
 from kfp.dsl import utils
 from kfp.dsl.types import artifact_types
-from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -770,7 +769,7 @@ def _update_task_spec_for_loop_group(
         loop_arguments_item = f'{input_parameter_name}-{for_loop.LOOP_ITEM_NAME_BASE}'
         assert loop_arguments_item == loop_argument_item_name
 
-        if type_annotations.issubtype_of_artifact(group.channel_type):
+        if isinstance(group.loop_argument, for_loop.LoopArtifactArgument):
             input_artifact_name = compiler_utils.additional_input_name_for_pipeline_channel(
                 loop_items_channel)
 

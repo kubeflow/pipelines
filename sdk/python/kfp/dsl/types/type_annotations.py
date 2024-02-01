@@ -275,9 +275,3 @@ def is_generic_list(annotation: Any) -> bool:
     # handles built-in generics for python>=3.9
     built_in_generic_list = annotation == list
     return typing_generic_list or built_in_generic_list
-
-
-def issubtype_of_artifact(type_name: str) -> bool:
-    """Checks if a type is a subtype of a dsl.Artifact."""
-    match = re.match('(system\.|google\.)(\w+)@(\d\.\d\.\d)', type_name)
-    return True if match else False
