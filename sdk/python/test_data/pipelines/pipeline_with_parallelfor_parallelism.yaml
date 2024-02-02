@@ -36,6 +36,90 @@ components:
           parameterType: LIST
         pipelinechannel--loop_parameter-loop-item:
           parameterType: STRING
+  comp-for-loop-10:
+    dag:
+      tasks:
+        print-int-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-int-3
+          inputs:
+            parameters:
+              x:
+                componentInputParameter: pipelinechannel--list-dict-maker-1-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["a"]
+          taskInfo:
+            name: print-int-3
+    inputDefinitions:
+      parameters:
+        pipelinechannel--list-dict-maker-1-Output:
+          parameterType: LIST
+        pipelinechannel--list-dict-maker-1-Output-loop-item:
+          parameterType: STRUCT
+  comp-for-loop-11:
+    dag:
+      tasks:
+        print-int-4:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-int-4
+          inputs:
+            parameters:
+              x:
+                componentInputParameter: pipelinechannel--list-dict-maker-2-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["a"]
+          taskInfo:
+            name: print-int-4
+    inputDefinitions:
+      parameters:
+        pipelinechannel--list-dict-maker-2-Output:
+          parameterType: LIST
+        pipelinechannel--list-dict-maker-2-Output-loop-item:
+          parameterType: STRUCT
+  comp-for-loop-12:
+    dag:
+      tasks:
+        print-int-5:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-int-5
+          inputs:
+            parameters:
+              x:
+                componentInputParameter: pipelinechannel--list-dict-maker-3-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["a"]
+          taskInfo:
+            name: print-int-5
+    inputDefinitions:
+      parameters:
+        pipelinechannel--list-dict-maker-3-Output:
+          parameterType: LIST
+        pipelinechannel--list-dict-maker-3-Output-loop-item:
+          parameterType: STRING
+  comp-for-loop-13:
+    dag:
+      tasks:
+        print-int-6:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-int-6
+          inputs:
+            parameters:
+              x:
+                componentInputParameter: pipelinechannel--list-dict-without-type-maker-1-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["a"]
+          taskInfo:
+            name: print-int-6
+    inputDefinitions:
+      parameters:
+        pipelinechannel--list-dict-without-type-maker-1-Output:
+          parameterType: LIST
+        pipelinechannel--list-dict-without-type-maker-1-Output-loop-item:
+          parameterType: STRING
   comp-for-loop-2:
     dag:
       tasks:
@@ -159,18 +243,42 @@ components:
           inputs:
             parameters:
               x:
-                componentInputParameter: pipelinechannel--list-dict-maker-Output-loop-item
+                componentInputParameter: pipelinechannel--list-dict-maker-0-Output-loop-item
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-2
     inputDefinitions:
       parameters:
-        pipelinechannel--list-dict-maker-Output:
+        pipelinechannel--list-dict-maker-0-Output:
           parameterType: LIST
-        pipelinechannel--list-dict-maker-Output-loop-item:
+        pipelinechannel--list-dict-maker-0-Output-loop-item:
           parameterType: STRUCT
-  comp-list-dict-maker:
-    executorLabel: exec-list-dict-maker
+  comp-list-dict-maker-0:
+    executorLabel: exec-list-dict-maker-0
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-list-dict-maker-1:
+    executorLabel: exec-list-dict-maker-1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-list-dict-maker-2:
+    executorLabel: exec-list-dict-maker-2
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-list-dict-maker-3:
+    executorLabel: exec-list-dict-maker-3
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-list-dict-without-type-maker-1:
+    executorLabel: exec-list-dict-without-type-maker-1
     outputDefinitions:
       parameters:
         Output:
@@ -183,6 +291,30 @@ components:
           parameterType: NUMBER_INTEGER
   comp-print-int-2:
     executorLabel: exec-print-int-2
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+  comp-print-int-3:
+    executorLabel: exec-print-int-3
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+  comp-print-int-4:
+    executorLabel: exec-print-int-4
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+  comp-print-int-5:
+    executorLabel: exec-print-int-5
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+  comp-print-int-6:
+    executorLabel: exec-print-int-6
     inputDefinitions:
       parameters:
         x:
@@ -225,13 +357,13 @@ components:
           parameterType: STRING
 deploymentSpec:
   executors:
-    exec-list-dict-maker:
+    exec-list-dict-maker-0:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - list_dict_maker
+        - list_dict_maker_0
         command:
         - sh
         - -c
@@ -251,8 +383,124 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker() -> List[Dict[str, int]]:\n    return [{'a':\
+          \ *\n\ndef list_dict_maker_0() -> List[Dict[str, int]]:\n    return [{'a':\
           \ 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
+        image: python:3.7
+    exec-list-dict-maker-1:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - list_dict_maker_1
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef list_dict_maker_1() -> List[Dict]:\n    return [{'a': 1, 'b':\
+          \ 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
+        image: python:3.7
+    exec-list-dict-maker-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - list_dict_maker_2
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef list_dict_maker_2() -> List[dict]:\n    return [{'a': 1, 'b':\
+          \ 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
+        image: python:3.7
+    exec-list-dict-maker-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - list_dict_maker_3
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef list_dict_maker_3() -> List:\n    return [{'a': 1, 'b': 2}, {'a':\
+          \ 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
+        image: python:3.7
+    exec-list-dict-without-type-maker-1:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - list_dict_without_type_maker_1
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef list_dict_without_type_maker_1() -> List[Dict[str, int]]:\n \
+          \   return [{'a':1, 'b':2}, {'a':3, 'b': 4}]\n\n"
         image: python:3.7
     exec-print-int:
       container:
@@ -283,6 +531,118 @@ deploymentSpec:
           \ *\n\ndef print_int(x: int):\n    print(x)\n\n"
         image: python:3.7
     exec-print-int-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_int
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_int(x: int):\n    print(x)\n\n"
+        image: python:3.7
+    exec-print-int-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_int
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_int(x: int):\n    print(x)\n\n"
+        image: python:3.7
+    exec-print-int-4:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_int
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_int(x: int):\n    print(x)\n\n"
+        image: python:3.7
+    exec-print-int-5:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_int
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_int(x: int):\n    print(x)\n\n"
+        image: python:3.7
+    exec-print-int-6:
       container:
         args:
         - --executor_input
@@ -498,6 +858,74 @@ root:
             inputParameter: pipelinechannel--loop_parameter
         taskInfo:
           name: for-loop-1
+      for-loop-10:
+        componentRef:
+          name: comp-for-loop-10
+        dependentTasks:
+        - list-dict-maker-1
+        inputs:
+          parameters:
+            pipelinechannel--list-dict-maker-1-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: list-dict-maker-1
+        parameterIterator:
+          itemInput: pipelinechannel--list-dict-maker-1-Output-loop-item
+          items:
+            inputParameter: pipelinechannel--list-dict-maker-1-Output
+        taskInfo:
+          name: for-loop-10
+      for-loop-11:
+        componentRef:
+          name: comp-for-loop-11
+        dependentTasks:
+        - list-dict-maker-2
+        inputs:
+          parameters:
+            pipelinechannel--list-dict-maker-2-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: list-dict-maker-2
+        parameterIterator:
+          itemInput: pipelinechannel--list-dict-maker-2-Output-loop-item
+          items:
+            inputParameter: pipelinechannel--list-dict-maker-2-Output
+        taskInfo:
+          name: for-loop-11
+      for-loop-12:
+        componentRef:
+          name: comp-for-loop-12
+        dependentTasks:
+        - list-dict-maker-3
+        inputs:
+          parameters:
+            pipelinechannel--list-dict-maker-3-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: list-dict-maker-3
+        parameterIterator:
+          itemInput: pipelinechannel--list-dict-maker-3-Output-loop-item
+          items:
+            inputParameter: pipelinechannel--list-dict-maker-3-Output
+        taskInfo:
+          name: for-loop-12
+      for-loop-13:
+        componentRef:
+          name: comp-for-loop-13
+        dependentTasks:
+        - list-dict-without-type-maker-1
+        inputs:
+          parameters:
+            pipelinechannel--list-dict-without-type-maker-1-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: list-dict-without-type-maker-1
+        parameterIterator:
+          itemInput: pipelinechannel--list-dict-without-type-maker-1-Output-loop-item
+          items:
+            inputParameter: pipelinechannel--list-dict-without-type-maker-1-Output
+        taskInfo:
+          name: for-loop-13
       for-loop-4:
         componentRef:
           name: comp-for-loop-4
@@ -522,26 +950,54 @@ root:
         componentRef:
           name: comp-for-loop-9
         dependentTasks:
-        - list-dict-maker
+        - list-dict-maker-0
         inputs:
           parameters:
-            pipelinechannel--list-dict-maker-Output:
+            pipelinechannel--list-dict-maker-0-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: list-dict-maker
+                producerTask: list-dict-maker-0
         parameterIterator:
-          itemInput: pipelinechannel--list-dict-maker-Output-loop-item
+          itemInput: pipelinechannel--list-dict-maker-0-Output-loop-item
           items:
-            inputParameter: pipelinechannel--list-dict-maker-Output
+            inputParameter: pipelinechannel--list-dict-maker-0-Output
         taskInfo:
           name: for-loop-9
-      list-dict-maker:
+      list-dict-maker-0:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-list-dict-maker
+          name: comp-list-dict-maker-0
         taskInfo:
-          name: list-dict-maker
+          name: list-dict-maker-0
+      list-dict-maker-1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-list-dict-maker-1
+        taskInfo:
+          name: list-dict-maker-1
+      list-dict-maker-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-list-dict-maker-2
+        taskInfo:
+          name: list-dict-maker-2
+      list-dict-maker-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-list-dict-maker-3
+        taskInfo:
+          name: list-dict-maker-3
+      list-dict-without-type-maker-1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-list-dict-without-type-maker-1
+        taskInfo:
+          name: list-dict-without-type-maker-1
   inputDefinitions:
     parameters:
       loop_parameter:

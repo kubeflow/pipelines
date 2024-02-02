@@ -15,6 +15,7 @@
 
 import re
 from typing import Any, Dict, List, Optional, Union
+import warnings
 
 from kfp.dsl import pipeline_channel
 
@@ -68,12 +69,12 @@ def _get_first_element_type(item_list: ItemList) -> str:
     """Returns the type of the first element of ItemList.
 
     Args:
-        item_list: It is the a list which for now the type is Union[int, float, str, Dict[str, Any]]]
+        item_list: List of items to loop over. If a list of dicts then, all dicts must have the same keys.
     Returns:
         A string representing the type of the first element (e.g., "int", "Dict[str, int]").
     """
     first_element = item_list[0]
-    if isinstance(first_element, Dict):
+    if isinstance(first_element, dict):
         key_type = type(list(
             first_element.keys())[0]).__name__  # Get type of first key
         value_type = type(list(
@@ -179,16 +180,11 @@ class LoopArgument(pipeline_channel.PipelineParameterChannel):
     ) -> 'LoopArgument':
         """Creates a LoopArgument object from a PipelineParameterChannel
         object."""
-        if channel.channel_type.startswith('typing.Dict'):
-            loop_argument_channel_type = channel.channel_type
-        else:
-            loop_argument_channel_type = _get_loop_item_type(
-                channel.channel_type)
         return LoopArgument(
             items=channel,
             name_override=channel.name + '-' + cls.LOOP_ITEM_NAME_BASE,
             task_name=channel.task_name,
-            channel_type=loop_argument_channel_type or 'String',
+            channel_type=_get_loop_item_type(channel.channel_type) or 'String',
         )
 
     @classmethod

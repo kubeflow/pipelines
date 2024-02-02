@@ -277,6 +277,17 @@ def verify_type_compatibility(
     else:
         expected_is_artifact_list = expected_spec.is_artifact_list
 
+    # avoid circular imports
+    from kfp.dsl.for_loop import LoopArgument
+    from kfp.dsl.for_loop import LoopArgumentVariable
+
+    # Special case for LoopArgumentVariable due to the lost information during
+    # ParallelFor compiled time. If we cannot extract the specific type from the LoopArgumentVariable,
+    # we will not block during the compiled time.
+    if isinstance(given_value, LoopArgumentVariable) or isinstance(
+            given_value, LoopArgument):
+        return True
+
     # compare the normalized types
     if given_is_param != expected_is_param:
         types_are_compatible = False

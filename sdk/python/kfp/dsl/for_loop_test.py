@@ -117,6 +117,16 @@ class ForLoopTest(parameterized.TestCase):
             'expected_serialization_value':
                 '{{channel:task=task1;name=output1-loop-item;type=Dict[str, str];}}',
         },
+        {
+            'channel':
+                pipeline_channel.PipelineParameterChannel(
+                    name='output2',
+                    channel_type='List[Dict]',
+                    task_name='task1',
+                ),
+            'expected_serialization_value':
+                '{{channel:task=task1;name=output2-loop-item;type=Dict;}}',
+        },
     )
     def test_loop_argument_from_pipeline_channel(self, channel,
                                                  expected_serialization_value):

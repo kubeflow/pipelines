@@ -16,6 +16,7 @@ from typing import Dict, List
 
 from kfp import compiler
 from kfp import dsl
+from kfp.components.load_yaml_utilities import load_component_from_file
 from kfp.dsl import component
 
 
@@ -30,8 +31,26 @@ def print_int(x: int):
 
 
 @component
-def list_dict_maker() -> List[Dict[str, int]]:
+def list_dict_maker_0() -> List[Dict[str, int]]:
     return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+
+@component
+def list_dict_maker_1() -> List[Dict]:
+    return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+
+@component
+def list_dict_maker_2() -> List[dict]:
+    return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+
+@component
+def list_dict_maker_3() -> List:
+    return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+
+loaded_dict_maker = load_component_from_file('upstream_component.yaml')
 
 
 @dsl.pipeline(name='pipeline-with-loops')
@@ -68,8 +87,24 @@ def my_pipeline(loop_parameter: List[str]):
         print_int(x=item.a)
 
     # Loop argument that coming from the upstream component.
-    t = list_dict_maker()
-    with dsl.ParallelFor(t.output) as item:
+    t_0 = list_dict_maker_0()
+    with dsl.ParallelFor(items=t_0.output) as item:
+        print_int(x=item.a)
+
+    t_1 = list_dict_maker_1()
+    with dsl.ParallelFor(items=t_1.output) as item:
+        print_int(x=item.a)
+
+    t_2 = list_dict_maker_2()
+    with dsl.ParallelFor(items=t_2.output) as item:
+        print_int(x=item.a)
+
+    t_3 = list_dict_maker_3()
+    with dsl.ParallelFor(items=t_3.output) as item:
+        print_int(x=item.a)
+
+    t_4 = loaded_dict_maker()
+    with dsl.ParallelFor(items=t_4.output) as item:
         print_int(x=item.a)
 
 

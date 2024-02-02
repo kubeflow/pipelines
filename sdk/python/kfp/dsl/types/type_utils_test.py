@@ -28,6 +28,8 @@ from kfp.dsl import Output
 from kfp.dsl import pipeline_channel
 from kfp.dsl import structures
 from kfp.dsl import yaml_component
+from kfp.dsl.for_loop import LoopArgument
+from kfp.dsl.for_loop import LoopArgumentVariable
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_utils
 from kfp.dsl.types.type_utils import InconsistentTypeException
@@ -712,6 +714,30 @@ class TestTypeChecking(parameterized.TestCase):
                     'system.Artifact@1.0.0', is_artifact_list=True),
             'is_compatible':
                 False,
+        },
+        {
+            'argument_value':
+                LoopArgumentVariable(
+                    loop_argument=LoopArgument.from_pipeline_channel(
+                        pipeline_channel.create_pipeline_channel(
+                            'Output-loop-item', 'String',
+                            'list-dict-without-type-maker-5')),
+                    subvar_name='a'),
+            'parameter_input_spec':
+                structures.InputSpec('Integer'),
+            'is_compatible':
+                True,
+        },
+        {
+            'argument_value':
+                LoopArgument.from_pipeline_channel(
+                    pipeline_channel.create_pipeline_channel(
+                        'Output-loop-item', 'String',
+                        'list-dict-without-type-maker-5')),
+            'parameter_input_spec':
+                structures.InputSpec('Integer'),
+            'is_compatible':
+                True,
         },
     )
     def test_verify_type_compatibility(

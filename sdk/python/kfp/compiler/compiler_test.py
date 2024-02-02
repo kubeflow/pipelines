@@ -31,6 +31,7 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
+from kfp.components.load_yaml_utilities import load_component_from_file
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
 from kfp.dsl import Dataset
@@ -734,10 +735,41 @@ implementation:
         def producer_op(item: str) -> str:
             return item
 
+        @dsl.component
+        def producer_input_op(num: int) -> int:
+            return int
+        
+        @dsl.component
+        def list_dict_maker_0() -> List[Dict[str, int]]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        @dsl.component
+        def list_dict_maker_1() -> List[Dict]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        @dsl.component
+        def list_dict_maker_2() -> List[dict]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        @dsl.component
+        def list_dict_maker_3() -> List:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        loaded_dict_maker = load_component_from_file('upstream_component.yaml')
         @dsl.pipeline(name='test-parallel-for-with-parallelism')
         def my_pipeline(text: bool):
             with dsl.ParallelFor(items=['a', 'b'], parallelism=2) as item:
                 producer_task = producer_op(item=item)
+            with dsl.ParallelFor(items=list_dict_maker_0().output, parallelism=2) as item:
+                producer_task = producer_input_op(num=item.a)
+            with dsl.ParallelFor(items=list_dict_maker_1().output, parallelism=2) as item:
+                producer_task = producer_input_op(num=item.a)
+            with dsl.ParallelFor(items=list_dict_maker_2().output, parallelism=2) as item:
+                producer_task = producer_input_op(num=item.a)
+            with dsl.ParallelFor(items=list_dict_maker_3().output, parallelism=2) as item:
+                producer_task = producer_input_op(num=item.a)
+            with dsl.ParallelFor(items=loaded_dict_maker().output, parallelism=2) as item:
+                producer_task = producer_input_op(num=item.a)
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'result.yaml')
