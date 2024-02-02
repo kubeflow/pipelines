@@ -420,7 +420,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         @dsl.pipeline(description='Prefer me.')
         def my_pipeline():
-            """Don't prefer me"""
+            """Don't prefer me."""
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
         self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
@@ -442,7 +442,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             """Docstring-specified description.
 
-            More information about this pipeline."""
+            More information about this pipeline.
+            """
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
         self.assertEqual(
@@ -738,7 +739,7 @@ implementation:
         @dsl.component
         def producer_input_op(num: int) -> int:
             return int
-        
+
         @dsl.component
         def list_dict_maker_0() -> List[Dict[str, int]]:
             return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
@@ -756,19 +757,25 @@ implementation:
             return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
 
         loaded_dict_maker = load_component_from_file('upstream_component.yaml')
+
         @dsl.pipeline(name='test-parallel-for-with-parallelism')
         def my_pipeline(text: bool):
             with dsl.ParallelFor(items=['a', 'b'], parallelism=2) as item:
                 producer_task = producer_op(item=item)
-            with dsl.ParallelFor(items=list_dict_maker_0().output, parallelism=2) as item:
+            with dsl.ParallelFor(
+                    items=list_dict_maker_0().output, parallelism=2) as item:
                 producer_task = producer_input_op(num=item.a)
-            with dsl.ParallelFor(items=list_dict_maker_1().output, parallelism=2) as item:
+            with dsl.ParallelFor(
+                    items=list_dict_maker_1().output, parallelism=2) as item:
                 producer_task = producer_input_op(num=item.a)
-            with dsl.ParallelFor(items=list_dict_maker_2().output, parallelism=2) as item:
+            with dsl.ParallelFor(
+                    items=list_dict_maker_2().output, parallelism=2) as item:
                 producer_task = producer_input_op(num=item.a)
-            with dsl.ParallelFor(items=list_dict_maker_3().output, parallelism=2) as item:
+            with dsl.ParallelFor(
+                    items=list_dict_maker_3().output, parallelism=2) as item:
                 producer_task = producer_input_op(num=item.a)
-            with dsl.ParallelFor(items=loaded_dict_maker().output, parallelism=2) as item:
+            with dsl.ParallelFor(
+                    items=loaded_dict_maker().output, parallelism=2) as item:
                 producer_task = producer_input_op(num=item.a)
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -2282,6 +2289,7 @@ class TestYamlComments(unittest.TestCase):
                 sample_input1: bool = True,
                 sample_input2: str = 'string') -> str:
             """docstring short description.
+
             docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
@@ -2308,10 +2316,9 @@ class TestYamlComments(unittest.TestCase):
         def pipeline_with_multiline_definition(
                 sample_input1: bool = True,
                 sample_input2: str = 'string') -> str:
-            """
-            docstring long description.
-            docstring long description.
-            docstring long description.
+            """docstring long description.
+
+            docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2340,8 +2347,8 @@ class TestYamlComments(unittest.TestCase):
         def my_pipeline(sample_input1: bool = True,
                         sample_input2: str = 'string') -> str:
             """docstring short description.
-            docstring long description.
-            docstring long description.
+
+            docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -3979,7 +3986,7 @@ class ExtractInputOutputDescription(unittest.TestCase):
             string: str,
             in_artifact: Input[Artifact],
         ) -> Outputs:
-            """Pipeline description. Returns
+            """Pipeline description. Returns.
 
             Args:
                 string: Return Pipeline input string. Returns
@@ -4442,7 +4449,9 @@ class TestDslOneOf(unittest.TestCase):
     # To help narrow the tests further (we already test lots of aspects in the following cases), we choose focus on the dsl.OneOf behavior, not the conditional logic if If/Elif/Else. This is more verbose, but more maintainable and the behavior under test is clearer.
 
     def test_if_else_returned(self):
-        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf
+        returned from a pipeline, and different output keys on dsl.OneOf
+        channels."""
 
         @dsl.pipeline
         def roll_die_pipeline() -> str:
@@ -4503,7 +4512,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_elif_else_returned(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        dsl.OneOf returned from a pipeline, and different output keys on
+        dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline() -> str:
@@ -4578,7 +4589,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_elif_else_consumed(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf passed to a consumer task, and different output keys on dsl.OneOf channels."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        dsl.OneOf passed to a consumer task, and different output keys on
+        dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline():
@@ -4655,7 +4668,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_else_consumed_and_returned(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        and dsl.OneOf passed to a consumer task and returned from the
+        pipeline."""
 
         @dsl.pipeline
         def flip_coin_pipeline() -> str:
@@ -4728,7 +4743,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_else_consumed_and_returned_artifacts(self):
-        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and
+        dsl.OneOf passed to a consumer task and returned from the pipeline."""
 
         @dsl.pipeline
         def flip_coin_pipeline() -> Artifact:
@@ -4889,7 +4905,8 @@ class TestDslOneOf(unittest.TestCase):
                                      print_task_2.outputs['a'])
 
     def test_deeply_nested_consumed(self):
-        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-DAGs."""
+        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-
+        DAGs."""
 
         @dsl.pipeline
         def flip_coin_pipeline(execute_pipeline: bool):
@@ -4988,7 +5005,8 @@ class TestDslOneOf(unittest.TestCase):
                                  print_task_2.outputs['a'])
 
     def test_oneof_in_condition(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested one level"""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group
+        nested one level."""
 
         @dsl.pipeline
         def roll_die_pipeline(repeat_on: str = 'Got heads!'):
@@ -5041,7 +5059,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_consumed_in_nested_groups(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested multiple levels"""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group
+        nested multiple levels."""
 
         @dsl.pipeline
         def roll_die_pipeline(
