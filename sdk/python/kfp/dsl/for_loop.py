@@ -15,7 +15,6 @@
 
 import re
 from typing import Any, Dict, List, Optional, Union
-import warnings
 
 from kfp.dsl import pipeline_channel
 
