@@ -81,8 +81,8 @@ var taskAPIToModelFieldMap = map[string]string{
 	"namespace":       "Namespace",
 	"pipeline_name":   "PipelineName",      // v2beta1 API
 	"pipelineName":    "PipelineName",      // v1beta1 API
-	"run_id":          "RunId",             // v2beta1 API
-	"runId":           "RunId",             // v1beta1 API
+	"run_id":          "RunUUID",           // v2beta1 API
+	"runId":           "RunUUID",           // v1beta1 API
 	"display_name":    "Name",              // v2beta1 API
 	"execution_id":    "MLMDExecutionID",   // v2beta1 API
 	"create_time":     "CreatedTimestamp",  // v2beta1 API
@@ -91,7 +91,7 @@ var taskAPIToModelFieldMap = map[string]string{
 	"fingerprint":     "Fingerprint",
 	"state":           "State",             // v2beta1 API
 	"state_history":   "StateHistory",      // v2beta1 API
-	"parent_task_id":  "ParentTaskId",      // v2beta1 API
+	"parent_task_id":  "ParentTaskUUID",    // v2beta1 API
 	"mlmdExecutionID": "MLMDExecutionID",   // v1beta1 API
 	"created_at":      "CreatedTimestamp",  // v1beta1 API
 	"finished_at":     "FinishedTimestamp", // v1beta1 API

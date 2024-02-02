@@ -363,11 +363,11 @@ var runAPIToModelFieldMap = map[string]string{
 	"storage_state":    "StorageState",
 	"status":           "Conditions",
 	"namespace":        "Namespace",               // v2beta1 API
-	"experiment_id":    "ExperimentId",            // v2beta1 API
+	"experiment_id":    "ExperimentUUID",          // v2beta1 API
 	"state":            "State",                   // v2beta1 API
 	"state_history":    "StateHistory",            // v2beta1 API
 	"runtime_details":  "PipelineRuntimeManifest", // v2beta1 API
-	"recurring_run_id": "RecurringRunId",          // v2beta1 API
+	"recurring_run_id": "JobUUID",                 // v2beta1 API
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.

@@ -1421,3 +1421,9 @@ func TestParseResourceReferences(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResourceReferences, actualResourceReferences)
 }
+
+func TestRunAPIFieldMap(t *testing.T) {
+	for _, modelField := range (&model.Run{}).APIToModelFieldMap() {
+		assert.Contains(t, runColumns, modelField)
+	}
+}

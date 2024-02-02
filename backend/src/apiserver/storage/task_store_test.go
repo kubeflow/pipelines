@@ -617,3 +617,9 @@ func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 		})
 	}
 }
+
+func TestTaskAPIFieldMap(t *testing.T) {
+	for _, modelField := range (&model.Task{}).APIToModelFieldMap() {
+		assert.Contains(t, taskColumns, modelField)
+	}
+}
