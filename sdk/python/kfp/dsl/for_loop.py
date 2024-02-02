@@ -363,7 +363,7 @@ class Collected(pipeline_channel.PipelineChannel):
         output: pipeline_channel.PipelineChannel,
     ) -> None:
         self.output = output
-        # we know all dsl.Collected instances are lists, so set `is_artifact_list``
+        # we know all dsl.Collected instances are lists, so set `is_artifact_list`
         # for type checking, which occurs before dsl.Collected is updated to
         # it's "correct" channel during compilation
         if isinstance(output, pipeline_channel.PipelineArtifactChannel):

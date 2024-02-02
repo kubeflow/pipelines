@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubeflow Authors
+# Copyright 2024 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,10 +27,10 @@ def print_artifact_name(artifact: Artifact) -> str:
 
 
 @dsl.component
-def make_dataset(text: str) -> Dataset:
-    dataset = Dataset(uri=dsl.get_uri(), metadata={'length': len(text)})
+def make_dataset(data: str) -> Dataset:
+    dataset = Dataset(uri=dsl.get_uri(), metadata={'length': len(data)})
     with open(dataset.path, 'w') as f:
-        f.write(text)
+        f.write(data)
     return dataset
 
 
@@ -38,24 +38,24 @@ def make_dataset(text: str) -> Dataset:
 def make_datasets(
         texts: List[str] = ['Hello', ',', ' ', 'world!']) -> List[Dataset]:
     with dsl.ParallelFor(texts) as text:
-        t1 = make_dataset(text=text)
+        t1 = make_dataset(data=text)
 
     return dsl.Collected(t1.output)
 
 
 @dsl.component
-def make_artifact(name: str) -> Artifact:
-    artifact = Artifact(uri=dsl.get_uri(), metadata={'length': len(name)})
+def make_artifact(data: str) -> Artifact:
+    artifact = Artifact(uri=dsl.get_uri(), metadata={'length': len(data)})
     with open(artifact.path, 'w') as f:
-        f.write(name)
+        f.write(data)
     return artifact
 
 
 @dsl.pipeline
 def make_artifacts(
-        names: List[str] = ['Hello', ',', ' ', 'world!']) -> List[Artifact]:
-    with dsl.ParallelFor(names) as name:
-        t1 = make_artifact(name=name)
+        texts: List[str] = ['Hello', ',', ' ', 'world!']) -> List[Artifact]:
+    with dsl.ParallelFor(texts) as text:
+        t1 = make_artifact(data=text)
 
     return dsl.Collected(t1.output)
 

@@ -23,6 +23,7 @@ import warnings
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
 import kfp
+from kfp import dsl
 from kfp.compiler import compiler_utils
 from kfp.dsl import component_factory
 from kfp.dsl import for_loop
@@ -168,7 +169,7 @@ def build_task_spec_for_task(
                     f'parseJson(string_value)["{input_value.subvar_name}"]')
         elif isinstance(input_value,
                         pipeline_channel.PipelineArtifactChannel) or (
-                            isinstance(input_value, for_loop.Collected) and
+                            isinstance(input_value, dsl.Collected) and
                             input_value.is_artifact_channel):
 
             if input_value.task_name:
@@ -203,7 +204,7 @@ def build_task_spec_for_task(
 
         elif isinstance(input_value,
                         pipeline_channel.PipelineParameterChannel) or (
-                            isinstance(input_value, for_loop.Collected) and
+                            isinstance(input_value, dsl.Collected) and
                             not input_value.is_artifact_channel):
             if input_value.task_name:
 
@@ -707,13 +708,13 @@ def build_component_spec_for_group(
         elif isinstance(channel,
                         (pipeline_channel.PipelineParameterChannel,
                          for_loop.LoopParameterArgument,
-                         for_loop.LoopArgumentVariable, for_loop.Collected)):
+                         for_loop.LoopArgumentVariable, dsl.Collected)):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)
         else:
             raise TypeError(
-                f'Expected PipelineParameterChannel, PipelineArtifactChannel, LoopParameterArgument, LoopArtifactArgument, LoopArgumentVariable, or Collected, got {type(channel)}'
+                f'Expected PipelineParameterChannel, PipelineArtifactChannel, LoopParameterArgument, LoopArtifactArgument, LoopArgumentVariable, or Collected, got {type(channel)}.'
             )
 
     for output_name, output in output_pipeline_channels.items():
@@ -769,7 +770,17 @@ def _update_task_spec_for_loop_group(
         loop_arguments_item = f'{input_parameter_name}-{for_loop.LOOP_ITEM_NAME_BASE}'
         assert loop_arguments_item == loop_argument_item_name
 
-        if isinstance(group.loop_argument, for_loop.LoopArtifactArgument):
+        if isinstance(group.loop_argument, for_loop.LoopParameterArgument):
+            pipeline_task_spec.parameter_iterator.items.input_parameter = (
+                input_parameter_name)
+            pipeline_task_spec.parameter_iterator.item_input = (
+                loop_argument_item_name)
+
+            _pop_input_from_task_spec(
+                task_spec=pipeline_task_spec,
+                input_name=pipeline_task_spec.parameter_iterator.item_input)
+
+        elif isinstance(group.loop_argument, for_loop.LoopArtifactArgument):
             input_artifact_name = compiler_utils.additional_input_name_for_pipeline_channel(
                 loop_items_channel)
 
@@ -781,14 +792,10 @@ def _update_task_spec_for_loop_group(
                 task_spec=pipeline_task_spec,
                 input_name=pipeline_task_spec.artifact_iterator.item_input)
         else:
-            pipeline_task_spec.parameter_iterator.items.input_parameter = (
-                input_parameter_name)
-            pipeline_task_spec.parameter_iterator.item_input = (
-                loop_argument_item_name)
-
-            _pop_input_from_task_spec(
-                task_spec=pipeline_task_spec,
-                input_name=pipeline_task_spec.parameter_iterator.item_input)
+            raise TypeError(
+                f'Expected LoopParameterArgument or LoopArtifactArgument, got {type(group.loop_argument)}.'
+            )
+        
 
         # If the loop items itself is a loop arguments variable, handle the
         # subvar name.
@@ -1818,7 +1825,7 @@ def _merge_component_spec(
 def validate_pipeline_outputs_dict(
         pipeline_outputs_dict: Dict[str, pipeline_channel.PipelineChannel]):
     for channel in pipeline_outputs_dict.values():
-        if isinstance(channel, for_loop.Collected):
+        if isinstance(channel, dsl.Collected):
             # this validation doesn't apply to Collected
             continue
 

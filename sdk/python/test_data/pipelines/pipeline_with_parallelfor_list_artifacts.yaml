@@ -42,15 +42,15 @@ components:
             name: comp-make-artifact
           inputs:
             parameters:
-              name:
-                componentInputParameter: pipelinechannel--names-loop-item
+              data:
+                componentInputParameter: pipelinechannel--texts-loop-item
           taskInfo:
             name: make-artifact
     inputDefinitions:
       parameters:
-        pipelinechannel--names:
+        pipelinechannel--texts:
           parameterType: LIST
-        pipelinechannel--names-loop-item:
+        pipelinechannel--texts-loop-item:
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -75,7 +75,7 @@ components:
             name: comp-make-dataset
           inputs:
             parameters:
-              text:
+              data:
                 componentInputParameter: pipelinechannel--texts-loop-item
           taskInfo:
             name: make-dataset
@@ -121,7 +121,7 @@ components:
     executorLabel: exec-make-artifact
     inputDefinitions:
       parameters:
-        name:
+        data:
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -143,17 +143,17 @@ components:
             name: comp-for-loop-1-2
           inputs:
             parameters:
-              pipelinechannel--names:
-                componentInputParameter: names
+              pipelinechannel--texts:
+                componentInputParameter: texts
           parameterIterator:
-            itemInput: pipelinechannel--names-loop-item
+            itemInput: pipelinechannel--texts-loop-item
             items:
-              inputParameter: pipelinechannel--names
+              inputParameter: pipelinechannel--texts
           taskInfo:
             name: for-loop-1
     inputDefinitions:
       parameters:
-        names:
+        texts:
           defaultValue:
           - Hello
           - ','
@@ -172,7 +172,7 @@ components:
     executorLabel: exec-make-dataset
     inputDefinitions:
       parameters:
-        text:
+        data:
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -271,9 +271,9 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef make_artifact(name: str) -> Artifact:\n    artifact = Artifact(uri=dsl.get_uri(),\
-          \ metadata={'length': len(name)})\n    with open(artifact.path, 'w') as\
-          \ f:\n        f.write(name)\n    return artifact\n\n"
+          \ *\n\ndef make_artifact(data: str) -> Artifact:\n    artifact = Artifact(uri=dsl.get_uri(),\
+          \ metadata={'length': len(data)})\n    with open(artifact.path, 'w') as\
+          \ f:\n        f.write(data)\n    return artifact\n\n"
         image: python:3.7
     exec-make-dataset:
       container:
@@ -301,9 +301,9 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef make_dataset(text: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
-          \ metadata={'length': len(text)})\n    with open(dataset.path, 'w') as f:\n\
-          \        f.write(text)\n    return dataset\n\n"
+          \ *\n\ndef make_dataset(data: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
+          \ metadata={'length': len(data)})\n    with open(dataset.path, 'w') as f:\n\
+          \        f.write(data)\n    return dataset\n\n"
         image: python:3.7
     exec-print-artifact-name:
       container:
