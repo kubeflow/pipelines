@@ -338,28 +338,78 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         # importer doesn't have an output directory
         self.assert_output_dir_contents(1, 3)
 
-    def test_pipeline_in_pipeline_not_supported(self):
-        local.init(local.SubprocessRunner())
+    def test_pipeline_in_pipeline_simple(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
         def identity(string: str) -> str:
             return string
 
         @dsl.pipeline
-        def inner_pipeline():
-            identity(string='foo')
+        def inner_pipeline() -> str:
+            return identity(string='foo').output
 
         @dsl.pipeline
-        def my_pipeline():
-            inner_pipeline()
+        def my_pipeline() -> str:
+            return inner_pipeline().output
 
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r'Control flow features and pipelines in pipelines are not yet supported by local pipeline execution\.'
-        ):
-            my_pipeline()
+        task = my_pipeline()
+        self.assertEqual(task.output, 'foo')
+        self.assert_output_dir_contents(1, 1)
 
-    def test_control_flow_features_not_supported(self):
+    def test_pipeline_in_pipeline_complex(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def square(x: float) -> float:
+            return x**2
+
+        @dsl.component
+        def add(x: float, y: float) -> float:
+            return x + y
+
+        @dsl.component
+        def square_root(x: float) -> float:
+            return x**.5
+
+        @dsl.component
+        def convert_to_artifact(val: float) -> Dataset:
+            dataset = Dataset(name='dataset', uri=dsl.get_uri())
+            with open(dataset.path, 'w') as f:
+                f.write(str(val))
+
+        @dsl.component
+        def convert_from_artifact(dataset: Dataset) -> float:
+            with open(dataset.path) as f:
+                return float(f.read())
+
+        @dsl.pipeline
+        def square_and_sum(a: float, b: float) -> Dataset:
+            a_sq_task = square(x=a)
+            b_sq_task = square(x=b)
+            add_task = add(x=a_sq_task.output, y=b_sq_task.output)
+            return convert_to_artifact(val=add_task.output).output
+
+        @dsl.pipeline
+        def pythagorean(a: float = 1.2, b: float = 1.2) -> float:
+            sq_and_sum_task = square_and_sum(a=a, b=b)
+            make_float_task = convert_from_artifact(
+                dataset=sq_and_sum_task.output)
+            return square_root(x=make_float_task.output).output
+
+        @dsl.pipeline
+        def pythagorean_then_add(
+            side: float,
+            addend: float = 42.24,
+        ) -> float:
+            t = pythagorean(a=side, b=1.2)
+            return add(x=t.output, y=addend).output
+
+        task = pythagorean_then_add(side=2.2)
+        self.assertAlmostEqual(task.output, 44.745992817228334)
+        self.assert_output_dir_contents(1, 7)
+
+    def test_parallel_for_not_supported(self):
         local.init(local.SubprocessRunner())
 
         @dsl.component
@@ -373,9 +423,27 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         with self.assertRaisesRegex(
                 NotImplementedError,
-                r'Control flow features and pipelines in pipelines are not yet supported by local pipeline execution\.'
+                r"'dsl\.ParallelFor' is not supported by local pipeline execution\."
         ):
             my_pipeline()
+
+    def test_condition_not_supported(self):
+        local.init(local.SubprocessRunner())
+
+        @dsl.component
+        def pass_op():
+            pass
+
+        @dsl.pipeline
+        def my_pipeline(x: str):
+            with dsl.Condition(x == 'foo'):
+                pass_op()
+
+        with self.assertRaisesRegex(
+                NotImplementedError,
+                r"'dsl\.Condition' is not supported by local pipeline execution\."
+        ):
+            my_pipeline(x='bar')
 
     @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
     def test_fails_with_raise_on_error_true(self, mock_stdout):
@@ -402,7 +470,67 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         # - indicate which task the failure came from
         self.assertRegex(
             logged_output,
-            r'raise Exception\(\'Error from raise_component\.\'\)',
+            r"raise Exception\('Error from raise_component\.'\)",
+        )
+
+    @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
+    def test_single_nested_fails_with_raise_on_error_true(self, mock_stdout):
+        local.init(local.SubprocessRunner(), raise_on_error=True)
+
+        @dsl.component
+        def fail():
+            raise Exception('Nested failure!')
+
+        @dsl.pipeline
+        def inner_pipeline():
+            fail()
+
+        @dsl.pipeline
+        def my_pipeline():
+            inner_pipeline()
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r"Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'fail\'\x1b\[0m inside \x1b\[96m\'inner-pipeline\'\x1b\[0m\.",
+        ):
+            my_pipeline()
+
+        logged_output = mock_stdout.getvalue()
+        self.assertRegex(
+            logged_output,
+            r"raise Exception\('Nested failure!'\)",
+        )
+
+    @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
+    def test_deeply_nested_fails_with_raise_on_error_true(self, mock_stdout):
+        local.init(local.SubprocessRunner(), raise_on_error=True)
+
+        @dsl.component
+        def fail():
+            raise Exception('Nested failure!')
+
+        @dsl.pipeline
+        def deep_pipeline():
+            fail()
+
+        @dsl.pipeline
+        def mid_pipeline():
+            deep_pipeline()
+
+        @dsl.pipeline
+        def outer_pipeline():
+            mid_pipeline()
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r"Pipeline \x1b\[95m\'outer-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'fail\'\x1b\[0m\ inside \x1b\[96m\'deep-pipeline\'\x1b\[0m inside \x1b\[96m\'mid-pipeline\'\x1b\[0m\.",
+        ):
+            outer_pipeline()
+
+        logged_output = mock_stdout.getvalue()
+        self.assertRegex(
+            logged_output,
+            r"raise Exception\('Nested failure!'\)",
         )
 
     @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
@@ -425,15 +553,91 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         # - indicate which task the failure came from
         self.assertRegex(
             logged_output,
-            r'raise Exception\(\'Error from raise_component\.\'\)',
+            r"raise Exception\('Error from raise_component\.'\)",
         )
         self.assertRegex(
             logged_output,
-            r'ERROR - Task \x1b\[96m\'raise-component\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\n',
+            r"ERROR - Task \x1b\[96m'raise-component'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\n",
         )
         self.assertRegex(
             logged_output,
-            r'ERROR - Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m\'raise-component\'\x1b\[0m\.\n',
+            r"ERROR - Pipeline \x1b\[95m'my-pipeline'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m'raise-component'\x1b\[0m\.\n",
+        )
+        self.assertEqual(task.outputs, {})
+
+    @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
+    def test_single_nested_fails_with_raise_on_error_false(self, mock_stdout):
+        local.init(local.SubprocessRunner(), raise_on_error=False)
+
+        @dsl.component
+        def fail():
+            raise Exception('Nested failure!')
+
+        @dsl.pipeline
+        def inner_pipeline():
+            fail()
+
+        @dsl.pipeline
+        def my_pipeline():
+            inner_pipeline()
+
+        task = my_pipeline()
+        logged_output = mock_stdout.getvalue()
+        # Logs should:
+        # - log task failure trace
+        # - log pipeline failure
+        # - indicate which task the failure came from
+        self.assertRegex(
+            logged_output,
+            r"raise Exception\('Nested failure!'\)",
+        )
+        self.assertRegex(
+            logged_output,
+            r"ERROR - Task \x1b\[96m'fail'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\n",
+        )
+        self.assertRegex(
+            logged_output,
+            r"ERROR - Pipeline \x1b\[95m\'my-pipeline\'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m. Inner task failed: \x1b\[96m\'fail\'\x1b\[0m inside \x1b\[96m\'inner-pipeline\'\x1b\[0m.\n"
+        )
+        self.assertEqual(task.outputs, {})
+
+    @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
+    def test_deeply_nested_fails_with_raise_on_error_false(self, mock_stdout):
+        local.init(local.SubprocessRunner(), raise_on_error=False)
+
+        @dsl.component
+        def fail():
+            raise Exception('Nested failure!')
+
+        @dsl.pipeline
+        def deep_pipeline():
+            fail()
+
+        @dsl.pipeline
+        def mid_pipeline():
+            deep_pipeline()
+
+        @dsl.pipeline
+        def outer_pipeline():
+            mid_pipeline()
+
+        task = outer_pipeline()
+        logged_output = mock_stdout.getvalue()
+        # Logs should:
+        # - log task failure trace
+        # - log pipeline failure
+        # - indicate which task the failure came from
+        self.assertRegex(
+            logged_output,
+            r"raise Exception\('Nested failure!'\)",
+        )
+        self.assertRegex(
+            logged_output,
+            r"ERROR - Task \x1b\[96m'fail'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\n",
+        )
+        self.assertRegex(
+            logged_output,
+            r"ERROR - Pipeline \x1b\[95m'outer-pipeline'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m\. Inner task failed: \x1b\[96m'fail'\x1b\[0m inside \x1b\[96m'deep-pipeline'\x1b\[0m inside \x1b\[96m'mid-pipeline'\x1b\[0m\.\n",
         )
         self.assertEqual(task.outputs, {})
 
