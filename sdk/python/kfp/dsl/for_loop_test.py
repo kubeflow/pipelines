@@ -112,7 +112,7 @@ class ForLoopTest(parameterized.TestCase):
                     name='param1',
                     channel_type='system.Artifact@0.0.1',
                     task_name='task1',
-                    is_artifact_list=False,
+                    is_artifact_list=True,
                 ),
             'expected_serialization_value':
                 '{{channel:task=task1;name=param1-loop-item;type=system.Artifact@0.0.1;}}',
@@ -123,7 +123,7 @@ class ForLoopTest(parameterized.TestCase):
                     name='output1',
                     channel_type='system.Dataset@0.0.1',
                     task_name='task1',
-                    is_artifact_list=False,
+                    is_artifact_list=True,
                 ),
             'expected_serialization_value':
                 '{{channel:task=task1;name=output1-loop-item;type=system.Dataset@0.0.1;}}',

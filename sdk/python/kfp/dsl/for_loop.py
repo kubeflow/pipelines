@@ -246,6 +246,7 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
     ) -> 'LoopArtifactArgument':
         """Creates a LoopArtifactArgument object from a PipelineArtifactChannel
         object."""
+        assert channel.is_artifact_list is True, 'Cannot iterate over single Artifacts.'
         return LoopArtifactArgument(
             items=channel,
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
