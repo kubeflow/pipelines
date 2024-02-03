@@ -795,7 +795,7 @@ def _update_task_spec_for_loop_group(
             raise TypeError(
                 f'Expected LoopParameterArgument or LoopArtifactArgument, got {type(group.loop_argument)}.'
             )
-        
+
 
         # If the loop items itself is a loop arguments variable, handle the
         # subvar name.
