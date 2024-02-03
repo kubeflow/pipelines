@@ -796,7 +796,6 @@ def _update_task_spec_for_loop_group(
                 f'Expected LoopParameterArgument or LoopArtifactArgument, got {type(group.loop_argument)}.'
             )
 
-
         # If the loop items itself is a loop arguments variable, handle the
         # subvar name.
         if isinstance(loop_items_channel, for_loop.LoopArgumentVariable):
