@@ -47,6 +47,7 @@ def autosxs_arbiter(
     human_preference_column: str = '',
     judgments_format: str = 'jsonl',
     bigquery_destination_prefix: str = '',
+    write_metadata: bool = True,
     experimental_args: Dict[str, Any] = {},
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Evaluate two models using an autorater.
@@ -63,6 +64,7 @@ def autosxs_arbiter(
       'bigquery'.
     bigquery_destination_prefix: BigQuery table to write judgments to if the
       specified format is 'bigquery'.
+    write_metadata: Whether to write computed metrics metadata.
     experimental_args: Experimentally released arguments. Subject to change.
 
   Returns:
@@ -101,6 +103,7 @@ def autosxs_arbiter(
               ),
               '--executor_input={{$.json_escape[1]}}',
               f'--metadata_path={metadata}',
+              f'--write_metadata={write_metadata}',
           ],
       ),
       gcp_resources=gcp_resources,
