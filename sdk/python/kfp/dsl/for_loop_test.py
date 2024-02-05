@@ -138,6 +138,23 @@ class ForLoopTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
+            'channel':
+                pipeline_channel.PipelineArtifactChannel(
+                    name='param1',
+                    channel_type='system.Artifact@0.0.1',
+                    task_name='task1',
+                    is_artifact_list=False,
+                ),
+        },
+    )
+    def test_loop_artifact_argument_from_single_pipeline_channel_raises_error(
+            self, channel):
+        self.assertRaises(ValueError,
+                          for_loop.LoopArtifactArgument.from_pipeline_channel,
+                          channel)
+        
+    @parameterized.parameters(
+        {
             'raw_items': ['a', 'b', 'c'],
             'name_code':
                 '1',
