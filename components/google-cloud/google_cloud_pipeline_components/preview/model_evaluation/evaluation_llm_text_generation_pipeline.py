@@ -146,21 +146,33 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       encryption_spec_key_name=encryption_spec_key_name,
   )
 
-  import_evaluation_task = ModelImportEvaluationOp(
-      metrics=eval_task.outputs['evaluation_metrics'],
-      row_based_metrics=eval_task.outputs['row_based_metrics']
-      if enable_row_based_metrics
-      else None,
-      model=get_vertex_model_task.outputs['artifact'],
-      problem_type=evaluation_task,
-      dataset_type=batch_predict_predictions_format,
-      dataset_paths=batch_predict_gcs_source_uris,
-      display_name=evaluation_display_name,
-  )
+  with dsl.If(enable_row_based_metrics == True):
+    import_evaluation_task_with_row_based_metrics = ModelImportEvaluationOp(
+        metrics=eval_task.outputs['evaluation_metrics'],
+        row_based_metrics=eval_task.outputs['row_based_metrics'],
+        model=get_vertex_model_task.outputs['artifact'],
+        problem_type=evaluation_task,
+        dataset_type=batch_predict_predictions_format,
+        dataset_paths=batch_predict_gcs_source_uris,
+        display_name=evaluation_display_name,
+    )
+  with dsl.Else():
+    import_evaluation_task = ModelImportEvaluationOp(
+        metrics=eval_task.outputs['evaluation_metrics'],
+        model=get_vertex_model_task.outputs['artifact'],
+        problem_type=evaluation_task,
+        dataset_type=batch_predict_predictions_format,
+        dataset_paths=batch_predict_gcs_source_uris,
+        display_name=evaluation_display_name,
+    )
 
-  return outputs(
-      evaluation_metrics=eval_task.outputs['evaluation_metrics'],
-      evaluation_resource_name=import_evaluation_task.outputs[
+  oneof = dsl.OneOf(
+      import_evaluation_task_with_row_based_metrics.outputs[
           'evaluation_resource_name'
       ],
+      import_evaluation_task.outputs['evaluation_resource_name'],
+  )
+  return outputs(
+      evaluation_metrics=eval_task.outputs['evaluation_metrics'],
+      evaluation_resource_name=oneof,
   )
