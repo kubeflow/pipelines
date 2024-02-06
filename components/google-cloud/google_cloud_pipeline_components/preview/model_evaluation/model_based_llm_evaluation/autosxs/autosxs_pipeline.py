@@ -16,9 +16,9 @@
 from typing import Any, Dict, List
 
 from google_cloud_pipeline_components import _placeholders
-from google_cloud_pipeline_components._implementation.llm import autosxs_arbiter
-from google_cloud_pipeline_components._implementation.llm import autosxs_metrics_computer
-from google_cloud_pipeline_components._implementation.llm import batch_prediction_sxs
+from google_cloud_pipeline_components._implementation.llm import batch_prediction_pairwise
+from google_cloud_pipeline_components._implementation.llm import model_evaluation_text_generation_pairwise
+from google_cloud_pipeline_components._implementation.llm import online_evaluation_pairwise
 from kfp import dsl
 
 
@@ -64,14 +64,14 @@ def autosxs_pipeline(
     model_a_parameters: The parameters that govern the predictions from model A, such as temperature or maximum output tokens.
     model_b_parameters: The parameters that govern the predictions from model B, such as temperature or maximum output tokens.
     human_preference_column: The column containing ground truth winners for each example. Providing this parameter adds additional metrics for checking the AutoRater alignment with human preferences.
-    project: Project used to run custom jobs. Default is the same project used to run the pipeline.
-    location: Location used to run custom jobs. Default is the same location used to run the pipeline.
+    project: Project used to run custom jobs. This should be the same project used to run the pipeline.
+    location: Location used to run custom jobs. This should be the same location used to run the pipeline.
     judgments_format: The format to write judgments to. Can be either `[json, bigquery]`.
     bigquery_destination_prefix: BigQuery table to write judgments to if the specified format is 'bigquery'.
     experimental_args: Experimentally released arguments. Subject to change.
   """
   # fmt: on
-  arbiter_input = batch_prediction_sxs.batch_prediction_sxs(
+  responses = batch_prediction_pairwise.batch_prediction_pairwise(
       display_name='autosxs-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
       evaluation_dataset=evaluation_dataset,
       id_columns=id_columns,
@@ -87,8 +87,8 @@ def autosxs_pipeline(
       model_b_parameters=model_b_parameters,
       human_preference_column=human_preference_column,
   ).set_display_name('AutoSxS Batch Prediction')
-  autosxs_arbiter_task = autosxs_arbiter.autosxs_arbiter(
-      inference_output_uri=arbiter_input.outputs[
+  winners = online_evaluation_pairwise.online_evaluation_pairwise(
+      inference_output_uri=responses.outputs[
           'preprocessed_evaluation_dataset_uri'
       ],
       id_columns=id_columns,
@@ -97,8 +97,10 @@ def autosxs_pipeline(
       judgments_format=judgments_format,
       bigquery_destination_prefix=bigquery_destination_prefix,
       experimental_args=experimental_args,
-  ).set_display_name('AutoSxS Arbiter')
-  autosxs_metrics_computer.autosxs_metrics_computer(
-      judgments_dir=autosxs_arbiter_task.outputs['judgments_uri'],
+  ).set_display_name('AutoSxS Autorater')
+  model_evaluation_text_generation_pairwise.model_evaluation_text_generation_pairwise(
+      judgments_dir=winners.outputs['judgments_uri'],
       human_preference_column=human_preference_column,
-  ).set_display_name('AutoSxS Metrics')
+  ).set_display_name(
+      'AutoSxS Metrics'
+  )
