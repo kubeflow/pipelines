@@ -19,6 +19,15 @@ from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 
 
+def name_is_loop_argument(name: str) -> bool:
+    """Returns True if the given channel name looks like a loop argument.
+
+    Either it came from a withItems loop item or withParams loop item.
+    """
+    return  ('-' + for_loop.LOOP_ITEM_NAME_BASE) in name \
+      or (for_loop.LOOP_ITEM_PARAM_NAME_BASE + '-') in name
+
+
 class ForLoopTest(parameterized.TestCase):
 
     @parameterized.parameters(
@@ -128,11 +137,62 @@ class ForLoopTest(parameterized.TestCase):
                 '{{channel:task=task1;name=output2-loop-item;type=Dict;}}',
         },
     )
-    def test_loop_argument_from_pipeline_channel(self, channel,
-                                                 expected_serialization_value):
-        loop_argument = for_loop.LoopArgument.from_pipeline_channel(channel)
+    def test_loop_parameter_argument_from_pipeline_channel(
+            self, channel, expected_serialization_value):
+        loop_argument = for_loop.LoopParameterArgument.from_pipeline_channel(
+            channel)
         self.assertEqual(loop_argument.items_or_pipeline_channel, channel)
         self.assertEqual(str(loop_argument), expected_serialization_value)
+
+    @parameterized.parameters(
+        {
+            'channel':
+                pipeline_channel.PipelineArtifactChannel(
+                    name='param1',
+                    channel_type='system.Artifact@0.0.1',
+                    task_name='task1',
+                    is_artifact_list=True,
+                ),
+            'expected_serialization_value':
+                '{{channel:task=task1;name=param1-loop-item;type=system.Artifact@0.0.1;}}',
+        },
+        {
+            'channel':
+                pipeline_channel.PipelineArtifactChannel(
+                    name='output1',
+                    channel_type='system.Dataset@0.0.1',
+                    task_name='task1',
+                    is_artifact_list=True,
+                ),
+            'expected_serialization_value':
+                '{{channel:task=task1;name=output1-loop-item;type=system.Dataset@0.0.1;}}',
+        },
+    )
+    def test_loop_artifact_argument_from_pipeline_channel(
+            self, channel, expected_serialization_value):
+        loop_argument = for_loop.LoopArtifactArgument.from_pipeline_channel(
+            channel)
+        self.assertEqual(loop_argument.items_or_pipeline_channel, channel),
+        self.assertEqual(str(loop_argument), expected_serialization_value)
+
+    @parameterized.parameters(
+        {
+            'channel':
+                pipeline_channel.PipelineArtifactChannel(
+                    name='param1',
+                    channel_type='system.Artifact@0.0.1',
+                    task_name='task1',
+                    is_artifact_list=False,
+                ),
+        },)
+    def test_loop_artifact_argument_from_single_pipeline_channel_raises_error(
+            self, channel):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Cannot iterate over a single Artifact using `dsl\.ParallelFor`\. Expected a list of Artifacts as argument to `items`\.'
+        ):
+            loop_argument = for_loop.LoopArtifactArgument.from_pipeline_channel(
+                channel)
 
     @parameterized.parameters(
         {
@@ -159,7 +219,7 @@ class ForLoopTest(parameterized.TestCase):
     )
     def test_loop_argument_from_raw_items(self, raw_items, name_code,
                                           expected_serialization_value):
-        loop_argument = for_loop.LoopArgument.from_raw_items(
+        loop_argument = for_loop.LoopParameterArgument.from_raw_items(
             raw_items, name_code)
         self.assertEqual(loop_argument.items_or_pipeline_channel, raw_items)
         self.assertEqual(str(loop_argument), expected_serialization_value)
@@ -187,8 +247,7 @@ class ForLoopTest(parameterized.TestCase):
         },
     )
     def test_name_is_loop_argument(self, name, expected_result):
-        self.assertEqual(
-            for_loop.LoopArgument.name_is_loop_argument(name), expected_result)
+        self.assertEqual(name_is_loop_argument(name), expected_result)
 
     @parameterized.parameters(
         {
@@ -217,7 +276,7 @@ class ForLoopTest(parameterized.TestCase):
         },
     )
     def test_create_loop_argument_varaible(self, subvar_name, valid):
-        loop_argument = for_loop.LoopArgument.from_pipeline_channel(
+        loop_argument = for_loop.LoopParameterArgument.from_pipeline_channel(
             pipeline_channel.PipelineParameterChannel(
                 name='param1',
                 channel_type='List[Dict[str, str]]',

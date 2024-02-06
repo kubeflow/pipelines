@@ -247,7 +247,8 @@ def get_inputs_for_all_groups(
             channel_to_add = channel
 
             while isinstance(channel_to_add, (
-                    for_loop.LoopArgument,
+                    for_loop.LoopParameterArgument,
+                    for_loop.LoopArtifactArgument,
                     for_loop.LoopArgumentVariable,
             )):
                 channels_to_add.append(channel_to_add)
@@ -309,10 +310,11 @@ def get_inputs_for_all_groups(
                 # loop items, we have to go from bottom-up because the
                 # PipelineChannel can be originated from the middle a DAG,
                 # which is not needed and visible to its parent DAG.
-                if isinstance(
-                        channel,
-                    (for_loop.LoopArgument, for_loop.LoopArgumentVariable
-                    )) and channel.is_with_items_loop_argument:
+                if isinstance(channel, (
+                        for_loop.LoopParameterArgument,
+                        for_loop.LoopArtifactArgument,
+                        for_loop.LoopArgumentVariable,
+                )) and channel.is_with_items_loop_argument:
                     for group_name in task_name_to_parent_groups[
                             task.name][::-1]:
 
