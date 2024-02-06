@@ -264,13 +264,12 @@ def verify_type_compatibility(
     given_type = _get_type_string_from_component_argument(given_value)
 
     # avoid circular imports
-    from kfp.dsl.for_loop import LoopArgument
-    from kfp.dsl.for_loop import LoopArgumentVariable
+    from kfp.dsl import for_loop
 
-    # Special case for LoopArgument and LoopArgumentVariable due to the lost information during ParallelFor compiled time. If we cannot extract the specific type, we will not block during the compiled time.
-    if isinstance(
-            given_value,
-        (LoopArgumentVariable, LoopArgument)) and given_type == 'String':
+    # Workaround for potential type-checking issues during ParallelFor compilation: When LoopArgument or LoopArgumentVariable are involved and the expected type is 'String', we temporarily relax type enforcement to avoid blocking compilation. This is necessary due to potential information loss during the compilation step.
+    if isinstance(given_value,
+                  (for_loop.LoopArgumentVariable,
+                   for_loop.LoopArgument)) and given_type == 'String':
         return True
 
     given_is_param = is_parameter_type(str(given_type))

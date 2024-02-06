@@ -34,21 +34,37 @@ def print_int(x: int):
 
 @component
 def list_dict_maker_0() -> List[Dict[str, int]]:
+    """Enforces strict type checking - returns a list of dictionaries 
+    where keys are strings and values are integers. For testing type 
+    handling during compilation."""
     return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
 
 
 @component
 def list_dict_maker_1() -> List[Dict]:
+    """Utilizes generic dictionary typing (no enforcement of specific key or
+    value types).
+
+    Tests flexibility in type handling.
+    """
     return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
 
 
 @component
 def list_dict_maker_2() -> List[dict]:
+    """Returns a list of dictionaries without type enforcement.
+
+    Tests flexibility in type handling.
+    """
     return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
 
 
 @component
 def list_dict_maker_3() -> List:
+    """Returns a basic list (no typing or structure guarantees).
+
+    Tests the limits of compiler type handling.
+    """
     return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
 
 
@@ -112,6 +128,7 @@ def my_pipeline(loop_parameter: List[str]):
     with dsl.ParallelFor(items=t_3.output) as item:
         print_int(x=item.a)
 
+    # Loop argument that coming from the upstream component compiled file.
     t_4 = loaded_dict_maker()
     with dsl.ParallelFor(items=t_4.output) as item:
         print_int(x=item.a)

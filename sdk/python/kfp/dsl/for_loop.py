@@ -178,7 +178,13 @@ class LoopArgument(pipeline_channel.PipelineParameterChannel):
         channel: pipeline_channel.PipelineParameterChannel,
     ) -> 'LoopArgument':
         """Creates a LoopArgument object from a PipelineParameterChannel
-        object."""
+        object.
+
+        Provide a flexible default channel_type ('String') if extraction
+        from PipelineParameterChannel is unsuccessful. This maintains
+        compilation progress in cases of unknown or missing type
+        information.
+        """
         return LoopArgument(
             items=channel,
             name_override=channel.name + '-' + cls.LOOP_ITEM_NAME_BASE,
@@ -255,7 +261,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
 
         self.subvar_name = subvar_name
         self.loop_argument = loop_argument
-
+        # Handle potential channel_type extraction errors from LoopArgument by defaulting to 'String'. This maintains compilation progress.
         super().__init__(
             name=self._get_name_override(
                 loop_arg_name=loop_argument.name,
