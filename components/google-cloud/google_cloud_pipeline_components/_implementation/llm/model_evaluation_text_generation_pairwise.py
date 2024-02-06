@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""KFP Container component for computing AutoSXS metrics."""
+"""KFP Container component for computing aggregate pairwise metrics."""
 
 import os
 
@@ -29,7 +29,7 @@ def _resolve_image() -> str:
 
 
 @dsl.container_component
-def autosxs_metrics_computer(
+def model_evaluation_text_generation_pairwise(
     judgments_dir: str,
     autosxs_metrics: dsl.Output[dsl.Metrics],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
@@ -51,7 +51,7 @@ def autosxs_metrics_computer(
       # Hardcode location to us-central1 for text-bison availability.
       location='us-central1',
       custom_job_payload=utils.build_payload(
-          display_name='autosxs_metrics_computer',
+          display_name='model_evaluation_text_generation_pairwise',
           machine_type='n1-standard-4',
           image_uri=_resolve_image(),
           args=[
