@@ -26,7 +26,7 @@ class ParallelForTest(unittest.TestCase):
         loop_items = ['pizza', 'hotdog', 'pasta']
         with pipeline_context.Pipeline('pipeline') as p:
             with tasks_group.ParallelFor(items=loop_items) as parallel_for:
-                loop_argument = for_loop.LoopArgument.from_raw_items(
+                loop_argument = for_loop.LoopParameterArgument.from_raw_items(
                     loop_items, '1')
                 self.assertEqual(parallel_for.group_type, 'for-loop')
                 self.assertEqual(parallel_for.parallelism, 0)
@@ -37,7 +37,7 @@ class ParallelForTest(unittest.TestCase):
         with pipeline_context.Pipeline('pipeline') as p:
             with tasks_group.ParallelFor(
                     items=loop_items, parallelism=3) as parallel_for:
-                loop_argument = for_loop.LoopArgument.from_raw_items(
+                loop_argument = for_loop.LoopParameterArgument.from_raw_items(
                     loop_items, '1')
                 self.assertEqual(parallel_for.group_type, 'for-loop')
                 self.assertEqual(parallel_for.parallelism, 3)
@@ -48,7 +48,7 @@ class ParallelForTest(unittest.TestCase):
         with pipeline_context.Pipeline('pipeline') as p:
             with tasks_group.ParallelFor(
                     items=loop_items, parallelism=0) as parallel_for:
-                loop_argument = for_loop.LoopArgument.from_raw_items(
+                loop_argument = for_loop.LoopParameterArgument.from_raw_items(
                     loop_items, '1')
                 self.assertEqual(parallel_for.group_type, 'for-loop')
                 self.assertEqual(parallel_for.parallelism, 0)
