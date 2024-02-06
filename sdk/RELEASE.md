@@ -7,7 +7,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
-* Fix the compilation error when trying to iterate a list of dictionaries with ParallelFor [\#9366](https://github.com/kubeflow/pipelines/issues/9366)
+* Fix the compilation error when trying to iterate over a list of dictionaries with ParallelFor [\#10436](https://github.com/kubeflow/pipelines/pull/10436)
 ## Documentation updates
 
 # 2.6.0

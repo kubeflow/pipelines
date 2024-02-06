@@ -263,6 +263,16 @@ def verify_type_compatibility(
     expected_type = expected_spec.type
     given_type = _get_type_string_from_component_argument(given_value)
 
+    # avoid circular imports
+    from kfp.dsl.for_loop import LoopArgument
+    from kfp.dsl.for_loop import LoopArgumentVariable
+
+    # Special case for LoopArgument and LoopArgumentVariable due to the lost information during ParallelFor compiled time. If we cannot extract the specific type, we will not block during the compiled time.
+    if isinstance(
+            given_value,
+        (LoopArgumentVariable, LoopArgument)) and given_type == 'String':
+        return True
+
     given_is_param = is_parameter_type(str(given_type))
     if given_is_param:
         given_type = get_parameter_type_name(given_type)
@@ -276,17 +286,6 @@ def verify_type_compatibility(
         expected_is_artifact_list = False
     else:
         expected_is_artifact_list = expected_spec.is_artifact_list
-
-    # avoid circular imports
-    from kfp.dsl.for_loop import LoopArgument
-    from kfp.dsl.for_loop import LoopArgumentVariable
-
-    # Special case for LoopArgumentVariable due to the lost information during
-    # ParallelFor compiled time. If we cannot extract the specific type from the LoopArgumentVariable,
-    # we will not block during the compiled time.
-    if isinstance(given_value, LoopArgumentVariable) or isinstance(
-            given_value, LoopArgument):
-        return True
 
     # compare the normalized types
     if given_is_param != expected_is_param:

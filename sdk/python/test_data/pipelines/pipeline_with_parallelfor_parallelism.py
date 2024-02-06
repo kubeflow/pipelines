@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List
+import tempfile
+import os
 
+from typing import Dict, List
 from kfp import compiler
 from kfp import dsl
-from kfp.components.load_yaml_utilities import load_component_from_file
+from kfp.components import load_component_from_file
 from kfp.dsl import component
 
 
@@ -50,7 +52,14 @@ def list_dict_maker_3() -> List:
     return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
 
 
-loaded_dict_maker = load_component_from_file('upstream_component.yaml')
+with tempfile.TemporaryDirectory() as tmpdir:
+    pipeline_package_path = os.path.join(tmpdir, 'upstream_component.yaml')
+    compiler.Compiler().compile(
+        pipeline_func=list_dict_maker_1,
+        package_path=pipeline_package_path,
+    )
+
+    loaded_dict_maker = load_component_from_file(pipeline_package_path)
 
 
 @dsl.pipeline(name='pipeline-with-loops')
