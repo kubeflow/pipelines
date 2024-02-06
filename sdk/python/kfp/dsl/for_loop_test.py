@@ -148,9 +148,6 @@ class ForLoopTest(parameterized.TestCase):
         },)
     def test_loop_artifact_argument_from_single_pipeline_channel_raises_error(
             self, channel):
-        self.assertRaises(ValueError,
-                          for_loop.LoopArtifactArgument.from_pipeline_channel,
-                          channel)
         with self.assertRaisesRegex(
                 ValueError,
                 'Cannot iterate over a single Artifact using `dsl.ParallelFor`. Expected a list of Artifacts as argument to `items`.'
