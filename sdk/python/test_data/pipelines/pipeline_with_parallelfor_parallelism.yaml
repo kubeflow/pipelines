@@ -383,8 +383,11 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_0() -> List[Dict[str, int]]:\n    return [{'a':\
-          \ 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
+          \ *\n\ndef list_dict_maker_0() -> List[Dict[str, int]]:\n    \"\"\"Enforces\
+          \ strict type checking - returns a list of dictionaries \n    where keys\
+          \ are strings and values are integers. For testing type \n    handling during\
+          \ compilation.\"\"\"\n    return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a':\
+          \ 3, 'b': 4}]\n\n"
         image: python:3.7
     exec-list-dict-maker-1:
       container:
@@ -412,8 +415,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_1() -> List[Dict]:\n    return [{'a': 1, 'b':\
-          \ 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
+          \ *\n\ndef list_dict_maker_1() -> List[Dict]:\n    \"\"\"Utilizes generic\
+          \ dictionary typing (no enforcement of specific key or\n    value types).\n\
+          \n    Tests flexibility in type handling.\n    \"\"\"\n    return [{'a':\
+          \ 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
         image: python:3.7
     exec-list-dict-maker-1-2:
       container:
@@ -441,8 +446,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_1() -> List[Dict]:\n    return [{'a': 1, 'b':\
-          \ 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
+          \ *\n\ndef list_dict_maker_1() -> List[Dict]:\n    \"\"\"Utilizes generic\
+          \ dictionary typing (no enforcement of specific key or\n    value types).\n\
+          \n    Tests flexibility in type handling.\n    \"\"\"\n    return [{'a':\
+          \ 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
         image: python:3.7
     exec-list-dict-maker-2:
       container:
@@ -470,8 +477,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_2() -> List[dict]:\n    return [{'a': 1, 'b':\
-          \ 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
+          \ *\n\ndef list_dict_maker_2() -> List[dict]:\n    \"\"\"Returns a list\
+          \ of dictionaries without type enforcement.\n\n    Tests flexibility in\
+          \ type handling.\n    \"\"\"\n    return [{'a': 1, 'b': 2}, {'a': 2, 'b':\
+          \ 3}, {'a': 3, 'b': 4}]\n\n"
         image: python:3.7
     exec-list-dict-maker-3:
       container:
@@ -499,8 +508,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_3() -> List:\n    return [{'a': 1, 'b': 2}, {'a':\
-          \ 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
+          \ *\n\ndef list_dict_maker_3() -> List:\n    \"\"\"Returns a basic list\
+          \ (no typing or structure guarantees).\n\n    Tests the limits of compiler\
+          \ type handling.\n    \"\"\"\n    return [{'a': 1, 'b': 2}, {'a': 2, 'b':\
+          \ 3}, {'a': 3, 'b': 4}]\n\n"
         image: python:3.7
     exec-print-int:
       container:
