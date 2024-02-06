@@ -31,7 +31,6 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
-from kfp.components.load_yaml_utilities import load_component_from_file
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
 from kfp.dsl import Dataset
