@@ -4786,6 +4786,12 @@ class TestDslOneOf(unittest.TestCase):
                 x = dsl.OneOf(print_task_1.outputs['a'],
                               print_task_2.outputs['a'])
                 print_artifact(a=x)
+                # test can be consumed multiple times from same oneof object
+                print_artifact(a=x)
+                y = dsl.OneOf(print_task_1.outputs['a'],
+                              print_task_2.outputs['a'])
+                # test can be consumed multiple times from different equivalent oneof objects
+                print_artifact(a=y)
 
         # hole punched through if
         self.assertEqual(
