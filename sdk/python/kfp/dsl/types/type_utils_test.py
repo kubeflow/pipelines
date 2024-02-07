@@ -28,8 +28,8 @@ from kfp.dsl import Output
 from kfp.dsl import pipeline_channel
 from kfp.dsl import structures
 from kfp.dsl import yaml_component
-from kfp.dsl.for_loop import LoopParameterArgument
 from kfp.dsl.for_loop import LoopArgumentVariable
+from kfp.dsl.for_loop import LoopParameterArgument
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_utils
 from kfp.dsl.types.type_utils import InconsistentTypeException
