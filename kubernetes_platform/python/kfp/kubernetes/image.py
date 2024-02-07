@@ -20,7 +20,7 @@ from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
 
-def set_image_pull_secrets(
+def set_image_pull_secret(
     task: PipelineTask,
     secret_names: List[str],
 ) -> PipelineTask:
@@ -37,11 +37,11 @@ def set_image_pull_secrets(
     msg = common.get_existing_kubernetes_config_as_message(task)
 
     # Assuming secret_names is a list of strings
-    image_pull_secrets = [
+    image_pull_secret = [
         pb.ImagePullSecret(secret_name=secret_name) for secret_name in secret_names
     ]
 
-    msg.image_pull_secrets.extend(image_pull_secrets)
+    msg.image_pull_secret.extend(image_pull_secret)
 
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
