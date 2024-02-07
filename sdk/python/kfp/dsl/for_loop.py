@@ -85,11 +85,13 @@ def _get_first_element_type(item_list: ItemList) -> str:
     else:
         return type(first_element).__name__
 
+
 def _make_name(code: str) -> str:
     """Makes a name for a loop argument from a unique code."""
     return f'{LOOP_ITEM_PARAM_NAME_BASE}-{code}'
 
-class LoopArgument(pipeline_channel.PipelineParameterChannel):
+
+class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
     """Represents the parameter arguments that are looped over in a ParallelFor
     loop.
 
@@ -177,18 +179,15 @@ class LoopArgument(pipeline_channel.PipelineParameterChannel):
     def from_pipeline_channel(
         cls,
         channel: pipeline_channel.PipelineParameterChannel,
-    ) -> 'LoopArgument':
-        """Creates a LoopArgument object from a PipelineParameterChannel
-        object.
-
+    ) -> 'LoopParameterArgument':
+        """Creates a LoopParameterArgument object from a
+        PipelineParameterChannel object.
+        
         Provide a flexible default channel_type ('String') if extraction
         from PipelineParameterChannel is unsuccessful. This maintains
         compilation progress in cases of unknown or missing type
         information.
         """
-        return LoopArgument() -> 'LoopParameterArgument':
-        """Creates a LoopParameterArgument object from a
-        PipelineParameterChannel object."""
         return LoopParameterArgument(
             items=channel,
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
