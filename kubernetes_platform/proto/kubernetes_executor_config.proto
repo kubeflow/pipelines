@@ -27,6 +27,8 @@ message KubernetesExecutorConfig {
     NodeSelector node_selector = 4;
     PodMetadata pod_metadata = 5;
     repeated ImagePullSecret image_pull_secret = 6;
+    // One of Always, Never, IfNotPresent.
+    string image_pull_policy = 7;
 }
 
 message SecretAsVolume {
