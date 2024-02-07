@@ -26,8 +26,9 @@ message KubernetesExecutorConfig {
     repeated PvcMount pvc_mount = 3;
     NodeSelector node_selector = 4;
     PodMetadata pod_metadata = 5;
-    repeated ConfigMapAsVolume cm_as_volume = 6;
-    repeated ConfigMapAsEnv cm_as_env = 7;
+    repeated ImagePullSecret image_pull_secret = 6;
+    repeated ConfigMapAsVolume cm_as_volume = 7;
+    repeated ConfigMapAsEnv cm_as_env = 8;
 }
 
 message SecretAsVolume {
@@ -123,6 +124,11 @@ message PodMetadata {
     // corresponds to Pod.metadata field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Pod
     map<string, string> labels = 1;
     map<string, string> annotations = 2;
+}
+
+message ImagePullSecret {
+    // Name of the image pull secret.
+    string secret_name = 1;
 }
 
 message ConfigMapAsVolume {
