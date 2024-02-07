@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import _placeholders
@@ -39,6 +39,7 @@ def model_upload(
     unmanaged_container_model: Input[UnmanagedContainerModel] = None,
     explanation_metadata: Dict[str, str] = {},
     explanation_parameters: Dict[str, str] = {},
+    version_aliases: List[str] = [],
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
@@ -60,6 +61,7 @@ def model_upload(
 
       explanation_metadata: Metadata describing the Model's input and output for explanation. Both `explanation_metadata` and `explanation_parameters` must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)
       explanation_parameters: Parameters to configure explaining for Model's predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)
+      version_aliases: User provided version aliases so that a model version can be referenced via alias (i.e. `projects/{project}/locations/{location}/models/{modelId}@{version_alias}` instead of auto-generated version id (i.e. `projects/{project}/locations/{location}/models/{modelId}@{versionId}`). The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9] to distinguish from versionId. A default version alias will be created for the first version of the model, and there must be exactly one default version alias for a model.
       encryption_spec_key_name: Customer-managed encryption key spec for a Model. If set, this Model and all sub-resources of this Model will be secured by this key.  Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
       labels: The labels with user-defined metadata to organize your model.  Label keys and values can be no longer than 64 characters (Unicode codepoints), can only contain lowercase letters, numeric characters, underscores and dashes. International characters are allowed.  See https://goo.gl/xmQnxf for more information and examples of labels.
       project: Project to upload this Model to. Defaults to the project in which the PipelineJob is run.
@@ -98,6 +100,8 @@ def model_upload(
               ', "encryption_spec": {"kms_key_name":"',
               encryption_spec_key_name,
               '"}',
+              ', "version_aliases": ',
+              version_aliases,
               ', "labels": ',
               labels,
               ', "pipeline_job": "',

@@ -192,6 +192,9 @@ pipelines:
     - module: cross_loop_after_topology
       name: my_pipeline
       execute: false
+    - module: pipeline_with_parallelfor_list_artifacts
+      name: my_pipeline
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true

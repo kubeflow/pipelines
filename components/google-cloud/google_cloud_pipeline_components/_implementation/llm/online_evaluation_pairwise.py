@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""KFP Container component that performs AutoSxS."""
+"""KFP Container component that performs row-level pairwise evaluation."""
 
 import os
 from typing import Any, Dict, List
@@ -35,7 +35,7 @@ def _get_prediction_endpoint_overrides() -> str:
 
 
 @dsl.container_component
-def autosxs_arbiter(
+def online_evaluation_pairwise(
     inference_output_uri: str,
     id_columns: List[str],
     task: str,
@@ -57,8 +57,8 @@ def autosxs_arbiter(
     human_preference_column: Human preference column included in our inference
       output.
     task: Evaluation task in the form {task}@{version}. task can be one of
-      "summarization", "question_answer". Version is an integer with 3 digits or
-      "latest". Ex: summarization@001 or question_answer@latest.
+      "summarization", "question_answering". Version is an integer with 3 digits
+      or "latest". Ex: summarization@001 or question_answering@latest.
     judgments_format: The format to write judgments to. Can be either 'json' or
       'bigquery'.
     bigquery_destination_prefix: BigQuery table to write judgments to if the
@@ -77,7 +77,7 @@ def autosxs_arbiter(
       # Hardcode location to us-central1 for text-bison availability.
       location='us-central1',
       custom_job_payload=utils.build_payload(
-          display_name='autosxs_arbiter',
+          display_name='online_evaluation_pairwise',
           machine_type='n1-standard-4',
           image_uri=_resolve_image(),
           args=[

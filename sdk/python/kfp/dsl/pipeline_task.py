@@ -28,6 +28,7 @@ from kfp.dsl import placeholders
 from kfp.dsl import structures
 from kfp.dsl import utils
 from kfp.dsl.types import type_utils
+from kfp.local import pipeline_orchestrator
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
@@ -190,13 +191,20 @@ class PipelineTask:
         from kfp.local import task_dispatcher
 
         if self.pipeline_spec is not None:
-            raise NotImplementedError(
-                'Local pipeline execution is not currently supported.')
-
-        self._outputs = task_dispatcher.run_single_component(
-            pipeline_spec=self.component_spec.to_pipeline_spec(),
-            arguments=args,
-        )
+            self._outputs = pipeline_orchestrator.run_local_pipeline(
+                pipeline_spec=self.pipeline_spec,
+                arguments=args,
+            )
+        elif self.component_spec is not None:
+            self._outputs = task_dispatcher.run_single_task(
+                pipeline_spec=self.component_spec.to_pipeline_spec(),
+                arguments=args,
+            )
+        else:
+            # user should never hit this
+            raise ValueError(
+                'One of pipeline_spec or component_spec must not be None for local execution.'
+            )
         self.state = TaskState.FINAL
 
     @property

@@ -35,7 +35,7 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
     target_field_name: str,
     batch_predict_gcs_source_uris: List[str],
     batch_predict_gcs_destination_output_uri: str,
-    model_name: str = 'publishers/google/models/text-bison@001',
+    model_name: str = 'publishers/google/models/text-bison@002',
     evaluation_task: str = 'text-classification',
     evaluation_class_labels: List[str] = [],
     input_field_name: str = 'input_text',

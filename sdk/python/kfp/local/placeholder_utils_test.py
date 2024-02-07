@@ -31,7 +31,26 @@ json_format.ParseDict(
                 'dictionary': {
                     'foo': 'bar'
                 },
-            }
+            },
+            'artifacts': {
+                'in_a': {
+                    'artifacts': [{
+                        'name':
+                            'in_a',
+                        'type': {
+                            'schemaTitle': 'system.Dataset',
+                            'schemaVersion': '0.0.1'
+                        },
+                        'uri':
+                            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
+                        'metadata': {
+                            'foo': {
+                                'bar': 'baz'
+                            }
+                        }
+                    }]
+                }
+            },
         },
         'outputs': {
             'parameters': {
@@ -51,6 +70,12 @@ json_format.ParseDict(
                         },
                         'uri':
                             '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
+                        # include metadata on outputs since it allows us to
+                        # test the placeholder
+                        # "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}"
+                        # for comprehensive testing, but in practice metadata
+                        # will never be set on output artifacts since they
+                        # haven't been created yet
                         'metadata': {
                             'foo': {
                                 'bar': 'baz'
@@ -62,7 +87,8 @@ json_format.ParseDict(
             'outputFile':
                 '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json'
         }
-    }, executor_input)
+    },
+    executor_input)
 
 EXECUTOR_INPUT_DICT = json_format.MessageToDict(executor_input)
 
@@ -83,6 +109,7 @@ class TestReplacePlaceholders(unittest.TestCase):
             pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
             task_resource_name='comp',
             pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            unique_pipeline_id=placeholder_utils.make_random_id(),
         )
         expected = [
             'echo',
@@ -96,7 +123,6 @@ class TestReplacePlaceholders(unittest.TestCase):
 class TestResolveIndividualPlaceholder(parameterized.TestCase):
 
     # TODO: consider supporting JSON escape
-    # TODO: update when input artifact constants supported
     # TODO: update when output lists of artifacts are supported
     @parameterized.parameters([
         (
@@ -200,6 +226,24 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
         ),
         (
             "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}",
+            json.dumps({'bar': 'baz'}),
+        ),
+        (
+            "{{$.inputs.artifacts[''in_a''].metadata}}",
+            json.dumps({'foo': {
+                'bar': 'baz'
+            }}),
+        ),
+        (
+            "{{$.inputs.artifacts[''in_a''].uri}}",
+            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
+        ),
+        (
+            "{{$.inputs.artifacts[''in_a''].path}}",
+            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
+        ),
+        (
+            "{{$.inputs.artifacts[''in_a''].metadata[''foo'']}}",
             json.dumps({'bar': 'baz'}),
         ),
     ])
@@ -370,6 +414,46 @@ class TestResolveStructPlaceholders(parameterized.TestCase):
         actual = placeholder_utils.resolve_struct_placeholders(
             placeholder,
             provided_inputs,
+        )
+        self.assertEqual(actual, expected)
+
+
+class TestResolveSelfReferencesInExecutorInput(unittest.TestCase):
+
+    def test_simple(self):
+        executor_input_dict = {
+            'inputs': {
+                'parameterValues': {
+                    'pipelinechannel--identity-Output':
+                        'foo',
+                    'string':
+                        "{{$.inputs.parameters['pipelinechannel--identity-Output']}}-bar"
+                }
+            },
+            'outputs': {
+                'outputFile':
+                    '/foo/bar/my-pipeline-2024-01-26-12-26-24-162075/echo/executor_output.json'
+            }
+        }
+        expected = {
+            'inputs': {
+                'parameterValues': {
+                    'pipelinechannel--identity-Output': 'foo',
+                    'string': 'foo-bar'
+                }
+            },
+            'outputs': {
+                'outputFile':
+                    '/foo/bar/my-pipeline-2024-01-26-12-26-24-162075/echo/executor_output.json'
+            }
+        }
+        actual = placeholder_utils.resolve_self_references_in_executor_input(
+            executor_input_dict,
+            pipeline_resource_name='my-pipeline-2024-01-26-12-26-24-162075',
+            task_resource_name='echo',
+            pipeline_root='/foo/bar/my-pipeline-2024-01-26-12-26-24-162075',
+            pipeline_job_id='123456789',
+            pipeline_task_id='987654321',
         )
         self.assertEqual(actual, expected)
 

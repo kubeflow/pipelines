@@ -26,8 +26,9 @@ message KubernetesExecutorConfig {
     repeated PvcMount pvc_mount = 3;
     NodeSelector node_selector = 4;
     PodMetadata pod_metadata = 5;
-    repeated ConfigMapAsVolume config_map_as_volume = 6;
-    repeated ConfigMapAsEnv config_map_as_env = 7;
+    repeated ImagePullSecret image_pull_secret = 6;
+    repeated ConfigMapAsVolume config_map_as_volume = 7;
+    repeated ConfigMapAsEnv config_map_as_env = 8;
 }
 
 message SecretAsVolume {
@@ -144,4 +145,9 @@ message ConfigMapAsEnv {
     }
 
     repeated ConfigMapKeyToEnvMap key_to_env = 2;
+}
+
+message ImagePullSecret {
+    // Name of the image pull secret.
+    string secret_name = 1;
 }

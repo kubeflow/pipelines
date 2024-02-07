@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""KFP Container component for computing AutoSXS metrics."""
+"""KFP Container component for computing aggregate pairwise metrics."""
 
 import os
 
@@ -29,18 +29,18 @@ def _resolve_image() -> str:
 
 
 @dsl.container_component
-def autosxs_metrics_computer(
+def model_evaluation_text_generation_pairwise(
     judgments_dir: str,
-    has_human_preference: bool,
     autosxs_metrics: dsl.Output[dsl.Metrics],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    human_preference_column: str = '',
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Compute AutoSXS metrics using judgments outputs from Arbiter.
 
   Args:
     judgments_dir: Path where store the Judgments.
-    has_human_preference: Boolean value. True if users provided human preference
-      data, otherwise false.
+    human_preference_column: The column containing ground truths. The default
+      value is an empty string if not be provided by users.
 
   Returns:
     autosxs_metrics: Autosxs win rate metrics and human alignment metrics.
@@ -51,14 +51,14 @@ def autosxs_metrics_computer(
       # Hardcode location to us-central1 for text-bison availability.
       location='us-central1',
       custom_job_payload=utils.build_payload(
-          display_name='autosxs_metrics_computer',
+          display_name='model_evaluation_text_generation_pairwise',
           machine_type='n1-standard-4',
           image_uri=_resolve_image(),
           args=[
               '--',  # Used to mark the start of component flags.
               'autosxs_metrics',
               f'--judgments_dir={judgments_dir}',
-              f'--has_human_preference={has_human_preference}',
+              f'--human_preference_column={human_preference_column}',
               '--executor_input={{$.json_escape[1]}}',
           ],
       ),

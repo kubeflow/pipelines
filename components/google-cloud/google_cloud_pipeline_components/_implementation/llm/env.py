@@ -14,9 +14,15 @@
 """A collection of constants shared across components and pipelines."""
 import os
 
+_DEFAULT_AUTOSXS_IMAGE_TAG = '20240123_0507_RC00'
+
 
 def get_private_image_tag() -> str:
-  return os.getenv('PRIVATE_IMAGE_TAG') or '20231213_0507_RC00'
+  return os.getenv('PRIVATE_IMAGE_TAG') or '20240124_0507_RC00'
+
+
+def get_autosxs_image_tag() -> str:
+  return os.getenv('PRIVATE_IMAGE_TAG') or _DEFAULT_AUTOSXS_IMAGE_TAG
 
 
 def get_use_test_machine_spec() -> bool:
@@ -45,6 +51,7 @@ PRIVATE_IMAGE_NAME_PREFIX: str = (
     os.getenv('PRIVATE_IMAGE_NAME_PREFIX') or 'rlhf_'
 )
 PRIVATE_IMAGE_TAG: str = get_private_image_tag()
+AUTOSXS_IMAGE_TAG: str = get_autosxs_image_tag()
 
 # Dataset variables:
 TRAIN_SPLIT: str = 'train'
