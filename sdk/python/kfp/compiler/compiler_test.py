@@ -749,6 +749,43 @@ implementation:
             pipeline_spec['root']['dag']['tasks']['for-loop-2']
             ['iteratorPolicy']['parallelismLimit'], 2)
 
+    def test_compile_parallel_for_with_incompatible_input_type(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.component
+        def list_dict_maker() -> List[Dict[str, int]]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        with self.assertRaisesRegex(
+                type_utils.InconsistentTypeException,
+                "Incompatible argument passed to the input 'item' of component 'producer-op': Argument type 'NUMBER_INTEGER' is incompatible with the input type 'STRING'"
+        ):
+
+            @dsl.pipeline(name='test-parallel-for-with-parallelism')
+            def my_pipeline(text: bool):
+                with dsl.ParallelFor(
+                        items=list_dict_maker().output, parallelism=2) as item:
+                    producer_task = producer_op(item=item.a)
+
+    def test_compile_parallel_for_with_relaxed_type_checking(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.component
+        def list_dict_maker() -> List[Dict]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        @dsl.pipeline(name='test-parallel-for-with-parallelism')
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(
+                    items=list_dict_maker().output, parallelism=2) as item:
+                producer_task = producer_op(item=item.a)
+
     def test_compile_parallel_for_with_invalid_parallelism(self):
 
         @dsl.component

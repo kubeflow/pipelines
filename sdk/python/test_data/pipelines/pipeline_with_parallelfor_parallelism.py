@@ -17,8 +17,8 @@ import tempfile
 from typing import Dict, List
 
 from kfp import compiler
+from kfp import components
 from kfp import dsl
-from kfp.components import load_component_from_file
 from kfp.dsl import component
 
 
@@ -75,7 +75,8 @@ with tempfile.TemporaryDirectory() as tmpdir:
         package_path=pipeline_package_path,
     )
 
-    loaded_dict_maker = load_component_from_file(pipeline_package_path)
+    loaded_dict_maker = components.load_component_from_file(
+        pipeline_package_path)
 
 
 @dsl.pipeline(name='pipeline-with-loops')

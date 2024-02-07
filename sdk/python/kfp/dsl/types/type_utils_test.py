@@ -23,13 +23,12 @@ from kfp import components
 from kfp import dsl
 from kfp.dsl import base_component
 from kfp.dsl import Dataset
+from kfp.dsl import for_loop
 from kfp.dsl import Input
 from kfp.dsl import Output
 from kfp.dsl import pipeline_channel
 from kfp.dsl import structures
 from kfp.dsl import yaml_component
-from kfp.dsl.for_loop import LoopArgumentVariable
-from kfp.dsl.for_loop import LoopParameterArgument
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_utils
 from kfp.dsl.types.type_utils import InconsistentTypeException
@@ -717,8 +716,9 @@ class TestTypeChecking(parameterized.TestCase):
         },
         {
             'argument_value':
-                LoopArgumentVariable(
-                    loop_argument=LoopParameterArgument.from_pipeline_channel(
+                for_loop.LoopArgumentVariable(
+                    loop_argument=for_loop.LoopParameterArgument
+                    .from_pipeline_channel(
                         pipeline_channel.create_pipeline_channel(
                             'Output-loop-item', 'String',
                             'list-dict-without-type-maker-5')),
@@ -730,7 +730,7 @@ class TestTypeChecking(parameterized.TestCase):
         },
         {
             'argument_value':
-                LoopParameterArgument.from_pipeline_channel(
+                for_loop.LoopParameterArgument.from_pipeline_channel(
                     pipeline_channel.create_pipeline_channel(
                         'Output-loop-item', 'String',
                         'list-dict-without-type-maker-5')),
