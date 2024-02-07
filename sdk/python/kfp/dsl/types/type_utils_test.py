@@ -28,7 +28,7 @@ from kfp.dsl import Output
 from kfp.dsl import pipeline_channel
 from kfp.dsl import structures
 from kfp.dsl import yaml_component
-from kfp.dsl.for_loop import LoopArgument
+from kfp.dsl.for_loop import LoopParameterArgument
 from kfp.dsl.for_loop import LoopArgumentVariable
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_utils
@@ -718,7 +718,7 @@ class TestTypeChecking(parameterized.TestCase):
         {
             'argument_value':
                 LoopArgumentVariable(
-                    loop_argument=LoopArgument.from_pipeline_channel(
+                    loop_argument=LoopParameterArgument.from_pipeline_channel(
                         pipeline_channel.create_pipeline_channel(
                             'Output-loop-item', 'String',
                             'list-dict-without-type-maker-5')),
@@ -730,7 +730,7 @@ class TestTypeChecking(parameterized.TestCase):
         },
         {
             'argument_value':
-                LoopArgument.from_pipeline_channel(
+                LoopParameterArgument.from_pipeline_channel(
                     pipeline_channel.create_pipeline_channel(
                         'Output-loop-item', 'String',
                         'list-dict-without-type-maker-5')),

@@ -285,8 +285,8 @@ def verify_type_compatibility(
 
     # Workaround for potential type-checking issues during ParallelFor compilation: When LoopArgument or LoopArgumentVariable are involved and the expected type is 'String', we temporarily relax type enforcement to avoid blocking compilation. This is necessary due to potential information loss during the compilation step.
     if isinstance(given_value,
-                  (for_loop.LoopArgumentVariable,
-                   for_loop.LoopArgument)) and given_type == 'String':
+                  (for_loop.LoopParameterArgument,
+                   for_loop.LoopArgumentVariable)) and given_type == 'String':
         return True
 
     given_is_param = is_parameter_type(str(given_type))
