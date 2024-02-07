@@ -46,6 +46,8 @@ type KubernetesExecutorConfig struct {
 	NodeSelector    *NodeSelector      `protobuf:"bytes,4,opt,name=node_selector,json=nodeSelector,proto3" json:"node_selector,omitempty"`
 	PodMetadata     *PodMetadata       `protobuf:"bytes,5,opt,name=pod_metadata,json=podMetadata,proto3" json:"pod_metadata,omitempty"`
 	ImagePullSecret []*ImagePullSecret `protobuf:"bytes,6,rep,name=image_pull_secret,json=imagePullSecret,proto3" json:"image_pull_secret,omitempty"`
+	// One of Always, Never, IfNotPresent.
+	ImagePullPolicy string `protobuf:"bytes,7,opt,name=image_pull_policy,json=imagePullPolicy,proto3" json:"image_pull_policy,omitempty"`
 	CmAsVolume     []*ConfigMapAsVolume `protobuf:"bytes,6,rep,name=cm_as_volume,json=cmAsVolume,proto3" json:"cm_as_volume,omitempty"`
 	CmAsEnv        []*ConfigMapAsEnv    `protobuf:"bytes,7,rep,name=cm_as_env,json=cmAsEnv,proto3" json:"cm_as_env,omitempty"`
 }
@@ -136,6 +138,13 @@ func (x *KubernetesExecutorConfig) GetCmAsEnv() []*ConfigMapAsEnv {
 		return x.CmAsEnv
 	}
 	return nil
+}
+
+func (x *KubernetesExecutorConfig) GetImagePullPolicy() string {
+	if x != nil {
+		return x.ImagePullPolicy
+	}
+	return ""
 }
 
 type SecretAsVolume struct {
