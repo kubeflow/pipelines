@@ -764,10 +764,9 @@ implementation:
                 "Incompatible argument passed to the input 'item' of component 'producer-op': Argument type 'NUMBER_INTEGER' is incompatible with the input type 'STRING'"
         ):
 
-            @dsl.pipeline(name='test-parallel-for-with-parallelism')
+            @dsl.pipeline
             def my_pipeline(text: bool):
-                with dsl.ParallelFor(
-                        items=list_dict_maker().output, parallelism=2) as item:
+                with dsl.ParallelFor(items=list_dict_maker().output) as item:
                     producer_task = producer_op(item=item.a)
 
     def test_compile_parallel_for_with_relaxed_type_checking(self):
@@ -780,10 +779,9 @@ implementation:
         def list_dict_maker() -> List[Dict]:
             return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
 
-        @dsl.pipeline(name='test-parallel-for-with-parallelism')
+        @dsl.pipeline
         def my_pipeline(text: bool):
-            with dsl.ParallelFor(
-                    items=list_dict_maker().output, parallelism=2) as item:
+            with dsl.ParallelFor(items=list_dict_maker().output) as item:
                 producer_task = producer_op(item=item.a)
 
     def test_compile_parallel_for_with_invalid_parallelism(self):
