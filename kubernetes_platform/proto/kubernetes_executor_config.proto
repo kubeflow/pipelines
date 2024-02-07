@@ -27,8 +27,11 @@ message KubernetesExecutorConfig {
     NodeSelector node_selector = 4;
     PodMetadata pod_metadata = 5;
     repeated ImagePullSecret image_pull_secret = 6;
-    repeated ConfigMapAsVolume config_map_as_volume = 7;
-    repeated ConfigMapAsEnv config_map_as_env = 8;
+    // One of Always, Never, IfNotPresent.
+    string image_pull_policy = 7;
+    repeated ConfigMapAsVolume config_map_as_volume = 8;
+    repeated ConfigMapAsEnv config_map_as_env = 9;
+
 }
 
 message SecretAsVolume {
