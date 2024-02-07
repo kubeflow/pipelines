@@ -17,14 +17,14 @@ from kfp import dsl
 from kfp import kubernetes
 
 
-class TestImagePullSecrets:
+class TestImagePullSecret:
 
     def test_add_one(self):
 
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.set_image_pull_secrets(task, ['secret-name'])
+            kubernetes.set_image_pull_secret(task, ['secret-name'])
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -32,7 +32,7 @@ class TestImagePullSecrets:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'imagePullSecrets': [{
+                                'imagePullSecret': [{
                                     'secretName':
                                         'secret-name'
                                 }]
@@ -48,7 +48,7 @@ class TestImagePullSecrets:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.set_image_pull_secrets(task, ['secret-name1', 'secret-name2'])
+            kubernetes.set_image_pull_secret(task, ['secret-name1', 'secret-name2'])
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -56,7 +56,7 @@ class TestImagePullSecrets:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'imagePullSecrets': [{
+                                'imagePullSecret': [{
                                     'secretName':
                                         'secret-name1'
                                 }, {
@@ -82,7 +82,7 @@ class TestImagePullSecrets:
                 task, secret_name='secret-name', mount_path='/mnt/my_vol')
 
             # Set image pull secrets for a task using secret names
-            kubernetes.set_image_pull_secrets(task, ['secret-name'])
+            kubernetes.set_image_pull_secret(task, ['secret-name'])
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -94,7 +94,7 @@ class TestImagePullSecrets:
                                     'secretName': 'secret-name',
                                     'mountPath': '/mnt/my_vol'
                                 }],
-                                'imagePullSecrets': [{
+                                'imagePullSecret': [{
                                     'secretName':
                                         'secret-name'
                                 }]
