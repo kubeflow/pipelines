@@ -26,6 +26,9 @@ message KubernetesExecutorConfig {
     repeated PvcMount pvc_mount = 3;
     NodeSelector node_selector = 4;
     PodMetadata pod_metadata = 5;
+    repeated ImagePullSecret image_pull_secret = 6;
+    // One of Always, Never, IfNotPresent.
+    string image_pull_policy = 7;
 }
 
 message SecretAsVolume {
@@ -121,4 +124,9 @@ message PodMetadata {
     // corresponds to Pod.metadata field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Pod
     map<string, string> labels = 1;
     map<string, string> annotations = 2;
+}
+
+message ImagePullSecret {
+    // Name of the image pull secret.
+    string secret_name = 1;
 }

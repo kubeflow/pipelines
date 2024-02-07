@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2024 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Google Cloud Pipeline Components version."""
 
-__version__ = "2.9.0"
+"""Image tags to use for ReFINED images in GCPC.
+
+DO NOT EDIT - This file is generated, manual changes will be overridden.
+"""
+
+IMAGE_TAG = '20240131_0507_RC00'

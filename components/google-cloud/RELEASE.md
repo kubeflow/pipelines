@@ -1,4 +1,8 @@
 ## Upcoming release
+* Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.
+* Fix the metadata of Model Evaluation resource when row based metrics is disabled in `preview.model_evaluation.evaluation_llm_text_generation_pipeline`.
+
+## Release 2.9.0
 * Use `large_model_reference` for `model_reference_name` when uploading models from `preview.llm.rlhf_pipeline` instead of hardcoding value as `text-bison@001`.
 * Disable caching when resolving model display names for RLHF-tuned models so a unique name is generated on each `preview.llm.rlhf_pipeline` run.
 * Upload the tuned adapter to Model Registry instead of model checkpoint from `preview.llm.rlhf_pipeline`.
@@ -6,6 +10,9 @@
 * Add Vertex model get component (`v1.model.ModelGetOp`).
 * Migrate to Protobuf 4 (`protobuf>=4.21.1,<5`). Require `kfp>=2.6.0`.
 * Support setting version aliases in (`v1.model.ModelUploadOp`).
+* Only run `preview.llm.bulk_inference` pipeline after RLHF tuning for third-party models when `eval_dataset` is provided.
+* Update LLM Evaluation Pipelines to use `text-bison@002` model by default.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.8.0
 * Release AutoSxS pipeline to preview.

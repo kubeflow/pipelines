@@ -49,11 +49,13 @@ def run_single_task(
         component_spec.executor_label,
     )
     executor_spec = utils.struct_to_executor_spec(executor_spec)
+    pipeline_resource_name = executor_input_utils.get_local_pipeline_resource_name(
+        pipeline_spec.pipeline_info.name)
 
     # all global state should be accessed here
     # do not access local config state downstream
-    outputs, _ = _run_single_task_implementation(
-        pipeline_name=pipeline_spec.pipeline_info.name,
+    outputs, _ = run_single_task_implementation(
+        pipeline_resource_name=pipeline_resource_name,
         component_name=component_name,
         component_spec=component_spec,
         executor_spec=executor_spec,
@@ -61,7 +63,8 @@ def run_single_task(
         pipeline_root=config.LocalExecutionConfig.instance.pipeline_root,
         runner=config.LocalExecutionConfig.instance.runner,
         raise_on_error=config.LocalExecutionConfig.instance.raise_on_error,
-    )
+        block_input_artifact=True,
+        unique_pipeline_id=placeholder_utils.make_random_id())
     return outputs
 
 
@@ -75,8 +78,8 @@ def get_executor_spec(
 Outputs = Dict[str, Any]
 
 
-def _run_single_task_implementation(
-    pipeline_name: str,
+def run_single_task_implementation(
+    pipeline_resource_name: str,
     component_name: str,
     component_spec: pipeline_spec_pb2.ComponentSpec,
     executor_spec: pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec,
@@ -84,6 +87,8 @@ def _run_single_task_implementation(
     pipeline_root: str,
     runner: config.LocalRunnerType,
     raise_on_error: bool,
+    block_input_artifact: bool,
+    unique_pipeline_id: str,
 ) -> Tuple[Outputs, status.Status]:
     """The implementation of a single component runner.
 
@@ -93,8 +98,6 @@ def _run_single_task_implementation(
 
     task_resource_name = executor_input_utils.get_local_task_resource_name(
         component_name)
-    pipeline_resource_name = executor_input_utils.get_local_pipeline_resource_name(
-        pipeline_name)
     task_root = executor_input_utils.construct_local_task_root(
         pipeline_root=pipeline_root,
         pipeline_resource_name=pipeline_resource_name,
@@ -104,6 +107,7 @@ def _run_single_task_implementation(
         component_spec=component_spec,
         arguments=arguments,
         task_root=task_root,
+        block_input_artifact=block_input_artifact,
     )
 
     container = executor_spec.container
@@ -120,6 +124,7 @@ def _run_single_task_implementation(
         pipeline_resource_name=pipeline_resource_name,
         task_resource_name=task_resource_name,
         pipeline_root=pipeline_root,
+        unique_pipeline_id=unique_pipeline_id,
     )
 
     runner_type = type(runner)
@@ -179,5 +184,6 @@ def _run_single_task_implementation(
         else:
             # for developers; user should never hit this
             raise ValueError(f'Got unknown status: {task_status}')
+        logging_utils.print_horizontal_line()
 
         return outputs, task_status

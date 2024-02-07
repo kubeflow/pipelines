@@ -18,6 +18,7 @@ from typing import Any, Dict
 
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
+from kfp import dsl
 from kfp.compiler import pipeline_spec_builder
 from kfp.dsl import utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -29,19 +30,20 @@ def construct_executor_input(
     component_spec: pipeline_spec_pb2.ComponentSpec,
     arguments: Dict[str, Any],
     task_root: str,
+    block_input_artifact: bool,
 ) -> pipeline_spec_pb2.ExecutorInput:
     """Constructs the executor input message for a task execution."""
     input_parameter_keys = list(
         component_spec.input_definitions.parameters.keys())
+    # need to also add injected input parameters for f-string
+    input_parameter_keys += [
+        k for k, v in arguments.items() if not isinstance(v, dsl.Artifact)
+    ]
     input_artifact_keys = list(
         component_spec.input_definitions.artifacts.keys())
-    if input_artifact_keys:
+    if input_artifact_keys and block_input_artifact:
         raise ValueError(
             'Input artifacts are not yet supported for local execution.')
-
-    output_parameter_keys = list(
-        component_spec.output_definitions.parameters.keys())
-    output_artifact_specs_dict = component_spec.output_definitions.artifacts
 
     inputs = pipeline_spec_pb2.ExecutorInput.Inputs(
         parameter_values={
@@ -51,9 +53,18 @@ def construct_executor_input(
             .parameters[param_name].default_value
             for param_name in input_parameter_keys
         },
-        # input artifact constants are not supported yet
-        artifacts={},
+        # input artifact constants are not supported yet,
+        # except when passed from an upstream output or parent component input
+        artifacts={
+            artifact_name:
+            dsl_artifact_to_artifact_list(arguments[artifact_name])
+            for artifact_name, _ in
+            component_spec.input_definitions.artifacts.items()
+        },
     )
+
+    output_parameter_keys = list(
+        component_spec.output_definitions.parameters.keys())
     outputs = pipeline_spec_pb2.ExecutorInput.Outputs(
         parameters={
             param_name: pipeline_spec_pb2.ExecutorInput.OutputParameter(
@@ -66,7 +77,7 @@ def construct_executor_input(
                 artifact_type=artifact_spec.artifact_type,
                 task_root=task_root,
             ) for artifact_name, artifact_spec in
-            output_artifact_specs_dict.items()
+            component_spec.output_definitions.artifacts.items()
         },
         output_file=os.path.join(task_root, _EXECUTOR_OUTPUT_FILE),
     )
@@ -130,6 +141,28 @@ def artifact_type_schema_to_artifact_list(
             uri=os.path.join(task_root, name),
             # metadata always starts empty for output artifacts
             metadata=struct_pb2.Struct(),
+        )
+    ])
+
+
+def dict_to_protobuf_struct(d: Dict[str, Any]) -> struct_pb2.Struct:
+    """Converts a Python dictionary to a prototobuf Struct."""
+    protobuf_struct = struct_pb2.Struct()
+    protobuf_struct.update(d)
+    return protobuf_struct
+
+
+def dsl_artifact_to_artifact_list(
+        artifact: dsl.Artifact) -> pipeline_spec_pb2.ArtifactList:
+    """Converts a single dsl.Aritfact to a protobuf ArtifactList."""
+    return pipeline_spec_pb2.ArtifactList(artifacts=[
+        pipeline_spec_pb2.RuntimeArtifact(
+            name=artifact.name,
+            type=pipeline_spec_pb2.ArtifactTypeSchema(
+                schema_title=artifact.schema_title,
+                schema_version=artifact.schema_version),
+            uri=artifact.uri,
+            metadata=dict_to_protobuf_struct(artifact.metadata),
         )
     ])
 

@@ -69,10 +69,10 @@ setuptools.setup(
         ] + [
             "commonmark==0.9.1",
             "autodocsumm==0.2.9",
-            "sphinx==5.0.2",
+            "sphinx>=5.0.2,<6.0.0",
             "sphinx-immaterial==0.9.0",
-            "sphinx-rtd-theme==1.0.0",
-            "m2r2==0.3.3",
+            "sphinx-rtd-theme==2.0.0",
+            "m2r2==0.3.3.post2",
             "sphinx-notfound-page==0.8.3",
         ],
     },
@@ -82,7 +82,7 @@ setuptools.setup(
         # Pin google-api-core version for the bug fixing in 1.31.5
         # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
         "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
-        "kfp>=2.6.0",
+        "kfp>=2.6.0,<=2.6.0",
         "google-cloud-aiplatform>=1.14.0,<2",
         "Jinja2==3.1.2",
     ],
