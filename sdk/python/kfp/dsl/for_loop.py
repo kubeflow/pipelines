@@ -182,7 +182,7 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
     ) -> 'LoopParameterArgument':
         """Creates a LoopParameterArgument object from a
         PipelineParameterChannel object.
-        
+
         Provide a flexible default channel_type ('String') if extraction
         from PipelineParameterChannel is unsuccessful. This maintains
         compilation progress in cases of unknown or missing type
