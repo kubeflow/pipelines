@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2024 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,14 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Large-language model preview components."""
-
-from google_cloud_pipeline_components.preview.llm.infer.component import infer_pipeline
-from google_cloud_pipeline_components.preview.llm.rlaif.component import rlaif_pipeline
-from google_cloud_pipeline_components.preview.llm.rlhf.component import rlhf_pipeline
-
-__all__ = [
-    'infer_pipeline',
-    'rlhf_pipeline',
-    'rlaif_pipeline',
-]

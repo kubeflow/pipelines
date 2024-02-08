@@ -13,6 +13,7 @@
 * Only run `preview.llm.bulk_inference` pipeline after RLHF tuning for third-party models when `eval_dataset` is provided.
 * Update LLM Evaluation Pipelines to use `text-bison@002` model by default.
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+* Add `preview.llm.rlaif_pipeline` that tunes large-language models from AI feedback.
 
 ## Release 2.8.0
 * Release AutoSxS pipeline to preview.
