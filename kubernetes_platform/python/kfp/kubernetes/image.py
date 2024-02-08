@@ -20,7 +20,7 @@ from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
 
-def set_image_pull_secret(
+def set_image_pull_secrets(
     task: PipelineTask,
     secret_names: List[str],
 ) -> PipelineTask:

@@ -24,7 +24,7 @@ class TestImagePullSecret:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.set_image_pull_secret(task, ['secret-name'])
+            kubernetes.set_image_pull_secrets(task, ['secret-name'])
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -48,7 +48,7 @@ class TestImagePullSecret:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.set_image_pull_secret(task, ['secret-name1', 'secret-name2'])
+            kubernetes.set_image_pull_secrets(task, ['secret-name1', 'secret-name2'])
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -82,7 +82,7 @@ class TestImagePullSecret:
                 task, secret_name='secret-name', mount_path='/mnt/my_vol')
 
             # Set image pull secrets for a task using secret names
-            kubernetes.set_image_pull_secret(task, ['secret-name'])
+            kubernetes.set_image_pull_secrets(task, ['secret-name'])
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {

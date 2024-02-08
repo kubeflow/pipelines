@@ -24,7 +24,7 @@ def comp():
 @dsl.pipeline
 def my_pipeline():
     task = comp()
-    kubernetes.set_image_pull_secret(task, ['my-secret'])
+    kubernetes.set_image_pull_secrets(task, ['my-secret'])
 
 
 if __name__ == '__main__':
