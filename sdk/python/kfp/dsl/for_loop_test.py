@@ -79,6 +79,35 @@ class ForLoopTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
+            'item_list': [
+                {
+                    'A_a': 1
+                },
+                {
+                    'A_a': 2
+                },
+            ],
+            'value_type': 'Dict[str, int]',
+        },
+        {
+            'item_list': [1, 2, 3],
+            'value_type': 'int',
+        },
+        {
+            'item_list': ['a', 'b', 'c'],
+            'value_type': 'str',
+        },
+        {
+            'item_list': [2.3, 4.5, 3.5],
+            'value_type': 'float',
+        },
+    )
+    def test_get_first_element_type(self, item_list, value_type):
+        self.assertEqual(
+            for_loop._get_first_element_type(item_list), value_type)
+
+    @parameterized.parameters(
+        {
             'channel':
                 pipeline_channel.PipelineParameterChannel(
                     name='param1',
@@ -96,6 +125,16 @@ class ForLoopTest(parameterized.TestCase):
                 ),
             'expected_serialization_value':
                 '{{channel:task=task1;name=output1-loop-item;type=Dict[str, str];}}',
+        },
+        {
+            'channel':
+                pipeline_channel.PipelineParameterChannel(
+                    name='output2',
+                    channel_type='List[Dict]',
+                    task_name='task1',
+                ),
+            'expected_serialization_value':
+                '{{channel:task=task1;name=output2-loop-item;type=Dict;}}',
         },
     )
     def test_loop_parameter_argument_from_pipeline_channel(
@@ -175,7 +214,7 @@ class ForLoopTest(parameterized.TestCase):
             'name_code':
                 '2',
             'expected_serialization_value':
-                '{{channel:task=;name=loop-item-param-2;type=dict;}}',
+                '{{channel:task=;name=loop-item-param-2;type=Dict[str, int];}}',
         },
     )
     def test_loop_argument_from_raw_items(self, raw_items, name_code,

@@ -67,6 +67,25 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
     return match['value_type'].lstrip().rstrip() if match else None
 
 
+def _get_first_element_type(item_list: ItemList) -> str:
+    """Returns the type of the first element of ItemList.
+
+    Args:
+        item_list: List of items to loop over. If a list of dicts then, all dicts must have the same keys.
+    Returns:
+        A string representing the type of the first element (e.g., "int", "Dict[str, int]").
+    """
+    first_element = item_list[0]
+    if isinstance(first_element, dict):
+        key_type = type(list(
+            first_element.keys())[0]).__name__  # Get type of first key
+        value_type = type(list(
+            first_element.values())[0]).__name__  # Get type of first value
+        return f'Dict[{key_type}, {value_type}]'
+    else:
+        return type(first_element).__name__
+
+
 def _make_name(code: str) -> str:
     """Makes a name for a loop argument from a unique code."""
     return f'{LOOP_ITEM_PARAM_NAME_BASE}-{code}'
@@ -162,7 +181,13 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         channel: pipeline_channel.PipelineParameterChannel,
     ) -> 'LoopParameterArgument':
         """Creates a LoopParameterArgument object from a
-        PipelineParameterChannel object."""
+        PipelineParameterChannel object.
+
+        Provide a flexible default channel_type ('String') if extraction
+        from PipelineParameterChannel is unsuccessful. This maintains
+        compilation progress in cases of unknown or missing type
+        information.
+        """
         return LoopParameterArgument(
             items=channel,
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
@@ -183,7 +208,7 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         return LoopParameterArgument(
             items=raw_items,
             name_code=name_code,
-            channel_type=type(raw_items[0]).__name__,
+            channel_type=_get_first_element_type(raw_items),
         )
 
 
@@ -302,7 +327,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
 
         self.subvar_name = subvar_name
         self.loop_argument = loop_argument
-
+        # Handle potential channel_type extraction errors from LoopArgument by defaulting to 'String'. This maintains compilation progress.
         super().__init__(
             name=self._get_name_override(
                 loop_arg_name=loop_argument.name,

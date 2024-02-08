@@ -280,6 +280,15 @@ def verify_type_compatibility(
     expected_type = expected_spec.type
     given_type = _get_type_string_from_component_argument(given_value)
 
+    # avoid circular imports
+    from kfp.dsl import for_loop
+
+    # Workaround for potential type-checking issues during ParallelFor compilation: When LoopArgument or LoopArgumentVariable are involved and the expected type is 'String', we temporarily relax type enforcement to avoid blocking compilation. This is necessary due to potential information loss during the compilation step.
+    if isinstance(given_value,
+                  (for_loop.LoopParameterArgument,
+                   for_loop.LoopArgumentVariable)) and given_type == 'String':
+        return True
+
     given_is_param = is_parameter_type(str(given_type))
     if given_is_param:
         given_type = get_parameter_type_name(given_type)
