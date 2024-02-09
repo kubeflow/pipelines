@@ -13,6 +13,8 @@
 # limitations under the License.
 """Remote runner for Get Model based on the Vertex AI SDK."""
 
+import sys
+
 from google.api_core.client_options import ClientOptions
 from google.cloud import aiplatform_v1 as aip_v1
 from google_cloud_pipeline_components.container.utils import artifact_utils
@@ -27,10 +29,14 @@ def get_model(
 ) -> None:
   """Get model."""
   if not location or not project:
-    raise ValueError(
+    sys.exit(
         'Model resource name must be in the format'
         ' projects/{project}/locations/{location}/models/{model_name}'
     )
+    # raise ValueError(
+    #     'Model resource name must be in the format'
+    #     ' projects/{project}/locations/{location}/models/{model_name}'
+    # )
   api_endpoint = location + '-aiplatform.googleapis.com'
   vertex_uri_prefix = f'https://{api_endpoint}/v1/'
   model_resource_name = (
