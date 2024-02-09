@@ -21,9 +21,13 @@ __all__ = [
     'use_secret_as_env',
     'use_secret_as_volume',
     'add_node_selector',
+    'add_pod_label',
+    'add_pod_annotation',
     'set_image_pull_secrets'
 ]
 
+from kfp.kubernetes.pod_metadata import add_pod_label
+from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.node_selector import add_node_selector
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
