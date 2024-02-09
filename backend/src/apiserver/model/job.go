@@ -243,6 +243,7 @@ var jobAPIToModelFieldMap = map[string]string{
 	"created_at":          "CreatedAtInSec",
 	"updated_at":          "UpdatedAtInSec",
 	"description":         "Description",
+	"experiment_id":       "ExperimentUUID",    // v2beta1 API
 	"pipeline_name":       "PipelineName",      // v2beta1 API
 	"pipeline_version_id": "PipelineVersionId", // v2beta1 API
 	"pipeline_id":         "PipelineId",        // v2beta1 API
