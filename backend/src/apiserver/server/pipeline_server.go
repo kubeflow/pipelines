@@ -314,7 +314,7 @@ func (s *PipelineServer) getPipelineByName(ctx context.Context, name string, nam
 	switch apiRequestVersion {
 	case "v1beta1":
 		return s.resourceManager.GetPipelineByNameAndNamespaceV1(name, namespace)
-	case "V2beta1":
+	case "v2beta1":
 		p, err := s.resourceManager.GetPipelineByNameAndNamespace(name, namespace)
 		return p, nil, err
 	default:
