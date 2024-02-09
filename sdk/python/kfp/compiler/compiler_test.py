@@ -749,6 +749,41 @@ implementation:
             pipeline_spec['root']['dag']['tasks']['for-loop-2']
             ['iteratorPolicy']['parallelismLimit'], 2)
 
+    def test_compile_parallel_for_with_incompatible_input_type(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.component
+        def list_dict_maker() -> List[Dict[str, int]]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        with self.assertRaisesRegex(
+                type_utils.InconsistentTypeException,
+                "Incompatible argument passed to the input 'item' of component 'producer-op': Argument type 'NUMBER_INTEGER' is incompatible with the input type 'STRING'"
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(text: bool):
+                with dsl.ParallelFor(items=list_dict_maker().output) as item:
+                    producer_task = producer_op(item=item.a)
+
+    def test_compile_parallel_for_with_relaxed_type_checking(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.component
+        def list_dict_maker() -> List[Dict]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        @dsl.pipeline
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(items=list_dict_maker().output) as item:
+                producer_task = producer_op(item=item.a)
+
     def test_compile_parallel_for_with_invalid_parallelism(self):
 
         @dsl.component
@@ -4786,6 +4821,12 @@ class TestDslOneOf(unittest.TestCase):
                 x = dsl.OneOf(print_task_1.outputs['a'],
                               print_task_2.outputs['a'])
                 print_artifact(a=x)
+                # test can be consumed multiple times from same oneof object
+                print_artifact(a=x)
+                y = dsl.OneOf(print_task_1.outputs['a'],
+                              print_task_2.outputs['a'])
+                # test can be consumed multiple times from different equivalent oneof objects
+                print_artifact(a=y)
 
         # hole punched through if
         self.assertEqual(

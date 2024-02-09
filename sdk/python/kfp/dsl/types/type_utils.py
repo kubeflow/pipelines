@@ -13,7 +13,6 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
-from distutils import util
 import inspect
 import json
 from typing import Any, Callable, Dict, Optional, Type, Union
@@ -28,7 +27,7 @@ DEFAULT_ARTIFACT_SCHEMA_VERSION = '0.0.1'
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
-_ARTIFACT_CLASSES_MAPPING = {
+ARTIFACT_CLASSES_MAPPING = {
     'artifact': artifact_types.Artifact,
     'model': artifact_types.Model,
     'dataset': artifact_types.Dataset,
@@ -71,9 +70,27 @@ PARAMETER_TYPES_MAPPING = {
 }
 
 
+# copied from distutils.util, which was removed in Python 3.12
+# https://github.com/pypa/distutils/blob/fb5c5704962cd3f40c69955437da9a88f4b28567/distutils/util.py#L340-L353
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return 1
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return 0
+    else:
+        raise ValueError('invalid truth value %r' % (val,))
+
+
 def bool_cast_fn(default: Union[str, bool]) -> bool:
     if isinstance(default, str):
-        default = util.strtobool(default) == 1
+        default = strtobool(default) == 1
     return default
 
 
@@ -262,6 +279,15 @@ def verify_type_compatibility(
     # extract and normalize types
     expected_type = expected_spec.type
     given_type = _get_type_string_from_component_argument(given_value)
+
+    # avoid circular imports
+    from kfp.dsl import for_loop
+
+    # Workaround for potential type-checking issues during ParallelFor compilation: When LoopArgument or LoopArgumentVariable are involved and the expected type is 'String', we temporarily relax type enforcement to avoid blocking compilation. This is necessary due to potential information loss during the compilation step.
+    if isinstance(given_value,
+                  (for_loop.LoopParameterArgument,
+                   for_loop.LoopArgumentVariable)) and given_type == 'String':
+        return True
 
     given_is_param = is_parameter_type(str(given_type))
     if given_is_param:

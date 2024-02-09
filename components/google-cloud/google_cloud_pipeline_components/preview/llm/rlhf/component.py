@@ -68,7 +68,7 @@ def rlhf_pipeline(
     kl_coeff: Coefficient for KL penalty. This regularizes the policy model and penalizes if it diverges from its initial distribution. If set to 0, the reference language model is not loaded into memory. Default value is 0.1.
     instruction: This field lets the model know what task it needs to perform. Base models have been trained over a large set of varied instructions. You can give a simple and intuitive description of the task and the model will follow it, e.g. "Classify this movie review as positive or negative" or "Translate this sentence to Danish". Do not specify this if your dataset already prepends the instruction to the inputs field.
     deploy_model: Whether to deploy the model to an endpoint in `us-central1`. Default is True.
-    eval_dataset: Optional Cloud storage path to an evaluation dataset. If provided, inference will be performed on this dataset after training. The dataset format is jsonl. Each example in the dataset must contain a field `input_text` that contains the prompt.
+    eval_dataset: Optional Cloud storage path to an evaluation dataset. Note, eval dataset can only be provided for third-party models. If provided, inference will be performed on this dataset after training. The dataset format is jsonl. Each example in the dataset must contain a field `input_text` that contains the prompt.
     project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
     location: Location used to run custom jobs. If not specified the location used to run the pipeline will be used.
     tensorboard_resource_id: Optional tensorboard resource id in format `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`. If provided, tensorboard metrics will be uploaded to this location.
@@ -78,6 +78,12 @@ def rlhf_pipeline(
     endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
   # fmt: on
+
+  function_based.validate_rlhf_inputs(
+      large_model_reference=large_model_reference,
+      eval_dataset=eval_dataset,
+  ).set_display_name('Validate Inputs')
+
   reward_model_pipeline = (
       reward_model_graph.pipeline(
           preference_dataset=preference_dataset,
@@ -110,22 +116,30 @@ def rlhf_pipeline(
       tensorboard_resource_id=tensorboard_resource_id,
   ).set_display_name('Reinforcement Learning')
 
-  should_perform_inference = function_based.value_exists(
+  has_inference_dataset = function_based.value_exists(
       value=eval_dataset
   ).set_display_name('Resolve Inference Dataset')
   with kfp.dsl.Condition(
-      should_perform_inference.output == True, name='Perform Inference'  # pylint: disable=singleton-comparison
+      has_inference_dataset.output == True,  # pylint: disable=singleton-comparison
+      name='Perform Inference',
   ):
-    component.infer_pipeline(
-        project=project,
-        location=location,
-        large_model_reference=large_model_reference,
-        model_checkpoint=rl_model_pipeline.outputs['output_model_path'],
-        prompt_dataset=eval_dataset,
-        prompt_sequence_length=prompt_sequence_length,
-        target_sequence_length=target_sequence_length,
-        instruction=instruction,
-    )
+    has_model_checkpoint = function_based.value_exists(
+        value=rl_model_pipeline.outputs['output_model_path']
+    ).set_display_name('Resolve Model Checkpoint')
+    with kfp.dsl.Condition(
+        has_model_checkpoint.output == True,  # pylint: disable=singleton-comparison
+        name='Test Model Checkpoint Exists',
+    ):
+      component.infer_pipeline(
+          project=project,
+          location=location,
+          large_model_reference=large_model_reference,
+          model_checkpoint=rl_model_pipeline.outputs['output_model_path'],
+          prompt_dataset=eval_dataset,
+          prompt_sequence_length=prompt_sequence_length,
+          target_sequence_length=target_sequence_length,
+          instruction=instruction,
+      )
 
   llm_model_handler = deployment_graph.pipeline(
       output_adapter_path=rl_model_pipeline.outputs['output_adapter_path'],
