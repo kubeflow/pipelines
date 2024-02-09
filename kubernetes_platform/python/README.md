@@ -138,3 +138,29 @@ def my_pipeline():
     delete_pvc1 = kubernetes.DeletePVC(
         pvc_name=pvc1.outputs['name']).after(task2)
 ```
+
+### Pod Metadata: Add pod labels and annotations to the container pod's definition
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+
+@dsl.component
+def comp():
+    pass
+
+
+@dsl.pipeline
+def my_pipeline():
+    task = comp()
+    kubernetes.add_pod_label(
+        task,
+        label_key='kubeflow.com/kfp',
+        label_value='pipeline-node',
+    )
+    kubernetes.add_pod_annotation(
+        task,
+        annotation_key='run_id',
+        annotation_value='123456',
+    )
+```
