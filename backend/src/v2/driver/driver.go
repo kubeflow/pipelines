@@ -543,6 +543,11 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Get image pull secret information
+	for _, imagePullSecret := range kubernetesExecutorConfig.GetImagePullSecret() {
+		podSpec.ImagePullSecrets = append(podSpec.ImagePullSecrets, k8score.LocalObjectReference{Name: imagePullSecret.GetSecretName()})
+	}
+
 	return nil
 }
 
