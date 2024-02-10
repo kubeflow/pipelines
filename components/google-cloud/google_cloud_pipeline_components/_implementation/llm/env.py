@@ -19,11 +19,11 @@ from google_cloud_pipeline_components._implementation.llm.generated import refin
 
 
 def get_private_image_tag() -> str:
-  return os.getenv('PRIVATE_IMAGE_TAG') or refined_image_versions.IMAGE_TAG
+  return 'latture-allowed-flags'
 
 
 def get_autosxs_image_tag() -> str:
-  return os.getenv('PRIVATE_IMAGE_TAG') or refined_image_versions.IMAGE_TAG
+  return 'latture-allowed-flags'
 
 
 def get_use_test_machine_spec() -> bool:
