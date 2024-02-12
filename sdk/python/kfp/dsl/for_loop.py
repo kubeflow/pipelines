@@ -17,6 +17,8 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from kfp.dsl import pipeline_channel
+from kfp.dsl.types import type_annotations
+from kfp.dsl.types import type_utils
 
 ItemList = List[Union[int, float, str, Dict[str, Any]]]
 
@@ -188,6 +190,12 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         compilation progress in cases of unknown or missing type
         information.
         """
+        type_name = type_annotations.get_short_type_name(channel.channel_type)
+        parameter_type = type_utils.PARAMETER_TYPES_MAPPING[type_name.lower()]
+        if parameter_type != type_utils.LIST:
+            raise ValueError(
+                'Cannot iterate over a single Parameter using `dsl.ParallelFor`. Expected a list of Parameters as argument to `items`.'
+            )
         return LoopParameterArgument(
             items=channel,
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
