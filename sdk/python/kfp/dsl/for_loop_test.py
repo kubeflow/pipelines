@@ -147,6 +147,24 @@ class ForLoopTest(parameterized.TestCase):
     @parameterized.parameters(
         {
             'channel':
+                pipeline_channel.PipelineParameterChannel(
+                    name='param1',
+                    channel_type='String',
+                    task_name='task1',
+                ),
+        },)
+    def test_loop_parameter_argument_from_single_pipeline_channel_raises_error(
+            self, channel):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Cannot iterate over a single Parameter using `dsl\.ParallelFor`\. Expected a list of Parameters as argument to `items`\.'
+        ):
+            loop_argument = for_loop.LoopParameterArgument.from_pipeline_channel(
+                channel)
+
+    @parameterized.parameters(
+        {
+            'channel':
                 pipeline_channel.PipelineArtifactChannel(
                     name='param1',
                     channel_type='system.Artifact@0.0.1',
