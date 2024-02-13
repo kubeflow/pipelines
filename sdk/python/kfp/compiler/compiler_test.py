@@ -882,36 +882,26 @@ implementation:
             ]):
                 task = print_and_return(text='Hello')
 
-    def test_nested_conditions_with_for_loops_in_nested_pipelines(self):
+    def test_pipeline_reusing_other_pipeline_multiple_times(self):
 
         @dsl.pipeline()
-        def pipeline_2():
-            with dsl.ParallelFor([1, 2, 3]):
-                print_op(message='1')
+        def reusable_pipeline():
+            print_op(message='Reused pipeline')
 
         @dsl.pipeline()
-        def pipeline_3(run_pipeline_2: int = 1):
-            with dsl.ParallelFor([1, 2, 3]):
-                print_op(message='1')
-
-                with dsl.Condition(run_pipeline_2 == run_pipeline_2):
-                    with dsl.Condition(run_pipeline_2 == 1):
-                        pipeline_2()
+        def do_something_else_pipeline():
+            reusable_pipeline()
 
         @dsl.pipeline()
-        def pipeline_1(run_pipeline_2: int = 1, run_pipeline_3: int = 1):
-            with dsl.Condition(run_pipeline_2 == run_pipeline_2):
-                with dsl.Condition(run_pipeline_2 == 1):
-                    pipeline_2()
+        def orchestrator_pipeline():
+            reusable_pipeline()
 
-            with dsl.Condition(run_pipeline_3 == run_pipeline_3):
-                with dsl.Condition(run_pipeline_3 == 1):
-                    pipeline_3()
+            do_something_else_pipeline()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output_yaml = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=pipeline_1, package_path=output_yaml)
+                pipeline_func=orchestrator_pipeline, package_path=output_yaml)
             self.assertTrue(os.path.exists(output_yaml))
 
             with open(output_yaml, 'r') as f:
