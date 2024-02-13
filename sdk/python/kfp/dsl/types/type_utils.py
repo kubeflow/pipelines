@@ -13,24 +13,21 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
-from distutils import util
 import inspect
 import json
 from typing import Any, Callable, Dict, Optional, Type, Union
 import warnings
 
 import kfp
-from kfp.dsl import structures
 from kfp.dsl import task_final_status
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 DEFAULT_ARTIFACT_SCHEMA_VERSION = '0.0.1'
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
-_ARTIFACT_CLASSES_MAPPING = {
+ARTIFACT_CLASSES_MAPPING = {
     'artifact': artifact_types.Artifact,
     'model': artifact_types.Model,
     'dataset': artifact_types.Dataset,
@@ -47,26 +44,53 @@ _GOOGLE_TYPES_VERSION = DEFAULT_ARTIFACT_SCHEMA_VERSION
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Parameters.
 # The values are the corresponding IR parameter primitive types.
-_PARAMETER_TYPES_MAPPING = {
-    'integer': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
-    'int': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
-    'double': pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
-    'float': pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
-    'string': pipeline_spec_pb2.ParameterType.STRING,
-    'str': pipeline_spec_pb2.ParameterType.STRING,
-    'text': pipeline_spec_pb2.ParameterType.STRING,
-    'bool': pipeline_spec_pb2.ParameterType.BOOLEAN,
-    'boolean': pipeline_spec_pb2.ParameterType.BOOLEAN,
-    'dict': pipeline_spec_pb2.ParameterType.STRUCT,
-    'list': pipeline_spec_pb2.ParameterType.LIST,
-    'jsonobject': pipeline_spec_pb2.ParameterType.STRUCT,
-    'jsonarray': pipeline_spec_pb2.ParameterType.LIST,
+
+# pipeline_spec_pb2.ParameterType enum values
+NUMBER_DOUBLE = 1
+NUMBER_INTEGER = 2
+STRING = 3
+BOOLEAN = 4
+LIST = 5
+STRUCT = 6
+TASK_FINAL_STATUS = 7
+PARAMETER_TYPES_MAPPING = {
+    'integer': NUMBER_INTEGER,
+    'int': NUMBER_INTEGER,
+    'double': NUMBER_DOUBLE,
+    'float': NUMBER_DOUBLE,
+    'string': STRING,
+    'str': STRING,
+    'text': STRING,
+    'bool': BOOLEAN,
+    'boolean': BOOLEAN,
+    'dict': STRUCT,
+    'list': LIST,
+    'jsonobject': STRUCT,
+    'jsonarray': LIST,
 }
+
+
+# copied from distutils.util, which was removed in Python 3.12
+# https://github.com/pypa/distutils/blob/fb5c5704962cd3f40c69955437da9a88f4b28567/distutils/util.py#L340-L353
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return 1
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return 0
+    else:
+        raise ValueError('invalid truth value %r' % (val,))
 
 
 def bool_cast_fn(default: Union[str, bool]) -> bool:
     if isinstance(default, str):
-        default = util.strtobool(default) == 1
+        default = strtobool(default) == 1
     return default
 
 
@@ -109,18 +133,6 @@ def deserialize_v1_component_yaml_default(type_: str, default: Any) -> Any:
     return default
 
 
-# Mapping primitive types to their IR message field names.
-# This is used in constructing condition strings.
-_PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
-    pipeline_spec_pb2.ParameterType.NUMBER_INTEGER: 'number_value',
-    pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE: 'number_value',
-    pipeline_spec_pb2.ParameterType.STRING: 'string_value',
-    pipeline_spec_pb2.ParameterType.BOOLEAN: 'bool_value',
-    pipeline_spec_pb2.ParameterType.STRUCT: 'struct_value',
-    pipeline_spec_pb2.ParameterType.LIST: 'list_value',
-}
-
-
 def is_task_final_status_type(type_name: Optional[Union[str, dict]]) -> bool:
     """Check if a ComponentSpec I/O type is PipelineTaskFinalStatus.
 
@@ -151,14 +163,17 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
         return False
 
     return type_name.lower(
-    ) in _PARAMETER_TYPES_MAPPING or is_task_final_status_type(type_name)
+    ) in PARAMETER_TYPES_MAPPING or is_task_final_status_type(type_name)
 
 
 def bundled_artifact_to_artifact_proto(
-        bundled_artifact_str: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
+        bundled_artifact_str: str) -> 'pipeline_spec_pb2.ArtifactTypeSchema':
     """Gets the IR ArtifactTypeSchema proto for a bundled artifact in form
     `<namespace>.<Name>@x.x.x` (e.g., system.Artifact@0.0.1)."""
     bundled_artifact_str, schema_version = bundled_artifact_str.split('@')
+
+    from kfp.pipeline_spec import pipeline_spec_pb2
+
     return pipeline_spec_pb2.ArtifactTypeSchema(
         schema_title=bundled_artifact_str,
         schema_version=schema_version,
@@ -167,7 +182,7 @@ def bundled_artifact_to_artifact_proto(
 
 def get_parameter_type(
     param_type: Optional[Union[Type, str, dict]]
-) -> pipeline_spec_pb2.ParameterType:
+) -> 'pipeline_spec_pb2.ParameterType':
     """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
     Args:
@@ -189,32 +204,21 @@ def get_parameter_type(
         type_name = list(param_type.keys())[0]
     else:
         type_name = type_annotations.get_short_type_name(str(param_type))
-    return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
+    return PARAMETER_TYPES_MAPPING.get(type_name.lower())
 
 
 def get_parameter_type_name(
         param_type: Optional[Union[Type, str, dict]]) -> str:
     """Gets the parameter type name."""
+
+    from kfp.pipeline_spec import pipeline_spec_pb2
+    param_enum_val = get_parameter_type(param_type)
+    if param_enum_val is None:
+        raise ValueError(
+            '`param_type` is not a parameter type. Cannot get ParameterType name.'
+        )
     return pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
-        get_parameter_type(param_type))
-
-
-def get_parameter_type_field_name(type_name: Optional[str]) -> Optional[str]:
-    """Get the IR field name for the given primitive type.
-
-    For example: 'str' -> 'string_value', 'double' -> 'double_value', etc.
-
-    Args:
-      type_name: type name of the ComponentSpec I/O primitive type.
-
-    Returns:
-      The IR value reference field name.
-
-    Raises:
-      AttributeError: if type_name is not a string type.
-    """
-    return _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING.get(
-        get_parameter_type(type_name))
+        param_enum_val)
 
 
 class InconsistentTypeException(Exception):
@@ -240,6 +244,10 @@ def _get_type_string_from_component_argument(
     if argument_type in _TYPE_TO_TYPE_NAME:
         return _TYPE_TO_TYPE_NAME[argument_type]
 
+    if isinstance(argument_value, artifact_types.Artifact):
+        raise ValueError(
+            f'Input artifacts are not supported. Got input artifact of type {argument_value.__class__.__name__!r}.'
+        )
     raise ValueError(
         f'Constant argument inputs must be one of type {list(_TYPE_TO_TYPE_NAME.values())} Got: {argument_value!r} of type {type(argument_value)!r}.'
     )
@@ -248,9 +256,10 @@ def _get_type_string_from_component_argument(
 def verify_type_compatibility(
     given_value: Union['pipeline_channel.PipelineChannel', str, bool, int,
                        float, dict, list],
-    expected_spec: Union[structures.InputSpec, structures.OutputSpec],
+    expected_spec: Union['structures.InputSpec', 'structures.OutputSpec'],
     error_message_prefix: str,
     checks_input: bool = True,
+    raise_on_error: bool = True,
 ) -> bool:
     """Verifies the given argument type is compatible with the expected type.
 
@@ -259,16 +268,26 @@ def verify_type_compatibility(
         expected_spec: The InputSpec or OutputSpec that describes the expected type of given_value.
         error_message_prefix: The prefix for the error message.
         checks_input: True if checks an argument (given_value) against a component/pipeline input type (expected_spec). False if checks a component output (argument_value) against the pipeline output type (expected_spec).
+        raise_on_error: Whether to raise on type compatibility error. Should be passed kfp.TYPE_CHECK.
 
     Returns:
         True if types are compatible, and False if otherwise.
 
     Raises:
-        InconsistentTypeException if types are incompatible and TYPE_CHECK==True.
+        InconsistentTypeException if raise_on_error=True.
     """
     # extract and normalize types
     expected_type = expected_spec.type
     given_type = _get_type_string_from_component_argument(given_value)
+
+    # avoid circular imports
+    from kfp.dsl import for_loop
+
+    # Workaround for potential type-checking issues during ParallelFor compilation: When LoopArgument or LoopArgumentVariable are involved and the expected type is 'String', we temporarily relax type enforcement to avoid blocking compilation. This is necessary due to potential information loss during the compilation step.
+    if isinstance(given_value,
+                  (for_loop.LoopParameterArgument,
+                   for_loop.LoopArgumentVariable)) and given_type == 'String':
+        return True
 
     given_is_param = is_parameter_type(str(given_type))
     if given_is_param:
@@ -307,7 +326,7 @@ def verify_type_compatibility(
         else:
             error_message_suffix = f'Output of type {given_type!r} cannot be surfaced as pipeline output type {expected_type!r}'
         error_text = error_message_prefix + error_message_suffix
-        if kfp.TYPE_CHECK:
+        if raise_on_error:
             raise InconsistentTypeException(error_text)
         else:
             warnings.warn(InconsistentTypeWarning(error_text))

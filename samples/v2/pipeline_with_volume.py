@@ -62,6 +62,7 @@ def pipeline_with_volume():
 
 if __name__ == '__main__':
     # execute only if run as a script
+    from kfp import compiler
     compiler.Compiler().compile(
         pipeline_func=pipeline_with_volume,
         package_path='pipeline_with_volume.json')

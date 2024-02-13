@@ -42,7 +42,7 @@ func NewMetricsReporter(pipelineClient client.PipelineClientInterface) *MetricsR
 }
 
 // ReportMetrics reports workflow metrics to pipeline server.
-func (r MetricsReporter) ReportMetrics(workflow util.ExecutionSpec, user string) error {
+func (r MetricsReporter) ReportMetrics(workflow util.ExecutionSpec) error {
 	if !workflow.ExecutionStatus().HasMetrics() {
 		return nil
 	}
@@ -52,14 +52,14 @@ func (r MetricsReporter) ReportMetrics(workflow util.ExecutionSpec, user string)
 		// Skip reporting if the workflow doesn't have the run id label
 		return nil
 	}
-	runMetrics, partialFailures := workflow.ExecutionStatus().CollectionMetrics(r.pipelineClient.ReadArtifact, user)
+	runMetrics, partialFailures := workflow.ExecutionStatus().CollectionMetrics(r.pipelineClient.ReadArtifact)
 	if len(runMetrics) == 0 {
 		return aggregateErrors(partialFailures)
 	}
 	reportMetricsResponse, err := r.pipelineClient.ReportRunMetrics(&api.ReportRunMetricsRequest{
 		RunId:   runID,
 		Metrics: runMetrics,
-	}, user)
+	})
 	if err != nil {
 		return err
 	}

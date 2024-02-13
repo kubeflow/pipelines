@@ -20,7 +20,7 @@ import sys
 import types
 from typing import List
 
-_COMPONENT_NAME_PREFIX = 'comp-'
+COMPONENT_NAME_PREFIX = 'comp-'
 _EXECUTOR_LABEL_PREFIX = 'exec-'
 
 
@@ -69,7 +69,7 @@ def sanitize_input_name(name: str) -> str:
 
 def sanitize_component_name(name: str) -> str:
     """Sanitizes component name."""
-    return _COMPONENT_NAME_PREFIX + maybe_rename_for_k8s(name)
+    return COMPONENT_NAME_PREFIX + maybe_rename_for_k8s(name)
 
 
 def sanitize_task_name(name: str) -> str:

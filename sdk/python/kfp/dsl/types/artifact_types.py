@@ -11,16 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes for input/output Artifacts in KFP SDK.
+"""Classes and utilities for using and creating artifacts in components."""
 
-These are only compatible with v2 Pipelines.
-"""
-
+import os
 from typing import Dict, List, Optional, Type
+import warnings
 
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
 _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
 _S3_LOCAL_MOUNT_PREFIX = '/s3/'
+
+GCS_REMOTE_PREFIX = 'gs://'
+MINIO_REMOTE_PREFIX = 'minio://'
+S3_REMOTE_PREFIX = 's3://'
 
 
 class Artifact:
@@ -84,22 +87,28 @@ class Artifact:
         self._set_path(path)
 
     def _get_path(self) -> Optional[str]:
-        if self.uri.startswith('gs://'):
-            return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len('gs://'):]
-        elif self.uri.startswith('minio://'):
-            return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len('minio://'):]
-        elif self.uri.startswith('s3://'):
-            return _S3_LOCAL_MOUNT_PREFIX + self.uri[len('s3://'):]
-        return None
+        if self.uri.startswith(GCS_REMOTE_PREFIX):
+            return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(GCS_REMOTE_PREFIX):]
+        elif self.uri.startswith(MINIO_REMOTE_PREFIX):
+            return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len(MINIO_REMOTE_PREFIX
+                                                           ):]
+        elif self.uri.startswith(S3_REMOTE_PREFIX):
+            return _S3_LOCAL_MOUNT_PREFIX + self.uri[len(S3_REMOTE_PREFIX):]
+        # uri == path for local execution
+        return self.uri
 
     def _set_path(self, path: str) -> None:
-        if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
-            path = 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
-        elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
-            path = 'minio://' + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
-        elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
-            path = 's3://' + path[len(_S3_LOCAL_MOUNT_PREFIX):]
-        self.uri = path
+        self.uri = convert_local_path_to_remote_path(path)
+
+
+def convert_local_path_to_remote_path(path: str) -> str:
+    if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
+        return GCS_REMOTE_PREFIX + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
+    elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
+        return MINIO_REMOTE_PREFIX + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
+    elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
+        return S3_REMOTE_PREFIX + path[len(_S3_LOCAL_MOUNT_PREFIX):]
+    return path
 
 
 class Model(Artifact):
@@ -111,12 +120,6 @@ class Model(Artifact):
         metadata: Arbitrary key-value pairs about the model.
     """
     schema_title = 'system.Model'
-
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
 
     @property
     def framework(self) -> str:
@@ -143,12 +146,6 @@ class Dataset(Artifact):
     """
     schema_title = 'system.Dataset'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
-
 
 class Metrics(Artifact):
     """An artifact for storing key-value scalar metrics.
@@ -159,12 +156,6 @@ class Metrics(Artifact):
         metadata: Key-value scalar metrics.
     """
     schema_title = 'system.Metrics'
-
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
 
     def log_metric(self, metric: str, value: float) -> None:
         """Sets a custom scalar metric in the artifact's metadata.
@@ -185,12 +176,6 @@ class ClassificationMetrics(Artifact):
         metadata: The key-value scalar metrics.
     """
     schema_title = 'system.ClassificationMetrics'
-
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
 
     def log_roc_data_point(self, fpr: float, tpr: float,
                            threshold: float) -> None:
@@ -355,12 +340,6 @@ class SlicedClassificationMetrics(Artifact):
 
     schema_title = 'system.SlicedClassificationMetrics'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
-
     def _upsert_classification_metrics_for_slice(self, slice: str) -> None:
         """Upserts the classification metrics instance for a slice."""
         if slice not in self._sliced_metrics:
@@ -479,12 +458,6 @@ class HTML(Artifact):
     """
     schema_title = 'system.HTML'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
-        super().__init__(uri=uri, name=name, metadata=metadata)
-
 
 class Markdown(Artifact):
     """An artifact representing a markdown file.
@@ -495,12 +468,6 @@ class Markdown(Artifact):
         metadata: Arbitrary key-value pairs about the markdown file.
     """
     schema_title = 'system.Markdown'
-
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None):
-        super().__init__(uri=uri, name=name, metadata=metadata)
 
 
 _SCHEMA_TITLE_TO_TYPE: Dict[str, Type[Artifact]] = {
@@ -515,3 +482,38 @@ _SCHEMA_TITLE_TO_TYPE: Dict[str, Type[Artifact]] = {
         Markdown,
     ]
 }
+
+CONTAINER_TASK_ROOT: Optional[str] = None
+
+
+# suffix default of 'Output' should be the same key as the default key for a
+# single output component, but use value not variable for reference docs
+def get_uri(suffix: str = 'Output') -> str:
+    """Gets the task root URI, a unique object storage URI associated with the
+    current task. This function may only be called at task runtime.
+
+    Returns an empty string if the task root cannot be inferred from the runtime environment.
+
+    Args:
+        suffix: A suffix to append to the URI. This is a helpful for creating unique subdirectories when the component has multiple outputs.
+
+    Returns:
+        The URI or empty string.
+    """
+    if CONTAINER_TASK_ROOT is None:
+        raise RuntimeError(
+            f"'dsl.{get_uri.__name__}' can only be called at task runtime. The task root is unknown in the current environment."
+        )
+    UNSUPPORTED_KFP_PATH = '/tmp/kfp_outputs'
+    if CONTAINER_TASK_ROOT == UNSUPPORTED_KFP_PATH:
+        warnings.warn(
+            f'dsl.{get_uri.__name__} is not yet supported by the KFP backend. Please specify a URI explicitly.',
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        # return empty string, not None, to conform with logic in artifact
+        # constructor which immediately converts uri=None to uri=''
+        # this way the .path property can worry about handling fewer input types
+        return ''
+    remote_task_root = convert_local_path_to_remote_path(CONTAINER_TASK_ROOT)
+    return os.path.join(remote_task_root, suffix)

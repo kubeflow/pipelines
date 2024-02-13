@@ -13,8 +13,10 @@
 # limitations under the License.
 """Definition for TasksGroup."""
 
+import copy
 import enum
-from typing import Optional, Union
+from typing import List, Optional, Union
+import warnings
 
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
@@ -26,6 +28,7 @@ class TasksGroupType(str, enum.Enum):
     """Types of TasksGroup."""
     PIPELINE = 'pipeline'
     CONDITION = 'condition'
+    CONDITION_BRANCHES = 'condition-branches'
     FOR_LOOP = 'for-loop'
     EXIT_HANDLER = 'exit-handler'
 
@@ -52,7 +55,7 @@ class TasksGroup:
         group_type: TasksGroupType,
         name: Optional[str] = None,
         is_root: bool = False,
-    ):
+    ) -> None:
         """Create a new instance of TasksGroup.
 
         Args:
@@ -65,6 +68,8 @@ class TasksGroup:
         self.display_name = name
         self.dependencies = []
         self.is_root = is_root
+        # backref to parent, set when the pipeline is called in pipeline_context
+        self.parent_task_group: Optional[TasksGroup] = None
 
     def __enter__(self):
         if not pipeline_context.Pipeline.get_default_pipeline():
@@ -117,7 +122,7 @@ class ExitHandler(TasksGroup):
         self,
         exit_task: pipeline_task.PipelineTask,
         name: Optional[str] = None,
-    ):
+    ) -> None:
         """Initializes a Condition task group."""
         super().__init__(
             group_type=TasksGroupType.EXIT_HANDLER,
@@ -138,9 +143,52 @@ class ExitHandler(TasksGroup):
         self.exit_task = exit_task
 
 
-class Condition(TasksGroup):
-    """A class for creating conditional control flow within a pipeline
-    definition.
+class ConditionBranches(TasksGroup):
+    _oneof_id = 0
+
+    def __init__(self) -> None:
+        super().__init__(
+            group_type=TasksGroupType.CONDITION_BRANCHES,
+            name=None,
+            is_root=False,
+        )
+
+    def get_oneof_id(self) -> int:
+        """Incrementor for uniquely identifying a OneOf for the parent
+        ConditionBranches group.
+
+        This is analogous to incrementing a unique identifier for tasks
+        groups belonging to a pipeline.
+        """
+        self._oneof_id += 1
+        return self._oneof_id
+
+
+class _ConditionBase(TasksGroup):
+    """Parent class for condition control flow context managers (Condition, If,
+    Elif, Else).
+
+    Args:
+        condition: A list of binary operations to be combined via conjunction.
+        name: The name of the condition group.
+    """
+
+    def __init__(
+        self,
+        conditions: List[pipeline_channel.ConditionOperation],
+        name: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            group_type=TasksGroupType.CONDITION,
+            name=name,
+            is_root=False,
+        )
+        self.conditions: List[pipeline_channel.ConditionOperation] = conditions
+
+
+class If(_ConditionBase):
+    """A class for creating a conditional control flow "if" block within a
+    pipeline.
 
     Args:
         condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task or a pipeline parameter.
@@ -150,22 +198,217 @@ class Condition(TasksGroup):
       ::
 
         task1 = my_component1(...)
-        with Condition(task1.output=='pizza', 'pizza-condition'):
+        with dsl.If(task1.output=='pizza', 'pizza-condition'):
             task2 = my_component2(...)
     """
 
     def __init__(
         self,
-        condition: pipeline_channel.ConditionOperator,
+        condition,
         name: Optional[str] = None,
-    ):
-        """Initializes a conditional task group."""
+    ) -> None:
         super().__init__(
-            group_type=TasksGroupType.CONDITION,
+            conditions=[condition],
             name=name,
-            is_root=False,
         )
-        self.condition = condition
+        if isinstance(condition, bool):
+            raise ValueError(
+                f'Got constant boolean {condition} as a condition. This is likely because the provided condition evaluated immediately. At least one of the operands must be an output from an upstream task or a pipeline parameter.'
+            )
+        copied_condition = copy.copy(condition)
+        copied_condition.negate = True
+        self._negated_upstream_conditions = [copied_condition]
+
+
+class Condition(If):
+    """Deprecated.
+
+    Use dsl.If instead.
+    """
+
+    def __enter__(self):
+        super().__enter__()
+        warnings.warn(
+            'dsl.Condition is deprecated. Please use dsl.If instead.',
+            category=DeprecationWarning,
+            stacklevel=2)
+        return self
+
+
+class Elif(_ConditionBase):
+    """A class for creating a conditional control flow "else if" block within a
+    pipeline. Can be used following an upstream dsl.If or dsl.Elif.
+
+    Args:
+        condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task or a pipeline parameter.
+        name: The name of the condition group.
+
+    Example:
+      ::
+
+        task1 = my_component1(...)
+        task2 = my_component2(...)
+        with dsl.If(task1.output=='pizza', 'pizza-condition'):
+            task3 = my_component3(...)
+
+        with dsl.Elif(task2.output=='pasta', 'pasta-condition'):
+            task4 = my_component4(...)
+    """
+
+    def __init__(
+        self,
+        condition,
+        name: Optional[str] = None,
+    ) -> None:
+        prev_cond = pipeline_context.Pipeline.get_default_pipeline(
+        ).get_last_tasks_group()
+        if not isinstance(prev_cond, (Condition, If, Elif)):
+            # prefer pushing toward dsl.If rather than dsl.Condition for syntactic consistency with the if-elif-else keywords in Python
+            raise InvalidControlFlowException(
+                'dsl.Elif can only be used following an upstream dsl.If or dsl.Elif.'
+            )
+
+        if isinstance(condition, bool):
+            raise ValueError(
+                f'Got constant boolean {condition} as a condition. This is likely because the provided condition evaluated immediately. At least one of the operands must be an output from an upstream task or a pipeline parameter.'
+            )
+
+        copied_condition = copy.copy(condition)
+        copied_condition.negate = True
+        self._negated_upstream_conditions = _shallow_copy_list_of_binary_operations(
+            prev_cond._negated_upstream_conditions) + [copied_condition]
+
+        conditions = _shallow_copy_list_of_binary_operations(
+            prev_cond._negated_upstream_conditions)
+        conditions.append(condition)
+
+        super().__init__(
+            conditions=conditions,
+            name=name,
+        )
+
+    def __enter__(self):
+        if not pipeline_context.Pipeline.get_default_pipeline():
+            raise ValueError('Default pipeline not defined.')
+
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+
+        maybe_make_and_insert_conditional_branches_group(pipeline)
+
+        self._make_name_unique()
+        pipeline.push_tasks_group(self)
+        return self
+
+
+class Else(_ConditionBase):
+    """A class for creating a conditional control flow "else" block within a
+    pipeline. Can be used following an upstream dsl.If or dsl.Elif.
+
+    Args:
+        name: The name of the condition group.
+
+    Example:
+      ::
+
+        task1 = my_component1(...)
+        task2 = my_component2(...)
+        with dsl.If(task1.output=='pizza', 'pizza-condition'):
+            task3 = my_component3(...)
+
+        with dsl.Elif(task2.output=='pasta', 'pasta-condition'):
+            task4 = my_component4(...)
+
+        with dsl.Else():
+            my_component5(...)
+    """
+
+    def __init__(
+        self,
+        name: Optional[str] = None,
+    ) -> None:
+        prev_cond = pipeline_context.Pipeline.get_default_pipeline(
+        ).get_last_tasks_group()
+
+        # if it immediately follows as TasksGroup, this is because it immediately
+        # follows Else in the user code and we wrap Else in a TasksGroup
+        if isinstance(prev_cond, ConditionBranches):
+            # prefer pushing toward dsl.If rather than dsl.Condition for syntactic consistency with the if-elif-else keywords in Python
+            raise InvalidControlFlowException(
+                'Cannot use dsl.Else following another dsl.Else. dsl.Else can only be used following an upstream dsl.If or dsl.Elif.'
+            )
+        if not isinstance(prev_cond, (Condition, If, Elif)):
+            # prefer pushing toward dsl.If rather than dsl.Condition for syntactic consistency with the if-elif-else keywords in Python
+            raise InvalidControlFlowException(
+                'dsl.Else can only be used following an upstream dsl.If or dsl.Elif.'
+            )
+
+        super().__init__(
+            conditions=prev_cond._negated_upstream_conditions,
+            name=name,
+        )
+
+    def __enter__(self):
+        if not pipeline_context.Pipeline.get_default_pipeline():
+            raise ValueError('Default pipeline not defined.')
+
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+
+        maybe_make_and_insert_conditional_branches_group(pipeline)
+
+        self._make_name_unique()
+        pipeline.push_tasks_group(self)
+        return self
+
+    def __exit__(self, *unused_args):
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+        pipeline.pop_tasks_group()
+
+        # since this is an else, also pop off the parent dag for conditional branches
+        # this parent TasksGroup is not a context manager, so we simulate its
+        # __exit__ call with this
+        pipeline.pop_tasks_group()
+
+
+def maybe_make_and_insert_conditional_branches_group(
+        pipeline: 'pipeline_context.Pipeline') -> None:
+
+    already_has_pipeline_wrapper = isinstance(
+        pipeline.get_last_tasks_group(),
+        Elif,
+    )
+    if already_has_pipeline_wrapper:
+        return
+
+    condition_wrapper_group = ConditionBranches()
+    condition_wrapper_group._make_name_unique()
+
+    # swap outer and inner group ids so that numbering stays sequentially consistent with how such hypothetical code would be authored
+    def swap_group_ids(parent: TasksGroup, cond: TasksGroup):
+        parent_name, parent_id = parent.name.rsplit('-', 1)
+        cond_name, cond_id = cond.name.split('-')
+        cond.name = f'{cond_name}-{parent_id}'
+        parent.name = f'{parent_name}-{cond_id}'
+
+    # replace last pushed group (If or Elif) with condition group
+    last_pushed_group = pipeline.groups[-1].groups.pop()
+    swap_group_ids(condition_wrapper_group, last_pushed_group)
+    pipeline.push_tasks_group(condition_wrapper_group)
+
+    # then repush (__enter__) and pop (__exit__) the last pushed group
+    # before the wrapper to emulate re-entering and exiting its context
+    pipeline.push_tasks_group(last_pushed_group)
+    pipeline.pop_tasks_group()
+
+
+class InvalidControlFlowException(Exception):
+    pass
+
+
+def _shallow_copy_list_of_binary_operations(
+    operations: List[pipeline_channel.ConditionOperation]
+) -> List[pipeline_channel.ConditionOperation]:
+    # shallow copy is sufficient to allow us to invert the negate flag of a ConditionOperation without affecting copies. deep copy not needed and would result in many copies of the full pipeline since PipelineChannels hold references to the pipeline.
+    return [copy.copy(operation) for operation in operations]
 
 
 class ParallelFor(TasksGroup):
@@ -198,7 +441,7 @@ class ParallelFor(TasksGroup):
         items: Union[for_loop.ItemList, pipeline_channel.PipelineChannel],
         name: Optional[str] = None,
         parallelism: Optional[int] = None,
-    ):
+    ) -> None:
         """Initializes a for loop task group."""
         parallelism = parallelism or 0
         if parallelism < 0:
@@ -211,20 +454,27 @@ class ParallelFor(TasksGroup):
             is_root=False,
         )
 
-        if isinstance(items, pipeline_channel.PipelineChannel):
-            self.loop_argument = for_loop.LoopArgument.from_pipeline_channel(
+        if isinstance(items, pipeline_channel.PipelineParameterChannel):
+            self.loop_argument = for_loop.LoopParameterArgument.from_pipeline_channel(
+                items)
+            self.items_is_pipeline_channel = True
+        elif isinstance(items, pipeline_channel.PipelineArtifactChannel):
+            self.loop_argument = for_loop.LoopArtifactArgument.from_pipeline_channel(
                 items)
             self.items_is_pipeline_channel = True
         else:
-            self.loop_argument = for_loop.LoopArgument.from_raw_items(
+            self.loop_argument = for_loop.LoopParameterArgument.from_raw_items(
                 raw_items=items,
                 name_code=pipeline_context.Pipeline.get_default_pipeline()
                 .get_next_group_id(),
             )
             self.items_is_pipeline_channel = False
+        # TODO: support artifact constants here.
 
         self.parallelism_limit = parallelism
 
-    def __enter__(self) -> for_loop.LoopArgument:
+    def __enter__(
+        self
+    ) -> Union[for_loop.LoopParameterArgument, for_loop.LoopArtifactArgument]:
         super().__enter__()
         return self.loop_argument

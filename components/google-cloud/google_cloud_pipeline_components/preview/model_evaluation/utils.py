@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Union
 
 from google.cloud.aiplatform_v1.types.model_evaluation_slice import ModelEvaluationSlice
+
+from google.protobuf.wrappers_pb2 import BoolValue
 from google.protobuf import json_format
-from google.protobuf import wrappers_pb2
 
 
 def create_slice_specs_list(
@@ -33,8 +34,7 @@ def create_slice_specs_list(
       ModelEvaluationSlice.Slice.SliceSpec.Value; a bool for `all_values` or a
       list for ModelEvaluationSlice.Slice.SliceSpec.Range.
 
-  Returns:
-    A list of ModelEvaluationSlice.Slice.SliceSpec proto.
+  Returns: A list of ModelEvaluationSlice.Slice.SliceSpec proto.
 
   Raises:
     ValueError: if the format of a feature's value is invalid.
@@ -46,7 +46,7 @@ def create_slice_specs_list(
       if isinstance(value, bool):
         # Bool must be checked first, bool is a child of int in Python.
         configs[feature] = ModelEvaluationSlice.Slice.SliceSpec.SliceConfig(
-            all_values=wrappers_pb2.BoolValue(value=value)
+            all_values=BoolValue(value=value)
         )
       elif isinstance(value, int) or isinstance(value, float):
         configs[feature] = ModelEvaluationSlice.Slice.SliceSpec.SliceConfig(
@@ -60,7 +60,7 @@ def create_slice_specs_list(
         )
       elif isinstance(value, list):
         configs[feature] = ModelEvaluationSlice.Slice.SliceSpec.SliceConfig(
-            range=ModelEvaluationSlice.Slice.SliceSpec.Range(
+            range_=ModelEvaluationSlice.Slice.SliceSpec.Range(
                 low=value[0], high=value[1]
             )
         )
@@ -96,12 +96,11 @@ def create_bias_configs_list(
       slice_b: `list_of_slice_a_and_slice_b = [[{'education': 'low'},
         {'education': 'high'}]]`.
 
-  Returns:
-    A list of BiasConfig.
+  Returns: A list of BiasConfig.
 
   Raises:
     ValueError: if a feature's value is `all_values` or the format of the
-      feature's value is invalid.
+    feature's value is invalid.
   """
   bias_configs_list = []
   for slice_a_and_slice_b in list_of_slice_a_and_slice_b:

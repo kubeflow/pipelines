@@ -20,7 +20,7 @@ from typing import Optional
 
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
+from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 
@@ -120,7 +120,7 @@ def _get_model(
       'model', vertex_uri_prefix + model_resource_name, model_resource_name
   )
   # TODO(b/266848949): Output Artifact should use correct MLMD artifact.
-  artifact_util.update_output_artifacts(executor_input, [vertex_model])
+  artifact_utils.update_output_artifacts(executor_input, [vertex_model])
 
   resources = GcpResources()
   model_resource = resources.resources.add()

@@ -98,7 +98,9 @@ describe('RecurringRunDetailsV2', () => {
     };
 
     jest.clearAllMocks();
-    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    jest
+      .spyOn(features, 'isFeatureEnabled')
+      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
 
     getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
     getPipelineVersionSpy.mockImplementation(() => testPipelineVersion);

@@ -44,7 +44,7 @@ def get_param_to_custom_artifact_class(func: Callable) -> Dict[str, type]:
     typing.NamedTuple returns.
     """
     param_to_artifact_cls: Dict[str, type] = {}
-    kfp_artifact_classes = set(type_utils._ARTIFACT_CLASSES_MAPPING.values())
+    kfp_artifact_classes = set(type_utils.ARTIFACT_CLASSES_MAPPING.values())
 
     signature = inspect.signature(func)
     for name, param in signature.parameters.items():
@@ -53,9 +53,8 @@ def get_param_to_custom_artifact_class(func: Callable) -> Dict[str, type]:
             artifact_class = type_annotations.get_io_artifact_class(annotation)
             if artifact_class not in kfp_artifact_classes:
                 param_to_artifact_cls[name] = artifact_class
-        elif type_annotations.is_artifact_class(annotation):
-            param_to_artifact_cls[name] = annotation
-            if artifact_class not in kfp_artifact_classes:
+        elif type_annotations.issubclass_of_artifact(annotation):
+            if annotation not in kfp_artifact_classes:
                 param_to_artifact_cls[name] = artifact_class
 
     return_annotation = signature.return_annotation

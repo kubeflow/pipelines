@@ -17,9 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -514,6 +512,11 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Get image pull secret information
+	for _, imagePullSecret := range kubernetesExecutorConfig.GetImagePullSecret() {
+		podSpec.ImagePullSecrets = append(podSpec.ImagePullSecrets, k8score.LocalObjectReference{Name: imagePullSecret.GetSecretName()})
+	}
+
 	return nil
 }
 
@@ -768,7 +771,11 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("parent DAG input parameters %+v", inputParams)
+	inputArtifacts, err := mlmd.GetInputArtifactsByExecutionID(ctx, dag.Execution.GetID())
+	if err != nil {
+		return nil, err
+	}
+	glog.Infof("parent DAG input parameters: %+v, artifacts: %+v", inputParams, inputArtifacts)
 	inputs = &pipelinespec.ExecutorInput_Inputs{
 		ParameterValues: make(map[string]*structpb.Value),
 		Artifacts:       make(map[string]*pipelinespec.ArtifactList),
@@ -998,7 +1005,15 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		}
 		switch t := artifactSpec.Kind.(type) {
 		case *pipelinespec.TaskInputsSpec_InputArtifactSpec_ComponentInputArtifact:
-			return nil, artifactError(fmt.Errorf("component input artifact not implemented yet"))
+			inputArtifactName := artifactSpec.GetComponentInputArtifact()
+			if inputArtifactName == "" {
+				return nil, artifactError(fmt.Errorf("component input artifact key is empty"))
+			}
+			v, ok := inputArtifacts[inputArtifactName]
+			if !ok {
+				return nil, artifactError(fmt.Errorf("parent DAG does not have input artifact %s", inputArtifactName))
+			}
+			inputs.Artifacts[name] = v
 
 		case *pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact:
 			taskOutput := artifactSpec.GetTaskOutputArtifact()
@@ -1050,7 +1065,9 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{
 				{
-					Uri:      generateOutputURI(pipelineRoot, name, taskName),
+					// Do not preserve the query string for output artifacts, as otherwise
+					// they'd appear in file and artifact names.
+					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},
@@ -1064,12 +1081,6 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 		}
 	}
 	return outputs
-}
-
-func generateOutputURI(root, artifactName string, taskName string) string {
-	// we cannot path.Join(root, taskName, artifactName), because root
-	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
-	return fmt.Sprintf("%s/%s", strings.TrimRight(root, "/"), path.Join(taskName, artifactName))
 }
 
 var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{

@@ -33,6 +33,7 @@ from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
+from kfp.dsl import Dataset
 from kfp.dsl import graph_component
 from kfp.dsl import Input
 from kfp.dsl import Model
@@ -40,6 +41,7 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import pipeline_task
 from kfp.dsl import PipelineTaskFinalStatus
+from kfp.dsl import tasks_group
 from kfp.dsl import yaml_component
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -61,18 +63,131 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
         - {outputPath: output_value}
     """)
 
+### components used throughout tests ###
+
+
+@dsl.component
+def flip_coin() -> str:
+    import random
+    return 'heads' if random.randint(0, 1) == 0 else 'tails'
+
+
+@dsl.component
+def print_and_return(text: str) -> str:
+    print(text)
+    return text
+
+
+@dsl.component
+def roll_three_sided_die() -> str:
+    import random
+    val = random.randint(0, 2)
+
+    if val == 0:
+        return 'heads'
+    elif val == 1:
+        return 'tails'
+    else:
+        return 'draw'
+
+
+@dsl.component
+def int_zero_through_three() -> int:
+    import random
+    return random.randint(0, 3)
+
+
+@dsl.component
+def print_op(message: str):
+    print(message)
+
+
+@dsl.component
+def producer_op() -> str:
+    return 'a'
+
+
+@dsl.component
+def dummy_op(msg: str = ''):
+    pass
+
+
+@dsl.component
+def hello_world(text: str) -> str:
+    """Hello world component."""
+    return text
+
+
+@dsl.component
+def add(nums: List[int]) -> int:
+    return sum(nums)
+
+
+@dsl.component
+def comp():
+    pass
+
+
+@dsl.component
+def return_1() -> int:
+    return 1
+
+
+@dsl.component
+def args_generator_op() -> List[Dict[str, str]]:
+    return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+
+
+@dsl.component
+def my_comp(string: str, model: bool) -> str:
+    return string
+
+
+@dsl.component
+def print_hello():
+    print('hello')
+
+
+@dsl.component
+def cleanup():
+    print('cleanup')
+
+
+@dsl.component
+def double(num: int) -> int:
+    return 2 * num
+
+
+@dsl.component
+def print_and_return_as_artifact(text: str, a: Output[Artifact]):
+    print(text)
+    with open(a.path, 'w') as f:
+        f.write(text)
+
+
+@dsl.component
+def print_and_return_with_output_key(text: str, output_key: OutputPath(str)):
+    print(text)
+    with open(output_key, 'w') as f:
+        f.write(text)
+
+
+@dsl.component
+def print_artifact(a: Input[Artifact]):
+    with open(a.path) as f:
+        print(f.read())
+
+
+###########
+
 
 class TestCompilePipeline(parameterized.TestCase):
 
     def test_can_use_dsl_attribute_on_kfp(self):
 
-        @kfp.dsl.component
-        def identity(string: str) -> str:
-            return string
-
         @kfp.dsl.pipeline
         def my_pipeline(string: str = 'string'):
-            op1 = identity(string=string)
+            op1 = print_and_return(text=string)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             compiler.Compiler().compile(
@@ -491,14 +606,6 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_invalid_data_dependency_loop(self):
 
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
-
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
                 r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.ParallelFor context\.'
@@ -512,14 +619,6 @@ class TestCompilePipeline(parameterized.TestCase):
                 dummy_op(msg=producer_task.output)
 
     def test_invalid_data_dependency_condition(self):
-
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
@@ -535,14 +634,6 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_valid_data_dependency_condition(self):
 
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
-
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline(val: bool):
             with dsl.Condition(val == False):
@@ -555,14 +646,6 @@ class TestCompilePipeline(parameterized.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
     def test_invalid_data_dependency_exit_handler(self):
-
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
@@ -578,14 +661,6 @@ class TestCompilePipeline(parameterized.TestCase):
                 dummy_op(msg=producer_task.output)
 
     def test_valid_data_dependency_exit_handler(self):
-
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline(val: bool):
@@ -639,10 +714,6 @@ implementation:
         # previously compiled to STRUCT type, so checking that this is updated
 
         @dsl.component
-        def identity(string: str) -> str:
-            return string
-
-        @dsl.component
         def exit_comp(status: dsl.PipelineTaskFinalStatus):
             print(status)
 
@@ -650,7 +721,7 @@ implementation:
         def my_pipeline():
             exit_task = exit_comp()
             with dsl.ExitHandler(exit_task=exit_task):
-                identity(string='hi')
+                print_and_return(text='hi')
 
         self.assertEqual(
             my_pipeline.pipeline_spec.components['comp-exit-comp']
@@ -677,6 +748,41 @@ implementation:
         self.assertEqual(
             pipeline_spec['root']['dag']['tasks']['for-loop-2']
             ['iteratorPolicy']['parallelismLimit'], 2)
+
+    def test_compile_parallel_for_with_incompatible_input_type(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.component
+        def list_dict_maker() -> List[Dict[str, int]]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        with self.assertRaisesRegex(
+                type_utils.InconsistentTypeException,
+                "Incompatible argument passed to the input 'item' of component 'producer-op': Argument type 'NUMBER_INTEGER' is incompatible with the input type 'STRING'"
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(text: bool):
+                with dsl.ParallelFor(items=list_dict_maker().output) as item:
+                    producer_task = producer_op(item=item.a)
+
+    def test_compile_parallel_for_with_relaxed_type_checking(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.component
+        def list_dict_maker() -> List[Dict]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        @dsl.pipeline
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(items=list_dict_maker().output) as item:
+                producer_task = producer_op(item=item.a)
 
     def test_compile_parallel_for_with_invalid_parallelism(self):
 
@@ -721,13 +827,9 @@ implementation:
 
     def test_pipeline_in_pipeline(self):
 
-        @dsl.component
-        def print_op(msg: str):
-            print(msg)
-
         @dsl.pipeline(name='graph-component')
         def graph_component(msg: str):
-            print_op(msg=msg)
+            print_op(message=msg)
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline():
@@ -754,43 +856,31 @@ implementation:
         with self.assertRaisesRegex(
                 ValueError, r'Pipeline or component output not defined: msg1'):
 
-            @dsl.component
-            def print_op(msg: str) -> str:
-                print(msg)
-
             @dsl.pipeline
             def my_pipeline() -> NamedTuple('Outputs', [
                 ('msg', str),
             ]):
-                task = print_op(msg='Hello')
+                task = print_and_return(text='Hello')
                 output = collections.namedtuple('Outputs', ['msg1'])
                 return output(task.output)
 
     def test_pipeline_with_missing_output(self):
         with self.assertRaisesRegex(ValueError, 'Missing pipeline output: msg'):
 
-            @dsl.component
-            def print_op(msg: str) -> str:
-                print(msg)
-
             @dsl.pipeline
             def my_pipeline() -> NamedTuple('Outputs', [
                 ('msg', str),
             ]):
-                task = print_op(msg='Hello')
+                task = print_and_return(text='Hello')
 
         with self.assertRaisesRegex(ValueError,
                                     'Missing pipeline output: model'):
-
-            @dsl.component
-            def print_op(msg: str) -> str:
-                print(msg)
 
             @dsl.pipeline
             def my_pipeline() -> NamedTuple('Outputs', [
                 ('model', dsl.Model),
             ]):
-                task = print_op(msg='Hello')
+                task = print_and_return(text='Hello')
 
     def test_nested_conditions_with_for_loops_in_nested_pipelines(self):
 
@@ -878,11 +968,6 @@ class V2NamespaceAliasTest(unittest.TestCase):
         from kfp.v2 import compiler
         from kfp.v2 import dsl
 
-        @dsl.component
-        def hello_world(text: str) -> str:
-            """Hello world component."""
-            return text
-
         @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
         def pipeline_hello_world(text: str = 'hi there'):
             """Hello world pipeline."""
@@ -928,10 +1013,6 @@ class TestWriteToFileTypes(parameterized.TestCase):
     pipeline_name = 'test-pipeline'
 
     def make_pipeline_spec(self):
-
-        @dsl.component
-        def dummy_op():
-            pass
 
         @dsl.pipeline(name=self.pipeline_name)
         def my_pipeline():
@@ -1027,11 +1108,6 @@ class TestCompileComponent(parameterized.TestCase):
     @parameterized.parameters(['.json', '.yaml', '.yml'])
     def test_compile_component_simple(self, extension: str):
 
-        @dsl.component
-        def hello_world(text: str) -> str:
-            """Hello world component."""
-            return text
-
         with tempfile.TemporaryDirectory() as tempdir:
             output_json = os.path.join(tempdir, f'component{extension}')
             compiler.Compiler().compile(
@@ -1098,11 +1174,6 @@ class TestCompileComponent(parameterized.TestCase):
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'custom-name')
 
     def test_compile_component_with_pipeline_parameters_override(self):
-
-        @dsl.component
-        def hello_world(text: str) -> str:
-            """Hello world component."""
-            return text
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_json = os.path.join(tempdir, 'component.yaml')
@@ -1370,11 +1441,6 @@ class TestSetRetryCompilation(unittest.TestCase):
 
     def test_set_retry(self):
 
-        @dsl.component
-        def hello_world(text: str) -> str:
-            """Hello world component."""
-            return text
-
         @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
         def pipeline_hello_world(text: str = 'hi there'):
             """Hello world pipeline."""
@@ -1405,10 +1471,6 @@ from google.protobuf import json_format
 class TestMultipleExitHandlerCompilation(unittest.TestCase):
 
     def test_basic(self):
-
-        @dsl.component
-        def print_op(message: str):
-            print(message)
 
         @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
         def my_pipeline():
@@ -1451,10 +1513,6 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             'Second exit task.')
 
     def test_nested_unsupported(self):
-
-        @dsl.component
-        def print_op(message: str):
-            print(message)
 
         with self.assertRaisesRegex(
                 ValueError,
@@ -1628,484 +1686,280 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
             .runtime_value.constant.bool_value)
 
 
-# helper component defintions for the ValidLegalTopologies tests
-@dsl.component
-def print_op(message: str):
-    print(message)
+class TestTopologyValidation(unittest.TestCase):
 
-
-@dsl.component
-def return_1() -> int:
-    return 1
-
-
-@dsl.component
-def args_generator_op() -> List[Dict[str, str]]:
-    return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
-
-
-class TestValidLegalTopologies(unittest.TestCase):
-
-    def test_inside_of_root_group_permitted(self):
-
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
-
-            one = print_op(message='1')
-            two = print_op(message='2')
-            three = print_op(message=str(return_1_task.output))
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_upstream_inside_deeper_condition_blocked(self):
+    def test_invalid_condition_1(self):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
         ):
 
-            @dsl.pipeline()
-            def my_pipeline():
-                return_1_task = return_1()
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                with dsl.Condition(foo == 'bar'):
+                    one = print_and_return(text='foo')
+                # one may never execute. so one.output is not available
+                two = print_and_return(text=one.output)
 
-                one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
-                    two = print_op(message='2')
+    def test_invalid_condition_2(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+        ):
 
-                three = print_op(message='3').after(two)
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                with dsl.Condition(foo == 'bar'):
+                    one = print_and_return(text='foo')
+                # one may never execute. in that case, how should two be handled?
+                two = print_and_return(text='baz').after(one)
 
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
+    def test_invalid_condition_3(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+        ):
 
-    def test_upstream_in_the_same_condition_permitted(self):
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                with dsl.Condition(foo == 'bar'):
+                    with dsl.Condition(foo == 'bar'):
+                        one = print_and_return(text='foo')
+                    # one may never execute. in that case, how should two be handled?
+                    two = print_and_return(text='baz').after(one)
 
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
+    def test_invalid_condition_4(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.Condition context\.'
+        ):
 
-            with dsl.Condition(return_1_task.output == 1):
-                one = return_1()
-                two = print_op(message='2')
-                three = print_op(message=str(one.output))
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                with dsl.Condition(foo == 'foo'):
+                    one = print_and_return(text='foo')
+                # even though they are at the same level of the pipeline, two cannot depend on one
+                with dsl.Condition(foo == 'bar'):
+                    two = print_and_return(text='bar').after(one)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+    def test_valid_condition_1(self):
 
-    def test_downstream_inside_deeper_condition_permitted(self):
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            with dsl.Condition(foo == 'bar'):
+                one = print_and_return(text='foo')
+                two = print_and_return(text=one.output)
 
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-            one = print_op(message='1')
-            with dsl.Condition(return_1_task.output == 1):
-                two = print_op(message='2')
-                three = print_op(message='3').after(one)
+    def test_valid_condition_2(self):
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            with dsl.Condition(foo == 'bar'):
+                one = print_and_return(text='foo')
+                two = print_and_return(text='baz').after(one)
 
-    def test_downstream_and_upstream_in_different_condition_on_same_level_blocked(
-            self):
+        self.assertTrue(my_pipeline.pipeline_spec)
+
+    def test_valid_condition_3(self):
+
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            with dsl.Condition(foo == 'bar'):
+                with dsl.Condition(foo == 'bar'):
+                    one = print_and_return(text='foo')
+                    two = print_and_return(text='baz').after(one)
+
+        self.assertTrue(my_pipeline.pipeline_spec)
+
+    def test_valid_condition_4(self):
+
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            with dsl.Condition(foo == 'bar'):
+                one = print_and_return(text='foo')
+                with dsl.Condition(foo == 'bar'):
+                    two = print_and_return(text='baz').after(one)
+
+        self.assertTrue(my_pipeline.pipeline_spec)
+
+    def test_invalid_exithandler_1(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                exit_task = print_and_return(text='foo')
+                with dsl.ExitHandler(exit_task=exit_task):
+                    one = print_and_return(text='foo')
+                # cannot depend on task in exit handler
+                two = print_and_return(text=one.output)
+
+    def test_invalid_exithandler_2(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                exit_task = print_and_return(text='foo')
+                with dsl.ExitHandler(exit_task=exit_task):
+                    one = print_and_return(text='foo')
+                # cannot depend on task in exit handler
+                two = print_and_return(text='baz').after(one)
+
+    def test_invalid_exithandler_3(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-3 which depends on upstream task print-and-return-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(foo: str):
+                exit_task = print_and_return(text='foo')
+                with dsl.ExitHandler(exit_task=exit_task):
+                    one = print_and_return(text='foo')
+                with dsl.Condition(foo == 'bar'):
+                    # cannot depend on task in exit handler
+                    two = print_and_return(text=one.output)
+
+    def test_invalid_exithandler_4(self):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-and-return-4 which depends on upstream task print-and-return-2 within an uncommon dsl.ExitHandler context\.'
         ):
 
-            @dsl.pipeline()
+            @dsl.pipeline
             def my_pipeline():
-                return_1_task = return_1()
+                exit_task_1 = print_and_return(text='foo')
+                with dsl.ExitHandler(exit_task_1):
+                    one = print_and_return(text='bar')
 
-                one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
-                    two = print_op(message='2')
+                exit_task_2 = print_and_return(text='baz')
+                with dsl.ExitHandler(exit_task_2):
+                    # even though they are at the same level of the pipeline, two cannot depend on one
+                    two = print_and_return(text='bat').after(one)
 
-                with dsl.Condition(return_1_task.output == 1):
-                    three = print_op(message='3').after(two)
+    def test_valid_exithandler_1(self):
 
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            exit_task = print_and_return(text='foo')
+            with dsl.ExitHandler(exit_task=exit_task):
+                one = print_and_return(text='foo')
+                two = print_and_return(text=one.output)
 
-    def test_downstream_inside_deeper_nested_condition_permitted(self):
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
-            return_1_task2 = return_1()
+    def test_valid_exithandler_2(self):
 
-            with dsl.Condition(return_1_task.output == 1):
-                one = return_1()
-                with dsl.Condition(return_1_task2.output == 1):
-                    two = print_op(message='2')
-                    three = print_op(message=str(one.output))
+        @dsl.pipeline
+        def my_pipeline(foo: str):
+            exit_task = print_and_return(text='foo')
+            with dsl.ExitHandler(exit_task=exit_task):
+                one = print_and_return(text='foo')
+                two = print_and_return(text='baz').after(one)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-    def test_upstream_inside_deeper_nested_condition_blocked(self):
-
+    def test_invalid_parallelfor_1(self):
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.Condition context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.'
         ):
 
-            @dsl.pipeline()
+            @dsl.pipeline
             def my_pipeline():
-                return_1_task = return_1()
+                with dsl.ParallelFor([1, 2, 3]):
+                    one = print_and_return(text='foo')
+                # requires dsl.Collected
+                two = print_and_return(text=one.output)
 
-                with dsl.Condition(return_1_task.output == 1):
-                    one = print_op(message='1')
-                    with dsl.Condition(return_1_task.output == 1):
-                        two = print_op(message='2')
-                    three = print_op(message='3').after(two)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_upstream_in_same_for_loop_with_downstream_permitted(self):
-
-        @dsl.pipeline()
-        def my_pipeline():
-            args_generator = args_generator_op()
-
-            with dsl.ParallelFor(args_generator.output):
-                one = print_op(message='1')
-                two = print_op(message='3').after(one)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_not_in_same_for_loop_with_upstream_blocked(self):
-
+    def test_invalid_parallelfor_2(self):
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-op-2 which depends on upstream task print-op within an uncommon dsl\.ParallelFor context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.'
         ):
 
-            @dsl.pipeline()
-            def my_pipeline():
-                args_generator = args_generator_op()
+            @dsl.pipeline
+            def my_pipeline(text: str):
+                with dsl.ParallelFor([1, 2, 3]):
+                    one = print_and_return(text='foo')
+                # requires dsl.Collected
+                with dsl.Condition(text == 'foo'):
+                    # it shouldn't matter if print_and_return is nested in a condition
+                    # it still needs dsl.Collected
+                    two = print_and_return(text=one.output)
 
-                with dsl.ParallelFor(args_generator.output):
-                    one = print_op(message='1')
-                two = print_op(message='3').after(one)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_not_in_same_for_loop_with_upstream_seperate_blocked(
-            self):
-
+    def test_invalid_parallelfor_3(self):
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-op-2 which depends on upstream task print-op within an uncommon dsl\.ParallelFor context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ParallelFor context unless the downstream is within that context too or the outputs are begin fanned-in to a list using dsl\.Collected\. Found task print-and-return-2 which depends on upstream task print-and-return within an uncommon dsl\.ParallelFor context\.'
         ):
 
-            @dsl.pipeline()
+            @dsl.pipeline
             def my_pipeline():
-                args_generator = args_generator_op()
+                with dsl.ParallelFor([1, 2, 3]):
+                    one = print_and_return(text='foo')
+                with dsl.ParallelFor([1, 2, 3]):
+                    # requires dsl.Collected
+                    two = print_and_return(text=one.output)
 
-                with dsl.ParallelFor(args_generator.output):
-                    one = print_op(message='1')
-
-                with dsl.ParallelFor(args_generator.output):
-                    two = print_op(message='3').after(one)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
-
-        with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Downstream tasks in a nested ParallelFor group cannot depend on an upstream task in a shallower ParallelFor group.'
-        ):
-
-            @dsl.pipeline()
-            def my_pipeline():
-                args_generator = args_generator_op()
-
-                with dsl.ParallelFor(args_generator.output):
-                    one = print_op(message='1')
-
-                    with dsl.ParallelFor(args_generator.output):
-                        two = print_op(message='3').after(one)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_inner_parallelfor_can_iter_over_upstream_output(self):
-
-        @dsl.component
-        def str_to_list(string: str) -> List:
-            return [string]
-
-        @dsl.component
-        def identity(string: str) -> str:
-            return string
+    def test_valid_parallelfor_1(self):
 
         @dsl.pipeline
         def my_pipeline():
-            with dsl.ParallelFor(['a', 'b', 'c']) as itema:
-                t1 = str_to_list(string=itema)
-                with dsl.ParallelFor(t1.output) as itemb:
-                    identity(string=itemb)
+            # first for loop will run
+            with dsl.ParallelFor([1, 2, 3]) as item:
+                one = print_and_return(text='foo')
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+            # second for loop will run after first
+            with dsl.ParallelFor([1, 2, 3]) as item:
+                # when calling .after on a task in an uncommon upstream loop, it refers to all instances of the task
+                two = print_and_return(text='bar').after(one)
 
-    def test_permitted_nested_parallelfor_complex(self):
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-        @dsl.component
-        def str_to_list(string: str) -> List:
-            return [string]
-
-        @dsl.component
-        def identity(string: str) -> str:
-            return string
+    def test_valid_parallelfor_2(self):
 
         @dsl.pipeline
         def my_pipeline():
-
-            # for-loop-2
-            with dsl.ParallelFor(['a', 'b', 'c']) as itema:
-                t1 = str_to_list(string=itema)
-                t2 = str_to_list(string=itema)
-
-                sequential_task1 = identity(string=itema)
-                identity(string=sequential_task1.output)
-
-                # for-loop-3
-                with dsl.ParallelFor(t1.output) as itemb:
-                    t3 = str_to_list(string=itema)
-                    with dsl.ParallelFor(t3.output) as itemc:
-                        identity(string=itemc)
-                    with dsl.ParallelFor(t2.output) as itemd:
-                        identity(string=itemd)
-                with dsl.ParallelFor(t2.output) as iteme:
-                    identity(string=iteme)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_in_condition_nested_in_a_for_loop(self):
-
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
+            one = print_and_return(text='foo')
 
             with dsl.ParallelFor([1, 2, 3]):
-                one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
-                    two = print_op(message='2').after(one)
+                # refers to only one task
+                two = print_and_return(text='bar').after(one)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
+        self.assertTrue(my_pipeline.pipeline_spec)
 
-    def test_downstream_in_a_for_loop_nested_in_a_condition(self):
+    def test_valid_parallelfor_3(self):
 
-        @dsl.pipeline()
+        @dsl.pipeline
         def my_pipeline():
-            return_1_task = return_1()
-
-            with dsl.Condition(return_1_task.output == 1):
-                one = print_op(message='1')
-                with dsl.ParallelFor([1, 2, 3]):
-                    two = print_op(message='2').after(one)
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_downstream_in_a_nested_for_loop_not_related_to_upstream(self):
-
-        @dsl.pipeline()
-        def my_pipeline():
-            return_1_task = return_1()
-
             with dsl.ParallelFor([1, 2, 3]):
-                one = print_op(message='1')
+                one = print_and_return(text='foo')
+            # refers to all instances of one
+            two = print_and_return(text='bar').after(one)
+
+        self.assertTrue(my_pipeline.pipeline_spec)
+
+    def test_valid_parallelfor_4(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor([1, 2, 3]):
                 with dsl.ParallelFor([1, 2, 3]):
-                    two = print_op(message='2').after(return_1_task)
+                    one = print_and_return(text='foo')
+                # refers to all instances of one in the inner loop
+                two = print_and_return(text='bar').after(one)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-
-class TestCannotUseAfterCrossDAG(unittest.TestCase):
-
-    def test_inner_task_prevented(self):
-        with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-4 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
-        ):
-
-            @dsl.component
-            def print_op(message: str):
-                print(message)
-
-            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-            def my_pipeline():
-                first_exit_task = print_op(message='First exit task.')
-
-                with dsl.ExitHandler(first_exit_task):
-                    first_print_op = print_op(
-                        message='Inside first exit handler.')
-
-                second_exit_task = print_op(message='Second exit task.')
-                with dsl.ExitHandler(second_exit_task):
-                    print_op(message='Inside second exit handler.').after(
-                        first_print_op)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_exit_handler_task_prevented(self):
-        with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-4 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
-        ):
-
-            @dsl.component
-            def print_op(message: str):
-                print(message)
-
-            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-            def my_pipeline():
-                first_exit_task = print_op(message='First exit task.')
-
-                with dsl.ExitHandler(first_exit_task):
-                    first_print_op = print_op(
-                        message='Inside first exit handler.')
-
-                second_exit_task = print_op(message='Second exit task.')
-                with dsl.ExitHandler(second_exit_task):
-                    x = print_op(message='Inside second exit handler.')
-                    x.after(first_print_op)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_within_same_exit_handler_permitted(self):
-
-        @dsl.component
-        def print_op(message: str):
-            print(message)
-
-        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-        def my_pipeline():
-            first_exit_task = print_op(message='First exit task.')
-
-            with dsl.ExitHandler(first_exit_task):
-                first_print_op = print_op(
-                    message='First task inside first exit handler.')
-                second_print_op = print_op(
-                    message='Second task inside first exit handler.').after(
-                        first_print_op)
-
-            second_exit_task = print_op(message='Second exit task.')
-            with dsl.ExitHandler(second_exit_task):
-                print_op(message='Inside second exit handler.')
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_outside_of_condition_blocked(self):
-        with self.assertRaisesRegex(
-                compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op within an uncommon dsl\.Condition context\.'
-        ):
-
-            @dsl.component
-            def print_op(message: str):
-                print(message)
-
-            @dsl.component
-            def return_1() -> int:
-                return 1
-
-            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-            def my_pipeline():
-                return_1_task = return_1()
-
-                with dsl.Condition(return_1_task.output == 1):
-                    one = print_op(message='1')
-                    two = print_op(message='2')
-                three = print_op(message='3').after(one)
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
-
-    def test_inside_of_condition_permitted(self):
-
-        @dsl.component
-        def print_op(message: str):
-            print(message)
-
-        @dsl.component
-        def return_1() -> int:
-            return 1
-
-        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
-        def my_pipeline():
-            return_1_task = return_1()
-
-            with dsl.Condition(return_1_task.output == '1'):
-                one = print_op(message='1')
-                two = print_op(message='2').after(one)
-            three = print_op(message='3')
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            package_path = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
-
-@dsl.component
-def identity(string: str, model: bool) -> str:
-    return string
+        self.assertTrue(my_pipeline.pipeline_spec)
 
 
 class TestYamlComments(unittest.TestCase):
@@ -2115,7 +1969,8 @@ class TestYamlComments(unittest.TestCase):
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,
                         sample_input2: str = 'string') -> str:
-            op1 = identity(string=sample_input2, model=sample_input1)
+
+            op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
 
@@ -2150,7 +2005,7 @@ class TestYamlComments(unittest.TestCase):
         @dsl.pipeline()
         def pipeline_with_no_description(sample_input1: bool = True,
                                          sample_input2: str = 'string') -> str:
-            op1 = identity(string=sample_input2, model=sample_input1)
+            op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
 
@@ -2189,7 +2044,7 @@ class TestYamlComments(unittest.TestCase):
         def pipeline_with_description(sample_input1: bool = True,
                                       sample_input2: str = 'string') -> str:
             """This is a description of this pipeline."""
-            op1 = identity(string=sample_input2, model=sample_input1)
+            op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
 
@@ -2228,7 +2083,7 @@ class TestYamlComments(unittest.TestCase):
         def pipeline_with_description(sample_input1: bool = True,
                                       sample_input2: str = 'string') -> str:
             """Don't prefer this description."""
-            op1 = identity(string=sample_input2, model=sample_input1)
+            op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
 
@@ -2266,7 +2121,7 @@ class TestYamlComments(unittest.TestCase):
 
         @dsl.pipeline()
         def pipeline_with_no_inputs() -> str:
-            op1 = identity(string='string', model=True)
+            op1 = my_comp(string='string', model=True)
             result = op1.output
             return result
 
@@ -2286,7 +2141,7 @@ class TestYamlComments(unittest.TestCase):
         @dsl.pipeline()
         def pipeline_with_no_outputs(sample_input1: bool = True,
                                      sample_input2: str = 'string'):
-            identity(string=sample_input2, model=sample_input1)
+            my_comp(string=sample_input2, model=sample_input1)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
@@ -2307,7 +2162,7 @@ class TestYamlComments(unittest.TestCase):
         def my_pipeline(sample_input1: bool = True,
                         sample_input2: str = 'string') -> str:
             """This is a definition of this pipeline."""
-            op1 = identity(string=sample_input2, model=sample_input1)
+            op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
 
@@ -2439,7 +2294,7 @@ class TestYamlComments(unittest.TestCase):
         def my_pipeline(sample_input1: bool = True,
                         sample_input2: str = 'string') -> str:
             """My description."""
-            op1 = identity(string=sample_input2, model=sample_input1)
+            op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
 
@@ -2481,7 +2336,7 @@ class TestYamlComments(unittest.TestCase):
             """docstring short description.
             docstring long description. docstring long description.
             """
-            op1 = identity(string=sample_input2, model=sample_input1)
+            op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
 
@@ -2510,7 +2365,7 @@ class TestYamlComments(unittest.TestCase):
             docstring long description.
             docstring long description.
             """
-            op1 = identity(string=sample_input2, model=sample_input1)
+            op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
 
@@ -2540,7 +2395,7 @@ class TestYamlComments(unittest.TestCase):
             docstring long description.
             docstring long description.
             """
-            op1 = identity(string=sample_input2, model=sample_input1)
+            op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
             return result
 
@@ -2821,13 +2676,9 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
 
     def test_pipeline(self):
 
-        @dsl.component
-        def comp():
-            print('hello')
-
         @dsl.pipeline
         def my_pipeline(x: Optional[Input[Artifact]] = None):
-            comp()
+            print_hello()
 
         artifact_spec_from_root = my_pipeline.pipeline_spec.root.input_definitions.artifacts[
             'x']
@@ -2835,13 +2686,9 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
 
     def test_pipeline_without_optional_type_modifier(self):
 
-        @dsl.component
-        def comp():
-            print('hello')
-
         @dsl.pipeline
         def my_pipeline(x: Input[Artifact] = None):
-            comp()
+            print_hello()
 
         artifact_spec_from_root = my_pipeline.pipeline_spec.root.input_definitions.artifacts[
             'x']
@@ -2909,18 +2756,25 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
 
 class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
-    def test_missing_collected_with_correct_annotation(self):
-        from typing import List
-
-        from kfp import dsl
-
-        @dsl.component
-        def double(num: int) -> int:
-            return 2 * num
+    def test_correct_subdag_return_type(self):
 
         @dsl.component
         def add(nums: List[int]) -> int:
             return sum(nums)
+
+        @dsl.pipeline
+        def math_pipeline() -> int:
+            with dsl.ParallelFor([1, 2, 3]) as v:
+                t = double(num=v)
+
+            return add(nums=dsl.Collected(t.output)).output
+
+        self.assertEqual(
+            math_pipeline.pipeline_spec.components['comp-for-loop-2']
+            .output_definitions.parameters['pipelinechannel--double-Output']
+            .parameter_type, type_utils.LIST)
+
+    def test_missing_collected_with_correct_annotation(self):
 
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
@@ -2935,10 +2789,6 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
                 return add(nums=t.output).output
 
     def test_missing_collected_with_incorrect_annotation(self):
-
-        @dsl.component
-        def double(num: int) -> int:
-            return 2 * num
 
         @dsl.component
         def add(nums: int) -> int:
@@ -2957,34 +2807,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
                 return add(nums=t.output).output
 
-    def test_producer_condition_legal1(self):
-        from kfp import dsl
-
-        @dsl.component
-        def double(num: int) -> int:
-            return 2 * num
-
-        @dsl.component
-        def add(nums: List[int]) -> int:
-            return sum(nums)
-
-        @dsl.pipeline
-        def math_pipeline(text: str) -> int:
-            with dsl.Condition(text == 'text'):
-                with dsl.ParallelFor([1, 2, 3]) as v:
-                    t = double(num=v)
-
-                return add(nums=dsl.Collected(t.output)).output
-
     def test_producer_condition_legal2(self):
-
-        @dsl.component
-        def double(num: int) -> int:
-            return 2 * num
-
-        @dsl.component
-        def add(nums: List[int]) -> int:
-            return sum(nums)
 
         @dsl.pipeline
         def my_pipeline(a: str):
@@ -2996,14 +2819,6 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
                 x = add(nums=dsl.Collected(t.output))
 
     def test_producer_condition_illegal1(self):
-
-        @dsl.component
-        def double(num: int) -> int:
-            return 2 * num
-
-        @dsl.component
-        def add(nums: List[int]) -> int:
-            return sum(nums)
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
@@ -3021,14 +2836,6 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
     def test_producer_condition_illegal2(self):
 
-        @dsl.component
-        def double(num: int) -> int:
-            return 2 * num
-
-        @dsl.component
-        def add(nums: List[int]) -> int:
-            return sum(nums)
-
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
                 r'Illegal task dependency across DSL context managers\. When using dsl\.Collected to fan-in outputs from a task within a dsl\.ParallelFor context, the dsl\.ParallelFor context manager cannot be nested within a dsl\.Condition context manager unless the consumer task is too\. Task add consumes from double within a dsl\.Condition context\.'
@@ -3044,16 +2851,8 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
     def test_producer_exit_handler_illegal1(self):
 
         @dsl.component
-        def double(num: int) -> int:
-            return 2 * num
-
-        @dsl.component
         def exit_comp():
             print('Running exit task!')
-
-        @dsl.component
-        def add(nums: List[int]) -> int:
-            return sum(nums)
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
@@ -3107,14 +2906,6 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
     def test_producer_and_consumer_in_same_context(self):
 
-        @dsl.component
-        def double(num: int) -> int:
-            return 2 * num
-
-        @dsl.component
-        def add(nums: List[int]) -> int:
-            return sum(nums)
-
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
                 r'dsl\.Collected can only be used to fan-in outputs produced by a task within a dsl\.ParallelFor context to a task outside of the dsl\.ParallelFor context\. Producer task double is either not in a dsl\.ParallelFor context or is only in a dsl\.ParallelFor that also contains consumer task add\.'
@@ -3127,14 +2918,6 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
                     add(nums=dsl.Collected(t.output))
 
     def test_no_parallelfor_context(self):
-
-        @dsl.component
-        def double(num: int) -> int:
-            return 2 * num
-
-        @dsl.component
-        def add(nums: List[int]) -> int:
-            return sum(nums)
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
@@ -3174,6 +2957,141 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
         self.assertEqual(
             my_pipeline.pipeline_spec.root.dag.tasks['fail-op'].trigger_policy
             .strategy, 0)
+
+    def test_can_use_task_final_status(self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(
+            status: PipelineTaskFinalStatus,
+            text: str = '',
+        ):
+            print(text)
+            print(status)
+
+        @dsl.pipeline
+        def my_pipeline():
+            worker_task = worker_component()
+            exit_task = cancel_handler(
+                text=worker_task.output).ignore_upstream_failure()
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['cancel-handler']
+            .trigger_policy.strategy, 2)
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['cancel-handler'].inputs
+            .parameters['status'].task_final_status.producer_task,
+            'worker-component')
+
+        status_param = my_pipeline.pipeline_spec.components[
+            'comp-cancel-handler'].input_definitions.parameters['status']
+        self.assertTrue(status_param.is_optional)
+        self.assertEqual(status_param.parameter_type,
+                         type_utils.TASK_FINAL_STATUS)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.dag.tasks['worker-component']
+            .trigger_policy.strategy, 0)
+
+    def test_cannot_use_task_final_status_under_task_group(self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(
+            status: PipelineTaskFinalStatus,
+            text: str = '',
+        ):
+            print(text)
+            print(status)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task within the same control flow scope\. Got task 'cancel-handler' beneath a 'dsl\.Condition' that does not also contain the upstream dependent task\.",
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                worker_task = worker_component()
+                with dsl.Condition(worker_task.output == 'foo'):
+                    exit_task = cancel_handler(
+                        text=worker_task.output).ignore_upstream_failure()
+
+    def test_cannot_use_final_task_status_if_zero_dependencies(self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(status: PipelineTaskFinalStatus,):
+            print(status)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got task 'cancel-handler with no upstream dependencies\.",
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                worker_task = worker_component()
+                exit_task = cancel_handler().ignore_upstream_failure()
+
+    def test_cannot_use_task_final_status_if_more_than_one_dependency_implicit(
+            self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(
+            status: PipelineTaskFinalStatus,
+            a: str = '',
+            b: str = '',
+        ):
+            print(status)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got 2 dependent tasks: \['worker-component', 'worker-component-2']\.",
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                worker_task1 = worker_component()
+                worker_task2 = worker_component()
+                exit_task = cancel_handler(
+                    a=worker_task1.output,
+                    b=worker_task2.output).ignore_upstream_failure()
+
+    def test_cannot_use_task_final_status_if_more_than_one_dependency_explicit(
+            self):
+
+        @dsl.component
+        def worker_component() -> str:
+            return 'hello'
+
+        @dsl.component
+        def cancel_handler(status: PipelineTaskFinalStatus,):
+            print(status)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r"Tasks that use '\.ignore_upstream_failure\(\)' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task\. Got 2 dependent tasks: \['worker-component', 'worker-component-2']\.",
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                worker_task1 = worker_component()
+                worker_task2 = worker_component()
+                exit_task = cancel_handler().after(
+                    worker_task1, worker_task2).ignore_upstream_failure()
 
     def test_component_with_no_input_permitted(self):
 
@@ -3240,13 +3158,9 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             sys.exit(1)
             return message
 
-        @dsl.component
-        def identity(message: str = 'message') -> str:
-            return message
-
         @dsl.pipeline
         def wrapped_pipeline(message: str = 'message') -> str:
-            task = identity(message=message)
+            task = print_and_return(text=message)
             return task.output
 
         @dsl.pipeline
@@ -3272,10 +3186,6 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             sys.exit(1)
             return message
 
-        @dsl.component
-        def print_op(message: str):
-            print(message)
-
         with self.assertRaisesRegex(
                 ValueError, r'Tasks can only use .ignore_upstream_failure()'):
 
@@ -3294,10 +3204,6 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             print(message)
             sys.exit(1)
             return message
-
-        @dsl.component
-        def print_op(message: str):
-            print(message)
 
         @dsl.pipeline()
         def my_pipeline(sample_input1: str = 'message'):
@@ -3320,10 +3226,6 @@ class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
             print(message)
             sys.exit(1)
             return message
-
-        @dsl.component
-        def print_op(message: str):
-            print(message)
 
         @dsl.pipeline()
         def my_pipeline(sample_input1: str = 'message'):
@@ -3473,11 +3375,6 @@ def baz_platform_set_bat_feature(task: pipeline_task.PipelineTask,
     return task
 
 
-@dsl.component
-def comp():
-    pass
-
-
 def compile_and_reload(
         pipeline: graph_component.GraphComponent
 ) -> yaml_component.YamlComponent:
@@ -3492,49 +3389,45 @@ class TestResourceConfig(unittest.TestCase):
 
     def test_cpu_memory_optional(self):
 
-        @dsl.component
-        def predict_op() -> str:
-            return 'a'
-
         @dsl.pipeline
         def simple_pipeline():
-            predict_op()
-            predict_op().set_cpu_limit('5')
-            predict_op().set_memory_limit('50G')
-            predict_op().set_cpu_request('2').set_cpu_limit(
+            return_1()
+            return_1().set_cpu_limit('5')
+            return_1().set_memory_limit('50G')
+            return_1().set_cpu_request('2').set_cpu_limit(
                 '5').set_memory_request('4G').set_memory_limit('50G')
 
         dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
 
         self.assertNotIn(
             'resources', dict_format['deploymentSpec']['executors']
-            ['exec-predict-op']['container'])
+            ['exec-return-1']['container'])
 
         self.assertEqual(
-            5, dict_format['deploymentSpec']['executors']['exec-predict-op-2']
+            5, dict_format['deploymentSpec']['executors']['exec-return-1-2']
             ['container']['resources']['cpuLimit'])
         self.assertNotIn(
             'memoryLimit', dict_format['deploymentSpec']['executors']
-            ['exec-predict-op-2']['container']['resources'])
+            ['exec-return-1-2']['container']['resources'])
 
         self.assertEqual(
-            50, dict_format['deploymentSpec']['executors']['exec-predict-op-3']
+            50, dict_format['deploymentSpec']['executors']['exec-return-1-3']
             ['container']['resources']['memoryLimit'])
         self.assertNotIn(
             'cpuLimit', dict_format['deploymentSpec']['executors']
-            ['exec-predict-op-3']['container']['resources'])
+            ['exec-return-1-3']['container']['resources'])
 
         self.assertEqual(
-            2, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            2, dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['cpuRequest'])
         self.assertEqual(
-            5, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            5, dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['cpuLimit'])
         self.assertEqual(
-            4, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            4, dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['memoryRequest'])
         self.assertEqual(
-            50, dict_format['deploymentSpec']['executors']['exec-predict-op-4']
+            50, dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['memoryLimit'])
 
 
@@ -4208,6 +4101,1565 @@ class ExtractInputOutputDescription(unittest.TestCase):
             pipeline_spec.components['comp-comp'].output_definitions
             .artifacts['out_artifact'].description,
             'Component output artifact.')
+
+
+class TestCannotReturnFromWithinControlFlowGroup(unittest.TestCase):
+
+    def test_condition_raises(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output from within the control flow group dsl\.Condition\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(string: str = 'string') -> str:
+                with dsl.Condition(string == 'foo'):
+                    return print_and_return(text=string).output
+
+    def test_loop_raises(self):
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output from within the control flow group dsl\.ParallelFor\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(string: str = 'string') -> str:
+                with dsl.ParallelFor([1, 2, 3]):
+                    return print_and_return(text=string).output
+
+    def test_exit_handler_raises(self):
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output from within the control flow group dsl\.ExitHandler\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(string: str = 'string') -> str:
+                with dsl.ExitHandler(print_and_return(text='exit task')):
+                    return print_and_return(text=string).output
+
+
+class TestConditionLogic(unittest.TestCase):
+
+    def test_if(self):
+
+        @dsl.pipeline
+        def flip_coin_pipeline():
+            flip_coin_task = flip_coin()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                print_and_return(text='Got heads!')
+
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+        )
+
+    def test_if_else(self):
+
+        @dsl.pipeline
+        def flip_coin_pipeline():
+            flip_coin_task = flip_coin()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                print_and_return(text='Got heads!')
+            with dsl.Else():
+                print_and_return(text='Got tails!')
+
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-2']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+        )
+
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-3']
+            .trigger_policy.condition,
+            "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads')"
+        )
+
+    def test_if_elif_else(self):
+
+        @dsl.pipeline
+        def flip_coin_pipeline():
+            flip_coin_task = roll_three_sided_die()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                print_and_return(text='Got heads!')
+            with dsl.Elif(flip_coin_task.output == 'tails'):
+                print_and_return(text='Got tails!')
+            with dsl.Else():
+                print_and_return(text='Draw!')
+
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-2']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'heads'"
+        )
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-3']
+            .trigger_policy.condition,
+            "!(inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'heads') && inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'tails'"
+        )
+
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-4']
+            .trigger_policy.condition,
+            "!(inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'heads') && !(inputs.parameter_values['pipelinechannel--roll-three-sided-die-Output'] == 'tails')"
+        )
+
+    def test_if_multiple_elif_else(self):
+
+        @dsl.pipeline
+        def int_to_string():
+            int_task = int_zero_through_three()
+            with dsl.If(int_task.output == 0):
+                print_and_return(text='Got zero!')
+            with dsl.Elif(int_task.output == 1):
+                print_and_return(text='Got one!')
+            with dsl.Elif(int_task.output == 2):
+                print_and_return(text='Got two!')
+            with dsl.Else():
+                print_and_return(text='Got three!')
+
+        self.assertEqual(
+            int_to_string.pipeline_spec.components['comp-condition-branches-1']
+            .dag.tasks['condition-2'].trigger_policy.condition,
+            "int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0"
+        )
+        self.assertEqual(
+            int_to_string.pipeline_spec.components['comp-condition-branches-1']
+            .dag.tasks['condition-3'].trigger_policy.condition,
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1"
+        )
+        self.assertEqual(
+            int_to_string.pipeline_spec.components['comp-condition-branches-1']
+            .dag.tasks['condition-4'].trigger_policy.condition,
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2"
+        )
+        self.assertEqual(
+            int_to_string.pipeline_spec.components['comp-condition-branches-1']
+            .dag.tasks['condition-5'].trigger_policy.condition,
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2)"
+        )
+
+    def test_nested_if_elif_else_with_pipeline_param(self):
+
+        @dsl.pipeline
+        def flip_coin_pipeline(confirm: bool):
+            int_task = int_zero_through_three()
+            heads_task = flip_coin()
+
+            with dsl.If(heads_task.output == 'heads'):
+                with dsl.If(int_task.output == 0):
+                    print_and_return(text='Got zero!')
+
+                with dsl.Elif(int_task.output == 1):
+                    task = print_and_return(text='Got one!')
+                    with dsl.If(confirm == True):
+                        print_and_return(text='Confirmed: definitely got one.')
+
+                with dsl.Elif(int_task.output == 2):
+                    print_and_return(text='Got two!')
+
+                with dsl.Else():
+                    print_and_return(text='Got three!')
+
+                # tests that the pipeline wrapper works well with multiple if/elif/else
+                with dsl.ParallelFor(['Game #1', 'Game #2']) as game_no:
+                    heads_task = flip_coin()
+                    with dsl.If(heads_task.output == 'heads'):
+                        print_and_return(text=game_no)
+                        print_and_return(text='Got heads!')
+                    with dsl.Else():
+                        print_and_return(text=game_no)
+                        print_and_return(text='Got tail!')
+
+        # first group
+        ## top level conditions
+        ### if
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+        )
+        ## second level nested conditions
+        ### if
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-2'].dag.tasks['condition-3']
+            .trigger_policy.condition,
+            "int(inputs.parameter_values[\'pipelinechannel--int-zero-through-three-Output\']) == 0"
+        )
+        ### elif
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-2'].dag.tasks['condition-4']
+            .trigger_policy.condition,
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1"
+        )
+        ### elif #2
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-2'].dag.tasks['condition-6']
+            .trigger_policy.condition,
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2"
+        )
+        ### else
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-2'].dag.tasks['condition-7']
+            .trigger_policy.condition,
+            "!(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 0) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 1) && !(int(inputs.parameter_values['pipelinechannel--int-zero-through-three-Output']) == 2)"
+        )
+        ## third level nested conditions
+        ### if
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-4'].dag
+            .tasks['condition-5'].trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--confirm'] == true")
+
+        # second group
+
+        ## if
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-10'].dag.tasks['condition-11']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'heads'"
+        )
+        ## elif
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-10'].dag.tasks['condition-12']
+            .trigger_policy.condition,
+            "!(inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'heads')"
+        )
+
+    def test_multiple_ifs_permitted(self):
+
+        @dsl.pipeline
+        def flip_coin_pipeline():
+            flip_coin_task = flip_coin()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                print_and_return(text='Got heads!')
+            with dsl.If(flip_coin_task.output == 'tails'):
+                print_and_return(text='Got tails!')
+
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-1']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+        )
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks['condition-2']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'tails'"
+        )
+
+    def test_multiple_else_not_permitted(self):
+        with self.assertRaisesRegex(
+                tasks_group.InvalidControlFlowException,
+                r'Cannot use dsl\.Else following another dsl\.Else\. dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.'
+        ):
+
+            @dsl.pipeline
+            def flip_coin_pipeline():
+                flip_coin_task = flip_coin()
+                with dsl.If(flip_coin_task.output == 'heads'):
+                    print_and_return(text='Got heads!')
+                with dsl.Else():
+                    print_and_return(text='Got tails!')
+                with dsl.Else():
+                    print_and_return(text='Got tails!')
+
+    def test_else_no_if_not_supported(self):
+        with self.assertRaisesRegex(
+                tasks_group.InvalidControlFlowException,
+                r'dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.'
+        ):
+
+            @dsl.pipeline
+            def flip_coin_pipeline():
+                with dsl.Else():
+                    print_and_return(text='Got unknown')
+
+    def test_elif_no_if_not_supported(self):
+        with self.assertRaisesRegex(
+                tasks_group.InvalidControlFlowException,
+                r'dsl\.Elif can only be used following an upstream dsl\.If or dsl\.Elif\.'
+        ):
+
+            @dsl.pipeline
+            def flip_coin_pipeline():
+                flip_coin_task = flip_coin()
+                with dsl.Elif(flip_coin_task.output == 'heads'):
+                    print_and_return(text='Got heads!')
+
+    def test_boolean_condition_has_helpful_error(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Got constant boolean True as a condition\. This is likely because the provided condition evaluated immediately\. At least one of the operands must be an output from an upstream task or a pipeline parameter\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                with dsl.Condition('foo' == 'foo'):
+                    print_and_return(text='I will always run.')
+
+    def test_boolean_elif_has_helpful_error(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Got constant boolean False as a condition\. This is likely because the provided condition evaluated immediately\. At least one of the operands must be an output from an upstream task or a pipeline parameter\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(text: str):
+                with dsl.If(text == 'foo'):
+                    print_and_return(text='I will always run.')
+                with dsl.Elif('foo' == 'bar'):
+                    print_and_return(text='I will never run.')
+
+    def test_tasks_instantiated_between_if_else_and_elif_permitted(self):
+
+        @dsl.pipeline
+        def flip_coin_pipeline():
+            flip_coin_task = flip_coin()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                print_and_return(text='Got heads on coin one!')
+
+            flip_coin_task_2 = flip_coin()
+
+            with dsl.Elif(flip_coin_task_2.output == 'tails'):
+                print_and_return(text='Got heads on coin two!')
+
+            flip_coin_task_3 = flip_coin()
+
+            with dsl.Else():
+                print_and_return(
+                    text=f'Coin three result: {flip_coin_task_3.output}')
+
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-2']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads'"
+        )
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-3']
+            .trigger_policy.condition,
+            "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads') && inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'tails'"
+        )
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].dag.tasks['condition-4']
+            .trigger_policy.condition,
+            "!(inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'heads') && !(inputs.parameter_values['pipelinechannel--flip-coin-2-Output'] == 'tails')"
+        )
+
+    def test_other_control_flow_instantiated_between_if_else_not_permitted(
+            self):
+        with self.assertRaisesRegex(
+                tasks_group.InvalidControlFlowException,
+                'dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.'
+        ):
+
+            @dsl.pipeline
+            def flip_coin_pipeline():
+                flip_coin_task = flip_coin()
+                with dsl.If(flip_coin_task.output == 'heads'):
+                    print_and_return(text='Got heads!')
+                with dsl.ParallelFor(['foo', 'bar']) as item:
+                    print_and_return(text=item)
+                with dsl.Else():
+                    print_and_return(text='Got tails!')
+
+
+class TestDslOneOf(unittest.TestCase):
+    # The space of possible tests is very large, so we test a representative set of cases covering the following styles of usage:
+    # - upstream conditions: if/else v if/elif/else
+    # - data consumed: parameters v artifacts
+    # - where dsl.OneOf goes: consumed by task v returned v both
+    # - when outputs have different keys: e.g., .output v .outputs[<key>]
+    # - how the if/elif/else are nested and at what level they are consumed
+
+    # Data type validation (e.g., dsl.OneOf(artifact, param) fails) and similar is covered in pipeline_channel_test.py.
+
+    # To help narrow the tests further (we already test lots of aspects in the following cases), we choose focus on the dsl.OneOf behavior, not the conditional logic if If/Elif/Else. This is more verbose, but more maintainable and the behavior under test is clearer.
+
+    def test_if_else_returned(self):
+        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+
+        @dsl.pipeline
+        def roll_die_pipeline() -> str:
+            flip_coin_task = flip_coin()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                t1 = print_and_return(text='Got heads!')
+            with dsl.Else():
+                t2 = print_and_return_with_output_key(text='Got tails!')
+            return dsl.OneOf(t1.output, t2.outputs['output_key'])
+
+        # hole punched through if
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-2']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-Output'].parameter_type,
+            type_utils.STRING,
+        )
+        # hole punched through else
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-3']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-with-output-key-output_key']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        # condition-branches surfaces
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].output_definitions
+            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
+            'comp-condition-branches-1'].dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+
+        self.assertEqual(
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
+        self.assertEqual(
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-3',
+            ))
+        # surfaced as output
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.root.dag.outputs
+            .parameters['Output'].value_from_parameter,
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                producer_subtask='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
+        )
+
+    def test_if_elif_else_returned(self):
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+
+        @dsl.pipeline
+        def roll_die_pipeline() -> str:
+            flip_coin_task = roll_three_sided_die()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                t1 = print_and_return(text='Got heads!')
+            with dsl.Elif(flip_coin_task.output == 'tails'):
+                t2 = print_and_return(text='Got tails!')
+            with dsl.Else():
+                t3 = print_and_return_with_output_key(text='Draw!')
+            return dsl.OneOf(t1.output, t2.output, t3.outputs['output_key'])
+
+        # hole punched through if
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-2']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-Output'].parameter_type,
+            type_utils.STRING,
+        )
+        # hole punched through elif
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-3']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-2-Output'].parameter_type,
+            type_utils.STRING,
+        )
+        # hole punched through else
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-4']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-with-output-key-output_key']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        # condition-branches surfaces
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].output_definitions
+            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
+            'comp-condition-branches-1'].dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        self.assertEqual(
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
+        self.assertEqual(
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
+        self.assertEqual(
+            parameter_selectors[2],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-4',
+            ))
+        # surfaced as output
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.root.dag.outputs
+            .parameters['Output'].value_from_parameter,
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                producer_subtask='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
+        )
+
+    def test_if_elif_else_consumed(self):
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf passed to a consumer task, and different output keys on dsl.OneOf channels."""
+
+        @dsl.pipeline
+        def roll_die_pipeline():
+            flip_coin_task = roll_three_sided_die()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                t1 = print_and_return(text='Got heads!')
+            with dsl.Elif(flip_coin_task.output == 'tails'):
+                t2 = print_and_return(text='Got tails!')
+            with dsl.Else():
+                t3 = print_and_return_with_output_key(text='Draw!')
+            print_and_return(
+                text=dsl.OneOf(t1.output, t2.output, t3.outputs['output_key']))
+
+        # hole punched through if
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-2']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-Output'].parameter_type,
+            type_utils.STRING,
+        )
+        # hole punched through elif
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-3']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-2-Output'].parameter_type,
+            type_utils.STRING,
+        )
+        # hole punched through else
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-4']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-with-output-key-output_key']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        # condition-branches surfaces
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].output_definitions
+            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
+            'comp-condition-branches-1'].dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        self.assertEqual(
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
+        self.assertEqual(
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
+        self.assertEqual(
+            parameter_selectors[2],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-4',
+            ))
+        # consumed from condition-branches
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.root.dag.tasks['print-and-return-3']
+            .inputs.parameters['text'].task_output_parameter,
+            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec
+            .TaskOutputParameterSpec(
+                producer_task='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
+        )
+
+    def test_if_else_consumed_and_returned(self):
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+
+        @dsl.pipeline
+        def flip_coin_pipeline() -> str:
+            flip_coin_task = flip_coin()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                print_task_1 = print_and_return(text='Got heads!')
+            with dsl.Else():
+                print_task_2 = print_and_return(text='Got tails!')
+            x = dsl.OneOf(print_task_1.output, print_task_2.output)
+            print_and_return(text=x)
+            return x
+
+        # hole punched through if
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-2']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-Output'].parameter_type,
+            type_utils.STRING,
+        )
+        # hole punched through else
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-3']
+            .output_definitions.parameters[
+                'pipelinechannel--print-and-return-2-Output'].parameter_type,
+            type_utils.STRING,
+        )
+        # condition-branches surfaces
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].output_definitions
+            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        parameter_selectors = flip_coin_pipeline.pipeline_spec.components[
+            'comp-condition-branches-1'].dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        self.assertEqual(
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
+        self.assertEqual(
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
+        # consumed from condition-branches
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag
+            .tasks['print-and-return-3'].inputs.parameters['text']
+            .task_output_parameter,
+            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec
+            .TaskOutputParameterSpec(
+                producer_task='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
+        )
+
+        # surfaced as output
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag.outputs
+            .parameters['Output'].value_from_parameter,
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                producer_subtask='condition-branches-1',
+                output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
+        )
+
+    def test_if_else_consumed_and_returned_artifacts(self):
+        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+
+        @dsl.pipeline
+        def flip_coin_pipeline() -> Artifact:
+            flip_coin_task = flip_coin()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                print_task_1 = print_and_return_as_artifact(text='Got heads!')
+            with dsl.Else():
+                print_task_2 = print_and_return_as_artifact(text='Got tails!')
+            x = dsl.OneOf(print_task_1.outputs['a'], print_task_2.outputs['a'])
+            print_artifact(a=x)
+            return x
+
+        # hole punched through if
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-2']
+            .output_definitions
+            .artifacts['pipelinechannel--print-and-return-as-artifact-a']
+            .artifact_type.schema_title,
+            'system.Artifact',
+        )
+        # hole punched through else
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-3']
+            .output_definitions
+            .artifacts['pipelinechannel--print-and-return-as-artifact-2-a']
+            .artifact_type.schema_title,
+            'system.Artifact',
+        )
+        # condition-branches surfaces
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].output_definitions
+            .artifacts['pipelinechannel--condition-branches-1-oneof-1']
+            .artifact_type.schema_title,
+            'system.Artifact',
+        )
+        artifact_selectors = flip_coin_pipeline.pipeline_spec.components[
+            'comp-condition-branches-1'].dag.outputs.artifacts[
+                'pipelinechannel--condition-branches-1-oneof-1'].artifact_selectors
+        self.assertEqual(
+            artifact_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                output_artifact_key='pipelinechannel--print-and-return-as-artifact-a',
+                producer_subtask='condition-2',
+            ))
+        self.assertEqual(
+            artifact_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                output_artifact_key='pipelinechannel--print-and-return-as-artifact-2-a',
+                producer_subtask='condition-3',
+            ))
+
+        # consumed from condition-branches
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks['print-artifact']
+            .inputs.artifacts['a'].task_output_artifact,
+            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
+            .TaskOutputArtifactSpec(
+                producer_task='condition-branches-1',
+                output_artifact_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
+        )
+
+        # surfaced as output
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag.outputs
+            .artifacts['Output'].artifact_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                producer_subtask='condition-branches-1',
+                output_artifact_key='pipelinechannel--condition-branches-1-oneof-1',
+            ),
+        )
+
+    def test_nested_under_condition_consumed(self):
+        """Uses If, Else, and OneOf nested under a parent If."""
+
+        @dsl.pipeline
+        def flip_coin_pipeline(execute_pipeline: bool):
+            with dsl.If(execute_pipeline == True):
+                flip_coin_task = flip_coin()
+                with dsl.If(flip_coin_task.output == 'heads'):
+                    print_task_1 = print_and_return_as_artifact(
+                        text='Got heads!')
+                with dsl.Else():
+                    print_task_2 = print_and_return_as_artifact(
+                        text='Got tails!')
+                x = dsl.OneOf(print_task_1.outputs['a'],
+                              print_task_2.outputs['a'])
+                print_artifact(a=x)
+                # test can be consumed multiple times from same oneof object
+                print_artifact(a=x)
+                y = dsl.OneOf(print_task_1.outputs['a'],
+                              print_task_2.outputs['a'])
+                # test can be consumed multiple times from different equivalent oneof objects
+                print_artifact(a=y)
+
+        # hole punched through if
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-3']
+            .output_definitions
+            .artifacts['pipelinechannel--print-and-return-as-artifact-a']
+            .artifact_type.schema_title,
+            'system.Artifact',
+        )
+        # hole punched through else
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-4']
+            .output_definitions
+            .artifacts['pipelinechannel--print-and-return-as-artifact-2-a']
+            .artifact_type.schema_title,
+            'system.Artifact',
+        )
+        # condition-branches surfaces
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-branches-2'].output_definitions
+            .artifacts['pipelinechannel--condition-branches-2-oneof-1']
+            .artifact_type.schema_title,
+            'system.Artifact',
+        )
+        artifact_selectors = flip_coin_pipeline.pipeline_spec.components[
+            'comp-condition-branches-2'].dag.outputs.artifacts[
+                'pipelinechannel--condition-branches-2-oneof-1'].artifact_selectors
+        self.assertEqual(
+            artifact_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                output_artifact_key='pipelinechannel--print-and-return-as-artifact-a',
+                producer_subtask='condition-3',
+            ))
+        self.assertEqual(
+            artifact_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                output_artifact_key='pipelinechannel--print-and-return-as-artifact-2-a',
+                producer_subtask='condition-4',
+            ))
+        # consumed from condition-branches
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-1'].dag
+            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact,
+            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
+            .TaskOutputArtifactSpec(
+                producer_task='condition-branches-2',
+                output_artifact_key='pipelinechannel--condition-branches-2-oneof-1',
+            ),
+        )
+
+    def test_nested_under_condition_returned_raises(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                f'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.'
+        ):
+
+            @dsl.pipeline
+            def flip_coin_pipeline(execute_pipeline: bool):
+                with dsl.If(execute_pipeline == True):
+                    flip_coin_task = flip_coin()
+                    with dsl.If(flip_coin_task.output == 'heads'):
+                        print_task_1 = print_and_return_as_artifact(
+                            text='Got heads!')
+                    with dsl.Else():
+                        print_task_2 = print_and_return_as_artifact(
+                            text='Got tails!')
+                    return dsl.OneOf(print_task_1.outputs['a'],
+                                     print_task_2.outputs['a'])
+
+    def test_deeply_nested_consumed(self):
+        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-DAGs."""
+
+        @dsl.pipeline
+        def flip_coin_pipeline(execute_pipeline: bool):
+            with dsl.ExitHandler(cleanup()):
+                with dsl.ParallelFor([1, 2, 3]):
+                    with dsl.If(execute_pipeline == True):
+                        flip_coin_task = flip_coin()
+                        with dsl.If(flip_coin_task.output == 'heads'):
+                            print_task_1 = print_and_return_as_artifact(
+                                text='Got heads!')
+                        with dsl.Else():
+                            print_task_2 = print_and_return_as_artifact(
+                                text='Got tails!')
+                        x = dsl.OneOf(print_task_1.outputs['a'],
+                                      print_task_2.outputs['a'])
+                        print_artifact(a=x)
+
+        self.assertIn(
+            'condition-branches-5', flip_coin_pipeline.pipeline_spec
+            .components['comp-condition-4'].dag.tasks)
+        # consumed from condition-branches
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.components['comp-condition-4'].dag
+            .tasks['print-artifact'].inputs.artifacts['a'].task_output_artifact,
+            pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
+            .TaskOutputArtifactSpec(
+                producer_task='condition-branches-5',
+                output_artifact_key='pipelinechannel--condition-branches-5-oneof-1',
+            ),
+        )
+
+    def test_deeply_nested_returned_raises(self):
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                f'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.ParallelFor\.'
+        ):
+
+            @dsl.pipeline
+            def flip_coin_pipeline(execute_pipeline: bool) -> str:
+                with dsl.ExitHandler(cleanup()):
+                    with dsl.If(execute_pipeline == True):
+                        with dsl.ParallelFor([1, 2, 3]):
+                            flip_coin_task = flip_coin()
+                            with dsl.If(flip_coin_task.output == 'heads'):
+                                print_task_1 = print_and_return_as_artifact(
+                                    text='Got heads!')
+                            with dsl.Else():
+                                print_task_2 = print_and_return_as_artifact(
+                                    text='Got tails!')
+                            return dsl.OneOf(print_task_1.outputs['a'],
+                                             print_task_2.outputs['a'])
+
+    def test_consume_at_wrong_level(self):
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                f'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.If context unless the downstream is within that context too\. Found task print-artifact which depends on upstream task condition-branches-5 within an uncommon dsl\.If context\.'
+        ):
+
+            @dsl.pipeline
+            def flip_coin_pipeline(execute_pipeline: bool):
+                with dsl.ExitHandler(cleanup()):
+                    with dsl.ParallelFor([1, 2, 3]):
+                        with dsl.If(execute_pipeline == True):
+                            flip_coin_task = flip_coin()
+                            with dsl.If(flip_coin_task.output == 'heads'):
+                                print_task_1 = print_and_return_as_artifact(
+                                    text='Got heads!')
+                            with dsl.Else():
+                                print_task_2 = print_and_return_as_artifact(
+                                    text='Got tails!')
+                            x = dsl.OneOf(print_task_1.outputs['a'],
+                                          print_task_2.outputs['a'])
+                        # this is one level dedented from the permitted case
+                        print_artifact(a=x)
+
+    def test_return_at_wrong_level(self):
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                f'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.'
+        ):
+
+            @dsl.pipeline
+            def flip_coin_pipeline(execute_pipeline: bool):
+                with dsl.If(execute_pipeline == True):
+                    flip_coin_task = flip_coin()
+                    with dsl.If(flip_coin_task.output == 'heads'):
+                        print_task_1 = print_and_return_as_artifact(
+                            text='Got heads!')
+                    with dsl.Else():
+                        print_task_2 = print_and_return_as_artifact(
+                            text='Got tails!')
+                # this is returned at the right level, but not permitted since it's still effectively returning from within the dsl.If group
+                return dsl.OneOf(print_task_1.outputs['a'],
+                                 print_task_2.outputs['a'])
+
+    def test_oneof_in_condition(self):
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested one level"""
+
+        @dsl.pipeline
+        def roll_die_pipeline(repeat_on: str = 'Got heads!'):
+            flip_coin_task = roll_three_sided_die()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                t1 = print_and_return(text='Got heads!')
+            with dsl.Elif(flip_coin_task.output == 'tails'):
+                t2 = print_and_return(text='Got tails!')
+            with dsl.Else():
+                t3 = print_and_return_with_output_key(text='Draw!')
+            x = dsl.OneOf(t1.output, t2.output, t3.outputs['output_key'])
+
+            with dsl.If(x == repeat_on):
+                print_and_return(text=x)
+
+        # condition-branches surfaces
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].output_definitions
+            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
+            'comp-condition-branches-1'].dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        self.assertEqual(
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
+        self.assertEqual(
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
+        self.assertEqual(
+            parameter_selectors[2],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-4',
+            ))
+        # condition points to correct upstream output
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.root.dag.tasks['condition-5']
+            .trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1'] == inputs.parameter_values['pipelinechannel--repeat_on']"
+        )
+
+    def test_consumed_in_nested_groups(self):
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested multiple levels"""
+
+        @dsl.pipeline
+        def roll_die_pipeline(
+            repeat: bool = True,
+            rounds: List[str] = ['a', 'b', 'c'],
+        ):
+            flip_coin_task = roll_three_sided_die()
+            with dsl.If(flip_coin_task.output == 'heads'):
+                t1 = print_and_return(text='Got heads!')
+            with dsl.Elif(flip_coin_task.output == 'tails'):
+                t2 = print_and_return(text='Got tails!')
+            with dsl.Else():
+                t3 = print_and_return_with_output_key(text='Draw!')
+            x = dsl.OneOf(t1.output, t2.output, t3.outputs['output_key'])
+
+            with dsl.ParallelFor(rounds):
+                with dsl.If(repeat == True):
+                    print_and_return(text=x)
+
+        # condition-branches surfaces
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec
+            .components['comp-condition-branches-1'].output_definitions
+            .parameters['pipelinechannel--condition-branches-1-oneof-1']
+            .parameter_type,
+            type_utils.STRING,
+        )
+        parameter_selectors = roll_die_pipeline.pipeline_spec.components[
+            'comp-condition-branches-1'].dag.outputs.parameters[
+                'pipelinechannel--condition-branches-1-oneof-1'].value_from_oneof.parameter_selectors
+        self.assertEqual(
+            parameter_selectors[0],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-Output',
+                producer_subtask='condition-2',
+            ))
+        self.assertEqual(
+            parameter_selectors[1],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-2-Output',
+                producer_subtask='condition-3',
+            ))
+        self.assertEqual(
+            parameter_selectors[2],
+            pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                output_parameter_key='pipelinechannel--print-and-return-with-output-key-output_key',
+                producer_subtask='condition-4',
+            ))
+        # condition points to correct upstream output
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-6']
+            .input_definitions.parameters[
+                'pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1']
+            .parameter_type, type_utils.STRING)
+        # inner task consumes from condition input parameter
+        self.assertEqual(
+            roll_die_pipeline.pipeline_spec.components['comp-condition-6'].dag
+            .tasks['print-and-return-3'].inputs.parameters['text']
+            .component_input_parameter,
+            'pipelinechannel--condition-branches-1-pipelinechannel--condition-branches-1-oneof-1'
+        )
+
+    def test_oneof_in_fstring(self):
+        with self.assertRaisesRegex(
+                NotImplementedError,
+                f'dsl\.OneOf does not support string interpolation\.'):
+
+            @dsl.pipeline
+            def roll_die_pipeline():
+                flip_coin_task = roll_three_sided_die()
+                with dsl.If(flip_coin_task.output == 'heads'):
+                    t1 = print_and_return(text='Got heads!')
+                with dsl.Elif(flip_coin_task.output == 'tails'):
+                    t2 = print_and_return(text='Got tails!')
+                with dsl.Else():
+                    t3 = print_and_return_with_output_key(text='Draw!')
+                print_and_return(
+                    text=f"Final result: {dsl.OneOf(t1.output, t2.output, t3.outputs['output_key'])}"
+                )
+
+    def test_type_checking_parameters(self):
+        with self.assertRaisesRegex(
+                type_utils.InconsistentTypeException,
+                "Incompatible argument passed to the input 'val' of component 'print-int': Argument type 'STRING' is incompatible with the input type 'NUMBER_INTEGER'",
+        ):
+
+            @dsl.component
+            def print_int(val: int):
+                print(val)
+
+            @dsl.pipeline
+            def roll_die_pipeline():
+                flip_coin_task = roll_three_sided_die()
+                with dsl.If(flip_coin_task.output == 'heads'):
+                    t1 = print_and_return(text='Got heads!')
+                with dsl.Elif(flip_coin_task.output == 'tails'):
+                    t2 = print_and_return(text='Got tails!')
+                with dsl.Else():
+                    t3 = print_and_return_with_output_key(text='Draw!')
+                print_int(
+                    val=dsl.OneOf(t1.output, t2.output,
+                                  t3.outputs['output_key']))
+
+    def test_oneof_of_oneof(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'dsl.OneOf cannot be used inside of another dsl\.OneOf\.'):
+
+            @dsl.pipeline
+            def roll_die_pipeline() -> str:
+                outer_flip_coin_task = flip_coin()
+                with dsl.If(outer_flip_coin_task.output == 'heads'):
+                    inner_flip_coin_task = flip_coin()
+                    with dsl.If(inner_flip_coin_task.output == 'heads'):
+                        t1 = print_and_return(text='Got heads!')
+                    with dsl.Else():
+                        t2 = print_and_return(text='Got tails!')
+                    t3 = dsl.OneOf(t1.output, t2.output)
+                with dsl.Else():
+                    t4 = print_and_return(text='First flip was not heads!')
+                return dsl.OneOf(t3, t4.output)
+
+
+class TestPythonicArtifactAuthoring(unittest.TestCase):
+    # python component
+    def test_pythonic_input_artifact(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Artifact):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.parameters)
+
+        @dsl.component
+        def standard_style(in_artifact: Input[Artifact]):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_input_artifact_optional(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Optional[Artifact] = None):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.parameters)
+
+        @dsl.component
+        def standard_style(in_artifact: Optional[Input[Artifact]] = None):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_input_list_of_artifacts(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: List[Artifact]):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            'system.Artifact',
+        )
+        self.assertTrue(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].is_artifact_list)
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.parameters)
+
+        @dsl.component
+        def standard_style(in_artifact: Input[List[Artifact]]):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_input_list_of_artifacts_optional(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Optional[List[Artifact]] = None):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            'system.Artifact',
+        )
+        self.assertTrue(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].is_artifact_list)
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.parameters)
+
+        @dsl.component
+        def standard_style(in_artifact: Optional[Input[List[Artifact]]] = None):
+            print(in_artifact)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .input_definitions.artifacts['in_artifact'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_output_artifact(self):
+
+        @dsl.component
+        def pythonic_style() -> Artifact:
+            return Artifact(uri='gs://my_bucket/foo')
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['Output'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.parameters)
+
+        @dsl.component
+        def standard_style(named_output: Output[Artifact]):
+            return Artifact(uri='gs://my_bucket/foo')
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['Output'].artifact_type.schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .output_definitions.artifacts['named_output'].artifact_type
+            .schema_title,
+        )
+
+    def test_pythonic_output_artifact_multiple_returns(self):
+
+        @dsl.component
+        def pythonic_style() -> NamedTuple('outputs', a=Artifact, d=Dataset):
+            a = Artifact(uri='gs://my_bucket/foo/artifact')
+            d = Artifact(uri='gs://my_bucket/foo/dataset')
+            outputs = NamedTuple('outputs', a=Artifact, d=Dataset)
+            return outputs(a=a, d=d)
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['a'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['d'].artifact_type.schema_title,
+            'system.Dataset',
+        )
+
+        self.assertFalse(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.parameters)
+
+        @dsl.component
+        def standard_style(a: Output[Artifact], d: Output[Dataset]):
+            a.uri = 'gs://my_bucket/foo/artifact'
+            d.uri = 'gs://my_bucket/foo/dataset'
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['a'].artifact_type.schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .output_definitions.artifacts['a'].artifact_type.schema_title,
+        )
+
+        self.assertEqual(
+            pythonic_style.pipeline_spec.components['comp-pythonic-style']
+            .output_definitions.artifacts['d'].artifact_type.schema_title,
+            standard_style.pipeline_spec.components['comp-standard-style']
+            .output_definitions.artifacts['d'].artifact_type.schema_title,
+        )
+
+    def test_pythonic_output_list_artifacts(self):
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Output lists of artifacts are only supported for pipelines\. Got output list of artifacts for output parameter 'Output' of component 'pythonic-style'\."
+        ):
+
+            @dsl.component
+            def pythonic_style() -> List[Artifact]:
+                pass
+
+    def test_mixed_component_authoring_styles(self):
+        # can be permitted, since the expected behavior is unambiguous
+
+        # in traditional; out pythonic
+        @dsl.component
+        def back_compat_style(in_artifact: Input[Artifact]) -> Artifact:
+            print(in_artifact)
+            return Artifact(uri='gs://my_bucket/foo')
+
+        self.assertTrue(back_compat_style.pipeline_spec)
+
+        # out traditional; in pythonic
+        @dsl.component
+        def mixed_style(in_artifact: Artifact, out_artifact: Output[Artifact]):
+            print(in_artifact)
+            out_artifact.uri = 'gs://my_bucket/foo'
+
+        self.assertTrue(mixed_style.pipeline_spec)
+
+    # pipeline
+    def test_pipeline_input_artifact(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Artifact):
+            print(in_artifact)
+
+        @dsl.pipeline
+        def my_pipeline(in_artifact: Artifact):
+            pythonic_style(in_artifact=in_artifact)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.input_definitions
+            .artifacts['in_artifact'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+
+    def test_pipeline_input_artifact_optional(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Optional[Artifact] = None):
+            print(in_artifact)
+
+        @dsl.pipeline
+        def my_pipeline(in_artifact: Optional[Artifact] = None):
+            pythonic_style(in_artifact=in_artifact)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.input_definitions
+            .artifacts['in_artifact'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+
+    def test_pipeline_input_list_of_artifacts(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: List[Artifact]):
+            print(in_artifact)
+
+        @dsl.pipeline
+        def my_pipeline(in_artifact: List[Artifact]):
+            pythonic_style(in_artifact=in_artifact)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.input_definitions
+            .artifacts['in_artifact'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+        self.assertTrue(my_pipeline.pipeline_spec.root.input_definitions
+                        .artifacts['in_artifact'].is_artifact_list)
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+
+    def test_pipeline_input_list_of_artifacts_optional(self):
+
+        @dsl.component
+        def pythonic_style(in_artifact: Optional[List[Artifact]] = None):
+            print(in_artifact)
+
+        @dsl.pipeline
+        def my_pipeline(in_artifact: Optional[List[Artifact]] = None):
+            pythonic_style(in_artifact=in_artifact)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.input_definitions
+            .artifacts['in_artifact'].artifact_type.schema_title,
+            'system.Artifact',
+        )
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.input_definitions.parameters)
+
+    def test_pipeline_output_artifact(self):
+
+        @dsl.component
+        def pythonic_style() -> Artifact:
+            return Artifact(uri='gs://my_bucket/foo')
+
+        @dsl.pipeline
+        def my_pipeline() -> Artifact:
+            return pythonic_style().output
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.output_definitions
+            .artifacts['Output'].artifact_type.schema_title, 'system.Artifact')
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.output_definitions.parameters)
+
+    def test_pipeline_output_list_of_artifacts(self):
+
+        @dsl.component
+        def noop() -> Artifact:
+            # write artifact
+            return Artifact(uri='gs://my_bucket/foo/bar')
+
+        @dsl.pipeline
+        def my_pipeline() -> List[Artifact]:
+            with dsl.ParallelFor([1, 2, 3]):
+                t = noop()
+
+            return dsl.Collected(t.output)
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.root.output_definitions
+            .artifacts['Output'].artifact_type.schema_title, 'system.Artifact')
+        self.assertTrue(my_pipeline.pipeline_spec.root.output_definitions
+                        .artifacts['Output'].is_artifact_list)
+
+        self.assertFalse(
+            my_pipeline.pipeline_spec.root.output_definitions.parameters)
+
+    # container
+    def test_container_input_artifact(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\."
+        ):
+
+            @dsl.container_component
+            def comp(in_artifact: Artifact):
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_input_artifact_optional(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation <class 'kfp\.dsl\.types\.artifact_types\.Artifact'>\."
+        ):
+
+            @dsl.container_component
+            def comp(in_artifact: Optional[Artifact] = None):
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_input_list_of_artifacts(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\."
+        ):
+
+            @dsl.container_component
+            def comp(in_artifact: List[Artifact]):
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_input_list_of_artifacts_optional(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Container Components must wrap input and output artifact annotations with Input/Output type markers \(Input\[<artifact>\] or Output\[<artifact>\]\)\. Got function input 'in_artifact' with annotation typing\.List\[kfp\.dsl\.types\.artifact_types\.Artifact\]\."
+        ):
+
+            @dsl.container_component
+            def comp(in_artifact: Optional[List[Artifact]] = None):
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_output_artifact(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Return annotation should be either ContainerSpec or omitted for container components\.'
+        ):
+
+            @dsl.container_component
+            def comp() -> Artifact:
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+    def test_container_output_list_of_artifact(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Return annotation should be either ContainerSpec or omitted for container components\.'
+        ):
+
+            @dsl.container_component
+            def comp() -> List[Artifact]:
+                return dsl.ContainerSpec(image='alpine', command=['pwd'])
+
+
+class TestPipelineSpecAttributeUniqueError(unittest.TestCase):
+
+    def test_compiles(self):
+        # in a previous version of the KFP SDK there was an error when:
+        # - a component has a dsl.OutputPath parameter
+        # - the pipeline has an existing component by a different name
+        # - the user calls component.pipeline_spec inside their pipeline definition
+        # this was resolved coincidentally in
+        # https://github.com/kubeflow/pipelines/pull/10067, so test that it
+        # doesn't come back
+
+        @dsl.container_component
+        def existing_comp():
+            return dsl.ContainerSpec(
+                image='alpine', command=['echo'], args=['foo'])
+
+        @dsl.container_component
+        def issue_comp(v: dsl.OutputPath(str)):
+            return dsl.ContainerSpec(image='alpine', command=['echo'], args=[v])
+
+        @dsl.pipeline
+        def my_pipeline():
+            existing_comp()
+            issue_comp.pipeline_spec
+
+        # should compile without error
+        self.assertTrue(my_pipeline.pipeline_spec)
 
 
 if __name__ == '__main__':

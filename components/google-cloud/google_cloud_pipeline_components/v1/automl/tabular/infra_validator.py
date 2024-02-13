@@ -27,13 +27,12 @@ def automl_tabular_infra_validator(
   """Validates the trained AutoML Tabular model is a valid model.
 
   Args:
-      unmanaged_container_model: google.UnmanagedContainerModel for model
-        to be validated.
+      unmanaged_container_model: google.UnmanagedContainerModel for model to be validated.
   """
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230619_1325',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125',
       command=[],
       args=['--executor_input', '{{$}}'],
   )

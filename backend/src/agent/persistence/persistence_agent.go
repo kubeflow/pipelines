@@ -46,7 +46,6 @@ func NewPersistenceAgent(
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	execInformer util.ExecutionInformer,
 	pipelineClient *client.PipelineClient,
-	k8sCoreClient client.KubernetesCoreInterface,
 	time util.TimeInterface) *PersistenceAgent {
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
@@ -63,7 +62,7 @@ func NewPersistenceAgent(
 
 	workflowWorker := worker.NewPersistenceWorker(time, workflowregister.WorkflowKind,
 		execInformer, true,
-		worker.NewWorkflowSaver(workflowClient, pipelineClient, k8sCoreClient, ttlSecondsAfterWorkflowFinish))
+		worker.NewWorkflowSaver(workflowClient, pipelineClient, ttlSecondsAfterWorkflowFinish))
 
 	agent := &PersistenceAgent{
 		swfClient:      swfClient,

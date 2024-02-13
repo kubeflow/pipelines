@@ -37,8 +37,7 @@ def automl_tabular_finalizer(
       encryption_spec_key_name: Customer-managed encryption key.
 
   Returns:
-      gcp_resources: GCP resources created by this component. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: GCP resources created by this component. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
 
@@ -73,7 +72,7 @@ def automl_tabular_finalizer(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230619_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125',
                   '", "args": ["cancel_l2l_tuner", "--error_file_path=',
                   root_dir,
                   (

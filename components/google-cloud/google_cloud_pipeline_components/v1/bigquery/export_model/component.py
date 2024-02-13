@@ -15,6 +15,7 @@
 from typing import Dict
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -25,7 +26,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_export_model_job(
-    project: str,
     model: Input[BQMLModel],
     model_destination_path: str,
     exported_model_path: OutputPath(str),
@@ -33,35 +33,23 @@ def bigquery_export_model_job(
     location: str = 'us-central1',
     job_configuration_extract: Dict[str, str] = {},
     labels: Dict[str, str] = {},
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery export model job and waits for it to finish.
 
   Args:
-      project: Project to run BigQuery model export job.
-      location: Location of the job to export the BigQuery
-        model. If not set, default to `US` multi-region.  For more details,
-        see
-        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      location: Location of the job to export the BigQuery model. If not set, default to `US` multi-region.  For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
       model: BigQuery ML model to export.
-        model_destination_path:
-        The gcs bucket to export the
-        model to.
-      job_configuration_extract: A json formatted string
-        describing the rest of the job configuration.  For more details, see
-        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels: The labels associated with this job. You can
-        use these to organize and group your jobs. Label keys and values can
-        be no longer than 63 characters, can only containlowercase letters,
-        numeric characters, underscores and dashes. International characters
-        are allowed. Label values are optional. Label keys must start with a
-        letter and each label in the list must have a different key.
+        model_destination_path: The gcs bucket to export the model to.
+      job_configuration_extract: A json formatted string describing the rest of the job configuration.  For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      labels: The labels associated with this job. You can use these to organize and group your jobs. Label keys and values can be no longer than 63 characters, can only containlowercase letters, numeric characters, underscores and dashes. International characters are allowed. Label values are optional. Label keys must start with a letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+      project: Project to run BigQuery model export job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       exported_model_path: The gcs bucket path where you export the model to.
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

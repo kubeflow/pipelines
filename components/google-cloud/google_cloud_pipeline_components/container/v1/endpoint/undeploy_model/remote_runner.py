@@ -19,7 +19,6 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remot
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 
-
 _MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))'
 _ENDPOINT_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/endpoints/(?P<endpointid>.*))'
 
@@ -60,19 +59,35 @@ def undeploy_model(
     get_endpoint_remote_runner = lro_remote_runner.LroRemoteRunner(location)
     endpoint = get_endpoint_remote_runner.request(get_endpoint_url, '', 'get')
 
+    # may or may not contain a model version
+    full_model_name = undeploy_model_request['model']
+
+    if '@' in full_model_name:
+      model_name_no_version, model_version = full_model_name.rsplit('@')
+    else:
+      model_name_no_version = full_model_name
+      model_version = None
+
     # Get the deployed_model_id
     deployed_model_id = ''
-    model_name = undeploy_model_request['model']
 
     for deployed_model in endpoint['deployedModels']:
-      if deployed_model['model'] == model_name:
+      if deployed_model['model'] == model_name_no_version and (
+          # undeploy if version is unspecified
+          model_version is None
+          # or version matches
+          or deployed_model['modelVersionId'] == model_version
+      ):
         deployed_model_id = deployed_model['id']
         break
 
+    print('deployed_model_id', deployed_model_id)
     if not deployed_model_id:
       # TODO(ruifang) propagate the error.
       raise ValueError(
-          'Model {} not found at endpoint {}.'.format(model_name, endpoint_name)
+          'Model {} not found at endpoint {}.'.format(
+              full_model_name, endpoint_name
+          )
       )
 
     # Undeploy the model
@@ -85,14 +100,14 @@ def undeploy_model(
       ]
 
     model_uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
-    match = model_uri_pattern.match(model_name)
+    match = model_uri_pattern.match(model_name_no_version)
     try:
       location = match.group('location')
     except AttributeError as err:
       # TODO(ruifang) propagate the error.
       raise ValueError(
           'Invalid model name: {}. Expect: {}.'.format(
-              model_name,
+              full_model_name,
               'projects/[project_id]/locations/[location]/models/[model_id]',
           )
       )

@@ -15,6 +15,7 @@
 from typing import Dict, List
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import BQMLModel
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from kfp.dsl import ConcatPlaceholder
@@ -27,7 +28,6 @@ from kfp.dsl import OutputPath
 
 @container_component
 def bigquery_ml_principal_components_job(
-    project: str,
     model: Input[BQMLModel],
     destination_table: Output[BQTable],
     gcp_resources: OutputPath(str),
@@ -36,49 +36,24 @@ def bigquery_ml_principal_components_job(
     job_configuration_query: Dict[str, str] = {},
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
   """Launch a BigQuery ML.principal_components job and waits for it to finish.
 
   Args:
-      project: Project to run BigQuery ML.principal_components
-        job.
-      location: Location to run the BigQuery
-        ML.principal_components job. If not set, default to `US` multi-region.
-        For more details, see
-        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-      model: BigQuery ML model for
-        ML.principal_components. For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-principal-components#mlprincipal_components_syntax
-      query_parameters: jobs.query parameters for
-        standard SQL queries. If query_parameters are both specified in here
-        and in job_configuration_query, the value in here will override the
-        other one.
-      job_configuration_query: A json formatted string
-        describing the rest of the job configuration. For more details, see
-        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
-      labels: The labels associated with this job. You can
-        use these to organize and group your jobs. Label keys and values can
-        be no longer than 63 characters, can only containlowercase letters,
-        numeric characters, underscores and dashes. International characters
-        are allowed. Label values are optional. Label keys must start with a
-        letter and each label in the list must have a different key.
+      location: Location to run the BigQuery ML.principal_components job. If not set, default to `US` multi-region. For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model: BigQuery ML model for ML.principal_components. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-principal-components#mlprincipal_components_syntax
+      query_parameters: jobs.query parameters for standard SQL queries. If query_parameters are both specified in here and in job_configuration_query, the value in here will override the other one.
+      job_configuration_query: A json formatted string describing the rest of the job configuration. For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      labels: The labels associated with this job. You can use these to organize and group your jobs. Label keys and values can be no longer than 63 characters, can only containlowercase letters, numeric characters, underscores and dashes. International characters are allowed. Label values are optional. Label keys must start with a letter and each label in the list must have a different key.
           Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-      encryption_spec_key_name: Describes the Cloud KMS
-        encryption key that will be used to protect destination BigQuery
-        table. The BigQuery Service Account associated with your project
-        requires access to this encryption key. If encryption_spec_key_name
-        are both specified in here and in job_configuration_query, the value
-        in here will override the other one.
+      encryption_spec_key_name: Describes the Cloud KMS encryption key that will be used to protect destination BigQuery table. The BigQuery Service Account associated with your project requires access to this encryption key. If encryption_spec_key_name are both specified in here and in job_configuration_query, the value in here will override the other one.
+      project: Project to run BigQuery ML.principal_components job. Defaults to the project in which the PipelineJob is run.
 
   Returns:
-      destination_table: Describes the table which stores common metrics applicable to the type
-        of model supplied.
-        For more details, see
-        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-principal-components#mlprincipal_components_output
-      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job.
-          For more details, see
-          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      destination_table: Describes the table which stores common metrics applicable to the type of model supplied. For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-principal-components#mlprincipal_components_output
+      gcp_resources: Serialized gcp_resources proto tracking the BigQuery job. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
   """
   # fmt: on
   return ContainerSpec(

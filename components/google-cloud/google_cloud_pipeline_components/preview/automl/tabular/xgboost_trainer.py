@@ -37,8 +37,7 @@ def xgboost_trainer(
       encryption_spec_key_name: The KMS key name.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the custom training
-        job.
+      gcp_resources: Serialized gcp_resources proto tracking the custom training job.
   """
   # fmt: on
 

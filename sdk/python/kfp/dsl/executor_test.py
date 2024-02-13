@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for kfp.dsl.executor."""
 
+import contextlib
 import json
 import os
 import tempfile
@@ -21,6 +22,7 @@ import unittest
 from unittest import mock
 
 from absl.testing import parameterized
+from kfp import dsl
 from kfp.dsl import executor
 from kfp.dsl import Input
 from kfp.dsl import Output
@@ -40,9 +42,20 @@ class ExecutorTest(parameterized.TestCase):
     def setUp(cls):
         cls.maxDiff = None
         cls._test_dir = tempfile.mkdtemp()
+
+        cls.prev_gcs_prefix = artifact_types._GCS_LOCAL_MOUNT_PREFIX
+        cls.prev_minio_prefix = artifact_types._MINIO_LOCAL_MOUNT_PREFIX
+        cls.prev_s3_prefix = artifact_types._S3_LOCAL_MOUNT_PREFIX
+
         artifact_types._GCS_LOCAL_MOUNT_PREFIX = cls._test_dir + '/'
         artifact_types._MINIO_LOCAL_MOUNT_PREFIX = cls._test_dir + '/minio/'
         artifact_types._S3_LOCAL_MOUNT_PREFIX = cls._test_dir + '/s3/'
+
+    @classmethod
+    def tearDown(cls):
+        artifact_types._GCS_LOCAL_MOUNT_PREFIX = cls.prev_gcs_prefix
+        artifact_types._MINIO_LOCAL_MOUNT_PREFIX = cls.prev_minio_prefix
+        artifact_types._S3_LOCAL_MOUNT_PREFIX = cls.prev_s3_prefix
 
     def execute(self, func: Callable, executor_input: str) -> None:
         executor_input_dict = json.loads(executor_input %
@@ -51,12 +64,12 @@ class ExecutorTest(parameterized.TestCase):
         executor.Executor(
             executor_input=executor_input_dict,
             function_to_execute=func).execute()
+        return executor_input_dict['outputs']['outputFile']
 
     def execute_and_load_output_metadata(self, func: Callable,
                                          executor_input: str) -> dict:
-        self.execute(func, executor_input)
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
+        output_file = self.execute(func, executor_input)
+        with open(output_file) as f:
             return json.loads(f.read())
 
     def test_input_and_output_parameters(self):
@@ -113,14 +126,9 @@ class ExecutorTest(parameterized.TestCase):
         }
         """
 
-        class VertexDataset:
+        class VertexDataset(dsl.Artifact):
             schema_title = 'google.VertexDataset'
             schema_version = '0.0.0'
-
-            def __init__(self, name: str, uri: str, metadata: dict) -> None:
-                self.name = name
-                self.uri = uri
-                self.metadata = metadata
 
             @property
             def path(self) -> str:
@@ -1157,6 +1165,39 @@ class ExecutorTest(parameterized.TestCase):
                 input_artifact.name,
                 'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
             )
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
+
+    def test_single_artifact_input_pythonic(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_artifact": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_artifact"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_artifact: Artifact):
+            self.assertIsInstance(input_artifact, Artifact)
             self.assertEqual(
                 input_artifact.name,
                 'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
@@ -1166,6 +1207,261 @@ class ExecutorTest(parameterized.TestCase):
             test_func, executor_input)
 
         self.assertDictEqual(output_metadata, {})
+
+    def test_single_artifact_input_pythonic_with_optional(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_artifact": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_artifact"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_artifact: Optional[Artifact] = None):
+            self.assertIsInstance(input_artifact, Artifact)
+            self.assertEqual(
+                input_artifact.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
+            )
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
+
+    def test_single_artifact_output_pythonic(self):
+        executor_input = """\
+    {
+      "inputs": {},
+      "outputs": {
+        "artifacts": {
+          "Output": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output"
+              }
+            ]
+          }
+        },
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func() -> Artifact:
+            return Artifact(
+                uri='gs://manually_specified_bucket/foo',
+                metadata={'data': 123},
+            )
+
+        with temporary_envvar('VERTEX_AI_PIPELINES_RUN_LABELS', '12325'):
+            output_metadata = self.execute_and_load_output_metadata(
+                test_func, executor_input)
+
+        self.assertDictEqual(
+            output_metadata, {
+                'artifacts': {
+                    'Output': {
+                        'artifacts': [{
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'gs://manually_specified_bucket/foo',
+                            'metadata': {
+                                'data': 123
+                            }
+                        }]
+                    }
+                },
+            })
+
+    def test_single_artifact_output_pythonic_with_get_uri(self):
+        executor_input = """\
+    {
+      "inputs": {},
+      "outputs": {
+        "artifacts": {
+          "Output": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output"
+              }
+            ]
+          }
+        },
+        "outputFile": "%(test_dir)s/another_bucket/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func() -> Artifact:
+            return Artifact(
+                uri=dsl.get_uri(suffix='my_artifact'),
+                metadata={'data': 123},
+            )
+
+        with temporary_envvar('VERTEX_AI_PIPELINES_RUN_LABELS', '12325'):
+            output_metadata = self.execute_and_load_output_metadata(
+                test_func, executor_input)
+
+        self.assertDictEqual(
+            output_metadata, {
+                'artifacts': {
+                    'Output': {
+                        'artifacts': [{
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'gs://another_bucket/my_artifact',
+                            'metadata': {
+                                'data': 123
+                            }
+                        }]
+                    }
+                },
+            })
+
+    def test_multiple_artifact_output_pythonic_with_get_uri(self):
+        executor_input = """\
+    {
+      "inputs": {},
+      "outputs": {
+        "artifacts": {
+          "a": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output"
+              }
+            ]
+          },
+          "d": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/321",
+                "type": {
+                  "schemaTitle": "system.Dataset"
+                },
+                "uri": "gs://some-bucket/output"
+              }
+            ]
+          }
+        },
+        "outputFile": "%(test_dir)s/another_bucket/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func() -> NamedTuple('outputs', a=Artifact, d=Dataset):
+            outputs = NamedTuple('outputs', a=Artifact, d=Dataset)
+            return outputs(
+                a=Artifact(
+                    uri=dsl.get_uri(suffix='artifact'),
+                    metadata={'data': 123},
+                ),
+                d=Dataset(
+                    uri=dsl.get_uri(suffix='dataset'),
+                    metadata={},
+                ))
+
+        with temporary_envvar('VERTEX_AI_PIPELINES_RUN_LABELS', '12325'):
+            output_metadata = self.execute_and_load_output_metadata(
+                test_func, executor_input)
+
+        self.assertDictEqual(
+            output_metadata, {
+                'artifacts': {
+                    'a': {
+                        'artifacts': [{
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'gs://another_bucket/artifact',
+                            'metadata': {
+                                'data': 123
+                            }
+                        }]
+                    },
+                    'd': {
+                        'artifacts': [{
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/321',
+                            'uri':
+                                'gs://another_bucket/dataset',
+                            'metadata': {}
+                        }]
+                    }
+                },
+            })
+
+    def test_warns_if_artifact_name_for_vertex(self):
+        executor_input = """\
+    {
+      "inputs": {},
+      "outputs": {
+        "artifacts": {
+          "Output": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output"
+              }
+            ]
+          }
+        },
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func() -> Artifact:
+            return Artifact(
+                name='illegal_custom_name',
+                uri='gs://manually_specified_bucket/foo',
+                metadata={'data': 123},
+            )
+
+        with temporary_envvar('VERTEX_AI_PIPELINES_RUN_LABELS', '12325'):
+            with self.assertWarnsRegex(
+                    RuntimeWarning,
+                    r'If you are running your pipeline Vertex AI Pipelines, you should not provide a name for your artifact\. It will be set to the Vertex artifact resource name projects/123/locations/us-central1/metadataStores/default/artifacts/123 by default\. Got value for name: illegal_custom_name\.'
+            ):
+                self.execute_and_load_output_metadata(test_func, executor_input)
 
     def test_list_of_artifacts_input(self):
         executor_input = """\
@@ -1216,28 +1512,103 @@ class ExecutorTest(parameterized.TestCase):
 
         self.assertDictEqual(output_metadata, {})
 
+    def test_list_of_artifacts_input_pythonic(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_list": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_list/0"
+              },
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_list/1"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
 
-class VertexDataset:
-    schema_title = 'google.VertexDataset'
-    schema_version = '0.0.0'
+        def test_func(input_list: List[Artifact]):
+            self.assertEqual(len(input_list), 2)
+            self.assertEqual(
+                input_list[0].name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0'
+            )
+            self.assertEqual(
+                input_list[1].name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1'
+            )
 
-    @classmethod
-    def _from_executor_fields(
-        cls,
-        name: str,
-        uri: str,
-        metadata: dict,
-    ) -> 'VertexDataset':
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
 
-        instance = VertexDataset()
-        instance.name = name
-        instance.uri = uri
-        instance.metadata = metadata
-        return instance
+        self.assertDictEqual(output_metadata, {})
 
-    @property
-    def path(self) -> str:
-        return self.uri.replace('gs://', artifact_types._GCS_LOCAL_MOUNT_PREFIX)
+    def test_list_of_artifacts_input_pythonic_with_optional(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_list": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_list/0"
+              },
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_list/1"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_list: List[Artifact] = None):
+            self.assertEqual(len(input_list), 2)
+            self.assertEqual(
+                input_list[0].name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0'
+            )
+            self.assertEqual(
+                input_list[1].name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1'
+            )
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
 
 
 class TestDictToArtifact(parameterized.TestCase):
@@ -1349,30 +1720,30 @@ class TestDictToArtifact(parameterized.TestCase):
         # with artifact_cls
         self.assertIsInstance(
             executor.create_artifact_instance(
-                runtime_artifact, artifact_cls=artifact_cls), expected_type)
+                runtime_artifact, fallback_artifact_cls=artifact_cls),
+            expected_type)
 
         # without artifact_cls
         self.assertIsInstance(
             executor.create_artifact_instance(runtime_artifact), expected_type)
 
-    def test_dict_to_artifact_google_artifact(self):
-        runtime_artifact = {
-            'metadata': {},
-            'name': 'input_artifact_one',
-            'type': {
-                'schemaTitle': 'google.VertexDataset'
-            },
-            'uri': 'gs://some-bucket/input_artifact_one'
-        }
-        # with artifact_cls
-        self.assertIsInstance(
-            executor.create_artifact_instance(
-                runtime_artifact, artifact_cls=VertexDataset), VertexDataset)
 
-        # without artifact_cls
-        self.assertIsInstance(
-            executor.create_artifact_instance(runtime_artifact),
-            artifact_types.Artifact)
+@contextlib.contextmanager
+def temporary_envvar(key: str, value: str) -> None:
+    # Save the old value if it exists
+    old_value = os.environ.get(key, None)
+
+    # Set the new value
+    os.environ[key] = value
+
+    try:
+        yield
+    finally:
+        # Restore the old value or delete the key if it didn't exist before
+        if old_value is not None:
+            os.environ[key] = old_value
+        else:
+            del os.environ[key]
 
 
 if __name__ == '__main__':

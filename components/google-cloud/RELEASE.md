@@ -1,4 +1,93 @@
 ## Upcoming release
+* Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.
+* Fix the metadata of Model Evaluation resource when row based metrics is disabled in `preview.model_evaluation.evaluation_llm_text_generation_pipeline`.
+
+## Release 2.9.0
+* Use `large_model_reference` for `model_reference_name` when uploading models from `preview.llm.rlhf_pipeline` instead of hardcoding value as `text-bison@001`.
+* Disable caching when resolving model display names for RLHF-tuned models so a unique name is generated on each `preview.llm.rlhf_pipeline` run.
+* Upload the tuned adapter to Model Registry instead of model checkpoint from `preview.llm.rlhf_pipeline`.
+* Fix the naming of AutoSxS's question answering task. "question_answer" -> "question_answering".
+* Add Vertex model get component (`v1.model.ModelGetOp`).
+* Migrate to Protobuf 4 (`protobuf>=4.21.1,<5`). Require `kfp>=2.6.0`.
+* Support setting version aliases in (`v1.model.ModelUploadOp`).
+* Only run `preview.llm.bulk_inference` pipeline after RLHF tuning for third-party models when `eval_dataset` is provided.
+* Update LLM Evaluation Pipelines to use `text-bison@002` model by default.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+* Add `preview.llm.rlaif_pipeline` that tunes large-language models from AI feedback.
+
+## Release 2.8.0
+* Release AutoSxS pipeline to preview.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.7.0
+* Fix `v1.automl.training_job.AutoMLImageTrainingJobRunOp` `ModuleNotFoundError`.
+* Append `tune-type` to existing labels when uploading models tuned by `preview.llm.rlhf_pipeline` instead of overriding them.
+* Use `llama-2-7b` for the base reward model when tuning `llama-2-13b` with the `preview.llm.rlhf_pipeline`
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.6.0
+* Bump supported KFP versions to kfp>=2.0.0b10,<=2.4.0
+* Add LLM Eval pipeline parameter for customizing eval dataset reference ground truth field
+* Create new eval dataset preprocessor for formatting eval dataset in tuning dataset format.
+* Support customizing eval dataset format in Eval LLM Text Generation Pipeline (`preview.model_evaluation.evaluation_llm_text_generation_pipeline`) and LLM Text Classification Pipeline (`preview.model_evaluation.evaluation_llm_classification_pipeline`). Include new LLM Eval Preprocessor component in both pipelines.
+* Fix the output parameter `output_dir` of `preview.automl.vision.DataConverterJobOp`.
+* Fix batch prediction model parameters payload sanitization error .
+* Add ability to perform inference with chat datasets to `preview.llm.infer_pipeline`.
+* Add ability to tune chat models with `preview.llm.rlhf_pipeline`.
+* Group `preview.llm.rlhf_pipeline` components for better readability.
+* Add environment variable support to GCPC's `create_custom_training_job_from_component` (both `v1` and `preview` namespaces)
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.5.0
+* Upload tensorboard metrics from `preview.llm.rlhf_pipeline` if a `tensorboard_resource_id` is provided at runtime.
+* Support `incremental_train_base_model`, `parent_model`, `is_default_version`, `model_version_aliases`, `model_version_description` in `AutoMLImageTrainingJobRunOp`.
+* Add `preview.automl.vision` and `DataConverterJobOp`.
+* Set display names for `preview.llm` pipelines.
+* Add sliced evaluation metrics support for custom and unstructured AutoML models in evaluation pipeline and evaluation pipeline with feature attribution.
+* Support `service_account` in `ModelBatchPredictOp`.
+* Release `DataflowFlexTemplateJobOp` to GA namespace (`v1.dataflow.DataflowFlexTemplateJobOp`).
+* Make `model_checkpoint` optional for `preview.llm.infer_pipeline`. If not provided, the base model associated with the `large_model_reference` will be used.
+* Bump `apache_beam[gcp]` version in GCPC container image from `<2.34.0` to `==2.50.0` for compatibility with `google-cloud-aiplatform`, which depends on `shapely<3.0.0dev`. Note: upgrades to `google-cloud-pipeline-components`>=2.5.0 and later may require using a Dataflow worker image with `apache_beam==2.50.0`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+* Add support for customizing model_parameters (maxOutputTokens, topK, topP, and
+ temperature) in LLM eval text generation and LLM eval text classification
+  pipelines.
+
+## Release 2.4.1
+* Disable caching for LLM pipeline tasks that store temporary artifacts.
+* Fix the mismatched arguments in 2.4.0 for the Feature Transform Engine component.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.4.0
+* Add support for running tasks on a `PersistentResource` (see [CustomJobSpec](https://cloud.google.com/vertex-ai/docs/reference/rest/v1beta1/CustomJobSpec)) via `persistent_resource_id` parameter on `preview.custom_job.CustomTrainingJobOp` and `preview.custom_job.create_custom_training_job_from_component`
+* Fix use of `encryption_spec_key_name` in `v1.custom_job.CustomTrainingJobOp` and `v1.custom_job.create_custom_training_job_from_component`
+* Add feature_selection_pipeline to preview.automl.tabular.
+* Bump supported KFP versions to kfp>=2.0.0b10,<=2.2.0
+* Add `time_series_dense_encoder_forecasting_pipeline`, `learn_to_learn_forecasting_pipeline`, `sequence_to_sequence_forecasting_pipeline`, and `temporal_fusion_transformer_forecasting_pipeline` to `preview.automl.forecasting`.
+* Add support for customizing evaluation display name on `v1` and `preview` `model_evaluation` pipelines.
+* Include model version ID in `v1.model.upload_model.ModelUploadOp`'s `VertexModel` output (key: `model`). The URI and metadata `resourceName` field in the outputted `VertexModel` now have `@<model_version_id>` appended, corresponding to the model that was just created. Downstream components `DeleteModel` and `UndeployModel` will respect the model version if provided.
+* Bump KFP SDK upper bound to 2.3.0
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 2.3.1
+* Make LLM pipelines compatible with KFP SDK 2.1.3
+* Require KFP SDK <=2.1.3
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 2.3.0
+* Add `preview.llm.infer_pipeline` and `preview.llm.rlhf_pipeline`
+* Add `automl_tabular_tabnet_trainer` and `automl_tabular_wide_and_deep_trainer` to `preview.automl.tabular` and `v1.automl.tabular`
+* Minor feature additions to AutoML components
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 2.2.0
+* Add `preview.model_evaluation.evaluation_llm_classification_pipeline.evaluation_llm_classification_pipeline`
+* Change AutoML Vision Error Analysis pipeline names (`v1.model_evaluation.vision_model_error_analysis_pipeline' and 'v1.model_evaluation.evaluated_annotation_pipeline')
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+
+## Release 2.1.1
+* Add `preview.model_evaluation.FeatureAttributionGraphComponentOp` pipeline
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
 
 ## Release 2.1.0
 * Add AutoML tabular and forecasting components to `preview` namespace

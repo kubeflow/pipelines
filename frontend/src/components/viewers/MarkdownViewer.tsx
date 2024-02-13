@@ -19,6 +19,7 @@ import Viewer, { ViewerConfig } from './Viewer';
 import { cssRaw } from 'typestyle';
 import Markdown from 'markdown-to-jsx';
 import Banner from '../Banner';
+import { ExternalLink } from 'src/atoms/ExternalLink';
 
 cssRaw(`
 .markdown-viewer h1,
@@ -93,6 +94,17 @@ interface MarkdownAdvancedProps {
   content: string;
 }
 
+function preventEventBubbling(e: React.MouseEvent): void {
+  e.stopPropagation();
+}
+const renderExternalLink = (props: {}) => (
+  <ExternalLink {...props} onClick={preventEventBubbling} />
+);
+const markdownOptions = {
+  overrides: { a: { component: renderExternalLink } },
+  disableParsingRawHTML: true,
+};
+
 const MarkdownAdvanced = ({
   maxMarkdownStrLength = MAX_MARKDOWN_STR_LENGTH,
   content,
@@ -109,7 +121,7 @@ const MarkdownAdvanced = ({
       {content.length > maxMarkdownStrLength && (
         <Banner message='This markdown is too large to render completely.' mode={'warning'} />
       )}
-      <Markdown>{truncatedContent}</Markdown>
+      <Markdown options={markdownOptions}>{truncatedContent}</Markdown>
     </>
   );
 };

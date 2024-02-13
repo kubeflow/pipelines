@@ -13,15 +13,14 @@
 # limitations under the License.
 
 import json
-from typing import Optional
+from typing import Any, Dict, Optional
 
+from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
-
 
 ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL = 'unmanaged_container_model'
 API_KEY_PREDICT_SCHEMATA = 'predict_schemata'
@@ -30,7 +29,9 @@ API_KEY_ARTIFACT_URI = 'artifact_uri'
 _LABELS_PAYLOAD_KEY = 'labels'
 
 
-def append_unmanaged_model_artifact_into_payload(executor_input, model_spec):
+def append_unmanaged_model_artifact_into_payload(
+    executor_input: str, model_spec: Dict[str, Any]
+) -> Dict[str, Any]:
   artifact = (
       json.loads(executor_input)
       .get('inputs', {})
@@ -54,14 +55,14 @@ def append_unmanaged_model_artifact_into_payload(executor_input, model_spec):
 
 
 def upload_model(
-    type,
-    project,
-    location,
-    payload,
-    gcp_resources,
-    executor_input,
+    type: str,
+    project: str,
+    location: str,
+    payload: str,
+    gcp_resources: str,
+    executor_input: str,
     parent_model_name: Optional[str] = None,
-):
+) -> None:
   """Upload model and poll the LongRunningOperator till it reaches a final state."""
   api_endpoint = location + '-aiplatform.googleapis.com'
   vertex_uri_prefix = f'https://{api_endpoint}/v1/'
@@ -100,14 +101,14 @@ def upload_model(
     )
     upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
     model_resource_name = upload_model_lro['response']['model']
-    if 'model_version_id' in upload_model_lro['response']:
+    if 'modelVersionId' in upload_model_lro['response']:
       model_resource_name += (
-          f'@{upload_model_lro["response"]["model_version_id"]}'
+          f'@{upload_model_lro["response"]["modelVersionId"]}'
       )
 
     vertex_model = VertexModel.create(
         'model', vertex_uri_prefix + model_resource_name, model_resource_name
     )
-    artifact_util.update_output_artifacts(executor_input, [vertex_model])
+    artifact_utils.update_output_artifacts(executor_input, [vertex_model])
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])

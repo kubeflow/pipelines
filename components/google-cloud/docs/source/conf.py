@@ -19,6 +19,7 @@ import sys
 import textwrap
 from typing import List
 
+import commonmark
 import docstring_parser
 from google_cloud_pipeline_components import utils
 from kfp import components
@@ -192,7 +193,7 @@ html_theme_options = {
     }],
     'font': {'text': 'Open Sans'},
     'version_dropdown': True,
-    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/test-gcpc-dropdown/versions.json',
+    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/google-cloud/docs/source/versions.json',
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.
@@ -327,12 +328,22 @@ def remove_after_returns_in_place(lines: List[str]) -> bool:
   return False
 
 def process_named_docstring_returns(app, what, name, obj, options, lines):
+  markdown_to_rst(lines)
   if getattr(obj, '_is_component', False):
     has_returns_section = remove_after_returns_in_place(lines)
     if has_returns_section:
       returns_section = get_return_section(obj)
       lines.extend([':returns:', ''])
       lines.extend(returns_section)
+
+
+def markdown_to_rst(lines: List[str]) -> List[str]:
+  md = '\n'.join(lines)
+  ast = commonmark.Parser().parse(md)
+  rst = commonmark.ReStructuredTextRenderer().render(ast)
+  lines.clear()
+  lines += rst.splitlines()
+
 
 def setup(app):
   app.connect('autodoc-process-docstring', process_named_docstring_returns)

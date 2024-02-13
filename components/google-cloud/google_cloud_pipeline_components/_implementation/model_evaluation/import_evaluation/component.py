@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from typing import Optional
+from typing import List, Optional
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components.types.artifact_types import ClassificationMetrics
@@ -29,7 +29,9 @@ from kfp.dsl import Metrics
 def model_evaluation_import(
     model: Input[VertexModel],
     gcp_resources: dsl.OutputPath(str),
+    evaluation_resource_name: dsl.OutputPath(str),
     metrics: Optional[Input[Metrics]] = None,
+    row_based_metrics: Optional[Input[Metrics]] = None,
     problem_type: Optional[str] = None,
     classification_metrics: Optional[Input[ClassificationMetrics]] = None,
     forecasting_metrics: Optional[Input[ForecastingMetrics]] = None,
@@ -39,10 +41,11 @@ def model_evaluation_import(
     summarization_metrics: Optional[Input[Metrics]] = None,
     explanation: Optional[Input[Metrics]] = None,
     feature_attributions: Optional[Input[Metrics]] = None,
-    display_name: Optional[str] = "",
-    dataset_path: Optional[str] = "",
-    dataset_paths: Optional[list] = [],
-    dataset_type: Optional[str] = "",
+    embedding_metrics: Optional[Input[Metrics]] = None,
+    display_name: str = "",
+    dataset_path: str = "",
+    dataset_paths: List[str] = [],
+    dataset_type: str = "",
 ):
   # fmt: off
   """Imports a model evaluation artifact to an existing Vertex model with
@@ -57,6 +60,8 @@ def model_evaluation_import(
     model: Vertex model resource that will be the parent resource of the
       uploaded evaluation.
     metrics: Path of metrics generated from an evaluation component.
+    row_based_metrics:
+      Path of row_based_metrics generated from an evaluation component.
     problem_type: The problem type of the metrics being imported to the
       VertexModel. `classification`, `regression`, `forecasting`,
       `text-generation`, `question-answering`, and `summarization` are the
@@ -69,18 +74,20 @@ def model_evaluation_import(
     regression_metrics: google.ClassificationMetrics artifact generated from
       the ModelEvaluationRegressionOp component.
     text_generation_metrics: system.Metrics artifact generated from
-      the ModelEvaluationTextGenerationOp component. Subject to change to
+      the LLMEvaluationTextGenerationOp component. Subject to change to
       google.TextGenerationMetrics.
     question_answering_metrics: system.Metrics artifact generated from
-      the ModelEvaluationTextGenerationOp component. Subject to change to
+      the LLMEvaluationTextGenerationOp component. Subject to change to
       google.QuestionAnsweringMetrics.
     summarization_metrics: system.Metrics artifact generated from
-      the ModelEvaluationTextGenerationOp component. Subject to change to
+      the LLMEvaluationTextGenerationOp component. Subject to change to
       google.SummarizationMetrics.
     explanation: Path for model explanation metrics generated from an evaluation
       component.
     feature_attributions: The feature attributions metrics artifact generated
       from the feature attribution component.
+    embedding_metrics: The embedding metrics artifact generated from the
+      embedding retrieval metrics component.
     display_name: The display name for the uploaded model evaluation resource.
   """
   # fmt: on
@@ -100,6 +107,13 @@ def model_evaluation_import(
                   metrics.uri,
                   "--metrics_explanation",
                   metrics.metadata["explanation_gcs_path"],
+              ],
+          ),
+          dsl.IfPresentPlaceholder(
+              input_name="row_based_metrics",
+              then=[
+                  "--row_based_metrics",
+                  row_based_metrics.uri,
               ],
           ),
           dsl.IfPresentPlaceholder(
@@ -159,6 +173,13 @@ def model_evaluation_import(
               ],
           ),
           dsl.IfPresentPlaceholder(
+              input_name="embedding_metrics",
+              then=[
+                  "--embedding_metrics",
+                  embedding_metrics.uri,
+              ],
+          ),
+          dsl.IfPresentPlaceholder(
               input_name="problem_type",
               then=[
                   "--problem_type",
@@ -181,5 +202,7 @@ def model_evaluation_import(
           model.metadata["resourceName"],
           "--gcp_resources",
           gcp_resources,
+          "--evaluation_resource_name",
+          evaluation_resource_name,
       ],
   )

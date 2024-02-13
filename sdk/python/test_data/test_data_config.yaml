@@ -168,6 +168,33 @@ pipelines:
     - module: pipeline_with_metadata_fields
       name: dataset_concatenator
       execute: false
+    - module: if_else_with_oneof_artifacts
+      name: outer_pipeline
+      execute: false
+    - module: if_elif_else_complex
+      name: lucky_number_pipeline
+      execute: false
+    - module: if_else_with_oneof_parameters
+      name: flip_coin_pipeline
+      execute: false
+    - module: if_elif_else_with_oneof_parameters
+      name: outer_pipeline
+      execute: false
+    - module: pythonic_artifact_with_single_return
+      name: make_language_model_pipeline
+      execute: false
+    - module: pythonic_artifacts_with_multiple_returns
+      name: split_datasets_and_return_first
+      execute: false
+    - module: pythonic_artifacts_with_list_of_artifacts
+      name: make_and_join_datasets
+      execute: false
+    - module: cross_loop_after_topology
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_parallelfor_list_artifacts
+      name: my_pipeline
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true
@@ -230,8 +257,12 @@ components:
       execute: false
     - module: component_with_metadata_fields
       name: dataset_joiner
+      execute: false
     - module: component_with_task_final_status
       name: exit_comp
+      execute: false
+    - module: containerized_python_component
+      name: concat_message
       execute: false
 v1_components:
   test_data_dir: sdk/python/test_data/v1_component_yaml

@@ -21,10 +21,11 @@ from typing import Any, Callable, Dict, List, Optional
 from google_cloud_pipeline_components import _image
 from kfp import components
 from kfp import dsl
+# do not follow this pattern!
+# we should not depend on non-public modules of the KFP SDK!
 from kfp.components import placeholders
 
 from google.protobuf import json_format
-
 
 # note: this is a slight dependency on KFP SDK implementation details
 # other code should not similarly depend on the stability of kfp.placeholders
@@ -44,7 +45,7 @@ def build_serverless_customjob_container_spec(
     project: Project to run the job in.
     location: Location to run the job in.
     custom_job_payload: Payload to pass to the custom job. This dictionary is
-      serialized and passed as the custom job ``--payload``.
+      serialized and passed as the custom job `--payload`.
     gcp_resources: GCP resources that can be used to track the job.
 
   Returns:
@@ -143,10 +144,7 @@ def container_component_dumps(obj: Any) -> Any:
 def gcpc_output_name_converter(
     new_name: str,
     original_name: Optional[str] = None,
-) -> Callable[
-    [components.base_component.BaseComponent],
-    components.base_component.BaseComponent,
-]:
+) -> Callable[["BaseComponent"], "BaseComponent"]:  # pytype: disable=name-error
   """Replace the output with original_name with a new_name in a component decorated with an @dsl.container_component decorator.
 
   Enables authoring components that have an input and output with the same

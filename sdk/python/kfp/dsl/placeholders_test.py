@@ -26,13 +26,6 @@ from kfp.dsl import Output
 from kfp.dsl import placeholders
 
 
-class TestExecutorInputPlaceholder(parameterized.TestCase):
-
-    def test(self):
-        self.assertEqual(placeholders.ExecutorInputPlaceholder()._to_string(),
-                         '{{$}}')
-
-
 class TestInputValuePlaceholder(parameterized.TestCase):
 
     def test(self):
@@ -489,7 +482,6 @@ class TestConvertCommandLineElementToStringOrStruct(parameterized.TestCase):
             val)
 
     @parameterized.parameters([
-        (placeholders.ExecutorInputPlaceholder(), '{{$}}'),
         (placeholders.InputValuePlaceholder('input1'),
          """{{$.inputs.parameters['input1']}}"""),
         (placeholders.OutputPathPlaceholder('output1'),

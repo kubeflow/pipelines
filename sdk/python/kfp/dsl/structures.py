@@ -25,7 +25,6 @@ from google.protobuf import json_format
 import kfp
 from kfp.dsl import placeholders
 from kfp.dsl import utils
-from kfp.dsl import v1_components
 from kfp.dsl import v1_structures
 from kfp.dsl.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
@@ -545,9 +544,7 @@ def check_placeholder_references_valid_io_name(
         for arg in arg.items:
             check_placeholder_references_valid_io_name(inputs_dict,
                                                        outputs_dict, arg)
-    elif not isinstance(
-            arg, placeholders.ExecutorInputPlaceholder) and not isinstance(
-                arg, str):
+    elif not isinstance(arg, str):
         raise TypeError(f'Unexpected argument "{arg}" of type {type(arg)}.')
 
 
@@ -668,8 +665,8 @@ class ComponentSpec:
                 continue
 
             elif isinstance(type_, str) and type_.lower(
-            ) in type_utils._PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+            ) in type_utils.PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
                 in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
@@ -687,14 +684,14 @@ class ComponentSpec:
                 schema_version = type_utils._GOOGLE_TYPES_VERSION
 
             elif isinstance(type_, str) and type_.lower(
-            ) in type_utils._ARTIFACT_CLASSES_MAPPING:
-                artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
+            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
                     type_.lower()]
                 schema_title = artifact_class.schema_title
                 schema_version = artifact_class.schema_version
 
             elif type_ is None or isinstance(type_, dict) or type_.lower(
-            ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
+            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
                 schema_title = artifact_types.Artifact.schema_title
                 schema_version = artifact_types.Artifact.schema_version
 
@@ -721,8 +718,8 @@ class ComponentSpec:
                 type_ = type_utils.get_canonical_name_for_outer_generic(type_)
 
             if isinstance(type_, str) and type_.lower(
-            ) in type_utils._PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+            ) in type_utils.PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
                 ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
                     type_enum)
                 in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
@@ -737,14 +734,14 @@ class ComponentSpec:
                 schema_version = type_utils._GOOGLE_TYPES_VERSION
 
             elif isinstance(type_, str) and type_.lower(
-            ) in type_utils._ARTIFACT_CLASSES_MAPPING:
-                artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
+            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
                     type_.lower()]
                 schema_title = artifact_class.schema_title
                 schema_version = artifact_class.schema_version
 
             elif type_ is None or isinstance(type_, dict) or type_.lower(
-            ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
+            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
                 schema_title = artifact_types.Artifact.schema_title
                 schema_version = artifact_types.Artifact.schema_version
 
@@ -798,7 +795,7 @@ class ComponentSpec:
             }
 
         def extract_description_from_command(
-                commands: List[str]) -> Union[str, None]:
+                commands: List[str]) -> Optional[str]:
             for command in commands:
                 if isinstance(command, str) and 'import kfp' in command:
                     for node in ast.walk(ast.parse(command)):
@@ -847,7 +844,7 @@ class ComponentSpec:
             ComponentSpec: The ComponentSpec object.
         """
 
-        def extract_description(component_yaml: str) -> Union[str, None]:
+        def extract_description(component_yaml: str) -> Optional[str]:
             heading = '# Description: '
             multi_line_description_prefix = '#             '
             index_of_heading = 2
@@ -872,7 +869,7 @@ class ComponentSpec:
 
         is_v1 = 'implementation' in set(pipeline_spec_dict.keys())
         if is_v1:
-            v1_component = v1_components._load_component_spec_from_component_text(
+            v1_component = _load_component_spec_from_component_text(
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
         else:
@@ -1073,3 +1070,15 @@ def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
             f'Expected one or two YAML documents in the IR YAML file. Got: {num_docs}.'
         )
     return pipeline_spec_dict, platform_spec_dict
+
+
+def _load_component_spec_from_component_text(
+        text) -> v1_structures.ComponentSpec:
+    component_dict = yaml.safe_load(text)
+    component_spec = v1_structures.ComponentSpec.from_dict(component_dict)
+
+    # Calculating hash digest for the component
+    data = text if isinstance(text, bytes) else text.encode('utf-8')
+    data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
+
+    return component_spec

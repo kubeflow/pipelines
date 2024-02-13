@@ -86,6 +86,7 @@ class Test(unittest.TestCase):
         }]
         self._docker_client.images.push.return_value = [{'status': 'Pushed'}]
         self.addCleanup(patcher.stop)
+        self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
         with contextlib.ExitStack() as stack:
             stack.enter_context(self.runner.isolated_filesystem())
@@ -579,8 +580,7 @@ class Test(unittest.TestCase):
         component = _make_component(
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        package_dir = os.path.dirname(os.path.dirname(current_dir))
+        package_dir = os.path.dirname(os.path.dirname(self.current_dir))
 
         # suppresses large stdout from subprocess that builds kfp package
         with mock.patch.object(

@@ -36,12 +36,15 @@ PROBLEM_TYPE_TO_SCHEMA_URI = {
     'text-generation': 'gs://google-cloud-aiplatform/schema/modelevaluation/general_text_generation_metrics_1.0.0.yaml',
     'question-answering': 'gs://google-cloud-aiplatform/schema/modelevaluation/question_answering_metrics_1.0.0.yaml',
     'summarization': 'gs://google-cloud-aiplatform/schema/modelevaluation/summarization_metrics_1.0.0.yaml',
+    'embedding': 'gs://google-cloud-aiplatform/schema/modelevaluation/embedding_metrics_1.0.0.yaml',
 }
 
 MODEL_EVALUATION_RESOURCE_TYPE = 'ModelEvaluation'
 MODEL_EVALUATION_SLICE_RESOURCE_TYPE = 'ModelEvaluationSlice'
 SLICE_BATCH_IMPORT_LIMIT = 50
-ULM_TASKS = set(['text-generation', 'question-answering', 'summarization'])
+ULM_TASKS = set(
+    ['text-generation', 'question-answering', 'summarization', 'embedding']
+)
 
 
 def _make_parent_dirs_and_return_path(file_path: str):
@@ -53,6 +56,9 @@ parser = argparse.ArgumentParser(
     prog='Vertex Model Service evaluation importer', description=''
 )
 parser.add_argument('--metrics', dest='metrics', type=str, default='')
+parser.add_argument(
+    '--row_based_metrics', dest='row_based_metrics', type=str, default=''
+)
 parser.add_argument(
     '--classification_metrics',
     dest='classification_metrics',
@@ -80,6 +86,12 @@ parser.add_argument(
 parser.add_argument(
     '--summarization_metrics',
     dest='summarization_metrics',
+    type=str,
+    default='',
+)
+parser.add_argument(
+    '--embedding_metrics',
+    dest='embedding_metrics',
     type=str,
     default='',
 )
@@ -129,13 +141,20 @@ parser.add_argument(
     required=True,
     default=argparse.SUPPRESS,
 )
+parser.add_argument(
+    '--evaluation_resource_name',
+    dest='evaluation_resource_name',
+    type=_make_parent_dirs_and_return_path,
+    required=True,
+    default=argparse.SUPPRESS,
+)
 
 
 def main(argv):
   """Calls ModelService.ImportModelEvaluation."""
   parsed_args, _ = parser.parse_known_args(argv)
 
-  if parsed_args.model_name.startswith('publishers'):
+  if 'publishers/google' in parsed_args.model_name:
     return
 
   _, project_id, _, location, _, model_id = parsed_args.model_name.split('/')
@@ -160,6 +179,9 @@ def main(argv):
   elif parsed_args.summarization_metrics:
     metrics_file_path = parsed_args.summarization_metrics
     problem_type = 'summarization'
+  elif parsed_args.embedding_metrics:
+    metrics_file_path = parsed_args.embedding_metrics
+    problem_type = 'embedding'
   else:
     metrics_file_path = parsed_args.metrics
     problem_type = parsed_args.problem_type
@@ -255,6 +277,11 @@ def main(argv):
           'pipeline_job_resource_name': parsed_args.pipeline_job_resource_name,
           'evaluation_dataset_type': parsed_args.dataset_type,
           'evaluation_dataset_path': dataset_paths or None,
+          'row_based_metrics_path': (
+              parsed_args.row_based_metrics
+              if parsed_args.row_based_metrics
+              else None
+          ),
       }.items()
       if value
   }
@@ -274,6 +301,10 @@ def main(argv):
       model_evaluation=model_evaluation,
   )
   model_evaluation_name = import_model_evaluation_response.name
+
+  # Write the model evaluation resource to evaluation_resource_name output.
+  with open(parsed_args.evaluation_resource_name, 'w') as f:
+    f.write(model_evaluation_name)
 
   resources = GcpResources()
   # Write the model evaluation resource to GcpResources output.

@@ -145,10 +145,7 @@ spec:
               value: "{{item}}"
         withItems:
           - exit_handler
-          - recursion
           - sequential
-          - parallel_join
-          - volume_ops
 
   - name: upgrade-test-preparation
     inputs:

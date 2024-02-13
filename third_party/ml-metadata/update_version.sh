@@ -20,7 +20,7 @@ image_files=( "${REPO_ROOT}/.cloudbuild.yaml" \
               "${REPO_ROOT}/.release.cloudbuild.yaml" \
               "${REPO_ROOT}/manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml" \
               "${REPO_ROOT}/test/tag_for_hosted.sh" \
-              "${REPO_ROOT}/v2/Makefile" \
+              "${REPO_ROOT}/backend/src/v2/Makefile" \
               )
 for i in "${image_files[@]}"
 do
@@ -29,7 +29,7 @@ do
 done
 
 requirement_files=( "${REPO_ROOT}/backend/metadata_writer/requirements.in" \
-                    "${REPO_ROOT}/v2/test/requirements.txt"
+                    "${REPO_ROOT}/backend/src/v2/test/requirements.txt"
                     )
 for i in "${requirement_files[@]}"
 do

@@ -30,6 +30,7 @@ import (
 
 var (
 	masterURL                     string
+	logLevel                      string
 	kubeconfig                    string
 	initializeTimeout             time.Duration
 	timeout                       time.Duration
@@ -43,9 +44,11 @@ var (
 	numWorker                     int
 	clientQPS                     float64
 	clientBurst                   int
+	saTokenRefreshIntervalInSecs  int64
 )
 
 const (
+	logLevelFlagName                      = "logLevel"
 	kubeconfigFlagName                    = "kubeconfig"
 	masterFlagName                        = "master"
 	initializationTimeoutFlagName         = "initializeTimeout"
@@ -59,10 +62,12 @@ const (
 	numWorkerName                         = "numWorker"
 	clientQPSFlagName                     = "clientQPS"
 	clientBurstFlagName                   = "clientBurst"
+	saTokenRefreshIntervalFlagName        = "saTokenRefreshIntervalInSecs"
 )
 
 const (
-	DefaultConnectionTimeout = 6 * time.Minute
+	DefaultConnectionTimeout              = 6 * time.Minute
+	DefaultSATokenRefresherIntervalInSecs = 60 * 60 // 1 Hour in seconds
 )
 
 func main() {
@@ -83,6 +88,16 @@ func main() {
 		log.Fatalf("Error building schedule clientset: %s", err.Error())
 	}
 
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	level, err := log.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatal("Invalid log level:", err)
+	}
+	log.SetLevel(level)
+
 	clientParam := util.ClientParameters{QPS: float64(cfg.QPS), Burst: cfg.Burst}
 	execInformer := util.NewExecutionInformerOrFatal(util.ArgoWorkflow, namespace, time.Second*30, clientParam)
 
@@ -92,14 +107,17 @@ func main() {
 	} else {
 		swfInformerFactory = swfinformers.NewFilteredSharedInformerFactory(swfClient, time.Second*30, namespace, nil)
 	}
-	k8sCoreClient := client.CreateKubernetesCoreOrFatal(DefaultConnectionTimeout, util.ClientParameters{
-		QPS:   clientQPS,
-		Burst: clientBurst,
-	})
+
+	tokenRefresher := client.NewTokenRefresher(time.Duration(saTokenRefreshIntervalInSecs)*time.Second, nil)
+	err = tokenRefresher.StartTokenRefreshTicker()
+	if err != nil {
+		log.Fatalf("Error starting Service Account Token Refresh Ticker due to: %v", err)
+	}
 
 	pipelineClient, err := client.NewPipelineClient(
 		initializeTimeout,
 		timeout,
+		tokenRefresher,
 		mlPipelineAPIServerBasePath,
 		mlPipelineAPIServerName,
 		mlPipelineServiceHttpPort,
@@ -112,7 +130,6 @@ func main() {
 		swfInformerFactory,
 		execInformer,
 		pipelineClient,
-		k8sCoreClient,
 		util.NewRealTime())
 
 	go swfInformerFactory.Start(stopCh)
@@ -126,6 +143,7 @@ func main() {
 func init() {
 	flag.StringVar(&kubeconfig, kubeconfigFlagName, "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, masterFlagName, "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	flag.StringVar(&logLevel, logLevelFlagName, "", "Defines the log level for the application.")
 	flag.DurationVar(&initializeTimeout, initializationTimeoutFlagName, 2*time.Minute, "Duration to wait for initialization of the ML pipeline API server.")
 	flag.DurationVar(&timeout, timeoutFlagName, 1*time.Minute, "Duration to wait for calls to complete.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
@@ -140,4 +158,8 @@ func init() {
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	flag.Float64Var(&clientQPS, clientQPSFlagName, 5, "The maximum QPS to the master from this client.")
 	flag.IntVar(&clientBurst, clientBurstFlagName, 10, "Maximum burst for throttle from this client.")
+	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
+	flag.Int64Var(&saTokenRefreshIntervalInSecs, saTokenRefreshIntervalFlagName, DefaultSATokenRefresherIntervalInSecs, "Persistence agent service account token read interval in seconds. "+
+		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
+
 }

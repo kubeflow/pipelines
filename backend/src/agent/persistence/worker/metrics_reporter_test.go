@@ -32,11 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	NamespaceName = "kf-namespace"
-	USER          = "test-user@example.com"
-)
-
 func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 
@@ -57,7 +52,7 @@ func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
@@ -82,7 +77,7 @@ func TestReportMetrics_NoRunID_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
 	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
@@ -109,7 +104,7 @@ func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
 	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
@@ -139,7 +134,7 @@ func TestReportMetrics_NoMetricsArtifact_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
 	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
@@ -182,7 +177,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 		Results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{},
 	}, nil)
 
-	err1 := reporter.ReportMetrics(workflow, USER)
+	err1 := reporter.ReportMetrics(workflow)
 
 	assert.Nil(t, err1)
 	expectedMetricsRequest := &api.ReportRunMetricsRequest{
@@ -241,7 +236,7 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 			Data: []byte(artifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
@@ -284,7 +279,7 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 			Data: []byte(artifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
@@ -326,7 +321,7 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 			Data: []byte(artifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
@@ -387,7 +382,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			Data: []byte(validArtifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	// Partial failure is reported while valid metrics are reported.
 	assert.NotNil(t, err)
@@ -447,7 +442,7 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 			Data: []byte("invalid tgz content"),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
@@ -511,7 +506,7 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 		},
 	}, nil)
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
@@ -520,8 +515,6 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 func TestReportMetrics_Unauthorized(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 	reporter := NewMetricsReporter(pipelineFake)
-	k8sFake := client.NewKubernetesCoreFake()
-	k8sFake.Set(NamespaceName, USER)
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -557,7 +550,7 @@ func TestReportMetrics_Unauthorized(t *testing.T) {
 		Results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{},
 	}, errors.New("failed to read artifacts"))
 
-	err1 := reporter.ReportMetrics(workflow, USER)
+	err1 := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err1)
 	assert.Contains(t, err1.Error(), "failed to read artifacts")

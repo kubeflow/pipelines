@@ -56,21 +56,14 @@ def automl_tabular_ensemble(
       transform_output: The transform output artifact.
       metadata: The tabular example gen metadata.
       dataset_schema: The schema of the dataset.
-      tuning_result_input: AutoML Tabular tuning
-        result.
-      instance_baseline: The instance baseline
-        used to calculate explanations.
-      warmup_data: The warm up data. Ensemble component will save the
-        warm up data together with the model artifact, used to warm up the model
-        when prediction server starts.
+      tuning_result_input: AutoML Tabular tuning result.
+      instance_baseline: The instance baseline used to calculate explanations.
+      warmup_data: The warm up data. Ensemble component will save the warm up data together with the model artifact, used to warm up the model when prediction server starts.
       encryption_spec_key_name: Customer-managed encryption key.
-      export_additional_model_without_custom_ops: True if export
-        an additional model without custom TF operators to the
-        `model_without_custom_ops` output.
+      export_additional_model_without_custom_ops: True if export an additional model without custom TF operators to the `model_without_custom_ops` output.
 
   Returns:
-      gcp_resources: GCP resources created by this component. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: GCP resources created by this component. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
       model_architecture: The architecture of the output model.
       model: The output model.
       model_without_custom_ops: The output model without custom TF operators, this output will be empty unless `export_additional_model_without_custom_ops` is set.
@@ -113,7 +106,7 @@ def automl_tabular_ensemble(
                       ' 1, "machine_spec": {"machine_type": "n1-highmem-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230619_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125',
                   '", "args": ["ensemble", "--transform_output_path=',
                   transform_output.uri,
                   '", "--model_output_path=',
@@ -144,7 +137,7 @@ def automl_tabular_ensemble(
                   '", "--warmup_data=',
                   warmup_data.uri,
                   '", "--prediction_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20230619_1325',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125',
                   '", "--model_path=',
                   model.uri,
                   '", "--custom_model_path=',

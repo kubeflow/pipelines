@@ -17,11 +17,10 @@
 import unittest
 from pprint import pprint
 
-import kfp.deprecated as kfp
+import kfp as kfp
 import kfp_server_api
 
-from .exit_handler import pipeline_exit_handler
-from .exit_handler_v2 import pipeline_exit_handler as pipeline_exit_handler_v2
+from .exit_handler import pipeline_exit_handler as pipeline_exit_handler
 from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient
 
 
@@ -53,10 +52,6 @@ if __name__ == '__main__':
     run_pipeline_func([
         TestCase(
             pipeline_func=pipeline_exit_handler,
-            mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
-        ),
-        TestCase(
-            pipeline_func=pipeline_exit_handler_v2,
             mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         ),
     ])

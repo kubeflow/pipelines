@@ -62,8 +62,11 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     AWS_SECRET_ACCESS_KEY,
     AWS_REGION,
     AWS_S3_ENDPOINT,
+    AWS_SSL = 'true',
     /** http/https base URL */
     HTTP_BASE_URL = '',
+    /** By default, allowing access to all domains. Modify this flag to allow querying matching domains */
+    ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
     /** http/https fetch with this authorization header key (for example: 'Authorization') */
     HTTP_AUTHORIZATION_KEY = '',
     /** http/https fetch with this authorization header value by default when absent in client request at above key */
@@ -135,6 +138,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         endPoint: AWS_S3_ENDPOINT || 's3.amazonaws.com',
         region: AWS_REGION || 'us-east-1',
         secretKey: AWS_SECRET_ACCESS_KEY || '',
+        useSSL: asBool(AWS_SSL),
       },
       http: {
         auth: {
@@ -155,6 +159,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       },
       proxy: loadArtifactsProxyConfig(env),
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
+      allowedDomain: ALLOWED_ARTIFACT_DOMAIN_REGEX,
     },
     metadata: {
       envoyService: {
@@ -215,6 +220,7 @@ export interface AWSConfigs {
   region: string;
   accessKey: string;
   secretKey: string;
+  useSSL: boolean;
 }
 export interface HttpConfigs {
   baseUrl: string;
@@ -274,6 +280,7 @@ export interface UIConfigs {
     http: HttpConfigs;
     proxy: ArtifactsProxyConfig;
     streamLogsFromServerApi: boolean;
+    allowedDomain: string;
   };
   pod: {
     logContainerName: string;

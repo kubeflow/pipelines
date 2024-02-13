@@ -35,17 +35,20 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 var (
+	logLevelFlag       = flag.String("logLevel", "", "Defines the log level for the application.")
 	rpcPortFlag        = flag.String("rpcPortFlag", ":8887", "RPC Port")
 	httpPortFlag       = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
 	configPath         = flag.String("config", "", "Path to JSON file containing config")
@@ -59,9 +62,10 @@ func main() {
 	flag.Parse()
 
 	initConfig()
-	clientManager := newClientManager()
+	clientManager := cm.NewClientManager()
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
 	)
 	err := loadSamples(resourceManager)
 	if err != nil {
@@ -74,6 +78,17 @@ func main() {
 			glog.Fatalf("Failed to create default experiment. Err: %v", err)
 		}
 	}
+
+	logLevel := *logLevelFlag
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	level, err := log.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatal("Invalid log level:", err)
+	}
+	log.SetLevel(level)
 
 	go startRpcServer(resourceManager)
 	startHttpProxy(resourceManager)
@@ -119,8 +134,8 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		s,
 		server.NewVisualizationServer(
 			resourceManager,
-			common.GetStringConfig(visualizationServiceHost),
-			common.GetStringConfig(visualizationServicePort),
+			common.GetStringConfig(cm.VisualizationServiceHost),
+			common.GetStringConfig(cm.VisualizationServicePort),
 		))
 	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 

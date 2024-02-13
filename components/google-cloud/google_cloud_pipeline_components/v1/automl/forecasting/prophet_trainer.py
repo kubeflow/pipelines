@@ -16,7 +16,6 @@
 
 from typing import Optional
 from google_cloud_pipeline_components.types.artifact_types import UnmanagedContainerModel
-
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import Output
@@ -56,48 +55,26 @@ def prophet_trainer(
       project: The GCP project that runs the pipeline components.
       location: The GCP region for Vertex AI.
       root_dir: The Cloud Storage location to store the output.
-      time_column: Name of the column that identifies time order in the
-        time series.
-      time_series_identifier_column: Name of the column that identifies
-        the time series.
-      target_column: Name of the column that the model is to predict
-        values for.
-      forecast_horizon: The number of time periods into the future for
-        which forecasts will be created. Future periods start after the latest
-        timestamp for each time series.
-      optimization_objective: Optimization objective for tuning. Supported
-        metrics come from Prophet's performance_metrics function. These are mse,
-        rmse, mae, mape, mdape, smape, and coverage.
-      data_granularity_unit: String representing the units of time for the
-        time column.
-      predefined_split_column: The predefined_split column name. A string
-        that represents a list of comma separated CSV filenames.
-      source_bigquery_uri: The BigQuery table path of format
-          bq (str)://bq_project.bq_dataset.bq_table
-      window_column: Name of the column that should be used to filter
-        input rows.  The column should contain either booleans or string
-        booleans; if the value of the row is True, generate a sliding window
-        from that row.
-      max_num_trials: Maximum number of tuning trials to perform
-        per time series. There are up to 100 possible combinations to explore
-        for each time series. Recommended values to try are 3, 6, and 24.
+      time_column: Name of the column that identifies time order in the time series.
+      time_series_identifier_column: Name of the column that identifies the time series.
+      target_column: Name of the column that the model is to predict values for.
+      forecast_horizon: The number of time periods into the future for which forecasts will be created. Future periods start after the latest timestamp for each time series.
+      optimization_objective: Optimization objective for tuning. Supported metrics come from Prophet's performance_metrics function. These are mse, rmse, mae, mape, mdape, smape, and coverage.
+      data_granularity_unit: String representing the units of time for the time column.
+      predefined_split_column: The predefined_split column name. A string that represents a list of comma separated CSV filenames.
+      source_bigquery_uri: The BigQuery table path of format bq (str)://bq_project.bq_dataset.bq_table
+      window_column: Name of the column that should be used to filter input rows.  The column should contain either booleans or string booleans; if the value of the row is True, generate a sliding window from that row.
+      max_num_trials: Maximum number of tuning trials to perform per time series. There are up to 100 possible combinations to explore for each time series. Recommended values to try are 3, 6, and 24.
       encryption_spec_key_name: Customer-managed encryption key.
-      dataflow_machine_type: The dataflow machine type used for
-        training.
-      dataflow_max_num_workers: The max number of Dataflow
-        workers used for training.
-      dataflow_disk_size_gb: Dataflow worker's disk size in GB
-        during training.
-      dataflow_service_account: Custom service account to run
-        dataflow jobs.
-      dataflow_subnetwork: Dataflow's fully qualified subnetwork
-        name, when empty the default subnetwork will be used.
-      dataflow_use_public_ips: Specifies whether Dataflow
-        workers use public IP addresses.
+      dataflow_machine_type: The dataflow machine type used for training.
+      dataflow_max_num_workers: The max number of Dataflow workers used for training.
+      dataflow_disk_size_gb: Dataflow worker's disk size in GB during training.
+      dataflow_service_account: Custom service account to run dataflow jobs.
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used.
+      dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
 
   Returns:
-      gcp_resources: Serialized gcp_resources proto tracking the custom training
-        job.
+      gcp_resources: Serialized gcp_resources proto tracking the custom training job.
       unmanaged_container_model: The UnmanagedContainerModel artifact.
   """
   # fmt: on
@@ -131,15 +108,17 @@ def prophet_trainer(
                   '"machine_spec": {"machine_type": "n1-standard-4"}, ',
                   (
                       '"container_spec":'
-                      ' {"image_uri":"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230619_1325", '
+                      ' {"image_uri":"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", '
                   ),
                   '"args": ["prophet_trainer", "',
-                  f'--job_name=dataflow-{dsl.PIPELINE_JOB_NAME_PLACEHOLDER}", "',
                   (
-                      '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20230619_1325", "'
+                      f'--job_name=dataflow-{dsl.PIPELINE_JOB_NAME_PLACEHOLDER}", "'
                   ),
                   (
-                      '--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20230619_1325", "'
+                      '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240119_0125", "'
+                  ),
+                  (
+                      '--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20240119_0125", "'
                   ),
                   '--artifacts_dir=',
                   root_dir,

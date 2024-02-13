@@ -14,6 +14,8 @@
 
 """GA AutoML tabular components."""
 
+import os
+
 from google_cloud_pipeline_components.v1.automl.tabular.cv_trainer import automl_tabular_cv_trainer as CvTrainerOp
 from google_cloud_pipeline_components.v1.automl.tabular.ensemble import automl_tabular_ensemble as EnsembleOp
 from google_cloud_pipeline_components.v1.automl.tabular.finalizer import automl_tabular_finalizer as FinalizerOp
@@ -23,15 +25,24 @@ from google_cloud_pipeline_components.v1.automl.tabular.stage_1_tuner import aut
 from google_cloud_pipeline_components.v1.automl.tabular.stats_and_example_gen import tabular_stats_and_example_gen as StatsAndExampleGenOp
 from google_cloud_pipeline_components.v1.automl.tabular.training_configurator_and_validator import training_configurator_and_validator as TrainingConfiguratorAndValidatorOp
 from google_cloud_pipeline_components.v1.automl.tabular.transform import automl_tabular_transform as TransformOp
+from google_cloud_pipeline_components.v1.automl.tabular.utils import get_automl_tabular_pipeline_and_parameters
+from kfp import components
 
 __all__ = [
     'CvTrainerOp',
-    'InfraValidatorOp',
-    'Stage1TunerOp',
     'EnsembleOp',
-    'StatsAndExampleGenOp',
-    'TransformOp',
     'FinalizerOp',
+    'InfraValidatorOp',
     'SplitMaterializedDataOp',
+    'Stage1TunerOp',
+    'StatsAndExampleGenOp',
     'TrainingConfiguratorAndValidatorOp',
+    'TransformOp',
+    'get_automl_tabular_pipeline_and_parameters',
 ]
+
+automl_tabular_pipeline = components.load_component_from_file(
+    # Note, please don't name it as `component.yaml` which will conflict with
+    # the generated file.
+    os.path.join(os.path.dirname(__file__), 'automl_tabular_pipeline.yaml')
+)

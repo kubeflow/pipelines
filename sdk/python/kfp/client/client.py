@@ -32,6 +32,7 @@ from google.protobuf import json_format
 from kfp import compiler
 from kfp.client import auth
 from kfp.client import set_volume_credentials
+from kfp.client.token_credentials_base import TokenCredentialsBase
 from kfp.dsl import base_component
 from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
@@ -150,7 +151,7 @@ class Client:
         proxy: Optional[str] = None,
         ssl_ca_cert: Optional[str] = None,
         kube_context: Optional[str] = None,
-        credentials: Optional[str] = None,
+        credentials: Optional[TokenCredentialsBase] = None,
         ui_host: Optional[str] = None,
         verify_ssl: Optional[bool] = None,
     ) -> None:
@@ -221,7 +222,7 @@ class Client:
         proxy: Optional[str],
         ssl_ca_cert: Optional[str],
         kube_context: Optional[str],
-        credentials: Optional[str],
+        credentials: Optional[TokenCredentialsBase],
         verify_ssl: Optional[bool],
     ) -> kfp_server_api.Configuration:
         config = kfp_server_api.Configuration()
@@ -323,18 +324,6 @@ class Client:
 
     def _is_inverse_proxy_host(self, host: str) -> bool:
         return bool(re.match(r'\S+.googleusercontent.com/{0,1}$', host))
-
-    def _is_ipython(self) -> bool:
-        """Returns whether we are running in notebook."""
-        try:
-            import IPython
-            ipy = IPython.get_ipython()
-            if ipy is None:
-                return False
-        except ImportError:
-            return False
-
-        return True
 
     def _get_url_prefix(self) -> str:
         if self._uihost:
@@ -488,7 +477,7 @@ class Client:
             experiment = self._experiment_api.create_experiment(body=experiment)
 
         link = f'{self._get_url_prefix()}/#/experiments/details/{experiment.experiment_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Experiment details</a>.'
             IPython.display.display(IPython.display.HTML(html))
@@ -744,7 +733,7 @@ class Client:
         response = self._run_api.create_run(body=run_body)
 
         link = f'{self._get_url_prefix()}/#/runs/details/{response.run_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = (f'<a href="{link}" target="_blank" >Run details</a>.')
             IPython.display.display(IPython.display.HTML(html))
@@ -1424,7 +1413,7 @@ class Client:
             description=description,
             namespace=namespace)
         link = f'{self._get_url_prefix()}/#/pipelines/details/{response.pipeline_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
@@ -1473,7 +1462,7 @@ class Client:
             pipeline_package_path, **kwargs)
 
         link = f'{self._get_url_prefix()}/#/pipelines/details/{response.pipeline_id}/version/{response.pipeline_version_id}'
-        if self._is_ipython():
+        if auth.is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))

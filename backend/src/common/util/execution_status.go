@@ -31,7 +31,7 @@ type NodeStatus struct {
 	Children    []string
 }
 
-type RetrieveArtifact func(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error)
+type RetrieveArtifact func(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error)
 
 // Abstract interface to encapsulate the resources of the execution runtime specifically
 // for status information. This interface is mainly to access the status related information
@@ -61,7 +61,7 @@ type ExecutionStatus interface {
 	// This function was in metrics_reporter.go. Moved to here because it
 	// accesses the orchestration engine specific data struct. encapsulate the
 	// specific data struct and provide a abstract function here.
-	CollectionMetrics(retrieveArtifact RetrieveArtifact, user string) ([]*api.RunMetric, []error)
+	CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.RunMetric, []error)
 
 	// does ExecutionStatus contain any finished node or not
 	HasMetrics() bool

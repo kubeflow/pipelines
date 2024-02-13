@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from typing import List
 import unittest
 
@@ -26,33 +27,130 @@ from kfp.dsl.types.artifact_types import Model
 from kfp.dsl.types.type_annotations import OutputPath
 
 
+def strip_kfp_version(command: List[str]) -> List[str]:
+    return [
+        re.sub(r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp', c)
+        for c in command
+    ]
+
+
 class TestGetPackagesToInstallCommand(unittest.TestCase):
 
-    def test_with_no_packages_to_install(self):
+    def test_with_no_user_packages_to_install(self):
         packages_to_install = []
 
         command = component_factory._get_packages_to_install_command(
-            packages_to_install)
+            packages_to_install=packages_to_install)
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.1.2\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
+            ]))
+
+    def test_with_no_user_packages_to_install_and_install_kfp_false(self):
+        packages_to_install = []
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=packages_to_install,
+            install_kfp_package=False,
+        )
         self.assertEqual(command, [])
 
-    def test_with_packages_to_install_and_no_pip_index_url(self):
+    def test_with_no_user_packages_to_install_and_kfp_package_path(self):
+        packages_to_install = []
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=packages_to_install,
+            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python'
+        )
+
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python\' && "$0" "$@"\n'
+            ]))
+
+    def test_with_no_user_packages_to_install_and_kfp_package_path_and_install_kfp_false(
+            self):
+        packages_to_install = []
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=packages_to_install,
+            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python',
+            install_kfp_package=False,
+        )
+        self.assertEqual(command, [])
+
+    def test_with_user_packages_to_install_and_kfp_package_path_and_install_kfp_false(
+            self):
+        packages_to_install = ['sklearn']
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=packages_to_install,
+            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python',
+            install_kfp_package=False,
+        )
+
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'sklearn\' && "$0" "$@"\n'
+            ]))
+
+    def test_with_no_user_packages_to_install_and_kfp_package_path_and_target_image(
+            self):
+        packages_to_install = []
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=packages_to_install,
+            target_image='gcr.io/my-kfp-image',
+            kfp_package_path='./sdk/python')
+
+        self.assertEqual(command, [])
+
+    def test_with_no_user_packages_to_install_and_kfp_package_path_and_target_image_and_install_kfp_false(
+            self):
+        packages_to_install = []
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=packages_to_install,
+            target_image='gcr.io/my-kfp-image',
+            kfp_package_path='./sdk/python',
+            install_kfp_package=False)
+
+        self.assertEqual(command, [])
+
+    def test_with_user_packages_to_install_and_no_pip_index_url(self):
         packages_to_install = ['package1', 'package2']
 
         command = component_factory._get_packages_to_install_command(
-            packages_to_install)
-        concat_command = ' '.join(command)
-        for package in packages_to_install:
-            self.assertTrue(package in concat_command)
+            packages_to_install=packages_to_install)
+
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location \'package1\' \'package2\' && "$0" "$@"\n'
+            ]))
 
     def test_with_packages_to_install_with_pip_index_url(self):
         packages_to_install = ['package1', 'package2']
         pip_index_urls = ['https://myurl.org/simple']
 
         command = component_factory._get_packages_to_install_command(
-            packages_to_install, pip_index_urls)
-        concat_command = ' '.join(command)
-        for package in packages_to_install + pip_index_urls:
-            self.assertTrue(package in concat_command)
+            packages_to_install=packages_to_install,
+            pip_index_urls=pip_index_urls,
+        )
+
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'package1\' \'package2\' && "$0" "$@"\n'
+            ]))
 
 
 class TestInvalidParameterName(unittest.TestCase):
@@ -187,6 +285,20 @@ class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
             @dsl.container_component
             def comp(output_list: Output[List[Artifact]]):
                 return dsl.ContainerSpec(image='alpine')
+
+
+class TestPythonEOLWarning(unittest.TestCase):
+
+    def test_default_base_image(self):
+
+        with self.assertWarnsRegex(
+                FutureWarning,
+                r"Python 3\.7 has reached end-of-life\. The default base_image used by the @dsl\.component decorator will switch from 'python:3\.7' to 'python:3\.8' on April 23, 2024\. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3\.8\."
+        ):
+
+            @dsl.component
+            def foo():
+                pass
 
 
 if __name__ == '__main__':

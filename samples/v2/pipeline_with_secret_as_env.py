@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """A pipeline that passes a secret as an env variable to a container."""
-import os
-import sys
 from kfp import dsl
 from kfp import kubernetes
 
 
 @dsl.component
 def comp():
+    import os
+    import sys
     if os.environ['SECRET_VAR'] == "service_account":
         print("Success")
         return 0
@@ -40,4 +40,4 @@ def pipeline_secret_env():
 
 if __name__ == '__main__':
     from kfp import compiler
-    compiler.Compiler().compile(my_pipeline, 'pipeline_secret_env.yaml')
+    compiler.Compiler().compile(pipeline_secret_env, 'pipeline_secret_env.yaml')

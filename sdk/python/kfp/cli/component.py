@@ -39,8 +39,6 @@ _REQUIREMENTS_TXT = 'runtime-requirements.txt'
 
 _DOCKERFILE = 'Dockerfile'
 
-# TODO: merge kfp_package_path into runtime-requirements.txt, once we have
-# kfp_runtime package that is dependency-free.
 _DOCKERFILE_TEMPLATE = '''
 FROM {base_image}
 

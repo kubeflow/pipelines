@@ -16,10 +16,27 @@
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
-__version__ = '2.0.1'
+__version__ = '2.6.0'
+
+import sys
+import warnings
+
+if sys.version_info < (3, 8):
+    warnings.warn(
+        ('Python 3.7 has reached end-of-life. KFP will drop support for Python 3.7 on April 23, 2024. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.8. See https://devguide.python.org/versions/ for more details.'
+        ),
+        FutureWarning,
+        stacklevel=2,
+    )
 
 TYPE_CHECK = True
 
-from kfp import components
-from kfp import dsl
-from kfp.client import Client
+import os
+
+# compile-time only dependencies
+if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
+    # make `from kfp import components` and `from kfp import dsl` valid;
+    # related to namespace packaging issue
+    from kfp import components  # noqa: keep unused import
+    from kfp import dsl  # noqa: keep unused import
+    from kfp.client import Client  # noqa: keep unused import

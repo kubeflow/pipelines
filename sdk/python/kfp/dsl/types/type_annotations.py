@@ -17,7 +17,7 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import List, Type, TypeVar, Union
+from typing import Any, List, Optional, Type, TypeVar, Union
 
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
@@ -99,16 +99,16 @@ class InputPath:
 
 
 def construct_type_for_inputpath_or_outputpath(
-        type_: Union[str, Type, None]) -> Union[str, None]:
+        type_: Union[str, Type, None]) -> Optional[str]:
     if type_annotations.is_artifact_class(type_):
         return type_utils.create_bundled_artifact_type(type_.schema_title,
                                                        type_.schema_version)
     elif isinstance(
             type_,
-            str) and type_.lower() in type_utils._ARTIFACT_CLASSES_MAPPING:
+            str) and type_.lower() in type_utils.ARTIFACT_CLASSES_MAPPING:
         # v1 artifact backward compat, e.g. dsl.OutputPath('Dataset')
         return type_utils.create_bundled_artifact_type(
-            type_utils._ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title)
+            type_utils.ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title)
     elif type_utils.get_parameter_type(type_):
         return type_
     else:
@@ -135,7 +135,7 @@ def is_Input_Output_artifact_annotation(typ) -> bool:
     return True
 
 
-def is_input_artifact(typ) -> bool:
+def is_artifact_wrapped_in_Input(typ: Any) -> bool:
     """Returns True if typ is of type Input[T]."""
     if not is_Input_Output_artifact_annotation(typ):
         return False
@@ -143,7 +143,7 @@ def is_input_artifact(typ) -> bool:
     return typ.__metadata__[0] == InputAnnotation
 
 
-def is_output_artifact(typ) -> bool:
+def is_artifact_wrapped_in_Output(typ: Any) -> bool:
     """Returns True if typ is of type Output[T]."""
     if not is_Input_Output_artifact_annotation(typ):
         return False
@@ -160,14 +160,19 @@ def get_io_artifact_class(typ):
         return None
 
     # extract inner type from list of artifacts
-    inner = typ.__args__[0]
+    inner = strip_Input_or_Output_marker(typ)
     if hasattr(inner, '__origin__') and inner.__origin__ == list:
         return inner.__args__[0]
 
     return inner
 
 
-def get_io_artifact_annotation(typ):
+def strip_Input_or_Output_marker(typ: Any) -> artifact_types.Artifact:
+    return typ.__args__[0]
+
+
+def get_input_or_output_marker(
+        typ) -> Optional[Union[InputAnnotation, OutputAnnotation]]:
     if not is_Input_Output_artifact_annotation(typ):
         return None
 
@@ -233,13 +238,40 @@ def is_artifact_class(artifact_class_or_instance: Type) -> bool:
 
 
 def is_list_of_artifacts(
-    type_var: Union[Type[List[artifact_types.Artifact]],
-                    Type[artifact_types.Artifact]]
+    annotation: Union[Type[List[artifact_types.Artifact]],
+                      Type[artifact_types.Artifact]]
 ) -> bool:
-    # the type annotation for this function's `type_var` parameter may not actually be a subclass of the KFP SDK's Artifact class for custom artifact types
-    is_list_or_list_generic = getattr(type_var, '__origin__', None) == list
-    # in >= python3.9, List wont have .__args__ if it's used as `-> List` with no inner type argument
-    contains_artifact = hasattr(
-        type_var, '__args__') and type_annotations.is_artifact_class(
-            type_var.__args__[0])
-    return is_list_or_list_generic and contains_artifact
+    """Checks if an object is a list of list of artifacts annotation (e.g.,
+    List[Artifact], List[Dataset])"""
+    return is_generic_list(annotation) and issubclass_of_artifact(
+        get_inner_type(annotation))
+
+
+def get_inner_type(annotation: Any) -> Optional[Any]:
+    """Returns the inner type of a generic annotation.
+
+    For Union or Optional types with multiple inner types, a tuple of
+    types is returned.
+    """
+    # Check if the annotation has '__args__' attribute
+    if hasattr(annotation, '__args__'):
+        if len(annotation.__args__) == 1:
+            return annotation.__args__[0]
+        else:
+            return tuple(annotation.__args__)
+    return None
+
+
+def issubclass_of_artifact(obj: Any) -> bool:
+    """Checks if an object is a class and a subclass of a dsl.Artifact."""
+    return type(obj) == type and issubclass(obj, artifact_types.Artifact)
+
+
+def is_generic_list(annotation: Any) -> bool:
+    # handles generics from the typing module for python<3.9
+    typing_generic_list = getattr(annotation, '__origin__',
+                                  None) is list or getattr(
+                                      annotation, '__origin__', None) is List
+    # handles built-in generics for python>=3.9
+    built_in_generic_list = annotation == list
+    return typing_generic_list or built_in_generic_list

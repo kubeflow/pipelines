@@ -16,6 +16,7 @@
 from typing import Optional
 
 from google_cloud_pipeline_components import _image
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components import utils
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp import dsl
@@ -26,44 +27,24 @@ from kfp.dsl import Output
 @utils.gcpc_output_name_converter('dataset')
 @dsl.container_component
 def image_dataset_import(
-    project: str,
     dataset: Input[VertexDataset],
     output__dataset: Output[VertexDataset],
     location: Optional[str] = 'us-central1',
     data_item_labels: Optional[dict] = {},
     gcs_source: Optional[str] = None,
     import_schema_uri: Optional[str] = None,
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Uploads data to an existing managed `Dataset <https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets>`_.
+  """Uploads data to an existing managed [Dataset](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets).
 
   Args:
-      project: Project to retrieve Dataset from.
       location: Optional location to retrieve Dataset from.
       dataset: The Dataset to be updated.
-      gcs_source:
-          Google Cloud Storage URI(-s) to the
-          input file(s). May contain wildcards. For more
-          information on wildcards, see
-          https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
-          For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
-      import_schema_uri: Points to a YAML file stored on Google Cloud
-          Storage describing the import format. Validation will be
-          done against the schema. The schema is defined as an
-          `OpenAPI 3.0.2 Schema Object <https://tinyurl.com/y538mdwt>`_.
-      data_item_labels: Labels that will be applied to newly imported DataItems. If
-          an identical DataItem as one being imported already exists
-          in the Dataset, then these labels will be appended to these
-          of the already existing one, and if labels with identical
-          key is imported before, the old label value will be
-          overwritten. If two DataItems are identical in the same
-          import data operation, the labels will be combined and if
-          key collision happens in this case, one of the values will
-          be picked randomly. Two DataItems are considered identical
-          if their content bytes are identical (e.g. image bytes or
-          pdf bytes). These labels will be overridden by Annotation
-          labels specified inside index file refenced by
-          ``import_schema_uri``, e.g. jsonl file.
+      gcs_source: Google Cloud Storage URI(-s) to the input file(s). May contain wildcards. For more information on wildcards, see https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames. For example, "gs://bucket/file.csv" or ["gs://bucket/file1.csv", "gs://bucket/file2.csv"].
+      import_schema_uri: Points to a YAML file stored on Google Cloud Storage describing the import format. Validation will be done against the schema. The schema is defined as an [OpenAPI 3.0.2 Schema Object](https://tinyurl.com/y538mdwt).
+      data_item_labels: Labels that will be applied to newly imported DataItems. If an identical DataItem as one being imported already exists in the Dataset, then these labels will be appended to these of the already existing one, and if labels with identical key is imported before, the old label value will be overwritten. If two DataItems are identical in the same import data operation, the labels will be combined and if key collision happens in this case, one of the values will be picked randomly. Two DataItems are considered identical if their content bytes are identical (e.g. image bytes or pdf bytes). These labels will be overridden by Annotation labels specified inside index file refenced by `import_schema_uri`, e.g. jsonl file.
+      project: Project to retrieve Dataset from. Defaults to the project in which the PipelineJob is run.
 
   Returns:
       dataset: Instantiated representation of the managed Dataset resource.

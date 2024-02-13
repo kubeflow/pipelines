@@ -49,17 +49,12 @@ def automl_tabular_cv_trainer(
       project: Project to run Cross-validation trainer.
       location: Location for running the Cross-validation trainer.
       root_dir: The Cloud Storage location to store the output.
-      worker_pool_specs_override_json: JSON worker pool specs. E.g.,
-        [{"machine_spec": {"machine_type":
-        "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
-        "n1-standard-16"}}]
+      worker_pool_specs_override_json: JSON worker pool specs. E.g., [{"machine_spec": {"machine_type": "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]
       deadline_hours: Number of hours the cross-validation trainer should run.
       num_parallel_trials: Number of parallel training trials.
       single_run_max_secs: Max number of seconds each training trial runs.
-      num_selected_trials: Number of selected trials. The number of weak
-        learners in the final model is 5 * num_selected_trials.
-      num_selected_features: Number of selected features. The number of
-        features to learn in the NN models.
+      num_selected_trials: Number of selected trials. The number of weak learners in the final model is 5 * num_selected_trials.
+      num_selected_features: Number of selected features. The number of features to learn in the NN models.
       transform_output: The transform output artifact.
       metadata: The tabular example gen metadata.
       materialized_cv_splits: The materialized cross-validation splits.
@@ -68,8 +63,7 @@ def automl_tabular_cv_trainer(
 
   Returns:
       tuning_result_output: The trained model and architectures.
-      gcp_resources: GCP resources created by this component. For more details, see
-        https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+      gcp_resources: GCP resources created by this component. For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
       execution_metrics: Core metrics in dictionary of component execution.
   """
   # fmt: on
@@ -105,11 +99,11 @@ def automl_tabular_cv_trainer(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230619_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125',
                   '", "args": ["l2l_cv_tuner", "--transform_output_path=',
                   transform_output.uri,
                   '", "--training_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20230619_1325',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125',
                   (
                       f'", "--component_id={dsl.PIPELINE_TASK_ID_PLACEHOLDER}",'
                       ' "--training_base_dir='

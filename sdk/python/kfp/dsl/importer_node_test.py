@@ -14,8 +14,8 @@
 import unittest
 
 from kfp import dsl
+from kfp.dsl import Dataset
 from kfp.dsl import importer_node
-from kfp.dsl.types.artifact_types import Dataset
 
 
 class TestImporterSupportsDynamicMetadata(unittest.TestCase):
@@ -184,3 +184,37 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
             "prefix2-{{$.inputs.parameters[\'metadata-2\']}}")
         self.assertEqual(metadata.struct_value.fields['key'].string_value,
                          'value')
+
+    def test_uri_from_loop(self):
+
+        @dsl.component
+        def make_args() -> list:
+            return [{'uri': 'gs://foo', 'key': 'foo'}]
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(make_args().output) as data:
+                dsl.importer(
+                    artifact_uri=data.uri,
+                    artifact_class=Dataset,
+                    metadata={'metadata_key': data.key})
+
+        self.assertEqual(
+            my_pipeline.pipeline_spec.deployment_spec['executors']
+            ['exec-importer']['importer']['artifactUri']['runtimeParameter'],
+            'uri')
+        self.assertEqual(
+            my_pipeline.pipeline_spec.deployment_spec['executors']
+            ['exec-importer']['importer']['metadata']['metadata_key'],
+            "{{$.inputs.parameters[\'metadata\']}}")
+        self.assertEqual(
+            my_pipeline.pipeline_spec.components['comp-for-loop-1'].dag
+            .tasks['importer'].inputs.parameters['metadata']
+            .component_input_parameter,
+            'pipelinechannel--make-args-Output-loop-item')
+        self.assertEqual(
+            my_pipeline.pipeline_spec.components['comp-for-loop-1'].dag
+            .tasks['importer'].inputs.parameters['metadata']
+            .parameter_expression_selector,
+            'parseJson(string_value)["key"]',
+        )

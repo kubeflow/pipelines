@@ -21,6 +21,7 @@ _EVALUATION_DATAFLOW_MACHINE_TYPE = 'n1-standard-4'
 _EVALUATION_DATAFLOW_STARTING_NUM_WORKERS = 10
 _EVALUATION_DATAFLOW_MAX_NUM_WORKERS = 100
 _EVALUATION_DATAFLOW_DISK_SIZE_GB = 50
+_FEATURE_SELECTION_EXECUTION_ENGINE_BIGQUERY = 'bigquery'
 
 # Needed because we reference the AutoML Tabular V1 pipeline.
 _GCPC_STAGING_PATH = pathlib.Path(
@@ -46,8 +47,6 @@ def _generate_model_display_name() -> str:
   return f'tabular-workflow-model-{uuid.uuid4()}'
 
 
-# TODO(b/277393122): Once we finish L2L+FTE integration, add use_fte flag
-# to signify FTE usage instead of the presence of num_selected_features.
 def _get_default_pipeline_params(
     project: str,
     location: str,
@@ -109,6 +108,7 @@ def _get_default_pipeline_params(
     num_selected_features: Optional[int] = None,
     model_display_name: str = '',
     model_description: str = '',
+    enable_fte: bool = False,
 ) -> Dict[str, Any]:
   """Get the AutoML Tabular v1 default training pipeline.
 
@@ -223,6 +223,7 @@ def _get_default_pipeline_params(
       enable_probabilistic_inference and run_distillation cannot be enabled.
     model_display_name: The display name of the uploaded Vertex model.
     model_description: The description for the uploaded model.
+    enable_fte: Whether to enable the Feature Transform Engine.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
@@ -326,8 +327,29 @@ def _get_default_pipeline_params(
         }
     )
 
-  # V1 pipeline without FTE
-  if num_selected_features is None:
+  if run_distillation:
+    distillation_parameters = {
+        'distill_batch_predict_machine_type': (
+            distill_batch_predict_machine_type
+        ),
+        'distill_batch_predict_starting_replica_count': (
+            distill_batch_predict_starting_replica_count
+        ),
+        'distill_batch_predict_max_replica_count': (
+            distill_batch_predict_max_replica_count
+        ),
+        'run_distillation': run_distillation,
+    }
+    parameter_values.update(
+        {
+            param: value
+            for param, value in distillation_parameters.items()
+            if value is not None
+        }
+    )
+
+  # V1 pipeline
+  if not enable_fte:
     if not additional_experiments:
       additional_experiments = {}
 
@@ -362,35 +384,8 @@ def _get_default_pipeline_params(
           'apply_feature_selection_tuning': apply_feature_selection_tuning,
       })
 
-    if run_distillation:
-      distillation_parameters = {
-          'distill_batch_predict_machine_type': (
-              distill_batch_predict_machine_type
-          ),
-          'distill_batch_predict_starting_replica_count': (
-              distill_batch_predict_starting_replica_count
-          ),
-          'distill_batch_predict_max_replica_count': (
-              distill_batch_predict_max_replica_count
-          ),
-          'run_distillation': run_distillation,
-      }
-      parameter_values.update(
-          {
-              param: value
-              for param, value in distillation_parameters.items()
-              if value is not None
-          }
-      )
-
   # V2 pipeline (with FTE)
   else:
-    if run_distillation:
-      raise ValueError(
-          'Distillation is currently not supported'
-          ' when num_selected_features is specified.'
-      )
-
     parameters = {
         'num_selected_features': num_selected_features,
         'dataset_level_custom_transformation_definitions': [],
@@ -478,6 +473,7 @@ def get_automl_tabular_pipeline_and_parameters(
     num_selected_features: Optional[int] = None,
     model_display_name: str = '',
     model_description: str = '',
+    enable_fte: bool = False,
 ) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular v1 default training pipeline.
 
@@ -589,6 +585,7 @@ def get_automl_tabular_pipeline_and_parameters(
       defaults to None, in which case all features are used.
     model_display_name: The display name of the uploaded Vertex model.
     model_description: The description for the uploaded model.
+    enable_fte: Whether to enable the Feature Transform Engine.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
@@ -652,10 +649,11 @@ def get_automl_tabular_pipeline_and_parameters(
       num_selected_features=num_selected_features,
       model_display_name=model_display_name,
       model_description=model_description,
+      enable_fte=enable_fte,
   )
 
   # V1 pipeline without FTE
-  if num_selected_features is None:
+  if not enable_fte:
     pipeline_definition_path = os.path.join(
         _GCPC_GA_TABULAR_PATH, 'automl_tabular_pipeline.yaml'
     )
@@ -1189,6 +1187,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
+  # fmt: off
   """Get the Wide & Deep training pipeline.
 
   Args:
@@ -1196,16 +1195,12 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
-      'classification' or 'regression'.
+    prediction_type: The type of prediction the model is to produce. 'classification' or 'regression'.
     learning_rate: The learning rate used by the linear optimizer.
-    dnn_learning_rate: The learning rate for training the deep part of the
-      model.
+    dnn_learning_rate: The learning rate for training the deep part of the model.
     transform_config: Path to v1 TF transformation configuration.
-    dataset_level_custom_transformation_definitions: Dataset-level custom
-      transformation definitions in string format.
-    dataset_level_transformations: Dataset-level transformation configuration in
-      string format.
+    dataset_level_custom_transformation_definitions: Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations: Dataset-level transformation configuration in string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
     materialized_examples_format: The format for the materialized examples.
@@ -1215,101 +1210,61 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
-    tf_transform_execution_engine: The execution engine used to execute TF-based
-      transformations.
-    tf_auto_transform_features: List of auto transform features in the
-      comma-separated string format.
-    tf_custom_transformation_definitions: TF custom transformation definitions
-      in string format.
+    tf_transform_execution_engine: The execution engine used to execute TF-based transformations.
+    tf_auto_transform_features: List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions: TF custom transformation definitions in string format.
     tf_transformations_path: Path to TF transformation configuration.
-    optimizer_type: The type of optimizer to use. Choices are "adam", "ftrl" and
-      "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
+    optimizer_type: The type of optimizer to use. Choices are "adam", "ftrl" and "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
     max_steps: Number of steps to run the trainer for.
     max_train_secs: Amount of time in seconds to run the trainer for.
-    l1_regularization_strength: L1 regularization strength for
-      optimizer_type="ftrl".
-    l2_regularization_strength: L2 regularization strength for
-      optimizer_type="ftrl".
-    l2_shrinkage_regularization_strength: L2 shrinkage regularization strength
-      for optimizer_type="ftrl".
+    l1_regularization_strength: L1 regularization strength for optimizer_type="ftrl".
+    l2_regularization_strength: L2 regularization strength for optimizer_type="ftrl".
+    l2_shrinkage_regularization_strength: L2 shrinkage regularization strength for optimizer_type="ftrl".
     beta_1: Beta 1 value for optimizer_type="adam".
     beta_2: Beta 2 value for optimizer_type="adam".
-    hidden_units: Hidden layer sizes to use for DNN feature columns, provided in
-      comma-separated layers.
-    use_wide: If set to true, the categorical columns will be used in the wide
-      part of the DNN model.
-    embed_categories: If set to true, the categorical columns will be used
-      embedded and used in the deep part of the model. Embedding size is the
-      square root of the column cardinality.
+    hidden_units: Hidden layer sizes to use for DNN feature columns, provided in comma-separated layers.
+    use_wide: If set to true, the categorical columns will be used in the wide part of the DNN model.
+    embed_categories: If set to true, the categorical columns will be used embedded and used in the deep part of the model. Embedding size is the square root of the column cardinality.
     dnn_dropout: The probability we will drop out a given coordinate.
-    dnn_optimizer_type: The type of optimizer to use for the deep part of the
-      model. Choices are "adam", "ftrl" and "sgd". for the Adam, FTRL, and
-      Gradient Descent Optimizers, respectively.
-    dnn_l1_regularization_strength: L1 regularization strength for
-      dnn_optimizer_type="ftrl".
-    dnn_l2_regularization_strength: L2 regularization strength for
-      dnn_optimizer_type="ftrl".
-    dnn_l2_shrinkage_regularization_strength: L2 shrinkage regularization
-      strength for dnn_optimizer_type="ftrl".
+    dnn_optimizer_type: The type of optimizer to use for the deep part of the model. Choices are "adam", "ftrl" and "sgd". for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
+    dnn_l1_regularization_strength: L1 regularization strength for dnn_optimizer_type="ftrl".
+    dnn_l2_regularization_strength: L2 regularization strength for dnn_optimizer_type="ftrl".
+    dnn_l2_shrinkage_regularization_strength: L2 shrinkage regularization strength for dnn_optimizer_type="ftrl".
     dnn_beta_1: Beta 1 value for dnn_optimizer_type="adam".
     dnn_beta_2: Beta 2 value for dnn_optimizer_type="adam".
     enable_profiler: Enables profiling and saves a trace during evaluation.
-    cache_data: Whether to cache data or not. If set to 'auto', caching is
-      determined based on the dataset size.
+    cache_data: Whether to cache data or not. If set to 'auto', caching is determined based on the dataset size.
     seed: Seed to be used for this run.
-    eval_steps: Number of steps to run evaluation for. If not specified or
-      negative, it means run evaluation on the whole validation dataset. If set
-      to 0, it means run evaluation for a fixed number of samples.
+    eval_steps: Number of steps to run evaluation for. If not specified or negative, it means run evaluation on the whole validation dataset. If set to 0, it means run evaluation for a fixed number of samples.
     batch_size: Batch size for training.
-    measurement_selection_type: Which measurement to use if/when the service
-      automatically selects the final measurement from previously reported
-      intermediate measurements. One of "BEST_MEASUREMENT" or
-      "LAST_MEASUREMENT".
-    optimization_metric: Optimization metric used for
-      `measurement_selection_type`. Default is "rmse" for regression and "auc"
-      for classification.
-    eval_frequency_secs: Frequency at which evaluation and checkpointing will
-      take place.
+    measurement_selection_type: Which measurement to use if/when the service automatically selects the final measurement from previously reported intermediate measurements. One of "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
+    optimization_metric: Optimization metric used for `measurement_selection_type`. Default is "rmse" for regression and "auc" for classification.
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will take place.
     data_source_csv_filenames: The CSV data source.
     data_source_bigquery_table_path: The BigQuery data source.
-    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
-      storing intermediate tables.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for storing intermediate tables.
     weight_column: The weight column name.
-    transform_dataflow_machine_type: The dataflow machine type for transform
-      component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
-      transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      transform component.
-    worker_pool_specs_override: The dictionary for overriding training and
-      evaluation worker pool specs. The dictionary should be of format
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    transform_dataflow_machine_type: The dataflow machine type for transform component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for transform component.
+    worker_pool_specs_override: The dictionary for overriding training and evaluation worker pool specs. The dictionary should be of format https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation: Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type: The prediction server machine type
-      for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
-      prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
-      server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
-      components.
-    evaluation_dataflow_starting_num_workers: The initial number of Dataflow
-      workers for evaluation components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
-      evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      evaluation components.
+    evaluation_batch_predict_machine_type: The prediction server machine type for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation components.
+    evaluation_dataflow_starting_num_workers: The initial number of Dataflow workers for evaluation components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for evaluation components.
     dataflow_service_account: Custom service account to run dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
-      addresses.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name: The KMS key name.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
+  # fmt: on
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
 
@@ -1780,6 +1735,7 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
+  # fmt: off
   """Get the TabNet HyperparameterTuningJob pipeline.
 
   Args:
@@ -1787,24 +1743,15 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
-      "classification" or "regression".
-    study_spec_metric_id: Metric to optimize, possible values: [ 'loss',
-      'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc', 'precision',
-      'recall'].
-    study_spec_metric_goal: Optimization goal of the metric, possible values:
-      "MAXIMIZE", "MINIMIZE".
-    study_spec_parameters_override: List of dictionaries representing parameters
-      to optimize. The dictionary key is the parameter_id, which is passed to
-      training job as a command line argument, and the dictionary value is the
-      parameter specification of the metric.
+    prediction_type: The type of prediction the model is to produce.  "classification" or "regression".
+    study_spec_metric_id: Metric to optimize, possible values: [ 'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc', 'precision', 'recall'].
+    study_spec_metric_goal: Optimization goal of the metric, possible values: "MAXIMIZE", "MINIMIZE".
+    study_spec_parameters_override: List of dictionaries representing parameters to optimize. The dictionary key is the parameter_id, which is passed to training job as a command line argument, and the dictionary value is the parameter specification of the metric.
     max_trial_count: The desired total number of trials.
     parallel_trial_count: The desired number of trials to run in parallel.
     transform_config: Path to v1 TF transformation configuration.
-    dataset_level_custom_transformation_definitions: Dataset-level custom
-      transformation definitions in string format.
-    dataset_level_transformations: Dataset-level transformation configuration in
-      string format.
+    dataset_level_custom_transformation_definitions: Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations: Dataset-level transformation configuration in string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
     materialized_examples_format: The format for the materialized examples.
@@ -1814,71 +1761,43 @@ def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
-    tf_transform_execution_engine: The execution engine used to execute TF-based
-      transformations.
-    tf_auto_transform_features: List of auto transform features in the
-      comma-separated string format.
-    tf_custom_transformation_definitions: TF custom transformation definitions
-      in string format.
+    tf_transform_execution_engine: The execution engine used to execute TF-based transformations.
+    tf_auto_transform_features: List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions: TF custom transformation definitions in string format.
     tf_transformations_path: Path to TF transformation configuration.
     enable_profiler: Enables profiling and saves a trace during evaluation.
-    cache_data: Whether to cache data or not. If set to 'auto', caching is
-      determined based on the dataset size.
+    cache_data: Whether to cache data or not. If set to 'auto', caching is determined based on the dataset size.
     seed: Seed to be used for this run.
-    eval_steps: Number of steps to run evaluation for. If not specified or
-      negative, it means run evaluation on the whole validation dataset. If set
-      to 0, it means run evaluation for a fixed number of samples.
-    eval_frequency_secs: Frequency at which evaluation and checkpointing will
-      take place.
+    eval_steps: Number of steps to run evaluation for. If not specified or negative, it means run evaluation on the whole validation dataset. If set to 0, it means run evaluation for a fixed number of samples.
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will take place.
     data_source_csv_filenames: The CSV data source.
     data_source_bigquery_table_path: The BigQuery data source.
-    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
-      storing intermediate tables.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for storing intermediate tables.
     weight_column: The weight column name.
-    max_failed_trial_count: The number of failed trials that need to be seen
-      before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
-      how many trials must fail before the whole job fails.
-    study_spec_algorithm: The search algorithm specified for the study. One of
-      "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
-    study_spec_measurement_selection_type: Which measurement to use if/when the
-      service automatically selects the final measurement from previously
-      reported intermediate measurements. One of "BEST_MEASUREMENT" or
-      "LAST_MEASUREMENT".
-    transform_dataflow_machine_type: The dataflow machine type for transform
-      component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
-      transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      transform component.
-    worker_pool_specs_override: The dictionary for overriding training and
-      evaluation worker pool specs. The dictionary should be of format
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    max_failed_trial_count: The number of failed trials that need to be seen before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides how many trials must fail before the whole job fails.
+    study_spec_algorithm: The search algorithm specified for the study. One of "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
+    study_spec_measurement_selection_type: Which measurement to use if/when the service automatically selects the final measurement from previously reported intermediate measurements. One of "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
+    transform_dataflow_machine_type: The dataflow machine type for transform component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for transform component.
+    worker_pool_specs_override: The dictionary for overriding training and evaluation worker pool specs. The dictionary should be of format https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation: Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type: The prediction server machine type
-      for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
-      prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
-      server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
-      components.
-    evaluation_dataflow_starting_num_workers: The initial number of Dataflow
-      workers for evaluation components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
-      evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      evaluation components.
+    evaluation_batch_predict_machine_type: The prediction server machine type for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation components.
+    evaluation_dataflow_starting_num_workers: The initial number of Dataflow workers for evaluation components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for evaluation components.
     dataflow_service_account: Custom service account to run dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
-      addresses.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name: The KMS key name.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
+  # fmt: on
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
 
@@ -2062,6 +1981,7 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
+  # fmt: off
   """Get the Wide & Deep algorithm HyperparameterTuningJob pipeline.
 
   Args:
@@ -2069,24 +1989,15 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
-      "classification" or "regression".
-    study_spec_metric_id: Metric to optimize, possible values: [ 'loss',
-      'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc', 'precision',
-      'recall'].
-    study_spec_metric_goal: Optimization goal of the metric, possible values:
-      "MAXIMIZE", "MINIMIZE".
-    study_spec_parameters_override: List of dictionaries representing parameters
-      to optimize. The dictionary key is the parameter_id, which is passed to
-      training job as a command line argument, and the dictionary value is the
-      parameter specification of the metric.
+    prediction_type: The type of prediction the model is to produce.  "classification" or "regression".
+    study_spec_metric_id: Metric to optimize, possible values: [ 'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc', 'precision', 'recall'].
+    study_spec_metric_goal: Optimization goal of the metric, possible values: "MAXIMIZE", "MINIMIZE".
+    study_spec_parameters_override: List of dictionaries representing parameters to optimize. The dictionary key is the parameter_id, which is passed to training job as a command line argument, and the dictionary value is the parameter specification of the metric.
     max_trial_count: The desired total number of trials.
     parallel_trial_count: The desired number of trials to run in parallel.
     transform_config: Path to v1 TF transformation configuration.
-    dataset_level_custom_transformation_definitions: Dataset-level custom
-      transformation definitions in string format.
-    dataset_level_transformations: Dataset-level transformation configuration in
-      string format.
+    dataset_level_custom_transformation_definitions: Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations: Dataset-level transformation configuration in string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
     materialized_examples_format: The format for the materialized examples.
@@ -2096,71 +2007,43 @@ def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
-    tf_transform_execution_engine: The execution engine used to execute TF-based
-      transformations.
-    tf_auto_transform_features: List of auto transform features in the
-      comma-separated string format.
-    tf_custom_transformation_definitions: TF custom transformation definitions
-      in string format.
+    tf_transform_execution_engine: The execution engine used to execute TF-based transformations.
+    tf_auto_transform_features: List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions: TF custom transformation definitions in string format.
     tf_transformations_path: Path to TF transformation configuration.
     enable_profiler: Enables profiling and saves a trace during evaluation.
-    cache_data: Whether to cache data or not. If set to 'auto', caching is
-      determined based on the dataset size.
+    cache_data: Whether to cache data or not. If set to 'auto', caching is determined based on the dataset size.
     seed: Seed to be used for this run.
-    eval_steps: Number of steps to run evaluation for. If not specified or
-      negative, it means run evaluation on the whole validation dataset. If set
-      to 0, it means run evaluation for a fixed number of samples.
-    eval_frequency_secs: Frequency at which evaluation and checkpointing will
-      take place.
+    eval_steps: Number of steps to run evaluation for. If not specified or negative, it means run evaluation on the whole validation dataset. If set to 0, it means run evaluation for a fixed number of samples.
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will take place.
     data_source_csv_filenames: The CSV data source.
     data_source_bigquery_table_path: The BigQuery data source.
-    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
-      storing intermediate tables.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for storing intermediate tables.
     weight_column: The weight column name.
-    max_failed_trial_count: The number of failed trials that need to be seen
-      before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
-      how many trials must fail before the whole job fails.
-    study_spec_algorithm: The search algorithm specified for the study. One of
-      "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
-    study_spec_measurement_selection_type: Which measurement to use if/when the
-      service automatically selects the final measurement from previously
-      reported intermediate measurements. One of "BEST_MEASUREMENT" or
-      "LAST_MEASUREMENT".
-    transform_dataflow_machine_type: The dataflow machine type for transform
-      component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
-      transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      transform component.
-    worker_pool_specs_override: The dictionary for overriding training and
-      evaluation worker pool specs. The dictionary should be of format
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    max_failed_trial_count: The number of failed trials that need to be seen before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides how many trials must fail before the whole job fails.
+    study_spec_algorithm: The search algorithm specified for the study. One of "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
+    study_spec_measurement_selection_type: Which measurement to use if/when the service automatically selects the final measurement from previously reported intermediate measurements. One of "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
+    transform_dataflow_machine_type: The dataflow machine type for transform component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for transform component.
+    worker_pool_specs_override: The dictionary for overriding training and evaluation worker pool specs. The dictionary should be of format https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation: Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type: The prediction server machine type
-      for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
-      prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
-      server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
-      components.
-    evaluation_dataflow_starting_num_workers: The initial number of Dataflow
-      workers for evaluation components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
-      evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      evaluation components.
+    evaluation_batch_predict_machine_type: The prediction server machine type for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation components.
+    evaluation_dataflow_starting_num_workers: The initial number of Dataflow workers for evaluation components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for evaluation components.
     dataflow_service_account: Custom service account to run dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
-      addresses.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name: The KMS key name.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
+  # fmt: on
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
 
@@ -2361,6 +2244,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '',
 ) -> Tuple[str, Dict[str, Any]]:
+  # fmt: off
   """Get the TabNet training pipeline.
 
   Args:
@@ -2368,14 +2252,11 @@ def get_tabnet_trainer_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
-      "classification" or "regression".
+    prediction_type: The type of prediction the model is to produce.  "classification" or "regression".
     learning_rate: The learning rate used by the linear optimizer.
     transform_config: Path to v1 TF transformation configuration.
-    dataset_level_custom_transformation_definitions: Dataset-level custom
-      transformation definitions in string format.
-    dataset_level_transformations: Dataset-level transformation configuration in
-      string format.
+    dataset_level_custom_transformation_definitions: Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations: Dataset-level transformation configuration in string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
     materialized_examples_format: The format for the materialized examples.
@@ -2385,111 +2266,64 @@ def get_tabnet_trainer_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
-    tf_transform_execution_engine: The execution engine used to execute TF-based
-      transformations.
-    tf_auto_transform_features: List of auto transform features in the
-      comma-separated string format.
-    tf_custom_transformation_definitions: TF custom transformation definitions
-      in string format.
+    tf_transform_execution_engine: The execution engine used to execute TF-based transformations.
+    tf_auto_transform_features: List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions: TF custom transformation definitions in string format.
     tf_transformations_path: Path to TF transformation configuration.
     max_steps: Number of steps to run the trainer for.
     max_train_secs: Amount of time in seconds to run the trainer for.
-    large_category_dim: Embedding dimension for categorical feature with large
-      number of categories.
-    large_category_thresh: Threshold for number of categories to apply
-      large_category_dim embedding dimension to.
+    large_category_dim: Embedding dimension for categorical feature with large number of categories.
+    large_category_thresh: Threshold for number of categories to apply large_category_dim embedding dimension to.
     yeo_johnson_transform: Enables trainable Yeo-Johnson power transform.
-    feature_dim: Dimensionality of the hidden representation in feature
-      transformation block.
-    feature_dim_ratio: The ratio of output dimension (dimensionality of the
-      outputs of each decision step) to feature dimension.
+    feature_dim: Dimensionality of the hidden representation in feature transformation block.
+    feature_dim_ratio: The ratio of output dimension (dimensionality of the outputs of each decision step) to feature dimension.
     num_decision_steps: Number of sequential decision steps.
-    relaxation_factor: Relaxation factor that promotes the reuse of each feature
-      at different decision steps. When it is 1, a feature is enforced to be
-      used only at one decision step and as it increases, more flexibility is
-      provided to use a feature at multiple decision steps.
-    decay_every: Number of iterations for periodically applying learning rate
-      decaying.
+    relaxation_factor: Relaxation factor that promotes the reuse of each feature at different decision steps. When it is 1, a feature is enforced to be used only at one decision step and as it increases, more flexibility is provided to use a feature at multiple decision steps.
+    decay_every: Number of iterations for periodically applying learning rate decaying.
     decay_rate: Learning rate decaying.
     gradient_thresh: Threshold for the norm of gradients for clipping.
-    sparsity_loss_weight: Weight of the loss for sparsity regularization
-      (increasing it will yield more sparse feature selection).
+    sparsity_loss_weight: Weight of the loss for sparsity regularization (increasing it will yield more sparse feature selection).
     batch_momentum: Momentum in ghost batch normalization.
-    batch_size_ratio: The ratio of virtual batch size (size of the ghost batch
-      normalization) to batch size.
-    num_transformer_layers: The number of transformer layers for each decision
-      step. used only at one decision step and as it increases, more flexibility
-      is provided to use a feature at multiple decision steps.
-    num_transformer_layers_ratio: The ratio of shared transformer layer to
-      transformer layers.
-    class_weight: The class weight is used to computes a weighted cross entropy
-      which is helpful in classify imbalanced dataset. Only used for
-      classification.
-    loss_function_type: Loss function type. Loss function in classification
-      [cross_entropy, weighted_cross_entropy, focal_loss], default is
-      cross_entropy. Loss function in regression: [rmse, mae, mse], default is
-      mse.
-    alpha_focal_loss: Alpha value (balancing factor) in focal_loss function.
-      Only used for classification.
-    gamma_focal_loss: Gamma value (modulating factor) for focal loss for focal
-      loss. Only used for classification.
+    batch_size_ratio: The ratio of virtual batch size (size of the ghost batch normalization) to batch size.
+    num_transformer_layers: The number of transformer layers for each decision step. used only at one decision step and as it increases, more flexibility is provided to use a feature at multiple decision steps.
+    num_transformer_layers_ratio: The ratio of shared transformer layer to transformer layers.
+    class_weight: The class weight is used to computes a weighted cross entropy which is helpful in classify imbalanced dataset. Only used for classification.
+    loss_function_type: Loss function type. Loss function in classification [cross_entropy, weighted_cross_entropy, focal_loss], default is cross_entropy. Loss function in regression: [rmse, mae, mse], default is mse.
+    alpha_focal_loss: Alpha value (balancing factor) in focal_loss function.  Only used for classification.
+    gamma_focal_loss: Gamma value (modulating factor) for focal loss for focal loss. Only used for classification.
     enable_profiler: Enables profiling and saves a trace during evaluation.
-    cache_data: Whether to cache data or not. If set to 'auto', caching is
-      determined based on the dataset size.
+    cache_data: Whether to cache data or not. If set to 'auto', caching is determined based on the dataset size.
     seed: Seed to be used for this run.
-    eval_steps: Number of steps to run evaluation for. If not specified or
-      negative, it means run evaluation on the whole validation dataset. If set
-      to 0, it means run evaluation for a fixed number of samples.
+    eval_steps: Number of steps to run evaluation for. If not specified or negative, it means run evaluation on the whole validation dataset. If set to 0, it means run evaluation for a fixed number of samples.
     batch_size: Batch size for training.
-    measurement_selection_type: Which measurement to use if/when the service
-      automatically selects the final measurement from previously reported
-      intermediate measurements. One of "BEST_MEASUREMENT" or
-      "LAST_MEASUREMENT".
-    optimization_metric: Optimization metric used for
-      `measurement_selection_type`. Default is "rmse" for regression and "auc"
-      for classification.
-    eval_frequency_secs: Frequency at which evaluation and checkpointing will
-      take place.
+    measurement_selection_type: Which measurement to use if/when the service automatically selects the final measurement from previously reported intermediate measurements. One of "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
+    optimization_metric: Optimization metric used for `measurement_selection_type`. Default is "rmse" for regression and "auc" for classification.
+    eval_frequency_secs: Frequency at which evaluation and checkpointing will take place.
     data_source_csv_filenames: The CSV data source.
     data_source_bigquery_table_path: The BigQuery data source.
-    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
-      storing intermediate tables.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for storing intermediate tables.
     weight_column: The weight column name.
-    transform_dataflow_machine_type: The dataflow machine type for transform
-      component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
-      transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      transform component.
-    worker_pool_specs_override: The dictionary for overriding training and
-      evaluation worker pool specs. The dictionary should be of format
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    transform_dataflow_machine_type: The dataflow machine type for transform component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for transform component.
+    worker_pool_specs_override: The dictionary for overriding training and evaluation worker pool specs. The dictionary should be of format https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation: Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type: The prediction server machine type
-      for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
-      prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
-      server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
-      components.
-    evaluation_dataflow_starting_num_workers: The initial number of Dataflow
-      workers for evaluation components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
-      evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      evaluation components.
+    evaluation_batch_predict_machine_type: The prediction server machine type for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation components.
+    evaluation_dataflow_starting_num_workers: The initial number of Dataflow workers for evaluation components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for evaluation components.
     dataflow_service_account: Custom service account to run dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
-      addresses.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name: The KMS key name.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
+  # fmt: on
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
 
@@ -2840,6 +2674,7 @@ def get_xgboost_trainer_pipeline_and_parameters(
     dataflow_use_public_ips: Optional[bool] = None,
     encryption_spec_key_name: Optional[str] = None,
 ):
+  # fmt: off
   """Get the XGBoost training pipeline.
 
   Args:
@@ -2847,79 +2682,50 @@ def get_xgboost_trainer_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
-    objective: Specifies the learning task and the learning objective. Must be
-      one of [reg:squarederror, reg:squaredlogerror,
-      reg:logistic, reg:gamma, reg:tweedie, reg:pseudohubererror,
-      binary:logistic, multi:softprob].
-    eval_metric: Evaluation metrics for validation data represented as a
-      comma-separated string.
+    objective: Specifies the learning task and the learning objective. Must be one of [reg:squarederror, reg:squaredlogerror, reg:logistic, reg:gamma, reg:tweedie, reg:pseudohubererror, binary:logistic, multi:softprob].
+    eval_metric: Evaluation metrics for validation data represented as a comma-separated string.
     num_boost_round: Number of boosting iterations.
-    early_stopping_rounds: Activates early stopping. Validation error needs to
-      decrease at least every early_stopping_rounds round(s) to continue
-      training.
+    early_stopping_rounds: Activates early stopping. Validation error needs to decrease at least every early_stopping_rounds round(s) to continue training.
     base_score: The initial prediction score of all instances, global bias.
-    disable_default_eval_metric: Flag to disable default metric. Set to >0 to
-      disable. Default to 0.
+    disable_default_eval_metric: Flag to disable default metric. Set to >0 to disable. Default to 0.
     seed: Random seed.
     seed_per_iteration: Seed PRNG determnisticly via iterator number.
-    booster: Which booster to use, can be gbtree, gblinear or dart. gbtree and
-      dart use tree based model while gblinear uses linear function.
+    booster: Which booster to use, can be gbtree, gblinear or dart. gbtree and dart use tree based model while gblinear uses linear function.
     eta: Learning rate.
-    gamma: Minimum loss reduction required to make a further partition on a leaf
-      node of the tree.
+    gamma: Minimum loss reduction required to make a further partition on a leaf node of the tree.
     max_depth: Maximum depth of a tree.
     min_child_weight: Minimum sum of instance weight(hessian) needed in a child.
-    max_delta_step: Maximum delta step we allow each tree's weight estimation to
-      be.
+    max_delta_step: Maximum delta step we allow each tree's weight estimation to be.
     subsample: Subsample ratio of the training instance.
     colsample_bytree: Subsample ratio of columns when constructing each tree.
     colsample_bylevel: Subsample ratio of columns for each split, in each level.
     colsample_bynode: Subsample ratio of columns for each node (split).
     reg_lambda: L2 regularization term on weights.
     reg_alpha: L1 regularization term on weights.
-    tree_method: The tree construction algorithm used in XGBoost. Choices:
-      ["auto", "exact", "approx", "hist", "gpu_exact", "gpu_hist"].
+    tree_method: The tree construction algorithm used in XGBoost. Choices: ["auto", "exact", "approx", "hist", "gpu_exact", "gpu_hist"].
     scale_pos_weight: Control the balance of positive and negative weights.
-    updater: A comma separated string defining the sequence of tree updaters to
-      run.
-    refresh_leaf: Refresh updater plugin. Update tree leaf and nodes's stats if
-      True. When it is False, only node stats are updated.
-    process_type: A type of boosting process to run. Choices:["default",
-      "update"]
-    grow_policy: Controls a way new nodes are added to the tree. Only supported
-      if tree_method is hist. Choices:["depthwise", "lossguide"]
+    updater: A comma separated string defining the sequence of tree updaters to run.
+    refresh_leaf: Refresh updater plugin. Update tree leaf and nodes's stats if True. When it is False, only node stats are updated.
+    process_type: A type of boosting process to run. Choices:["default", "update"]
+    grow_policy: Controls a way new nodes are added to the tree. Only supported if tree_method is hist. Choices:["depthwise", "lossguide"]
     sampling_method: The method to use to sample the training instances.
     monotone_constraints: Constraint of variable monotonicity.
-    interaction_constraints: Constraints for interaction representing permitted
-      interactions.
-    sample_type: [dart booster only] Type of sampling algorithm.
-      Choices:["uniform", "weighted"]
-    normalize_type: [dart booster only] Type of normalization algorithm,
-      Choices:["tree", "forest"]
+    interaction_constraints: Constraints for interaction representing permitted interactions.
+    sample_type: [dart booster only] Type of sampling algorithm.  Choices:["uniform", "weighted"]
+    normalize_type: [dart booster only] Type of normalization algorithm, Choices:["tree", "forest"]
     rate_drop: [dart booster only] Dropout rate.'
-    one_drop: [dart booster only] When this flag is enabled, at least one tree
-      is always dropped during the dropout (allows Binomial-plus-one or
-      epsilon-dropout from the original DART paper).
-    skip_drop: [dart booster only] Probability of skipping the dropout procedure
-      during a boosting iteration.
-    num_parallel_tree: Number of parallel trees constructed during each
-      iteration. This option is used to support boosted random forest.
-    feature_selector: [linear booster only] Feature selection and ordering
-      method.
-    top_k: The number of top features to select in greedy and thrifty feature
-      selector. The value of 0 means using all the features.
-    max_cat_to_onehot: A threshold for deciding whether XGBoost should use
-      one-hot encoding based split for categorical data.
+    one_drop: [dart booster only] When this flag is enabled, at least one tree is always dropped during the dropout (allows Binomial-plus-one or epsilon-dropout from the original DART paper).
+    skip_drop: [dart booster only] Probability of skipping the dropout procedure during a boosting iteration.
+    num_parallel_tree: Number of parallel trees constructed during each iteration. This option is used to support boosted random forest.
+    feature_selector: [linear booster only] Feature selection and ordering method.
+    top_k: The number of top features to select in greedy and thrifty feature selector. The value of 0 means using all the features.
+    max_cat_to_onehot: A threshold for deciding whether XGBoost should use one-hot encoding based split for categorical data.
     max_leaves: Maximum number of nodes to be added.
     max_bin: Maximum number of discrete bins to bucket continuous features.
-    tweedie_variance_power: Parameter that controls the variance of the Tweedie
-      distribution.
-    huber_slope: A parameter used for Pseudo-Huber loss to define the delta
-      term.
-    dataset_level_custom_transformation_definitions: Dataset-level custom
-      transformation definitions in string format.
-    dataset_level_transformations: Dataset-level transformation configuration in
-      string format.
+    tweedie_variance_power: Parameter that controls the variance of the Tweedie distribution.
+    huber_slope: A parameter used for Pseudo-Huber loss to define the delta term.
+    dataset_level_custom_transformation_definitions: Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations: Dataset-level transformation configuration in string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
     max_selected_features: Maximum number of features to select.
@@ -2928,52 +2734,37 @@ def get_xgboost_trainer_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
-    tf_auto_transform_features: List of auto transform features in the
-      comma-separated string format.
-    tf_custom_transformation_definitions: TF custom transformation definitions
-      in string format.
+    tf_auto_transform_features: List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions: TF custom transformation definitions in string format.
     tf_transformations_path: Path to TF transformation configuration.
     data_source_csv_filenames: The CSV data source.
     data_source_bigquery_table_path: The BigQuery data source.
-    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
-      storing intermediate tables.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for storing intermediate tables.
     weight_column: The weight column name.
     training_machine_type: Machine type.
     training_total_replica_count: Number of workers.
     training_accelerator_type: Accelerator type.
     training_accelerator_count: Accelerator count.
-    transform_dataflow_machine_type: The dataflow machine type for transform
-      component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
-      transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      transform component.
+    transform_dataflow_machine_type: The dataflow machine type for transform component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for transform component.
     run_evaluation: Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type: The prediction server machine type
-      for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
-      prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
-      server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
-      components.
-    evaluation_dataflow_starting_num_workers: The initial number of Dataflow
-      workers for evaluation components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
-      evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      evaluation components.
+    evaluation_batch_predict_machine_type: The prediction server machine type for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation components.
+    evaluation_dataflow_starting_num_workers: The initial number of Dataflow workers for evaluation components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for evaluation components.
     dataflow_service_account: Custom service account to run dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
-      addresses.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name: The KMS key name.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
+  # fmt: on
   parameter_values = {}
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
@@ -3160,6 +2951,7 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
     dataflow_use_public_ips: Optional[bool] = None,
     encryption_spec_key_name: Optional[str] = None,
 ):
+  # fmt: off
   """Get the XGBoost HyperparameterTuningJob pipeline.
 
   Args:
@@ -3167,31 +2959,18 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
-    objective: Specifies the learning task and the learning objective. Must be
-      one of [reg:squarederror, reg:squaredlogerror,
-      reg:logistic, reg:gamma, reg:tweedie, reg:pseudohubererror,
-      binary:logistic, multi:softprob].
-    study_spec_metric_id: Metric to optimize. For options, please look under
-      'eval_metric' at
-      https://xgboost.readthedocs.io/en/stable/parameter.html#learning-task-parameters.
-    study_spec_metric_goal: Optimization goal of the metric, possible values:
-      "MAXIMIZE", "MINIMIZE".
+    objective: Specifies the learning task and the learning objective. Must be one of [reg:squarederror, reg:squaredlogerror, reg:logistic, reg:gamma, reg:tweedie, reg:pseudohubererror, binary:logistic, multi:softprob].
+    study_spec_metric_id: Metric to optimize. For options, please look under 'eval_metric' at https://xgboost.readthedocs.io/en/stable/parameter.html#learning-task-parameters.
+    study_spec_metric_goal: Optimization goal of the metric, possible values: "MAXIMIZE", "MINIMIZE".
     max_trial_count: The desired total number of trials.
     parallel_trial_count: The desired number of trials to run in parallel.
-    study_spec_parameters_override: List of dictionaries representing parameters
-      to optimize. The dictionary key is the parameter_id, which is passed to
-      training job as a command line argument, and the dictionary value is the
-      parameter specification of the metric.
-    eval_metric: Evaluation metrics for validation data represented as a
-      comma-separated string.
-    disable_default_eval_metric: Flag to disable default metric. Set to >0 to
-      disable. Default to 0.
+    study_spec_parameters_override: List of dictionaries representing parameters to optimize. The dictionary key is the parameter_id, which is passed to training job as a command line argument, and the dictionary value is the parameter specification of the metric.
+    eval_metric: Evaluation metrics for validation data represented as a comma-separated string.
+    disable_default_eval_metric: Flag to disable default metric. Set to >0 to disable. Default to 0.
     seed: Random seed.
     seed_per_iteration: Seed PRNG determnisticly via iterator number.
-    dataset_level_custom_transformation_definitions: Dataset-level custom
-      transformation definitions in string format.
-    dataset_level_transformations: Dataset-level transformation configuration in
-      string format.
+    dataset_level_custom_transformation_definitions: Dataset-level custom transformation definitions in string format.
+    dataset_level_transformations: Dataset-level transformation configuration in string format.
     run_feature_selection: Whether to enable feature selection.
     feature_selection_algorithm: Feature selection algorithm.
     max_selected_features: Maximum number of features to select.
@@ -3200,61 +2979,40 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
     training_fraction: Training fraction.
     validation_fraction: Validation fraction.
     test_fraction: Test fraction.
-    tf_auto_transform_features: List of auto transform features in the
-      comma-separated string format.
-    tf_custom_transformation_definitions: TF custom transformation definitions
-      in string format.
+    tf_auto_transform_features: List of auto transform features in the comma-separated string format.
+    tf_custom_transformation_definitions: TF custom transformation definitions in string format.
     tf_transformations_path: Path to TF transformation configuration.
     data_source_csv_filenames: The CSV data source.
     data_source_bigquery_table_path: The BigQuery data source.
-    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for
-      storing intermediate tables.
+    bigquery_staging_full_dataset_id: The BigQuery staging full dataset id for storing intermediate tables.
     weight_column: The weight column name.
-    max_failed_trial_count: The number of failed trials that need to be seen
-      before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
-      how many trials must fail before the whole job fails.
+    max_failed_trial_count: The number of failed trials that need to be seen before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides how many trials must fail before the whole job fails.
     training_machine_type: Machine type.
     training_total_replica_count: Number of workers.
     training_accelerator_type: Accelerator type.
     training_accelerator_count: Accelerator count.
-    study_spec_algorithm: The search algorithm specified for the study. One of
-      'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
-    study_spec_measurement_selection_type:  Which measurement to use if/when the
-      service automatically selects the final measurement from previously
-      reported intermediate measurements. One of "BEST_MEASUREMENT" or
-      "LAST_MEASUREMENT".
-    transform_dataflow_machine_type: The dataflow machine type for transform
-      component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
-      transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      transform component.
+    study_spec_algorithm: The search algorithm specified for the study. One of 'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
+    study_spec_measurement_selection_type:  Which measurement to use if/when the service automatically selects the final measurement from previously reported intermediate measurements. One of "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
+    transform_dataflow_machine_type: The dataflow machine type for transform component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for transform component.
     run_evaluation: Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type: The prediction server machine type
-      for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
-      prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
-      server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
-      components.
-    evaluation_dataflow_starting_num_workers: The initial number of Dataflow
-      workers for evaluation components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
-      evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      evaluation components.
+    evaluation_batch_predict_machine_type: The prediction server machine type for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation components.
+    evaluation_dataflow_starting_num_workers: The initial number of Dataflow workers for evaluation components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for evaluation components.
     dataflow_service_account: Custom service account to run dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default subnetwork will be used. Example:
-        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
-      addresses.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. Example: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
     encryption_spec_key_name: The KMS key name.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
+  # fmt: on
   parameter_values = {}
   if isinstance(tf_auto_transform_features, list):
     tf_auto_transform_features = {'auto': tf_auto_transform_features}
@@ -3356,5 +3114,100 @@ def get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters(
       pathlib.Path(__file__).parent.resolve(),
       'xgboost_hyperparameter_tuning_job_pipeline.yaml',
   )
+
+  return pipeline_definition_path, parameter_values
+
+
+def get_feature_selection_pipeline_and_parameters(
+    root_dir: str,
+    project: str,
+    location: str,
+    target_column: str,
+    prediction_type: str,
+    optimization_objective: str,
+    dataset_level_custom_transformation_definitions: Optional[
+        List[Dict[str, Any]]
+    ] = None,
+    dataset_level_transformations: Optional[List[Dict[str, Any]]] = None,
+    run_feature_selection: Optional[bool] = None,
+    feature_selection_algorithm: Optional[str] = None,
+    feature_selection_execution_engine: Optional[
+        str
+    ] = _FEATURE_SELECTION_EXECUTION_ENGINE_BIGQUERY,
+    max_selected_features: Optional[int] = None,
+    predefined_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    tf_auto_transform_features: Optional[
+        Union[List[str], Dict[str, List[str]]]
+    ] = None,
+    weight_column: Optional[str] = None,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    bigquery_staging_full_dataset_id: Optional[str] = None,
+    dataflow_machine_type: Optional[str] = None,
+    dataflow_max_num_workers: Optional[int] = None,
+    dataflow_disk_size_gb: Optional[int] = None,
+    dataflow_subnetwork: Optional[str] = None,
+    dataflow_use_public_ips: Optional[bool] = None,
+    encryption_spec_key_name: Optional[str] = None,
+    stage_1_deadline_hours: Optional[float] = None,
+    stage_2_deadline_hours: Optional[float] = None,
+):
+  """Returns feature transform engine pipeline and formatted parameters."""
+
+  if isinstance(tf_auto_transform_features, list):
+    tf_auto_transform_features = {'auto': tf_auto_transform_features}
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(), 'feature_selection_pipeline.yaml'
+  )
+
+  parameter_values = {
+      'root_dir': root_dir,
+      'project': project,
+      'location': location,
+      'target_column': target_column,
+      'weight_column': weight_column,
+      'prediction_type': prediction_type,
+      'dataset_level_custom_transformation_definitions': (
+          dataset_level_custom_transformation_definitions
+          if dataset_level_custom_transformation_definitions
+          else []
+      ),
+      'dataset_level_transformations': (
+          dataset_level_transformations if dataset_level_transformations else []
+      ),
+      'run_feature_selection': run_feature_selection,
+      'feature_selection_algorithm': feature_selection_algorithm,
+      'feature_selection_execution_engine': feature_selection_execution_engine,
+      'max_selected_features': max_selected_features,
+      'predefined_split_key': predefined_split_key,
+      'stratified_split_key': stratified_split_key,
+      'training_fraction': training_fraction,
+      'validation_fraction': validation_fraction,
+      'test_fraction': test_fraction,
+      'tf_auto_transform_features': tf_auto_transform_features,
+      'optimization_objective': optimization_objective,
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'bigquery_staging_full_dataset_id': bigquery_staging_full_dataset_id,
+      'dataflow_machine_type': dataflow_machine_type,
+      'dataflow_max_num_workers': dataflow_max_num_workers,
+      'dataflow_disk_size_gb': dataflow_disk_size_gb,
+      'dataflow_subnetwork': dataflow_subnetwork,
+      'dataflow_use_public_ips': dataflow_use_public_ips,
+      'encryption_spec_key_name': encryption_spec_key_name,
+      'stage_1_deadline_hours': stage_1_deadline_hours,
+      'stage_2_deadline_hours': stage_2_deadline_hours,
+  }
+
+  parameter_values = {
+      param: value
+      for param, value in parameter_values.items()
+      if value is not None
+  }
 
   return pipeline_definition_path, parameter_values

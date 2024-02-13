@@ -260,6 +260,26 @@ func (e *Execution) FingerPrint() string {
 	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
 }
 
+// GenerateOutputURI appends the specified paths to the pipeline root.
+// It may be configured to preserve the query part of the pipeline root
+// by splitting it off and appending it back to the full URI.
+func GenerateOutputURI(pipelineRoot string, paths []string, preserveQueryString bool) string {
+	querySplit := strings.Split(pipelineRoot, "?")
+	query := ""
+	if len(querySplit) == 2 {
+		pipelineRoot = querySplit[0]
+		if preserveQueryString {
+			query = "?" + querySplit[1]
+		}
+	} else if len(querySplit) > 2 {
+		// this should never happen, but just in case.
+		glog.Warningf("Unexpected pipeline root: %v", pipelineRoot)
+	}
+	// we cannot path.Join(root, taskName, artifactName), because root
+	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
+	return fmt.Sprintf("%s/%s%s", strings.TrimRight(pipelineRoot, "/"), path.Join(paths...), query)
+}
+
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
 func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string) (*Pipeline, error) {
@@ -272,7 +292,7 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace
 		keyNamespace:    stringValue(namespace),
 		keyResourceName: stringValue(runResource),
 		// pipeline root of this run
-		keyPipelineRoot: stringValue(strings.TrimRight(pipelineRoot, "/") + "/" + path.Join(pipelineName, runID)),
+		keyPipelineRoot: stringValue(GenerateOutputURI(pipelineRoot, []string{pipelineName, runID}, true)),
 	}
 	runContext, err := c.getOrInsertContext(ctx, runID, pipelineRunContextType, metadata)
 	glog.Infof("Pipeline Run Context: %+v", runContext)
@@ -680,29 +700,42 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	// Note, because MLMD does not have index on custom properties right now, we
 	// take a pipeline run context to limit the number of executions the DB needs to
 	// iterate through to find sub-executions.
-	res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
-		ContextId: pipeline.pipelineRunCtx.Id,
-		Options: &pb.ListOperationOptions{
-			FilterQuery: &parentDAGFilter,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	execs := res.GetExecutions()
-	for _, e := range execs {
-		execution := &Execution{execution: e}
-		taskName := execution.TaskName()
-		if taskName == "" {
-			return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+
+	nextPageToken := ""
+	for {
+		res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
+			ContextId: pipeline.pipelineRunCtx.Id,
+			Options: &pb.ListOperationOptions{
+				FilterQuery:   &parentDAGFilter,
+				NextPageToken: &nextPageToken,
+			},
+		})
+		if err != nil {
+			return nil, err
 		}
-		existing, ok := executionsMap[taskName]
-		if ok {
-			// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
-			return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+
+		execs := res.GetExecutions()
+		for _, e := range execs {
+			execution := &Execution{execution: e}
+			taskName := execution.TaskName()
+			if taskName == "" {
+				return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+			}
+			existing, ok := executionsMap[taskName]
+			if ok {
+				// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
+				return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+			}
+			executionsMap[taskName] = execution
 		}
-		executionsMap[taskName] = execution
+
+		nextPageToken = res.GetNextPageToken()
+
+		if nextPageToken == "" {
+			break
+		}
 	}
+
 	return executionsMap, nil
 }
 
