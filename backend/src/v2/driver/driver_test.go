@@ -646,7 +646,8 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 					{
 						Name: "cm1",
 						VolumeSource: k8score.VolumeSource{
-							ConfigMap: &k8score.ConfigMapVolumeSource{ConfigMapName: "cm1"},
+							ConfigMap: &k8score.ConfigMapVolumeSource{
+								LocalObjectReference: k8score.LocalObjectReference{Name:: "cm1"}},
 						},
 					},
 				},

@@ -517,7 +517,8 @@ func extendPodSpecPatch(
 		configMapVolume := k8score.Volume{
 			Name: configMapAsVolume.GetConfigMapName(),
 			VolumeSource: k8score.VolumeSource{
-				ConfigMap: &k8score.ConfigMapVolumeSource{ConfigMapName: configMapAsVolume.GetConfigMapName()},
+				ConfigMap: &k8score.ConfigMapVolumeSource{
+					LocalObjectReference: k8score.LocalObjectReference{Name: configMapAsVolume.GetConfigMapName()}},
 			},
 		}
 		configMapVolumeMount := k8score.VolumeMount{
