@@ -606,6 +606,72 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 	}
 }
 
+func Test_extendPodSpecPatch_ImagePullSecrets(t *testing.T) {
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - SecretA and SecretB",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullSecret: []*kubernetesplatform.ImagePullSecret{
+					{SecretName: "SecretA"},
+					{SecretName: "SecretB"},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				ImagePullSecrets: []k8score.LocalObjectReference{
+					{Name: "SecretA"},
+					{Name: "SecretB"},
+				},
+			},
+		},
+		{
+			"Valid - No ImagePullSecrets",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullSecret: []*kubernetesplatform.ImagePullSecret{},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+		{
+			"Valid - empty",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+			err := extendPodSpecPatch(got, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
 func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 	tests := []struct {
 		name       string
