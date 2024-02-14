@@ -938,6 +938,8 @@ github.com/kubeflow/pipelines/api v0.0.0-20230331215358-758c91f76784 h1:ZVCoqnKn
 github.com/kubeflow/pipelines/api v0.0.0-20230331215358-758c91f76784/go.mod h1:T7TOQB36gGe97yUdfVAnYK5uuT0+uQbLNHDUHxYkmE4=
 github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240207171236-f51dc39614e4 h1:4WGf/JTH2Pks3A1fru2lk2u8gO/MR3g7tPJC7OXhAzk=
 github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240207171236-f51dc39614e4/go.mod h1:CJkKr356RlpZP/gQRuHf3Myrn1qJtoUVe4EMCmtwarg=
+github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240213200615-3f0fc0629521 h1:QWOA4cGgVcDLJYsYWIz5nNr7OOqAtPhsOgcDwmX6lsg=
+github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240213200615-3f0fc0629521/go.mod h1:CJkKr356RlpZP/gQRuHf3Myrn1qJtoUVe4EMCmtwarg=
 github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800 h1:YAW+X9xCW8Yq5tQaBBQaLTNU9CJj8Nr7lx1+k66ZHJ0=
 github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800/go.mod h1:chIDffBaVQ/asNl1pTTdbAymYcuBKf8BR3YtSP+3FEU=
 github.com/labstack/echo v3.2.1+incompatible/go.mod h1:0INS7j/VjnFxD4E2wkz67b8cVwCLbBmJyDaka6Cmk1s=
