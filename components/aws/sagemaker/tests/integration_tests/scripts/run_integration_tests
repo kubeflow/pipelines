@@ -38,11 +38,12 @@ ROBOMAKER_EXECUTION_ROLE_ARN=${ROBOMAKER_EXECUTION_ROLE_ARN:-""}
 
 SKIP_FSX_TESTS=${SKIP_FSX_TESTS:-"false"}
 
-ACK_RELEASE_VERSION=${ACK_RELEASE_VERSION:-"v1.2.1"}
+ACK_RELEASE_VERSION=${ACK_RELEASE_VERSION:-"1.2.4"}
 HELM_EXPERIMENTAL_OCI=1
 SERVICE=sagemaker
 CHART_EXPORT_PATH=/tmp/chart
 CHART_REF=sagemaker-chart
+TEST_EXIT_STATUS=1
 
 while getopts ":n:r:s:" opt; do
   case $opt in
@@ -88,10 +89,6 @@ fi
 function cleanup() {
   set +e
 
-  #push to metrics to cloudwatch
-  echo "Pushing Codebuild stats to Cloudwatch."
-  python ../../codebuild/scripts/push_stats_to_cloudwatch.py
-
   cleanup_kfp
   # If installation fails before ack installation resources should be freed.
   if [[ -v ACK_K8S_NAMESPACE ]]; then
@@ -100,6 +97,10 @@ function cleanup() {
   delete_assumed_role
   
   [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && delete_oidc_role
+
+  #push to metrics to cloudwatch
+  echo "Pushing Codebuild stats to Cloudwatch."
+  python ../../codebuild/scripts/push_stats_to_cloudwatch.py
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     delete_fsx_instance
@@ -280,6 +281,10 @@ function cleanup_kfp() {
     # If this fails, deleting the nodegroup later will clean it up anyway
     kill -9 $MINIO_PID || true
   fi
+  if [[ $TEST_EXIT_STATUS -gt 0 ]]; then
+    kubectl delete -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/dev?ref=$KFP_VERSION&timeout=90s"
+    kubectl delete -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/cluster-scoped-resources?ref=$KFP_VERSION&timeout=90s" 
+  fi
 }
 
 if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
@@ -332,4 +337,6 @@ fi
 
 DIR_THIS_FILE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-cd $DIR_THIS_FILE/../ && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.xml -n 9
+cd $DIR_THIS_FILE/../
+python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.xml -n 9
+TEST_EXIT_STATUS=$?
