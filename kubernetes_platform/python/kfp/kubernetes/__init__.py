@@ -24,14 +24,16 @@ __all__ = [
     'add_pod_label',
     'add_pod_annotation',
     'set_image_pull_secrets'
+    'use_config_map_as_env',
+    'use_config_map_as_volume',
 ]
 
-from kfp.kubernetes.pod_metadata import add_pod_label
-from kfp.kubernetes.pod_metadata import add_pod_annotation
+from kfp.kubernetes.config_map import use_config_map_as_volume
 from kfp.kubernetes.node_selector import add_node_selector
+from kfp.kubernetes.pod_metadata import add_pod_annotation
+from kfp.kubernetes.pod_metadata import add_pod_label
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
 from kfp.kubernetes.volume import CreatePVC
 from kfp.kubernetes.volume import DeletePVC
 from kfp.kubernetes.volume import mount_pvc
-from kfp.kubernetes.image import set_image_pull_secrets
