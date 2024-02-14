@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors
+# Copyright 2024 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,16 +26,14 @@ class TestTolerations:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.add_tolerations(
+            kubernetes.add_toleration(
                 task,
-                [
-                    V1Toleration(
-                        key='key1',
-                        operator='Equal',
-                        value='value1',
-                        effect='NoSchedule',
-                    ),
-                ],
+                V1Toleration(
+                    key='key1',
+                    operator='Equal',
+                    value='value1',
+                    effect='NoSchedule',
+                ),
             )
 
         compiler.Compiler().compile(
@@ -65,17 +63,15 @@ class TestTolerations:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.add_tolerations(
+            kubernetes.add_toleration(
                 task,
-                [
-                    V1Toleration(
-                        key='key1',
-                        operator='Equal',
-                        value='value1',
-                        effect='NoExecute',
-                        toleration_seconds=10,
-                    ),
-                ],
+                V1Toleration(
+                    key='key1',
+                    operator='Equal',
+                    value='value1',
+                    effect='NoExecute',
+                    toleration_seconds=10,
+                ),
             )
 
         compiler.Compiler().compile(
@@ -106,20 +102,21 @@ class TestTolerations:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.add_tolerations(
+            kubernetes.add_toleration(
                 task,
-                [
-                    V1Toleration(
-                        key='key1',
-                        operator='Equal',
-                        value='value1',
-                    ),
-                    V1Toleration(
-                        key='key2',
-                        operator='Equal',
-                        value='value2',
-                    ),
-                ],
+                V1Toleration(
+                    key='key1',
+                    operator='Equal',
+                    value='value1',
+                ),
+            )
+            kubernetes.add_toleration(
+                task,
+                V1Toleration(
+                    key='key2',
+                    operator='Equal',
+                    value='value2',
+                ),
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
@@ -154,15 +151,13 @@ class TestTolerations:
             task = comp()
             kubernetes.use_secret_as_volume(
                 task, secret_name='my-secret', mount_path='/mnt/my_vol')
-            kubernetes.add_tolerations(
+            kubernetes.add_toleration(
                 task,
-                [
-                    V1Toleration(
-                        key='key1',
-                        operator='Equal',
-                        value='value1',
-                    ),
-                ],
+                V1Toleration(
+                    key='key1',
+                    operator='Equal',
+                    value='value1',
+                ),
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {

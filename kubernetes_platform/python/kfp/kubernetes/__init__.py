@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.1.0"
+__version__ = '1.1.0'
 
 __all__ = [
-    "add_node_selector",
-    "add_pod_annotation",
-    "add_pod_label",
-    "add_tolerations",
-    "CreatePVC",
-    "DeletePVC",
-    "mount_pvc",
-    "set_image_pull_secrets",
-    "use_secret_as_env",
-    "use_secret_as_volume",
+    'add_node_selector',
+    'add_pod_annotation',
+    'add_pod_label',
+    'add_toleration',
+    'CreatePVC',
+    'DeletePVC',
+    'mount_pvc',
+    'set_image_pull_secrets',
+    'use_secret_as_env',
+    'use_secret_as_volume',
 ]
 
 from kfp.kubernetes.image import set_image_pull_secrets
@@ -33,7 +33,7 @@ from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
-from kfp.kubernetes.toleration import add_tolerations
+from kfp.kubernetes.toleration import add_toleration
 from kfp.kubernetes.volume import CreatePVC
 from kfp.kubernetes.volume import DeletePVC
 from kfp.kubernetes.volume import mount_pvc

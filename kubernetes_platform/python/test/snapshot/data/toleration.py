@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors
+# Copyright 2024 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,17 +25,15 @@ def comp():
 @dsl.pipeline
 def my_pipeline():
     task = comp()
-    kubernetes.add_tolerations(
+    kubernetes.add_toleration(
         task,
-        [
-            V1Toleration(
-                key='key1',
-                operator='Equal',
-                value='value1',
-                effect='NoExecute',
-                toleration_seconds=10,
-            ),
-        ],
+        V1Toleration(
+            key='key1',
+            operator='Equal',
+            value='value1',
+            effect='NoExecute',
+            toleration_seconds=10,
+        ),
     )
 
 
