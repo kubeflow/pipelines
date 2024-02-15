@@ -192,8 +192,10 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         information.
         """
         if not isinstance(channel, for_loop.LoopArgumentVariable):
-            type_name = type_annotations.get_short_type_name(channel.channel_type)
-            parameter_type = type_utils.PARAMETER_TYPES_MAPPING[type_name.lower()]
+            type_name = type_annotations.get_short_type_name(
+                channel.channel_type)
+            parameter_type = type_utils.PARAMETER_TYPES_MAPPING[
+                type_name.lower()]
             if parameter_type != type_utils.LIST:
                 raise ValueError(
                     'Cannot iterate over a single Parameter using `dsl.ParallelFor`. Expected a list of Parameters as argument to `items`.'
