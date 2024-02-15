@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata: # kpt-merge: /httpbin
+  name: httpbin
+  labels:
+    app: httpbin
+  annotations:
+    internal.kpt.dev/upstream-identifier: '|Service|default|httpbin'
+spec:
+  selector:
+    app: httpbin
+  ports:
+    - port: 9100
+      name: api
+      protocol: TCP
+      targetPort: 80
