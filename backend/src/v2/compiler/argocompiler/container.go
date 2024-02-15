@@ -15,8 +15,11 @@
 package argocompiler
 
 import (
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"fmt"
 	"os"
+	"strings"
+
+	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
@@ -24,6 +27,7 @@ import (
 
 const (
 	volumeNameKFPLauncher   = "kfp-launcher"
+	volumeNameCABUndle      = "ca-bundle"
 	DefaultLauncherImage    = "gcr.io/ml-pipeline/kfp-launcher@sha256:80cf120abd125db84fa547640fd6386c4b2a26936e0c2b04a7d3634991a850a4"
 	LauncherImageEnvVar     = "V2_LAUNCHER_IMAGE"
 	DefaultDriverImage      = "gcr.io/ml-pipeline/kfp-driver@sha256:8e60086b04d92b657898a310ca9757631d58547e76bbbb8bfc376d654bef1707"
@@ -68,19 +72,19 @@ type containerDriverInputs struct {
 }
 
 func GetLauncherImage() string {
-    launcherImage := os.Getenv(LauncherImageEnvVar)
-    if launcherImage == "" {
-        launcherImage = DefaultLauncherImage
-    }
-    return launcherImage
+	launcherImage := os.Getenv(LauncherImageEnvVar)
+	if launcherImage == "" {
+		launcherImage = DefaultLauncherImage
+	}
+	return launcherImage
 }
 
 func GetDriverImage() string {
-    driverImage := os.Getenv(DriverImageEnvVar)
-    if driverImage == "" {
-        driverImage = DefaultDriverImage
-    }
-    return driverImage
+	driverImage := os.Getenv(DriverImageEnvVar)
+	if driverImage == "" {
+		driverImage = DefaultDriverImage
+	}
+	return driverImage
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
@@ -338,6 +342,42 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
 			Env:     commonEnvs,
 		},
+	}
+	caBundleCfgMapName := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_NAME")
+	caBundleCfgMapKey := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_KEY")
+	caBundleMountPath := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_MOUNTPATH")
+	if caBundleCfgMapName != "" && caBundleCfgMapKey != "" {
+		var certDirectories = []string{
+			caBundleMountPath,
+			"/etc/ssl/certs",
+			"/etc/pki/tls/certs",
+		}
+		sslCertDir := strings.Join(certDirectories, ":")
+		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
+			Name:  "SSL_CERT_DIR",
+			Value: sslCertDir,
+		})
+		volume := k8score.Volume{
+			Name: volumeNameCABUndle,
+			VolumeSource: k8score.VolumeSource{
+				ConfigMap: &k8score.ConfigMapVolumeSource{
+					LocalObjectReference: k8score.LocalObjectReference{
+						Name: caBundleCfgMapName,
+					},
+				},
+			},
+		}
+
+		executor.Volumes = append(executor.Volumes, volume)
+
+		volumeMount := k8score.VolumeMount{
+			Name:      volumeNameCABUndle,
+			MountPath: fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCfgMapKey),
+			SubPath:   caBundleCfgMapKey,
+		}
+
+		executor.Container.VolumeMounts = append(executor.Container.VolumeMounts, volumeMount)
+
 	}
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
