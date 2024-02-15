@@ -32,7 +32,7 @@ def automl_tabular_infra_validator(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240214_1325',
       command=[],
       args=['--executor_input', '{{$}}'],
   )

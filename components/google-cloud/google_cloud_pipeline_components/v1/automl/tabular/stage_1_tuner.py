@@ -109,11 +109,11 @@ def automl_tabular_stage_1_tuner(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325',
                   '", "args": ["l2l_stage_1_tuner", "--transform_output_path=',
                   transform_output.uri,
                   '", "--training_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325',
                   '", "--feature_selection_result_path=',
                   feature_ranking.uri,
                   '", "--disable_early_stopping=',
