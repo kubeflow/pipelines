@@ -1388,7 +1388,7 @@ components:
               description:
                 componentInputParameter: pipelinechannel--model_description
               display_name:
-                componentInputParameter: pipelinechannel--set-optional-inputs-model_display_name
+                componentInputParameter: pipelinechannel--get-model-display-name-model_display_name
               encryption_spec_key_name:
                 componentInputParameter: pipelinechannel--encryption_spec_key_name
               explanation_parameters:
@@ -1466,6 +1466,8 @@ components:
           parameterType: BOOLEAN
         pipelinechannel--fast_testing:
           parameterType: BOOLEAN
+        pipelinechannel--get-model-display-name-model_display_name:
+          parameterType: STRING
         pipelinechannel--location:
           parameterType: STRING
         pipelinechannel--model_description:
@@ -1480,8 +1482,6 @@ components:
           parameterType: BOOLEAN
         pipelinechannel--run_evaluation:
           parameterType: BOOLEAN
-        pipelinechannel--set-optional-inputs-model_display_name:
-          parameterType: STRING
         pipelinechannel--stage_1_num_parallel_trials:
           parameterType: NUMBER_INTEGER
         pipelinechannel--stage_1_tuning_result_artifact_uri:
@@ -2081,6 +2081,8 @@ components:
                 componentInputParameter: pipelinechannel--evaluation_dataflow_max_num_workers
               pipelinechannel--evaluation_dataflow_starting_num_workers:
                 componentInputParameter: pipelinechannel--evaluation_dataflow_starting_num_workers
+              pipelinechannel--get-model-display-name-model_display_name:
+                componentInputParameter: pipelinechannel--get-model-display-name-model_display_name
               pipelinechannel--location:
                 componentInputParameter: pipelinechannel--location
               pipelinechannel--model_description:
@@ -2091,8 +2093,6 @@ components:
                 componentInputParameter: pipelinechannel--project
               pipelinechannel--root_dir:
                 componentInputParameter: pipelinechannel--root_dir
-              pipelinechannel--set-optional-inputs-model_display_name:
-                componentInputParameter: pipelinechannel--set-optional-inputs-model_display_name
               pipelinechannel--string-not-empty-Output:
                 componentInputParameter: pipelinechannel--string-not-empty-Output
               pipelinechannel--tabular-stats-and-example-gen-downsampled_test_split_json:
@@ -2311,6 +2311,8 @@ components:
           parameterType: BOOLEAN
         pipelinechannel--fast_testing:
           parameterType: BOOLEAN
+        pipelinechannel--get-model-display-name-model_display_name:
+          parameterType: STRING
         pipelinechannel--location:
           parameterType: STRING
         pipelinechannel--model_description:
@@ -2325,8 +2327,6 @@ components:
           parameterType: BOOLEAN
         pipelinechannel--run_evaluation:
           parameterType: BOOLEAN
-        pipelinechannel--set-optional-inputs-model_display_name:
-          parameterType: STRING
         pipelinechannel--stage_1_num_parallel_trials:
           parameterType: NUMBER_INTEGER
         pipelinechannel--stage_1_tuner_worker_pool_specs_override:
@@ -2472,7 +2472,7 @@ components:
               description:
                 componentInputParameter: pipelinechannel--model_description
               display_name:
-                componentInputParameter: pipelinechannel--set-optional-inputs-model_display_name
+                componentInputParameter: pipelinechannel--get-model-display-name-model_display_name
               encryption_spec_key_name:
                 componentInputParameter: pipelinechannel--encryption_spec_key_name
               explanation_parameters:
@@ -2532,6 +2532,8 @@ components:
           parameterType: NUMBER_INTEGER
         pipelinechannel--evaluation_dataflow_starting_num_workers:
           parameterType: NUMBER_INTEGER
+        pipelinechannel--get-model-display-name-model_display_name:
+          parameterType: STRING
         pipelinechannel--location:
           parameterType: STRING
         pipelinechannel--model_description:
@@ -2541,8 +2543,6 @@ components:
         pipelinechannel--project:
           parameterType: STRING
         pipelinechannel--root_dir:
-          parameterType: STRING
-        pipelinechannel--set-optional-inputs-model_display_name:
           parameterType: STRING
         pipelinechannel--string-not-empty-Output:
           parameterType: STRING
@@ -3839,6 +3839,8 @@ components:
                 componentInputParameter: pipelinechannel--export_additional_model_without_custom_ops
               pipelinechannel--fast_testing:
                 componentInputParameter: pipelinechannel--fast_testing
+              pipelinechannel--get-model-display-name-model_display_name:
+                componentInputParameter: pipelinechannel--get-model-display-name-model_display_name
               pipelinechannel--location:
                 componentInputParameter: pipelinechannel--location
               pipelinechannel--model_description:
@@ -3853,8 +3855,6 @@ components:
                 componentInputParameter: pipelinechannel--run_distillation
               pipelinechannel--run_evaluation:
                 componentInputParameter: pipelinechannel--run_evaluation
-              pipelinechannel--set-optional-inputs-model_display_name:
-                componentInputParameter: pipelinechannel--set-optional-inputs-model_display_name
               pipelinechannel--stage_1_num_parallel_trials:
                 componentInputParameter: pipelinechannel--stage_1_num_parallel_trials
               pipelinechannel--stage_1_tuning_result_artifact_uri:
@@ -3979,6 +3979,8 @@ components:
                 componentInputParameter: pipelinechannel--export_additional_model_without_custom_ops
               pipelinechannel--fast_testing:
                 componentInputParameter: pipelinechannel--fast_testing
+              pipelinechannel--get-model-display-name-model_display_name:
+                componentInputParameter: pipelinechannel--get-model-display-name-model_display_name
               pipelinechannel--location:
                 componentInputParameter: pipelinechannel--location
               pipelinechannel--model_description:
@@ -3993,8 +3995,6 @@ components:
                 componentInputParameter: pipelinechannel--run_distillation
               pipelinechannel--run_evaluation:
                 componentInputParameter: pipelinechannel--run_evaluation
-              pipelinechannel--set-optional-inputs-model_display_name:
-                componentInputParameter: pipelinechannel--set-optional-inputs-model_display_name
               pipelinechannel--stage_1_num_parallel_trials:
                 componentInputParameter: pipelinechannel--stage_1_num_parallel_trials
               pipelinechannel--stage_1_tuner_worker_pool_specs_override:
@@ -4185,6 +4185,8 @@ components:
           parameterType: BOOLEAN
         pipelinechannel--fast_testing:
           parameterType: BOOLEAN
+        pipelinechannel--get-model-display-name-model_display_name:
+          parameterType: STRING
         pipelinechannel--location:
           parameterType: STRING
         pipelinechannel--model_description:
@@ -4212,8 +4214,6 @@ components:
         pipelinechannel--set-optional-inputs-data_source_bigquery_table_path:
           parameterType: STRING
         pipelinechannel--set-optional-inputs-data_source_csv_filenames:
-          parameterType: STRING
-        pipelinechannel--set-optional-inputs-model_display_name:
           parameterType: STRING
         pipelinechannel--stage_1_num_parallel_trials:
           parameterType: NUMBER_INTEGER
@@ -4519,6 +4519,16 @@ components:
             job. For more details, see
 
             https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          parameterType: STRING
+  comp-get-model-display-name:
+    executorLabel: exec-get-model-display-name
+    inputDefinitions:
+      parameters:
+        model_display_name:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        model_display_name:
           parameterType: STRING
   comp-importer:
     executorLabel: exec-importer
@@ -8133,9 +8143,6 @@ components:
         location:
           description: The GCP region that runs the pipeline components.
           parameterType: STRING
-        model_display_name:
-          description: The uploaded model's display name.
-          parameterType: STRING
         project:
           description: The GCP project that runs the pipeline components.
           parameterType: STRING
@@ -8144,8 +8151,6 @@ components:
         data_source_bigquery_table_path:
           parameterType: STRING
         data_source_csv_filenames:
-          parameterType: STRING
-        model_display_name:
           parameterType: STRING
   comp-string-not-empty:
     executorLabel: exec-string-not-empty
@@ -8415,9 +8420,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"l2l_cv_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325",
           "\", \"--component_id={{$.pipeline_task_uuid}}\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
           \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -8458,9 +8463,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"l2l_cv_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325",
           "\", \"--component_id={{$.pipeline_task_uuid}}\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
           \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -8501,7 +8506,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"ensemble\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
           "\", \"--model_output_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\",
           \"--custom_model_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
@@ -8513,7 +8518,7 @@ deploymentSpec:
           "\", \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
           "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--warmup_data=", "{{$.inputs.artifacts[''warmup_data''].uri}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240214_1325",
           "\", \"--model_path=", "{{$.outputs.artifacts[''model''].uri}}", "\", \"--custom_model_path=",
           "{{$.outputs.artifacts[''model_without_custom_ops''].uri}}", "\", \"--explanation_metadata_path=",
           "{{$.outputs.parameters[''explanation_metadata''].output_file}}", ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
@@ -8542,7 +8547,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"ensemble\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
           "\", \"--model_output_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\",
           \"--custom_model_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
@@ -8554,7 +8559,7 @@ deploymentSpec:
           "\", \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
           "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--warmup_data=", "{{$.inputs.artifacts[''warmup_data''].uri}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240214_1325",
           "\", \"--model_path=", "{{$.outputs.artifacts[''model''].uri}}", "\", \"--custom_model_path=",
           "{{$.outputs.artifacts[''model_without_custom_ops''].uri}}", "\", \"--explanation_metadata_path=",
           "{{$.outputs.parameters[''explanation_metadata''].output_file}}", ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
@@ -8583,7 +8588,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-highmem-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"ensemble\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
           "\", \"--model_output_path=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/model\",
           \"--custom_model_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
@@ -8595,7 +8600,7 @@ deploymentSpec:
           "\", \"--tuning_result_input_path=", "{{$.inputs.artifacts[''tuning_result_input''].uri}}",
           "\", \"--instance_baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--warmup_data=", "{{$.inputs.artifacts[''warmup_data''].uri}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240214_1325",
           "\", \"--model_path=", "{{$.outputs.artifacts[''model''].uri}}", "\", \"--custom_model_path=",
           "{{$.outputs.artifacts[''model_without_custom_ops''].uri}}", "\", \"--explanation_metadata_path=",
           "{{$.outputs.parameters[''explanation_metadata''].output_file}}", ",", "{{$.outputs.artifacts[''explanation_metadata_artifact''].uri}}",
@@ -8624,7 +8629,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -8639,7 +8644,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240214_1325
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -8648,7 +8653,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240214_1325
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -8657,7 +8662,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240214_1325
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -8677,9 +8682,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"l2l_stage_1_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325",
           "\", \"--feature_selection_result_path=", "{{$.inputs.artifacts[''feature_ranking''].uri}}",
           "\", \"--disable_early_stopping=", "{{$.inputs.parameters[''disable_early_stopping'']}}",
           "\", \"--tune_feature_selection_rate=", "{{$.inputs.parameters[''tune_feature_selection_rate'']}}",
@@ -8724,9 +8729,9 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"l2l_stage_1_tuner\", \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125",
+          "\", \"--training_docker_uri=", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325",
           "\", \"--feature_selection_result_path=", "{{$.inputs.artifacts[''feature_ranking''].uri}}",
           "\", \"--disable_early_stopping=", "{{$.inputs.parameters[''disable_early_stopping'']}}",
           "\", \"--tune_feature_selection_rate=", "{{$.inputs.parameters[''tune_feature_selection_rate'']}}",
@@ -8771,7 +8776,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"transform\", \"--is_mp=true\", \"--transform_output_artifact_path=",
           "{{$.outputs.artifacts[''transform_output''].uri}}", "\", \"--transform_output_path=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform\",
@@ -8792,7 +8797,7 @@ deploymentSpec:
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240119_0125",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240214_1325",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
           "\", \"--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}",
@@ -8823,7 +8828,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"transform\", \"--is_mp=true\", \"--transform_output_artifact_path=",
           "{{$.outputs.artifacts[''transform_output''].uri}}", "\", \"--transform_output_path=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform\",
@@ -8844,7 +8849,7 @@ deploymentSpec:
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240119_0125",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240214_1325",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
           "\", \"--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}",
@@ -8868,12 +8873,6 @@ deploymentSpec:
         - _bool_identity
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -8886,7 +8885,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-bool-identity-2:
       container:
         args:
@@ -8896,12 +8895,6 @@ deploymentSpec:
         - _bool_identity
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -8914,7 +8907,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-bool-identity-3:
       container:
         args:
@@ -8924,12 +8917,6 @@ deploymentSpec:
         - _bool_identity
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -8942,7 +8929,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-calculate-training-parameters:
       container:
         args:
@@ -8952,12 +8939,6 @@ deploymentSpec:
         - _calculate_training_parameters
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -9040,7 +9021,7 @@ deploymentSpec:
           \      stage_1_single_run_max_secs,\n      stage_2_deadline_hours,\n   \
           \   stage_2_single_run_max_secs,\n      distill_stage_1_deadline_hours,\n\
           \      reduce_search_space_mode,\n  )\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-calculate-training-parameters-2:
       container:
         args:
@@ -9050,12 +9031,6 @@ deploymentSpec:
         - _calculate_training_parameters
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -9138,7 +9113,7 @@ deploymentSpec:
           \      stage_1_single_run_max_secs,\n      stage_2_deadline_hours,\n   \
           \   stage_2_single_run_max_secs,\n      distill_stage_1_deadline_hours,\n\
           \      reduce_search_space_mode,\n  )\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-feature-attribution:
       container:
         args:
@@ -9298,6 +9273,33 @@ deploymentSpec:
         - python3
         - /main.py
         image: gcr.io/ml-pipeline/model-evaluation:v0.9.2
+    exec-get-model-display-name:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - _get_model_display_name
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef _get_model_display_name(\n    model_display_name: str,\n) ->\
+          \ NamedTuple('Outputs', [('model_display_name', str),]):\n  \"\"\"Returns\
+          \ the model display name.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \  import collections\n  import uuid\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \n  if not model_display_name:\n    model_display_name = f'tabular-workflow-model-{uuid.uuid4()}'\n\
+          \n  return collections.namedtuple(\n      'Outputs',\n      [\n        \
+          \  'model_display_name',\n      ],\n  )(\n      model_display_name,\n  )\n\
+          \n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-importer:
       importer:
         artifactUri:
@@ -9313,12 +9315,6 @@ deploymentSpec:
         - --function_to_execute
         - _merge_materialized_splits
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -9337,7 +9333,7 @@ deploymentSpec:
           \ 'r') as f:\n    split_0_content = f.read()\n  with open(split_1, 'r')\
           \ as f:\n    split_1_content = f.read()\n  with open(splits, 'w') as f:\n\
           \    f.write(','.join([split_0_content, split_1_content]))\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-model-batch-explanation:
       container:
         args:
@@ -10144,12 +10140,6 @@ deploymentSpec:
         - _read_input_uri
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -10168,7 +10158,7 @@ deploymentSpec:
           \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
           \  with open(split_uri, 'r') as f:\n    data_source = json.loads(f.read())\n\
           \    return data_source['tf_record_data_source']['file_patterns']\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-read-input-uri-2:
       container:
         args:
@@ -10178,12 +10168,6 @@ deploymentSpec:
         - _read_input_uri
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -10202,7 +10186,7 @@ deploymentSpec:
           \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
           \  with open(split_uri, 'r') as f:\n    data_source = json.loads(f.read())\n\
           \    return data_source['tf_record_data_source']['file_patterns']\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-set-optional-inputs:
       container:
         args:
@@ -10211,12 +10195,6 @@ deploymentSpec:
         - --function_to_execute
         - _set_optional_inputs
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -10229,20 +10207,18 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef _set_optional_inputs(\n    project: str,\n    location: str,\n\
           \    data_source_csv_filenames: str,\n    data_source_bigquery_table_path:\
-          \ str,\n    vertex_dataset: dsl.Input[dsl.Artifact],\n    model_display_name:\
-          \ str,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('data_source_csv_filenames',\
-          \ str),\n        ('data_source_bigquery_table_path', str),\n        ('model_display_name',\
-          \ str),\n    ],\n):\n  \"\"\"Get the data source URI.\n\n  Args:\n    project:\
-          \ The GCP project that runs the pipeline components.\n    location: The\
-          \ GCP region that runs the pipeline components.\n    data_source_csv_filenames:\
-          \ The CSV GCS path when data source is CSV.\n    data_source_bigquery_table_path:\
-          \ The BigQuery table when data source is BQ.\n    vertex_dataset: The Vertex\
-          \ dataset when data source is Vertex dataset.\n    model_display_name: The\
-          \ uploaded model's display name.\n\n  Returns:\n    A named tuple of CSV\
-          \ or BQ URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \ str,\n    vertex_dataset: dsl.Input[dsl.Artifact],\n) -> NamedTuple(\n\
+          \    'Outputs',\n    [\n        ('data_source_csv_filenames', str),\n  \
+          \      ('data_source_bigquery_table_path', str),\n    ],\n):\n  \"\"\"Get\
+          \ the data source URI.\n\n  Args:\n    project: The GCP project that runs\
+          \ the pipeline components.\n    location: The GCP region that runs the pipeline\
+          \ components.\n    data_source_csv_filenames: The CSV GCS path when data\
+          \ source is CSV.\n    data_source_bigquery_table_path: The BigQuery table\
+          \ when data source is BQ.\n    vertex_dataset: The Vertex dataset when data\
+          \ source is Vertex dataset.\n\n  Returns:\n    A named tuple of CSV or BQ\
+          \ URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
           \  import collections\n  from google.cloud import aiplatform\n  from google.cloud\
-          \ import aiplatform_v1beta1 as aip\n  import uuid\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \n  if not model_display_name:\n    model_display_name = f'tabular-workflow-model-{uuid.uuid4()}'\n\
+          \ import aiplatform_v1beta1 as aip\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
           \n  if vertex_dataset is not None:\n    # of format\n    # projects/294348452381/locations/us-central1/datasets/7104764862735056896\n\
           \    dataset_name = vertex_dataset.metadata['resourceName']\n\n    aiplatform.init(project=project,\
           \ location=location)\n    client = aip.DatasetServiceClient(\n        client_options={'api_endpoint':\
@@ -10256,10 +10232,9 @@ deploymentSpec:
           \        ' data_source_bigquery_table_path must be specified'\n    )\n\n\
           \  return collections.namedtuple(\n      'Outputs',\n      [\n         \
           \ 'data_source_csv_filenames',\n          'data_source_bigquery_table_path',\n\
-          \          'model_display_name',\n      ],\n  )(\n      data_source_csv_filenames,\n\
-          \      data_source_bigquery_table_path,\n      model_display_name,\n  )\n\
-          \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240119_0125
+          \      ],\n  )(\n      data_source_csv_filenames,\n      data_source_bigquery_table_path,\n\
+          \  )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-string-not-empty:
       container:
         args:
@@ -10268,12 +10243,6 @@ deploymentSpec:
         - --function_to_execute
         - _string_not_empty
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -10289,7 +10258,7 @@ deploymentSpec:
           \n  Returns:\n    Boolean value. -> 'true' if empty, 'false' if not empty.\
           \ We need to use str\n    instead of bool due to a limitation in KFP compiler.\n\
           \  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-tabular-stats-and-example-gen:
       container:
         args:
@@ -10306,7 +10275,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"stats_generator\",", "\"--train_spec={\\\"prediction_type\\\":
           \\\"", "{{$.inputs.parameters[''prediction_type'']}}", "\\\", \\\"target_column\\\":
           \\\"", "{{$.inputs.parameters[''target_column_name'']}}", "\\\", \\\"optimization_objective\\\":
@@ -10339,7 +10308,7 @@ deploymentSpec:
           \"--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\",
           \"--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
           \"--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
-          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240119_0125",
+          "\", \"--dataflow_worker_container_image=", "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240214_1325",
           "\", \"--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
           "\", \"--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
           "\", \"--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
@@ -10374,12 +10343,6 @@ deploymentSpec:
         - _write_bp_result_path
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -10400,7 +10363,7 @@ deploymentSpec:
           \        f'{directory}/prediction.results-*',\n          ],\n          'coder':\
           \ 'PROTO_VALUE',\n      },\n  }\n  with open(result, 'w') as f:\n    f.write(json.dumps(data_source))\n\
           \n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-write-bp-result-path-2:
       container:
         args:
@@ -10410,12 +10373,6 @@ deploymentSpec:
         - _write_bp_result_path
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -10436,7 +10393,7 @@ deploymentSpec:
           \        f'{directory}/prediction.results-*',\n          ],\n          'coder':\
           \ 'PROTO_VALUE',\n      },\n  }\n  with open(result, 'w') as f:\n    f.write(json.dumps(data_source))\n\
           \n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
 pipelineInfo:
   description: 'Complete AutoML Tables pipeline.
 
@@ -10494,6 +10451,7 @@ root:
         componentRef:
           name: comp-exit-handler-1
         dependentTasks:
+        - get-model-display-name
         - set-optional-inputs
         inputs:
           artifacts:
@@ -10546,6 +10504,10 @@ root:
               componentInputParameter: export_additional_model_without_custom_ops
             pipelinechannel--fast_testing:
               componentInputParameter: fast_testing
+            pipelinechannel--get-model-display-name-model_display_name:
+              taskOutputParameter:
+                outputParameterKey: model_display_name
+                producerTask: get-model-display-name
             pipelinechannel--location:
               componentInputParameter: location
             pipelinechannel--model_description:
@@ -10577,10 +10539,6 @@ root:
             pipelinechannel--set-optional-inputs-data_source_csv_filenames:
               taskOutputParameter:
                 outputParameterKey: data_source_csv_filenames
-                producerTask: set-optional-inputs
-            pipelinechannel--set-optional-inputs-model_display_name:
-              taskOutputParameter:
-                outputParameterKey: model_display_name
                 producerTask: set-optional-inputs
             pipelinechannel--stage_1_num_parallel_trials:
               componentInputParameter: stage_1_num_parallel_trials
@@ -10626,6 +10584,17 @@ root:
               componentInputParameter: weight_column
         taskInfo:
           name: exit-handler-1
+      get-model-display-name:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-get-model-display-name
+        inputs:
+          parameters:
+            model_display_name:
+              componentInputParameter: model_display_name
+        taskInfo:
+          name: get-model-display-name
       set-optional-inputs:
         cachingOptions:
           enableCache: true
@@ -10642,8 +10611,6 @@ root:
               componentInputParameter: data_source_csv_filenames
             location:
               componentInputParameter: location
-            model_display_name:
-              componentInputParameter: model_display_name
             project:
               componentInputParameter: project
         taskInfo:
