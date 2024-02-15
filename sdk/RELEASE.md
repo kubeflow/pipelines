@@ -1,4 +1,5 @@
 # Current Version (in development)
+* Throw compilation error when trying to iterate over a single parameter with ParallelFor [\#10473](https://github.com/kubeflow/pipelines/pull/10473)
 
 ## Features
 
@@ -26,6 +27,7 @@
 
 ## Bug fixes and other changes
 * Fix the compilation error when trying to iterate over a list of dictionaries with ParallelFor [\#10436](https://github.com/kubeflow/pipelines/pull/10436)
+
 ## Documentation updates
 
 # 2.6.0
