@@ -61,7 +61,7 @@ github.com/klauspost/cpuid,https://github.com/klauspost/cpuid/blob/v1.3.1/LICENS
 github.com/klauspost/pgzip,https://github.com/klauspost/pgzip/blob/v1.2.5/LICENSE,MIT
 github.com/kubeflow/pipelines/api/v2alpha1/go,https://github.com/kubeflow/pipelines/blob/758c91f76784/api/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/backend,https://github.com/kubeflow/pipelines/blob/HEAD/LICENSE,Apache-2.0
-github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform,https://github.com/kubeflow/pipelines/blob/f51dc39614e4/kubernetes_platform/LICENSE,Apache-2.0
+github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform,https://github.com/kubeflow/pipelines/blob/1fcc68121cd0/kubernetes_platform/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata,https://github.com/kubeflow/pipelines/blob/e1f0c010f800/third_party/ml-metadata/LICENSE,Apache-2.0
 github.com/lann/builder,https://github.com/lann/builder/blob/47ae307949d0/LICENSE,MIT
 github.com/lann/ps,https://github.com/lann/ps/blob/62de8c46ede0/LICENSE,MIT

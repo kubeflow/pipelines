@@ -671,3 +671,65 @@ func Test_extendPodSpecPatch_ImagePullSecrets(t *testing.T) {
 		})
 	}
 }
+
+func Test_extendPodSpecPatch_ActiveDeadlineSeconds(t *testing.T) {
+	var timeoutSeconds int64 = 20
+	var NegativeTimeoutSeconds int64 = -20
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - With ActiveDeadlineSeconds",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ActiveDeadlineSeconds: timeoutSeconds,
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				ActiveDeadlineSeconds: &timeoutSeconds,
+			},
+		},
+		{
+			"Valid - Negative input ignored",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ActiveDeadlineSeconds: NegativeTimeoutSeconds,
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+		{
+			"Valid - No ActiveDeadlineSeconds",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+			err := extendPodSpecPatch(got, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}

@@ -517,6 +517,12 @@ func extendPodSpecPatch(
 		podSpec.ImagePullSecrets = append(podSpec.ImagePullSecrets, k8score.LocalObjectReference{Name: imagePullSecret.GetSecretName()})
 	}
 
+	// Get container timeout information
+	timeout := kubernetesExecutorConfig.GetActiveDeadlineSeconds()
+	if timeout > 0 {
+		podSpec.ActiveDeadlineSeconds = &timeout
+	}
+
 	return nil
 }
 

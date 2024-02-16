@@ -128,3 +128,18 @@ def my_pipeline():
         annotation_value='123456',
     )
 ```
+
+### Timeout: Set timeout in seconds defined as pod spec's activeDeadlineSeconds
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def comp():
+    pass
+
+@dsl.pipeline
+def my_pipeline():
+    task = comp()
+    kubernetes.set_timeout(task, 20)
+```
