@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors
+# Copyright 2024 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ def use_config_map_as_env(
     config_map_name: str,
     config_map_key_to_env: Dict[str, str],
 ) -> PipelineTask:
-    """Use a Kubernetes ConfigMap as an environment variable as described in
-    https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#define-container-environment-variables-using-configmap-data.
+    """use a Kubernetes ConfigMap as an environment variable as described by the `Kubernetes documentation
+    https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#define-container-environment-variables-using-configmap-data`.
 
     Args:
         task: Pipeline task.
