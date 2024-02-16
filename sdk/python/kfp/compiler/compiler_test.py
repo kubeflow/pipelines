@@ -890,6 +890,8 @@ implementation:
 
         @dsl.pipeline()
         def do_something_else_pipeline():
+            print_op(message='Do something else pipeline')
+
             reusable_pipeline()
 
         @dsl.pipeline()
@@ -919,6 +921,7 @@ implementation:
                     item for sublist in component_refs for item in sublist
                 ]
                 counted_refs = collections.Counter(all_component_refs)
+                print(counted_refs)
                 self.assertEqual(1, max(counted_refs.values()))
 
 
