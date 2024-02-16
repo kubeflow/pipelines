@@ -825,6 +825,22 @@ implementation:
         with self.assertRaises(KeyError):
             for_loop_4['iteratorPolicy']
 
+    def test_compile_parallel_for_with_single_param(self):
+
+        @dsl.component    
+        def str_identity(s: str) -> str:
+            return s
+        
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Cannot iterate over a single Parameter using `dsl\.ParallelFor`\. Expected a list of Parameters as argument to `items`\.'
+        ):
+            @dsl.pipeline(name='test-parallelfor-with-single-param')
+            def my_pipeline():
+                single_param = str_identity(s='string')
+                with dsl.ParallelFor(items=single_param.output) as item:
+                    str_identity(s=item)
+
     def test_pipeline_in_pipeline(self):
 
         @dsl.pipeline(name='graph-component')
