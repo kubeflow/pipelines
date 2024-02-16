@@ -2038,6 +2038,9 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
         'outputDefinitions': '# Outputs:'
     }
 
+    def escape_linebreak_characters(text: str) -> str:
+        return text.encode('unicode_escape').decode('ascii')
+
     def collect_pipeline_signatures(root_dict: dict,
                                     signature_type: str) -> List[str]:
         comment_strings = []
@@ -2079,8 +2082,8 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                 string = '#    ' + signature['name'] + ': ' + signature[
                     'parameterType']
                 if 'defaultValue' in signature:
-                    string += ' [Default: ' + str(
-                        signature['defaultValue']) + ']'
+                    string += ' [Default: ' + escape_linebreak_characters(
+                        str(signature['defaultValue'])) + ']'
                 comment_strings.append(string)
 
         return comment_strings

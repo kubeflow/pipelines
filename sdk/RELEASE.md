@@ -7,6 +7,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Fix compilation error when default value contains escape sequence [\#10477](https://github.com/kubeflow/pipelines/pull/10477)
 
 ## Documentation updates
 
