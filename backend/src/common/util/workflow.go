@@ -709,7 +709,7 @@ func (w *Workflow) IsV2Compatible() bool {
 }
 
 func (w *Workflow) Validate(lint, ignoreEntrypoint bool) error {
-	_, err := validate.ValidateWorkflow(nil, nil, w.Workflow, validate.ValidateOpts{
+	err := validate.ValidateWorkflow(nil, nil, w.Workflow, validate.ValidateOpts{
 		Lint:                       lint,
 		IgnoreEntrypoint:           ignoreEntrypoint,
 		WorkflowTemplateValidation: false, // not used by kubeflow
