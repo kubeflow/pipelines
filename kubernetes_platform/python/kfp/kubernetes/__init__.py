@@ -18,6 +18,7 @@ __all__ = [
     'CreatePVC',
     'DeletePVC',
     'mount_pvc',
+    'use_field_path_as_env',
     'use_secret_as_env',
     'use_secret_as_volume',
     'add_node_selector',
@@ -29,6 +30,7 @@ __all__ = [
 from kfp.kubernetes.pod_metadata import add_pod_label
 from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.node_selector import add_node_selector
+from kfp.kubernetes.field import use_field_path_as_env
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
 from kfp.kubernetes.volume import CreatePVC
