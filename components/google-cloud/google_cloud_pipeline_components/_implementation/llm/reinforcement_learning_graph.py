@@ -95,7 +95,7 @@ def pipeline(
       dataset_type='prompt',
   ).set_display_name('Preprocess Prompt Dataset')
   prompt_dataset_importer = (
-      private_text_importer.PrivateTextImporter(
+      private_text_importer.private_text_importer(
           project=project,
           location=location,
           input_text=processed_dataset.outputs['processed_dataset_uri'],
@@ -123,7 +123,7 @@ def pipeline(
       ]
   ).set_display_name('Resolve Number of Microbatches')
   rl_model = (
-      reinforcer.Reinforcer(
+      reinforcer.reinforcer(
           project=project,
           location=location,
           input_reference_model_path=reference_model_metadata.outputs[
