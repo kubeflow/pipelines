@@ -16,7 +16,6 @@ from google.protobuf import json_format
 from kfp import compiler
 from kfp import dsl
 from kfp import kubernetes
-from kubernetes.client import V1Toleration
 
 
 class TestTolerations:
@@ -28,12 +27,10 @@ class TestTolerations:
             task = comp()
             kubernetes.add_toleration(
                 task,
-                V1Toleration(
-                    key='key1',
-                    operator='Equal',
-                    value='value1',
-                    effect='NoSchedule',
-                ),
+                key='key1',
+                operator='Equal',
+                value='value1',
+                effect='NoSchedule',
             )
 
         compiler.Compiler().compile(
@@ -65,13 +62,11 @@ class TestTolerations:
             task = comp()
             kubernetes.add_toleration(
                 task,
-                V1Toleration(
-                    key='key1',
-                    operator='Equal',
-                    value='value1',
-                    effect='NoExecute',
-                    toleration_seconds=10,
-                ),
+                key='key1',
+                operator='Equal',
+                value='value1',
+                effect='NoExecute',
+                toleration_seconds=10,
             )
 
         compiler.Compiler().compile(
@@ -104,19 +99,15 @@ class TestTolerations:
             task = comp()
             kubernetes.add_toleration(
                 task,
-                V1Toleration(
-                    key='key1',
-                    operator='Equal',
-                    value='value1',
-                ),
+                key='key1',
+                operator='Equal',
+                value='value1',
             )
             kubernetes.add_toleration(
                 task,
-                V1Toleration(
-                    key='key2',
-                    operator='Equal',
-                    value='value2',
-                ),
+                key='key2',
+                operator='Equal',
+                value='value2',
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
@@ -153,11 +144,9 @@ class TestTolerations:
                 task, secret_name='my-secret', mount_path='/mnt/my_vol')
             kubernetes.add_toleration(
                 task,
-                V1Toleration(
-                    key='key1',
-                    operator='Equal',
-                    value='value1',
-                ),
+                key='key1',
+                operator='Equal',
+                value='value1',
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {

@@ -27,17 +27,15 @@ def my_pipeline():
     task = comp()
     kubernetes.add_toleration(
         task,
-        V1Toleration(
-            key='key1',
-            operator='Equal',
-            value='value1',
-            effect='NoExecute',
-            toleration_seconds=10,
-        ),
+        key="key1",
+        operator="Equal",
+        value="value1",
+        effect="NoExecute",
+        toleration_seconds=10,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from kfp import compiler
 
-    compiler.Compiler().compile(my_pipeline, __file__.replace('.py', '.yaml'))
+    compiler.Compiler().compile(my_pipeline, __file__.replace(".py", ".yaml"))
