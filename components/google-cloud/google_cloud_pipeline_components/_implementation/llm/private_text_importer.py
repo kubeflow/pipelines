@@ -26,7 +26,7 @@ def _resolve_image(default: str = '') -> str:
 
 # pytype: disable=unsupported-operands
 @dsl.container_component
-def PrivateTextImporter(  # pylint: disable=invalid-name
+def private_text_importer(
     project: str,
     location: str,
     input_text: str,
@@ -91,4 +91,6 @@ def PrivateTextImporter(  # pylint: disable=invalid-name
       ),
       gcp_resources=gcp_resources,
   )
+
+
 # pytype: enable=unsupported-operands

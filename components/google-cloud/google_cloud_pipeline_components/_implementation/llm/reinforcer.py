@@ -19,7 +19,7 @@ import kfp
 
 
 @kfp.dsl.container_component
-def Reinforcer(  # pylint: disable=invalid-name
+def reinforcer(
     project: str,
     location: str,
     train_steps: int,

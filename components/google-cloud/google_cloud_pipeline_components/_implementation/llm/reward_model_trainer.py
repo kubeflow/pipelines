@@ -19,7 +19,7 @@ import kfp
 
 
 @kfp.dsl.container_component
-def RewardModelTrainer(  # pylint: disable=invalid-name
+def reward_model_trainer(
     project: str,
     location: str,
     train_steps: int,
