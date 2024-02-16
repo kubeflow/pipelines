@@ -23,7 +23,7 @@ from kfp import dsl
 # pytype: disable=unsupported-operands
 # pytype: disable=import-error
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def upload_llm_model(
+def refined_upload_llm_model(
     project: str,
     location: str,
     artifact_uri: dsl.Input[dsl.Artifact],

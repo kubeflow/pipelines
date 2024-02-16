@@ -20,7 +20,7 @@ import kfp
 
 
 @kfp.dsl.container_component
-def BulkInferrer(  # pylint: disable=invalid-name
+def bulk_inferrer(
     project: str,
     location: str,
     inputs_sequence_length: int,

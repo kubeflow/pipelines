@@ -22,7 +22,7 @@ from kfp import dsl
 # pytype: disable=invalid-annotation
 # pytype: disable=import-error
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def create_endpoint_and_deploy_model(
+def deploy_llm_model(
     project: str,
     location: str,
     model_resource_name: str,

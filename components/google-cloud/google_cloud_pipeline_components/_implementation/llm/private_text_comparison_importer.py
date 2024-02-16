@@ -19,7 +19,7 @@ import kfp
 
 
 @kfp.dsl.container_component
-def PrivateTextComparisonImporter(  # pylint: disable=invalid-name
+def private_text_comparison_importer(
     project: str,
     location: str,
     input_text: str,

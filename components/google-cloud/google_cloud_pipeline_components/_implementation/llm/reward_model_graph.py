@@ -93,7 +93,7 @@ def pipeline(
       function_based.convert_to_delimited_string(items=candidate_columns)
   )
   preference_dataset_importer = (
-      private_text_comparison_importer.PrivateTextComparisonImporter(
+      private_text_comparison_importer.private_text_comparison_importer(
           project=project,
           location=location,
           input_text=processed_preference_dataset.outputs[
@@ -124,7 +124,7 @@ def pipeline(
       ]
   ).set_display_name('Resolve Number of Microbatches')
   reward_model = (
-      reward_model_trainer.RewardModelTrainer(
+      reward_model_trainer.reward_model_trainer(
           project=project,
           location=location,
           input_model_path=reference_model_metadata.outputs[
