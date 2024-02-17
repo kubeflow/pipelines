@@ -102,7 +102,13 @@ def rlhf_pipeline(
   rl_model_pipeline = reinforcement_learning_graph.pipeline(
       prompt_dataset=prompt_dataset,
       input_reward_model_path=reward_model_pipeline.outputs[
-          'reward_model_output_path'
+          'reward_model_base_path'
+      ],
+      input_reward_adapter_path=reward_model_pipeline.outputs[
+          'reward_model_adapter_path'
+      ],
+      input_preference_dataset_path=reward_model_pipeline.outputs[
+          'reward_dataset_path'
       ],
       large_model_reference=large_model_reference,
       prompt_sequence_length=prompt_sequence_length,
@@ -111,6 +117,7 @@ def rlhf_pipeline(
       reinforcement_learning_train_steps=reinforcement_learning_train_steps,
       kl_coeff=kl_coeff,
       instruction=instruction,
+      reward_lora_dim=reward_model_pipeline.outputs['reward_lora_dim'],
       project=project,
       location=location,
       tensorboard_resource_id=tensorboard_resource_id,
@@ -124,7 +131,7 @@ def rlhf_pipeline(
       name='Perform Inference',
   ):
     has_model_checkpoint = function_based.value_exists(
-        value=rl_model_pipeline.outputs['output_model_path']
+        value=rl_model_pipeline.outputs['output_adapter_path']
     ).set_display_name('Resolve Model Checkpoint')
     with kfp.dsl.Condition(
         has_model_checkpoint.output == True,  # pylint: disable=singleton-comparison
@@ -134,7 +141,7 @@ def rlhf_pipeline(
           project=project,
           location=location,
           large_model_reference=large_model_reference,
-          model_checkpoint=rl_model_pipeline.outputs['output_model_path'],
+          model_checkpoint=rl_model_pipeline.outputs['output_adapter_path'],
           prompt_dataset=eval_dataset,
           prompt_sequence_length=prompt_sequence_length,
           target_sequence_length=target_sequence_length,
