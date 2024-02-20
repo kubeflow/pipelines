@@ -33,7 +33,9 @@ def reinforcer(
     targets_sequence_length: int,
     input_reference_model_path: str,
     input_reward_model_path: str,
+    input_reward_adapter_path: str,
     input_dataset_path: str,
+    input_preference_dataset_path: str,
     output_model_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     output_adapter_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     tensorboard_metrics: kfp.dsl.Output[kfp.dsl.Artifact],  # pytype: disable=unsupported-operands
@@ -43,6 +45,7 @@ def reinforcer(
     learning_rate_multiplier: float = 1.0,
     kl_coeff: float = 0.1,
     lora_dim: int = 0,
+    reward_lora_dim: int = 4,
     num_microbatches: int = 0,
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Trains a model using reinforcement learning.
@@ -53,7 +56,9 @@ def reinforcer(
     input_reference_model_path: Path to the base model to fine tune.
     input_reward_model_path: Path to the reward model to use during
       reinforcement learning.
+    input_reward_adapter_path: Path to the reward model's LoRA adapter.
     input_dataset_path: Path to training dataset.
+    input_preference_dataset_path: Path to preference dataset.
     train_steps: Number of training steps. These are the number of steps on top
       of any steps used to train the base model.
     targets_length: Maximum decoder steps. Outputs will be at most this length.
@@ -74,6 +79,8 @@ def reinforcer(
       the reference LM is not loaded into memory.
     lora_dim: The rank of the LoRA adapter. If >0, then use LoRA-tuning. If =0,
       then use full-tuning.
+    reward_lora_dim: The rank of the Reward model LoRA adapter. Full tuning is
+      not support for the reward model. Default is 4.
     learning_rate_multiplier: Constant multiplied by the base learning rate used
       to adjust the learning rate during reinforcement learning.
     num_microbatches: Number of microbatches to break the total batch size into
@@ -100,7 +107,9 @@ def reinforcer(
           args=[
               f'--input_reference_model_path={input_reference_model_path}',
               f'--input_reward_model_path={input_reward_model_path}',
+              f'--input_reward_adapter_path={input_reward_adapter_path}',
               f'--input_dataset_path={input_dataset_path}',
+              f'--input_preference_dataset_path={input_preference_dataset_path}',
               f'--train_steps={train_steps}',
               f'--output_model_path={output_model_path}',
               f'--output_adapter_path={output_adapter_path}',
@@ -114,6 +123,7 @@ def reinforcer(
               f'--learning_rate_multiplier={learning_rate_multiplier}',
               f'--kl_coeff={kl_coeff}',
               f'--lora_dim={lora_dim}',
+              f'--reward_lora_dim={reward_lora_dim}',
               f'--num_microbatches={num_microbatches}',
           ],
       ),
