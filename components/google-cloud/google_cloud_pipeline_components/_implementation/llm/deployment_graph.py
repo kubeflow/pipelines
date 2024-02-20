@@ -79,7 +79,7 @@ def pipeline(
           'large_model_reference'
       ]
   ).set_display_name('Resolve Upload Model')
-  upload_task = upload_llm_model.upload_llm_model(
+  upload_task = upload_llm_model.refined_upload_llm_model(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
       location=upload_location,
       regional_endpoint=regional_endpoint.output,
@@ -95,7 +95,7 @@ def pipeline(
           'large_model_reference'
       ],
   ).set_display_name('Resolve Deploy Model')
-  deploy_task = deploy_llm_model.create_endpoint_and_deploy_model(
+  deploy_task = deploy_llm_model.deploy_llm_model(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
       location=upload_location,
       model_resource_name=upload_task.outputs['model_resource_name'],
