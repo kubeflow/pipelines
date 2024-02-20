@@ -127,7 +127,7 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
                 Python variable name.
             name_code: A unique code used to identify these loop arguments.
                 Should match the code for the ParallelFor ops_group which created
-                these LoopArguments. This prevents parameter name collisions.
+                these LoopParameterArguments. This prevents parameter name collisions.
             name_override: The override name for PipelineParameterChannel.
             **kwargs: Any other keyword arguments passed down to PipelineParameterChannel.
         """
@@ -169,7 +169,7 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
 
     def __getattr__(self, name: str):
         # this is being overridden so that we can access subvariables of the
-        # LoopArgument (i.e.: item.a) without knowing the subvariable names ahead
+        # LoopParameterArgument (i.e.: item.a) without knowing the subvariable names ahead
         # of time.
 
         return self._referenced_subvars.setdefault(
@@ -191,7 +191,8 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         compilation progress in cases of unknown or missing type
         information.
         """
-        if not isinstance(channel, for_loop.LoopArgumentVariable):
+        # TODO: if is LoopArgumentVariable, check if nested items are lists
+        if not isinstance(channel, LoopArgumentVariable):
             type_name = type_annotations.get_short_type_name(
                 channel.channel_type)
             parameter_type = type_utils.PARAMETER_TYPES_MAPPING[
@@ -309,7 +310,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
     Then there's one LoopArgumentVariable for 'a' and another for 'b'.
 
     Attributes:
-        loop_argument: The original LoopArgument object this subvariable is
+        loop_argument: The original LoopParameterArgument object this subvariable is
           attached to.
         subvar_name: The subvariable name.
     """
@@ -339,7 +340,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
 
         self.subvar_name = subvar_name
         self.loop_argument = loop_argument
-        # Handle potential channel_type extraction errors from LoopArgument by defaulting to 'String'. This maintains compilation progress.
+        # Handle potential channel_type extraction errors from LoopParameterArgument by defaulting to 'String'. This maintains compilation progress.
         super().__init__(
             name=self._get_name_override(
                 loop_arg_name=loop_argument.name,
