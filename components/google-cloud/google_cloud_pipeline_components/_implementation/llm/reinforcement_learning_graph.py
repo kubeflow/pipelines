@@ -38,10 +38,13 @@ PipelineOutput = NamedTuple(
 def pipeline(
     prompt_dataset: str,
     input_reward_model_path: str,
+    input_reward_adapter_path: str,
+    input_preference_dataset_path: str,
     large_model_reference: str,
     prompt_sequence_length: int = 512,
     target_sequence_length: int = 64,
     lora_dim: int = 1,
+    reward_lora_dim: int = 4,
     batch_size: int = 64,
     reinforcement_learning_rate_multiplier: float = 1.0,
     reinforcement_learning_train_steps: int = 1000,
@@ -56,11 +59,13 @@ def pipeline(
 
   Args:
     prompt_dataset: Cloud storage path to an unlabled JSONL dataset that contains prompts. Text datasets must contain an `input_text` field that contains the prompt. Chat datasets must contain at least 1 message in a `messages` field. Each message must be valid JSON that contains `author` and `content` fields, where valid `author` values are `user` and `assistant` and `content` must be non-empty. Each row may contain multiple messages, but the first and last author must be the `user`. An optional `context` field may be provided for each example in a chat dataset. If provided, the `context` will preprended to the message `content`. The `instruction` serves as the default context. (Useful if most messages use the same system-level context.) Any context provided in the example will override the default value.
-    input_reward_model_path: Path to the reward model to use during reinforcement learning.
+    input_reward_adapter_path: Path to the reward LoRA adapter to use during reinforcement learning.
+    input_preference_dataset_path: Path to preference dataset used by the reward model.
     large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
     prompt_sequence_length: Maximum tokenized sequence length for input text. Higher values increase memory overhead. This value should be at most 8192. Default value is 512.
     target_sequence_length: Maximum tokenized sequence length for target text. Higher values increase memory overhead. This value should be at most 1024. Default value is 64.
     lora_dim: The rank of the LoRA adapter. If >0, then use LoRA-tuning. If =0, then use full-tuning. Default is 1.
+    reward_lora_dim: The rank of the reward LoRA adapter. Full tuning is not support for the reward model. Default is 4.
     batch_size: Number of examples in each finetuning step. Default is 64.
     reinforcement_learning_rate_multiplier: Constant used to adjust the base learning rate used during reinforcement learning. Multiply by a number > 1 to increase the magnitude of updates applied at each training step or multiply by a number < 1 to decrease the magnitude of updates. Default value is 1.0.
     reinforcement_learning_train_steps: Number of reinforcement learning steps to perform when tuning a base model. Default value is 1000.
@@ -130,9 +135,11 @@ def pipeline(
               'reference_model_path'
           ],
           input_reward_model_path=input_reward_model_path,
+          input_reward_adapter_path=input_reward_adapter_path,
           input_dataset_path=prompt_dataset_importer.outputs[
               'imported_data_path'
           ],
+          input_preference_dataset_path=input_preference_dataset_path,
           train_steps=reinforcement_learning_train_steps,
           accelerator_type=machine_spec.outputs['accelerator_type'],
           accelerator_count=machine_spec.outputs['accelerator_count'],
@@ -150,6 +157,7 @@ def pipeline(
           learning_rate_multiplier=reinforcement_learning_rate_multiplier,
           kl_coeff=kl_coeff,
           lora_dim=lora_dim,
+          reward_lora_dim=reward_lora_dim,
           num_microbatches=num_microbatches.output,
       )
       .set_display_name('Reinforcer')
