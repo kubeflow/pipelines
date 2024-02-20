@@ -2,6 +2,7 @@
 * Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.
 * Fix the metadata of Model Evaluation resource when row based metrics is disabled in `preview.model_evaluation.evaluation_llm_text_generation_pipeline`.
 * Support `Jinja2>=3.1.2,<4`.
+* Bump supported KFP versions to `kfp>=2.6.0,<=2.7.0`.
 
 ## Release 2.9.0
 * Use `large_model_reference` for `model_reference_name` when uploading models from `preview.llm.rlhf_pipeline` instead of hardcoding value as `text-bison@001`.
