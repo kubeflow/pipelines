@@ -841,29 +841,17 @@ implementation:
                 with dsl.ParallelFor(items=single_param.output) as item:
                     str_identity(s=item)
 
-    def test_compile_parallel_for_with_single_artifact(self):
-
-        @dsl.component
-        def print_artifact_name(artifact: Artifact) -> str:
-            print(artifact.name)
-            return artifact.name
-
-        @dsl.component
-        def make_artifact(data: str) -> Artifact:
-            artifact = Artifact(uri=dsl.get_uri(), metadata={'length': len(data)})
-            with open(artifact.path, 'w') as f:
-                f.write(data)
-            return artifact
+    def test_cannot_compile_parallel_for_with_single_artifact(self):
 
         with self.assertRaisesRegex(
                 ValueError,
                 r'Cannot iterate over a single Artifact using `dsl\.ParallelFor`\. Expected a list of Artifacts as argument to `items`\.'
         ):
-            @dsl.pipeline(name='test-parallelfor-with-single-artifact')
+            @dsl.pipeline
             def my_pipeline():
-                single_artifact = make_artifact(data='string')
-                with dsl.ParallelFor(items=single_artifact.output) as item:
-                    print_artifact_name(artifact=item)
+                single_artifact_task = print_and_return_as_artifact(text='string')
+                with dsl.ParallelFor(items=single_artifact_task.output) as item:
+                    print_artifact(a=item)
 
     
     def test_pipeline_in_pipeline(self):
