@@ -199,7 +199,7 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
                 type_name.lower()]
             if parameter_type != type_utils.LIST:
                 raise ValueError(
-                    'Cannot iterate over a single parameter using `dsl.ParallelFor`. Expected a list of Parameters as argument to `items`.'
+                    'Cannot iterate over a single parameter using `dsl.ParallelFor`. Expected a list of parameters as argument to `items`.'
                 )
         return LoopParameterArgument(
             items=channel,
