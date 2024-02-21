@@ -16,7 +16,6 @@
 import re
 from typing import Any, Dict, List, Optional, Union
 
-from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
@@ -191,7 +190,8 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         compilation progress in cases of unknown or missing type
         information.
         """
-        # TODO: if is LoopArgumentVariable, check if nested items are lists
+        # if channel is a LoopArgumentVariable, current system cannot check if
+        # nested items are lists.
         if not isinstance(channel, LoopArgumentVariable):
             type_name = type_annotations.get_short_type_name(
                 channel.channel_type)
@@ -199,7 +199,7 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
                 type_name.lower()]
             if parameter_type != type_utils.LIST:
                 raise ValueError(
-                    'Cannot iterate over a single Parameter using `dsl.ParallelFor`. Expected a list of Parameters as argument to `items`.'
+                    'Cannot iterate over a single parameter using `dsl.ParallelFor`. Expected a list of Parameters as argument to `items`.'
                 )
         return LoopParameterArgument(
             items=channel,
