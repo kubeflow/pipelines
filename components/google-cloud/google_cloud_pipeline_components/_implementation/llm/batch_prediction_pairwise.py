@@ -50,6 +50,7 @@ def batch_prediction_pairwise(
     model_a_parameters: Dict[str, str] = {},
     model_b_parameters: Dict[str, str] = {},
     human_preference_column: str = '',
+    experimental_args: Dict[str, Any] = {},
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Runs up to two LLM Batch Prediction jobs side-by-side.
 
@@ -81,6 +82,7 @@ def batch_prediction_pairwise(
       such as temperature or maximum output tokens.
     human_preference_column: The column containing ground truths. The default
       value is an empty string if not be provided by users.
+    experimental_args: Experimentally released arguments. Subject to change.
 
   Returns:
     preprocessed_evaluation_dataset: Dataset of the table containing the inputs
@@ -136,6 +138,10 @@ def batch_prediction_pairwise(
               (
                   '--model_b_parameters='
                   "{{$.inputs.parameters['model_b_parameters'].json_escape[0]}}"
+              ),
+              (
+                  '--experimental_args='
+                  "{{$.inputs.parameters['experimental_args'].json_escape[0]}}"
               ),
               f'--human_preference_column={human_preference_column}',
               f'--staging_dir={dsl.PIPELINE_ROOT_PLACEHOLDER}',
