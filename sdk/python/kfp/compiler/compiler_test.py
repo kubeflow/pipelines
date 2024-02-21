@@ -825,7 +825,7 @@ implementation:
         with self.assertRaises(KeyError):
             for_loop_4['iteratorPolicy']
 
-    def test_compile_parallel_for_with_single_param(self):
+    def test_cannot_compile_parallel_for_with_single_param(self):
 
         @dsl.component
         def str_identity(s: str) -> str:
