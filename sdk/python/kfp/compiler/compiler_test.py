@@ -829,7 +829,7 @@ implementation:
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Cannot iterate over a single Parameter using `dsl\.ParallelFor`\. Expected a list of Parameters as argument to `items`\.'
+                r'Cannot iterate over a single parameter using `dsl\.ParallelFor`\. Expected a list of parameters as argument to `items`\.'
         ):
 
             @dsl.pipeline
