@@ -836,7 +836,7 @@ implementation:
                 r'Cannot iterate over a single Parameter using `dsl\.ParallelFor`\. Expected a list of Parameters as argument to `items`\.'
         ):
 
-            @dsl.pipeline(name='test-parallelfor-with-single-param')
+            @dsl.pipeline
             def my_pipeline():
                 single_param = str_identity(s='string')
                 with dsl.ParallelFor(items=single_param.output) as item:
