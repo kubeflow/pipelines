@@ -40,19 +40,22 @@ message Section {
 }
 
 message Input {
+  // The name of the input.
+  // Corresponds to parameter/artifact name in ComponentSpec.input_definitions (https://github.com/kubeflow/pipelines/blob/066f229e27dc2ac8a58a03d7745d5471d718157c/api/v2alpha1/pipeline_spec.proto#L353-L357).
+  string name = 1;
   // The display name for the input. Typically a human-readable version of the
   // input parameter name.
-  string display_name = 1;
+  string display_name = 2;
   // The description of the input.
-  string description = 2;
+  string description = 3;
   // The explanation of the default value for the input. Tells the user why we
   // selected this default.
-  string default_explanation = 3;
+  string default_explanation = 4;
   // The string the user sees if they are unsure how to select a parameter.
-  string help_text = 4;
+  string help_text = 5;
   // Detailed information about what types of values are supported for input
   // type specified in PipelineSpec.
-  SemanticType semantic_type = 5;
+  SemanticType semantic_type = 6;
 }
 
 message SemanticType {
