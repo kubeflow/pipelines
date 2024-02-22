@@ -512,6 +512,28 @@ func extendPodSpecPatch(
 		podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
 	}
 
+	if tolerations := kubernetesExecutorConfig.GetTolerations(); tolerations != nil {
+		var k8sTolerations []k8score.Toleration
+
+		glog.Infof("Tolerations passed: %+v", tolerations)
+
+		for _, toleration := range tolerations {
+			if toleration != nil {
+				k8sToleration := k8score.Toleration{
+					Key:               toleration.Key,
+					Operator:          k8score.TolerationOperator(toleration.Operator),
+					Value:             toleration.Value,
+					Effect:            k8score.TaintEffect(toleration.Effect),
+					TolerationSeconds: toleration.TolerationSeconds,
+				}
+
+				k8sTolerations = append(k8sTolerations, k8sToleration)
+			}
+		}
+
+		podSpec.Tolerations = k8sTolerations
+	}
+
 	// Get secret mount information
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
 		secretVolume := k8score.Volume{
