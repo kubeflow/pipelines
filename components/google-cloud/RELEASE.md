@@ -1,4 +1,5 @@
 ## Upcoming release
+* Add `v1.automl.forecasting.learn_to_learn_forecasting_pipeline`, `v1.automl.forecasting.sequence_to_sequence_forecasting_pipeline`, `v1.automl.forecasting.temporal_fusion_transformer_forecasting_pipeline`, `v1.automl.forecasting.time_series_dense_encoder_forecasting_pipeline` as Forecasting on Pipelines moves to GA.
 
 ## Release 2.10.0
 * Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.
