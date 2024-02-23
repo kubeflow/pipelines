@@ -53,6 +53,7 @@ def pipeline(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     tensorboard_resource_id: Optional[str] = None,
+    encryption_spec_key_name: str = '',
 ) -> PipelineOutput:
   # fmt: off
   """Trains a reward model.
@@ -74,6 +75,7 @@ def pipeline(
     project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
     location: Location used to run custom jobs. If not specified the location used to run the pipeline will be used.
     tensorboard_resource_id: Optional tensorboard resource id in format `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`. If provided, tensorboard metrics will be uploaded to this location.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
 
   Returns:
     output_model_path: Path to the trained model checkpoint.
@@ -90,7 +92,7 @@ def pipeline(
   ).set_display_name('Resolve Model Metadata')
 
   prompt_dataset_image_uri = function_based.resolve_private_image_uri(
-      image_name='text_importer'
+      image_name='text_importer',
   ).set_display_name('Resolve Prompt Dataset Image URI')
 
   processed_dataset = preprocess_chat_dataset.preprocess_chat_dataset(
@@ -113,6 +115,7 @@ def pipeline(
           ],
           image_uri=prompt_dataset_image_uri.output,
           instruction=instruction,
+          encryption_spec_key_name=encryption_spec_key_name,
       )
       .set_display_name('Import Prompt Dataset')
       .set_caching_options(False)
@@ -159,6 +162,7 @@ def pipeline(
           lora_dim=lora_dim,
           reward_lora_dim=reward_lora_dim,
           num_microbatches=num_microbatches.output,
+          encryption_spec_key_name=encryption_spec_key_name,
       )
       .set_display_name('Reinforcer')
       .set_caching_options(False)

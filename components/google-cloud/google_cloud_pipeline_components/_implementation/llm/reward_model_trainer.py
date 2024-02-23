@@ -40,6 +40,7 @@ def reward_model_trainer(
     learning_rate_multiplier: float = 1.0,
     lora_dim: int = 4,
     num_microbatches: int = 0,
+    encryption_spec_key_name: str = '',
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Trains a reward model.
 
@@ -68,6 +69,10 @@ def reward_model_trainer(
     num_microbatches: Number of microbatches to break the total batch size into
       during training. If <= 1, the model is trained on the full batch size
       directly.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set,
+      then all resources created by the CustomJob will be encrypted with the
+      provided encryption key. Note that this is not supported for TPU at the
+      moment.
 
   Returns:
     output_adapter_path: Trained reward LoRA adapter.
@@ -99,6 +104,7 @@ def reward_model_trainer(
               f'--lora_dim={lora_dim}',
               f'--num_microbatches={num_microbatches}',
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
   )

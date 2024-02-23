@@ -47,6 +47,7 @@ def reinforcer(
     lora_dim: int = 0,
     reward_lora_dim: int = 4,
     num_microbatches: int = 0,
+    encryption_spec_key_name: str = '',
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Trains a model using reinforcement learning.
 
@@ -86,6 +87,10 @@ def reinforcer(
     num_microbatches: Number of microbatches to break the total batch size into
       during training. If <= 1, the model is trained on the full batch size
       directly.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set,
+      then all resources created by the CustomJob will be encrypted with the
+      provided encryption key. Note that this is not supported for TPU at the
+      moment.
 
   Returns:
     output_model_path: Path to the trained model checkpoint.
@@ -126,6 +131,7 @@ def reinforcer(
               f'--reward_lora_dim={reward_lora_dim}',
               f'--num_microbatches={num_microbatches}',
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
   )
