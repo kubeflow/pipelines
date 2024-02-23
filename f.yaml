@@ -1,0 +1,86 @@
+# PIPELINE DEFINITION
+# Name: genai-eval-component-prototype
+# Inputs:
+#    string: str
+# Outputs:
+#    Output: str
+components:
+  comp-genai-eval-component-prototype:
+    executorLabel: exec-genai-eval-component-prototype
+    inputDefinitions:
+      parameters:
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-genai-eval-component-prototype:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - genai_eval_component_prototype
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef genai_eval_component_prototype(string: str) -> str:\n    import\
+          \ subprocess\n    try:\n        subprocess.check_call([\n            \"\
+          pip\",\n            \"install\",\n            \"--upgrade\",\n         \
+          \   \"--force-reinstall\",\n            \"/gcs/vertex_eval_sdk_private_releases/rapid_genai_evaluation/google_cloud_aiplatform-1.42.dev20240208+rapid.genai.evaluation-py2.py3-none-any.whl\"\
+          ,\n            \"--no-warn-conflicts\",\n        ])\n    except subprocess.CalledProcessError\
+          \ as e:\n        print(f\"Error: {e}\")\n\n    from google.cloud.aiplatform.private_preview.rapid_genai_evaluation.evaluate\
+          \ import evaluate\n    import vertexai\n    from google.cloud import aiplatform\n\
+          \n    return string\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: genai-eval-component-prototype
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: genai-eval-component-prototype
+    tasks:
+      genai-eval-component-prototype:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-genai-eval-component-prototype
+        inputs:
+          parameters:
+            string:
+              componentInputParameter: string
+        taskInfo:
+          name: genai-eval-component-prototype
+  inputDefinitions:
+    parameters:
+      string:
+        parameterType: STRING
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
