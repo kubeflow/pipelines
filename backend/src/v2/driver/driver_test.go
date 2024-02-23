@@ -788,3 +788,87 @@ func Test_extendPodSpecPatch_ImagePullSecrets(t *testing.T) {
 		})
 	}
 }
+
+func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - toleration",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				Tolerations: []*kubernetesplatform.Toleration{
+					{
+						Key:      "key1",
+						Operator: "Equal",
+						Value:    "value1",
+						Effect:   "NoSchedule",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Tolerations: []k8score.Toleration{
+					{
+						Key:               "key1",
+						Operator:          "Equal",
+						Value:             "value1",
+						Effect:            "NoSchedule",
+						TolerationSeconds: nil,
+					},
+				},
+			},
+		},
+		{
+			"Valid - no tolerations",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+		{
+			"Valid - only pass operator",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				Tolerations: []*kubernetesplatform.Toleration{
+					{
+						Operator: "Contains",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Tolerations: []k8score.Toleration{
+					{
+						Operator: "Contains",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+			err := extendPodSpecPatch(got, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}

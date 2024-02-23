@@ -48,8 +48,7 @@ def model_evaluation_text_generation_pairwise(
   """
   return gcpc_utils.build_serverless_customjob_container_spec(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
-      # Hardcode location to us-central1 for text-bison availability.
-      location='us-central1',
+      location=_placeholders.LOCATION_PLACEHOLDER,
       custom_job_payload=utils.build_payload(
           display_name='model_evaluation_text_generation_pairwise',
           machine_type='n1-standard-4',

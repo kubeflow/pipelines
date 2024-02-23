@@ -34,6 +34,7 @@ def _get_prediction_endpoint_overrides() -> str:
   return os.environ.get('PREDICTION_ENDPOINT_OVERRIDES', '')
 
 
+# pylint: disable=unused-argument,dangerous-default-value
 @dsl.container_component
 def online_evaluation_pairwise(
     inference_output_uri: str,
@@ -74,8 +75,7 @@ def online_evaluation_pairwise(
   """
   return gcpc_utils.build_serverless_customjob_container_spec(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
-      # Hardcode location to us-central1 for text-bison availability.
-      location='us-central1',
+      location=_placeholders.LOCATION_PLACEHOLDER,
       custom_job_payload=utils.build_payload(
           display_name='online_evaluation_pairwise',
           machine_type='n1-standard-4',

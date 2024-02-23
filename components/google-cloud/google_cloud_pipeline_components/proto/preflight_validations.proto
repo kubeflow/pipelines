@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package preflight_validations;
+
+option java_multiple_files = true;
+
+// Describes the details of a validation item.
+message ValidationItem {
+  // Required. Metadata of the validation item.
+  oneof metadata {  // Using 'oneof' for specialized metadata
+    // Metadata for Google Cloud Service Account.
+    GoogleCloudServiceAccountMetadata sa_metadata = 2;
+    // Metadata for Google Cloud Project Quota.
+    GoogleCloudProjectQuotaMetadata quota_metadata = 3;
+    // Metadata for Google Cloud Api Enablement.
+    GoogleCloudApiEnablementMetadata api_metadata = 4;
+  }
+}
+
+// Describes the metadata of validation type of GOOGLE_CLOUD_PROJECT_QUOTA.
+message GoogleCloudProjectQuotaMetadata {
+  // Required. Service name of the quota. Example: "compute.googleapis.com"
+  string service_name = 1;
+  // Required. The map of quota metrics name to its recommended value.
+  // Example: {"CPUs": 440}
+  map<string, int64> metrics_recommendations = 2;
+}
+
+// Describes the metadata of
+// GOOGLE_CLOUD_SERVICE_ACCOUNT_PERMISSION.
+message GoogleCloudServiceAccountMetadata {
+  // Required. Principal name of the service account.
+  string principal_name = 1;
+  // Required. Permissions that the service account should have.
+  // Example: "aiplatform.metadataStores.get"
+  repeated string permissions = 2;
+}
+
+// Describes the metadata of validation type of GOOGLE_CLOUD_API_ENABLEMENT.
+message GoogleCloudApiEnablementMetadata {
+  // Required. Service names of Google Cloud Api.
+  repeated string service_names = 1;
+}
