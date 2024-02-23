@@ -33,6 +33,7 @@ def private_text_comparison_importer(
     gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     machine_type: str = 'e2-highmem-8',
     instruction: str = '',
+    encryption_spec_key_name: str = '',
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Import a text dataset.
 
@@ -54,6 +55,10 @@ def private_text_comparison_importer(
     instruction: Optional instruction to prepend to inputs field.
     image_uri: Location of the text comparison importer image.
     dataflow_worker_image_uri: Location of the Dataflow worker image.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set,
+      then all resources created by the CustomJob will be encrypted with the
+      provided encryption key. Note that this is not supported for TPU at the
+      moment.
 
   Returns:
     output_dataset_path: Path to cached SeqIO task created from input dataset.
@@ -81,6 +86,7 @@ def private_text_comparison_importer(
                   f'{kfp.dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
               ),
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
   )

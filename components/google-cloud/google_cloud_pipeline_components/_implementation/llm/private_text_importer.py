@@ -41,6 +41,7 @@ def private_text_importer(
     machine_type: str = 'e2-highmem-8',
     output_split_name: str = 'all',
     max_num_input_examples: Optional[int] = None,
+    encryption_spec_key_name: str = '',
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Import a text dataset.
 
@@ -59,6 +60,10 @@ def private_text_importer(
     output_split_name: The created seqio task has 1 split, its name is specified
       by this argument.
     max_num_input_examples: Maximum number of examples to import.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set,
+      then all resources created by the CustomJob will be encrypted with the
+      provided encryption key. Note that this is not supported for TPU at the
+      moment.
 
   Returns:
     imported_data: Artifact representing the imported data and cached Tasks.
@@ -88,6 +93,7 @@ def private_text_importer(
               f'--max_num_input_examples={max_num_input_examples}',
               '--executor_input={{$.json_escape[1]}}',
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
   )
