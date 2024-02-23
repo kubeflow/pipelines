@@ -27,8 +27,9 @@ require (
 	github.com/jackc/pgx/v5 v5.4.2
 	github.com/jinzhu/gorm v1.9.1
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/kubeflow/pipelines/api v0.0.0-20231027040853-58ce09e07d03
-	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240207171236-f51dc39614e4
+	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/kubeflow/pipelines/api v0.0.0-20230331215358-758c91f76784
+	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240216222951-e129b0501379
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.14.16
@@ -108,7 +109,6 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jcmturner/gofork v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
