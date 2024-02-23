@@ -48,11 +48,18 @@ def resolve_machine_spec(
   tpu_regions = {'europe-west4'}
   gpu_regions = {'us-central1'}
   if use_test_spec:
-    return outputs(
-        machine_type='a2-highgpu-1g',
-        accelerator_type='NVIDIA_TESLA_A100',
-        accelerator_count=1,
-    )
+    if location in tpu_regions:
+      return outputs(
+          machine_type='cloud-tpu',
+          accelerator_type='TPU_V3',
+          accelerator_count=32,
+      )
+    else:
+      return outputs(
+          machine_type='a2-highgpu-1g',
+          accelerator_type='NVIDIA_TESLA_A100',
+          accelerator_count=1,
+      )
   elif location in tpu_regions:
     return outputs(
         machine_type='cloud-tpu',
