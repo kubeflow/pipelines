@@ -544,6 +544,39 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Get config map mount information
+	for _, configMapAsVolume := range kubernetesExecutorConfig.GetConfigMapAsVolume() {
+		configMapVolume := k8score.Volume{
+			Name: configMapAsVolume.GetConfigMapName(),
+			VolumeSource: k8score.VolumeSource{
+				ConfigMap: &k8score.ConfigMapVolumeSource{
+					LocalObjectReference: k8score.LocalObjectReference{Name: configMapAsVolume.GetConfigMapName()}},
+			},
+		}
+		configMapVolumeMount := k8score.VolumeMount{
+			Name:      configMapAsVolume.GetConfigMapName(),
+			MountPath: configMapAsVolume.GetMountPath(),
+		}
+		podSpec.Volumes = append(podSpec.Volumes, configMapVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, configMapVolumeMount)
+	}
+
+	// Get config map env information
+	for _, configMapAsEnv := range kubernetesExecutorConfig.GetConfigMapAsEnv() {
+		for _, keyToEnv := range configMapAsEnv.GetKeyToEnv() {
+			configMapEnvVar := k8score.EnvVar{
+				Name: keyToEnv.GetEnvVar(),
+				ValueFrom: &k8score.EnvVarSource{
+					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+						Key: keyToEnv.GetConfigMapKey(),
+					},
+				},
+			}
+			configMapEnvVar.ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name = configMapAsEnv.GetConfigMapName()
+			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, configMapEnvVar)
+		}
+	}
+
 	// Get image pull secret information
 	for _, imagePullSecret := range kubernetesExecutorConfig.GetImagePullSecret() {
 		podSpec.ImagePullSecrets = append(podSpec.ImagePullSecrets, k8score.LocalObjectReference{Name: imagePullSecret.GetSecretName()})

@@ -35,6 +35,8 @@ from kfp.kubernetes.config_map import use_config_map_as_volume
 from kfp.kubernetes.field import use_field_path_as_env
 from kfp.kubernetes.image import set_image_pull_policy
 from kfp.kubernetes.image import set_image_pull_secrets
+from kfp.kubernetes.config_map import use_config_map_as_volume
+from kfp.kubernetes.config_map import use_config_map_as_env
 from kfp.kubernetes.node_selector import add_node_selector
 from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
