@@ -22,6 +22,7 @@ __all__ = [
     'CreatePVC',
     'DeletePVC',
     'mount_pvc',
+    'set_image_pull_policy',
     'set_image_pull_secrets',
     'use_config_map_as_env',
     'use_config_map_as_volume',
@@ -29,6 +30,7 @@ __all__ = [
     'use_secret_as_volume',
 ]
 
+from kfp.kubernetes.image import set_image_pull_policy
 from kfp.kubernetes.image import set_image_pull_secrets
 from kfp.kubernetes.config_map import use_config_map_as_volume
 from kfp.kubernetes.config_map import use_config_map_as_env

@@ -46,3 +46,24 @@ def set_image_pull_secrets(
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
     return task
+
+
+def set_image_pull_policy(task: PipelineTask, policy: str) -> PipelineTask:
+    """Set image pull policy for the container.
+
+    Args:
+        task: Pipeline task.
+        policy: One of `Always`, `Never`, `IfNotPresent`.
+
+    Returns:
+        Task object with an added ImagePullPolicy specification.
+    """
+    if policy not in ['Always', 'Never', 'IfNotPresent']:
+        raise ValueError(
+            'Invalid imagePullPolicy. Must be one of `Always`, `Never`, `IfNotPresent`.'
+        )
+    msg = common.get_existing_kubernetes_config_as_message(task)
+    msg.image_pull_policy = policy
+    task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
+
+    return task

@@ -4,6 +4,7 @@ The `kfp-kubernetes` Python library enables authoring [Kubeflow pipelines](https
 
 * [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
 * [PersistentVolumeClaims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims)
+* [ImagePullPolicy](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
 
 See the [`kfp-kubernetes` reference documentation](https://kfp-kubernetes.readthedocs.io/).
 
@@ -165,4 +166,18 @@ def my_pipeline():
         annotation_key='run_id',
         annotation_value='123456',
     )
+```
+### ImagePullPolicy: One of "Always" "Never", "IfNotPresent".
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def simple_task():
+    print("hello-world")
+
+@dsl.pipeline
+def pipeline():
+    task = simple_task()
+    kubernetes.set_image_pull_policy(task, "Always")
 ```
