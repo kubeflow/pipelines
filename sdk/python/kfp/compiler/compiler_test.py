@@ -2381,6 +2381,34 @@ class TestYamlComments(unittest.TestCase):
         # test reloaded comments
         self.assertIn(predicted_comment, reloaded_yaml_content)
 
+    def test_comment_with_newline_chars(self):
+
+        @dsl.component
+        def foo(
+            n: str = '\n',
+            r: str = '\r',
+            t: str = '\t',
+        ):
+            pass
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=foo,
+                package_path=pipeline_spec_path,
+            )
+
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+        expected_comment = textwrap.dedent("""\
+            # PIPELINE DEFINITION
+            # Name: foo
+            # Inputs:
+            #    n: str [Default: '\\n']
+            #    r: str [Default: '\\r']
+            #    t: str [Default: '\\t']""")
+        self.assertTrue(reloaded_yaml_content.startswith(expected_comment))
+
 
 class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
 
