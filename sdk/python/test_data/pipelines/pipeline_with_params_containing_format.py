@@ -24,19 +24,27 @@ def print_op(text: str) -> str:
 
 
 @component
-def print_op2(text1: str, text2: str) -> str:
-    print(text1 + text2)
-    return text1 + text2
+def print_list(l: list):
+    print(l)
+
+
+@component
+def print_dict(d: dict):
+    print(d)
 
 
 @dsl.pipeline(name='pipeline-with-pipelineparam-containing-format')
 def my_pipeline(name: str = 'KFP'):
     print_task = print_op(text=f'Hello {name}')
     print_op(text=f'{print_task.output}, again.')
+    print_list(l=[f'Hello {name}'])
+    print_dict(d={f'Hello {name}': f'How are you, {name}?'})
 
-    new_value = f' and {name}.'
-    with dsl.ParallelFor(['1', '2']) as item:
-        print_op2(text1=item, text2=new_value)
+    with dsl.ParallelFor(['Hi', 'Howdy']) as greeting:
+        new_value = f'{greeting}, {name}'
+        print_op(text=new_value)
+        print_list(l=[f'Hello {name}'])
+        print_dict(d={f'Hello {name}': f'How are you, {name}?'})
 
 
 if __name__ == '__main__':
