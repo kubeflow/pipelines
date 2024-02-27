@@ -17,6 +17,8 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from kfp.dsl import pipeline_channel
+from kfp.dsl.types import type_annotations
+from kfp.dsl.types import type_utils
 
 ItemList = List[Union[int, float, str, Dict[str, Any]]]
 
@@ -124,7 +126,7 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
                 Python variable name.
             name_code: A unique code used to identify these loop arguments.
                 Should match the code for the ParallelFor ops_group which created
-                these LoopArguments. This prevents parameter name collisions.
+                these LoopParameterArguments. This prevents parameter name collisions.
             name_override: The override name for PipelineParameterChannel.
             **kwargs: Any other keyword arguments passed down to PipelineParameterChannel.
         """
@@ -166,7 +168,7 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
 
     def __getattr__(self, name: str):
         # this is being overridden so that we can access subvariables of the
-        # LoopArgument (i.e.: item.a) without knowing the subvariable names ahead
+        # LoopParameterArgument (i.e.: item.a) without knowing the subvariable names ahead
         # of time.
 
         return self._referenced_subvars.setdefault(
@@ -188,6 +190,17 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         compilation progress in cases of unknown or missing type
         information.
         """
+        # if channel is a LoopArgumentVariable, current system cannot check if
+        # nested items are lists.
+        if not isinstance(channel, LoopArgumentVariable):
+            type_name = type_annotations.get_short_type_name(
+                channel.channel_type)
+            parameter_type = type_utils.PARAMETER_TYPES_MAPPING[
+                type_name.lower()]
+            if parameter_type != type_utils.LIST:
+                raise ValueError(
+                    'Cannot iterate over a single parameter using `dsl.ParallelFor`. Expected a list of parameters as argument to `items`.'
+                )
         return LoopParameterArgument(
             items=channel,
             name_override=channel.name + '-' + LOOP_ITEM_NAME_BASE,
@@ -297,7 +310,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
     Then there's one LoopArgumentVariable for 'a' and another for 'b'.
 
     Attributes:
-        loop_argument: The original LoopArgument object this subvariable is
+        loop_argument: The original LoopParameterArgument object this subvariable is
           attached to.
         subvar_name: The subvariable name.
     """
@@ -327,7 +340,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
 
         self.subvar_name = subvar_name
         self.loop_argument = loop_argument
-        # Handle potential channel_type extraction errors from LoopArgument by defaulting to 'String'. This maintains compilation progress.
+        # Handle potential channel_type extraction errors from LoopParameterArgument by defaulting to 'String'. This maintains compilation progress.
         super().__init__(
             name=self._get_name_override(
                 loop_arg_name=loop_argument.name,

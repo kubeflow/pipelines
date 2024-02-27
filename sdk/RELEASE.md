@@ -7,6 +7,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Throw compilation error when trying to iterate over a single parameter with ParallelFor [\#10494](https://github.com/kubeflow/pipelines/pull/10494)
 
 ## Documentation updates
 
