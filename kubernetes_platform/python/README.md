@@ -57,6 +57,44 @@ def pipeline():
                                     mount_path='/mnt/my_vol')
 ```
 
+### ConfigMap: As environment variable
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def print_config_map():
+    import os
+    print(os.environ['my-cm'])
+
+@dsl.pipeline
+def pipeline():
+    task = print_config_map()
+    kubernetes.use_config_map_as_env(task,
+                                 config_map_name='my-cm',
+                                 secret_key_to_env={'foo': 'CM_VAR'})
+```
+
+### ConfigMap: As mounted volume
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def print_config_map():
+    with open('/mnt/my_vol') as f:
+        print(f.read())
+
+@dsl.pipeline
+def pipeline():
+    task = print_config_map()
+    kubernetes.use_secret_as_volume(task,
+                                    config_map_name='my-cm',
+                                    mount_path='/mnt/my_vol')
+```
+
+
+
 ### PersistentVolumeClaim: Dynamically create PVC, mount, then delete
 ```python
 from kfp import dsl

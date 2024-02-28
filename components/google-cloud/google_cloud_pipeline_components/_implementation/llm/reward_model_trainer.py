@@ -19,7 +19,7 @@ import kfp
 
 
 @kfp.dsl.container_component
-def RewardModelTrainer(  # pylint: disable=invalid-name
+def reward_model_trainer(
     project: str,
     location: str,
     train_steps: int,
@@ -32,14 +32,15 @@ def RewardModelTrainer(  # pylint: disable=invalid-name
     targets_sequence_length: int,
     input_model_path: str,
     input_dataset_path: str,
-    output_model_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    output_adapter_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     tensorboard_metrics: kfp.dsl.Output[kfp.dsl.Artifact],  # pytype: disable=unsupported-operands
     gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     train_split: str = 'train',
     batch_size: int = 64,
     learning_rate_multiplier: float = 1.0,
-    lora_dim: int = 0,
+    lora_dim: int = 4,
     num_microbatches: int = 0,
+    encryption_spec_key_name: str = '',
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Trains a reward model.
 
@@ -68,9 +69,13 @@ def RewardModelTrainer(  # pylint: disable=invalid-name
     num_microbatches: Number of microbatches to break the total batch size into
       during training. If <= 1, the model is trained on the full batch size
       directly.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set,
+      then all resources created by the CustomJob will be encrypted with the
+      provided encryption key. Note that this is not supported for TPU at the
+      moment.
 
   Returns:
-    output_model: Trained reward model.
+    output_adapter_path: Trained reward LoRA adapter.
     tensorboard_metrics: Training stats (tensorboard) path.
     gcp_resources: GCP resources that can be used to track the custom finetuning
       job.
@@ -88,7 +93,7 @@ def RewardModelTrainer(  # pylint: disable=invalid-name
               f'--train_steps={train_steps}',
               f'--input_model_path={input_model_path}',
               f'--input_dataset_path={input_dataset_path}',
-              f'--output_model_path={output_model_path}',
+              f'--output_adapter_path={output_adapter_path}',
               f'--tensorboard_metrics_path={tensorboard_metrics.path}',
               f'--large_model_reference={large_model_reference}',
               f'--inputs_sequence_length={inputs_sequence_length}',
@@ -96,14 +101,10 @@ def RewardModelTrainer(  # pylint: disable=invalid-name
               f'--train_split={train_split}',
               f'--batch_size={batch_size}',
               f'--learning_rate_multiplier={learning_rate_multiplier}',
-              (
-                  '--private_bucket_subdir='
-                  f'{kfp.dsl.PIPELINE_TASK_NAME_PLACEHOLDER}_'
-                  f'{kfp.dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
-              ),
               f'--lora_dim={lora_dim}',
               f'--num_microbatches={num_microbatches}',
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
   )

@@ -34,6 +34,7 @@ def _get_prediction_endpoint_overrides() -> str:
   return os.environ.get('PREDICTION_ENDPOINT_OVERRIDES', '')
 
 
+# pylint: disable=unused-argument,dangerous-default-value
 @dsl.container_component
 def online_evaluation_pairwise(
     inference_output_uri: str,

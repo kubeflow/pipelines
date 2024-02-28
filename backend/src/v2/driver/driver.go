@@ -480,6 +480,28 @@ func extendPodSpecPatch(
 		podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
 	}
 
+	if tolerations := kubernetesExecutorConfig.GetTolerations(); tolerations != nil {
+		var k8sTolerations []k8score.Toleration
+
+		glog.Infof("Tolerations passed: %+v", tolerations)
+
+		for _, toleration := range tolerations {
+			if toleration != nil {
+				k8sToleration := k8score.Toleration{
+					Key:               toleration.Key,
+					Operator:          k8score.TolerationOperator(toleration.Operator),
+					Value:             toleration.Value,
+					Effect:            k8score.TaintEffect(toleration.Effect),
+					TolerationSeconds: toleration.TolerationSeconds,
+				}
+
+				k8sTolerations = append(k8sTolerations, k8sToleration)
+			}
+		}
+
+		podSpec.Tolerations = k8sTolerations
+	}
+
 	// Get secret mount information
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
 		secretVolume := k8score.Volume{
@@ -509,6 +531,39 @@ func extendPodSpecPatch(
 			}
 			secretEnvVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name = secretAsEnv.GetSecretName()
 			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
+		}
+	}
+
+	// Get config map mount information
+	for _, configMapAsVolume := range kubernetesExecutorConfig.GetConfigMapAsVolume() {
+		configMapVolume := k8score.Volume{
+			Name: configMapAsVolume.GetConfigMapName(),
+			VolumeSource: k8score.VolumeSource{
+				ConfigMap: &k8score.ConfigMapVolumeSource{
+					LocalObjectReference: k8score.LocalObjectReference{Name: configMapAsVolume.GetConfigMapName()}},
+			},
+		}
+		configMapVolumeMount := k8score.VolumeMount{
+			Name:      configMapAsVolume.GetConfigMapName(),
+			MountPath: configMapAsVolume.GetMountPath(),
+		}
+		podSpec.Volumes = append(podSpec.Volumes, configMapVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, configMapVolumeMount)
+	}
+
+	// Get config map env information
+	for _, configMapAsEnv := range kubernetesExecutorConfig.GetConfigMapAsEnv() {
+		for _, keyToEnv := range configMapAsEnv.GetKeyToEnv() {
+			configMapEnvVar := k8score.EnvVar{
+				Name: keyToEnv.GetEnvVar(),
+				ValueFrom: &k8score.EnvVarSource{
+					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+						Key: keyToEnv.GetConfigMapKey(),
+					},
+				},
+			}
+			configMapEnvVar.ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name = configMapAsEnv.GetConfigMapName()
+			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, configMapEnvVar)
 		}
 	}
 
