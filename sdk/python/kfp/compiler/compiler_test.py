@@ -844,9 +844,11 @@ implementation:
                 ValueError,
                 r'Cannot iterate over a single artifact using `dsl\.ParallelFor`\. Expected a list of artifacts as argument to `items`\.'
         ):
+
             @dsl.pipeline
             def my_pipeline():
-                single_artifact_task = print_and_return_as_artifact(text='string')
+                single_artifact_task = print_and_return_as_artifact(
+                    text='string')
                 with dsl.ParallelFor(items=single_artifact_task.output) as item:
                     print_artifact(a=item)
 
