@@ -152,7 +152,7 @@ def rlhf_pipeline(
       name='Perform Inference',
   ):
     has_model_checkpoint = function_based.value_exists(
-        value=rl_model_pipeline.outputs['output_adapter_path']
+        value=rl_model_pipeline.outputs['output_model_path']
     ).set_display_name('Resolve Model Checkpoint')
     with kfp.dsl.Condition(
         has_model_checkpoint.output == True,  # pylint: disable=singleton-comparison
@@ -162,7 +162,7 @@ def rlhf_pipeline(
           project=project,
           location=location,
           large_model_reference=large_model_reference,
-          model_checkpoint=rl_model_pipeline.outputs['output_adapter_path'],
+          model_checkpoint=rl_model_pipeline.outputs['output_model_path'],
           prompt_dataset=eval_dataset,
           prompt_sequence_length=prompt_sequence_length,
           target_sequence_length=target_sequence_length,
