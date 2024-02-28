@@ -69,7 +69,7 @@ github.com/lann/ps,https://github.com/lann/ps/blob/62de8c46ede0/LICENSE,MIT
 github.com/lestrrat-go/strftime,https://github.com/lestrrat-go/strftime/blob/v1.0.4/LICENSE,MIT
 github.com/magiconair/properties,https://github.com/magiconair/properties/blob/v1.8.5/LICENSE.md,BSD-2-Clause
 github.com/mailru/easyjson,https://github.com/mailru/easyjson/blob/v0.7.7/LICENSE,MIT
-github.com/mattn/go-sqlite3,https://github.com/mattn/go-sqlite3/blob/v1.14.16/LICENSE,MIT
+github.com/mattn/go-sqlite3,https://github.com/mattn/go-sqlite3/blob/v1.14.19/LICENSE,MIT
 github.com/matttproud/golang_protobuf_extensions/pbutil,https://github.com/matttproud/golang_protobuf_extensions/blob/v1.0.4/LICENSE,Apache-2.0
 github.com/minio/md5-simd,https://github.com/minio/md5-simd/blob/v1.1.0/LICENSE,Apache-2.0
 github.com/minio/minio-go/v6,https://github.com/minio/minio-go/blob/v6.0.57/LICENSE,Apache-2.0

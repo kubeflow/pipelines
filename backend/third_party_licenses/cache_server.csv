@@ -43,7 +43,7 @@ github.com/klauspost/pgzip,https://github.com/klauspost/pgzip/blob/v1.2.5/LICENS
 github.com/kubeflow/pipelines/backend,https://github.com/kubeflow/pipelines/blob/HEAD/LICENSE,Apache-2.0
 github.com/lestrrat-go/strftime,https://github.com/lestrrat-go/strftime/blob/v1.0.4/LICENSE,MIT
 github.com/mailru/easyjson,https://github.com/mailru/easyjson/blob/v0.7.7/LICENSE,MIT
-github.com/mattn/go-sqlite3,https://github.com/mattn/go-sqlite3/blob/v1.14.16/LICENSE,MIT
+github.com/mattn/go-sqlite3,https://github.com/mattn/go-sqlite3/blob/v1.14.19/LICENSE,MIT
 github.com/matttproud/golang_protobuf_extensions/pbutil,https://github.com/matttproud/golang_protobuf_extensions/blob/v1.0.4/LICENSE,Apache-2.0
 github.com/mitchellh/copystructure,https://github.com/mitchellh/copystructure/blob/v1.2.0/LICENSE,MIT
 github.com/mitchellh/mapstructure,https://github.com/mitchellh/mapstructure/blob/v1.5.0/LICENSE,MIT
