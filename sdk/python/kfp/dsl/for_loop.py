@@ -286,7 +286,7 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
         object."""
         if not channel.is_artifact_list:
             raise ValueError(
-                'Cannot iterate over a single Artifact using `dsl.ParallelFor`. Expected a list of Artifacts as argument to `items`.'
+                'Cannot iterate over a single artifact using `dsl.ParallelFor`. Expected a list of artifacts as argument to `items`.'
             )
         return LoopArtifactArgument(
             items=channel,
