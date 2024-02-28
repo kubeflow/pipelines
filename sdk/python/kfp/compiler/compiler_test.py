@@ -841,7 +841,7 @@ implementation:
                 with dsl.ParallelFor(items=single_param.output) as item:
                     str_identity(s=item)
 
-    def test_cannot_compile_parallel_for_with_single_artifactd(self):
+    def test_cannot_compile_parallel_for_with_single_artifact(self):
 
         with self.assertRaisesRegex(
                 ValueError,
