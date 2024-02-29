@@ -16,16 +16,15 @@
 import textwrap
 import unittest
 from unittest import mock
-
-from absl.testing import parameterized
-from kfp.v2.components.experimental import structures
-
 try:
     # Attempt to get the version of Pydantic installed
     from importlib.metadata import version
 except ImportError:
     # Fallback for Python < 3.8 using pkg_resources
     from pkg_resources import get_distribution as version
+
+from absl.testing import parameterized
+from kfp.v2.components.experimental import structures
 
 # Get the version of Pydantic installed
 pydantic_version = version("pydantic")
