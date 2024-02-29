@@ -20,8 +20,27 @@ from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
 from kfp.components import _components
 from kfp.components import structures as v1_structures
-import pydantic
 import yaml
+
+try:
+    # Attempt to get the version of Pydantic installed
+    from importlib.metadata import version
+except ImportError:
+    # Fallback for Python < 3.8 using pkg_resources
+    from pkg_resources import get_distribution as version
+
+# Get the version of Pydantic installed
+pydantic_version = version("pydantic")
+
+if pydantic_version.startswith("1."):
+    import pydantic
+elif pydantic_version.startswith("2."):
+    import pydantic.v1 as pydantic
+else:
+    raise ImportError(
+        f"Pydantic version {pydantic_version} is not supported. "
+        "Please install a supported version of Pydantic (>=1.0.0, <3.0.0)."
+    )
 
 
 class BaseModel(pydantic.BaseModel):
