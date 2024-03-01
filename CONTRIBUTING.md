@@ -7,7 +7,7 @@ just a few small guidelines you need to follow.
 
 Kubeflow uses Developer Certificate of Origin ([DCO](https://github.com/apps/dco/)).
 
-Please see https://www.kubeflow.org/docs/about/contributing/#sign-off-your-commits to learn how to sign off your commits.
+Please see https://github.com/kubeflow/community/tree/master/dco-signoff-hook#signing-off-commits to learn how to sign off your commits.
 
 ## Contribution Guidelines
 
