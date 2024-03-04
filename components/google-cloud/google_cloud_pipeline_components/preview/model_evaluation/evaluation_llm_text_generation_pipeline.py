@@ -41,7 +41,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     batch_predict_predictions_format: str = 'jsonl',
     batch_predict_model_parameters: Dict[str, str] = {},
     enable_row_based_metrics: bool = False,
-    machine_type: str = 'e2-highmem-16',
+    machine_type: str = 'e2-standard-4',
     service_account: str = '',
     network: str = '',
     encryption_spec_key_name: str = '',
@@ -79,7 +79,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     batch_predict_predictions_format: The format in which Vertex AI gives the predictions. Must be one of the Model's supportedOutputStorageFormats. Only "jsonl" is currently supported. For more details about this output config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.
     batch_predict_model_parameters: A map of parameters that govern the predictions. Some acceptable parameters include: maxOutputTokens, topK, topP, and temperature.
     enable_row_based_metrics: Flag of if row based metrics is enabled, default value is false.
-    machine_type: The machine type of this custom job. If not set, defaulted to `e2-highmem-16`. More details: https://cloud.google.com/compute/docs/machine-resource
+    machine_type: The machine type of this custom job. If not set, defaulted to `e2-standard-4`. More details: https://cloud.google.com/compute/docs/machine-resource
     service_account: Sets the default service account for workload run-as account. The service account running the pipeline (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account) submitting jobs must have act-as permission on this run-as account. If unspecified, the Vertex AI Custom Code Service Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents) for the CustomJob's project.
     network: The full name of the Compute Engine network to which the job should be peered. For example, `projects/12345/global/networks/myVPC`. Format is of the form `projects/{project}/global/networks/{network}`. Where `{project}` is a project number, as in `12345`, and `{network}` is a network name, as in `myVPC`. To specify this field, you must have already configured VPC Network Peering for Vertex AI (https://cloud.google.com/vertex-ai/docs/general/vpc-peering). If left unspecified, the job is not peered with any network.
     encryption_spec_key_name:  Customer-managed encryption key options. If set, resources created by this pipeline will be encrypted with the provided encryption key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.
