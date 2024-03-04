@@ -166,3 +166,24 @@ def my_pipeline():
         annotation_value='123456',
     )
 ```
+
+# Kubernetes Field: Use Kubernetes Field Path as enviornment variable
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+
+@dsl.component
+def comp():
+    pass
+
+
+@dsl.pipeline
+def my_pipeline():
+    task = comp()
+    kubernetes.use_field_path_as_env(
+        task,
+        env_name='KFP_RUN_NAME',
+        field_path="metadata.annotations['pipelines.kubeflow.org/run_name']"
+    )
+```
