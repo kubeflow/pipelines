@@ -87,6 +87,8 @@ def autosxs_pipeline(
       model_b_parameters=model_b_parameters,
       human_preference_column=human_preference_column,
       experimental_args=experimental_args,
+      project=project,
+      location=location,
   ).set_display_name('AutoSxS Batch Prediction')
 
   winners = online_evaluation_pairwise.online_evaluation_pairwise(
@@ -99,11 +101,15 @@ def autosxs_pipeline(
       judgments_format=judgments_format,
       bigquery_destination_prefix=bigquery_destination_prefix,
       experimental_args=experimental_args,
+      project=project,
+      location=location,
   ).set_display_name('AutoSxS Autorater')
 
   model_evaluation_text_generation_pairwise.model_evaluation_text_generation_pairwise(
       judgments_dir=winners.outputs['judgments_uri'],
       human_preference_column=human_preference_column,
+      project=project,
+      location=location,
   ).set_display_name(
       'AutoSxS Metrics'
   )

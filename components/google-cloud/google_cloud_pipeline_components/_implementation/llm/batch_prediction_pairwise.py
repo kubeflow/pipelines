@@ -51,6 +51,8 @@ def batch_prediction_pairwise(
     model_b_parameters: Dict[str, str] = {},
     human_preference_column: str = '',
     experimental_args: Dict[str, Any] = {},
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
+    location: str = _placeholders.LOCATION_PLACEHOLDER,
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Runs up to two LLM Batch Prediction jobs side-by-side.
 
@@ -83,6 +85,8 @@ def batch_prediction_pairwise(
     human_preference_column: The column containing ground truths. The default
       value is an empty string if not be provided by users.
     experimental_args: Experimentally released arguments. Subject to change.
+    project: Project used to run batch prediction jobs.
+    location: Location used to run batch prediction jobs.
 
   Returns:
     preprocessed_evaluation_dataset: Dataset of the table containing the inputs
@@ -94,8 +98,8 @@ def batch_prediction_pairwise(
       metadata for the task preprocess component.
   """
   return gcpc_utils.build_serverless_customjob_container_spec(
-      project=_placeholders.PROJECT_ID_PLACEHOLDER,
-      location=_placeholders.LOCATION_PLACEHOLDER,
+      project=project,
+      location=location,
       custom_job_payload=utils.build_payload(
           display_name='batch_prediction_pairwise',
           machine_type='n1-standard-4',
@@ -110,8 +114,8 @@ def batch_prediction_pairwise(
                   "{{$.inputs.parameters['id_columns'].json_escape[0]}}"
               ),
               f'--task={task}',
-              f'--project={_placeholders.PROJECT_ID_PLACEHOLDER}',
-              f'--location={_placeholders.LOCATION_PLACEHOLDER}',
+              f'--project={project}',
+              f'--location={location}',
               f'--model_a={model_a}',
               f'--model_b={model_b}',
               (
