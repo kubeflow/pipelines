@@ -49,7 +49,7 @@
 #    test_fraction: float [Default: -1.0]
 #    tf_auto_transform_features: dict
 #    tf_custom_transformation_definitions: list
-#    tf_transform_execution_engine: str [Default: '']
+#    tf_transform_execution_engine: str [Default: 'bigquery']
 #    tf_transformations_path: str [Default: '']
 #    training_fraction: float [Default: -1.0]
 #    transform_dataflow_disk_size_gb: int [Default: 40.0]
@@ -487,7 +487,7 @@ components:
               description:
                 componentInputParameter: pipelinechannel--model_description
               display_name:
-                componentInputParameter: pipelinechannel--set-optional-inputs-model_display_name
+                componentInputParameter: pipelinechannel--get-model-display-name-model_display_name
               encryption_spec_key_name:
                 componentInputParameter: pipelinechannel--encryption_spec_key_name
               location:
@@ -693,6 +693,8 @@ components:
           parameterType: NUMBER_INTEGER
         pipelinechannel--feature_selection_algorithm:
           parameterType: STRING
+        pipelinechannel--get-model-display-name-model_display_name:
+          parameterType: STRING
         pipelinechannel--location:
           parameterType: STRING
         pipelinechannel--materialized_examples_format:
@@ -724,8 +726,6 @@ components:
         pipelinechannel--set-optional-inputs-data_source_bigquery_table_path:
           parameterType: STRING
         pipelinechannel--set-optional-inputs-data_source_csv_filenames:
-          parameterType: STRING
-        pipelinechannel--set-optional-inputs-model_display_name:
           parameterType: STRING
         pipelinechannel--stratified_split_key:
           parameterType: STRING
@@ -1487,6 +1487,16 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
+  comp-get-model-display-name:
+    executorLabel: exec-get-model-display-name
+    inputDefinitions:
+      parameters:
+        model_display_name:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        model_display_name:
+          parameterType: STRING
   comp-get-wide-and-deep-study-spec-parameters:
     executorLabel: exec-get-wide-and-deep-study-spec-parameters
     inputDefinitions:
@@ -2213,9 +2223,6 @@ components:
         location:
           description: The GCP region that runs the pipeline components.
           parameterType: STRING
-        model_display_name:
-          description: The uploaded model's display name.
-          parameterType: STRING
         project:
           description: The GCP project that runs the pipeline components.
           parameterType: STRING
@@ -2224,8 +2231,6 @@ components:
         data_source_bigquery_table_path:
           parameterType: STRING
         data_source_csv_filenames:
-          parameterType: STRING
-        model_display_name:
           parameterType: STRING
   comp-split-materialized-data:
     executorLabel: exec-split-materialized-data
@@ -2627,7 +2632,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240119_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240214_1325", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -2642,7 +2647,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240214_1325
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -2654,12 +2659,6 @@ deploymentSpec:
         - --function_to_execute
         - _bool_identity
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -2673,7 +2672,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-feature-transform-engine:
       container:
         args:
@@ -2758,8 +2757,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240119_0125
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240119_0125
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240214_1325
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240214_1325
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -2776,7 +2775,7 @@ deploymentSpec:
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240119_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240214_1325
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -2788,12 +2787,6 @@ deploymentSpec:
         - --function_to_execute
         - _get_best_hyperparameter_tuning_job_trial
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -2850,7 +2843,34 @@ deploymentSpec:
           \ = {\n      'instanceSchemaUri': instance_schema_uri,\n      'predictionSchemaUri':\
           \ prediction_schema_uri,\n  }\n  unmanaged_container_model.uri = os.path.join(\n\
           \      trials_dir, 'trial_{}'.format(best_trial['id']), 'model'\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240119_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
+    exec-get-model-display-name:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - _get_model_display_name
+        command:
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef _get_model_display_name(\n    model_display_name: str,\n) ->\
+          \ NamedTuple('Outputs', [('model_display_name', str),]):\n  \"\"\"Returns\
+          \ the model display name.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \  import collections\n  import uuid\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \n  if not model_display_name:\n    model_display_name = f'tabular-workflow-model-{uuid.uuid4()}'\n\
+          \n  return collections.namedtuple(\n      'Outputs',\n      [\n        \
+          \  'model_display_name',\n      ],\n  )(\n      model_display_name,\n  )\n\
+          \n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-get-wide-and-deep-study-spec-parameters:
       container:
         args:
@@ -3088,12 +3108,6 @@ deploymentSpec:
         - _parse_worker_pool_specs_override
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -3133,7 +3147,7 @@ deploymentSpec:
           \   'training_disk_spec',\n          'eval_machine_spec',\n          'eval_replica_count',\n\
           \      ],\n  )(\n      training_machine_spec,\n      training_disk_spec,\n\
           \      eval_machine_spec,\n      eval_replica_count,\n  )\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-set-optional-inputs:
       container:
         args:
@@ -3142,12 +3156,6 @@ deploymentSpec:
         - --function_to_execute
         - _set_optional_inputs
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -3160,20 +3168,18 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef _set_optional_inputs(\n    project: str,\n    location: str,\n\
           \    data_source_csv_filenames: str,\n    data_source_bigquery_table_path:\
-          \ str,\n    vertex_dataset: dsl.Input[dsl.Artifact],\n    model_display_name:\
-          \ str,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('data_source_csv_filenames',\
-          \ str),\n        ('data_source_bigquery_table_path', str),\n        ('model_display_name',\
-          \ str),\n    ],\n):\n  \"\"\"Get the data source URI.\n\n  Args:\n    project:\
-          \ The GCP project that runs the pipeline components.\n    location: The\
-          \ GCP region that runs the pipeline components.\n    data_source_csv_filenames:\
-          \ The CSV GCS path when data source is CSV.\n    data_source_bigquery_table_path:\
-          \ The BigQuery table when data source is BQ.\n    vertex_dataset: The Vertex\
-          \ dataset when data source is Vertex dataset.\n    model_display_name: The\
-          \ uploaded model's display name.\n\n  Returns:\n    A named tuple of CSV\
-          \ or BQ URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+          \ str,\n    vertex_dataset: dsl.Input[dsl.Artifact],\n) -> NamedTuple(\n\
+          \    'Outputs',\n    [\n        ('data_source_csv_filenames', str),\n  \
+          \      ('data_source_bigquery_table_path', str),\n    ],\n):\n  \"\"\"Get\
+          \ the data source URI.\n\n  Args:\n    project: The GCP project that runs\
+          \ the pipeline components.\n    location: The GCP region that runs the pipeline\
+          \ components.\n    data_source_csv_filenames: The CSV GCS path when data\
+          \ source is CSV.\n    data_source_bigquery_table_path: The BigQuery table\
+          \ when data source is BQ.\n    vertex_dataset: The Vertex dataset when data\
+          \ source is Vertex dataset.\n\n  Returns:\n    A named tuple of CSV or BQ\
+          \ URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
           \  import collections\n  from google.cloud import aiplatform\n  from google.cloud\
-          \ import aiplatform_v1beta1 as aip\n  import uuid\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \n  if not model_display_name:\n    model_display_name = f'tabular-workflow-model-{uuid.uuid4()}'\n\
+          \ import aiplatform_v1beta1 as aip\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
           \n  if vertex_dataset is not None:\n    # of format\n    # projects/294348452381/locations/us-central1/datasets/7104764862735056896\n\
           \    dataset_name = vertex_dataset.metadata['resourceName']\n\n    aiplatform.init(project=project,\
           \ location=location)\n    client = aip.DatasetServiceClient(\n        client_options={'api_endpoint':\
@@ -3187,10 +3193,9 @@ deploymentSpec:
           \        ' data_source_bigquery_table_path must be specified'\n    )\n\n\
           \  return collections.namedtuple(\n      'Outputs',\n      [\n         \
           \ 'data_source_csv_filenames',\n          'data_source_bigquery_table_path',\n\
-          \          'model_display_name',\n      ],\n  )(\n      data_source_csv_filenames,\n\
-          \      data_source_bigquery_table_path,\n      model_display_name,\n  )\n\
-          \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240119_0125
+          \      ],\n  )(\n      data_source_csv_filenames,\n      data_source_bigquery_table_path,\n\
+          \  )\n\n"
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240214_1325
     exec-split-materialized-data:
       container:
         args:
@@ -3236,7 +3241,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240119_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240214_1325
     exec-training-configurator-and-validator:
       container:
         args:
@@ -3281,7 +3286,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240119_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240214_1325
     exec-wide-and-deep-hyperparameter-tuning-job:
       container:
         args:
@@ -3309,11 +3314,11 @@ deploymentSpec:
           ", \"trial_job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"",
           "1", "\", \"machine_spec\": ", "{{$.inputs.parameters[''training_machine_spec'']}}",
           ", \"disk_spec\": ", "{{$.inputs.parameters[''training_disk_spec'']}}",
-          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20240119_0125",
+          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20240214_1325",
           "\", \"args\": [\"--target_column=", "{{$.inputs.parameters[''target_column'']}}",
           "\", \"--weight_column=", "{{$.inputs.parameters[''weight_column'']}}",
           "\", \"--model_type=", "{{$.inputs.parameters[''prediction_type'']}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240119_0125",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20240214_1325",
           "\", \"--prediction_docker_uri_artifact_path=", "{{$.outputs.parameters[''prediction_docker_uri_output''].output_file}}",
           "\", \"--baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
@@ -3373,6 +3378,7 @@ root:
         componentRef:
           name: comp-exit-handler-1
         dependentTasks:
+        - get-model-display-name
         - set-optional-inputs
         inputs:
           artifacts:
@@ -3417,6 +3423,10 @@ root:
               componentInputParameter: evaluation_dataflow_starting_num_workers
             pipelinechannel--feature_selection_algorithm:
               componentInputParameter: feature_selection_algorithm
+            pipelinechannel--get-model-display-name-model_display_name:
+              taskOutputParameter:
+                outputParameterKey: model_display_name
+                producerTask: get-model-display-name
             pipelinechannel--location:
               componentInputParameter: location
             pipelinechannel--materialized_examples_format:
@@ -3452,10 +3462,6 @@ root:
             pipelinechannel--set-optional-inputs-data_source_csv_filenames:
               taskOutputParameter:
                 outputParameterKey: data_source_csv_filenames
-                producerTask: set-optional-inputs
-            pipelinechannel--set-optional-inputs-model_display_name:
-              taskOutputParameter:
-                outputParameterKey: model_display_name
                 producerTask: set-optional-inputs
             pipelinechannel--stratified_split_key:
               componentInputParameter: stratified_split_key
@@ -3497,6 +3503,17 @@ root:
               componentInputParameter: worker_pool_specs_override
         taskInfo:
           name: exit-handler-1
+      get-model-display-name:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-get-model-display-name
+        inputs:
+          parameters:
+            model_display_name:
+              componentInputParameter: model_display_name
+        taskInfo:
+          name: get-model-display-name
       set-optional-inputs:
         cachingOptions:
           enableCache: true
@@ -3513,8 +3530,6 @@ root:
               componentInputParameter: data_source_csv_filenames
             location:
               componentInputParameter: location
-            model_display_name:
-              componentInputParameter: model_display_name
             project:
               componentInputParameter: project
         taskInfo:
@@ -3804,7 +3819,7 @@ root:
         isOptional: true
         parameterType: LIST
       tf_transform_execution_engine:
-        defaultValue: ''
+        defaultValue: bigquery
         description: 'Execution engine to run TF-based
 
           transformations. Currently supports "dataflow" or "bigquery"'

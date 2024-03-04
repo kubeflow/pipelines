@@ -37,6 +37,9 @@ import (
 
 const (
 	driverTypeArg = "type"
+	ROOT_DAG      = "ROOT_DAG"
+	DAG           = "DAG"
+	CONTAINER     = "CONTAINER"
 )
 
 var (
@@ -160,12 +163,12 @@ func drive() (err error) {
 	var execution *driver.Execution
 	var driverErr error
 	switch *driverType {
-	case "ROOT_DAG":
+	case ROOT_DAG:
 		options.RuntimeConfig = runtimeConfig
 		execution, driverErr = driver.RootDAG(ctx, options, client)
-	case "DAG":
+	case DAG:
 		execution, driverErr = driver.DAG(ctx, options, client)
-	case "CONTAINER":
+	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
@@ -183,35 +186,60 @@ func drive() (err error) {
 			err = driverErr
 		}()
 	}
+
+	executionPaths := &ExecutionPaths{
+		ExecutionID:    *executionIDPath,
+		IterationCount: *iterationCountPath,
+		CachedDecision: *cachedDecisionPath,
+		Condition:      *conditionPath,
+		PodSpecPatch:   *podSpecPatchPath}
+
+	return handleExecution(execution, *driverType, executionPaths)
+}
+
+func handleExecution(execution *driver.Execution, driverType string, executionPaths *ExecutionPaths) error {
 	if execution.ID != 0 {
 		glog.Infof("output execution.ID=%v", execution.ID)
-		if *executionIDPath != "" {
-			if err = writeFile(*executionIDPath, []byte(fmt.Sprint(execution.ID))); err != nil {
+		if executionPaths.ExecutionID != "" {
+			if err := writeFile(executionPaths.ExecutionID, []byte(fmt.Sprint(execution.ID))); err != nil {
 				return fmt.Errorf("failed to write execution ID to file: %w", err)
 			}
 		}
 	}
 	if execution.IterationCount != nil {
-		if err = writeFile(*iterationCountPath, []byte(fmt.Sprintf("%v", *execution.IterationCount))); err != nil {
+		if err := writeFile(executionPaths.IterationCount, []byte(fmt.Sprintf("%v", *execution.IterationCount))); err != nil {
 			return fmt.Errorf("failed to write iteration count to file: %w", err)
+		}
+	} else {
+		if driverType == ROOT_DAG {
+			if err := writeFile(executionPaths.IterationCount, []byte("0")); err != nil {
+				return fmt.Errorf("failed to write iteration count to file: %w", err)
+			}
 		}
 	}
 	if execution.Cached != nil {
-		if err = writeFile(*cachedDecisionPath, []byte(strconv.FormatBool(*execution.Cached))); err != nil {
+		if err := writeFile(executionPaths.CachedDecision, []byte(strconv.FormatBool(*execution.Cached))); err != nil {
 			return fmt.Errorf("failed to write cached decision to file: %w", err)
 		}
 	}
 	if execution.Condition != nil {
-		if err = writeFile(*conditionPath, []byte(strconv.FormatBool(*execution.Condition))); err != nil {
+		if err := writeFile(executionPaths.Condition, []byte(strconv.FormatBool(*execution.Condition))); err != nil {
 			return fmt.Errorf("failed to write condition to file: %w", err)
+		}
+	} else {
+		// nil is a valid value for Condition
+		if driverType == ROOT_DAG || driverType == CONTAINER {
+			if err := writeFile(executionPaths.Condition, []byte("nil")); err != nil {
+				return fmt.Errorf("failed to write condition to file: %w", err)
+			}
 		}
 	}
 	if execution.PodSpecPatch != "" {
 		glog.Infof("output podSpecPatch=\n%s\n", execution.PodSpecPatch)
-		if *podSpecPatchPath == "" {
+		if executionPaths.PodSpecPatch == "" {
 			return fmt.Errorf("--pod_spec_patch_path is required for container executor drivers")
 		}
-		if err = writeFile(*podSpecPatchPath, []byte(execution.PodSpecPatch)); err != nil {
+		if err := writeFile(executionPaths.PodSpecPatch, []byte(execution.PodSpecPatch)); err != nil {
 			return fmt.Errorf("failed to write pod spec patch to file: %w", err)
 		}
 	}

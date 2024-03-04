@@ -109,7 +109,10 @@ def get_temp_location() -> str:
   )
 
 
-def get_default_image_uri(image_name: str) -> str:
+def get_default_image_uri(
+    image_name: str,
+    image_name_prefix: Optional[str] = None,
+) -> str:
   """Gets the default image URI for a given image.
 
   The URI is resolved using environment variables that define the artifact
@@ -119,6 +122,8 @@ def get_default_image_uri(image_name: str) -> str:
 
   Args:
     image_name: Name of the image to resolve.
+    image_name_prefix: prefix to add to the image name when constructing the
+      URI. If `None`, `env.PRIVATE_IMAGE_NAME_PREFIX'` is used.
 
   Returns:
     URI of the image.
@@ -128,9 +133,12 @@ def get_default_image_uri(image_name: str) -> str:
   else:
     image_tag = env.get_private_image_tag()
 
+  if image_name_prefix is None:
+    image_name_prefix = env.PRIVATE_IMAGE_NAME_PREFIX
+
   return '/'.join([
       f'{env.PRIVATE_ARTIFACT_REGISTRY_LOCATION}-docker.pkg.dev',
       env.PRIVATE_ARTIFACT_REGISTRY_PROJECT,
       env.PRIVATE_ARTIFACT_REGISTRY,
-      f'{env.PRIVATE_IMAGE_NAME_PREFIX}{image_name}:{image_tag}',
+      f'{image_name_prefix}{image_name}:{image_tag}',
   ])

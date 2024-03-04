@@ -1,6 +1,16 @@
 ## Upcoming release
+* Add `v1.automl.forecasting.learn_to_learn_forecasting_pipeline`, `v1.automl.forecasting.sequence_to_sequence_forecasting_pipeline`, `v1.automl.forecasting.temporal_fusion_transformer_forecasting_pipeline`, `v1.automl.forecasting.time_series_dense_encoder_forecasting_pipeline` as Forecasting on Pipelines moves to GA.
+* Fix bug in `preview.llm.rlhf_pipeline` that caused wrong output artifact to be used for inference after training.
+* Fix issue where AutoSxS was not propagating location to all sub-components.
+
+## Release 2.10.0
 * Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.
 * Fix the metadata of Model Evaluation resource when row based metrics is disabled in `preview.model_evaluation.evaluation_llm_text_generation_pipeline`.
+* Support `Jinja2>=3.1.2,<4`.
+* Support custom AutoSxS tasks.
+* Bump supported KFP versions to `kfp>=2.6.0,<=2.7.0`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+* Add CMEK support to `preview.llm.rlhf_pipeline` when tuning in `us-central1` with GPUs.
 
 ## Release 2.9.0
 * Use `large_model_reference` for `model_reference_name` when uploading models from `preview.llm.rlhf_pipeline` instead of hardcoding value as `text-bison@001`.

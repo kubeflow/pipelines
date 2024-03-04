@@ -1,6 +1,19 @@
 # Current Version (in development)
 
 ## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Throw compilation error when trying to iterate over a single parameter with ParallelFor [\#10494](https://github.com/kubeflow/pipelines/pull/10494)
+
+## Documentation updates
+
+# 2.7.0
+
+## Features
 * Support local execution of sequential pipelines [\#10423](https://github.com/kubeflow/pipelines/pull/10423)
 * Support local execution of `dsl.importer` components [\#10431](https://github.com/kubeflow/pipelines/pull/10431)
 * Support local execution of pipelines in pipelines [\#10440](https://github.com/kubeflow/pipelines/pull/10440)

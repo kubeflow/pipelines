@@ -34,6 +34,8 @@ def model_evaluation_text_generation_pairwise(
     autosxs_metrics: dsl.Output[dsl.Metrics],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     human_preference_column: str = '',
+    project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
+    location: str = _placeholders.LOCATION_PLACEHOLDER,
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Compute AutoSXS metrics using judgments outputs from Arbiter.
 
@@ -41,15 +43,16 @@ def model_evaluation_text_generation_pairwise(
     judgments_dir: Path where store the Judgments.
     human_preference_column: The column containing ground truths. The default
       value is an empty string if not be provided by users.
+    project: Project to upload evaluation metrics to.
+    location: Location to upload evaluation metrics to.
 
   Returns:
     autosxs_metrics: Autosxs win rate metrics and human alignment metrics.
     gcp_resources: Tracker for GCP resources created by this component.
   """
   return gcpc_utils.build_serverless_customjob_container_spec(
-      project=_placeholders.PROJECT_ID_PLACEHOLDER,
-      # Hardcode location to us-central1 for text-bison availability.
-      location='us-central1',
+      project=project,
+      location=location,
       custom_job_payload=utils.build_payload(
           display_name='model_evaluation_text_generation_pairwise',
           machine_type='n1-standard-4',
@@ -59,6 +62,8 @@ def model_evaluation_text_generation_pairwise(
               'autosxs_metrics',
               f'--judgments_dir={judgments_dir}',
               f'--human_preference_column={human_preference_column}',
+              f'--project={project}',
+              f'--location={location}',
               '--executor_input={{$.json_escape[1]}}',
           ],
       ),

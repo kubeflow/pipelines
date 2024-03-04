@@ -17,9 +17,11 @@ from typing import NamedTuple, Optional
 
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.llm import deployment_graph
+from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import reinforcement_learning_graph
 from google_cloud_pipeline_components._implementation.llm import reward_model_graph
+from google_cloud_pipeline_components._implementation.llm import validate_pipeline
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
 
@@ -49,6 +51,7 @@ def rlhf_pipeline(
     eval_dataset: Optional[str] = None,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
+    encryption_spec_key_name: str = '',
     tensorboard_resource_id: Optional[str] = None,
 ) -> PipelineOutput:
   # fmt: off
@@ -71,6 +74,7 @@ def rlhf_pipeline(
     eval_dataset: Optional Cloud storage path to an evaluation dataset. Note, eval dataset can only be provided for third-party models. If provided, inference will be performed on this dataset after training. The dataset format is jsonl. Each example in the dataset must contain a field `input_text` that contains the prompt.
     project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
     location: Location used to run custom jobs. If not specified the location used to run the pipeline will be used.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
     tensorboard_resource_id: Optional tensorboard resource id in format `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`. If provided, tensorboard metrics will be uploaded to this location.
 
   Returns:
@@ -79,30 +83,52 @@ def rlhf_pipeline(
   """
   # fmt: on
 
-  function_based.validate_rlhf_inputs(
+  # LoRA dim for reward model
+  reward_lora_dim = 4
+
+  machine_spec = function_based.resolve_machine_spec(
+      location=location, use_test_spec=env.get_use_test_machine_spec()
+  ).set_display_name('Resolve Machine Spec')
+
+  validate_pipeline_task = validate_pipeline.validate_pipeline(
+      machine_type=machine_spec.outputs['machine_type'],
+      location=location,
+      encryption_spec_key_name=encryption_spec_key_name,
       large_model_reference=large_model_reference,
       eval_dataset=eval_dataset,
-  ).set_display_name('Validate Inputs')
+  ).set_display_name('Validate Pipeline for Security')
 
   reward_model_pipeline = (
-      reward_model_graph.pipeline(
-          preference_dataset=preference_dataset,
-          large_model_reference=large_model_reference,
-          prompt_sequence_length=prompt_sequence_length,
-          target_sequence_length=target_sequence_length,
-          instruction=instruction,
-          reward_model_learning_rate_multiplier=reward_model_learning_rate_multiplier,
-          reward_model_train_steps=reward_model_train_steps,
-          project=project,
-          location=location,
-          tensorboard_resource_id=tensorboard_resource_id,
+      (
+          reward_model_graph.pipeline(
+              preference_dataset=preference_dataset,
+              large_model_reference=large_model_reference,
+              prompt_sequence_length=prompt_sequence_length,
+              target_sequence_length=target_sequence_length,
+              instruction=instruction,
+              reward_model_learning_rate_multiplier=reward_model_learning_rate_multiplier,
+              reward_model_train_steps=reward_model_train_steps,
+              lora_dim=reward_lora_dim,
+              project=project,
+              location=location,
+              tensorboard_resource_id=tensorboard_resource_id,
+              encryption_spec_key_name=encryption_spec_key_name,
+          )
       )
-  ).set_display_name('Train Reward Model')
+      .set_display_name('Train Reward Model')
+      .after(validate_pipeline_task)
+  )
 
   rl_model_pipeline = reinforcement_learning_graph.pipeline(
       prompt_dataset=prompt_dataset,
       input_reward_model_path=reward_model_pipeline.outputs[
-          'reward_model_output_path'
+          'reward_model_base_path'
+      ],
+      input_reward_adapter_path=reward_model_pipeline.outputs[
+          'reward_model_adapter_path'
+      ],
+      input_preference_dataset_path=reward_model_pipeline.outputs[
+          'reward_dataset_path'
       ],
       large_model_reference=large_model_reference,
       prompt_sequence_length=prompt_sequence_length,
@@ -111,9 +137,11 @@ def rlhf_pipeline(
       reinforcement_learning_train_steps=reinforcement_learning_train_steps,
       kl_coeff=kl_coeff,
       instruction=instruction,
+      reward_lora_dim=reward_lora_dim,
       project=project,
       location=location,
       tensorboard_resource_id=tensorboard_resource_id,
+      encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Reinforcement Learning')
 
   has_inference_dataset = function_based.value_exists(
@@ -146,6 +174,7 @@ def rlhf_pipeline(
       large_model_reference=large_model_reference,
       model_display_name=model_display_name,
       deploy_model=deploy_model,
+      encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Upload and Deploy Tuned Model')
 
   return PipelineOutput(
