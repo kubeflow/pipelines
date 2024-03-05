@@ -40,6 +40,8 @@ from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
+from kfp.kubernetes.timeout import set_timeout
+from kfp.kubernetes.toleration import add_toleration
 from kfp.kubernetes.volume import CreatePVC
 from kfp.kubernetes.volume import DeletePVC
 from kfp.kubernetes.volume import mount_pvc
