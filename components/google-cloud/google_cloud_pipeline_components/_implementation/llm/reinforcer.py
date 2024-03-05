@@ -110,6 +110,7 @@ def reinforcer(
           machine_type=machine_type,
           image_uri=image_uri,
           args=[
+              '--app_name=reinforcer',
               f'--input_reference_model_path={input_reference_model_path}',
               f'--input_reward_model_path={input_reward_model_path}',
               f'--input_reward_adapter_path={input_reward_adapter_path}',

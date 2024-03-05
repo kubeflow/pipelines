@@ -72,6 +72,7 @@ def bulk_inferrer(
           machine_type=machine_type,
           image_uri=image_uri,
           args=[
+              '--app_name=bulk_inferrer',
               f'--input_model={input_model}',
               f'--input_dataset={input_dataset_path}',
               f'--dataset_split={dataset_split}',

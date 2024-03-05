@@ -82,9 +82,6 @@ def infer_pipeline(
       large_model_reference=large_model_reference,
       instruction=instruction,
   ).set_display_name('Resolve Instruction')
-  prompt_dataset_image_uri = function_based.resolve_private_image_uri(
-      image_name='text_importer',
-  ).set_display_name('Resolve Prompt Dataset Image URI')
   prompt_dataset_importer = (
       private_text_importer.private_text_importer(
           project=project,
@@ -96,17 +93,14 @@ def infer_pipeline(
           large_model_reference=reference_model_metadata.outputs[
               'large_model_reference'
           ],
-          image_uri=prompt_dataset_image_uri.output,
           instruction=resolved_text_instruction.output,
       )
       .set_display_name('Import Prompt Dataset')
       .set_caching_options(False)
   )
 
-  bulk_inferrer_image_uri = function_based.resolve_private_image_uri(
-      image_name='infer',
+  bulk_inferrer_image_uri = function_based.resolve_private_refined_image_uri(
       accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
   ).set_display_name('Resolve Bulk Inferrer Image URI')
   bulk_inference = bulk_inferrer.bulk_inferrer(
       project=project,
