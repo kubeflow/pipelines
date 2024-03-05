@@ -194,4 +194,4 @@ replace (
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 )
 
-go 1.21
+go 1.20
