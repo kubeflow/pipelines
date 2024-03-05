@@ -585,6 +585,12 @@ func extendPodSpecPatch(
 		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, fieldPathEnvVar)
 	}
 
+	// Get container timeout information
+	timeout := kubernetesExecutorConfig.GetActiveDeadlineSeconds()
+	if timeout > 0 {
+		podSpec.ActiveDeadlineSeconds = &timeout
+	}
+
 	return nil
 }
 

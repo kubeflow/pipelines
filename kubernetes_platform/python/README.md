@@ -187,3 +187,19 @@ def my_pipeline():
         field_path="metadata.annotations['pipelines.kubeflow.org/run_name']"
     )
 ```
+
+### Timeout: Set timeout in seconds defined as pod spec's activeDeadlineSeconds
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def comp():
+    pass
+
+@dsl.pipeline
+def my_pipeline():
+    task = comp()
+    kubernetes.set_timeout(task, 20)
+```
+
