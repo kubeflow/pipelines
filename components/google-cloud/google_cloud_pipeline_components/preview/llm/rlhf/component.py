@@ -96,7 +96,7 @@ def rlhf_pipeline(
       encryption_spec_key_name=encryption_spec_key_name,
       large_model_reference=large_model_reference,
       eval_dataset=eval_dataset,
-  ).set_display_name('Validate Pipeline for Security')
+  ).set_display_name('Validate Pipeline Inputs')
 
   reward_model_pipeline = (
       (

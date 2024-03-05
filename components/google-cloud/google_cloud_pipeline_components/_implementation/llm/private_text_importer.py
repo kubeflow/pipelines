@@ -37,7 +37,7 @@ def private_text_importer(
     imported_data_path: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     instruction: str = '',
-    image_uri: str = utils.get_default_image_uri('text_importer_backup'),
+    image_uri: str = utils.get_default_image_uri('refined_cpu', ''),
     machine_type: str = 'e2-highmem-8',
     output_split_name: str = 'all',
     max_num_input_examples: Optional[int] = None,
@@ -81,6 +81,7 @@ def private_text_importer(
           machine_type=machine_type,
           image_uri=_resolve_image(image_uri),
           args=[
+              '--app_name=text_importer',
               f'--input_text={input_text}',
               f'--inputs_field_name={inputs_field_name}',
               f'--targets_field_name={targets_field_name}',
