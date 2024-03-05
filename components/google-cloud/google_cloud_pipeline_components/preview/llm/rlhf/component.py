@@ -167,6 +167,7 @@ def rlhf_pipeline(
           prompt_sequence_length=prompt_sequence_length,
           target_sequence_length=target_sequence_length,
           instruction=instruction,
+          encryption_spec_key_name=encryption_spec_key_name,
       )
 
   llm_model_handler = deployment_graph.pipeline(
