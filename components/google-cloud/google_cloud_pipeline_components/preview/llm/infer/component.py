@@ -42,6 +42,7 @@ def infer_pipeline(
     instruction: Optional[str] = None,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
+    encryption_spec_key_name: str = '',
 ) -> PipelineOutput:
   # fmt: off
   """Uses a large-language model to perform bulk inference on a prompt dataset.
@@ -56,6 +57,7 @@ def infer_pipeline(
     instruction: This field lets the model know what task it needs to perform. Base models have been trained over a large set of varied instructions. You can give a simple and intuitive description of the task and the model will follow it, e.g. "Classify this movie review as positive or negative" or "Translate this sentence to Danish". Do not specify this if your dataset already prepends the instruction to the inputs field.
     project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
     location: Location used to run custom jobs. If not specified the location used to run the pipeline will be used.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
 
   Returns:
     Cloud storage path to output predictions.
@@ -94,6 +96,7 @@ def infer_pipeline(
               'large_model_reference'
           ],
           instruction=resolved_text_instruction.output,
+          encryption_spec_key_name=encryption_spec_key_name,
       )
       .set_display_name('Import Prompt Dataset')
       .set_caching_options(False)
@@ -118,6 +121,7 @@ def infer_pipeline(
       accelerator_count=machine_spec.outputs['accelerator_count'],
       machine_type=machine_spec.outputs['machine_type'],
       image_uri=bulk_inferrer_image_uri.output,
+      encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Bulk Inferrer')
 
   return PipelineOutput(
