@@ -475,6 +475,24 @@ func extendPodSpecPatch(
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volumeMounts...)
 	}
 
+	// Get image pull policy
+	pullPolicy := kubernetesExecutorConfig.GetImagePullPolicy()
+	if pullPolicy != "" {
+		policies := []string{"Always", "Never", "IfNotPresent"}
+		found := false
+		for _, value := range policies {
+			if value == pullPolicy {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("unsupported value: %s. ImagePullPolicy should be one of 'Always', 'Never' or 'IfNotPresent'", pullPolicy)
+		}
+		// We assume that the user container always gets executed first within a pod.
+		podSpec.Containers[0].ImagePullPolicy = k8score.PullPolicy(pullPolicy)
+	}
+
 	// Get node selector information
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {
 		podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()

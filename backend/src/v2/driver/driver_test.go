@@ -1027,3 +1027,83 @@ func Test_extendPodSpecPatch_ActiveDeadlineSeconds(t *testing.T) {
 		})
 	}
 }
+
+func Test_extendPodSpecPatch_ImagePullPolicy(t *testing.T) {
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		podSpec    *k8score.PodSpec
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - Always",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullPolicy: "Always",
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name:            "main",
+						ImagePullPolicy: "Always",
+					},
+				},
+			},
+		},
+		{
+			"Valid - IfNotPresent",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullPolicy: "IfNotPresent",
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name:            "main",
+						ImagePullPolicy: "IfNotPresent",
+					},
+				},
+			},
+		},
+		{
+			"Valid - Never",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullPolicy: "Never",
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name:            "main",
+						ImagePullPolicy: "Never",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := extendPodSpecPatch(tt.podSpec, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expected, tt.podSpec)
+		})
+	}
+}
