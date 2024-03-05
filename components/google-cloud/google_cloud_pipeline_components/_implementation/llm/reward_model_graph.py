@@ -95,9 +95,6 @@ def pipeline(
       ).set_display_name('Preprocess Prompt Dataset')
   )
 
-  preference_dataset_image_uri = function_based.resolve_private_image_uri(
-      image_name='text_comparison_importer'
-  ).set_display_name('Resolve Preference Dataset Image URI')
   comma_separated_candidates_field_names = (
       function_based.convert_to_delimited_string(items=candidate_columns)
   )
@@ -115,7 +112,6 @@ def pipeline(
           large_model_reference=reference_model_metadata.outputs[
               'reward_model_reference'
           ],
-          image_uri=preference_dataset_image_uri.output,
           instruction=instruction,
           encryption_spec_key_name=encryption_spec_key_name,
       )
@@ -123,10 +119,8 @@ def pipeline(
       .set_caching_options(False)
   )
 
-  reward_model_image_uri = function_based.resolve_private_image_uri(
-      image_name='reward_model',
+  reward_model_image_uri = function_based.resolve_private_refined_image_uri(
       accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
   ).set_display_name('Resolve Reward Model Image URI')
   num_microbatches = function_based.resolve_num_microbatches(
       large_model_reference=reference_model_metadata.outputs[

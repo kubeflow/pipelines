@@ -590,6 +590,25 @@ func extendPodSpecPatch(
 		podSpec.ImagePullSecrets = append(podSpec.ImagePullSecrets, k8score.LocalObjectReference{Name: imagePullSecret.GetSecretName()})
 	}
 
+	// Get Kubernetes FieldPath Env information
+	for _, fieldPathAsEnv := range kubernetesExecutorConfig.GetFieldPathAsEnv() {
+		fieldPathEnvVar := k8score.EnvVar{
+			Name: fieldPathAsEnv.GetName(),
+			ValueFrom: &k8score.EnvVarSource{
+				FieldRef: &k8score.ObjectFieldSelector{
+					FieldPath: fieldPathAsEnv.GetFieldPath(),
+				},
+			},
+		}
+		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, fieldPathEnvVar)
+	}
+
+	// Get container timeout information
+	timeout := kubernetesExecutorConfig.GetActiveDeadlineSeconds()
+	if timeout > 0 {
+		podSpec.ActiveDeadlineSeconds = &timeout
+	}
+
 	return nil
 }
 

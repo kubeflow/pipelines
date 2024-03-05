@@ -91,10 +91,6 @@ def pipeline(
       large_model_reference=large_model_reference,
   ).set_display_name('Resolve Model Metadata')
 
-  prompt_dataset_image_uri = function_based.resolve_private_image_uri(
-      image_name='text_importer',
-  ).set_display_name('Resolve Prompt Dataset Image URI')
-
   processed_dataset = preprocess_chat_dataset.preprocess_chat_dataset(
       large_model_reference=large_model_reference,
       input_dataset_uri=prompt_dataset,
@@ -113,17 +109,14 @@ def pipeline(
           large_model_reference=reference_model_metadata.outputs[
               'large_model_reference'
           ],
-          image_uri=prompt_dataset_image_uri.output,
           instruction=instruction,
           encryption_spec_key_name=encryption_spec_key_name,
       )
       .set_display_name('Import Prompt Dataset')
       .set_caching_options(False)
   )
-  rl_image_uri = function_based.resolve_private_image_uri(
-      image_name='reinforcer',
+  rl_image_uri = function_based.resolve_private_refined_image_uri(
       accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
   ).set_display_name('Resolve Reinforcer Image URI')
   num_microbatches = function_based.resolve_num_microbatches(
       large_model_reference=reference_model_metadata.outputs[

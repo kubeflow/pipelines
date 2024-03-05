@@ -720,7 +720,7 @@ class TestTypeChecking(parameterized.TestCase):
                     loop_argument=for_loop.LoopParameterArgument
                     .from_pipeline_channel(
                         pipeline_channel.create_pipeline_channel(
-                            'Output-loop-item', 'String',
+                            'Output-loop-item', 'List[str]',
                             'list-dict-without-type-maker-5')),
                     subvar_name='a'),
             'parameter_input_spec':
@@ -732,7 +732,7 @@ class TestTypeChecking(parameterized.TestCase):
             'argument_value':
                 for_loop.LoopParameterArgument.from_pipeline_channel(
                     pipeline_channel.create_pipeline_channel(
-                        'Output-loop-item', 'String',
+                        'Output-loop-item', 'List[int]',
                         'list-dict-without-type-maker-5')),
             'parameter_input_spec':
                 structures.InputSpec('Integer'),

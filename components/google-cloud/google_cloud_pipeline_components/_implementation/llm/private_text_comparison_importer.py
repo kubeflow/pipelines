@@ -28,9 +28,9 @@ def private_text_comparison_importer(
     choice_field_name: str,
     split: str,
     large_model_reference: str,
-    image_uri: str,
     output_dataset_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    image_uri: str = utils.get_default_image_uri('refined_cpu', ''),
     machine_type: str = 'e2-highmem-8',
     instruction: str = '',
     encryption_spec_key_name: str = '',
@@ -53,7 +53,7 @@ def private_text_comparison_importer(
       this component tokenizes and then caches the tokenized tasks.
     machine_type: The type of the machine to provision for the custom job.
     instruction: Optional instruction to prepend to inputs field.
-    image_uri: Location of the text comparison importer image.
+    image_uri: Optional location of the text comparison importer image.
     dataflow_worker_image_uri: Location of the Dataflow worker image.
     encryption_spec_key_name: Customer-managed encryption key. If this is set,
       then all resources created by the CustomJob will be encrypted with the
@@ -72,6 +72,7 @@ def private_text_comparison_importer(
           machine_type=machine_type,
           image_uri=image_uri,
           args=[
+              '--app_name=text_comparison_importer',
               f'--input_text={input_text}',
               f'--inputs_field_name={inputs_field_name}',
               f'--comma_separated_candidates_field_names={comma_separated_candidates_field_names}',

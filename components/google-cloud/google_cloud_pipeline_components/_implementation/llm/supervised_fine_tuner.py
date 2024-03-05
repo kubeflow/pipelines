@@ -86,6 +86,7 @@ def supervised_fine_tuner(
           machine_type=machine_type,
           image_uri=image_uri,
           args=[
+              '--app_name=supervised_fine_tuner',
               f'--input_model_path={input_model_path}',
               f'--train_steps={train_steps}',
               f'--inputs_sequence_length={inputs_sequence_length}',

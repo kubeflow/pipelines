@@ -90,6 +90,7 @@ def reward_model_trainer(
           machine_type=machine_type,
           image_uri=image_uri,
           args=[
+              '--app_name=reward_model_trainer',
               f'--train_steps={train_steps}',
               f'--input_model_path={input_model_path}',
               f'--input_dataset_path={input_dataset_path}',

@@ -873,6 +873,161 @@ func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
 	}
 }
 
+func Test_extendPodSpecPatch_FieldPathAsEnv(t *testing.T) {
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - FieldPathAsEnv",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				FieldPathAsEnv: []*kubernetesplatform.FieldPathAsEnv{
+					{Name: "KFP_RUN_NAME", FieldPath: "metadata.annotations['pipelines.kubeflow.org/run_name']"},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						Env: []k8score.EnvVar{
+							{
+								Name: "KFP_RUN_NAME",
+								ValueFrom: &k8score.EnvVarSource{
+									FieldRef: &k8score.ObjectFieldSelector{
+										FieldPath: "metadata.annotations['pipelines.kubeflow.org/run_name']",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - Mix env values",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsEnv: []*kubernetesplatform.SecretAsEnv{
+					{
+						SecretName: "my-secret",
+						KeyToEnv: []*kubernetesplatform.SecretAsEnv_SecretKeyToEnvMap{
+							{
+								SecretKey: "password",
+								EnvVar:    "SECRET_VAR",
+							},
+						},
+					},
+				},
+				FieldPathAsEnv: []*kubernetesplatform.FieldPathAsEnv{
+					{Name: "KFP_RUN_NAME", FieldPath: "metadata.annotations['pipelines.kubeflow.org/run_name']"},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						Env: []k8score.EnvVar{
+							{
+								Name: "SECRET_VAR",
+								ValueFrom: &k8score.EnvVarSource{
+									SecretKeyRef: &k8score.SecretKeySelector{
+										k8score.LocalObjectReference{Name: "my-secret"},
+										"password",
+										nil,
+									},
+								},
+							},
+							{
+								Name: "KFP_RUN_NAME",
+								ValueFrom: &k8score.EnvVarSource{
+									FieldRef: &k8score.ObjectFieldSelector{
+										FieldPath: "metadata.annotations['pipelines.kubeflow.org/run_name']",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+			err := extendPodSpecPatch(got, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func Test_extendPodSpecPatch_ActiveDeadlineSeconds(t *testing.T) {
+	var timeoutSeconds int64 = 20
+	var NegativeTimeoutSeconds int64 = -20
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - With ActiveDeadlineSeconds",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ActiveDeadlineSeconds: timeoutSeconds,
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				ActiveDeadlineSeconds: &timeoutSeconds,
+			},
+		},
+		{
+			"Valid - Negative input ignored",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ActiveDeadlineSeconds: NegativeTimeoutSeconds,
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+		{
+			"Valid - No ActiveDeadlineSeconds",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+			err := extendPodSpecPatch(got, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
 func Test_extendPodSpecPatch_ImagePullPolicy(t *testing.T) {
 	tests := []struct {
 		name       string
