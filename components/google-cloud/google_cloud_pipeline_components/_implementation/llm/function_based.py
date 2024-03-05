@@ -79,27 +79,24 @@ def resolve_machine_spec(
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def resolve_image_uri(
-    image_name: str,
+def resolve_refined_image_uri(
     project: str,
     location: str,
     artifact_registry: str,
-    image_name_prefix: str,
     tag: str,
     accelerator_type: str = '',
-    accelerator_count: int = 0,
+    use_experimental_image: bool = False,
 ) -> str:
   """Generates image uri based on base image name and accelerator type.
 
   Args:
-    image_name: Base image name, e.g. ``'sft'`` or ``'reward_model'``.
     project: Project that contains the artifact registry.
     location: Region that contains the artifact registry.
     artifact_registry: Registry that contains Docker images.
-    image_name_prefix: Text to prepend to the base image name.
     tag: Image tag.
     accelerator_type: One of the supported accelerator types, e.g. ``'TPU_V3'``.
-    accelerator_count: Number of accelerators.
+    use_experimental_image: Whether to use refined experimental image. Default
+      is False.
 
   Returns:
     Docker image uri
@@ -107,41 +104,32 @@ def resolve_image_uri(
   Raises:
     ValueError: if an unsupported accelerator type is provided.
   """
-  cpu_only_images = {
-      'text_importer',
-      'text_comparison_importer',
-  }
-
-  if image_name in cpu_only_images:
-    accelerator_postfix = ''
-  elif accelerator_type == 'TPU_V3':
-    accelerator_postfix = '_tpu'
-  elif accelerator_type == 'NVIDIA_A100_80GB' and accelerator_count == 8:
-    accelerator_postfix = '_gpu_test'
+  if not accelerator_type:
+    accelerator_postfix = 'cpu'
+  elif 'TPU' in accelerator_type:
+    accelerator_postfix = 'tpu'
+  elif 'A100' in accelerator_type:
+    accelerator_postfix = 'gpu'
   else:
-    accelerator_postfix = '_gpu'
+    raise ValueError(
+        f'Unsupported accelerator type {accelerator_type}. Must a TPU, an A100'
+        'variant or empty if using a CPU-only machine.'
+    )
 
-  backup_images = {
-      'sft',
-      'reward_model',
-      'reinforcer',
-      'infer',
-      'text_importer',
-      'text_comparison_importer',
-  }
-  if image_name in backup_images and accelerator_postfix != '_gpu_test':
-    accelerator_postfix += '_backup'
-  return f'{location}-docker.pkg.dev/{project}/{artifact_registry}/{image_name_prefix}{image_name}{accelerator_postfix}:{tag}'
+  image_name_prefix = 'refined_'
+  if use_experimental_image:
+    image_name_prefix += 'experimental_'
+
+  return f'{location}-docker.pkg.dev/{project}/{artifact_registry}/{image_name_prefix}{accelerator_postfix}:{tag}'
 
 
 # Resolves image uri from the environment's private artifact registry.
 # By default this resolves an image in the vertex private registry.
-resolve_private_image_uri = functools.partial(
-    resolve_image_uri,
+resolve_private_refined_image_uri = functools.partial(
+    resolve_refined_image_uri,
     project=env.PRIVATE_ARTIFACT_REGISTRY_PROJECT,
     location=env.PRIVATE_ARTIFACT_REGISTRY_LOCATION,
     artifact_registry=env.PRIVATE_ARTIFACT_REGISTRY,
-    image_name_prefix=env.PRIVATE_IMAGE_NAME_PREFIX,
     tag=env.get_private_image_tag(),
 )
 
