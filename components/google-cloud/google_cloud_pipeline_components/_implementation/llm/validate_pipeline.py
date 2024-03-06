@@ -13,7 +13,7 @@
 # limitations under the License.
 """KFP Component for validate_pipeline."""
 
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import _placeholders
@@ -22,59 +22,62 @@ from kfp import dsl
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def validate_pipeline(
-    large_model_reference: str,
     location: str,
     encryption_spec_key_name: str = '',
     machine_type: str = '',
-    pipeline_region: str = '{{$.pipeline_google_cloud_location}}',
     eval_dataset: Optional[str] = None,
-):
+) -> NamedTuple('PreprocessedInputs', reward_model_eval_dataset=str):
   # fmt: off
-  """Validate and preprocess pipeline parameters.
+  """Validates and preprocesses RLHF pipeline parameters.
 
   Args:
-      large_model_reference: Name of the base model. Supported values are
-      `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`.
-      `text-bison@001` and `t5-small` are supported in `us-central1` and
-      `europe-west4`.
-      location: Region in which all the components except for tuning job should
-        run.
-      encryption_spec_key_name: If set, CMEK support will be validated.
-      machine_type: If 'tpu' is specified, tuning runs in
-      europe-west4, else in us-central1.
-      pipeline_region: The region the pipeline runs in.
-      eval_dataset: Optional Cloud storage path to an evaluation dataset. Note,
-      eval dataset can only be provided for third-party models. If provided,
-      inference will be performed on this dataset after training. The dataset
-      format is jsonl. Each example in the dataset must contain a field
-      `input_text` that contains the prompt.
+    location: Region where all jobs run.
+    encryption_spec_key_name: If set, CMEK support will be validated.
+    machine_type: Machine used to run training jobs.
+    eval_dataset: Optional Cloud storage path to an evaluation dataset. The format should match that of the preference dataset.
+    pipeline_location: Region where the pipeline is running.
+
+  Returns:
+    reward_model_eval_dataset: Path to evaluation dataset to use when training a reward model.
   """
   # fmt: on
+  # pylint: disable=g-import-not-at-top,import-outside-toplevel
+  import json
   import logging
+  import re
   import sys
+  import glob
+  # pylint: enable=g-import-not-at-top,import-outside-toplevel
+  outputs = NamedTuple(
+      'PreprocessedInputs',
+      reward_model_eval_dataset=str,
+  )
 
   try:
-    models_that_support_bulk_inference = {
-        't5-small',
-        't5-large',
-        't5-xl',
-        't5-xxl',
-        'llama-2-7b',
-        'llama-2-7b-chat',
-        'llama-2-13b',
-        'llama-2-13b-chat',
-    }
-    if (
-        eval_dataset
-        and large_model_reference not in models_that_support_bulk_inference
-    ):
-      raise ValueError(
-          f'eval_dataset not supported for {large_model_reference}. '
-          'Please set this value to None when tuning this model. '
-          'This model can be evaluated after tuning using Batch or Online '
-          'Prediction.'
-      )
+    # [ Set eval_dataset
+    eval_dataset = eval_dataset or ''
+    gcs_eval_dataset_uri = re.sub('^gs://', '/gcs/', eval_dataset)
+    files_in_folder = glob.glob(gcs_eval_dataset_uri)
+    if not files_in_folder:
+      eval_dataset = ''
+    else:
+      first_file = files_in_folder[0]
+      required_fields = ('candidate_0', 'candidate_1', 'choice')
+      oneof_fields = {'input_text', 'messages'}
+      max_lines_to_check = 100
+      with open(first_file, 'r') as inputs:
+        for i, line in enumerate(inputs):
+          json_data = json.loads(line)
+          is_valid_preference_data = all(
+              field in json_data for field in required_fields
+          ) and any(oneof_field in json_data for oneof_field in oneof_fields)
+          if not is_valid_preference_data:
+            eval_dataset = ''
+          if not eval_dataset or i >= max_lines_to_check:
+            break
+    # ]
 
+    # [ Check CMEK
     if 'gpu' in machine_type:
       accelerator_type = 'GPU'
     elif 'tpu' in machine_type:
@@ -86,13 +89,11 @@ def validate_pipeline(
         'europe-west4',
         'us-central1',
     }
-    if pipeline_region not in supported_pipeline_regions:
+    if location not in supported_pipeline_regions:
       raise ValueError(
-          f'Unsupported pipeline region: {pipeline_region}. Must be one of'
+          f'Unsupported pipeline region: {location}. Must be one of'
           f' {supported_pipeline_regions}.'
       )
-
-    location = pipeline_region if not location else location
 
     valid_cmek_config = location == 'us-central1' and accelerator_type == 'GPU'
     if encryption_spec_key_name and not valid_cmek_config:
@@ -101,6 +102,10 @@ def validate_pipeline(
           ' in us-central1. Please either unset encryption_spec_key_name or'
           ' create your pipeline in us-central1 to use GPU instead.'
       )
+    # CMEK ]
+
+    return outputs(reward_model_eval_dataset=eval_dataset)
+
   except Exception as e:  # pylint: disable=broad-exception-caught
     if isinstance(e, ValueError):
       raise
