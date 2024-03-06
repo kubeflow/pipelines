@@ -82,11 +82,6 @@ def rlhf_pipeline(
     endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
   # fmt: on
-  reward_model_eval_dataset = function_based.validate_rlhf_inputs(
-      large_model_reference=large_model_reference,
-      eval_dataset=eval_dataset,
-  ).set_display_name('Validate Inputs')
-
   # LoRA dim for reward model
   reward_lora_dim = 4
 
@@ -95,12 +90,11 @@ def rlhf_pipeline(
   ).set_display_name('Resolve Machine Spec')
 
   validate_pipeline_task = validate_pipeline.validate_pipeline(
-      machine_type=machine_spec.outputs['machine_type'],
       location=location,
       encryption_spec_key_name=encryption_spec_key_name,
-      large_model_reference=large_model_reference,
+      machine_type=machine_spec.outputs['machine_type'],
       eval_dataset=eval_dataset,
-  ).set_display_name('Validate Pipeline Inputs')
+  ).set_display_name('Validate Inputs')
 
   reward_model_pipeline = (
       (
@@ -109,7 +103,9 @@ def rlhf_pipeline(
               large_model_reference=large_model_reference,
               prompt_sequence_length=prompt_sequence_length,
               target_sequence_length=target_sequence_length,
-              eval_dataset=reward_model_eval_dataset.output,
+              eval_dataset=validate_pipeline_task.outputs[
+                  'reward_model_eval_dataset'
+              ],
               instruction=instruction,
               reward_model_learning_rate_multiplier=reward_model_learning_rate_multiplier,
               reward_model_train_steps=reward_model_train_steps,
