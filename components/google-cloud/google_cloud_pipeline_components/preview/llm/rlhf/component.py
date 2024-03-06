@@ -71,7 +71,7 @@ def rlhf_pipeline(
     kl_coeff: Coefficient for KL penalty. This regularizes the policy model and penalizes if it diverges from its initial distribution. If set to 0, the reference language model is not loaded into memory. Default value is 0.1.
     instruction: This field lets the model know what task it needs to perform. Base models have been trained over a large set of varied instructions. You can give a simple and intuitive description of the task and the model will follow it, e.g. "Classify this movie review as positive or negative" or "Translate this sentence to Danish". Do not specify this if your dataset already prepends the instruction to the inputs field.
     deploy_model: Whether to deploy the model to an endpoint in `us-central1`. Default is True.
-    eval_dataset: Optional Cloud storage path to an evaluation dataset. Note, eval dataset can only be provided for third-party models. If provided, inference will be performed on this dataset after training. The dataset format is jsonl. Each example in the dataset must contain a field `input_text` that contains the prompt.
+    eval_dataset: Optional Cloud storage path to an evaluation dataset. The dataset format is jsonl. The evaluation dataset can be used to compute train-time metrics (when training a reward model) or perform bulk inference for third-party models. To compute train-time metrics this dataset must contain the same fields as the peference dataset. For bulk inference with third-party models only `input_text` is needed. Note, train-time metrics are only computed for the first 5000 samples in the dataset for efficient evaluation during training.
     project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
     location: Location used to run custom jobs. If not specified the location used to run the pipeline will be used.
     encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
@@ -82,6 +82,10 @@ def rlhf_pipeline(
     endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
   # fmt: on
+  reward_model_eval_dataset = function_based.validate_rlhf_inputs(
+      large_model_reference=large_model_reference,
+      eval_dataset=eval_dataset,
+  ).set_display_name('Validate Inputs')
 
   # LoRA dim for reward model
   reward_lora_dim = 4
@@ -105,6 +109,7 @@ def rlhf_pipeline(
               large_model_reference=large_model_reference,
               prompt_sequence_length=prompt_sequence_length,
               target_sequence_length=target_sequence_length,
+              eval_dataset=reward_model_eval_dataset.output,
               instruction=instruction,
               reward_model_learning_rate_multiplier=reward_model_learning_rate_multiplier,
               reward_model_train_steps=reward_model_train_steps,
@@ -118,7 +123,6 @@ def rlhf_pipeline(
       .set_display_name('Train Reward Model')
       .after(validate_pipeline_task)
   )
-
   rl_model_pipeline = reinforcement_learning_graph.pipeline(
       prompt_dataset=prompt_dataset,
       input_reward_model_path=reward_model_pipeline.outputs[
