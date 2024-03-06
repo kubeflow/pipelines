@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,23 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated as kfp
-from .output_a_directory import dir_pipeline, dir_pipeline_v2
+import kfp as kfp
+from .output_a_directory import dir_pipeline
 from kfp.samples.test.utils import run_pipeline_func, TestCase
 
 run_pipeline_func([
-    # Cannot test V2_ENGINE and V1_LEGACY using the same code.
-    # V2_ENGINE requires importing everything from v2 namespace.
-    # TestCase(
-    #     pipeline_func=dir_pipeline_v2,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-    # ),
-    # TestCase(
-    #     pipeline_func=dir_pipeline,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-    # ),
     TestCase(
         pipeline_func=dir_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
     ),
 ])
