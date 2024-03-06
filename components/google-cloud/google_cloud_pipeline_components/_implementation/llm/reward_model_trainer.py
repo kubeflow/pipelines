@@ -35,6 +35,7 @@ def reward_model_trainer(
     output_adapter_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     tensorboard_metrics: kfp.dsl.Output[kfp.dsl.Artifact],  # pytype: disable=unsupported-operands
     gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    eval_dataset_path: str = '',
     train_split: str = 'train',
     batch_size: int = 64,
     learning_rate_multiplier: float = 1.0,
@@ -49,6 +50,8 @@ def reward_model_trainer(
     location: Location used to run the job.
     input_model_path: Path to the base model to fine tune.
     input_dataset_path: Path to dataset to use to train a reward model.
+    eval_dataset_path: Path to eval dataset to use during the reward model
+      training.
     train_steps: Number of training steps. These are the number of steps on top
       of any steps used to train the base model.
     accelerator_type: Type of TPU accelerator. Can be either TPU_V2 or TPU_V3.
@@ -94,6 +97,7 @@ def reward_model_trainer(
               f'--train_steps={train_steps}',
               f'--input_model_path={input_model_path}',
               f'--input_dataset_path={input_dataset_path}',
+              f'--eval_dataset_path={eval_dataset_path}',
               f'--output_adapter_path={output_adapter_path}',
               f'--tensorboard_metrics_path={tensorboard_metrics.path}',
               f'--large_model_reference={large_model_reference}',

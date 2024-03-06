@@ -573,25 +573,32 @@ def get_empty_string() -> str:
 def validate_rlhf_inputs(
     large_model_reference: str,
     eval_dataset: Optional[str] = None,
-) -> None:
+) -> str:
   """Checks user-provided arguments are valid for the RLHF pipeline."""
-  models_that_support_bulk_inference = {
-      't5-small',
-      't5-large',
-      't5-xl',
-      't5-xxl',
-      'llama-2-7b',
-      'llama-2-7b-chat',
-      'llama-2-13b',
-      'llama-2-13b-chat',
-  }
-  if (
-      eval_dataset
-      and large_model_reference not in models_that_support_bulk_inference
-  ):
-    raise ValueError(
-        f'eval_dataset not supported for {large_model_reference}. '
-        'Please set this value to None when tuning this model. '
-        'This model can be evaluated after tuning using Batch or Online '
-        'Prediction.'
-    )
+  import json
+  import re
+  import glob
+
+  eval_dataset = eval_dataset or ''
+  gcs_eval_dataset_uri = re.sub('^gs://', '/gcs/', eval_dataset)
+  files_in_the_folder = glob.glob(gcs_eval_dataset_uri)
+  if not files_in_the_folder:
+    return ''
+  one_file = files_in_the_folder[0]
+  required_fields = ('input_text', 'candidate_0', 'candidate_1', 'choice')
+  is_valid_preference_data = True
+  remaining_lines_to_check = 100
+  empty_eval_dataset_for_reward_model = ''
+  with open(one_file, 'r') as inputs:
+    for line in inputs:
+      json_data = json.loads(line)
+      remaining_lines_to_check -= 1
+      is_valid_preference_data = is_valid_preference_data & all(
+          field in json_data for field in required_fields
+      )
+      if not is_valid_preference_data:
+        return empty_eval_dataset_for_reward_model
+      if remaining_lines_to_check == 0:
+        break
+
+  return eval_dataset
