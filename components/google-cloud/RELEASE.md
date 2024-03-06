@@ -3,6 +3,7 @@
 * Fix bug in `preview.llm.rlhf_pipeline` that caused wrong output artifact to be used for inference after training.
 * Fix issue where AutoSxS was not propagating location to all sub-components.
 * Add CMEK support to `preview.llm.infer_pipeline`.
+* Use `eval_dataset` for train-time evalutation when training a reward model. Requires `eval_dataset` to contain the same fields as the [preference dataset](https://cloud.google.com/vertex-ai/docs/generative-ai/models/tune-text-models-rlhf#human-preference-dataset).
 
 ## Release 2.10.0
 * Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.
