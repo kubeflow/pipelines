@@ -12,38 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.20.4-alpine3.17 as builder
+# Build arguments
+ARG SOURCE_CODE=.
 
-WORKDIR /go/src/github.com/kubeflow/pipelines
-COPY . .
+# Use ubi8/nodejs-14 as base image
+#@follow_tag(registry.access.redhat.com/ubi8/go-toolset:1.19)
+FROM registry.access.redhat.com/ubi8/go-toolset:1.19 as builder
 
-# Needed musl-dev for github.com/mattn/go-sqlite3
-RUN apk update && apk upgrade && \
-    apk add --no-cache bash git openssh gcc musl-dev
+## Build args to be used at this step
+ARG SOURCE_CODE
+
+## Switch to root as required for some operations
+USER root
+
+RUN dnf upgrade -y && \
+    dnf install -y bash \
+                   git \
+                   openssh \
+                   gcc && \
+    dnf clean all && rm -rf /var/cache/yum
+
+
+COPY ${SOURCE_CODE}/go.mod ./
+COPY ${SOURCE_CODE}/go.sum ./
+
+# Copy the source
+COPY ${SOURCE_CODE}/ ./
 
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
-# Check licenses and comply with license terms.
-RUN ./hack/install-go-licenses.sh
-# First, make sure there's no forbidden license.
-RUN go-licenses check ./backend/src/crd/controller/scheduledworkflow
-RUN go-licenses csv ./backend/src/crd/controller/scheduledworkflow > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv backend/third_party_licenses/swf.csv && \
-    go-licenses save ./backend/src/crd/controller/scheduledworkflow --save_path /tmp/NOTICES
 
-FROM alpine:3.17
-
-RUN apk --no-cache add tzdata
-
-RUN adduser -S appuser
-USER appuser
-
+#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:8.8)
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.8
 WORKDIR /bin
 
 COPY --from=builder /bin/controller /bin/controller
-# Copy licenses and notices.
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-COPY --from=builder /tmp/NOTICES /third_party/NOTICES
+RUN chmod +x /bin/controller
+
+RUN microdnf makecache && \
+     microdnf install -y tzdata.noarch
 
 ENV NAMESPACE ""
 
 CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE}
+
+LABEL name="ds-pipelines-scheduledworkflow" \
+      summary="DSP Scheduled Workflow Controller"
