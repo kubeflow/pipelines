@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"io"
 	"io/ioutil"
 	"math"
@@ -252,6 +253,17 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		glog.Infof("Samples already loaded in the past. Skip loading.")
 		return nil
 	}
+
+	pathExists, err := client.PathExists(*sampleConfigPath)
+	if err != nil {
+		return err
+	}
+
+	if !pathExists {
+		glog.Infof("No samples path provided, skipping loading samples..")
+		return nil
+	}
+
 	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to read sample configurations file. Err: %v", err)

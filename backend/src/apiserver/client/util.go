@@ -19,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"os"
 )
 
 func getKubernetesClientset(clientParams util.ClientParameters) (*kubernetes.Clientset, error) {
@@ -34,4 +35,16 @@ func getKubernetesClientset(clientParams util.ClientParameters) (*kubernetes.Cli
 		return nil, errors.Wrap(err, "Failed to initialize kubernetes client set")
 	}
 	return clientSet, nil
+}
+
+// PathExists exists returns whether the given file or directory exists
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
