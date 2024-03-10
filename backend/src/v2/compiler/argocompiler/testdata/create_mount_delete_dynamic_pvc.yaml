@@ -142,6 +142,16 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
     initContainers:
     - command:
       - launcher-v2
@@ -168,6 +178,16 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - emptyDir: { }
+      name: gcs-scratch
+    - emptyDir: { }
+      name: s3-scratch
+    - emptyDir: { }
+      name: minio-scratch
+    - emptyDir: { }
+      name: dot-local-scratch
+    - emptyDir: { }
+      name: dot-cache-scratch
   - dag:
       tasks:
       - arguments:
