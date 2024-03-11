@@ -180,7 +180,7 @@ type SecretAsVolume struct {
 	SecretName string `protobuf:"bytes,1,opt,name=secret_name,json=secretName,proto3" json:"secret_name,omitempty"`
 	// Container path to mount the Secret data.
 	MountPath string `protobuf:"bytes,2,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
-	// Specify whether the Secret must be defined.
+	// An optional boolean value indicating whether the Secret must be defined.
 	Optional *bool `protobuf:"varint,3,opt,name=optional,proto3,oneof" json:"optional,omitempty"`
 }
 
@@ -814,7 +814,7 @@ type ConfigMapAsVolume struct {
 	ConfigMapName string `protobuf:"bytes,1,opt,name=config_map_name,json=configMapName,proto3" json:"config_map_name,omitempty"`
 	// Container path to mount the ConfigMap data.
 	MountPath string `protobuf:"bytes,2,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
-	// Specify whether the ConfigMap must be defined.
+	// An optional boolean value indicating whether the ConfigMap must be defined.
 	Optional *bool `protobuf:"varint,3,opt,name=optional,proto3,oneof" json:"optional,omitempty"`
 }
 
