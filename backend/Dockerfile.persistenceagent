@@ -12,35 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.20.4-alpine3.17 as builder
+# Build arguments
+ARG SOURCE_CODE=.
+ARG CI_CONTAINER_VERSION="unknown"
 
-WORKDIR /go/src/github.com/kubeflow/pipelines
-COPY . .
 
-# Needed musl-dev for github.com/mattn/go-sqlite3
-RUN apk update && apk upgrade && \
-    apk add --no-cache bash git openssh gcc musl-dev
+# Use ubi8/go-toolset as base image
+#@follow_tag(registry.access.redhat.com/ubi8/go-toolset:1.20)
+FROM registry.access.redhat.com/ubi8/go-toolset:1.20 as builder
+
+## Build args to be used at this step
+ARG SOURCE_CODE
+
+USER root
+
+RUN dnf install -y bash git openssh gcc
+
+COPY ${SOURCE_CODE}/go.mod ./
+COPY ${SOURCE_CODE}/go.sum ./
+
+# Copy the source
+COPY ${SOURCE_CODE}/ ./
 
 RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
-# Check licenses and comply with license terms.
-RUN ./hack/install-go-licenses.sh
-# First, make sure there's no forbidden license.
-RUN go-licenses check ./backend/src/agent/persistence
-RUN go-licenses csv ./backend/src/agent/persistence > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
-    go-licenses save ./backend/src/agent/persistence --save_path /tmp/NOTICES
 
-FROM alpine:3.17
-
-RUN adduser -S appuser
-USER appuser
-
+#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:8.9)
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.9
 WORKDIR /bin
 
 COPY --from=builder /bin/persistence_agent /bin/persistence_agent
-# Copy licenses and notices.
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 
 ENV NAMESPACE ""
 
@@ -51,3 +51,7 @@ ENV TTL_SECONDS_AFTER_WORKFLOW_FINISH 86400
 ENV NUM_WORKERS 2
 
 CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS}
+
+LABEL name="ds-pipelines-persistenceagent" \
+      summary="DSP persistenceagent"
+
