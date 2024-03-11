@@ -30,7 +30,7 @@ def model_get(
 
   Args:
     project: Project from which to get the VertexModel. Defaults to the project in which the PipelineJob is run.
-    model_name: Vertex model resource name in the format of `projects/{project}/locations/{location}/models/{model}` or `projects/{project}/locations/{location}/models/{model}@{model_version_id or model_version_alias}`. If no version ID or alias is specified, the "default" version will be returned.
+    model_name: Specify the model name in one of the following formats: {model}: Fetches the default model version. {model}@{model_version_id}: Fetches the model version specified by its ID. {model}@{model_version_alias}: Fetches the model version specified by its alias.
     location: Location from which to get the VertexModel. Defaults to `us-central1`.
 
   Returns:
