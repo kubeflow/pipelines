@@ -278,6 +278,15 @@ def resolve_reference_model_metadata(
           reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
           is_supported=True,
       ),
+      'text-bison@002': reference_model_metadata(
+          large_model_reference='BISON_002',
+          reference_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/'
+          ),
+          reward_model_reference='BISON_002',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/',
+          is_supported=True,
+      ),
       'chat-bison@001': reference_model_metadata(
           large_model_reference='BISON',
           reference_model_path=(
@@ -444,7 +453,7 @@ def resolve_deploy_model(
     deploy_model: bool, large_model_reference: str
 ) -> bool:
   """Resolves runtime parameter that determines whether the tuned model should be deployed."""
-  supported_models = {'BISON'}
+  supported_models = {'BISON', 'BISON_002'}
   if deploy_model and large_model_reference in supported_models:
     return True
   return False
@@ -468,7 +477,7 @@ def value_exists(value: Optional[str] = None) -> bool:
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_upload_model(large_model_reference: str) -> bool:
   """Returns whether the model should be uploaded."""
-  supported_models = {'BISON'}
+  supported_models = {'BISON', 'BISON_002'}
   if large_model_reference in supported_models:
     return True
   return False
