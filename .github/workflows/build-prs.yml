@@ -124,7 +124,7 @@ jobs:
           FULLIMG_PERSISTENCEAGENT: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-persistenceagent:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_SCHEDULEDWORKFLOW: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-scheduledworkflow:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_METADATA_ENVOY: registry.redhat.io/openshift-service-mesh/proxyv2-rhel8:2.3.9-2
-          FULLIMG_METADATA_GRPC: quay.io/opendatahub/model-registry:latest
+          FULLIMG_METADATA_GRPC: quay.io/opendatahub/mlmd-grpc-server:latest
           FULLIMG_DRIVER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-driver:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_LAUNCHER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-launcher:${{ env.TARGET_IMAGE_TAG }}
         run: |
