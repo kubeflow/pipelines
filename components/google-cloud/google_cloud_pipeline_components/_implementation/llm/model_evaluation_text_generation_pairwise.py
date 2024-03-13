@@ -36,6 +36,7 @@ def model_evaluation_text_generation_pairwise(
     human_preference_column: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
+    encryption_spec_key_name: str = '',
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Compute AutoSXS metrics using judgments outputs from Arbiter.
 
@@ -45,6 +46,9 @@ def model_evaluation_text_generation_pairwise(
       value is an empty string if not be provided by users.
     project: Project to upload evaluation metrics to.
     location: Location to upload evaluation metrics to.
+    encryption_spec_key_name: Customer-managed encryption key options. If this
+      is set, then all resources created by the component will be encrypted with
+      the provided encryption key.
 
   Returns:
     autosxs_metrics: Autosxs win rate metrics and human alignment metrics.
@@ -66,6 +70,7 @@ def model_evaluation_text_generation_pairwise(
               f'--location={location}',
               '--executor_input={{$.json_escape[1]}}',
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
   )
