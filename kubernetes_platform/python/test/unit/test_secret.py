@@ -77,7 +77,7 @@ class TestUseSecretAsVolume:
             }
         }
 
-    def test_use_one_optiona_false(self):
+    def test_use_one_optional_false(self):
 
         @dsl.pipeline
         def my_pipeline():
