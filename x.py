@@ -130,7 +130,11 @@ def ModelGetOp(
             'location': location,
             'body': {
                 'name': {
+<<<<<<< Updated upstream
                     f'projects/{project}/locations/{location}/models/{model_name}'
+=======
+                    f'projects/{project}/locations/{location}/models/hotd{model_name}'
+>>>>>>> Stashed changes
                 }
             },
             'outputs': {
