@@ -46,6 +46,7 @@ def autosxs_pipeline(
     judgments_format: str = 'jsonl',
     bigquery_destination_prefix: str = '',
     experimental_args: Dict[str, Any] = {},
+    encryption_spec_key_name: str = '',
 ):
   # fmt: off
   """Evaluates two models side-by-side using an arbiter model.
@@ -69,6 +70,7 @@ def autosxs_pipeline(
     judgments_format: The format to write judgments to. Can be either `[json, bigquery]`.
     bigquery_destination_prefix: BigQuery table to write judgments to if the specified format is 'bigquery'.
     experimental_args: Experimentally released arguments. Subject to change.
+    encryption_spec_key_name: Customer-managed encryption key options. If this is set, then all resources created by the pipeline will be encrypted with the provided encryption key.
   """
   # fmt: on
   responses = batch_prediction_pairwise.batch_prediction_pairwise(
@@ -89,6 +91,7 @@ def autosxs_pipeline(
       experimental_args=experimental_args,
       project=project,
       location=location,
+      encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('AutoSxS Batch Prediction')
 
   winners = online_evaluation_pairwise.online_evaluation_pairwise(
@@ -103,6 +106,7 @@ def autosxs_pipeline(
       experimental_args=experimental_args,
       project=project,
       location=location,
+      encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('AutoSxS Autorater')
 
   model_evaluation_text_generation_pairwise.model_evaluation_text_generation_pairwise(
@@ -110,6 +114,7 @@ def autosxs_pipeline(
       human_preference_column=human_preference_column,
       project=project,
       location=location,
+      encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name(
       'AutoSxS Metrics'
   )
