@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+import "google/protobuf/struct.proto";
+import "google/dataflow/service/v1b3/templates.proto";
+import "google/cloud/aiplatform/master/model_service.proto";
+
+message ServerlessTask {
+    // Project in which to run the task.
+    string project = 1;
+    // Location in which to run the task.
+    string location = 2;
+    // Backend will write outputs to the component-specified location.
+    // The logic for determining the value of each output lives on the backend
+    // with the rest of the task implementation definition.
+    repeated Output outputs = 3;
+    // Which of the serverless tasks to run.
+    oneof task {
+        DataflowFlexTemplateJobOp dataflow_flex_template_job_op = 4;
+        ModelGetOp model_get_op = 5;
+        LLMTuningOp llm_tuning_op = 6;
+        // ... and more to come
+    }
+}
+
+message Output {
+    // An output specified by the component.
+    string key = 1;
+    // Where the output's value should be written.
+    string destination = 2;
+}
+
+// nest one-level to support additional non-payload fields in the future
+// and to slightly decouple from protos we don't own
+message DataflowFlexTemplateJobOp {
+    LaunchFlexTemplateRequest body = 1;
+}
+message ModelGetOp {
+    GetModelRequest body = 1;
+}
+message LLMTuningOp {
+    TuningJob body = 1;
+}
+
+message HttpTask {
+    string url = 1;
+    string body = 2;
+    string body = 2;
+
+}

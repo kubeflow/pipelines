@@ -39,7 +39,7 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
         runner: config.SubprocessRunner,
     ) -> None:
         self.validate_image(image)
-        self.validate_not_container_component(full_command)
+        # self.validate_not_container_component(full_command)
         self.validate_not_containerized_python_component(full_command)
 
         self.image = image

@@ -1,0 +1,53 @@
+# PIPELINE DEFINITION
+# Name: my-pipeline
+components:
+  comp-comp:
+    executorLabel: exec-comp
+    inputDefinitions:
+      parameters:
+        executor_input:
+          defaultValue: '{{$}}'
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        a:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-comp:
+      container:
+        args:
+        - "\ndef main():\n    import sys\n    import json\n    import os\n    \n \
+          \   executor_input = sys.argv[1]\n\n    my_custom_uri = 'gs://cjmccarthy-kfp-default-bucket/foo/bar/blah.txt'\n\
+          \    local_path = my_custom_uri.replace('gs://', '/gcs/')\n    \n    # write\
+          \ artifact\n    os.makedirs(os.path.dirname(local_path), exist_ok=True)\n\
+          \    with open(local_path, 'w+') as f:\n        f.write('my custom artifact')\n\
+          \n\n    # tell Pipelines backend where you wrote it\n    executor_input_struct\
+          \ = json.loads(executor_input)\n    artifact_to_override = executor_input_struct['outputs']['artifacts']['a']\n\
+          \    executor_output_path = executor_input_struct['outputs']['outputFile']\n\
+          \    artifact_to_override['artifacts'][0]['uri'] = my_custom_uri\n    updated_executor_output\
+          \ = {'artifacts': {'a': artifact_to_override}}\n    \n    os.makedirs(os.path.dirname(executor_output_path),\
+          \ exist_ok=True)\n    with open(executor_output_path, 'w+') as f:\n    \
+          \    json.dump(updated_executor_output, f)\n\nmain()\n"
+        - '{{$.inputs.parameters[''executor_input'']}}'
+        command:
+        - python
+        - -c
+        image: python:3.8
+pipelineInfo:
+  name: my-pipeline
+root:
+  dag:
+    tasks:
+      comp:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-comp
+        taskInfo:
+          name: comp
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
