@@ -1,3 +1,4 @@
+import json
 from typing import *
 
 from kfp import dsl
@@ -48,8 +49,6 @@ def DataflowFlexTemplateJobOp(
             'project': project,
             'location': location,
             'outputs': {
-                # backend handles persisting outputs
-                # TODO: detail how you could add new outputs with this approach
                 'gcp_resources': gcp_resources
             },
             'body': {
@@ -130,15 +129,62 @@ def ModelGetOp(
             'location': location,
             'body': {
                 'name': {
-<<<<<<< Updated upstream
                     f'projects/{project}/locations/{location}/models/{model_name}'
-=======
-                    f'projects/{project}/locations/{location}/models/hotd{model_name}'
->>>>>>> Stashed changes
                 }
             },
             'outputs': {
                 'model': model
+            },
+        })
+
+
+# 1: return full model
+# cons:
+# - asymmetrtical interface: curated set of inputs, but full blob output
+# - breaking change for return
+
+# 2: return select fields
+# cons:
+# - expressiveness limitations? need to express name/URI/metadata declaratively
+
+# 3: return full
+# cons: curated set of inputs, but full blob output
+
+
+@dsl.container_component
+def ModelGetOp(
+    model: dsl.Output[VertexModel],
+    model_name: str,
+    project: str = PROJECT_ID_PLACEHOLDER,
+    location: str = 'us-central1',
+):
+    # use $response to represent the response variable to which the CEL is applied
+    name = model.name
+    uri = f'https://{location}-aiplatform.googleapis.com/v1/ + $response.name'
+    metadata = {'resourceName': '$response.name'}
+    return dsl.PlatformComponent(
+        platform='google_cloud',
+        config={
+            'task_type':
+                'http',
+            'method':
+                'GET',
+            'endpoint':
+                f'https://{location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/models/{model_name}',
+            'outputs': {
+                'parameters': {
+                    'example_param': {
+                        'destination': model,
+                        'cel': '$response.name',
+                    },
+                    'artifacts': {
+                        'model': [{
+                            'name': name,
+                            'uri': uri,
+                            'metadata': metadata,
+                        }]
+                    }
+                }
             },
         })
 
@@ -267,26 +313,42 @@ def DataflowFlexTemplateJobOp(
 # no obvious way to instruct the backend to parse the body to create outputs
 
 
-@dsl.container_component
-def ModelGetOp(
-    model: dsl.Output[VertexModel],
-    model_name: str,
-    project: str = PROJECT_ID_PLACEHOLDER,
+@kfp.platforms.platform_component
+def TuningOp(
+    model_template: str,
+    finetuning_steps: int,
+    inputs_length: int,
+    targets_length: int,
+    accelerator_count: int = 8,
+    replica_count: int = 1,
+    gcp_resources: dsl.OutputPath(str),
+    saved_model: dsl.Output[dsl.Artifact],
+    project: str,
     location: str = 'us-central1',
+    accelerator_type: str = 'TPU_V2',
+    machine_type: str = 'cloud-tpu',
 ):
-    return dsl.PlatformComponent(
+    return kfp.platforms.PlatformComponent(
         platform='google_cloud',
         config={
             'project': project,
             'location': location,
-            'model_get_op': {
-                'body': {
-                    'name': {
-                        f'projects/{project}/locations/{location}/models/{model_name}'
-                    }
-                }
+            'tuning_op': {
+                # in practice this will not be a flat struct
+                'model_template': model_template,
+                'finetuning_steps': finetuning_steps,
+                'inputs_length': inputs_length,
+                'targets_length': targets_length,
+                'accelerator_count': accelerator_count,
+                'replica_count': replica_count,
+                'accelerator_type': accelerator_type,
+                'machine_type': machine_type,
             },
             'outputs': {
-                'model': model
+                'gcp_resources': gcp_resources,
+                'saved_model': saved_model,
+                'saved_model': saved_model,
             },
+            # include version, since is no longer provided by the GCPC image tag
+            'version': gcpc.__version__,
         })
