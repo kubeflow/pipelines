@@ -49,7 +49,7 @@
 #    test_fraction: float [Default: -1.0]
 #    tf_auto_transform_features: dict
 #    tf_custom_transformation_definitions: list
-#    tf_transform_execution_engine: str [Default: 'bigquery']
+#    tf_transform_execution_engine: str [Default: '']
 #    tf_transformations_path: str [Default: '']
 #    training_fraction: float [Default: -1.0]
 #    transform_dataflow_disk_size_gb: int [Default: 40.0]
@@ -3819,7 +3819,7 @@ root:
         isOptional: true
         parameterType: LIST
       tf_transform_execution_engine:
-        defaultValue: bigquery
+        defaultValue: ''
         description: 'Execution engine to run TF-based
 
           transformations. Currently supports "dataflow" or "bigquery"'
