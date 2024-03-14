@@ -1,5 +1,4 @@
 ## Upcoming release
-* Add `v1.automl.forecasting.learn_to_learn_forecasting_pipeline`, `v1.automl.forecasting.sequence_to_sequence_forecasting_pipeline`, `v1.automl.forecasting.temporal_fusion_transformer_forecasting_pipeline`, `v1.automl.forecasting.time_series_dense_encoder_forecasting_pipeline` as Forecasting on Pipelines moves to GA.
 * Fix bug in `preview.llm.rlhf_pipeline` that caused wrong output artifact to be used for inference after training.
 * Fix issue where AutoSxS was not propagating location to all sub-components.
 * Add CMEK support to `preview.llm.infer_pipeline`.
