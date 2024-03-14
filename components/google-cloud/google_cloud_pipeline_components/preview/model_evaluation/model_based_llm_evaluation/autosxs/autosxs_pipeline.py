@@ -13,13 +13,21 @@
 # limitations under the License.
 """Optimization AI Inference and AutoSxS pipeline function."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, NamedTuple
 
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.llm import batch_prediction_pairwise
 from google_cloud_pipeline_components._implementation.llm import model_evaluation_text_generation_pairwise
 from google_cloud_pipeline_components._implementation.llm import online_evaluation_pairwise
 from kfp import dsl
+
+PipelineOutput = NamedTuple(
+    'Outputs',
+    model_a_evaluation_resource_name=str,
+    model_b_evaluation_resource_name=str,
+    evaluation_count=int,
+    evaluation_dataset_path=str,
+)
 
 
 # pylint: disable=dangerous-default-value,g-bare-generic,unused-argument
@@ -47,7 +55,7 @@ def autosxs_pipeline(
     bigquery_destination_prefix: str = '',
     experimental_args: Dict[str, Any] = {},
     encryption_spec_key_name: str = '',
-):
+) -> PipelineOutput:
   # fmt: off
   """Evaluates two models side-by-side using an arbiter model.
 
@@ -71,6 +79,12 @@ def autosxs_pipeline(
     bigquery_destination_prefix: BigQuery table to write judgments to if the specified format is 'bigquery'.
     experimental_args: Experimentally released arguments. Subject to change.
     encryption_spec_key_name: Customer-managed encryption key options. If this is set, then all resources created by the pipeline will be encrypted with the provided encryption key.
+
+  Returns:
+    model_a_evaluation_resource_name: The path to write the ModelEvaluation for Model A to if Model A is a ModelRegistry Model.
+    model_b_evaluation_resource_name: The path to write the ModelEvaluation for Model B to if Model B is a ModelRegistry Model.
+    evaluation_count: The count of how many evaluations were included for this AutoSxS run.
+    evaluation_dataset_path: The path to the overall evaluation dataset including judgments.
   """
   # fmt: on
   responses = batch_prediction_pairwise.batch_prediction_pairwise(
@@ -109,12 +123,29 @@ def autosxs_pipeline(
       encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('AutoSxS Autorater')
 
-  model_evaluation_text_generation_pairwise.model_evaluation_text_generation_pairwise(
+  metrics = model_evaluation_text_generation_pairwise.model_evaluation_text_generation_pairwise(
       judgments_dir=winners.outputs['judgments_uri'],
       human_preference_column=human_preference_column,
       project=project,
       location=location,
       encryption_spec_key_name=encryption_spec_key_name,
+      model_a=model_a,
+      model_b=model_b,
+      evaluation_dataset=evaluation_dataset,
+      evaluation_dataset_metadata=winners.outputs['metadata'],
+      task=task,
   ).set_display_name(
       'AutoSxS Metrics'
+  )
+
+  return PipelineOutput(
+      model_a_evaluation_resource_name=metrics.outputs[
+          'model_a_evaluation_path'
+      ],
+      model_b_evaluation_resource_name=metrics.outputs[
+          'model_b_evaluation_path'
+      ],
+      evaluation_count=metrics.outputs['evaluation_count_path'],
+      # Needs to be a component output
+      evaluation_dataset_path=metrics.outputs['evaluation_dataset_path'],
   )
