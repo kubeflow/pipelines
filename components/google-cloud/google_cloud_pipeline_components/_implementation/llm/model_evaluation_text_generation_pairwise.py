@@ -33,15 +33,24 @@ def model_evaluation_text_generation_pairwise(
     judgments_dir: str,
     autosxs_metrics: dsl.Output[dsl.Metrics],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    model_a_evaluation_path: dsl.OutputPath(str),  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
+    model_b_evaluation_path: dsl.OutputPath(str),  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
+    evaluation_count_path: dsl.OutputPath(int),  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
+    evaluation_dataset_path: dsl.OutputPath(str),  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
     human_preference_column: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     encryption_spec_key_name: str = '',
+    model_a: str = '',
+    model_b: str = '',
+    evaluation_dataset: str = '',
+    evaluation_dataset_metadata: str = '',  # pylint: disable=unused-argument
+    task: str = '',
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Compute AutoSXS metrics using judgments outputs from Arbiter.
 
   Args:
-    judgments_dir: Path where store the Judgments.
+    judgments_dir: Path to store the Judgments.
     human_preference_column: The column containing ground truths. The default
       value is an empty string if not be provided by users.
     project: Project to upload evaluation metrics to.
@@ -49,10 +58,23 @@ def model_evaluation_text_generation_pairwise(
     encryption_spec_key_name: Customer-managed encryption key options. If this
       is set, then all resources created by the component will be encrypted with
       the provided encryption key.
+    model_a: Resource path for Model A.
+    model_b: Resource path for Model B.
+    evaluation_dataset: Path to the evaluation dataset.
+    evaluation_dataset_metadata: AutoSxS metrics metadata json string.
+    task: Task that was used for this AutoSxS run.
 
   Returns:
     autosxs_metrics: Autosxs win rate metrics and human alignment metrics.
     gcp_resources: Tracker for GCP resources created by this component.
+    model_a_evaluation_path: Path to write the ModelEvaluation for Model A if it
+    is a
+      ModelRegistry model.
+    model_b_evaluation: Path to write the ModelEvaluation for Model B if it is a
+      ModelRegistry model.
+    evaluation_count: Path to write the EvaluationCount number to.
+    evaluation_dataset_path: Path to write the path to the evaluation dataset.
+      This is needed because Pipeline outputs must be component outputs.
   """
   return gcpc_utils.build_serverless_customjob_container_spec(
       project=project,
@@ -69,6 +91,15 @@ def model_evaluation_text_generation_pairwise(
               f'--project={project}',
               f'--location={location}',
               '--executor_input={{$.json_escape[1]}}',
+              f'--model_a={model_a}',
+              f'--model_b={model_b}',
+              f'--model_a_evaluation_path={model_a_evaluation_path}',
+              f'--model_b_evaluation_path={model_b_evaluation_path}',
+              f'--evaluation_count_path={evaluation_count_path}',
+              f'--evaluation_dataset_path={evaluation_dataset_path}',
+              f'--evaluation_dataset={evaluation_dataset}',
+              "--evaluation_dataset_metadata={{$.inputs.parameters['evaluation_dataset_metadata'].json_escape[0]}}",
+              f'--task={task}',
           ],
           encryption_spec_key_name=encryption_spec_key_name,
       ),
