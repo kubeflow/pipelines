@@ -125,7 +125,7 @@ type SecretRef struct {
 
 func (c *Config) GetBucketSessionInfo() (objectstore.SessionInfo, error) {
 	path := c.DefaultPipelineRoot()
-	bucketConfig, err := objectstore.ParseBucketConfig(path)
+	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}

@@ -43,15 +43,16 @@ type Config struct {
 	BucketName  string
 	Prefix      string
 	QueryString string
+	Session     *SessionInfo
 }
 
-func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config, bucketSessionInfo string) (bucket *blob.Bucket, err error) {
+func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (bucket *blob.Bucket, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("Failed to open bucket %q: %w", config.BucketName, err)
 		}
 	}()
-	sess, err := createBucketSession(ctx, namespace, bucketSessionInfo, k8sClient)
+	sess, err := createBucketSession(ctx, namespace, config.Session, k8sClient)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve credentials for bucket %s: %w", config.BucketName, err)
 	}
@@ -171,7 +172,17 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 
 var bucketPattern = regexp.MustCompile(`(^[a-z][a-z0-9]+:///?)([^/?]+)(/[^?]*)?(\?.+)?$`)
 
-func ParseBucketConfig(path string) (*Config, error) {
+func ParseBucketConfig(path string, sess *SessionInfo) (*Config, error) {
+	config, err := ParseBucketPathToConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	config.Session = sess
+
+	return config, nil
+}
+
+func ParseBucketPathToConfig(path string) (*Config, error) {
 	ms := bucketPattern.FindStringSubmatch(path)
 	if ms == nil || len(ms) != 5 {
 		return nil, fmt.Errorf("parse bucket config failed: unrecognized pipeline root format: %q", path)
@@ -340,14 +351,9 @@ type SessionInfo struct {
 	SecretKeyKey string
 }
 
-func createBucketSession(ctx context.Context, namespace string, sessionInfoJSON string, client kubernetes.Interface) (*session.Session, error) {
-	if sessionInfoJSON == "" {
+func createBucketSession(ctx context.Context, namespace string, sessionInfo *SessionInfo, client kubernetes.Interface) (*session.Session, error) {
+	if sessionInfo == nil {
 		return nil, nil
-	}
-	sessionInfo := &SessionInfo{}
-	err := json.Unmarshal([]byte(sessionInfoJSON), sessionInfo)
-	if err != nil {
-		return nil, fmt.Errorf("Encountered error when attempting to unmarshall bucket session properties: %w", err)
 	}
 	creds, err := getBucketCredential(ctx, client, namespace, sessionInfo.SecretName, sessionInfo.SecretKeyKey, sessionInfo.AccessKeyKey)
 	if err != nil {
@@ -395,4 +401,16 @@ func getBucketCredential(
 		return cred, err
 	}
 	return nil, fmt.Errorf("could not find specified keys '%s' or '%s'", bucketAccessKeyKey, bucketSecretKeyKey)
+}
+
+func GetSessionInfoFromString(sessionInfoJSON string) (*SessionInfo, error) {
+	sessionInfo := &SessionInfo{}
+	if sessionInfoJSON == "" {
+		return nil, nil
+	}
+	err := json.Unmarshal([]byte(sessionInfoJSON), sessionInfo)
+	if err != nil {
+		return nil, fmt.Errorf("Encountered error when attempting to unmarshall bucket session properties: %w", err)
+	}
+	return sessionInfo, nil
 }
