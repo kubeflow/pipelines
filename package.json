@@ -67,6 +67,6 @@
     "url": "https://github.com/kubeflow/pipelines.git"
   },
   "devDependencies": {
-    "standard-version": "^8.0.0"
+    "standard-version": "^9.5.0"
   }
 }
