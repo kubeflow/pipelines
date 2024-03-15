@@ -24,21 +24,22 @@ from kfp import dsl
 def validate_pipeline(
     location: str,
     encryption_spec_key_name: str = '',
-    machine_type: str = '',
+    accelerator_type: str = '',
     eval_dataset: Optional[str] = None,
 ) -> NamedTuple('PreprocessedInputs', reward_model_eval_dataset=str):
   # fmt: off
   """Validates and preprocesses RLHF pipeline parameters.
 
   Args:
-    location: Region where all jobs run.
+    location: Location used to run non-tuning components, i.e. components
+      that do not require accelerators. If not specified the location used
+      to run the pipeline will be used.
     encryption_spec_key_name: If set, CMEK support will be validated.
-    machine_type: Machine used to run training jobs.
-    eval_dataset: Optional Cloud storage path to an evaluation dataset. The format should match that of the preference dataset.
-    pipeline_location: Region where the pipeline is running.
-
-  Returns:
-    reward_model_eval_dataset: Path to evaluation dataset to use when training a reward model.
+    accelerator_type: One of 'TPU' or 'GPU'. If 'TPU' is specified, tuning
+      components run in europe-west4. Otherwise tuning components run in
+      us-central1 on GPUs. Default is 'GPU'.
+    eval_dataset: Optional Cloud storage path to an evaluation dataset. The
+      format should match that of the preference dataset.
   """
   # fmt: on
   # pylint: disable=g-import-not-at-top,import-outside-toplevel
@@ -76,15 +77,7 @@ def validate_pipeline(
           if not eval_dataset or i >= max_lines_to_check:
             break
     # ]
-
     # [ Check CMEK
-    if 'gpu' in machine_type:
-      accelerator_type = 'GPU'
-    elif 'tpu' in machine_type:
-      accelerator_type = 'TPU'
-    else:
-      accelerator_type = None
-
     supported_pipeline_regions = {
         'europe-west4',
         'us-central1',

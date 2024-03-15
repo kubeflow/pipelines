@@ -22,19 +22,26 @@ from kfp import dsl
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_machine_spec(
-    location: str,
+    accelerator_type: str = '',
     use_test_spec: bool = False,
 ) -> NamedTuple(
-    'MachineSpec', machine_type=str, accelerator_type=str, accelerator_count=int
+    'MachineSpec',
+    machine_type=str,
+    tuning_location=str,
+    accelerator_type=str,
+    accelerator_count=int,
 ):
-  """Returns machine spec to use for a given location.
+  """Returns machine spec to use for a given accelerator_type.
 
   Args:
-    location: Where the machine will run.
+    accelerator_type: One of 'TPU' or 'GPU'. If 'TPU' is specified, tuning
+      components run in europe-west4. Otherwise tuning components run in
+      us-central1 on GPUs. Default is 'GPU'.
     use_test_spec: Whether to use a lower resource machine for testing.
 
   Returns:
     Machine spec.
+    tuning_location: Where the machine will run.
 
   Raises:
     ValueError: If accelerators are requested in an unsupported location.
@@ -42,39 +49,42 @@ def resolve_machine_spec(
   outputs = NamedTuple(
       'MachineSpec',
       machine_type=str,
-      accelerator_type=str,
       accelerator_count=int,
+      tuning_location=str,
+      accelerator_type=str,
   )
-  tpu_regions = {'europe-west4'}
-  gpu_regions = {'us-central1'}
   if use_test_spec:
-    if location in tpu_regions:
+    if accelerator_type == 'TPU':
       return outputs(
           machine_type='cloud-tpu',
           accelerator_type='TPU_V3',
           accelerator_count=32,
+          tuning_location='europe-west4',
       )
     else:
       return outputs(
           machine_type='a2-highgpu-1g',
           accelerator_type='NVIDIA_TESLA_A100',
           accelerator_count=1,
+          tuning_location='us-central1',
       )
-  elif location in tpu_regions:
+  elif accelerator_type == 'TPU':
     return outputs(
         machine_type='cloud-tpu',
         accelerator_type='TPU_V3',
         accelerator_count=64,
+        tuning_location='europe-west4',
     )
-  elif location in gpu_regions:
+  elif accelerator_type == 'GPU':
     return outputs(
         machine_type='a2-ultragpu-8g',
         accelerator_type='NVIDIA_A100_80GB',
         accelerator_count=8,
+        tuning_location='us-central1',
     )
   raise ValueError(
-      f'Unsupported accelerator location {location}. Must be one of'
-      f' {tpu_regions | gpu_regions}.'
+      f'Unsupported accelerator type {accelerator_type}. Must be one of'
+      'TPU or GPU.'
   )
 
 
