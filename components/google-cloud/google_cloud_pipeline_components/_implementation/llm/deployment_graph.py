@@ -37,6 +37,7 @@ def pipeline(
     model_display_name: Optional[str] = None,
     deploy_model: bool = True,
     encryption_spec_key_name: str = '',
+    upload_location: str = _placeholders.LOCATION_PLACEHOLDER,
 ) -> PipelineOutput:
   # fmt: off
   """Uploads a tuned language model and (optionally) deploys it to an endpoint.
@@ -47,13 +48,13 @@ def pipeline(
     model_display_name: Name of the fine-tuned model shown in the Model Registry. If not provided, a default name will be created.
     deploy_model: Whether to deploy the model to an endpoint in `us-central1`. Default is True.
     encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
+    upload_location: Region to upload and deploy the model to. Default is the location used to run the pipeline components.
 
   Returns:
     model_resource_name: Path to the model uploaded to the Model Registry. This will be an empty string if the model was not deployed.
     endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
   # fmt: on
-  upload_location = 'us-central1'
   adapter_artifact = kfp.dsl.importer(
       artifact_uri=output_adapter_path,
       artifact_class=kfp.dsl.Artifact,
