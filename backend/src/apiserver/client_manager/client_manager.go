@@ -168,9 +168,10 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 
 func (c *ClientManager) init() {
 	glog.Info("Initializing client manager")
+	glog.Info("Initializing DB client...")
 	db := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
-
+	glog.Info("DB client initialized successfully")
 	// time
 	c.time = util.NewRealTime()
 
@@ -185,8 +186,9 @@ func (c *ClientManager) init() {
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
+	glog.Info("Initializing Minio client...")
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
-
+	glog.Info("Minio client initialized successfully")
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	clientParams := util.ClientParameters{
