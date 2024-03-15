@@ -77,7 +77,6 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10 // indirect
 	github.com/antonmedv/expr v1.9.0 // indirect
 	github.com/argoproj/pkg v0.11.0 // indirect
-	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/colinmarc/hdfs v1.1.4-0.20180805212432-9746310a4d31 // indirect
@@ -87,12 +86,10 @@ require (
 	github.com/emicklei/go-restful/v3 v3.10.2 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
-	github.com/go-openapi/analysis v0.20.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/loads v0.21.0 // indirect
 	github.com/go-openapi/spec v0.20.4 // indirect
-	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/gnostic v0.6.9 // indirect
@@ -153,7 +150,6 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
-	go.mongodb.org/mongo-driver v1.7.5 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
