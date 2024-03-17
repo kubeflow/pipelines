@@ -31,9 +31,9 @@ if ! which kustomize; then
   # Download kustomize cli tool
   TOOL_DIR=${DIR}/bin
   mkdir -p ${TOOL_DIR}
-  # Use 5.0.3 because we want it to be compatible with latest kustomize syntax changes
-  # See discussions tracked in https://github.com/kubeflow/manifests/issues/2388.
-  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.0.3/kustomize_v5.0.3_linux_amd64.tar.gz \
+  # Use 5.2.1 because we want it to be compatible with latest kustomize syntax changes
+  # See discussions tracked in https://github.com/kubeflow/manifests/issues/2388 and https://github.com/kubeflow/manifests/pull/2653.
+  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.2.1/kustomize_v5.0.3_linux_amd64.tar.gz \
     -O kustomize_linux_amd64.tar.gz  
   tar -xzvf kustomize_linux_amd64.tar.gz kustomize  
   mv kustomize ${TOOL_DIR}/kustomize 
