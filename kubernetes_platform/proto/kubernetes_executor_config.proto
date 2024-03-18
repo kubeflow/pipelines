@@ -35,6 +35,8 @@ message KubernetesExecutorConfig {
     repeated FieldPathAsEnv field_path_as_env = 11;
     repeated Toleration tolerations = 12;
     repeated GenericEphemeralVolume generic_ephemeral_volume = 13;
+    repeated NodeAffinity node_affinities = 14;
+    repeated PodAffinity pod_affinities = 15;
 }
 
 message SecretAsVolume {
@@ -196,4 +198,24 @@ message Toleration {
     string value = 3;
     string effect = 4;
     optional int64 toleration_seconds = 5;
+}
+
+message NodeAffinity{
+    string key = 1;
+    string operator = 2;
+    string value = 3;
+    //Setting the weight makes it use PreferredDuringSchedulingIgnoredDuringExecution type of affinities instead of RequiredDuringSchedulingIgnoredDuringExecution type of affinities
+    optional int64 weight = 4;
+} 
+
+
+message PodAffinity {
+    string key = 1;
+    string operator = 2;
+    string value = 3;
+    string topology_key = 4;
+    //Setting a weight makes it use PreferredDuringSchedulingIgnoredDuringExecution type of affinities instead of RequiredDuringSchedulingIgnoredDuringExecution type of affinities
+    optional int64 weight = 5;
+    //Flag indicating if it is a podaffinity or podantiaffinity
+    optional bool anti = 6;
 }
