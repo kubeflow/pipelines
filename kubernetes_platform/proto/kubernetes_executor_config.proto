@@ -35,8 +35,8 @@ message KubernetesExecutorConfig {
     repeated FieldPathAsEnv field_path_as_env = 11;
     repeated Toleration tolerations = 12;
     repeated GenericEphemeralVolume generic_ephemeral_volume = 13;
-    repeated NodeAffinity node_affinities = 14;
-    repeated PodAffinity pod_affinities = 15;
+    repeated NodeAffinityRule node_affinity = 14;
+    repeated PodAffinityRule pod_affinity = 15;
 }
 
 message SecretAsVolume {
@@ -200,7 +200,7 @@ message Toleration {
     optional int64 toleration_seconds = 5;
 }
 
-message NodeAffinity{
+message NodeAffinityRule {
     string key = 1;
     string operator = 2;
     string value = 3;
@@ -209,7 +209,7 @@ message NodeAffinity{
 } 
 
 
-message PodAffinity {
+message PodAffinityRule {
     string key = 1;
     string operator = 2;
     string value = 3;
