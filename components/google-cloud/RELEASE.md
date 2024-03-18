@@ -7,6 +7,7 @@
 * Add CMEK support to `preview.model_evaluation.autosxs_pipeline`.
 * Updated component and pipeline inputs/outputs to support creating ModelEvaluations for ModelRegistry models in the AutoSxS pipeline.
 * Add DRZ-at-rest to `preview.llm.rlhf_pipeline`.
+* Use rlhf_preprocessor to replace the current value_exists call in `preview.llm.rlhf_pipeline`.
 
 ## Release 2.10.0
 * Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.
