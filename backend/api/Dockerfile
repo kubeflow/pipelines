@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.15.10 as generator
+FROM golang:1.20 as generator
 ENV GRPC_GATEWAY_VERSION v1.9.6
 ENV GO_SWAGGER_VERSION v0.18.0
 ENV GOLANG_PROTOBUF_VERSION v1.5.1
@@ -37,8 +37,8 @@ RUN mkdir grpc && git clone --depth 1 --branch $GRPC_VERSION https://github.com/
 
 # Install protoc-gen-rpc-gateway && protoc-gen-swagger.
 RUN cd grpc-ecosystem/grpc-gateway && GO111MODULE=on go mod vendor
-RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway@latest
+RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger@latest
 
 # Download go-swagger binary.
 RUN curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_amd64"
@@ -48,7 +48,7 @@ RUN chmod +x swagger_linux_amd64 && mv swagger_linux_amd64 /usr/bin/swagger
 RUN mkdir golang && cd golang && git clone --depth 1 --branch $GOLANG_PROTOBUF_VERSION https://github.com/golang/protobuf.git
 # Install protoc-gen-go.
 RUN cd golang/protobuf && GO111MODULE=on go mod vendor
-RUN go install github.com/golang/protobuf/protoc-gen-go
+RUN go install github.com/golang/protobuf/protoc-gen-go@latest
 
 # WORKAROUND: https://github.com/docker-library/golang/issues/225#issuecomment-403170792
 ENV XDG_CACHE_HOME /tmp/.cache
