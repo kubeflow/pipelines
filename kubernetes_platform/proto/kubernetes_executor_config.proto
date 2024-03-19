@@ -35,8 +35,8 @@ message KubernetesExecutorConfig {
     repeated FieldPathAsEnv field_path_as_env = 11;
     repeated Toleration tolerations = 12;
     repeated GenericEphemeralVolume generic_ephemeral_volume = 13;
-    repeated NodeAffinityRule node_affinity = 14;
-    repeated PodAffinityRule pod_affinity = 15;
+    repeated NodeAffinityTerm node_affinity = 14;
+    repeated PodAffinityTerm pod_affinity = 15;
 }
 
 message SecretAsVolume {
@@ -200,22 +200,31 @@ message Toleration {
     optional int64 toleration_seconds = 5;
 }
 
-message NodeAffinityRule {
+// Matches https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselectorrequirement-v1-meta and
+// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#nodeselectorrequirement-v1-core
+message SelectorRequirement {
     string key = 1;
     string operator = 2;
-    string value = 3;
-    //Setting the weight makes it use PreferredDuringSchedulingIgnoredDuringExecution type of affinities instead of RequiredDuringSchedulingIgnoredDuringExecution type of affinities
-    optional int64 weight = 4;
+    repeated string values = 3;
+}
+
+message NodeAffinityTerm {
+    repeated SelectorRequirement match_expressions = 1;
+    repeated SelectorRequirement match_fields = 2;
+    //Setting the weight makes it use PreferredDuringSchedulingIgnoredDuringExecution rules instead of RequiredDuringSchedulingIgnoredDuringExecution rules
+    optional int64 weight = 3;
 } 
 
 
-message PodAffinityRule {
-    string key = 1;
-    string operator = 2;
-    string value = 3;
-    string topology_key = 4;
-    //Setting a weight makes it use PreferredDuringSchedulingIgnoredDuringExecution type of affinities instead of RequiredDuringSchedulingIgnoredDuringExecution type of affinities
-    optional int64 weight = 5;
+message PodAffinityTerm {
+    repeated SelectorRequirement match_pod_expressions = 1;
+    map<string,string> match_pod_labels = 2;
+    string topology_key = 3;
+    repeated string namespaces = 4;
+    repeated SelectorRequirement match_namespace_expressions = 5;
+    map<string,string> match_namespace_labels = 6;
+    //Setting a weight makes it use PreferredDuringSchedulingIgnoredDuringExecution rules instead of RequiredDuringSchedulingIgnoredDuringExecution rules
+    optional int64 weight = 7;
     //Flag indicating if it is a podaffinity or podantiaffinity
-    optional bool anti = 6;
+    optional bool anti = 8;
 }
