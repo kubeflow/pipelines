@@ -1,4 +1,6 @@
 ## Upcoming release
+
+## Release 2.11.0
 * Fix bug in `preview.llm.rlhf_pipeline` that caused wrong output artifact to be used for inference after training.
 * Fix issue where AutoSxS was not propagating location to all sub-components.
 * Add CMEK support to `preview.llm.infer_pipeline`.
@@ -7,6 +9,7 @@
 * Add CMEK support to `preview.model_evaluation.autosxs_pipeline`.
 * Updated component and pipeline inputs/outputs to support creating ModelEvaluations for ModelRegistry models in the AutoSxS pipeline.
 * Add DRZ-at-rest to `preview.llm.rlhf_pipeline`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.10.0
 * Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.
