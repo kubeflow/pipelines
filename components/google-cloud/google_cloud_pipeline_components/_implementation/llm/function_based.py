@@ -467,14 +467,6 @@ def value_exists(value: Optional[str] = None) -> bool:
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def resolve_candidate_columns(
-    candidate_columns: Optional[List[str]] = None,
-) -> List[str]:
-  """Returns candidate columns provided by the user or the default: ['candidate_0', 'candidate_1']."""
-  return candidate_columns or ['candidate_0', 'candidate_1']
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_upload_model(large_model_reference: str) -> bool:
   """Returns whether the model should be uploaded."""
   supported_models = {'BISON'}
