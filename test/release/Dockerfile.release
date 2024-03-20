@@ -31,11 +31,8 @@ ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 # install java==11 python==3
 RUN apt-get update \
-    && apt-get install -y default-jdk python3-pip \
+    && apt-get install -y default-jdk python3-pip python3-setuptools \
     && rm -rf /var/lib/apt/lists/*
-
-# install setuptools
-RUN python3 -m pip install setuptools
 
 # install yq==3
 # Released in https://github.com/mikefarah/yq/releases/tag/3.4.1
