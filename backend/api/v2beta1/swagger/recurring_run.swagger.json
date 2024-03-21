@@ -355,7 +355,7 @@
         },
         "pipeline_version_id": {
           "type": "string",
-          "description": "The ID of the pipeline version used for creating runs."
+          "description": "This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2."
         },
         "pipeline_spec": {
           "type": "object",
