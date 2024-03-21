@@ -172,6 +172,9 @@ message GenericEphemeralVolume {
     // Corresponds to ephemeral.volumeClaimTemplate.spec.storageClassName string field.
     // Should only be used if default_storage_class is false.
     string storage_class_name = 6;
+    // Corresponds to ephemeral.volumeClaimTemplate.metadata.
+    // This is not exactly a pod metadata but the fields are the same
+    PodMetadata metadata = 7;
 }
 
 message ImagePullSecret {
