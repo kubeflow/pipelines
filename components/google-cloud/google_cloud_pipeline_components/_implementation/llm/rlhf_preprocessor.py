@@ -14,6 +14,7 @@
 """Component that preprocesses inputs for Reinforcement Learning from Human Feedback (RLHF)."""
 
 import os
+from typing import List
 
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components import utils as gcpc_utils
@@ -26,8 +27,10 @@ def rlhf_preprocessor(
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     has_tensorboard_id: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
     has_inference_dataset: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
+    metadata_candidate_columns_string: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     evaluation_dataset: str = '',
     tensorboard_resource_id: str = '',
+    candidate_columns: List[str] = [],
     image_uri: str = utils.get_default_image_uri('refined_cpu', ''),
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Preprocess RLHF pipeline inputs.
@@ -52,8 +55,10 @@ def rlhf_preprocessor(
               '--app_name=rlhf_preprocessor',
               f'--evaluation_dataset={evaluation_dataset}',
               f'--tensorboard_resource_id={tensorboard_resource_id}',
+              f'--candidate_columns={candidate_columns}',
               f'--has_tensorboard_id_path={has_tensorboard_id}',
               f'--has_inference_dataset_path={has_inference_dataset}',
+              f'--metadata_candidate_columns_string_path={metadata_candidate_columns_string}',
           ],
       ),
       gcp_resources=gcp_resources,

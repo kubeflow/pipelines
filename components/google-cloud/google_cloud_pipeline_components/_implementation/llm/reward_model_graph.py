@@ -21,6 +21,7 @@ from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import preprocess_chat_dataset
 from google_cloud_pipeline_components._implementation.llm import private_text_comparison_importer
 from google_cloud_pipeline_components._implementation.llm import reward_model_trainer
+from google_cloud_pipeline_components._implementation.llm import rlhf_preprocessor
 from google_cloud_pipeline_components._implementation.llm import upload_tensorboard_metrics
 import kfp
 
@@ -79,8 +80,11 @@ def pipeline(
   """
   # fmt: on
   prompt_column = 'input_text'
-  candidate_columns = ['candidate_0', 'candidate_1']
   choice_column = 'choice'
+  preprocess_metadata = rlhf_preprocessor.rlhf_preprocessor(
+      evaluation_dataset=eval_dataset,
+      tensorboard_resource_id=tensorboard_resource_id,
+  ).set_display_name('Preprocess for Reward Model')
   machine_spec = function_based.resolve_machine_spec(
       accelerator_type=accelerator_type,
       use_test_spec=env.get_use_test_machine_spec(),
@@ -99,9 +103,9 @@ def pipeline(
       ).set_display_name('Preprocess Prompt Dataset')
   )
 
-  comma_separated_candidates_field_names = (
-      function_based.convert_to_delimited_string(items=candidate_columns)
-  )
+  comma_separated_candidates_field_names = preprocess_metadata.outputs[
+      'metadata_candidate_columns_string'
+  ]
   preference_dataset_importer = (
       private_text_comparison_importer.private_text_comparison_importer(
           project=project,
@@ -110,7 +114,7 @@ def pipeline(
               'processed_dataset_uri'
           ],
           inputs_field_name=prompt_column,
-          comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
+          comma_separated_candidates_field_names=comma_separated_candidates_field_names,
           choice_field_name=choice_column,
           split=env.TRAIN_SPLIT,
           large_model_reference=reference_model_metadata.outputs[
@@ -129,7 +133,7 @@ def pipeline(
           location=location,
           input_text=eval_dataset,
           inputs_field_name=prompt_column,
-          comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
+          comma_separated_candidates_field_names=comma_separated_candidates_field_names,
           choice_field_name=choice_column,
           split=env.TRAIN_SPLIT,
           large_model_reference=reference_model_metadata.outputs[
@@ -183,11 +187,9 @@ def pipeline(
       .set_caching_options(False)
   )
 
-  has_tensorboard_id = function_based.value_exists(
-      value=tensorboard_resource_id
-  ).set_display_name('Resolve TensorBoard Resource ID')
+  has_tensorboard_id = preprocess_metadata.outputs['has_tensorboard_id']
   with kfp.dsl.Condition(  # pytype: disable=wrong-arg-types
-      has_tensorboard_id.output == True,  # pylint: disable=singleton-comparison, g-explicit-bool-comparison
+      has_tensorboard_id == True,  # pylint: disable=singleton-comparison, g-explicit-bool-comparison
       name='Upload Reward Model TensorBoard Metrics',
   ):
     _ = upload_tensorboard_metrics.upload_tensorboard_metrics(

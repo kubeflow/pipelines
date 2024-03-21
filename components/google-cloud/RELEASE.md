@@ -10,6 +10,7 @@
 * Updated component and pipeline inputs/outputs to support creating ModelEvaluations for ModelRegistry models in the AutoSxS pipeline.
 * Add DRZ-at-rest to `preview.llm.rlhf_pipeline`.
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+* Migrate function_based convert_to_delimited_string to rlhf_preprocessor component
 
 ## Release 2.10.0
 * Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.

@@ -21,6 +21,7 @@ from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import reinforcement_learning_graph
 from google_cloud_pipeline_components._implementation.llm import reward_model_graph
+from google_cloud_pipeline_components._implementation.llm import rlhf_preprocessor
 from google_cloud_pipeline_components._implementation.llm import validate_pipeline
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
@@ -94,6 +95,11 @@ def rlhf_pipeline(
       eval_dataset=eval_dataset,
   ).set_display_name('Validate Inputs')
 
+  preprocess_metadata = rlhf_preprocessor.rlhf_preprocessor(
+      evaluation_dataset=eval_dataset,
+      tensorboard_resource_id=tensorboard_resource_id,
+  ).set_display_name('Preprocess')
+
   reward_model_pipeline = (
       (
           reward_model_graph.pipeline(
@@ -144,11 +150,10 @@ def rlhf_pipeline(
       encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Reinforcement Learning')
 
-  has_inference_dataset = function_based.value_exists(
-      value=eval_dataset
-  ).set_display_name('Resolve Inference Dataset')
+  has_inference_dataset = preprocess_metadata.outputs['has_inference_dataset']
+
   with kfp.dsl.Condition(
-      has_inference_dataset.output == True,  # pylint: disable=singleton-comparison
+      has_inference_dataset == True,  # pylint: disable=singleton-comparison
       name='Perform Inference',
   ):
     has_model_checkpoint = function_based.value_exists(
