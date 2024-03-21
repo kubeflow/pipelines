@@ -16,6 +16,7 @@
 import os
 
 from google_cloud_pipeline_components._implementation.model_evaluation.chunking.component import chunking as ChunkingOp
+from google_cloud_pipeline_components._implementation.model_evaluation.data_labeling.component import evaluation_data_labeling as EvaluationDataLabelingOp
 from google_cloud_pipeline_components._implementation.model_evaluation.data_sampler.component import evaluation_data_sampler as EvaluationDataSamplerOp
 from google_cloud_pipeline_components._implementation.model_evaluation.dataset_preprocessor.component import dataset_preprocessor_error_analysis as EvaluationDatasetPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.endpoint_batch_predict.component import evaluation_llm_endpoint_batch_predict_pipeline_graph_component
@@ -49,6 +50,7 @@ __all__ = [
     'evaluation_llm_endpoint_batch_predict_pipeline_graph_component',
     'ChunkingOp',
     'EvaluationDataSamplerOp',
+    'EvaluationDataLabelingOp',
     'EvaluationDatasetPreprocessorOp',
     'ErrorAnalysisAnnotationOp',
     'EvaluatedAnnotationOp',
