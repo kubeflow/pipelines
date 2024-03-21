@@ -21,6 +21,7 @@ from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import reinforcement_learning_graph
 from google_cloud_pipeline_components._implementation.llm import reward_model_graph
+from google_cloud_pipeline_components._implementation.llm import rlhf_preprocessor
 from google_cloud_pipeline_components._implementation.llm import validate_pipeline
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
@@ -93,6 +94,11 @@ def rlhf_pipeline(
       encryption_spec_key_name=encryption_spec_key_name,
       eval_dataset=eval_dataset,
   ).set_display_name('Validate Inputs')
+
+  preprocess_metadata = rlhf_preprocessor.rlhf_preprocessor(
+      evaluation_dataset=eval_dataset,
+      tensorboard_resource_id=tensorboard_resource_id,
+  ).set_display_name('Preprocess')
 
   reward_model_pipeline = (
       (
@@ -171,6 +177,7 @@ def rlhf_pipeline(
           encryption_spec_key_name=encryption_spec_key_name,
       )
 
+  regional_endpoint = preprocess_metadata.outputs['metadata_regional_endpoint']
   llm_model_handler = deployment_graph.pipeline(
       output_adapter_path=rl_model_pipeline.outputs['output_adapter_path'],
       large_model_reference=large_model_reference,
@@ -178,6 +185,7 @@ def rlhf_pipeline(
       deploy_model=deploy_model,
       encryption_spec_key_name=encryption_spec_key_name,
       upload_location=location,
+      regional_endpoint=regional_endpoint,
   ).set_display_name('Upload and Deploy Tuned Model')
 
   return PipelineOutput(

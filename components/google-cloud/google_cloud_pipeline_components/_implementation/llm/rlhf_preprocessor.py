@@ -26,8 +26,10 @@ def rlhf_preprocessor(
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     has_tensorboard_id: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
     has_inference_dataset: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
+    metadata_upload_location: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     evaluation_dataset: str = '',
     tensorboard_resource_id: str = '',
+    upload_location: str = '',
     image_uri: str = utils.get_default_image_uri('refined_cpu', ''),
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Preprocess RLHF pipeline inputs.
@@ -52,8 +54,10 @@ def rlhf_preprocessor(
               '--app_name=rlhf_preprocessor',
               f'--evaluation_dataset={evaluation_dataset}',
               f'--tensorboard_resource_id={tensorboard_resource_id}',
+              f'--upload_location={upload_location}',
               f'--has_tensorboard_id_path={has_tensorboard_id}',
               f'--has_inference_dataset_path={has_inference_dataset}',
+              f'--metadata_upload_location_path={metadata_upload_location}',
           ],
       ),
       gcp_resources=gcp_resources,
