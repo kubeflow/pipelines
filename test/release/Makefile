@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-REMOTE=gcr.io/ml-pipeline-test/release:latest
+REMOTE=gcr.io/ml-pipeline-test/release@sha256:ed1a4dbe536e7e161ad0d846b5681aacc0e0e7f285985cb1808c5c8987bcfeb0
 
 .PHONY: release
 release:
