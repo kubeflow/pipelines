@@ -15,7 +15,7 @@ require (
 	github.com/go-openapi/swag v0.22.3
 	github.com/go-openapi/validate v0.20.3
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/golang/glog v1.1.0
+	github.com/golang/glog v1.2.0
 	github.com/golang/protobuf v1.5.3
 	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76
 	github.com/google/cel-go v0.12.6
