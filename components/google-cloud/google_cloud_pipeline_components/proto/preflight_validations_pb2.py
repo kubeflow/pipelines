@@ -12,16 +12,17 @@ _sym_db = _symbol_database.Default()
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x13preflight_validations.proto\x12\x15preflight_validations"\x90\x02\n\x0eValidationItem\x12O\n\x0bsa_metadata\x18\x02'
-    b' \x01(\x0b\x32\x38.preflight_validations.GoogleCloudServiceAccountMetadataH\x00\x12P\n\x0equota_metadata\x18\x03'
-    b' \x01(\x0b\x32\x36.preflight_validations.GoogleCloudProjectQuotaMetadataH\x00\x12O\n\x0c\x61pi_metadata\x18\x04'
-    b' \x01(\x0b\x32\x37.preflight_validations.GoogleCloudApiEnablementMetadataH\x00\x42\n\n\x08metadata"\xeb\x01\n\x1fGoogleCloudProjectQuotaMetadata\x12\x14\n\x0cservice_name\x18\x01'
-    b' \x01(\t\x12s\n\x17metrics_recommendations\x18\x02'
-    b' \x03(\x0b\x32R.preflight_validations.GoogleCloudProjectQuotaMetadata.MetricsRecommendationsEntry\x1a=\n\x1bMetricsRecommendationsEntry\x12\x0b\n\x03key\x18\x01'
-    b' \x01(\t\x12\r\n\x05value\x18\x02'
-    b' \x01(\x03:\x02\x38\x01"P\n!GoogleCloudServiceAccountMetadata\x12\x16\n\x0eprincipal_name\x18\x01'
-    b' \x01(\t\x12\x13\n\x0bpermissions\x18\x02 \x03(\t"9\n'
-    b' GoogleCloudApiEnablementMetadata\x12\x15\n\rservice_names\x18\x01'
+    b'\n\x13preflight_validations.proto\x12\x15preflight_validations"\x8e\x02\n\x0fValidationItems\x12R\n\x0esa_validations\x18\x01'
+    b' \x03(\x0b\x32:.preflight_validations.GoogleCloudServiceAccountValidation\x12S\n\x11quota_validations\x18\x02'
+    b' \x03(\x0b\x32\x38.preflight_validations.GoogleCloudProjectQuotaValidation\x12R\n\x0f\x61pi_validations\x18\x03'
+    b' \x03(\x0b\x32\x39.preflight_validations.GoogleCloudApiEnablementValidation"p\n!GoogleCloudProjectQuotaValidation\x12\x13\n\x0bmetric_name\x18\x01'
+    b' \x01(\t\x12\x15\n\x0bint64_value\x18\x02'
+    b' \x01(\x03H\x00\x12\x16\n\x0c\x64ouble_value\x18\x03'
+    b' \x01(\x01H\x00\x42\x07\n\x05value"\x8d\x01\n#GoogleCloudServiceAccountValidation\x12\x1f\n\x17\x64\x65\x66\x61ult_principal_email\x18\x01'
+    b' \x01(\t\x12\x1c\n\x14override_placeholder\x18\x02'
+    b' \x01(\t\x12\x13\n\x0bpermissions\x18\x03'
+    b' \x03(\t\x12\x12\n\nrole_names\x18\x04'
+    b' \x03(\t";\n"GoogleCloudApiEnablementValidation\x12\x15\n\rservice_names\x18\x01'
     b' \x03(\tB\x02P\x01\x62\x06proto3'
 )
 
@@ -35,24 +36,12 @@ _builder.BuildTopDescriptorsAndMessages(
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'P\001'
-  _globals[
-      '_GOOGLECLOUDPROJECTQUOTAMETADATA_METRICSRECOMMENDATIONSENTRY'
-  ]._loaded_options = None
-  _globals[
-      '_GOOGLECLOUDPROJECTQUOTAMETADATA_METRICSRECOMMENDATIONSENTRY'
-  ]._serialized_options = b'8\001'
-  _globals['_VALIDATIONITEM']._serialized_start = 142
-  _globals['_VALIDATIONITEM']._serialized_end = 414
-  _globals['_GOOGLECLOUDPROJECTQUOTAMETADATA']._serialized_start = 417
-  _globals['_GOOGLECLOUDPROJECTQUOTAMETADATA']._serialized_end = 652
-  _globals[
-      '_GOOGLECLOUDPROJECTQUOTAMETADATA_METRICSRECOMMENDATIONSENTRY'
-  ]._serialized_start = 591
-  _globals[
-      '_GOOGLECLOUDPROJECTQUOTAMETADATA_METRICSRECOMMENDATIONSENTRY'
-  ]._serialized_end = 652
-  _globals['_GOOGLECLOUDSERVICEACCOUNTMETADATA']._serialized_start = 654
-  _globals['_GOOGLECLOUDSERVICEACCOUNTMETADATA']._serialized_end = 734
-  _globals['_GOOGLECLOUDAPIENABLEMENTMETADATA']._serialized_start = 736
-  _globals['_GOOGLECLOUDAPIENABLEMENTMETADATA']._serialized_end = 793
+  _globals['_VALIDATIONITEMS']._serialized_start = 142
+  _globals['_VALIDATIONITEMS']._serialized_end = 412
+  _globals['_GOOGLECLOUDPROJECTQUOTAVALIDATION']._serialized_start = 414
+  _globals['_GOOGLECLOUDPROJECTQUOTAVALIDATION']._serialized_end = 526
+  _globals['_GOOGLECLOUDSERVICEACCOUNTVALIDATION']._serialized_start = 529
+  _globals['_GOOGLECLOUDSERVICEACCOUNTVALIDATION']._serialized_end = 670
+  _globals['_GOOGLECLOUDAPIENABLEMENTVALIDATION']._serialized_start = 672
+  _globals['_GOOGLECLOUDAPIENABLEMENTVALIDATION']._serialized_end = 731
 # @@protoc_insertion_point(module_scope)
