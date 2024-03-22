@@ -121,3 +121,65 @@ def _assign_pvc_name_to_msg(
         raise ValueError(
             f'Argument for {"pvc_name"!r} must be an instance of str or PipelineChannel. Got unknown input type: {type(pvc_name)!r}. '
         )
+
+
+def add_ephemeral_volume(
+    task: PipelineTask,
+    volume_name: str,
+    mount_path: str,
+    access_modes: List[str],
+    size: str,
+    storage_class_name: Optional[str] = None,
+    labels: Dict[str, str] = None,
+    annotations: Dict[str, str] = None,
+):
+    """Add a `generic ephemeral volume
+    <https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes>`_. to a task.
+
+    Args:
+        task:
+            Pipeline task.
+        volume_name:
+            name to be given to the created ephemeral volume. Corresponds to Pod.spec.volumes[*].name
+        mount_path:
+            local path in the main container where the PVC should be mounted as a volume
+        access_modes:
+            AccessModes to request for the provisioned PVC. May be one or more of ``'ReadWriteOnce'``,
+            ``'ReadOnlyMany'``, ``'ReadWriteMany'``, or``'ReadWriteOncePod'``. Corresponds to
+            `Pod.spec.volumes[*].ephemeral.volumeClaimTemplate.spec.accessModes
+            <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.
+        size:
+            The size of storage requested by the PVC that will be provisioned. For example, ``'5Gi'``. Corresponds to
+            `Pod.spec.volumes[*].ephemeral.volumeClaimTemplate.spec.resources.requests.storage
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
+        storage_class_name:
+            Name of StorageClass from which to provision the PV to back the PVC. ``None`` indicates to use the
+            cluster's default storage_class_name.
+        labels:
+            The labels to attach to the created PVC. Corresponds to
+            `Pod.spec.volumes[*].ephemeral.volumeClaimTemplate.metadata.labels
+        annotations:
+            The annotation to attach to the created PVC. Corresponds to
+            `Pod.spec.volumes[*].ephemeral.volumeClaimTemplate.metadata.annotations
+    Returns:
+        Task object with added toleration.
+    """
+
+    msg = common.get_existing_kubernetes_config_as_message(task)
+    msg.generic_ephemeral_volume.append(
+        pb.GenericEphemeralVolume(
+            volume_name=volume_name,
+            mount_path=mount_path,
+            access_modes=access_modes,
+            size=size,
+            default_storage_class=storage_class_name is None,
+            storage_class_name=storage_class_name,
+            metadata=pb.PodMetadata(
+                annotations=annotations or {},
+                labels=labels or {},
+            ) if annotations or labels else None,
+        )
+    )
+    task.platform_config["kubernetes"] = json_format.MessageToDict(msg)
+
+    return task

@@ -17,7 +17,7 @@ from kfp import dsl
 from kfp import kubernetes
 
 
-class TestUseSecretAsVolume:
+class TestNodeSelector:
 
     def test_add_one(self):
 
