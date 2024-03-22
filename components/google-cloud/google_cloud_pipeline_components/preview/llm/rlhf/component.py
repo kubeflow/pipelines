@@ -21,6 +21,7 @@ from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import reinforcement_learning_graph
 from google_cloud_pipeline_components._implementation.llm import reward_model_graph
+from google_cloud_pipeline_components._implementation.llm import rlhf_preprocessor
 from google_cloud_pipeline_components._implementation.llm import validate_pipeline
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
@@ -94,6 +95,13 @@ def rlhf_pipeline(
       eval_dataset=eval_dataset,
   ).set_display_name('Validate Inputs')
 
+  preprocess_metadata = rlhf_preprocessor.rlhf_preprocessor(
+      evaluation_dataset=eval_dataset,
+      tensorboard_resource_id=tensorboard_resource_id,
+      large_model_reference=large_model_reference,
+  ).set_display_name('Preprocess')
+  num_microbatches = preprocess_metadata.outputs['metadata_num_microbatches']
+
   reward_model_pipeline = (
       (
           reward_model_graph.pipeline(
@@ -113,6 +121,7 @@ def rlhf_pipeline(
               accelerator_type=accelerator_type,
               tensorboard_resource_id=tensorboard_resource_id,
               encryption_spec_key_name=encryption_spec_key_name,
+              num_microbatches=num_microbatches,
           )
       )
       .set_display_name('Train Reward Model')
@@ -142,6 +151,7 @@ def rlhf_pipeline(
       location=location,
       tensorboard_resource_id=tensorboard_resource_id,
       encryption_spec_key_name=encryption_spec_key_name,
+      num_microbatches=num_microbatches,
   ).set_display_name('Reinforcement Learning')
 
   has_inference_dataset = function_based.value_exists(

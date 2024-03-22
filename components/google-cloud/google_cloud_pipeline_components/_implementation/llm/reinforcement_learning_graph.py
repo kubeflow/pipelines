@@ -55,6 +55,7 @@ def pipeline(
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     tensorboard_resource_id: Optional[str] = None,
     encryption_spec_key_name: str = '',
+    num_microbatches: int = 0,
 ) -> PipelineOutput:
   # fmt: off
   """Trains a reward model.
@@ -121,11 +122,6 @@ def pipeline(
   rl_image_uri = function_based.resolve_private_refined_image_uri(
       accelerator_type=machine_spec.outputs['accelerator_type'],
   ).set_display_name('Resolve Reinforcer Image URI')
-  num_microbatches = function_based.resolve_num_microbatches(
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
-      ]
-  ).set_display_name('Resolve Number of Microbatches')
   rl_model = (
       reinforcer.reinforcer(
           project=project,
@@ -157,7 +153,7 @@ def pipeline(
           kl_coeff=kl_coeff,
           lora_dim=lora_dim,
           reward_lora_dim=reward_lora_dim,
-          num_microbatches=num_microbatches.output,
+          num_microbatches=num_microbatches,
           encryption_spec_key_name=encryption_spec_key_name,
       )
       .set_display_name('Reinforcer')
