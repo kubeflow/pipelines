@@ -20,8 +20,10 @@ reward model and performs reinforcement learning.
 from typing import NamedTuple, Optional
 
 from google_cloud_pipeline_components import _placeholders
+from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import online_evaluation_pairwise
 from google_cloud_pipeline_components._implementation.llm import preference_data_formatter
+from google_cloud_pipeline_components._implementation.llm import rlhf_preprocessor
 from google_cloud_pipeline_components.preview.llm.infer import component as infer
 from google_cloud_pipeline_components.preview.llm.rlhf import component as rlhf
 import kfp
@@ -93,6 +95,16 @@ def rlaif_pipeline(
   task = 'summarization@001'
   deploy_model = True
 
+  preprocess_metadata = rlhf_preprocessor.rlhf_preprocessor(
+      evaluation_dataset=eval_dataset,
+      tensorboard_resource_id=tensorboard_resource_id,
+      use_test_spec=env.get_use_test_machine_spec(),
+      project=project,
+      location=location,
+      artifact_registry=env.PRIVATE_ARTIFACT_REGISTRY,
+      tag=env.get_private_image_tag(),
+  ).set_display_name('Preprocess Inputs')
+
   output_prediction_gcs_path_a = infer.infer_pipeline(
       large_model_reference=large_model_a_reference,
       prompt_dataset=preference_prompt_dataset,
@@ -102,7 +114,13 @@ def rlaif_pipeline(
       instruction=instruction,
       project=project,
       location=location,
-      accelerator_type=accelerator_type,
+      machine_type=preprocess_metadata.outputs['metadata_machine_type'],
+      tuning_location=preprocess_metadata.outputs['metadata_tuning_location'],
+      accelerator_type=preprocess_metadata.outputs['metadata_accelerator_type'],
+      accelerator_count=preprocess_metadata.outputs[
+          'metadata_accelerator_count'
+      ],
+      image_uri=preprocess_metadata.outputs['metadata_refined_image_uri'],
   ).set_display_name('Inferrer A')
   output_prediction_gcs_path_b = infer.infer_pipeline(
       large_model_reference=large_model_b_reference,
@@ -113,7 +131,13 @@ def rlaif_pipeline(
       instruction=instruction,
       project=project,
       location=location,
-      accelerator_type=accelerator_type,
+      machine_type=preprocess_metadata.outputs['metadata_machine_type'],
+      tuning_location=preprocess_metadata.outputs['metadata_tuning_location'],
+      accelerator_type=preprocess_metadata.outputs['metadata_accelerator_type'],
+      accelerator_count=preprocess_metadata.outputs[
+          'metadata_accelerator_count'
+      ],
+      image_uri=preprocess_metadata.outputs['metadata_refined_image_uri'],
   ).set_display_name('Inferrer B')
 
   inference_output_uri = (

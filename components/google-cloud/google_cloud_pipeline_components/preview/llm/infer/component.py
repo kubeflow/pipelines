@@ -41,9 +41,13 @@ def infer_pipeline(
     sampling_strategy: str = 'greedy',
     instruction: Optional[str] = None,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
-    accelerator_type: str = 'GPU',
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     encryption_spec_key_name: str = '',
+    machine_type: str = '',
+    tuning_location: str = '',
+    accelerator_type: str = '',
+    accelerator_count: int = 0,
+    image_uri: str = '',
 ) -> PipelineOutput:
   # fmt: off
   """Uses a large-language model to perform bulk inference on a prompt dataset.
@@ -57,19 +61,20 @@ def infer_pipeline(
     sampling_strategy: This field specifies the sampling strategy. The valid options are 'greedy' and 'temperature_sampling'.
     instruction: This field lets the model know what task it needs to perform. Base models have been trained over a large set of varied instructions. You can give a simple and intuitive description of the task and the model will follow it, e.g. "Classify this movie review as positive or negative" or "Translate this sentence to Danish". Do not specify this if your dataset already prepends the instruction to the inputs field.
     project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
-    accelerator_type: One of 'TPU' or 'GPU'. If 'TPU' is specified, tuning components run in europe-west4. Otherwise tuning components run in us-central1 on GPUs. Default is 'GPU'.
     location: Location used to run non-tuning components, i.e. components that do not require accelerators. If not specified the location used to run the pipeline will be used.
     encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
+    machine_type: The type of the machine to provision for the custom job. Must be a valid GCE instance type and compatible with the accelerator type.
+    tuning_location: The GCP region to run the custom job.
+    accelerator_type: Specific accelerator type for the job.
+    accelerator_count: The number of accelerator.
+    image_uri: Docker image URI to use for the custom job.
 
   Returns:
     Cloud storage path to output predictions.
   """
   # fmt: on
   prompt_column = 'input_text'
-  machine_spec = function_based.resolve_machine_spec(
-      accelerator_type=accelerator_type,
-      use_test_spec=env.get_use_test_machine_spec(),
-  ).set_display_name('Resolve Machine Spec')
+
   reference_model_metadata = function_based.resolve_reference_model_metadata(
       large_model_reference=large_model_reference,
       reference_model_path=model_checkpoint,
@@ -104,12 +109,9 @@ def infer_pipeline(
       .set_caching_options(False)
   )
 
-  bulk_inferrer_image_uri = function_based.resolve_private_refined_image_uri(
-      accelerator_type=machine_spec.outputs['accelerator_type'],
-  ).set_display_name('Resolve Bulk Inferrer Image URI')
   bulk_inference = bulk_inferrer.bulk_inferrer(
       project=project,
-      location=machine_spec.outputs['tuning_location'],
+      location=tuning_location,
       input_model=reference_model_metadata.outputs['reference_model_path'],
       input_dataset_path=prompt_dataset_importer.outputs['imported_data_path'],
       dataset_split=env.TRAIN_SPLIT,
@@ -119,10 +121,10 @@ def infer_pipeline(
           'large_model_reference'
       ],
       sampling_strategy=sampling_strategy,
-      accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
-      machine_type=machine_spec.outputs['machine_type'],
-      image_uri=bulk_inferrer_image_uri.output,
+      accelerator_type=accelerator_type,
+      accelerator_count=accelerator_count,
+      machine_type=machine_type,
+      image_uri=image_uri,
       encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Bulk Inferrer')
 
