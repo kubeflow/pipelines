@@ -21,6 +21,7 @@ from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import reinforcement_learning_graph
 from google_cloud_pipeline_components._implementation.llm import reward_model_graph
+from google_cloud_pipeline_components._implementation.llm import rlhf_preprocessor
 from google_cloud_pipeline_components._implementation.llm import validate_pipeline
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
@@ -94,6 +95,17 @@ def rlhf_pipeline(
       eval_dataset=eval_dataset,
   ).set_display_name('Validate Inputs')
 
+  preprocess_metadata = rlhf_preprocessor.rlhf_preprocessor(
+      evaluation_dataset=eval_dataset,
+      tensorboard_resource_id=tensorboard_resource_id,
+      accelerator_type=accelerator_type,
+      use_test_spec=env.get_use_test_machine_spec(),
+      project=project,
+      location=location,
+      artifact_registry=env.PRIVATE_ARTIFACT_REGISTRY,
+      tag=env.get_private_image_tag(),
+  ).set_display_name('Preprocess Inputs')
+
   reward_model_pipeline = (
       (
           reward_model_graph.pipeline(
@@ -110,9 +122,21 @@ def rlhf_pipeline(
               lora_dim=reward_lora_dim,
               project=project,
               location=location,
-              accelerator_type=accelerator_type,
               tensorboard_resource_id=tensorboard_resource_id,
               encryption_spec_key_name=encryption_spec_key_name,
+              machine_type=preprocess_metadata.outputs['metadata_machine_type'],
+              tuning_location=preprocess_metadata.outputs[
+                  'metadata_tuning_location'
+              ],
+              accelerator_type=preprocess_metadata.outputs[
+                  'metadata_accelerator_type'
+              ],
+              accelerator_count=preprocess_metadata.outputs[
+                  'metadata_accelerator_count'
+              ],
+              image_uri=preprocess_metadata.outputs[
+                  'metadata_refined_image_uri'
+              ],
           )
       )
       .set_display_name('Train Reward Model')
@@ -138,10 +162,16 @@ def rlhf_pipeline(
       instruction=instruction,
       reward_lora_dim=reward_lora_dim,
       project=project,
-      accelerator_type=accelerator_type,
       location=location,
       tensorboard_resource_id=tensorboard_resource_id,
       encryption_spec_key_name=encryption_spec_key_name,
+      machine_type=preprocess_metadata.outputs['metadata_machine_type'],
+      tuning_location=preprocess_metadata.outputs['metadata_tuning_location'],
+      accelerator_type=preprocess_metadata.outputs['metadata_accelerator_type'],
+      accelerator_count=preprocess_metadata.outputs[
+          'metadata_accelerator_count'
+      ],
+      image_uri=preprocess_metadata.outputs['metadata_refined_image_uri'],
   ).set_display_name('Reinforcement Learning')
 
   has_inference_dataset = function_based.value_exists(
@@ -167,8 +197,18 @@ def rlhf_pipeline(
           prompt_sequence_length=prompt_sequence_length,
           target_sequence_length=target_sequence_length,
           instruction=instruction,
-          accelerator_type=accelerator_type,
           encryption_spec_key_name=encryption_spec_key_name,
+          machine_type=preprocess_metadata.outputs['metadata_machine_type'],
+          tuning_location=preprocess_metadata.outputs[
+              'metadata_tuning_location'
+          ],
+          accelerator_type=preprocess_metadata.outputs[
+              'metadata_accelerator_type'
+          ],
+          accelerator_count=preprocess_metadata.outputs[
+              'metadata_accelerator_count'
+          ],
+          image_uri=preprocess_metadata.outputs['metadata_refined_image_uri'],
       )
 
   llm_model_handler = deployment_graph.pipeline(
