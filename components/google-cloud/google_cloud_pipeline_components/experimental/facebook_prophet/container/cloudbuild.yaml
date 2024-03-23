@@ -1,0 +1,7 @@
+# Make sure to change the destination image's version when making significant changes
+steps:
+  - name: 'gcr.io/kaniko-project/executor:latest'
+    args:
+      - --destination=gcr.io/$PROJECT_ID/prophet:1.0.0
+      - --cache=false
+      - --cache-ttl=99h

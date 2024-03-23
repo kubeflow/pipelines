@@ -1,0 +1,46 @@
+name: Facebook Prophet Forecast
+description: |
+  Forecast using a fitted Facebook Prophet model.
+
+  Args:
+    model (Model):
+      A fitted Facebook Prophet model
+    future_data_source (Optional[Dataset]):
+      The source of the prediction data.
+    periods (Optional[int]):
+      The number of future days to predict. Mutually exclusive with future_data_source
+
+  Returns:
+    The resultant forecast in CSV format.
+
+inputs:
+  - {name: Model, type: Model}
+  - {name: Future Data Source, type: Artifact, optional: True}
+  - {name: Periods, type: Integer, optional: True}
+outputs:
+  - {name: Prediction, type: Dataset}
+
+implementation:
+  container:
+    image: us-docker.pkg.dev/vertex-ai/prophet/prophet
+    command: [
+      python3,
+      /pipelines/component/src/prediction.py
+      ]
+    args:
+      - '--model'
+      - {inputPath: Model}
+      - if:
+          cond:
+            isPresent: Future Data Source
+          then:
+            - '--future_data_source'
+            - {inputPath: Future Data Source}
+      - if:
+          cond:
+            isPresent: Periods
+          then:
+            - '--periods'
+            - {inputValue: Periods}
+      - '--prediction'
+      - {outputPath: Prediction}
