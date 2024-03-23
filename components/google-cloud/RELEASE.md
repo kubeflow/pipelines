@@ -1,4 +1,5 @@
 ## Upcoming release
+* Add new cancel-job component that cancels specific resource types when the pipeline is cancelled.
 
 ## Release 2.11.0
 * Fix bug in `preview.llm.rlhf_pipeline` that caused wrong output artifact to be used for inference after training.
