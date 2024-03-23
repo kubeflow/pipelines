@@ -45,5 +45,5 @@ if __name__ == '__main__':
         validate_csv_using_greatexpectations,
         output_component_file='component.yaml',
         base_image='python:3.8',
-        packages_to_install=['great-expectations==0.13.11']
+        packages_to_install=['great-expectations==0.15.28']
     )
