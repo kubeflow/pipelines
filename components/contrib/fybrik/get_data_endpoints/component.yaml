@@ -1,0 +1,32 @@
+name: get data endpoints
+description: Returns endpoints to training and testing data and for the results dataset. Data governance and security are handled behind the scenes by fybrik.
+inputs:
+  - {name: test_dataset_id, type: String} 
+  - {name: train_dataset_id, type: String }
+  - {name: run_name, type: String }
+  - {name: namespace, type: String }
+  - {name: result_name, type: String }
+outputs:
+  - {name: test_endpoint, type: String}
+  - {name: train_endpoint, type: String}
+  - {name: result_endpoint, type: String}
+  - {name: result_catalogid, type: String}
+metadata:
+  annotations:
+    author: Sima Nadler <sima@il.ibm.com>
+    canonical_location: 'https://github.com/fybrik/kfp-components/blob/main/get_data_endpoints/component.yaml'
+implementation:
+  container:
+    image: ghcr.io/fybrik/kfp-components/get_data_endpoints:latest
+    command: ['python3', 'get_data_endpoints.py']
+    args: [
+      --train_dataset_id, {inputValue: test_dataset_id},
+      --test_dataset_id, {inputValue: train_dataset_id},
+      --run_name, {inputValue: run_name},
+      --namespace, {inputValue: namespace},
+      --result_name, {inputValue: result_name},
+      --test_endpoint, {outputPath: test_endpoint},
+      --train_endpoint, {outputPath: train_endpoint},
+      --result_endpoint, {outputPath: result_endpoint},
+      --result_catalogid, {outputPath: result_catalogid}]
+      
