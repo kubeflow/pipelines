@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """GCP launcher for hyperparameter tuning jobs based on the AI Platform SDK."""
-
 import json
 
 from google.api_core import retry
