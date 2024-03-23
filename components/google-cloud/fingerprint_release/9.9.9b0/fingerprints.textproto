@@ -1,0 +1,10 @@
+# proto-file: google3/cloud/ai/platform/task/pipeline_component_fingerprints.proto
+# proto-message: ComponentFingerprints
+
+component_fingerprint_map {
+  key: 123456
+  value {
+    component_type: "demo-purpose"
+    component_version: "1.0.0"
+  }
+}

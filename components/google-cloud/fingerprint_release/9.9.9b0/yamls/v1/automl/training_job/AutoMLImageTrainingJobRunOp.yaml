@@ -1,0 +1,1442 @@
+# PIPELINE DEFINITION
+# Name: automl-forecasting-training-job
+# Description: Runs the training job and returns a model.
+#              If training on a Vertex AI dataset, you can use one of the following split configurations:
+#                  Data fraction splits:
+#                  Any of ``training_fraction_split``, ``validation_fraction_split`` and
+#                  ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
+#                  the provided ones sum to less than 1, the remainder is assigned to sets as
+#                  decided by Vertex AI. If none of the fractions are set, by default roughly 80%
+#                  of data will be used for training, 10% for validation, and 10% for test.
+#                  Predefined splits:
+#                  Assigns input data to training, validation, and test sets based on the value of a provided key.
+#                  If using predefined splits, ``predefined_split_column_name`` must be provided.
+#                  Supported only for tabular Datasets.
+#                  Timestamp splits:
+#                  Assigns input data to training, validation, and test sets
+#                  based on a provided timestamps. The youngest data pieces are
+#                  assigned to training set, next to validation set, and the oldest
+#                  to the test set.
+#                  Supported only for tabular Datasets.
+# Inputs:
+#    additional_experiments: list
+#    available_at_forecast_columns: list
+#    budget_milli_node_hours: int
+#    column_specs: dict
+#    column_transformations: list
+#    context_window: int
+#    data_granularity_count: int
+#    data_granularity_unit: str
+#    dataset: google.VertexDataset
+#    display_name: str
+#    export_evaluated_data_items: bool [Default: False]
+#    export_evaluated_data_items_bigquery_destination_uri: str
+#    export_evaluated_data_items_override_destination: bool
+#    forecast_horizon: int
+#    hierarchy_group_columns: list
+#    hierarchy_group_temporal_total_weight: float
+#    hierarchy_group_total_weight: float
+#    hierarchy_temporal_total_weight: float
+#    holiday_regions: list
+#    is_default_version: bool
+#    labels: dict [Default: {}]
+#    location: str [Default: 'us-central1']
+#    model_display_name: str
+#    model_encryption_spec_key_name: str
+#    model_id: str
+#    model_labels: dict
+#    model_version_aliases: list
+#    model_version_description: str
+#    optimization_objective: str
+#    parent_model: str
+#    predefined_split_column_name: str
+#    project: str
+#    quantiles: list
+#    target_column: str
+#    test_fraction_split: float
+#    time_column: str
+#    time_series_attribute_columns: list
+#    time_series_identifier_column: str
+#    timestamp_split_column_name: str
+#    training_encryption_spec_key_name: str
+#    training_fraction_split: float
+#    unavailable_at_forecast_columns: list
+#    validation_fraction_split: float
+#    validation_options: str
+#    weight_column: str
+#    window_column: str
+#    window_max_count: int
+#    window_stride_length: int
+# Outputs:
+#    model: google.VertexModel
+components:
+  comp-automl-forecasting-training-job:
+    executorLabel: exec-automl-forecasting-training-job
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: google.VertexDataset
+            schemaVersion: 0.0.1
+          description: 'Required. The dataset within the same Project from which data
+            will be used to train the Model. The
+
+            Dataset must use schema compatible with Model being trained,
+
+            and what is compatible should be described in the used
+
+            TrainingPipeline''s [training_task_definition]
+
+            [google.cloud.aiplatform.v1beta1.TrainingPipeline.training_task_definition].
+
+            For time series Datasets, all their data is exported to
+
+            training, to pick and choose from.'
+      parameters:
+        additional_experiments:
+          description: Optional. Additional experiment flags for the time series forcasting
+            training.
+          isOptional: true
+          parameterType: LIST
+        available_at_forecast_columns:
+          description: 'Required. Column names of columns that are available at forecast.
+
+            Each column contains information for the given entity (identified by the
+
+            [time_series_identifier_column]) that is known at forecast.'
+          parameterType: LIST
+        budget_milli_node_hours:
+          description: 'Optional. The train budget of creating this Model, expressed
+            in milli node
+
+            hours i.e. 1,000 value in this field means 1 node hour.
+
+            The training cost of the model will not exceed this budget. The final
+
+            cost will be attempted to be close to the budget, though may end up
+
+            being (even) noticeably smaller - at the backend''s discretion. This
+
+            especially may happen when further model training ceases to provide
+
+            any improvements.
+
+            If the budget is set to a value known to be insufficient to train a
+
+            Model for the given training set, the training won''t be attempted and
+
+            will error.
+
+            The minimum value is 1000 and the maximum is 72000.'
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        column_specs:
+          description: 'Optional. Alternative to column_transformations where the
+            keys of the dict
+
+            are column names and their respective values are one of
+
+            AutoMLTabularTrainingJob.column_data_types.
+
+            When creating transformation for BigQuery Struct column, the column
+
+            should be flattened using "." as the delimiter. Only columns with no child
+
+            should have a transformation.
+
+            If an input column has no transformations on it, such a column is
+
+            ignored by the training, except for the targetColumn, which should have
+
+            no transformations defined on.
+
+            Only one of column_transformations or column_specs should be passed.'
+          isOptional: true
+          parameterType: STRUCT
+        column_transformations:
+          description: 'Optional. Transformations to apply to the input columns (i.e.
+            columns other
+
+            than the targetColumn). Each transformation may produce multiple
+
+            result values from the column''s value, and all are used for training.
+
+            When creating transformation for BigQuery Struct column, the column
+
+            should be flattened using "." as the delimiter. Only columns with no child
+
+            should have a transformation.
+
+            If an input column has no transformations on it, such a column is
+
+            ignored by the training, except for the targetColumn, which should have
+
+            no transformations defined on.
+
+            Only one of column_transformations or column_specs should be passed.
+
+            Consider using column_specs as column_transformations will be deprecated
+            eventually.'
+          isOptional: true
+          parameterType: LIST
+        context_window:
+          description: 'Optional. The amount of time into the past training and prediction
+            data is used for
+
+            model training and prediction respectively. Expressed in number of units
+            defined by the
+
+            [data_granularity_unit] and [data_granularity_count] fields. When not
+            provided uses the
+
+            default value of 0 which means the model sets each series context window
+            to be 0 (also
+
+            known as "cold start"). Inclusive.'
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        data_granularity_count:
+          description: 'Required. The number of data granularity units between data
+            points in the training
+
+            data. If [data_granularity_unit] is `minute`, can be 1, 5, 10, 15, or
+            30. For all other
+
+            values of [data_granularity_unit], must be 1.'
+          parameterType: NUMBER_INTEGER
+        data_granularity_unit:
+          description: 'Required. The data granularity unit. Accepted values are ``minute``,
+
+            ``hour``, ``day``, ``week``, ``month``, ``year``.'
+          parameterType: STRING
+        display_name:
+          description: Required. The user-defined name of this TrainingPipeline.
+          parameterType: STRING
+        export_evaluated_data_items:
+          defaultValue: false
+          description: 'Whether to export the test set predictions to a BigQuery table.
+
+            If False, then the export is not performed.'
+          isOptional: true
+          parameterType: BOOLEAN
+        export_evaluated_data_items_bigquery_destination_uri:
+          description: 'Optional. URI of desired destination BigQuery table for exported
+            test set predictions.
+
+            Expected format:
+
+            ``bq://<project_id>:<dataset_id>:<table>``
+
+            If not specified, then results are exported to the following auto-created
+            BigQuery
+
+            table:
+
+            ``<project_id>:export_evaluated_examples_<model_name>_<yyyy_MM_dd''T''HH_mm_ss_SSS''Z''>.evaluated_examples``
+
+            Applies only if [export_evaluated_data_items] is True.'
+          isOptional: true
+          parameterType: STRING
+        export_evaluated_data_items_override_destination:
+          description: 'Whether to override the contents of [export_evaluated_data_items_bigquery_destination_uri],
+
+            if the table exists, for exported test set predictions. If False, and
+            the
+
+            table exists, then the training job will fail.
+
+            Applies only if [export_evaluated_data_items] is True and
+
+            [export_evaluated_data_items_bigquery_destination_uri] is specified.'
+          isOptional: true
+          parameterType: BOOLEAN
+        forecast_horizon:
+          description: '(Integer):
+
+            Required. The amount of time into the future for which forecasted values
+            for the target are
+
+            returned. Expressed in number of units defined by the [data_granularity_unit]
+            and
+
+            [data_granularity_count] field. Inclusive.'
+          parameterType: NUMBER_INTEGER
+        hierarchy_group_columns:
+          description: 'Optional. A list of time series attribute column names that
+
+            define the time series hierarchy. Only one level of hierarchy is
+
+            supported, ex. ``region`` for a hierarchy of stores or
+
+            ``department`` for a hierarchy of products. If multiple columns
+
+            are specified, time series will be grouped by their combined
+
+            values, ex. (``blue``, ``large``) for ``color`` and ``size``, up
+
+            to 5 columns are accepted. If no group columns are specified,
+
+            all time series are considered to be part of the same group.'
+          isOptional: true
+          parameterType: LIST
+        hierarchy_group_temporal_total_weight:
+          description: 'Optional. The weight of the loss for predictions aggregated
+            over
+
+            both the horizon and time series in the same hierarchy group.'
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        hierarchy_group_total_weight:
+          description: 'Optional. The weight of the loss for predictions aggregated
+            over
+
+            time series in the same hierarchy group.'
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        hierarchy_temporal_total_weight:
+          description: 'Optional. The weight of the loss for predictions aggregated
+            over
+
+            the horizon for a single time series.'
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        holiday_regions:
+          description: "Optional. The geographical regions to use when creating holiday\n\
+            features. This option is only allowed when data_granularity_unit\nis ``day``.\
+            \ Acceptable values can come from any of the following\nlevels:\n  Top\
+            \ level: GLOBAL\n  Second level: continental regions\n    NA: North America\n\
+            \    JAPAC: Japan and Asia Pacific\n    EMEA: Europe, the Middle East\
+            \ and Africa\n    LAC: Latin America and the Caribbean\n  Third level:\
+            \ countries from ISO 3166-1 Country codes."
+          isOptional: true
+          parameterType: LIST
+        is_default_version:
+          description: 'Optional. When set to True, the newly uploaded model version
+            will
+
+            automatically have alias "default" included. Subsequent uses of
+
+            the model produced by this job without a version specified will
+
+            use this "default" version.
+
+            When set to False, the "default" alias will not be moved.
+
+            Actions targeting the model version produced by this job will need
+
+            to specifically reference this version by ID or alias.
+
+            New model uploads, i.e. version 1, will always be "default" aliased.'
+          isOptional: true
+          parameterType: BOOLEAN
+        labels:
+          defaultValue: {}
+          description: 'Optional. The labels with user-defined metadata to
+
+            organize TrainingPipelines.
+
+            Label keys and values can be no longer than 64
+
+            characters (Unicode codepoints), can only
+
+            contain lowercase letters, numeric characters,
+
+            underscores and dashes. International characters
+
+            are allowed.
+
+            See https://goo.gl/xmQnxf for more information
+
+            and examples of labels.'
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          description: Optional location to retrieve dataset from.
+          isOptional: true
+          parameterType: STRING
+        model_display_name:
+          description: 'Optional. If the script produces a managed Vertex AI Model.
+            The display name of
+
+            the Model. The name can be up to 128 characters long and can be consist
+
+            of any UTF-8 characters.
+
+            If not provided upon creation, the job''s display_name is used.'
+          isOptional: true
+          parameterType: STRING
+        model_encryption_spec_key_name:
+          description: 'Optional. The Cloud KMS resource identifier of the customer
+
+            managed encryption key used to protect the model. Has the
+
+            form:
+
+            ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
+
+            The key needs to be in the same region as where the compute
+
+            resource is created.
+
+            If set, the trained Model will be secured by this key.
+
+            Overrides encryption_spec_key_name set in aiplatform.init.'
+          isOptional: true
+          parameterType: STRING
+        model_id:
+          description: 'Optional. The ID to use for the Model produced by this job,
+
+            which will become the final component of the model resource name.
+
+            This value may be up to 63 characters, and valid characters
+
+            are `[a-z0-9_-]`. The first character cannot be a number or hyphen.'
+          isOptional: true
+          parameterType: STRING
+        model_labels:
+          description: 'Optional. The labels with user-defined metadata to
+
+            organize your Models.
+
+            Label keys and values can be no longer than 64
+
+            characters (Unicode codepoints), can only
+
+            contain lowercase letters, numeric characters,
+
+            underscores and dashes. International characters
+
+            are allowed.
+
+            See https://goo.gl/xmQnxf for more information
+
+            and examples of labels.'
+          isOptional: true
+          parameterType: STRUCT
+        model_version_aliases:
+          description: 'Optional. User provided version aliases so that the model
+            version
+
+            uploaded by this job can be referenced via alias instead of
+
+            auto-generated version ID. A default version alias will be created
+
+            for the first version of the model.
+
+            The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]'
+          isOptional: true
+          parameterType: LIST
+        model_version_description:
+          description: Optional. The description of the model version being uploaded
+            by this job.
+          isOptional: true
+          parameterType: STRING
+        optimization_objective:
+          description: "Optional. Objective function the model is to be optimized\
+            \ towards.\nThe training process creates a Model that optimizes the value\
+            \ of the objective\nfunction over the validation set. The supported optimization\
+            \ objectives:\n\"minimize-rmse\" (default) - Minimize root-mean-squared\
+            \ error (RMSE).\n\"minimize-mae\" - Minimize mean-absolute error (MAE).\n\
+            \"minimize-rmsle\" - Minimize root-mean-squared log error (RMSLE).\n\"\
+            minimize-rmspe\" - Minimize root-mean-squared percentage error (RMSPE).\n\
+            \"minimize-wape-mae\" - Minimize the combination of weighted absolute\
+            \ percentage error (WAPE)\n                      and mean-absolute-error\
+            \ (MAE).\n\"minimize-quantile-loss\" - Minimize the quantile loss at the\
+            \ defined quantiles.\n                           (Set this objective to\
+            \ build quantile forecasts.)"
+          isOptional: true
+          parameterType: STRING
+        parent_model:
+          description: 'Optional. The resource name or model ID of an existing model.
+
+            The new model uploaded by this job will be a version of `parent_model`.
+
+            Only set this field when training a new version of an existing model.'
+          isOptional: true
+          parameterType: STRING
+        predefined_split_column_name:
+          description: 'Optional. The key is a name of one of the Dataset''s data
+
+            columns. The value of the key (either the label''s value or
+
+            value in the column) must be one of {``TRAIN``,
+
+            ``VALIDATE``, ``TEST``}, and it defines to which set the
+
+            given piece of data is assigned. If for a piece of data the
+
+            key is not present or has an invalid value, that piece is
+
+            ignored by the pipeline.
+
+            Supported only for tabular and time series Datasets.'
+          isOptional: true
+          parameterType: STRING
+        project:
+          description: Required. project to retrieve dataset from.
+          parameterType: STRING
+        quantiles:
+          description: 'Quantiles to use for the `minimize-quantile-loss`
+
+            [AutoMLForecastingTrainingJob.optimization_objective]. This argument is
+            required in
+
+            this case.
+
+            Accepts up to 5 quantiles in the form of a double from 0 to 1, exclusive.
+
+            Each quantile must be unique.'
+          isOptional: true
+          parameterType: LIST
+        target_column:
+          description: 'Required. Name of the column that the Model is to predict
+            values for. This
+
+            column must be unavailable at forecast.'
+          parameterType: STRING
+        test_fraction_split:
+          description: 'Optional. The fraction of the input data that is to be used
+            to evaluate
+
+            the Model. This is ignored if Dataset is not provided.'
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        time_column:
+          description: 'Required. Name of the column that identifies time order in
+            the time series.
+
+            This column must be available at forecast.'
+          parameterType: STRING
+        time_series_attribute_columns:
+          description: 'Optional. Column names that should be used as attribute columns.
+
+            Each column is constant within a time series.'
+          isOptional: true
+          parameterType: LIST
+        time_series_identifier_column:
+          description: Required. Name of the column that identifies the time series.
+          parameterType: STRING
+        timestamp_split_column_name:
+          description: 'Optional. The key is a name of one of the Dataset''s data
+
+            columns. The value of the key values of the key (the values in
+
+            the column) must be in RFC 3339 `date-time` format, where
+
+            `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a
+
+            piece of data the key is not present or has an invalid value,
+
+            that piece is ignored by the pipeline.
+
+            Supported only for tabular and time series Datasets.
+
+            This parameter must be used with training_fraction_split,
+
+            validation_fraction_split, and test_fraction_split.'
+          isOptional: true
+          parameterType: STRING
+        training_encryption_spec_key_name:
+          description: 'Optional. The Cloud KMS resource identifier of the customer
+
+            managed encryption key used to protect the training pipeline. Has the
+
+            form:
+
+            ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
+
+            The key needs to be in the same region as where the compute
+
+            resource is created.
+
+            If set, this TrainingPipeline will be secured by this key.
+
+            Note: Model trained by this TrainingPipeline is also secured
+
+            by this key if ``model_to_upload`` is not set separately.
+
+            Overrides encryption_spec_key_name set in aiplatform.init.'
+          isOptional: true
+          parameterType: STRING
+        training_fraction_split:
+          description: 'Optional. The fraction of the input data that is to be used
+            to train
+
+            the Model. This is ignored if Dataset is not provided.'
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        unavailable_at_forecast_columns:
+          description: 'Required. Column names of columns that are unavailable at
+            forecast.
+
+            Each column contains information for the given entity (identified by the
+
+            [time_series_identifier_column]) that is unknown before the forecast
+
+            (e.g. population of a city in a given year, or weather on a given day).'
+          parameterType: LIST
+        validation_fraction_split:
+          description: 'Optional. The fraction of the input data that is to be used
+            to validate
+
+            the Model. This is ignored if Dataset is not provided.'
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        validation_options:
+          description: "Validation options for the data validation component. The\
+            \ available options are:\n\"fail-pipeline\" - (default), will validate\
+            \ against the validation and fail the pipeline\n                  if it\
+            \ fails.\n\"ignore-validation\" - ignore the results of the validation\
+            \ and continue the pipeline"
+          isOptional: true
+          parameterType: STRING
+        weight_column:
+          description: 'Optional. Name of the column that should be used as the weight
+            column.
+
+            Higher values in this column give more importance to the row
+
+            during Model training. The column must have numeric values between 0 and
+
+            10000 inclusively, and 0 value means that the row is ignored.
+
+            If the weight column field is not set, then all rows are assumed to have
+
+            equal weight of 1.'
+          isOptional: true
+          parameterType: STRING
+        window_column:
+          description: 'Optional. Name of the column that should be used to filter
+            input
+
+            rows. The column should contain either booleans or string
+
+            booleans; if the value of the row is True, generate a sliding
+
+            window from that row.'
+          isOptional: true
+          parameterType: STRING
+        window_max_count:
+          description: 'Optional. Number of rows that should be used to generate input
+
+            examples. If the total row count is larger than this number, the
+
+            input data will be randomly sampled to hit the count.'
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        window_stride_length:
+          description: 'Optional. Step length used to generate input examples. Every
+
+            ``window_stride_length`` rows will be used to generate a sliding
+
+            window.'
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.1
+          description: 'The trained Vertex AI Model resource or None if training did
+            not
+
+            produce a Vertex AI Model.'
+deploymentSpec:
+  executors:
+    exec-automl-forecasting-training-job:
+      container:
+        args:
+        - --init.project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --init.location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --init.display_name
+        - '{{$.inputs.parameters[''display_name'']}}'
+        - --method.target_column
+        - '{{$.inputs.parameters[''target_column'']}}'
+        - --method.time_column
+        - '{{$.inputs.parameters[''time_column'']}}'
+        - --method.time_series_identifier_column
+        - '{{$.inputs.parameters[''time_series_identifier_column'']}}'
+        - --method.unavailable_at_forecast_columns
+        - '{{$.inputs.parameters[''unavailable_at_forecast_columns'']}}'
+        - --method.available_at_forecast_columns
+        - '{{$.inputs.parameters[''available_at_forecast_columns'']}}'
+        - --method.forecast_horizon
+        - '{{$.inputs.parameters[''forecast_horizon'']}}'
+        - --method.data_granularity_unit
+        - '{{$.inputs.parameters[''data_granularity_unit'']}}'
+        - --method.data_granularity_count
+        - '{{$.inputs.parameters[''data_granularity_count'']}}'
+        - --method.dataset
+        - '{{$.inputs.artifacts[''dataset''].metadata[''resourceName'']}}'
+        - '{"IfPresent": {"InputName": "optimization_objective", "Then": ["--init.optimization_objective",
+          "{{$.inputs.parameters[''optimization_objective'']}}"]}}'
+        - '{"IfPresent": {"InputName": "training_encryption_spec_key_name", "Then":
+          ["--init.training_encryption_spec_key_name", "{{$.inputs.parameters[''training_encryption_spec_key_name'']}}"]}}'
+        - '{"IfPresent": {"InputName": "model_encryption_spec_key_name", "Then": ["--init.model_encryption_spec_key_name",
+          "{{$.inputs.parameters[''model_encryption_spec_key_name'']}}"]}}'
+        - '{"IfPresent": {"InputName": "context_window", "Then": ["--method.context_window",
+          "{{$.inputs.parameters[''context_window'']}}"]}}'
+        - '{"IfPresent": {"InputName": "validation_options", "Then": ["--method.validation_options",
+          "{{$.inputs.parameters[''validation_options'']}}"]}}'
+        - '{"IfPresent": {"InputName": "budget_milli_node_hours", "Then": ["--method.budget_milli_node_hours",
+          "{{$.inputs.parameters[''budget_milli_node_hours'']}}"]}}'
+        - '{"IfPresent": {"InputName": "model_display_name", "Then": ["--method.model_display_name",
+          "{{$.inputs.parameters[''model_display_name'']}}"]}}'
+        - '{"IfPresent": {"InputName": "training_fraction_split", "Then": ["--method.training_fraction_split",
+          "{{$.inputs.parameters[''training_fraction_split'']}}"]}}'
+        - '{"IfPresent": {"InputName": "validation_fraction_split", "Then": ["--method.validation_fraction_split",
+          "{{$.inputs.parameters[''validation_fraction_split'']}}"]}}'
+        - '{"IfPresent": {"InputName": "test_fraction_split", "Then": ["--method.test_fraction_split",
+          "{{$.inputs.parameters[''test_fraction_split'']}}"]}}'
+        - '{"IfPresent": {"InputName": "predefined_split_column_name", "Then": ["--method.predefined_split_column_name",
+          "{{$.inputs.parameters[''predefined_split_column_name'']}}"]}}'
+        - '{"IfPresent": {"InputName": "timestamp_split_column_name", "Then": ["--method.timestamp_split_column_name",
+          "{{$.inputs.parameters[''timestamp_split_column_name'']}}"]}}'
+        - '{"IfPresent": {"InputName": "weight_column", "Then": ["--method.weight_column",
+          "{{$.inputs.parameters[''weight_column'']}}"]}}'
+        - '{"IfPresent": {"InputName": "export_evaluated_data_items", "Then": ["--method.export_evaluated_data_items",
+          "{{$.inputs.parameters[''export_evaluated_data_items'']}}"]}}'
+        - '{"IfPresent": {"InputName": "export_evaluated_data_items_bigquery_destination_uri",
+          "Then": ["--method.export_evaluated_data_items_bigquery_destination_uri",
+          "{{$.inputs.parameters[''export_evaluated_data_items_bigquery_destination_uri'']}}"]}}'
+        - '{"IfPresent": {"InputName": "export_evaluated_data_items_override_destination",
+          "Then": ["--method.export_evaluated_data_items_override_destination", "{{$.inputs.parameters[''export_evaluated_data_items_override_destination'']}}"]}}'
+        - '{"IfPresent": {"InputName": "time_series_attribute_columns", "Then": ["--method.time_series_attribute_columns",
+          "{{$.inputs.parameters[''time_series_attribute_columns'']}}"]}}'
+        - '{"IfPresent": {"InputName": "quantiles", "Then": ["--method.quantiles",
+          "{{$.inputs.parameters[''quantiles'']}}"]}}'
+        - '{"IfPresent": {"InputName": "labels", "Then": ["--init.labels", "{{$.inputs.parameters[''labels'']}}"]}}'
+        - '{"IfPresent": {"InputName": "model_labels", "Then": ["--method.model_labels",
+          "{{$.inputs.parameters[''model_labels'']}}"]}}'
+        - '{"IfPresent": {"InputName": "model_id", "Then": ["--method.model_id", "{{$.inputs.parameters[''model_id'']}}"]}}'
+        - '{"IfPresent": {"InputName": "parent_model", "Then": ["--method.parent_model",
+          "{{$.inputs.parameters[''parent_model'']}}"]}}'
+        - '{"IfPresent": {"InputName": "is_default_version", "Then": ["--method.is_default_version",
+          "{{$.inputs.parameters[''is_default_version'']}}"]}}'
+        - '{"IfPresent": {"InputName": "model_version_aliases", "Then": ["--method.model_version_aliases",
+          "{{$.inputs.parameters[''model_version_aliases'']}}"]}}'
+        - '{"IfPresent": {"InputName": "model_version_description", "Then": ["--method.model_version_description",
+          "{{$.inputs.parameters[''model_version_description'']}}"]}}'
+        - '{"IfPresent": {"InputName": "hierarchy_group_columns", "Then": ["--method.hierarchy_group_columns",
+          "{{$.inputs.parameters[''hierarchy_group_columns'']}}"]}}'
+        - '{"IfPresent": {"InputName": "hierarchy_group_total_weight", "Then": ["--method.hierarchy_group_total_weight",
+          "{{$.inputs.parameters[''hierarchy_group_total_weight'']}}"]}}'
+        - '{"IfPresent": {"InputName": "hierarchy_temporal_total_weight", "Then":
+          ["--method.hierarchy_temporal_total_weight", "{{$.inputs.parameters[''hierarchy_temporal_total_weight'']}}"]}}'
+        - '{"IfPresent": {"InputName": "hierarchy_group_temporal_total_weight", "Then":
+          ["--method.hierarchy_group_temporal_total_weight", "{{$.inputs.parameters[''hierarchy_group_temporal_total_weight'']}}"]}}'
+        - '{"IfPresent": {"InputName": "window_column", "Then": ["--method.window_column",
+          "{{$.inputs.parameters[''window_column'']}}"]}}'
+        - '{"IfPresent": {"InputName": "window_stride_length", "Then": ["--method.window_stride_length",
+          "{{$.inputs.parameters[''window_stride_length'']}}"]}}'
+        - '{"IfPresent": {"InputName": "window_max_count", "Then": ["--method.window_max_count",
+          "{{$.inputs.parameters[''window_max_count'']}}"]}}'
+        - '{"IfPresent": {"InputName": "holiday_regions", "Then": ["--method.holiday_regions",
+          "{{$.inputs.parameters[''holiday_regions'']}}"]}}'
+        - '{"IfPresent": {"InputName": "column_specs", "Then": ["--init.column_specs",
+          "{{$.inputs.parameters[''column_specs'']}}"]}}'
+        - '{"IfPresent": {"InputName": "column_transformations", "Then": ["--init.column_transformations",
+          "{{$.inputs.parameters[''column_transformations'']}}"]}}'
+        - '{"IfPresent": {"InputName": "additional_experiments", "Then": ["--method.additional_experiments",
+          "{{$.inputs.parameters[''additional_experiments'']}}"]}}'
+        - --executor_input
+        - '{{$}}'
+        - --resource_name_output_artifact_uri
+        - '{{$.outputs.artifacts[''model''].uri}}'
+        command:
+        - python3
+        - -m
+        - google_cloud_pipeline_components.container.aiplatform.remote_runner
+        - --cls_name
+        - AutoMLForecastingTrainingJob
+        - --method_name
+        - run
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3
+pipelineInfo:
+  name: automl-forecasting-training-job
+root:
+  dag:
+    outputs:
+      artifacts:
+        model:
+          artifactSelectors:
+          - outputArtifactKey: model
+            producerSubtask: automl-forecasting-training-job
+    tasks:
+      automl-forecasting-training-job:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-automl-forecasting-training-job
+        inputs:
+          artifacts:
+            dataset:
+              componentInputArtifact: dataset
+          parameters:
+            additional_experiments:
+              componentInputParameter: additional_experiments
+            available_at_forecast_columns:
+              componentInputParameter: available_at_forecast_columns
+            budget_milli_node_hours:
+              componentInputParameter: budget_milli_node_hours
+            column_specs:
+              componentInputParameter: column_specs
+            column_transformations:
+              componentInputParameter: column_transformations
+            context_window:
+              componentInputParameter: context_window
+            data_granularity_count:
+              componentInputParameter: data_granularity_count
+            data_granularity_unit:
+              componentInputParameter: data_granularity_unit
+            display_name:
+              componentInputParameter: display_name
+            export_evaluated_data_items:
+              componentInputParameter: export_evaluated_data_items
+            export_evaluated_data_items_bigquery_destination_uri:
+              componentInputParameter: export_evaluated_data_items_bigquery_destination_uri
+            export_evaluated_data_items_override_destination:
+              componentInputParameter: export_evaluated_data_items_override_destination
+            forecast_horizon:
+              componentInputParameter: forecast_horizon
+            hierarchy_group_columns:
+              componentInputParameter: hierarchy_group_columns
+            hierarchy_group_temporal_total_weight:
+              componentInputParameter: hierarchy_group_temporal_total_weight
+            hierarchy_group_total_weight:
+              componentInputParameter: hierarchy_group_total_weight
+            hierarchy_temporal_total_weight:
+              componentInputParameter: hierarchy_temporal_total_weight
+            holiday_regions:
+              componentInputParameter: holiday_regions
+            is_default_version:
+              componentInputParameter: is_default_version
+            labels:
+              componentInputParameter: labels
+            location:
+              componentInputParameter: location
+            model_display_name:
+              componentInputParameter: model_display_name
+            model_encryption_spec_key_name:
+              componentInputParameter: model_encryption_spec_key_name
+            model_id:
+              componentInputParameter: model_id
+            model_labels:
+              componentInputParameter: model_labels
+            model_version_aliases:
+              componentInputParameter: model_version_aliases
+            model_version_description:
+              componentInputParameter: model_version_description
+            optimization_objective:
+              componentInputParameter: optimization_objective
+            parent_model:
+              componentInputParameter: parent_model
+            predefined_split_column_name:
+              componentInputParameter: predefined_split_column_name
+            project:
+              componentInputParameter: project
+            quantiles:
+              componentInputParameter: quantiles
+            target_column:
+              componentInputParameter: target_column
+            test_fraction_split:
+              componentInputParameter: test_fraction_split
+            time_column:
+              componentInputParameter: time_column
+            time_series_attribute_columns:
+              componentInputParameter: time_series_attribute_columns
+            time_series_identifier_column:
+              componentInputParameter: time_series_identifier_column
+            timestamp_split_column_name:
+              componentInputParameter: timestamp_split_column_name
+            training_encryption_spec_key_name:
+              componentInputParameter: training_encryption_spec_key_name
+            training_fraction_split:
+              componentInputParameter: training_fraction_split
+            unavailable_at_forecast_columns:
+              componentInputParameter: unavailable_at_forecast_columns
+            validation_fraction_split:
+              componentInputParameter: validation_fraction_split
+            validation_options:
+              componentInputParameter: validation_options
+            weight_column:
+              componentInputParameter: weight_column
+            window_column:
+              componentInputParameter: window_column
+            window_max_count:
+              componentInputParameter: window_max_count
+            window_stride_length:
+              componentInputParameter: window_stride_length
+        taskInfo:
+          name: automl-forecasting-training-job
+  inputDefinitions:
+    artifacts:
+      dataset:
+        artifactType:
+          schemaTitle: google.VertexDataset
+          schemaVersion: 0.0.1
+        description: 'Required. The dataset within the same Project from which data
+          will be used to train the Model. The
+
+          Dataset must use schema compatible with Model being trained,
+
+          and what is compatible should be described in the used
+
+          TrainingPipeline''s [training_task_definition]
+
+          [google.cloud.aiplatform.v1beta1.TrainingPipeline.training_task_definition].
+
+          For time series Datasets, all their data is exported to
+
+          training, to pick and choose from.'
+    parameters:
+      additional_experiments:
+        description: Optional. Additional experiment flags for the time series forcasting
+          training.
+        isOptional: true
+        parameterType: LIST
+      available_at_forecast_columns:
+        description: 'Required. Column names of columns that are available at forecast.
+
+          Each column contains information for the given entity (identified by the
+
+          [time_series_identifier_column]) that is known at forecast.'
+        parameterType: LIST
+      budget_milli_node_hours:
+        description: 'Optional. The train budget of creating this Model, expressed
+          in milli node
+
+          hours i.e. 1,000 value in this field means 1 node hour.
+
+          The training cost of the model will not exceed this budget. The final
+
+          cost will be attempted to be close to the budget, though may end up
+
+          being (even) noticeably smaller - at the backend''s discretion. This
+
+          especially may happen when further model training ceases to provide
+
+          any improvements.
+
+          If the budget is set to a value known to be insufficient to train a
+
+          Model for the given training set, the training won''t be attempted and
+
+          will error.
+
+          The minimum value is 1000 and the maximum is 72000.'
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      column_specs:
+        description: 'Optional. Alternative to column_transformations where the keys
+          of the dict
+
+          are column names and their respective values are one of
+
+          AutoMLTabularTrainingJob.column_data_types.
+
+          When creating transformation for BigQuery Struct column, the column
+
+          should be flattened using "." as the delimiter. Only columns with no child
+
+          should have a transformation.
+
+          If an input column has no transformations on it, such a column is
+
+          ignored by the training, except for the targetColumn, which should have
+
+          no transformations defined on.
+
+          Only one of column_transformations or column_specs should be passed.'
+        isOptional: true
+        parameterType: STRUCT
+      column_transformations:
+        description: 'Optional. Transformations to apply to the input columns (i.e.
+          columns other
+
+          than the targetColumn). Each transformation may produce multiple
+
+          result values from the column''s value, and all are used for training.
+
+          When creating transformation for BigQuery Struct column, the column
+
+          should be flattened using "." as the delimiter. Only columns with no child
+
+          should have a transformation.
+
+          If an input column has no transformations on it, such a column is
+
+          ignored by the training, except for the targetColumn, which should have
+
+          no transformations defined on.
+
+          Only one of column_transformations or column_specs should be passed.
+
+          Consider using column_specs as column_transformations will be deprecated
+          eventually.'
+        isOptional: true
+        parameterType: LIST
+      context_window:
+        description: 'Optional. The amount of time into the past training and prediction
+          data is used for
+
+          model training and prediction respectively. Expressed in number of units
+          defined by the
+
+          [data_granularity_unit] and [data_granularity_count] fields. When not provided
+          uses the
+
+          default value of 0 which means the model sets each series context window
+          to be 0 (also
+
+          known as "cold start"). Inclusive.'
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      data_granularity_count:
+        description: 'Required. The number of data granularity units between data
+          points in the training
+
+          data. If [data_granularity_unit] is `minute`, can be 1, 5, 10, 15, or 30.
+          For all other
+
+          values of [data_granularity_unit], must be 1.'
+        parameterType: NUMBER_INTEGER
+      data_granularity_unit:
+        description: 'Required. The data granularity unit. Accepted values are ``minute``,
+
+          ``hour``, ``day``, ``week``, ``month``, ``year``.'
+        parameterType: STRING
+      display_name:
+        description: Required. The user-defined name of this TrainingPipeline.
+        parameterType: STRING
+      export_evaluated_data_items:
+        defaultValue: false
+        description: 'Whether to export the test set predictions to a BigQuery table.
+
+          If False, then the export is not performed.'
+        isOptional: true
+        parameterType: BOOLEAN
+      export_evaluated_data_items_bigquery_destination_uri:
+        description: 'Optional. URI of desired destination BigQuery table for exported
+          test set predictions.
+
+          Expected format:
+
+          ``bq://<project_id>:<dataset_id>:<table>``
+
+          If not specified, then results are exported to the following auto-created
+          BigQuery
+
+          table:
+
+          ``<project_id>:export_evaluated_examples_<model_name>_<yyyy_MM_dd''T''HH_mm_ss_SSS''Z''>.evaluated_examples``
+
+          Applies only if [export_evaluated_data_items] is True.'
+        isOptional: true
+        parameterType: STRING
+      export_evaluated_data_items_override_destination:
+        description: 'Whether to override the contents of [export_evaluated_data_items_bigquery_destination_uri],
+
+          if the table exists, for exported test set predictions. If False, and the
+
+          table exists, then the training job will fail.
+
+          Applies only if [export_evaluated_data_items] is True and
+
+          [export_evaluated_data_items_bigquery_destination_uri] is specified.'
+        isOptional: true
+        parameterType: BOOLEAN
+      forecast_horizon:
+        description: '(Integer):
+
+          Required. The amount of time into the future for which forecasted values
+          for the target are
+
+          returned. Expressed in number of units defined by the [data_granularity_unit]
+          and
+
+          [data_granularity_count] field. Inclusive.'
+        parameterType: NUMBER_INTEGER
+      hierarchy_group_columns:
+        description: 'Optional. A list of time series attribute column names that
+
+          define the time series hierarchy. Only one level of hierarchy is
+
+          supported, ex. ``region`` for a hierarchy of stores or
+
+          ``department`` for a hierarchy of products. If multiple columns
+
+          are specified, time series will be grouped by their combined
+
+          values, ex. (``blue``, ``large``) for ``color`` and ``size``, up
+
+          to 5 columns are accepted. If no group columns are specified,
+
+          all time series are considered to be part of the same group.'
+        isOptional: true
+        parameterType: LIST
+      hierarchy_group_temporal_total_weight:
+        description: 'Optional. The weight of the loss for predictions aggregated
+          over
+
+          both the horizon and time series in the same hierarchy group.'
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      hierarchy_group_total_weight:
+        description: 'Optional. The weight of the loss for predictions aggregated
+          over
+
+          time series in the same hierarchy group.'
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      hierarchy_temporal_total_weight:
+        description: 'Optional. The weight of the loss for predictions aggregated
+          over
+
+          the horizon for a single time series.'
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      holiday_regions:
+        description: "Optional. The geographical regions to use when creating holiday\n\
+          features. This option is only allowed when data_granularity_unit\nis ``day``.\
+          \ Acceptable values can come from any of the following\nlevels:\n  Top level:\
+          \ GLOBAL\n  Second level: continental regions\n    NA: North America\n \
+          \   JAPAC: Japan and Asia Pacific\n    EMEA: Europe, the Middle East and\
+          \ Africa\n    LAC: Latin America and the Caribbean\n  Third level: countries\
+          \ from ISO 3166-1 Country codes."
+        isOptional: true
+        parameterType: LIST
+      is_default_version:
+        description: 'Optional. When set to True, the newly uploaded model version
+          will
+
+          automatically have alias "default" included. Subsequent uses of
+
+          the model produced by this job without a version specified will
+
+          use this "default" version.
+
+          When set to False, the "default" alias will not be moved.
+
+          Actions targeting the model version produced by this job will need
+
+          to specifically reference this version by ID or alias.
+
+          New model uploads, i.e. version 1, will always be "default" aliased.'
+        isOptional: true
+        parameterType: BOOLEAN
+      labels:
+        defaultValue: {}
+        description: 'Optional. The labels with user-defined metadata to
+
+          organize TrainingPipelines.
+
+          Label keys and values can be no longer than 64
+
+          characters (Unicode codepoints), can only
+
+          contain lowercase letters, numeric characters,
+
+          underscores and dashes. International characters
+
+          are allowed.
+
+          See https://goo.gl/xmQnxf for more information
+
+          and examples of labels.'
+        isOptional: true
+        parameterType: STRUCT
+      location:
+        defaultValue: us-central1
+        description: Optional location to retrieve dataset from.
+        isOptional: true
+        parameterType: STRING
+      model_display_name:
+        description: 'Optional. If the script produces a managed Vertex AI Model.
+          The display name of
+
+          the Model. The name can be up to 128 characters long and can be consist
+
+          of any UTF-8 characters.
+
+          If not provided upon creation, the job''s display_name is used.'
+        isOptional: true
+        parameterType: STRING
+      model_encryption_spec_key_name:
+        description: 'Optional. The Cloud KMS resource identifier of the customer
+
+          managed encryption key used to protect the model. Has the
+
+          form:
+
+          ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
+
+          The key needs to be in the same region as where the compute
+
+          resource is created.
+
+          If set, the trained Model will be secured by this key.
+
+          Overrides encryption_spec_key_name set in aiplatform.init.'
+        isOptional: true
+        parameterType: STRING
+      model_id:
+        description: 'Optional. The ID to use for the Model produced by this job,
+
+          which will become the final component of the model resource name.
+
+          This value may be up to 63 characters, and valid characters
+
+          are `[a-z0-9_-]`. The first character cannot be a number or hyphen.'
+        isOptional: true
+        parameterType: STRING
+      model_labels:
+        description: 'Optional. The labels with user-defined metadata to
+
+          organize your Models.
+
+          Label keys and values can be no longer than 64
+
+          characters (Unicode codepoints), can only
+
+          contain lowercase letters, numeric characters,
+
+          underscores and dashes. International characters
+
+          are allowed.
+
+          See https://goo.gl/xmQnxf for more information
+
+          and examples of labels.'
+        isOptional: true
+        parameterType: STRUCT
+      model_version_aliases:
+        description: 'Optional. User provided version aliases so that the model version
+
+          uploaded by this job can be referenced via alias instead of
+
+          auto-generated version ID. A default version alias will be created
+
+          for the first version of the model.
+
+          The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]'
+        isOptional: true
+        parameterType: LIST
+      model_version_description:
+        description: Optional. The description of the model version being uploaded
+          by this job.
+        isOptional: true
+        parameterType: STRING
+      optimization_objective:
+        description: "Optional. Objective function the model is to be optimized towards.\n\
+          The training process creates a Model that optimizes the value of the objective\n\
+          function over the validation set. The supported optimization objectives:\n\
+          \"minimize-rmse\" (default) - Minimize root-mean-squared error (RMSE).\n\
+          \"minimize-mae\" - Minimize mean-absolute error (MAE).\n\"minimize-rmsle\"\
+          \ - Minimize root-mean-squared log error (RMSLE).\n\"minimize-rmspe\" -\
+          \ Minimize root-mean-squared percentage error (RMSPE).\n\"minimize-wape-mae\"\
+          \ - Minimize the combination of weighted absolute percentage error (WAPE)\n\
+          \                      and mean-absolute-error (MAE).\n\"minimize-quantile-loss\"\
+          \ - Minimize the quantile loss at the defined quantiles.\n             \
+          \              (Set this objective to build quantile forecasts.)"
+        isOptional: true
+        parameterType: STRING
+      parent_model:
+        description: 'Optional. The resource name or model ID of an existing model.
+
+          The new model uploaded by this job will be a version of `parent_model`.
+
+          Only set this field when training a new version of an existing model.'
+        isOptional: true
+        parameterType: STRING
+      predefined_split_column_name:
+        description: 'Optional. The key is a name of one of the Dataset''s data
+
+          columns. The value of the key (either the label''s value or
+
+          value in the column) must be one of {``TRAIN``,
+
+          ``VALIDATE``, ``TEST``}, and it defines to which set the
+
+          given piece of data is assigned. If for a piece of data the
+
+          key is not present or has an invalid value, that piece is
+
+          ignored by the pipeline.
+
+          Supported only for tabular and time series Datasets.'
+        isOptional: true
+        parameterType: STRING
+      project:
+        description: Required. project to retrieve dataset from.
+        parameterType: STRING
+      quantiles:
+        description: 'Quantiles to use for the `minimize-quantile-loss`
+
+          [AutoMLForecastingTrainingJob.optimization_objective]. This argument is
+          required in
+
+          this case.
+
+          Accepts up to 5 quantiles in the form of a double from 0 to 1, exclusive.
+
+          Each quantile must be unique.'
+        isOptional: true
+        parameterType: LIST
+      target_column:
+        description: 'Required. Name of the column that the Model is to predict values
+          for. This
+
+          column must be unavailable at forecast.'
+        parameterType: STRING
+      test_fraction_split:
+        description: 'Optional. The fraction of the input data that is to be used
+          to evaluate
+
+          the Model. This is ignored if Dataset is not provided.'
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      time_column:
+        description: 'Required. Name of the column that identifies time order in the
+          time series.
+
+          This column must be available at forecast.'
+        parameterType: STRING
+      time_series_attribute_columns:
+        description: 'Optional. Column names that should be used as attribute columns.
+
+          Each column is constant within a time series.'
+        isOptional: true
+        parameterType: LIST
+      time_series_identifier_column:
+        description: Required. Name of the column that identifies the time series.
+        parameterType: STRING
+      timestamp_split_column_name:
+        description: 'Optional. The key is a name of one of the Dataset''s data
+
+          columns. The value of the key values of the key (the values in
+
+          the column) must be in RFC 3339 `date-time` format, where
+
+          `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a
+
+          piece of data the key is not present or has an invalid value,
+
+          that piece is ignored by the pipeline.
+
+          Supported only for tabular and time series Datasets.
+
+          This parameter must be used with training_fraction_split,
+
+          validation_fraction_split, and test_fraction_split.'
+        isOptional: true
+        parameterType: STRING
+      training_encryption_spec_key_name:
+        description: 'Optional. The Cloud KMS resource identifier of the customer
+
+          managed encryption key used to protect the training pipeline. Has the
+
+          form:
+
+          ``projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key``.
+
+          The key needs to be in the same region as where the compute
+
+          resource is created.
+
+          If set, this TrainingPipeline will be secured by this key.
+
+          Note: Model trained by this TrainingPipeline is also secured
+
+          by this key if ``model_to_upload`` is not set separately.
+
+          Overrides encryption_spec_key_name set in aiplatform.init.'
+        isOptional: true
+        parameterType: STRING
+      training_fraction_split:
+        description: 'Optional. The fraction of the input data that is to be used
+          to train
+
+          the Model. This is ignored if Dataset is not provided.'
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      unavailable_at_forecast_columns:
+        description: 'Required. Column names of columns that are unavailable at forecast.
+
+          Each column contains information for the given entity (identified by the
+
+          [time_series_identifier_column]) that is unknown before the forecast
+
+          (e.g. population of a city in a given year, or weather on a given day).'
+        parameterType: LIST
+      validation_fraction_split:
+        description: 'Optional. The fraction of the input data that is to be used
+          to validate
+
+          the Model. This is ignored if Dataset is not provided.'
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      validation_options:
+        description: "Validation options for the data validation component. The available\
+          \ options are:\n\"fail-pipeline\" - (default), will validate against the\
+          \ validation and fail the pipeline\n                  if it fails.\n\"ignore-validation\"\
+          \ - ignore the results of the validation and continue the pipeline"
+        isOptional: true
+        parameterType: STRING
+      weight_column:
+        description: 'Optional. Name of the column that should be used as the weight
+          column.
+
+          Higher values in this column give more importance to the row
+
+          during Model training. The column must have numeric values between 0 and
+
+          10000 inclusively, and 0 value means that the row is ignored.
+
+          If the weight column field is not set, then all rows are assumed to have
+
+          equal weight of 1.'
+        isOptional: true
+        parameterType: STRING
+      window_column:
+        description: 'Optional. Name of the column that should be used to filter input
+
+          rows. The column should contain either booleans or string
+
+          booleans; if the value of the row is True, generate a sliding
+
+          window from that row.'
+        isOptional: true
+        parameterType: STRING
+      window_max_count:
+        description: 'Optional. Number of rows that should be used to generate input
+
+          examples. If the total row count is larger than this number, the
+
+          input data will be randomly sampled to hit the count.'
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      window_stride_length:
+        description: 'Optional. Step length used to generate input examples. Every
+
+          ``window_stride_length`` rows will be used to generate a sliding
+
+          window.'
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    artifacts:
+      model:
+        artifactType:
+          schemaTitle: google.VertexModel
+          schemaVersion: 0.0.1
+        description: 'The trained Vertex AI Model resource or None if training did
+          not
+
+          produce a Vertex AI Model.'
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-rc.1

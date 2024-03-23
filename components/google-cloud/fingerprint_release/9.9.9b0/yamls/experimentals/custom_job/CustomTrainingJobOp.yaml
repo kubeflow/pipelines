@@ -1,0 +1,393 @@
+# PIPELINE DEFINITION
+# Name: custom-training-job
+# Description: Launch a Custom training job using Vertex CustomJob API.
+# Inputs:
+#    base_output_directory: str [Default: '']
+#    display_name: str
+#    enable_web_access: bool [Default: False]
+#    encryption_spec_key_name: str [Default: '']
+#    labels: dict [Default: {}]
+#    location: str [Default: 'us-central1']
+#    network: str [Default: '']
+#    project: str
+#    reserved_ip_ranges: list [Default: []]
+#    restart_job_on_worker_restart: bool [Default: False]
+#    service_account: str [Default: '']
+#    tensorboard: str [Default: '']
+#    timeout: str [Default: '604800s']
+#    worker_pool_specs: list [Default: []]
+# Outputs:
+#    gcp_resources: str
+components:
+  comp-custom-training-job:
+    executorLabel: exec-custom-training-job
+    inputDefinitions:
+      parameters:
+        base_output_directory:
+          defaultValue: ''
+          description: "The Cloud Storage location to store\nthe output of this CustomJob\
+            \ or HyperparameterTuningJob. see below for\nmore details:\n  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination"
+          isOptional: true
+          parameterType: STRING
+        display_name:
+          description: The name of the custom training job.
+          parameterType: STRING
+        enable_web_access:
+          defaultValue: false
+          description: 'Whether you want Vertex AI to enable
+
+            [interactive shell
+
+            access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+
+            to training containers. If set to `true`, you can access interactive
+
+            shells at the URIs given by [CustomJob.web_access_uris][].'
+          isOptional: true
+          parameterType: BOOLEAN
+        encryption_spec_key_name:
+          defaultValue: ''
+          description: 'Customer-managed encryption key
+
+            options for the CustomJob. If this is set, then all resources created
+            by
+
+            the CustomJob will be encrypted with the provided encryption key.'
+          isOptional: true
+          parameterType: STRING
+        labels:
+          defaultValue: {}
+          description: 'The labels with user-defined metadata
+
+            to organize CustomJobs. See https://goo.gl/xmQnxf for more information.'
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          description: 'Location for creating the custom training job.
+
+            If not set, default to us-central1.'
+          isOptional: true
+          parameterType: STRING
+        network:
+          defaultValue: ''
+          description: 'The full name of the Compute Engine network to
+
+            which the job should be peered. For example,
+
+            projects/12345/global/networks/myVPC. Format is of the form
+
+            projects/{project}/global/networks/{network}. Where {project} is a
+
+            project number, as in 12345, and {network} is a network name. Private
+
+            services access must already be configured for the network. If left
+
+            unspecified, the job is not peered with any network.'
+          isOptional: true
+          parameterType: STRING
+        project:
+          description: Required. Project to create the custom training job in.
+          parameterType: STRING
+        reserved_ip_ranges:
+          defaultValue: []
+          description: 'A list of names for the
+
+            reserved ip ranges under the VPC network that can be used for this job.
+
+            If set, we will deploy the job within the provided ip ranges. Otherwise,
+
+            the job will be deployed to any ip ranges under the provided VPC
+
+            network.'
+          isOptional: true
+          parameterType: LIST
+        restart_job_on_worker_restart:
+          defaultValue: false
+          description: 'Restarts the entire
+
+            CustomJob if a worker gets restarted. This feature can be used by
+
+            distributed training jobs that are not resilient to workers leaving and
+
+            joining a job.'
+          isOptional: true
+          parameterType: BOOLEAN
+        service_account:
+          defaultValue: ''
+          description: 'Sets the default service account for
+
+            workload run-as account. The service account running the pipeline
+
+            (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
+
+            submitting jobs must have act-as permission on this run-as account. If
+
+            unspecified, the Vertex AI Custom Code Service
+
+            Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
+
+            for the CustomJob''s project.'
+          isOptional: true
+          parameterType: STRING
+        tensorboard:
+          defaultValue: ''
+          description: 'The name of a Vertex AI Tensorboard resource
+
+            to which this CustomJob will upload Tensorboard logs.'
+          isOptional: true
+          parameterType: STRING
+        timeout:
+          defaultValue: 604800s
+          description: 'The maximum job running time. The default is 7
+
+            days. A duration in seconds with up to nine fractional digits,
+
+            terminated by ''s'', for example: "3.5s".'
+          isOptional: true
+          parameterType: STRING
+        worker_pool_specs:
+          defaultValue: []
+          description: "Serialized json spec of the\nworker pools including machine\
+            \ type and Docker image. All worker pools\nexcept the first one are optional\
+            \ and can be skipped by providing an\nempty value.  For more details about\
+            \ the WorkerPoolSpec, see\n  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec"
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        gcp_resources:
+          description: 'Serialized gcp_resources proto tracking the batch prediction
+            job.
+
+
+            For more details, see
+
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-custom-training-job:
+      container:
+        args:
+        - --type
+        - CustomJob
+        - --payload
+        - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''display_name'']}}",
+          "\"", ", \"job_spec\": {", "\"worker_pool_specs\": ", "{{$.inputs.parameters[''worker_pool_specs'']}}",
+          ", \"scheduling\": {", "\"timeout\": \"", "{{$.inputs.parameters[''timeout'']}}",
+          "\"", ", \"restart_job_on_worker_restart\": \"", "{{$.inputs.parameters[''restart_job_on_worker_restart'']}}",
+          "\"", "}", ", \"service_account\": \"", "{{$.inputs.parameters[''service_account'']}}",
+          "\"", ", \"tensorboard\": \"", "{{$.inputs.parameters[''tensorboard'']}}",
+          "\"", ", \"enable_web_access\": \"", "{{$.inputs.parameters[''enable_web_access'']}}",
+          "\"", ", \"network\": \"", "{{$.inputs.parameters[''network'']}}", "\"",
+          ", \"reserved_ip_ranges\": ", "{{$.inputs.parameters[''reserved_ip_ranges'']}}",
+          ", \"base_output_directory\": {", "\"output_uri_prefix\": \"", "{{$.inputs.parameters[''base_output_directory'']}}",
+          "\"", "}", "}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}",
+          ", \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+          "\"}", "}"]}'
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.custom_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.0.0b3
+pipelineInfo:
+  name: custom-training-job
+root:
+  dag:
+    outputs:
+      parameters:
+        gcp_resources:
+          valueFromParameter:
+            outputParameterKey: gcp_resources
+            producerSubtask: custom-training-job
+    tasks:
+      custom-training-job:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-custom-training-job
+        inputs:
+          parameters:
+            base_output_directory:
+              componentInputParameter: base_output_directory
+            display_name:
+              componentInputParameter: display_name
+            enable_web_access:
+              componentInputParameter: enable_web_access
+            encryption_spec_key_name:
+              componentInputParameter: encryption_spec_key_name
+            labels:
+              componentInputParameter: labels
+            location:
+              componentInputParameter: location
+            network:
+              componentInputParameter: network
+            project:
+              componentInputParameter: project
+            reserved_ip_ranges:
+              componentInputParameter: reserved_ip_ranges
+            restart_job_on_worker_restart:
+              componentInputParameter: restart_job_on_worker_restart
+            service_account:
+              componentInputParameter: service_account
+            tensorboard:
+              componentInputParameter: tensorboard
+            timeout:
+              componentInputParameter: timeout
+            worker_pool_specs:
+              componentInputParameter: worker_pool_specs
+        taskInfo:
+          name: custom-training-job
+  inputDefinitions:
+    parameters:
+      base_output_directory:
+        defaultValue: ''
+        description: "The Cloud Storage location to store\nthe output of this CustomJob\
+          \ or HyperparameterTuningJob. see below for\nmore details:\n  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination"
+        isOptional: true
+        parameterType: STRING
+      display_name:
+        description: The name of the custom training job.
+        parameterType: STRING
+      enable_web_access:
+        defaultValue: false
+        description: 'Whether you want Vertex AI to enable
+
+          [interactive shell
+
+          access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+
+          to training containers. If set to `true`, you can access interactive
+
+          shells at the URIs given by [CustomJob.web_access_uris][].'
+        isOptional: true
+        parameterType: BOOLEAN
+      encryption_spec_key_name:
+        defaultValue: ''
+        description: 'Customer-managed encryption key
+
+          options for the CustomJob. If this is set, then all resources created by
+
+          the CustomJob will be encrypted with the provided encryption key.'
+        isOptional: true
+        parameterType: STRING
+      labels:
+        defaultValue: {}
+        description: 'The labels with user-defined metadata
+
+          to organize CustomJobs. See https://goo.gl/xmQnxf for more information.'
+        isOptional: true
+        parameterType: STRUCT
+      location:
+        defaultValue: us-central1
+        description: 'Location for creating the custom training job.
+
+          If not set, default to us-central1.'
+        isOptional: true
+        parameterType: STRING
+      network:
+        defaultValue: ''
+        description: 'The full name of the Compute Engine network to
+
+          which the job should be peered. For example,
+
+          projects/12345/global/networks/myVPC. Format is of the form
+
+          projects/{project}/global/networks/{network}. Where {project} is a
+
+          project number, as in 12345, and {network} is a network name. Private
+
+          services access must already be configured for the network. If left
+
+          unspecified, the job is not peered with any network.'
+        isOptional: true
+        parameterType: STRING
+      project:
+        description: Required. Project to create the custom training job in.
+        parameterType: STRING
+      reserved_ip_ranges:
+        defaultValue: []
+        description: 'A list of names for the
+
+          reserved ip ranges under the VPC network that can be used for this job.
+
+          If set, we will deploy the job within the provided ip ranges. Otherwise,
+
+          the job will be deployed to any ip ranges under the provided VPC
+
+          network.'
+        isOptional: true
+        parameterType: LIST
+      restart_job_on_worker_restart:
+        defaultValue: false
+        description: 'Restarts the entire
+
+          CustomJob if a worker gets restarted. This feature can be used by
+
+          distributed training jobs that are not resilient to workers leaving and
+
+          joining a job.'
+        isOptional: true
+        parameterType: BOOLEAN
+      service_account:
+        defaultValue: ''
+        description: 'Sets the default service account for
+
+          workload run-as account. The service account running the pipeline
+
+          (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
+
+          submitting jobs must have act-as permission on this run-as account. If
+
+          unspecified, the Vertex AI Custom Code Service
+
+          Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
+
+          for the CustomJob''s project.'
+        isOptional: true
+        parameterType: STRING
+      tensorboard:
+        defaultValue: ''
+        description: 'The name of a Vertex AI Tensorboard resource
+
+          to which this CustomJob will upload Tensorboard logs.'
+        isOptional: true
+        parameterType: STRING
+      timeout:
+        defaultValue: 604800s
+        description: 'The maximum job running time. The default is 7
+
+          days. A duration in seconds with up to nine fractional digits,
+
+          terminated by ''s'', for example: "3.5s".'
+        isOptional: true
+        parameterType: STRING
+      worker_pool_specs:
+        defaultValue: []
+        description: "Serialized json spec of the\nworker pools including machine\
+          \ type and Docker image. All worker pools\nexcept the first one are optional\
+          \ and can be skipped by providing an\nempty value.  For more details about\
+          \ the WorkerPoolSpec, see\n  https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec"
+        isOptional: true
+        parameterType: LIST
+  outputDefinitions:
+    parameters:
+      gcp_resources:
+        description: 'Serialized gcp_resources proto tracking the batch prediction
+          job.
+
+
+          For more details, see
+
+          https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-rc.1
