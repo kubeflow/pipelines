@@ -140,7 +140,9 @@ describe('RunDetails', () => {
 
     testRun = {
       pipeline_runtime: {
-        workflow_manifest: '{}',
+        workflow_manifest: JSON.stringify({
+          status: { nodes: { node1: { id: 'node1' } } },
+        }),
       },
       run: {
         created_at: new Date(2018, 8, 5, 4, 3, 2),
@@ -458,6 +460,7 @@ describe('RunDetails', () => {
   });
 
   it('renders an empty run', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = '{}';
     tree = shallow(<RunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
@@ -571,6 +574,7 @@ describe('RunDetails', () => {
   });
 
   it('switches to config tab', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = '{}';
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();

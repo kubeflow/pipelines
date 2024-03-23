@@ -819,10 +819,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         workflow && workflow.status && workflow.status.nodes
           ? WorkflowParser.createRuntimeGraph(workflow, mlmdExecutions)
           : undefined;
-      let reducedGraph = graph
-        ? // copy graph before removing edges
-          transitiveReduction(graph)
-        : undefined;
+      // copy graph before removing edges
+      let reducedGraph;
+      try {
+        reducedGraph = graph ? transitiveReduction(graph) : undefined;
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        await this.showErrorDialog('Graph rendering failed', errorMessage);
+      }
       if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
         reducedGraph = undefined; // disable reduction switch
       }
