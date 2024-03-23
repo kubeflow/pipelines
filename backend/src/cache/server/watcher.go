@@ -47,7 +47,7 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 			}
 			log.Printf((*pod).GetName())
 
-			if !isPodCompletedAndSucceeded(pod) {
+			if !isPodSucceeded(pod) {
 				log.Printf("Pod %s is not completed or not in successful status.", pod.ObjectMeta.Name)
 				continue
 			}
@@ -108,8 +108,8 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 	}
 }
 
-func isPodCompletedAndSucceeded(pod *corev1.Pod) bool {
-	return pod.ObjectMeta.Labels[ArgoCompleteLabelKey] == "true" && pod.Status.Phase == corev1.PodSucceeded
+func isPodSucceeded(pod *corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodSucceeded
 }
 
 func isCacheWriten(labels map[string]string) bool {
