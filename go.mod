@@ -29,7 +29,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/kubeflow/pipelines/api v0.0.0-20230331215358-758c91f76784
-	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240313091817-9253c7ad7a46
+	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240322231350-0d68a7f267f5
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.14.19
