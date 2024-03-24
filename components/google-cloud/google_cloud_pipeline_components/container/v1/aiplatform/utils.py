@@ -19,8 +19,8 @@ import inspect
 import json
 from typing import Any, Callable, Dict, Optional, Sequence, Union
 
-from google.cloud import aiplatform
 from google.cloud import aiplatform_v1beta1
+from google.cloud import aiplatform
 
 PROTO_PLUS_CLASS_TYPES = {
     aiplatform_v1beta1.types.explanation_metadata.ExplanationMetadata: (
