@@ -2085,7 +2085,7 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
 
         return comment_strings
 
-    multi_line_description_prefix = '#              '
+    multi_line_description_prefix = '#'
     comment_sections = []
     comment_sections.append('# PIPELINE DEFINITION')
     comment_sections.append('# Name: ' + pipeline_spec['pipelineInfo']['name'])
