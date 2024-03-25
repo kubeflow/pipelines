@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+spec:
+  template:
+    spec:
+      containers:
+        - name: minio
+          args:
+            - gateway
+            - s3
+            - $(kfp-minio-endpoint)
+          volumeMounts:
+            - $patch: delete
+              mountPath: /data
+            - name: minio-ssl-cert
+              mountPath: /etc/ssl/certs
+      volumes:
+        - $patch: delete
+          name: data
+        - name: minio-ssl-cert
+          configMap:
+            name: minio-install-config
