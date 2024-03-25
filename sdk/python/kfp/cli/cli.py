@@ -1,4 +1,4 @@
-# Copyright 2018-2022 The Kubeflow Authors
+# Copyright 2018-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ from kfp.cli import dsl
 from kfp.cli import experiment
 from kfp.cli import pipeline
 from kfp.cli import recurring_run
+from kfp.cli import registry
 from kfp.cli import run
 from kfp.cli.output import OutputFormat
 from kfp.cli.utils import aliased_plurals_group
@@ -34,7 +35,10 @@ COMMANDS = {
         run.run, recurring_run.recurring_run, experiment.experiment,
         pipeline.pipeline
     },
-    'no_client': {diagnose_me_cli.diagnose_me, component.component, dsl.dsl}
+    'no_client': {
+        diagnose_me_cli.diagnose_me, component.component, dsl.dsl,
+        registry.registry
+    }
 }
 
 PROGRAM_NAME = 'kfp'
