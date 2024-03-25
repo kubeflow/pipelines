@@ -30,6 +30,8 @@ def build_payload(
     encryption_spec_key_name: str = '',
     labels: Optional[Dict[str, str]] = None,
     scheduling: Optional[Dict[str, Any]] = None,
+    base_output_directory: Optional[str] = None,
+    tensorboard: Optional[str] = None,
 ) -> Dict[str, Any]:
   """Generates payload for a custom training job.
 
@@ -50,6 +52,11 @@ def build_payload(
       moment.
     labels: The labels with user-defined metadata to organize CustomJobs.
     scheduling: Scheduling options for a CustomJob.
+    base_output_directory: Cloud Storage location to store the output of this
+      CustomJob
+    tensorboard: The name of a Vertex AI TensorBoard resource to which this
+      CustomJob will upload TensorBoard logs. Format:
+      ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
 
   Returns:
     Custom job payload.
@@ -95,6 +102,14 @@ def build_payload(
 
   if scheduling:
     payload['job_spec']['scheduling'] = scheduling
+
+  if base_output_directory:
+    payload['job_spec']['base_output_directory'] = {
+        'output_uri_prefix': base_output_directory
+    }
+
+  if tensorboard:
+    payload['job_spec']['tensorboard'] = tensorboard
 
   return payload
 
