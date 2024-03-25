@@ -1,0 +1,73 @@
+name: Fill all missing values using Pandas on CSV data
+inputs:
+- {name: table, type: CSV}
+- {name: replacement_value, type: String, default: '0', optional: true}
+- {name: column_names, type: JsonArray, optional: true}
+outputs:
+- {name: transformed_table, type: CSV}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas==1.4.1' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'pandas==1.4.1' --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def fill_all_missing_values_using_Pandas_on_CSV_data(
+          table_path,
+          transformed_table_path,
+          replacement_value = "0",
+          column_names = None,
+      ):
+          import pandas
+
+          df = pandas.read_csv(
+              table_path,
+              dtype="string",
+          )
+
+          for column_name in column_names or df.columns:
+              df[column_name] = df[column_name].fillna(value=replacement_value)
+
+          df.to_csv(
+              transformed_table_path, index=False,
+          )
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Fill all missing values using Pandas on CSV data', description='')
+      _parser.add_argument("--table", dest="table_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--replacement-value", dest="replacement_value", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--column-names", dest="column_names", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--transformed-table", dest="transformed_table_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = fill_all_missing_values_using_Pandas_on_CSV_data(**_parsed_args)
+    args:
+    - --table
+    - {inputPath: table}
+    - if:
+        cond: {isPresent: replacement_value}
+        then:
+        - --replacement-value
+        - {inputValue: replacement_value}
+    - if:
+        cond: {isPresent: column_names}
+        then:
+        - --column-names
+        - {inputValue: column_names}
+    - --transformed-table
+    - {outputPath: transformed_table}

@@ -1,0 +1,57 @@
+name: Select columns using Pandas on CSV data
+inputs:
+- {name: table, type: CSV}
+- {name: column_names, type: JsonArray}
+outputs:
+- {name: transformed_table, type: CSV}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas==1.4.2' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'pandas==1.4.2' --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def select_columns_using_Pandas_on_CSV_data(
+          table_path,
+          transformed_table_path,
+          column_names,
+      ):
+          import pandas
+
+          df = pandas.read_csv(
+              table_path,
+              dtype="string",
+          )
+          df = df[column_names]
+          df.to_csv(transformed_table_path, index=False)
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Select columns using Pandas on CSV data', description='')
+      _parser.add_argument("--table", dest="table_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--column-names", dest="column_names", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--transformed-table", dest="transformed_table_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = select_columns_using_Pandas_on_CSV_data(**_parsed_args)
+    args:
+    - --table
+    - {inputPath: table}
+    - --column-names
+    - {inputValue: column_names}
+    - --transformed-table
+    - {outputPath: transformed_table}

@@ -1,0 +1,115 @@
+name: Create fully connected pytorch network
+description: Creates fully-connected network in PyTorch ScriptModule format
+inputs:
+- {name: input_size, type: Integer}
+- {name: hidden_layer_sizes, type: JsonArray, default: '[]', optional: true}
+- {name: output_size, type: Integer, default: '1', optional: true}
+- {name: activation_name, type: String, default: relu, optional: true}
+- {name: output_activation_name, type: String, optional: true}
+- {name: random_seed, type: Integer, default: '0', optional: true}
+outputs:
+- {name: model, type: PyTorchScriptModule}
+implementation:
+  container:
+    image: pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime
+    command:
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def create_fully_connected_pytorch_network(
+          input_size,
+          model_path,
+          hidden_layer_sizes = [],
+          output_size = 1,
+          activation_name = 'relu',
+          output_activation_name = None,
+          random_seed = 0,
+      ):
+          '''Creates fully-connected network in PyTorch ScriptModule format'''
+          import torch
+          torch.manual_seed(random_seed)
+
+          activation = getattr(torch, activation_name, None) or getattr(torch.nn.functional, activation_name, None)
+          if not activation:
+              raise ValueError(f'Activation "{activation_name}" was not found.')
+
+          class ActivationLayer(torch.nn.Module):
+              def forward(self, input):
+                  return activation(input)
+
+          layers = []
+          prev_layer_size = input_size
+          for layer_size in hidden_layer_sizes:
+              layer = torch.nn.Linear(prev_layer_size, layer_size)
+              prev_layer_size = layer_size
+              layers.append(layer)
+              layers.append(ActivationLayer())
+
+          # Adding the output layer
+          layers.append(torch.nn.Linear(prev_layer_size, output_size))
+
+          # Adding the optional activation after the output layer
+          if output_activation_name:
+              output_activation = getattr(torch, output_activation_name, None) or getattr(torch.nn.functional, output_activation_name, None)
+              class OutputActivationLayer(torch.nn.Module):
+                  def forward(self, input):
+                      return output_activation(input)
+              layers.append(OutputActivationLayer())
+
+          network = torch.nn.Sequential(*layers)
+          script_module = torch.jit.script(network)
+          print(script_module)
+          script_module.save(model_path)
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Create fully connected pytorch network', description='Creates fully-connected network in PyTorch ScriptModule format')
+      _parser.add_argument("--input-size", dest="input_size", type=int, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--hidden-layer-sizes", dest="hidden_layer_sizes", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-size", dest="output_size", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--activation-name", dest="activation_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-activation-name", dest="output_activation_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--random-seed", dest="random_seed", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = create_fully_connected_pytorch_network(**_parsed_args)
+    args:
+    - --input-size
+    - {inputValue: input_size}
+    - if:
+        cond: {isPresent: hidden_layer_sizes}
+        then:
+        - --hidden-layer-sizes
+        - {inputValue: hidden_layer_sizes}
+    - if:
+        cond: {isPresent: output_size}
+        then:
+        - --output-size
+        - {inputValue: output_size}
+    - if:
+        cond: {isPresent: activation_name}
+        then:
+        - --activation-name
+        - {inputValue: activation_name}
+    - if:
+        cond: {isPresent: output_activation_name}
+        then:
+        - --output-activation-name
+        - {inputValue: output_activation_name}
+    - if:
+        cond: {isPresent: random_seed}
+        then:
+        - --random-seed
+        - {inputValue: random_seed}
+    - --model
+    - {outputPath: model}

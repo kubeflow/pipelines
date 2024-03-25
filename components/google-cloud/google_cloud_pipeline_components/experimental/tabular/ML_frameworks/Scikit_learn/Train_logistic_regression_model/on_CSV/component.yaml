@@ -1,0 +1,161 @@
+name: Train logistic regression model using scikit learn from CSV
+description: Train logistic regression model using Scikit-learn
+inputs:
+- {name: dataset, type: CSV}
+- {name: label_column_name, type: String}
+- {name: penalty, type: String, default: l2, optional: true}
+- {name: solver, type: String, default: lbfgs, optional: true}
+- {name: max_iterations, type: Integer, default: '100', optional: true}
+- {name: multi_class_mode, type: String, default: auto, optional: true}
+- {name: random_seed, type: Integer, default: '0', optional: true}
+outputs:
+- {name: model, type: ScikitLearnPickleModel}
+- {name: model_parameters, type: JsonObject}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'scikit-learn==1.0.2' 'pandas==1.4.3' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'scikit-learn==1.0.2' 'pandas==1.4.3'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def train_logistic_regression_model_using_scikit_learn_from_CSV(
+          dataset_path,
+          model_path,
+          label_column_name,
+          penalty = "l2", # l1, l2, elasticnet, none
+          solver = "lbfgs", # newton-cg, lbfgs, liblinear, sag, saga
+          max_iterations = 100,
+          multi_class_mode = "auto", # auto, ovr, multinomial
+          random_seed = 0,
+      ):
+          """Train logistic regression model using Scikit-learn
+
+          See https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
+          """
+          import json
+          import pandas
+          import pickle
+          from sklearn import linear_model
+
+          df = pandas.read_csv(dataset_path)
+          model = linear_model.LogisticRegression(
+              penalty=penalty,
+              #dual=False,
+              #tol=1e-4,
+              #C=1.0,
+              #fit_intercept=True,
+              #intercept_scaling=1,
+              #class_weight=None,
+              random_state=random_seed,
+              solver=solver,
+              max_iter=max_iterations,
+              multi_class=multi_class_mode,
+              #l1_ratio=None,
+              verbose=1,
+          )
+
+          model_parameters = model.get_params()
+          model_parameters_json = json.dumps(model_parameters, indent=2)
+          print("Model parameters:")
+          print(model_parameters_json)
+          print()
+
+          model.fit(
+              X=df.drop(columns=label_column_name),
+              y=df[label_column_name],
+          )
+
+          with open(model_path, "wb") as f:
+              pickle.dump(model, f)
+
+          return (model_parameters_json,)
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Train logistic regression model using scikit learn from CSV', description='Train logistic regression model using Scikit-learn')
+      _parser.add_argument("--dataset", dest="dataset_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--label-column-name", dest="label_column_name", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--penalty", dest="penalty", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--solver", dest="solver", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--max-iterations", dest="max_iterations", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--multi-class-mode", dest="multi_class_mode", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--random-seed", dest="random_seed", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = train_logistic_regression_model_using_scikit_learn_from_CSV(**_parsed_args)
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --dataset
+    - {inputPath: dataset}
+    - --label-column-name
+    - {inputValue: label_column_name}
+    - if:
+        cond: {isPresent: penalty}
+        then:
+        - --penalty
+        - {inputValue: penalty}
+    - if:
+        cond: {isPresent: solver}
+        then:
+        - --solver
+        - {inputValue: solver}
+    - if:
+        cond: {isPresent: max_iterations}
+        then:
+        - --max-iterations
+        - {inputValue: max_iterations}
+    - if:
+        cond: {isPresent: multi_class_mode}
+        then:
+        - --multi-class-mode
+        - {inputValue: multi_class_mode}
+    - if:
+        cond: {isPresent: random_seed}
+        then:
+        - --random-seed
+        - {inputValue: random_seed}
+    - --model
+    - {outputPath: model}
+    - '----output-paths'
+    - {outputPath: model_parameters}
