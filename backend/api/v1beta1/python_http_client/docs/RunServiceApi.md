@@ -4,20 +4,20 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**archive_run_v1**](RunServiceApi.md#archive_run_v1) | **POST** /apis/v1beta1/runs/{id}:archive | Archives a run.
-[**create_run_v1**](RunServiceApi.md#create_run_v1) | **POST** /apis/v1beta1/runs | Creates a new run.
-[**delete_run_v1**](RunServiceApi.md#delete_run_v1) | **DELETE** /apis/v1beta1/runs/{id} | Deletes a run.
-[**get_run_v1**](RunServiceApi.md#get_run_v1) | **GET** /apis/v1beta1/runs/{run_id} | Finds a specific run by ID.
-[**list_runs_v1**](RunServiceApi.md#list_runs_v1) | **GET** /apis/v1beta1/runs | Finds all runs.
-[**read_artifact_v1**](RunServiceApi.md#read_artifact_v1) | **GET** /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds a run&#39;s artifact data.
-[**report_run_metrics_v1**](RunServiceApi.md#report_run_metrics_v1) | **POST** /apis/v1beta1/runs/{run_id}:reportMetrics | ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
-[**retry_run_v1**](RunServiceApi.md#retry_run_v1) | **POST** /apis/v1beta1/runs/{run_id}/retry | Re-initiates a failed or terminated run.
-[**terminate_run_v1**](RunServiceApi.md#terminate_run_v1) | **POST** /apis/v1beta1/runs/{run_id}/terminate | Terminates an active run.
-[**unarchive_run_v1**](RunServiceApi.md#unarchive_run_v1) | **POST** /apis/v1beta1/runs/{id}:unarchive | Restores an archived run.
+[**run_service_archive_run_v1**](RunServiceApi.md#run_service_archive_run_v1) | **POST** /apis/v1beta1/runs/{id}:archive | Archives a run.
+[**run_service_create_run_v1**](RunServiceApi.md#run_service_create_run_v1) | **POST** /apis/v1beta1/runs | Creates a new run.
+[**run_service_delete_run_v1**](RunServiceApi.md#run_service_delete_run_v1) | **DELETE** /apis/v1beta1/runs/{id} | Deletes a run.
+[**run_service_get_run_v1**](RunServiceApi.md#run_service_get_run_v1) | **GET** /apis/v1beta1/runs/{run_id} | Finds a specific run by ID.
+[**run_service_list_runs_v1**](RunServiceApi.md#run_service_list_runs_v1) | **GET** /apis/v1beta1/runs | Finds all runs.
+[**run_service_read_artifact_v1**](RunServiceApi.md#run_service_read_artifact_v1) | **GET** /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds a run&#39;s artifact data.
+[**run_service_report_run_metrics_v1**](RunServiceApi.md#run_service_report_run_metrics_v1) | **POST** /apis/v1beta1/runs/{run_id}:reportMetrics | ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
+[**run_service_retry_run_v1**](RunServiceApi.md#run_service_retry_run_v1) | **POST** /apis/v1beta1/runs/{run_id}/retry | Re-initiates a failed or terminated run.
+[**run_service_terminate_run_v1**](RunServiceApi.md#run_service_terminate_run_v1) | **POST** /apis/v1beta1/runs/{run_id}/terminate | Terminates an active run.
+[**run_service_unarchive_run_v1**](RunServiceApi.md#run_service_unarchive_run_v1) | **POST** /apis/v1beta1/runs/{id}:unarchive | Restores an archived run.
 
 
-# **archive_run_v1**
-> object archive_run_v1(id)
+# **run_service_archive_run_v1**
+> object run_service_archive_run_v1(id)
 
 Archives a run.
 
@@ -59,10 +59,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Archives a run.
-        api_response = api_instance.archive_run_v1(id)
+        api_response = api_instance.run_service_archive_run_v1(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->archive_run_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_archive_run_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -88,12 +88,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **create_run_v1**
-> ApiRunDetail create_run_v1(body)
+# **run_service_create_run_v1**
+> ApiRunDetail run_service_create_run_v1(body)
 
 Creates a new run.
 
@@ -135,10 +135,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Creates a new run.
-        api_response = api_instance.create_run_v1(body)
+        api_response = api_instance.run_service_create_run_v1(body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->create_run_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_create_run_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -164,12 +164,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **delete_run_v1**
-> object delete_run_v1(id)
+# **run_service_delete_run_v1**
+> object run_service_delete_run_v1(id)
 
 Deletes a run.
 
@@ -211,10 +211,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Deletes a run.
-        api_response = api_instance.delete_run_v1(id)
+        api_response = api_instance.run_service_delete_run_v1(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->delete_run_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_delete_run_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -240,12 +240,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **get_run_v1**
-> ApiRunDetail get_run_v1(run_id)
+# **run_service_get_run_v1**
+> ApiRunDetail run_service_get_run_v1(run_id)
 
 Finds a specific run by ID.
 
@@ -287,10 +287,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Finds a specific run by ID.
-        api_response = api_instance.get_run_v1(run_id)
+        api_response = api_instance.run_service_get_run_v1(run_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->get_run_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_get_run_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -316,12 +316,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **list_runs_v1**
-> ApiListRunsResponse list_runs_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
+# **run_service_list_runs_v1**
+> ApiListRunsResponse run_service_list_runs_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
 
 Finds all runs.
 
@@ -368,10 +368,10 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol
 
     try:
         # Finds all runs.
-        api_response = api_instance.list_runs_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
+        api_response = api_instance.run_service_list_runs_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->list_runs_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_list_runs_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -402,12 +402,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **read_artifact_v1**
-> ApiReadArtifactResponse read_artifact_v1(run_id, node_id, artifact_name)
+# **run_service_read_artifact_v1**
+> ApiReadArtifactResponse run_service_read_artifact_v1(run_id, node_id, artifact_name)
 
 Finds a run's artifact data.
 
@@ -451,10 +451,10 @@ artifact_name = 'artifact_name_example' # str | The name of the artifact.
 
     try:
         # Finds a run's artifact data.
-        api_response = api_instance.read_artifact_v1(run_id, node_id, artifact_name)
+        api_response = api_instance.run_service_read_artifact_v1(run_id, node_id, artifact_name)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->read_artifact_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_read_artifact_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -482,12 +482,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **report_run_metrics_v1**
-> ApiReportRunMetricsResponse report_run_metrics_v1(run_id, body)
+# **run_service_report_run_metrics_v1**
+> ApiReportRunMetricsResponse run_service_report_run_metrics_v1(run_id, body)
 
 ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
 
@@ -530,10 +530,10 @@ body = kfp_server_api.ApiReportRunMetricsRequest() # ApiReportRunMetricsRequest 
 
     try:
         # ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
-        api_response = api_instance.report_run_metrics_v1(run_id, body)
+        api_response = api_instance.run_service_report_run_metrics_v1(run_id, body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->report_run_metrics_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_report_run_metrics_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -560,12 +560,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **retry_run_v1**
-> object retry_run_v1(run_id)
+# **run_service_retry_run_v1**
+> object run_service_retry_run_v1(run_id)
 
 Re-initiates a failed or terminated run.
 
@@ -607,10 +607,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Re-initiates a failed or terminated run.
-        api_response = api_instance.retry_run_v1(run_id)
+        api_response = api_instance.run_service_retry_run_v1(run_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->retry_run_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_retry_run_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -636,12 +636,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **terminate_run_v1**
-> object terminate_run_v1(run_id)
+# **run_service_terminate_run_v1**
+> object run_service_terminate_run_v1(run_id)
 
 Terminates an active run.
 
@@ -683,10 +683,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Terminates an active run.
-        api_response = api_instance.terminate_run_v1(run_id)
+        api_response = api_instance.run_service_terminate_run_v1(run_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->terminate_run_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_terminate_run_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -712,12 +712,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **unarchive_run_v1**
-> object unarchive_run_v1(id)
+# **run_service_unarchive_run_v1**
+> object run_service_unarchive_run_v1(id)
 
 Restores an archived run.
 
@@ -759,10 +759,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Restores an archived run.
-        api_response = api_instance.unarchive_run_v1(id)
+        api_response = api_instance.run_service_unarchive_run_v1(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RunServiceApi->unarchive_run_v1: %s\n" % e)
+        print("Exception when calling RunServiceApi->run_service_unarchive_run_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -788,7 +788,7 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

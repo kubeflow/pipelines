@@ -4,11 +4,11 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**create_visualization_v1**](VisualizationServiceApi.md#create_visualization_v1) | **POST** /apis/v2beta1/visualizations/{namespace} | 
+[**visualization_service_create_visualization_v1**](VisualizationServiceApi.md#visualization_service_create_visualization_v1) | **POST** /apis/v2beta1/visualizations/{namespace} | 
 
 
-# **create_visualization_v1**
-> V2beta1Visualization create_visualization_v1(namespace, body)
+# **visualization_service_create_visualization_v1**
+> V2beta1Visualization visualization_service_create_visualization_v1(namespace, body)
 
 
 
@@ -50,10 +50,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 body = kfp_server_api.V2beta1Visualization() # V2beta1Visualization | 
 
     try:
-        api_response = api_instance.create_visualization_v1(namespace, body)
+        api_response = api_instance.visualization_service_create_visualization_v1(namespace, body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling VisualizationServiceApi->create_visualization_v1: %s\n" % e)
+        print("Exception when calling VisualizationServiceApi->visualization_service_create_visualization_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -80,7 +80,7 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

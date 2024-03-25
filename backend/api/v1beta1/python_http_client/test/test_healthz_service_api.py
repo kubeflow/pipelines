@@ -28,8 +28,8 @@ class TestHealthzServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_get_healthz(self):
-        """Test case for get_healthz
+    def test_healthz_service_get_healthz(self):
+        """Test case for healthz_service_get_healthz
 
         Get healthz data.  # noqa: E501
         """

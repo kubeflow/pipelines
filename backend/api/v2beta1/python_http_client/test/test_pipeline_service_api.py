@@ -28,71 +28,71 @@ class TestPipelineServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_create_pipeline(self):
-        """Test case for create_pipeline
+    def test_pipeline_service_create_pipeline(self):
+        """Test case for pipeline_service_create_pipeline
 
         Creates a pipeline.  # noqa: E501
         """
         pass
 
-    def test_create_pipeline_and_version(self):
-        """Test case for create_pipeline_and_version
+    def test_pipeline_service_create_pipeline_and_version(self):
+        """Test case for pipeline_service_create_pipeline_and_version
 
         Creates a new pipeline and a new pipeline version in a single transaction.  # noqa: E501
         """
         pass
 
-    def test_create_pipeline_version(self):
-        """Test case for create_pipeline_version
+    def test_pipeline_service_create_pipeline_version(self):
+        """Test case for pipeline_service_create_pipeline_version
 
         Adds a pipeline version to the specified pipeline ID.  # noqa: E501
         """
         pass
 
-    def test_delete_pipeline(self):
-        """Test case for delete_pipeline
+    def test_pipeline_service_delete_pipeline(self):
+        """Test case for pipeline_service_delete_pipeline
 
         Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.  # noqa: E501
         """
         pass
 
-    def test_delete_pipeline_version(self):
-        """Test case for delete_pipeline_version
+    def test_pipeline_service_delete_pipeline_version(self):
+        """Test case for pipeline_service_delete_pipeline_version
 
         Deletes a specific pipeline version by pipeline version ID and pipeline ID.  # noqa: E501
         """
         pass
 
-    def test_get_pipeline(self):
-        """Test case for get_pipeline
+    def test_pipeline_service_get_pipeline(self):
+        """Test case for pipeline_service_get_pipeline
 
         Finds a specific pipeline by ID.  # noqa: E501
         """
         pass
 
-    def test_get_pipeline_by_name(self):
-        """Test case for get_pipeline_by_name
+    def test_pipeline_service_get_pipeline_by_name(self):
+        """Test case for pipeline_service_get_pipeline_by_name
 
         Finds a specific pipeline by name and namespace.  # noqa: E501
         """
         pass
 
-    def test_get_pipeline_version(self):
-        """Test case for get_pipeline_version
+    def test_pipeline_service_get_pipeline_version(self):
+        """Test case for pipeline_service_get_pipeline_version
 
         Gets a pipeline version by pipeline version ID and pipeline ID.  # noqa: E501
         """
         pass
 
-    def test_list_pipeline_versions(self):
-        """Test case for list_pipeline_versions
+    def test_pipeline_service_list_pipeline_versions(self):
+        """Test case for pipeline_service_list_pipeline_versions
 
         Lists all pipeline versions of a given pipeline ID.  # noqa: E501
         """
         pass
 
-    def test_list_pipelines(self):
-        """Test case for list_pipelines
+    def test_pipeline_service_list_pipelines(self):
+        """Test case for pipeline_service_list_pipelines
 
         Finds all pipelines within a namespace.  # noqa: E501
         """
