@@ -93,7 +93,8 @@ def text2sql_evaluation(
       custom_job_payload=utils.build_custom_job_payload(
           display_name=display_name,
           machine_type=machine_type,
-          image_uri=version.LLM_EVAL_IMAGE_TAG,
+          # image_uri=version.LLM_EVAL_IMAGE_TAG,
+          image_uri='gcr.io/model-evaluation-dev/llm_eval:bozhengbz-test',
           args=[
               f'--text2sql_evaluation={True}',
               f'--project={project}',
