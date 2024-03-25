@@ -147,7 +147,7 @@ class JobRemoteRunner:
   def poll_job(self, get_job_fn, job_name: str):
     """Poll the job status."""
     with execution_context.ExecutionContext(
-        on_cancel=lambda: self.send_cancel_request(job_name)
+        on_cancel=lambda: send_cancel_request(self.location, job_name)
     ):
       retry_count = 0
       while True:
@@ -214,22 +214,25 @@ class JobRemoteRunner:
           )
           time.sleep(_POLLING_INTERVAL_IN_SECONDS)
 
-  def send_cancel_request(self, job_name: str):
-    if not job_name:
-      return
-    creds, _ = google.auth.default(
-        scopes=['https://www.googleapis.com/auth/cloud-platform']
-    )
-    if not creds.valid:
-      creds.refresh(google.auth.transport.requests.Request())
-    headers = {
-        'Content-type': 'application/json',
-        'Authorization': 'Bearer ' + creds.token,
-    }
-    # Vertex AI cancel APIs:
-    # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.hyperparameterTuningJobs/cancel
-    # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs/cancel
-    # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/cancel
-    requests.post(
-        url=f'{self.job_uri_prefix}{job_name}:cancel', data='', headers=headers
-    )
+
+def send_cancel_request(location: str, job_name: str):
+  """Cancel job."""
+  if not job_name or not location:
+    return
+
+  job_uri = 'https://' + location + '-aiplatform.googleapis.com/v1/' + job_name
+
+  creds, _ = google.auth.default(
+      scopes=['https://www.googleapis.com/auth/cloud-platform']
+  )
+  if not creds.valid:
+    creds.refresh(google.auth.transport.requests.Request())
+  headers = {
+      'Content-type': 'application/json',
+      'Authorization': 'Bearer ' + creds.token,
+  }
+  # Vertex AI cancel APIs:
+  # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.hyperparameterTuningJobs/cancel
+  # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs/cancel
+  # https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs/cancel
+  requests.post(url=f'{job_uri}:cancel', data='', headers=headers)
