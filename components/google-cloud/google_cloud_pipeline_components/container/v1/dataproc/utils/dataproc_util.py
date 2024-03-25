@@ -53,6 +53,62 @@ def insert_system_labels_into_payload(payload):
   return json.dumps(job_spec)
 
 
+def _get_session() -> Session:
+  """Gets a http session."""
+  retry = Retry(
+      total=_CONNECTION_ERROR_RETRY_LIMIT,
+      status_forcelist=[429, 503],
+      backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
+      method_whitelist=['GET', 'POST'],
+  )
+  adapter = HTTPAdapter(max_retries=retry)
+  session = requests.Session()
+  session.headers.update({
+      'Content-Type': 'application/json',
+      'User-Agent': 'google-cloud-pipeline-components',
+  })
+  session.mount('https://', adapter)
+  return session
+
+
+def _cancel_batch(lro_name):
+  """Cancels a Dataproc batch workload."""
+  session = _get_session()
+  if not lro_name:
+    return
+  creds, _ = google.auth.default()
+  if not creds.valid:
+    creds.refresh(google.auth.transport.requests.Request())
+  headers = {'Authorization': 'Bearer ' + creds.token}
+  # Dataproc Operation Cancel API:
+  # https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.operations/cancel
+  lro_uri = f'{_DATAPROC_URI_PREFIX}/{lro_name}:cancel'
+  result = session.post(url=lro_uri, data='', headers=headers)
+  json_data = {}
+  try:
+    json_data = result.json()
+    result.raise_for_status()
+    return json_data
+  except requests.exceptions.HTTPError as err:
+    try:
+      err_msg = (
+          'Error {} returned from POST: {}. Status: {}, Message: {}'.format(
+              err.response.status_code,
+              err.request.url,
+              json_data['error']['status'],
+              json_data['error']['message'],
+          )
+      )
+    except (KeyError, TypeError):
+      err_msg = err.response.text
+    raise RuntimeError(err_msg) from err
+  except json.decoder.JSONDecodeError as err:
+    raise RuntimeError(
+        'Failed to decode JSON from response:\n{}'.format(err.doc)
+    ) from err
+  logging.info('Cancel response: %s', json_data)
+
+
 class DataprocBatchRemoteRunner:
   """Common module for creating and polling Dataproc Serverless Batch workloads."""
 
@@ -69,24 +125,7 @@ class DataprocBatchRemoteRunner:
     self._location = location
     self._creds, _ = google.auth.default()
     self._gcp_resources = gcp_resources
-    self._session = self._get_session()
-
-  def _get_session(self) -> Session:
-    """Gets a http session."""
-    retry = Retry(
-        total=_CONNECTION_ERROR_RETRY_LIMIT,
-        status_forcelist=[429, 503],
-        backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
-        method_whitelist=['GET', 'POST'],
-    )
-    adapter = HTTPAdapter(max_retries=retry)
-    session = requests.Session()
-    session.headers.update({
-        'Content-Type': 'application/json',
-        'User-Agent': 'google-cloud-pipeline-components',
-    })
-    session.mount('https://', adapter)
-    return session
+    self._session = _get_session()
 
   def _get_resource(self, url: str) -> Dict[str, Any]:
     """GET a http request.
@@ -170,15 +209,6 @@ class DataprocBatchRemoteRunner:
           'Failed to decode JSON from response:\n{}'.format(err.doc)
       ) from err
 
-  def _cancel_batch(self, lro_name) -> None:
-    """Cancels a Dataproc batch workload."""
-    if not lro_name:
-      return
-    # Dataproc Operation Cancel API:
-    # https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.operations/cancel
-    lro_uri = f'{_DATAPROC_URI_PREFIX}/{lro_name}:cancel'
-    self._post_resource(lro_uri, '')
-
   def check_if_operation_exists(self) -> Union[Dict[str, Any], None]:
     """Check if a Dataproc Batch operation already exists.
 
@@ -261,7 +291,7 @@ class DataprocBatchRemoteRunner:
     lro_name = lro['name']
     lro_uri = f'{_DATAPROC_URI_PREFIX}/{lro_name}'
     with execution_context.ExecutionContext(
-        on_cancel=lambda: self._cancel_batch(lro_name)
+        on_cancel=lambda: _cancel_batch(lro_name)
     ):
       while ('done' not in lro) or (not lro['done']):
         time.sleep(poll_interval_seconds)
