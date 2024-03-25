@@ -159,26 +159,12 @@ def pipeline(
           reward_lora_dim=reward_lora_dim,
           num_microbatches=num_microbatches.output,
           encryption_spec_key_name=encryption_spec_key_name,
+          tensorboard_resource_id=tensorboard_resource_id,
       )
       .set_display_name('Reinforcer')
       .set_caching_options(False)
   )
-  has_tensorboard_id = function_based.value_exists(
-      value=tensorboard_resource_id
-  ).set_display_name('Resolve Tensorboard Resource ID')
-  with kfp.dsl.Condition(  # pytype: disable=wrong-arg-types
-      has_tensorboard_id.output == True,  # pylint: disable=singleton-comparison, g-explicit-bool-comparison
-      name='Upload Reinforcement Learning Tensorboard Metrics',
-  ):
-    _ = upload_tensorboard_metrics.upload_tensorboard_metrics(
-        tensorboard_resource_id=tensorboard_resource_id,
-        metrics_directory=rl_model.outputs['tensorboard_metrics'],
-        experiment_name=(
-            'rl-model-tuner-'
-            f'{kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER}-'
-            f'{kfp.dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
-        ),
-    ).set_display_name('Reinforcement Learning Tensorboard Metrics Uploader')
+
   return PipelineOutput(
       output_model_path=rl_model.outputs['output_model_path'],
       output_adapter_path=rl_model.outputs['output_adapter_path'],

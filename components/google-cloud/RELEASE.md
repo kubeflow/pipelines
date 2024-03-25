@@ -1,4 +1,5 @@
 ## Upcoming release
+* Log TensorBoard metrics from the `preview.llm.rlhf_pipeline` in real time.
 
 ## Release 2.11.0
 * Fix bug in `preview.llm.rlhf_pipeline` that caused wrong output artifact to be used for inference after training.
