@@ -73,7 +73,7 @@ idna==3.2                 # via requests
 importlib-metadata==4.6.4  # via argcomplete, ipykernel, jsonschema, markdown
 ipykernel==6.2.0          # via ipywidgets, notebook
 ipython-genutils==0.2.0   # via nbformat, notebook, traitlets
-ipython==7.26.0           # via ipykernel, ipywidgets, tensorflow-model-analysis
+ipython==7.31.1           # via ipykernel, ipywidgets, tensorflow-model-analysis
 ipywidgets==7.6.3         # via tensorflow-model-analysis
 jedi==0.18.0              # via ipython
 jinja2==2.11.3            # via ml-pipelines-sdk, nbconvert, notebook, tfx
