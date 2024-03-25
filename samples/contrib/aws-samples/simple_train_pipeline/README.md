@@ -14,7 +14,7 @@ For the purposes of this demonstration, all resources will be created in the `us
 
 Create a new file named `s3_sample_data_creator.py` with the following content:
 ```
-import pickle, gzip, numpy, urllib.request, json
+import pickle, gzip, numpy, urllib.request, json, boto3
 from urllib.parse import urlparse
 
 ###################################################################
@@ -40,7 +40,6 @@ with gzip.open("mnist.pkl.gz", "rb") as f:
 # Upload dataset to S3
 from sagemaker.amazon.common import write_numpy_to_dense_tensor
 import io
-import boto3
 
 train_data_key = 'mnist_kmeans_example/train_data'
 test_data_key = 'mnist_kmeans_example/test_data'
