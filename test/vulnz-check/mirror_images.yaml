@@ -1,0 +1,124 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mirror-images-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-02-02T16:03:40.325068',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline that mirrors
+      gcr images from one repository to another.", "inputs": [{"default": "1.3.0",
+      "name": "version", "optional": true, "type": "String"}, {"default": "gcr.io/ml-pipeline",
+      "name": "source_registry", "optional": true, "type": "String"}, {"default":
+      "gcr.io/gongyuan-pipeline-test/dev", "name": "destination_registry", "optional":
+      true, "type": "String"}], "name": "Mirror Images"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0}
+spec:
+  entrypoint: mirror-images
+  templates:
+  - name: for-loop-for-loop-9af0a19b-1
+    inputs:
+      parameters:
+      - {name: destination_registry}
+      - {name: loop-item-param-9af0a19b}
+      - {name: source_registry}
+      - {name: version}
+    dag:
+      tasks:
+      - name: mirror-image
+        template: mirror-image
+        arguments:
+          parameters:
+          - {name: destination_registry, value: '{{inputs.parameters.destination_registry}}'}
+          - {name: loop-item-param-9af0a19b, value: '{{inputs.parameters.loop-item-param-9af0a19b}}'}
+          - {name: source_registry, value: '{{inputs.parameters.source_registry}}'}
+          - {name: version, value: '{{inputs.parameters.version}}'}
+  - name: mirror-image
+    container:
+      args: [--image, '{{inputs.parameters.loop-item-param-9af0a19b}}', --source-registry,
+        '{{inputs.parameters.source_registry}}', --destination-registry, '{{inputs.parameters.destination_registry}}',
+        --tag, '{{inputs.parameters.version}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def mirror_image(
+                image,
+                source_registry,
+                destination_registry,
+                tag = '',
+        ):
+            source_image = '{}/{}:{}'.format(source_registry, image, tag)
+            destination_image = '{}/{}:{}'.format(destination_registry, image, tag)
+            import subprocess
+            subprocess.run([
+                'gcloud', 'container', 'images', 'add-tag', source_image,
+                destination_image
+            ])
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Mirror image', description='')
+        _parser.add_argument("--image", dest="image", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--source-registry", dest="source_registry", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--destination-registry", dest="destination_registry", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--tag", dest="tag", type=str, required=False, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = mirror_image(**_parsed_args)
+      image: google/cloud-sdk:alpine
+    inputs:
+      parameters:
+      - {name: destination_registry}
+      - {name: loop-item-param-9af0a19b}
+      - {name: source_registry}
+      - {name: version}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--image", {"inputValue": "image"}, "--source-registry", {"inputValue":
+          "source_registry"}, "--destination-registry", {"inputValue": "destination_registry"},
+          {"if": {"cond": {"isPresent": "tag"}, "then": ["--tag", {"inputValue": "tag"}]}}],
+          "command": ["sh", "-ec", "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def mirror_image(\n        image,\n        source_registry,\n        destination_registry,\n        tag
+          = '''',\n):\n    source_image = ''{}/{}:{}''.format(source_registry, image,
+          tag)\n    destination_image = ''{}/{}:{}''.format(destination_registry,
+          image, tag)\n    import subprocess\n    subprocess.run([\n        ''gcloud'',
+          ''container'', ''images'', ''add-tag'', source_image,\n        destination_image\n    ])\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Mirror image'', description='''')\n_parser.add_argument(\"--image\",
+          dest=\"image\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--source-registry\",
+          dest=\"source_registry\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--destination-registry\",
+          dest=\"destination_registry\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--tag\",
+          dest=\"tag\", type=str, required=False, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = mirror_image(**_parsed_args)\n"],
+          "image": "google/cloud-sdk:alpine"}}, "inputs": [{"name": "image", "type":
+          "String"}, {"name": "source_registry", "type": "String"}, {"name": "destination_registry",
+          "type": "String"}, {"default": "", "name": "tag", "optional": true, "type":
+          "String"}], "name": "Mirror image"}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"destination_registry": "{{inputs.parameters.destination_registry}}",
+          "image": "{{inputs.parameters.loop-item-param-9af0a19b}}", "source_registry":
+          "{{inputs.parameters.source_registry}}", "tag": "{{inputs.parameters.version}}"}'}
+  - name: mirror-images
+    inputs:
+      parameters:
+      - {name: destination_registry}
+      - {name: source_registry}
+      - {name: version}
+    dag:
+      tasks:
+      - name: for-loop-for-loop-9af0a19b-1
+        template: for-loop-for-loop-9af0a19b-1
+        arguments:
+          parameters:
+          - {name: destination_registry, value: '{{inputs.parameters.destination_registry}}'}
+          - {name: loop-item-param-9af0a19b, value: '{{item}}'}
+          - {name: source_registry, value: '{{inputs.parameters.source_registry}}'}
+          - {name: version, value: '{{inputs.parameters.version}}'}
+        withItems: [persistenceagent, scheduledworkflow, frontend, viewer-crd-controller,
+          visualization-server, inverse-proxy-agent, metadata-writer, cache-server,
+          cache-deployer, metadata-envoy]
+  arguments:
+    parameters:
+    - {name: version, value: 1.3.0}
+    - {name: source_registry, value: gcr.io/ml-pipeline}
+    - {name: destination_registry, value: gcr.io/gongyuan-pipeline-test/dev}
+  serviceAccountName: pipeline-runner
