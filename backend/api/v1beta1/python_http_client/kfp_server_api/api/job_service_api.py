@@ -36,13 +36,13 @@ class JobServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def create_job(self, body, **kwargs):  # noqa: E501
+    def job_service_create_job(self, body, **kwargs):  # noqa: E501
         """Creates a new job.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_job(body, async_req=True)
+        >>> thread = api.job_service_create_job(body, async_req=True)
         >>> result = thread.get()
 
         :param body: The job to be created (required)
@@ -62,15 +62,15 @@ class JobServiceApi(object):
         :rtype: ApiJob
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_job_with_http_info(body, **kwargs)  # noqa: E501
+        return self.job_service_create_job_with_http_info(body, **kwargs)  # noqa: E501
 
-    def create_job_with_http_info(self, body, **kwargs):  # noqa: E501
+    def job_service_create_job_with_http_info(self, body, **kwargs):  # noqa: E501
         """Creates a new job.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_job_with_http_info(body, async_req=True)
+        >>> thread = api.job_service_create_job_with_http_info(body, async_req=True)
         >>> result = thread.get()
 
         :param body: The job to be created (required)
@@ -112,14 +112,14 @@ class JobServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method create_job" % key
+                    " to method job_service_create_job" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'body' is set
         if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
                                                         local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `create_job`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `body` when calling `job_service_create_job`")  # noqa: E501
 
         collection_formats = {}
 
@@ -162,13 +162,13 @@ class JobServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def delete_job(self, id, **kwargs):  # noqa: E501
+    def job_service_delete_job(self, id, **kwargs):  # noqa: E501
         """Deletes a job.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_job(id, async_req=True)
+        >>> thread = api.job_service_delete_job(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the job to be deleted (required)
@@ -188,15 +188,15 @@ class JobServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.delete_job_with_http_info(id, **kwargs)  # noqa: E501
+        return self.job_service_delete_job_with_http_info(id, **kwargs)  # noqa: E501
 
-    def delete_job_with_http_info(self, id, **kwargs):  # noqa: E501
+    def job_service_delete_job_with_http_info(self, id, **kwargs):  # noqa: E501
         """Deletes a job.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_job_with_http_info(id, async_req=True)
+        >>> thread = api.job_service_delete_job_with_http_info(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the job to be deleted (required)
@@ -238,14 +238,14 @@ class JobServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method delete_job" % key
+                    " to method job_service_delete_job" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'id' is set
         if self.api_client.client_side_validation and ('id' not in local_var_params or  # noqa: E501
                                                         local_var_params['id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `id` when calling `delete_job`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `id` when calling `job_service_delete_job`")  # noqa: E501
 
         collection_formats = {}
 
@@ -284,13 +284,13 @@ class JobServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def disable_job(self, id, **kwargs):  # noqa: E501
+    def job_service_disable_job(self, id, **kwargs):  # noqa: E501
         """Stops a job and all its associated runs. The job is not deleted.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.disable_job(id, async_req=True)
+        >>> thread = api.job_service_disable_job(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the job to be disabled (required)
@@ -310,15 +310,15 @@ class JobServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.disable_job_with_http_info(id, **kwargs)  # noqa: E501
+        return self.job_service_disable_job_with_http_info(id, **kwargs)  # noqa: E501
 
-    def disable_job_with_http_info(self, id, **kwargs):  # noqa: E501
+    def job_service_disable_job_with_http_info(self, id, **kwargs):  # noqa: E501
         """Stops a job and all its associated runs. The job is not deleted.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.disable_job_with_http_info(id, async_req=True)
+        >>> thread = api.job_service_disable_job_with_http_info(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the job to be disabled (required)
@@ -360,14 +360,14 @@ class JobServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method disable_job" % key
+                    " to method job_service_disable_job" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'id' is set
         if self.api_client.client_side_validation and ('id' not in local_var_params or  # noqa: E501
                                                         local_var_params['id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `id` when calling `disable_job`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `id` when calling `job_service_disable_job`")  # noqa: E501
 
         collection_formats = {}
 
@@ -406,13 +406,13 @@ class JobServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def enable_job(self, id, **kwargs):  # noqa: E501
+    def job_service_enable_job(self, id, **kwargs):  # noqa: E501
         """Restarts a job that was previously stopped. All runs associated with the job will continue.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.enable_job(id, async_req=True)
+        >>> thread = api.job_service_enable_job(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the job to be enabled (required)
@@ -432,15 +432,15 @@ class JobServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.enable_job_with_http_info(id, **kwargs)  # noqa: E501
+        return self.job_service_enable_job_with_http_info(id, **kwargs)  # noqa: E501
 
-    def enable_job_with_http_info(self, id, **kwargs):  # noqa: E501
+    def job_service_enable_job_with_http_info(self, id, **kwargs):  # noqa: E501
         """Restarts a job that was previously stopped. All runs associated with the job will continue.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.enable_job_with_http_info(id, async_req=True)
+        >>> thread = api.job_service_enable_job_with_http_info(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the job to be enabled (required)
@@ -482,14 +482,14 @@ class JobServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method enable_job" % key
+                    " to method job_service_enable_job" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'id' is set
         if self.api_client.client_side_validation and ('id' not in local_var_params or  # noqa: E501
                                                         local_var_params['id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `id` when calling `enable_job`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `id` when calling `job_service_enable_job`")  # noqa: E501
 
         collection_formats = {}
 
@@ -528,13 +528,13 @@ class JobServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def get_job(self, id, **kwargs):  # noqa: E501
+    def job_service_get_job(self, id, **kwargs):  # noqa: E501
         """Finds a specific job by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_job(id, async_req=True)
+        >>> thread = api.job_service_get_job(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the job to be retrieved (required)
@@ -554,15 +554,15 @@ class JobServiceApi(object):
         :rtype: ApiJob
         """
         kwargs['_return_http_data_only'] = True
-        return self.get_job_with_http_info(id, **kwargs)  # noqa: E501
+        return self.job_service_get_job_with_http_info(id, **kwargs)  # noqa: E501
 
-    def get_job_with_http_info(self, id, **kwargs):  # noqa: E501
+    def job_service_get_job_with_http_info(self, id, **kwargs):  # noqa: E501
         """Finds a specific job by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_job_with_http_info(id, async_req=True)
+        >>> thread = api.job_service_get_job_with_http_info(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the job to be retrieved (required)
@@ -604,14 +604,14 @@ class JobServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method get_job" % key
+                    " to method job_service_get_job" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'id' is set
         if self.api_client.client_side_validation and ('id' not in local_var_params or  # noqa: E501
                                                         local_var_params['id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `id` when calling `get_job`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `id` when calling `job_service_get_job`")  # noqa: E501
 
         collection_formats = {}
 
@@ -650,13 +650,13 @@ class JobServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def list_jobs(self, **kwargs):  # noqa: E501
+    def job_service_list_jobs(self, **kwargs):  # noqa: E501
         """Finds all jobs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_jobs(async_req=True)
+        >>> thread = api.job_service_list_jobs(async_req=True)
         >>> result = thread.get()
 
         :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page.
@@ -686,15 +686,15 @@ class JobServiceApi(object):
         :rtype: ApiListJobsResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.list_jobs_with_http_info(**kwargs)  # noqa: E501
+        return self.job_service_list_jobs_with_http_info(**kwargs)  # noqa: E501
 
-    def list_jobs_with_http_info(self, **kwargs):  # noqa: E501
+    def job_service_list_jobs_with_http_info(self, **kwargs):  # noqa: E501
         """Finds all jobs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_jobs_with_http_info(async_req=True)
+        >>> thread = api.job_service_list_jobs_with_http_info(async_req=True)
         >>> result = thread.get()
 
         :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page.
@@ -751,7 +751,7 @@ class JobServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method list_jobs" % key
+                    " to method job_service_list_jobs" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']

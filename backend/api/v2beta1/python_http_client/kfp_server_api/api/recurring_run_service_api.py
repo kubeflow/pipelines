@@ -36,13 +36,13 @@ class RecurringRunServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def create_recurring_run(self, body, **kwargs):  # noqa: E501
+    def recurring_run_service_create_recurring_run(self, body, **kwargs):  # noqa: E501
         """Creates a new recurring run in an experiment, given the experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_recurring_run(body, async_req=True)
+        >>> thread = api.recurring_run_service_create_recurring_run(body, async_req=True)
         >>> result = thread.get()
 
         :param body: The recurring run to be created. (required)
@@ -62,15 +62,15 @@ class RecurringRunServiceApi(object):
         :rtype: V2beta1RecurringRun
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_recurring_run_with_http_info(body, **kwargs)  # noqa: E501
+        return self.recurring_run_service_create_recurring_run_with_http_info(body, **kwargs)  # noqa: E501
 
-    def create_recurring_run_with_http_info(self, body, **kwargs):  # noqa: E501
+    def recurring_run_service_create_recurring_run_with_http_info(self, body, **kwargs):  # noqa: E501
         """Creates a new recurring run in an experiment, given the experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_recurring_run_with_http_info(body, async_req=True)
+        >>> thread = api.recurring_run_service_create_recurring_run_with_http_info(body, async_req=True)
         >>> result = thread.get()
 
         :param body: The recurring run to be created. (required)
@@ -112,14 +112,14 @@ class RecurringRunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method create_recurring_run" % key
+                    " to method recurring_run_service_create_recurring_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'body' is set
         if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
                                                         local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `create_recurring_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `body` when calling `recurring_run_service_create_recurring_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -162,13 +162,13 @@ class RecurringRunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def delete_recurring_run(self, recurring_run_id, **kwargs):  # noqa: E501
+    def recurring_run_service_delete_recurring_run(self, recurring_run_id, **kwargs):  # noqa: E501
         """Deletes a recurring run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_recurring_run(recurring_run_id, async_req=True)
+        >>> thread = api.recurring_run_service_delete_recurring_run(recurring_run_id, async_req=True)
         >>> result = thread.get()
 
         :param recurring_run_id: The ID of the recurring run to be deleted. (required)
@@ -188,15 +188,15 @@ class RecurringRunServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.delete_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
+        return self.recurring_run_service_delete_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
 
-    def delete_recurring_run_with_http_info(self, recurring_run_id, **kwargs):  # noqa: E501
+    def recurring_run_service_delete_recurring_run_with_http_info(self, recurring_run_id, **kwargs):  # noqa: E501
         """Deletes a recurring run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_recurring_run_with_http_info(recurring_run_id, async_req=True)
+        >>> thread = api.recurring_run_service_delete_recurring_run_with_http_info(recurring_run_id, async_req=True)
         >>> result = thread.get()
 
         :param recurring_run_id: The ID of the recurring run to be deleted. (required)
@@ -238,14 +238,14 @@ class RecurringRunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method delete_recurring_run" % key
+                    " to method recurring_run_service_delete_recurring_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'recurring_run_id' is set
         if self.api_client.client_side_validation and ('recurring_run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['recurring_run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `recurring_run_id` when calling `delete_recurring_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `recurring_run_id` when calling `recurring_run_service_delete_recurring_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -284,13 +284,13 @@ class RecurringRunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def disable_recurring_run(self, recurring_run_id, **kwargs):  # noqa: E501
+    def recurring_run_service_disable_recurring_run(self, recurring_run_id, **kwargs):  # noqa: E501
         """Stops a recurring run and all its associated runs. The recurring run is not deleted.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.disable_recurring_run(recurring_run_id, async_req=True)
+        >>> thread = api.recurring_run_service_disable_recurring_run(recurring_run_id, async_req=True)
         >>> result = thread.get()
 
         :param recurring_run_id: The ID of the recurring runs to be disabled. (required)
@@ -310,15 +310,15 @@ class RecurringRunServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.disable_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
+        return self.recurring_run_service_disable_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
 
-    def disable_recurring_run_with_http_info(self, recurring_run_id, **kwargs):  # noqa: E501
+    def recurring_run_service_disable_recurring_run_with_http_info(self, recurring_run_id, **kwargs):  # noqa: E501
         """Stops a recurring run and all its associated runs. The recurring run is not deleted.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.disable_recurring_run_with_http_info(recurring_run_id, async_req=True)
+        >>> thread = api.recurring_run_service_disable_recurring_run_with_http_info(recurring_run_id, async_req=True)
         >>> result = thread.get()
 
         :param recurring_run_id: The ID of the recurring runs to be disabled. (required)
@@ -360,14 +360,14 @@ class RecurringRunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method disable_recurring_run" % key
+                    " to method recurring_run_service_disable_recurring_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'recurring_run_id' is set
         if self.api_client.client_side_validation and ('recurring_run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['recurring_run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `recurring_run_id` when calling `disable_recurring_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `recurring_run_id` when calling `recurring_run_service_disable_recurring_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -406,13 +406,13 @@ class RecurringRunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def enable_recurring_run(self, recurring_run_id, **kwargs):  # noqa: E501
+    def recurring_run_service_enable_recurring_run(self, recurring_run_id, **kwargs):  # noqa: E501
         """Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.enable_recurring_run(recurring_run_id, async_req=True)
+        >>> thread = api.recurring_run_service_enable_recurring_run(recurring_run_id, async_req=True)
         >>> result = thread.get()
 
         :param recurring_run_id: The ID of the recurring runs to be enabled. (required)
@@ -432,15 +432,15 @@ class RecurringRunServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.enable_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
+        return self.recurring_run_service_enable_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
 
-    def enable_recurring_run_with_http_info(self, recurring_run_id, **kwargs):  # noqa: E501
+    def recurring_run_service_enable_recurring_run_with_http_info(self, recurring_run_id, **kwargs):  # noqa: E501
         """Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.enable_recurring_run_with_http_info(recurring_run_id, async_req=True)
+        >>> thread = api.recurring_run_service_enable_recurring_run_with_http_info(recurring_run_id, async_req=True)
         >>> result = thread.get()
 
         :param recurring_run_id: The ID of the recurring runs to be enabled. (required)
@@ -482,14 +482,14 @@ class RecurringRunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method enable_recurring_run" % key
+                    " to method recurring_run_service_enable_recurring_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'recurring_run_id' is set
         if self.api_client.client_side_validation and ('recurring_run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['recurring_run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `recurring_run_id` when calling `enable_recurring_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `recurring_run_id` when calling `recurring_run_service_enable_recurring_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -528,13 +528,13 @@ class RecurringRunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def get_recurring_run(self, recurring_run_id, **kwargs):  # noqa: E501
+    def recurring_run_service_get_recurring_run(self, recurring_run_id, **kwargs):  # noqa: E501
         """Finds a specific recurring run by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_recurring_run(recurring_run_id, async_req=True)
+        >>> thread = api.recurring_run_service_get_recurring_run(recurring_run_id, async_req=True)
         >>> result = thread.get()
 
         :param recurring_run_id: The ID of the recurring run to be retrieved. (required)
@@ -554,15 +554,15 @@ class RecurringRunServiceApi(object):
         :rtype: V2beta1RecurringRun
         """
         kwargs['_return_http_data_only'] = True
-        return self.get_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
+        return self.recurring_run_service_get_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
 
-    def get_recurring_run_with_http_info(self, recurring_run_id, **kwargs):  # noqa: E501
+    def recurring_run_service_get_recurring_run_with_http_info(self, recurring_run_id, **kwargs):  # noqa: E501
         """Finds a specific recurring run by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_recurring_run_with_http_info(recurring_run_id, async_req=True)
+        >>> thread = api.recurring_run_service_get_recurring_run_with_http_info(recurring_run_id, async_req=True)
         >>> result = thread.get()
 
         :param recurring_run_id: The ID of the recurring run to be retrieved. (required)
@@ -604,14 +604,14 @@ class RecurringRunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method get_recurring_run" % key
+                    " to method recurring_run_service_get_recurring_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'recurring_run_id' is set
         if self.api_client.client_side_validation and ('recurring_run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['recurring_run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `recurring_run_id` when calling `get_recurring_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `recurring_run_id` when calling `recurring_run_service_get_recurring_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -650,13 +650,13 @@ class RecurringRunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def list_recurring_runs(self, **kwargs):  # noqa: E501
+    def recurring_run_service_list_recurring_runs(self, **kwargs):  # noqa: E501
         """Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_recurring_runs(async_req=True)
+        >>> thread = api.recurring_run_service_list_recurring_runs(async_req=True)
         >>> result = thread.get()
 
         :param page_token: A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRecurringRuns call or can be omitted when fetching the first page.
@@ -686,15 +686,15 @@ class RecurringRunServiceApi(object):
         :rtype: V2beta1ListRecurringRunsResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.list_recurring_runs_with_http_info(**kwargs)  # noqa: E501
+        return self.recurring_run_service_list_recurring_runs_with_http_info(**kwargs)  # noqa: E501
 
-    def list_recurring_runs_with_http_info(self, **kwargs):  # noqa: E501
+    def recurring_run_service_list_recurring_runs_with_http_info(self, **kwargs):  # noqa: E501
         """Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_recurring_runs_with_http_info(async_req=True)
+        >>> thread = api.recurring_run_service_list_recurring_runs_with_http_info(async_req=True)
         >>> result = thread.get()
 
         :param page_token: A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRecurringRuns call or can be omitted when fetching the first page.
@@ -751,7 +751,7 @@ class RecurringRunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method list_recurring_runs" % key
+                    " to method recurring_run_service_list_recurring_runs" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']

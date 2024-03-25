@@ -36,13 +36,13 @@ class PipelineServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def create_pipeline(self, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline(self, body, **kwargs):  # noqa: E501
         """Creates a pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_pipeline(body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline(body, async_req=True)
         >>> result = thread.get()
 
         :param body: Required input. Pipeline that needs to be created. (required)
@@ -62,15 +62,15 @@ class PipelineServiceApi(object):
         :rtype: V2beta1Pipeline
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_pipeline_with_http_info(body, **kwargs)  # noqa: E501
+        return self.pipeline_service_create_pipeline_with_http_info(body, **kwargs)  # noqa: E501
 
-    def create_pipeline_with_http_info(self, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline_with_http_info(self, body, **kwargs):  # noqa: E501
         """Creates a pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_pipeline_with_http_info(body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline_with_http_info(body, async_req=True)
         >>> result = thread.get()
 
         :param body: Required input. Pipeline that needs to be created. (required)
@@ -112,14 +112,14 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method create_pipeline" % key
+                    " to method pipeline_service_create_pipeline" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'body' is set
         if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
                                                         local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `create_pipeline`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `body` when calling `pipeline_service_create_pipeline`")  # noqa: E501
 
         collection_formats = {}
 
@@ -162,13 +162,13 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def create_pipeline_and_version(self, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline_and_version(self, body, **kwargs):  # noqa: E501
         """Creates a new pipeline and a new pipeline version in a single transaction.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_pipeline_and_version(body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline_and_version(body, async_req=True)
         >>> result = thread.get()
 
         :param body: (required)
@@ -188,15 +188,15 @@ class PipelineServiceApi(object):
         :rtype: V2beta1Pipeline
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_pipeline_and_version_with_http_info(body, **kwargs)  # noqa: E501
+        return self.pipeline_service_create_pipeline_and_version_with_http_info(body, **kwargs)  # noqa: E501
 
-    def create_pipeline_and_version_with_http_info(self, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline_and_version_with_http_info(self, body, **kwargs):  # noqa: E501
         """Creates a new pipeline and a new pipeline version in a single transaction.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_pipeline_and_version_with_http_info(body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline_and_version_with_http_info(body, async_req=True)
         >>> result = thread.get()
 
         :param body: (required)
@@ -238,14 +238,14 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method create_pipeline_and_version" % key
+                    " to method pipeline_service_create_pipeline_and_version" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'body' is set
         if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
                                                         local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `create_pipeline_and_version`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `body` when calling `pipeline_service_create_pipeline_and_version`")  # noqa: E501
 
         collection_formats = {}
 
@@ -288,13 +288,13 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def create_pipeline_version(self, pipeline_id, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline_version(self, pipeline_id, body, **kwargs):  # noqa: E501
         """Adds a pipeline version to the specified pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_pipeline_version(pipeline_id, body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline_version(pipeline_id, body, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
@@ -316,15 +316,15 @@ class PipelineServiceApi(object):
         :rtype: V2beta1PipelineVersion
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_pipeline_version_with_http_info(pipeline_id, body, **kwargs)  # noqa: E501
+        return self.pipeline_service_create_pipeline_version_with_http_info(pipeline_id, body, **kwargs)  # noqa: E501
 
-    def create_pipeline_version_with_http_info(self, pipeline_id, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline_version_with_http_info(self, pipeline_id, body, **kwargs):  # noqa: E501
         """Adds a pipeline version to the specified pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_pipeline_version_with_http_info(pipeline_id, body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline_version_with_http_info(pipeline_id, body, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
@@ -369,18 +369,18 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method create_pipeline_version" % key
+                    " to method pipeline_service_create_pipeline_version" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'pipeline_id' is set
         if self.api_client.client_side_validation and ('pipeline_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `create_pipeline_version`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `pipeline_service_create_pipeline_version`")  # noqa: E501
         # verify the required parameter 'body' is set
         if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
                                                         local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `create_pipeline_version`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `body` when calling `pipeline_service_create_pipeline_version`")  # noqa: E501
 
         collection_formats = {}
 
@@ -425,13 +425,13 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def delete_pipeline(self, pipeline_id, **kwargs):  # noqa: E501
+    def pipeline_service_delete_pipeline(self, pipeline_id, **kwargs):  # noqa: E501
         """Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_pipeline(pipeline_id, async_req=True)
+        >>> thread = api.pipeline_service_delete_pipeline(pipeline_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the pipeline to be deleted. (required)
@@ -451,15 +451,15 @@ class PipelineServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.delete_pipeline_with_http_info(pipeline_id, **kwargs)  # noqa: E501
+        return self.pipeline_service_delete_pipeline_with_http_info(pipeline_id, **kwargs)  # noqa: E501
 
-    def delete_pipeline_with_http_info(self, pipeline_id, **kwargs):  # noqa: E501
+    def pipeline_service_delete_pipeline_with_http_info(self, pipeline_id, **kwargs):  # noqa: E501
         """Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_pipeline_with_http_info(pipeline_id, async_req=True)
+        >>> thread = api.pipeline_service_delete_pipeline_with_http_info(pipeline_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the pipeline to be deleted. (required)
@@ -501,14 +501,14 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method delete_pipeline" % key
+                    " to method pipeline_service_delete_pipeline" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'pipeline_id' is set
         if self.api_client.client_side_validation and ('pipeline_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `delete_pipeline`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `pipeline_service_delete_pipeline`")  # noqa: E501
 
         collection_formats = {}
 
@@ -547,13 +547,13 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def delete_pipeline_version(self, pipeline_id, pipeline_version_id, **kwargs):  # noqa: E501
+    def pipeline_service_delete_pipeline_version(self, pipeline_id, pipeline_version_id, **kwargs):  # noqa: E501
         """Deletes a specific pipeline version by pipeline version ID and pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_pipeline_version(pipeline_id, pipeline_version_id, async_req=True)
+        >>> thread = api.pipeline_service_delete_pipeline_version(pipeline_id, pipeline_version_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
@@ -575,15 +575,15 @@ class PipelineServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.delete_pipeline_version_with_http_info(pipeline_id, pipeline_version_id, **kwargs)  # noqa: E501
+        return self.pipeline_service_delete_pipeline_version_with_http_info(pipeline_id, pipeline_version_id, **kwargs)  # noqa: E501
 
-    def delete_pipeline_version_with_http_info(self, pipeline_id, pipeline_version_id, **kwargs):  # noqa: E501
+    def pipeline_service_delete_pipeline_version_with_http_info(self, pipeline_id, pipeline_version_id, **kwargs):  # noqa: E501
         """Deletes a specific pipeline version by pipeline version ID and pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_pipeline_version_with_http_info(pipeline_id, pipeline_version_id, async_req=True)
+        >>> thread = api.pipeline_service_delete_pipeline_version_with_http_info(pipeline_id, pipeline_version_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
@@ -628,18 +628,18 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method delete_pipeline_version" % key
+                    " to method pipeline_service_delete_pipeline_version" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'pipeline_id' is set
         if self.api_client.client_side_validation and ('pipeline_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `delete_pipeline_version`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `pipeline_service_delete_pipeline_version`")  # noqa: E501
         # verify the required parameter 'pipeline_version_id' is set
         if self.api_client.client_side_validation and ('pipeline_version_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_version_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `pipeline_version_id` when calling `delete_pipeline_version`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline_version_id` when calling `pipeline_service_delete_pipeline_version`")  # noqa: E501
 
         collection_formats = {}
 
@@ -680,13 +680,13 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def get_pipeline(self, pipeline_id, **kwargs):  # noqa: E501
+    def pipeline_service_get_pipeline(self, pipeline_id, **kwargs):  # noqa: E501
         """Finds a specific pipeline by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_pipeline(pipeline_id, async_req=True)
+        >>> thread = api.pipeline_service_get_pipeline(pipeline_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. The ID of the pipeline to be retrieved. (required)
@@ -706,15 +706,15 @@ class PipelineServiceApi(object):
         :rtype: V2beta1Pipeline
         """
         kwargs['_return_http_data_only'] = True
-        return self.get_pipeline_with_http_info(pipeline_id, **kwargs)  # noqa: E501
+        return self.pipeline_service_get_pipeline_with_http_info(pipeline_id, **kwargs)  # noqa: E501
 
-    def get_pipeline_with_http_info(self, pipeline_id, **kwargs):  # noqa: E501
+    def pipeline_service_get_pipeline_with_http_info(self, pipeline_id, **kwargs):  # noqa: E501
         """Finds a specific pipeline by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_pipeline_with_http_info(pipeline_id, async_req=True)
+        >>> thread = api.pipeline_service_get_pipeline_with_http_info(pipeline_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. The ID of the pipeline to be retrieved. (required)
@@ -756,14 +756,14 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method get_pipeline" % key
+                    " to method pipeline_service_get_pipeline" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'pipeline_id' is set
         if self.api_client.client_side_validation and ('pipeline_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `get_pipeline`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `pipeline_service_get_pipeline`")  # noqa: E501
 
         collection_formats = {}
 
@@ -802,13 +802,13 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def get_pipeline_by_name(self, name, **kwargs):  # noqa: E501
+    def pipeline_service_get_pipeline_by_name(self, name, **kwargs):  # noqa: E501
         """Finds a specific pipeline by name and namespace.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_pipeline_by_name(name, async_req=True)
+        >>> thread = api.pipeline_service_get_pipeline_by_name(name, async_req=True)
         >>> result = thread.get()
 
         :param name: Required input. Name of the pipeline to be retrieved. (required)
@@ -830,15 +830,15 @@ class PipelineServiceApi(object):
         :rtype: V2beta1Pipeline
         """
         kwargs['_return_http_data_only'] = True
-        return self.get_pipeline_by_name_with_http_info(name, **kwargs)  # noqa: E501
+        return self.pipeline_service_get_pipeline_by_name_with_http_info(name, **kwargs)  # noqa: E501
 
-    def get_pipeline_by_name_with_http_info(self, name, **kwargs):  # noqa: E501
+    def pipeline_service_get_pipeline_by_name_with_http_info(self, name, **kwargs):  # noqa: E501
         """Finds a specific pipeline by name and namespace.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_pipeline_by_name_with_http_info(name, async_req=True)
+        >>> thread = api.pipeline_service_get_pipeline_by_name_with_http_info(name, async_req=True)
         >>> result = thread.get()
 
         :param name: Required input. Name of the pipeline to be retrieved. (required)
@@ -883,14 +883,14 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method get_pipeline_by_name" % key
+                    " to method pipeline_service_get_pipeline_by_name" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'name' is set
         if self.api_client.client_side_validation and ('name' not in local_var_params or  # noqa: E501
                                                         local_var_params['name'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `name` when calling `get_pipeline_by_name`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `name` when calling `pipeline_service_get_pipeline_by_name`")  # noqa: E501
 
         collection_formats = {}
 
@@ -931,13 +931,13 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def get_pipeline_version(self, pipeline_id, pipeline_version_id, **kwargs):  # noqa: E501
+    def pipeline_service_get_pipeline_version(self, pipeline_id, pipeline_version_id, **kwargs):  # noqa: E501
         """Gets a pipeline version by pipeline version ID and pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_pipeline_version(pipeline_id, pipeline_version_id, async_req=True)
+        >>> thread = api.pipeline_service_get_pipeline_version(pipeline_id, pipeline_version_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
@@ -959,15 +959,15 @@ class PipelineServiceApi(object):
         :rtype: V2beta1PipelineVersion
         """
         kwargs['_return_http_data_only'] = True
-        return self.get_pipeline_version_with_http_info(pipeline_id, pipeline_version_id, **kwargs)  # noqa: E501
+        return self.pipeline_service_get_pipeline_version_with_http_info(pipeline_id, pipeline_version_id, **kwargs)  # noqa: E501
 
-    def get_pipeline_version_with_http_info(self, pipeline_id, pipeline_version_id, **kwargs):  # noqa: E501
+    def pipeline_service_get_pipeline_version_with_http_info(self, pipeline_id, pipeline_version_id, **kwargs):  # noqa: E501
         """Gets a pipeline version by pipeline version ID and pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_pipeline_version_with_http_info(pipeline_id, pipeline_version_id, async_req=True)
+        >>> thread = api.pipeline_service_get_pipeline_version_with_http_info(pipeline_id, pipeline_version_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
@@ -1012,18 +1012,18 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method get_pipeline_version" % key
+                    " to method pipeline_service_get_pipeline_version" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'pipeline_id' is set
         if self.api_client.client_side_validation and ('pipeline_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `get_pipeline_version`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `pipeline_service_get_pipeline_version`")  # noqa: E501
         # verify the required parameter 'pipeline_version_id' is set
         if self.api_client.client_side_validation and ('pipeline_version_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_version_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `pipeline_version_id` when calling `get_pipeline_version`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline_version_id` when calling `pipeline_service_get_pipeline_version`")  # noqa: E501
 
         collection_formats = {}
 
@@ -1064,13 +1064,13 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def list_pipeline_versions(self, pipeline_id, **kwargs):  # noqa: E501
+    def pipeline_service_list_pipeline_versions(self, pipeline_id, **kwargs):  # noqa: E501
         """Lists all pipeline versions of a given pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_pipeline_versions(pipeline_id, async_req=True)
+        >>> thread = api.pipeline_service_list_pipeline_versions(pipeline_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
@@ -1098,15 +1098,15 @@ class PipelineServiceApi(object):
         :rtype: V2beta1ListPipelineVersionsResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.list_pipeline_versions_with_http_info(pipeline_id, **kwargs)  # noqa: E501
+        return self.pipeline_service_list_pipeline_versions_with_http_info(pipeline_id, **kwargs)  # noqa: E501
 
-    def list_pipeline_versions_with_http_info(self, pipeline_id, **kwargs):  # noqa: E501
+    def pipeline_service_list_pipeline_versions_with_http_info(self, pipeline_id, **kwargs):  # noqa: E501
         """Lists all pipeline versions of a given pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_pipeline_versions_with_http_info(pipeline_id, async_req=True)
+        >>> thread = api.pipeline_service_list_pipeline_versions_with_http_info(pipeline_id, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
@@ -1160,14 +1160,14 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method list_pipeline_versions" % key
+                    " to method pipeline_service_list_pipeline_versions" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'pipeline_id' is set
         if self.api_client.client_side_validation and ('pipeline_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `list_pipeline_versions`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline_id` when calling `pipeline_service_list_pipeline_versions`")  # noqa: E501
 
         collection_formats = {}
 
@@ -1214,13 +1214,13 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def list_pipelines(self, **kwargs):  # noqa: E501
+    def pipeline_service_list_pipelines(self, **kwargs):  # noqa: E501
         """Finds all pipelines within a namespace.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_pipelines(async_req=True)
+        >>> thread = api.pipeline_service_list_pipelines(async_req=True)
         >>> result = thread.get()
 
         :param namespace: Optional input. Namespace for the pipelines.
@@ -1248,15 +1248,15 @@ class PipelineServiceApi(object):
         :rtype: V2beta1ListPipelinesResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.list_pipelines_with_http_info(**kwargs)  # noqa: E501
+        return self.pipeline_service_list_pipelines_with_http_info(**kwargs)  # noqa: E501
 
-    def list_pipelines_with_http_info(self, **kwargs):  # noqa: E501
+    def pipeline_service_list_pipelines_with_http_info(self, **kwargs):  # noqa: E501
         """Finds all pipelines within a namespace.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_pipelines_with_http_info(async_req=True)
+        >>> thread = api.pipeline_service_list_pipelines_with_http_info(async_req=True)
         >>> result = thread.get()
 
         :param namespace: Optional input. Namespace for the pipelines.
@@ -1310,7 +1310,7 @@ class PipelineServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method list_pipelines" % key
+                    " to method pipeline_service_list_pipelines" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']

@@ -4,16 +4,16 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**create_recurring_run**](RecurringRunServiceApi.md#create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
-[**delete_recurring_run**](RecurringRunServiceApi.md#delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{recurring_run_id} | Deletes a recurring run.
-[**disable_recurring_run**](RecurringRunServiceApi.md#disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
-[**enable_recurring_run**](RecurringRunServiceApi.md#enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
-[**get_recurring_run**](RecurringRunServiceApi.md#get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
-[**list_recurring_runs**](RecurringRunServiceApi.md#list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
+[**recurring_run_service_create_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
+[**recurring_run_service_delete_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{recurring_run_id} | Deletes a recurring run.
+[**recurring_run_service_disable_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
+[**recurring_run_service_enable_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
+[**recurring_run_service_get_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
+[**recurring_run_service_list_recurring_runs**](RecurringRunServiceApi.md#recurring_run_service_list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
 
 
-# **create_recurring_run**
-> V2beta1RecurringRun create_recurring_run(body)
+# **recurring_run_service_create_recurring_run**
+> V2beta1RecurringRun recurring_run_service_create_recurring_run(body)
 
 Creates a new recurring run in an experiment, given the experiment ID.
 
@@ -55,10 +55,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Creates a new recurring run in an experiment, given the experiment ID.
-        api_response = api_instance.create_recurring_run(body)
+        api_response = api_instance.recurring_run_service_create_recurring_run(body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RecurringRunServiceApi->create_recurring_run: %s\n" % e)
+        print("Exception when calling RecurringRunServiceApi->recurring_run_service_create_recurring_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -84,11 +84,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **delete_recurring_run**
-> object delete_recurring_run(recurring_run_id)
+# **recurring_run_service_delete_recurring_run**
+> object recurring_run_service_delete_recurring_run(recurring_run_id)
 
 Deletes a recurring run.
 
@@ -130,10 +131,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Deletes a recurring run.
-        api_response = api_instance.delete_recurring_run(recurring_run_id)
+        api_response = api_instance.recurring_run_service_delete_recurring_run(recurring_run_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RecurringRunServiceApi->delete_recurring_run: %s\n" % e)
+        print("Exception when calling RecurringRunServiceApi->recurring_run_service_delete_recurring_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -159,11 +160,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **disable_recurring_run**
-> object disable_recurring_run(recurring_run_id)
+# **recurring_run_service_disable_recurring_run**
+> object recurring_run_service_disable_recurring_run(recurring_run_id)
 
 Stops a recurring run and all its associated runs. The recurring run is not deleted.
 
@@ -205,10 +207,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Stops a recurring run and all its associated runs. The recurring run is not deleted.
-        api_response = api_instance.disable_recurring_run(recurring_run_id)
+        api_response = api_instance.recurring_run_service_disable_recurring_run(recurring_run_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RecurringRunServiceApi->disable_recurring_run: %s\n" % e)
+        print("Exception when calling RecurringRunServiceApi->recurring_run_service_disable_recurring_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -234,11 +236,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **enable_recurring_run**
-> object enable_recurring_run(recurring_run_id)
+# **recurring_run_service_enable_recurring_run**
+> object recurring_run_service_enable_recurring_run(recurring_run_id)
 
 Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
 
@@ -280,10 +283,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
-        api_response = api_instance.enable_recurring_run(recurring_run_id)
+        api_response = api_instance.recurring_run_service_enable_recurring_run(recurring_run_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RecurringRunServiceApi->enable_recurring_run: %s\n" % e)
+        print("Exception when calling RecurringRunServiceApi->recurring_run_service_enable_recurring_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -309,11 +312,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **get_recurring_run**
-> V2beta1RecurringRun get_recurring_run(recurring_run_id)
+# **recurring_run_service_get_recurring_run**
+> V2beta1RecurringRun recurring_run_service_get_recurring_run(recurring_run_id)
 
 Finds a specific recurring run by ID.
 
@@ -355,10 +359,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Finds a specific recurring run by ID.
-        api_response = api_instance.get_recurring_run(recurring_run_id)
+        api_response = api_instance.recurring_run_service_get_recurring_run(recurring_run_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RecurringRunServiceApi->get_recurring_run: %s\n" % e)
+        print("Exception when calling RecurringRunServiceApi->recurring_run_service_get_recurring_run: %s\n" % e)
 ```
 
 ### Parameters
@@ -384,11 +388,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **list_recurring_runs**
-> V2beta1ListRecurringRunsResponse list_recurring_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, namespace=namespace, filter=filter, experiment_id=experiment_id)
+# **recurring_run_service_list_recurring_runs**
+> V2beta1ListRecurringRunsResponse recurring_run_service_list_recurring_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, namespace=namespace, filter=filter, experiment_id=experiment_id)
 
 Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
 
@@ -435,10 +440,10 @@ experiment_id = 'experiment_id_example' # str | The ID of the experiment to be r
 
     try:
         # Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
-        api_response = api_instance.list_recurring_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, namespace=namespace, filter=filter, experiment_id=experiment_id)
+        api_response = api_instance.recurring_run_service_list_recurring_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, namespace=namespace, filter=filter, experiment_id=experiment_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling RecurringRunServiceApi->list_recurring_runs: %s\n" % e)
+        print("Exception when calling RecurringRunServiceApi->recurring_run_service_list_recurring_runs: %s\n" % e)
 ```
 
 ### Parameters
@@ -469,6 +474,7 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

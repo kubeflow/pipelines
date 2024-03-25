@@ -210,7 +210,7 @@ class V2beta1RecurringRun(object):
     def pipeline_version_id(self):
         """Gets the pipeline_version_id of this V2beta1RecurringRun.  # noqa: E501
 
-        The ID of the pipeline version used for creating runs.  # noqa: E501
+        This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.  # noqa: E501
 
         :return: The pipeline_version_id of this V2beta1RecurringRun.  # noqa: E501
         :rtype: str
@@ -221,7 +221,7 @@ class V2beta1RecurringRun(object):
     def pipeline_version_id(self, pipeline_version_id):
         """Sets the pipeline_version_id of this V2beta1RecurringRun.
 
-        The ID of the pipeline version used for creating runs.  # noqa: E501
+        This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.  # noqa: E501
 
         :param pipeline_version_id: The pipeline_version_id of this V2beta1RecurringRun.  # noqa: E501
         :type pipeline_version_id: str

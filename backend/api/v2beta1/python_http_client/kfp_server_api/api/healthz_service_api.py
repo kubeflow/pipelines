@@ -36,13 +36,13 @@ class HealthzServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def get_healthz(self, **kwargs):  # noqa: E501
+    def healthz_service_get_healthz(self, **kwargs):  # noqa: E501
         """Get healthz data.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_healthz(async_req=True)
+        >>> thread = api.healthz_service_get_healthz(async_req=True)
         >>> result = thread.get()
 
         :param async_req: Whether to execute the request asynchronously.
@@ -60,15 +60,15 @@ class HealthzServiceApi(object):
         :rtype: V2beta1GetHealthzResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.get_healthz_with_http_info(**kwargs)  # noqa: E501
+        return self.healthz_service_get_healthz_with_http_info(**kwargs)  # noqa: E501
 
-    def get_healthz_with_http_info(self, **kwargs):  # noqa: E501
+    def healthz_service_get_healthz_with_http_info(self, **kwargs):  # noqa: E501
         """Get healthz data.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_healthz_with_http_info(async_req=True)
+        >>> thread = api.healthz_service_get_healthz_with_http_info(async_req=True)
         >>> result = thread.get()
 
         :param async_req: Whether to execute the request asynchronously.
@@ -107,7 +107,7 @@ class HealthzServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method get_healthz" % key
+                    " to method healthz_service_get_healthz" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']

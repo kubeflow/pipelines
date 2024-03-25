@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **display_name** | **str** | Required input. Name provided by user, or auto generated if run is created by a recurring run. | [optional] 
 **storage_state** | [**V2beta1RunStorageState**](V2beta1RunStorageState.md) |  | [optional] 
 **description** | **str** | Optional input. Short description of the run. | [optional] 
-**pipeline_version_id** | **str** | ID of an existing pipeline version. | [optional] 
+**pipeline_version_id** | **str** | This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2. | [optional] 
 **pipeline_spec** | [**object**](.md) | Pipeline spec. | [optional] 
 **pipeline_version_reference** | [**V2beta1PipelineVersionReference**](V2beta1PipelineVersionReference.md) |  | [optional] 
 **runtime_config** | [**V2beta1RuntimeConfig**](V2beta1RuntimeConfig.md) |  | [optional] 

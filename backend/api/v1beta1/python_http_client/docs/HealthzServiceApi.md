@@ -4,11 +4,11 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**get_healthz**](HealthzServiceApi.md#get_healthz) | **GET** /apis/v1beta1/healthz | Get healthz data.
+[**healthz_service_get_healthz**](HealthzServiceApi.md#healthz_service_get_healthz) | **GET** /apis/v1beta1/healthz | Get healthz data.
 
 
-# **get_healthz**
-> ApiGetHealthzResponse get_healthz()
+# **healthz_service_get_healthz**
+> ApiGetHealthzResponse healthz_service_get_healthz()
 
 Get healthz data.
 
@@ -49,10 +49,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     
     try:
         # Get healthz data.
-        api_response = api_instance.get_healthz()
+        api_response = api_instance.healthz_service_get_healthz()
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling HealthzServiceApi->get_healthz: %s\n" % e)
+        print("Exception when calling HealthzServiceApi->healthz_service_get_healthz: %s\n" % e)
 ```
 
 ### Parameters
@@ -75,7 +75,7 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

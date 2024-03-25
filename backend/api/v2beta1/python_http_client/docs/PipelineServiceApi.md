@@ -4,20 +4,20 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**create_pipeline**](PipelineServiceApi.md#create_pipeline) | **POST** /apis/v2beta1/pipelines | Creates a pipeline.
-[**create_pipeline_and_version**](PipelineServiceApi.md#create_pipeline_and_version) | **POST** /apis/v2beta1/pipelines/create | Creates a new pipeline and a new pipeline version in a single transaction.
-[**create_pipeline_version**](PipelineServiceApi.md#create_pipeline_version) | **POST** /apis/v2beta1/pipelines/{pipeline_id}/versions | Adds a pipeline version to the specified pipeline ID.
-[**delete_pipeline**](PipelineServiceApi.md#delete_pipeline) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id} | Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
-[**delete_pipeline_version**](PipelineServiceApi.md#delete_pipeline_version) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Deletes a specific pipeline version by pipeline version ID and pipeline ID.
-[**get_pipeline**](PipelineServiceApi.md#get_pipeline) | **GET** /apis/v2beta1/pipelines/{pipeline_id} | Finds a specific pipeline by ID.
-[**get_pipeline_by_name**](PipelineServiceApi.md#get_pipeline_by_name) | **GET** /apis/v2beta1/pipelines/names/{name} | Finds a specific pipeline by name and namespace.
-[**get_pipeline_version**](PipelineServiceApi.md#get_pipeline_version) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Gets a pipeline version by pipeline version ID and pipeline ID.
-[**list_pipeline_versions**](PipelineServiceApi.md#list_pipeline_versions) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions | Lists all pipeline versions of a given pipeline ID.
-[**list_pipelines**](PipelineServiceApi.md#list_pipelines) | **GET** /apis/v2beta1/pipelines | Finds all pipelines within a namespace.
+[**pipeline_service_create_pipeline**](PipelineServiceApi.md#pipeline_service_create_pipeline) | **POST** /apis/v2beta1/pipelines | Creates a pipeline.
+[**pipeline_service_create_pipeline_and_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_and_version) | **POST** /apis/v2beta1/pipelines/create | Creates a new pipeline and a new pipeline version in a single transaction.
+[**pipeline_service_create_pipeline_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_version) | **POST** /apis/v2beta1/pipelines/{pipeline_id}/versions | Adds a pipeline version to the specified pipeline ID.
+[**pipeline_service_delete_pipeline**](PipelineServiceApi.md#pipeline_service_delete_pipeline) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id} | Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
+[**pipeline_service_delete_pipeline_version**](PipelineServiceApi.md#pipeline_service_delete_pipeline_version) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Deletes a specific pipeline version by pipeline version ID and pipeline ID.
+[**pipeline_service_get_pipeline**](PipelineServiceApi.md#pipeline_service_get_pipeline) | **GET** /apis/v2beta1/pipelines/{pipeline_id} | Finds a specific pipeline by ID.
+[**pipeline_service_get_pipeline_by_name**](PipelineServiceApi.md#pipeline_service_get_pipeline_by_name) | **GET** /apis/v2beta1/pipelines/names/{name} | Finds a specific pipeline by name and namespace.
+[**pipeline_service_get_pipeline_version**](PipelineServiceApi.md#pipeline_service_get_pipeline_version) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Gets a pipeline version by pipeline version ID and pipeline ID.
+[**pipeline_service_list_pipeline_versions**](PipelineServiceApi.md#pipeline_service_list_pipeline_versions) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions | Lists all pipeline versions of a given pipeline ID.
+[**pipeline_service_list_pipelines**](PipelineServiceApi.md#pipeline_service_list_pipelines) | **GET** /apis/v2beta1/pipelines | Finds all pipelines within a namespace.
 
 
-# **create_pipeline**
-> V2beta1Pipeline create_pipeline(body)
+# **pipeline_service_create_pipeline**
+> V2beta1Pipeline pipeline_service_create_pipeline(body)
 
 Creates a pipeline.
 
@@ -59,10 +59,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Creates a pipeline.
-        api_response = api_instance.create_pipeline(body)
+        api_response = api_instance.pipeline_service_create_pipeline(body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->create_pipeline: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_create_pipeline: %s\n" % e)
 ```
 
 ### Parameters
@@ -88,12 +88,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **create_pipeline_and_version**
-> V2beta1Pipeline create_pipeline_and_version(body)
+# **pipeline_service_create_pipeline_and_version**
+> V2beta1Pipeline pipeline_service_create_pipeline_and_version(body)
 
 Creates a new pipeline and a new pipeline version in a single transaction.
 
@@ -135,10 +135,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Creates a new pipeline and a new pipeline version in a single transaction.
-        api_response = api_instance.create_pipeline_and_version(body)
+        api_response = api_instance.pipeline_service_create_pipeline_and_version(body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->create_pipeline_and_version: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_create_pipeline_and_version: %s\n" % e)
 ```
 
 ### Parameters
@@ -164,12 +164,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **create_pipeline_version**
-> V2beta1PipelineVersion create_pipeline_version(pipeline_id, body)
+# **pipeline_service_create_pipeline_version**
+> V2beta1PipelineVersion pipeline_service_create_pipeline_version(pipeline_id, body)
 
 Adds a pipeline version to the specified pipeline ID.
 
@@ -212,10 +212,10 @@ body = kfp_server_api.V2beta1PipelineVersion() # V2beta1PipelineVersion | Requir
 
     try:
         # Adds a pipeline version to the specified pipeline ID.
-        api_response = api_instance.create_pipeline_version(pipeline_id, body)
+        api_response = api_instance.pipeline_service_create_pipeline_version(pipeline_id, body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->create_pipeline_version: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_create_pipeline_version: %s\n" % e)
 ```
 
 ### Parameters
@@ -242,12 +242,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **delete_pipeline**
-> object delete_pipeline(pipeline_id)
+# **pipeline_service_delete_pipeline**
+> object pipeline_service_delete_pipeline(pipeline_id)
 
 Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
 
@@ -289,10 +289,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
-        api_response = api_instance.delete_pipeline(pipeline_id)
+        api_response = api_instance.pipeline_service_delete_pipeline(pipeline_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->delete_pipeline: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_delete_pipeline: %s\n" % e)
 ```
 
 ### Parameters
@@ -318,12 +318,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **delete_pipeline_version**
-> object delete_pipeline_version(pipeline_id, pipeline_version_id)
+# **pipeline_service_delete_pipeline_version**
+> object pipeline_service_delete_pipeline_version(pipeline_id, pipeline_version_id)
 
 Deletes a specific pipeline version by pipeline version ID and pipeline ID.
 
@@ -366,10 +366,10 @@ pipeline_version_id = 'pipeline_version_id_example' # str | Required input. The 
 
     try:
         # Deletes a specific pipeline version by pipeline version ID and pipeline ID.
-        api_response = api_instance.delete_pipeline_version(pipeline_id, pipeline_version_id)
+        api_response = api_instance.pipeline_service_delete_pipeline_version(pipeline_id, pipeline_version_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->delete_pipeline_version: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_delete_pipeline_version: %s\n" % e)
 ```
 
 ### Parameters
@@ -396,12 +396,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **get_pipeline**
-> V2beta1Pipeline get_pipeline(pipeline_id)
+# **pipeline_service_get_pipeline**
+> V2beta1Pipeline pipeline_service_get_pipeline(pipeline_id)
 
 Finds a specific pipeline by ID.
 
@@ -443,10 +443,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Finds a specific pipeline by ID.
-        api_response = api_instance.get_pipeline(pipeline_id)
+        api_response = api_instance.pipeline_service_get_pipeline(pipeline_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->get_pipeline: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_get_pipeline: %s\n" % e)
 ```
 
 ### Parameters
@@ -472,12 +472,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **get_pipeline_by_name**
-> V2beta1Pipeline get_pipeline_by_name(name, namespace=namespace)
+# **pipeline_service_get_pipeline_by_name**
+> V2beta1Pipeline pipeline_service_get_pipeline_by_name(name, namespace=namespace)
 
 Finds a specific pipeline by name and namespace.
 
@@ -520,10 +520,10 @@ namespace = 'namespace_example' # str | Optional input. Namespace of the pipelin
 
     try:
         # Finds a specific pipeline by name and namespace.
-        api_response = api_instance.get_pipeline_by_name(name, namespace=namespace)
+        api_response = api_instance.pipeline_service_get_pipeline_by_name(name, namespace=namespace)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->get_pipeline_by_name: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_get_pipeline_by_name: %s\n" % e)
 ```
 
 ### Parameters
@@ -550,12 +550,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **get_pipeline_version**
-> V2beta1PipelineVersion get_pipeline_version(pipeline_id, pipeline_version_id)
+# **pipeline_service_get_pipeline_version**
+> V2beta1PipelineVersion pipeline_service_get_pipeline_version(pipeline_id, pipeline_version_id)
 
 Gets a pipeline version by pipeline version ID and pipeline ID.
 
@@ -598,10 +598,10 @@ pipeline_version_id = 'pipeline_version_id_example' # str | Required input. ID o
 
     try:
         # Gets a pipeline version by pipeline version ID and pipeline ID.
-        api_response = api_instance.get_pipeline_version(pipeline_id, pipeline_version_id)
+        api_response = api_instance.pipeline_service_get_pipeline_version(pipeline_id, pipeline_version_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->get_pipeline_version: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_get_pipeline_version: %s\n" % e)
 ```
 
 ### Parameters
@@ -628,12 +628,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **list_pipeline_versions**
-> V2beta1ListPipelineVersionsResponse list_pipeline_versions(pipeline_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
+# **pipeline_service_list_pipeline_versions**
+> V2beta1ListPipelineVersionsResponse pipeline_service_list_pipeline_versions(pipeline_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
 
 Lists all pipeline versions of a given pipeline ID.
 
@@ -679,10 +679,10 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol
 
     try:
         # Lists all pipeline versions of a given pipeline ID.
-        api_response = api_instance.list_pipeline_versions(pipeline_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
+        api_response = api_instance.pipeline_service_list_pipeline_versions(pipeline_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->list_pipeline_versions: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_list_pipeline_versions: %s\n" % e)
 ```
 
 ### Parameters
@@ -712,12 +712,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **list_pipelines**
-> V2beta1ListPipelinesResponse list_pipelines(namespace=namespace, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
+# **pipeline_service_list_pipelines**
+> V2beta1ListPipelinesResponse pipeline_service_list_pipelines(namespace=namespace, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
 
 Finds all pipelines within a namespace.
 
@@ -763,10 +763,10 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol
 
     try:
         # Finds all pipelines within a namespace.
-        api_response = api_instance.list_pipelines(namespace=namespace, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
+        api_response = api_instance.pipeline_service_list_pipelines(namespace=namespace, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->list_pipelines: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->pipeline_service_list_pipelines: %s\n" % e)
 ```
 
 ### Parameters
@@ -796,7 +796,7 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

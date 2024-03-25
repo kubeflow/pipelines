@@ -36,13 +36,13 @@ class AuthServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def authorize(self, **kwargs):  # noqa: E501
-        """authorize  # noqa: E501
+    def auth_service_authorize(self, **kwargs):  # noqa: E501
+        """auth_service_authorize  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.authorize(async_req=True)
+        >>> thread = api.auth_service_authorize(async_req=True)
         >>> result = thread.get()
 
         :param namespace:
@@ -66,15 +66,15 @@ class AuthServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.authorize_with_http_info(**kwargs)  # noqa: E501
+        return self.auth_service_authorize_with_http_info(**kwargs)  # noqa: E501
 
-    def authorize_with_http_info(self, **kwargs):  # noqa: E501
-        """authorize  # noqa: E501
+    def auth_service_authorize_with_http_info(self, **kwargs):  # noqa: E501
+        """auth_service_authorize  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.authorize_with_http_info(async_req=True)
+        >>> thread = api.auth_service_authorize_with_http_info(async_req=True)
         >>> result = thread.get()
 
         :param namespace:
@@ -122,7 +122,7 @@ class AuthServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method authorize" % key
+                    " to method auth_service_authorize" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']

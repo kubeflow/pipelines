@@ -4,11 +4,11 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**authorize**](AuthServiceApi.md#authorize) | **GET** /apis/v2beta1/auth | 
+[**auth_service_authorize**](AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth | 
 
 
-# **authorize**
-> object authorize(namespace=namespace, resources=resources, verb=verb)
+# **auth_service_authorize**
+> object auth_service_authorize(namespace=namespace, resources=resources, verb=verb)
 
 
 
@@ -51,10 +51,10 @@ resources = 'UNASSIGNED_RESOURCES' # str |  (optional) (default to 'UNASSIGNED_R
 verb = 'UNASSIGNED_VERB' # str |  (optional) (default to 'UNASSIGNED_VERB')
 
     try:
-        api_response = api_instance.authorize(namespace=namespace, resources=resources, verb=verb)
+        api_response = api_instance.auth_service_authorize(namespace=namespace, resources=resources, verb=verb)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling AuthServiceApi->authorize: %s\n" % e)
+        print("Exception when calling AuthServiceApi->auth_service_authorize: %s\n" % e)
 ```
 
 ### Parameters
@@ -82,7 +82,7 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

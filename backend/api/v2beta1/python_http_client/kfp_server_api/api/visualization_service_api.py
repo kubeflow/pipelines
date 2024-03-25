@@ -36,13 +36,13 @@ class VisualizationServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def create_visualization_v1(self, namespace, body, **kwargs):  # noqa: E501
-        """create_visualization_v1  # noqa: E501
+    def visualization_service_create_visualization_v1(self, namespace, body, **kwargs):  # noqa: E501
+        """visualization_service_create_visualization_v1  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_visualization_v1(namespace, body, async_req=True)
+        >>> thread = api.visualization_service_create_visualization_v1(namespace, body, async_req=True)
         >>> result = thread.get()
 
         :param namespace: (required)
@@ -64,15 +64,15 @@ class VisualizationServiceApi(object):
         :rtype: V2beta1Visualization
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_visualization_v1_with_http_info(namespace, body, **kwargs)  # noqa: E501
+        return self.visualization_service_create_visualization_v1_with_http_info(namespace, body, **kwargs)  # noqa: E501
 
-    def create_visualization_v1_with_http_info(self, namespace, body, **kwargs):  # noqa: E501
-        """create_visualization_v1  # noqa: E501
+    def visualization_service_create_visualization_v1_with_http_info(self, namespace, body, **kwargs):  # noqa: E501
+        """visualization_service_create_visualization_v1  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_visualization_v1_with_http_info(namespace, body, async_req=True)
+        >>> thread = api.visualization_service_create_visualization_v1_with_http_info(namespace, body, async_req=True)
         >>> result = thread.get()
 
         :param namespace: (required)
@@ -117,18 +117,18 @@ class VisualizationServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method create_visualization_v1" % key
+                    " to method visualization_service_create_visualization_v1" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'namespace' is set
         if self.api_client.client_side_validation and ('namespace' not in local_var_params or  # noqa: E501
                                                         local_var_params['namespace'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `namespace` when calling `create_visualization_v1`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `namespace` when calling `visualization_service_create_visualization_v1`")  # noqa: E501
         # verify the required parameter 'body' is set
         if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
                                                         local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `create_visualization_v1`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `body` when calling `visualization_service_create_visualization_v1`")  # noqa: E501
 
         collection_formats = {}
 
