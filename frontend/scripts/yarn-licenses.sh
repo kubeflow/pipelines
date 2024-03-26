@@ -6,7 +6,7 @@ set -ex
 npm install -D yarn
 
 # 2. Set up yarn: It will convert from package.json to yarn.lock
-npx yarn install
+npx yarn install --network-timeout 1000000
 
 # 3. Generate full license texts in one file
 npx yarn licenses generate-disclaimer > dependency-licenses.txt

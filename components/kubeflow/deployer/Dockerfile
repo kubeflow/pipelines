@@ -22,29 +22,26 @@ RUN apt-get update -q && apt-get upgrade -y && \
       gnupg \
       lsb-release \
       unzip \
+      build-essential \
       wget && \
-    wget --no-verbose -O /opt/ks_0.13.1_linux_amd64.tar.gz \
-      https://github.com/ksonnet/ksonnet/releases/download/v0.13.1/ks_0.13.1_linux_amd64.tar.gz && \
-    tar -C /opt -xzf /opt/ks_0.13.1_linux_amd64.tar.gz && \
-    cp /opt/ks_0.13.1_linux_amd64/ks /bin/. && \
-    rm -f /opt/ks_0.13.1_linux_amd64.tar.gz && \
-    wget --no-verbose -O /bin/kubectl \
-      https://storage.googleapis.com/kubernetes-release/release/v1.11.2/bin/linux/amd64/kubectl && \
-    chmod u+x /bin/kubectl && \
-    wget --no-verbose -O /opt/kubernetes_v1.11.2 \
+    wget -q https://go.dev/dl/go1.16.linux-s390x.tar.gz && \
+    tar -xzf go1.16.linux-s390x.tar.gz && \
+    mv go /usr/local && \
+    rm -rf go1.16.linux-s390x.tar.gz && \
+    wget -q -O /bin/kubectl \
+      https://storage.googleapis.com/kubernetes-release/release/v1.11.2/bin/linux/s390x/kubectl && \
+    chmod +x /bin/kubectl && \
+    wget -q -O /opt/kubernetes_v1.11.2.tar.gz \
       https://github.com/kubernetes/kubernetes/archive/v1.11.2.tar.gz && \
     mkdir -p /src && \
-    tar -C /src -xzf /opt/kubernetes_v1.11.2 && \
-    rm -rf /opt/kubernetes_v1.11.2 && \
-    wget --no-verbose -O /opt/google-apt-key.gpg \
-      https://packages.cloud.google.com/apt/doc/apt-key.gpg && \
-    apt-key add /opt/google-apt-key.gpg && \
-    export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
-    echo "deb https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" >> \
-      /etc/apt/sources.list.d/google-cloud-sdk.list && \
-    apt-get update -q && \
-    apt-get install -y -qq --no-install-recommends google-cloud-sdk && \
-    gcloud config set component_manager/disable_update_check true
+    tar -C /src -xzf /opt/kubernetes_v1.11.2.tar.gz && \
+    rm -rf /opt/kubernetes_v1.11.2.tar.gz
+
+ENV GOROOT /usr/local/go
+ENV GOPATH /go
+ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
+
+RUN go version
 
 ENV KUBEFLOW_VERSION v0.4.0
 

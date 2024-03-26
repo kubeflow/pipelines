@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.20.4-buster as builder
+FROM golang:1.20.4-bullseye as builder
 RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
@@ -35,10 +35,20 @@ RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 # Downloading Argo CLI so that the samples are validated
 ENV ARGO_VERSION v3.3.10
-RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
-    gunzip argo-linux-amd64.gz && \
-    chmod +x argo-linux-amd64 && \
-    mv ./argo-linux-amd64 /usr/local/bin/argo
+RUN ARCH=$(uname -m); \
+    if [ "$ARCH" = "x86_64" ]; then \
+        ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        ARCH="arm64"; \
+    elif [ "$ARCH" = "s390x" ]; then \
+        ARCH="s390x"; \
+    else \
+        echo "Unsupported architecture: $ARCH"; exit 1; \
+    fi \
+    && curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-${ARCH}.gz && \
+    gunzip argo-linux-${ARCH}.gz && \
+    chmod +x argo-linux-${ARCH} && \
+    mv ./argo-linux-${ARCH} /usr/local/bin/argo
 
 WORKDIR /
 COPY ./samples /samples
