@@ -129,7 +129,7 @@ def special_dsl_outputpath_read(
         return value
     except Exception as e:
         raise ValueError(
-            f'Could not deserialize output {parameter_name!r} from path {output_file}'
+            f'Could not deserialize output {parameter_name!r} with value {value!r} from path {output_file}'
         ) from e
 
 
