@@ -143,6 +143,7 @@ def main(args):
     if args.deleteAfterDone:
         logging.info('Deleting job.')
         launcher_client.delete(args.name, args.namespace)
+    launcher_client.log_job_pods(args.namespace, args.name)
 
 
 if __name__ == "__main__":
