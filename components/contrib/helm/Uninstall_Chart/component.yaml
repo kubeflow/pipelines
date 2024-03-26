@@ -1,0 +1,21 @@
+name: Uninstall Helm Chart
+inputs:
+  - {name: release_name, type: String}
+  - {name: release_namespace, type: String}
+metadata:
+  annotations:
+    author: Filippos Malandrakis <philmln@protonmail.com>
+implementation:
+  container:
+    image: dtzar/helm-kubectl:3.8.0
+    command:
+      - bash
+      - -exc
+      - |
+        release_name=$0
+        release_namespace=$1
+
+        helm uninstall --wait --namespace "$release_namespace" "$release_name"
+
+      - {inputValue: release_name}
+      - {inputValue: release_namespace}
