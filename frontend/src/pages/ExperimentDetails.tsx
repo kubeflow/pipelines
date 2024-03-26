@@ -37,6 +37,8 @@ import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { ExperimentDetailsFC } from 'src/pages/functional_components/ExperimentDetailsFC';
+import { FeatureKey, isFeatureEnabled } from 'src/features';
 
 const css = stylesheet({
   card: {
@@ -435,7 +437,11 @@ const EnhancedExperimentDetails: React.FC<PageProps> = props => {
     return <Redirect to={RoutePage.EXPERIMENTS} />;
   }
 
-  return <ExperimentDetails {...props} />;
+  return isFeatureEnabled(FeatureKey.FUNCTIONAL_COMPONENT) ? (
+    <ExperimentDetailsFC {...props} />
+  ) : (
+    <ExperimentDetails {...props} />
+  );
 };
 
 export default EnhancedExperimentDetails;
