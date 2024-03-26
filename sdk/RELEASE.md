@@ -516,6 +516,8 @@ Technically no breaking changes but compilation error could be exposed in a diff
 
 ## Major Features and Improvements
 
+* Migrate V1 onprem to V2 [\#7811](https://github.com/kubeflow/pipelines/pull/7811)
+
 ## Breaking Changes
 
 ### For Pipeline Authors
