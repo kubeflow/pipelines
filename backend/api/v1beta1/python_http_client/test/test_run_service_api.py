@@ -28,71 +28,71 @@ class TestRunServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_archive_run_v1(self):
-        """Test case for archive_run_v1
+    def test_run_service_archive_run_v1(self):
+        """Test case for run_service_archive_run_v1
 
         Archives a run.  # noqa: E501
         """
         pass
 
-    def test_create_run_v1(self):
-        """Test case for create_run_v1
+    def test_run_service_create_run_v1(self):
+        """Test case for run_service_create_run_v1
 
         Creates a new run.  # noqa: E501
         """
         pass
 
-    def test_delete_run_v1(self):
-        """Test case for delete_run_v1
+    def test_run_service_delete_run_v1(self):
+        """Test case for run_service_delete_run_v1
 
         Deletes a run.  # noqa: E501
         """
         pass
 
-    def test_get_run_v1(self):
-        """Test case for get_run_v1
+    def test_run_service_get_run_v1(self):
+        """Test case for run_service_get_run_v1
 
         Finds a specific run by ID.  # noqa: E501
         """
         pass
 
-    def test_list_runs_v1(self):
-        """Test case for list_runs_v1
+    def test_run_service_list_runs_v1(self):
+        """Test case for run_service_list_runs_v1
 
         Finds all runs.  # noqa: E501
         """
         pass
 
-    def test_read_artifact_v1(self):
-        """Test case for read_artifact_v1
+    def test_run_service_read_artifact_v1(self):
+        """Test case for run_service_read_artifact_v1
 
         Finds a run's artifact data.  # noqa: E501
         """
         pass
 
-    def test_report_run_metrics_v1(self):
-        """Test case for report_run_metrics_v1
+    def test_run_service_report_run_metrics_v1(self):
+        """Test case for run_service_report_run_metrics_v1
 
         ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.  # noqa: E501
         """
         pass
 
-    def test_retry_run_v1(self):
-        """Test case for retry_run_v1
+    def test_run_service_retry_run_v1(self):
+        """Test case for run_service_retry_run_v1
 
         Re-initiates a failed or terminated run.  # noqa: E501
         """
         pass
 
-    def test_terminate_run_v1(self):
-        """Test case for terminate_run_v1
+    def test_run_service_terminate_run_v1(self):
+        """Test case for run_service_terminate_run_v1
 
         Terminates an active run.  # noqa: E501
         """
         pass
 
-    def test_unarchive_run_v1(self):
-        """Test case for unarchive_run_v1
+    def test_run_service_unarchive_run_v1(self):
+        """Test case for run_service_unarchive_run_v1
 
         Restores an archived run.  # noqa: E501
         """

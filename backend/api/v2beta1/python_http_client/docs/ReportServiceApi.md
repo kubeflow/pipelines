@@ -4,12 +4,12 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**report_scheduled_workflow**](ReportServiceApi.md#report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows | 
-[**report_workflow**](ReportServiceApi.md#report_workflow) | **POST** /apis/v2beta1/workflows | 
+[**report_service_report_scheduled_workflow**](ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows | 
+[**report_service_report_workflow**](ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows | 
 
 
-# **report_scheduled_workflow**
-> object report_scheduled_workflow(body)
+# **report_service_report_scheduled_workflow**
+> object report_service_report_scheduled_workflow(body)
 
 
 
@@ -50,10 +50,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     body = 'body_example' # str | ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string.
 
     try:
-        api_response = api_instance.report_scheduled_workflow(body)
+        api_response = api_instance.report_service_report_scheduled_workflow(body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ReportServiceApi->report_scheduled_workflow: %s\n" % e)
+        print("Exception when calling ReportServiceApi->report_service_report_scheduled_workflow: %s\n" % e)
 ```
 
 ### Parameters
@@ -79,11 +79,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **report_workflow**
-> object report_workflow(body)
+# **report_service_report_workflow**
+> object report_service_report_workflow(body)
 
 
 
@@ -124,10 +125,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     body = 'body_example' # str | Workflow is a workflow custom resource marshalled into a json string.
 
     try:
-        api_response = api_instance.report_workflow(body)
+        api_response = api_instance.report_service_report_workflow(body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ReportServiceApi->report_workflow: %s\n" % e)
+        print("Exception when calling ReportServiceApi->report_service_report_workflow: %s\n" % e)
 ```
 
 ### Parameters
@@ -153,6 +154,7 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

@@ -28,8 +28,8 @@ class TestVisualizationServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_create_visualization_v1(self):
-        """Test case for create_visualization_v1
+    def test_visualization_service_create_visualization_v1(self):
+        """Test case for visualization_service_create_visualization_v1
 
         """
         pass

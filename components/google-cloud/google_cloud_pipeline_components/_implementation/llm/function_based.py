@@ -145,22 +145,6 @@ resolve_private_refined_image_uri = functools.partial(
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def resolve_data_paths(
-    input_dataset: str,
-) -> NamedTuple('DataPaths', tfds_data_dir=str, tfds_name=str):
-  """Resolves dataset paths needed by downstream components."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import os
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  outputs = NamedTuple('DataPaths', tfds_data_dir=str, tfds_name=str)
-  tfds_data_dir, tfds_name = os.path.split(input_dataset)
-  return outputs(
-      tfds_data_dir=tfds_data_dir,
-      tfds_name=tfds_name,
-  )
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_reference_model_metadata(
     large_model_reference: str,
     reference_model_path: Optional[str] = None,

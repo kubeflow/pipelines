@@ -28,43 +28,43 @@ class TestRecurringRunServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_create_recurring_run(self):
-        """Test case for create_recurring_run
+    def test_recurring_run_service_create_recurring_run(self):
+        """Test case for recurring_run_service_create_recurring_run
 
         Creates a new recurring run in an experiment, given the experiment ID.  # noqa: E501
         """
         pass
 
-    def test_delete_recurring_run(self):
-        """Test case for delete_recurring_run
+    def test_recurring_run_service_delete_recurring_run(self):
+        """Test case for recurring_run_service_delete_recurring_run
 
         Deletes a recurring run.  # noqa: E501
         """
         pass
 
-    def test_disable_recurring_run(self):
-        """Test case for disable_recurring_run
+    def test_recurring_run_service_disable_recurring_run(self):
+        """Test case for recurring_run_service_disable_recurring_run
 
         Stops a recurring run and all its associated runs. The recurring run is not deleted.  # noqa: E501
         """
         pass
 
-    def test_enable_recurring_run(self):
-        """Test case for enable_recurring_run
+    def test_recurring_run_service_enable_recurring_run(self):
+        """Test case for recurring_run_service_enable_recurring_run
 
         Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.  # noqa: E501
         """
         pass
 
-    def test_get_recurring_run(self):
-        """Test case for get_recurring_run
+    def test_recurring_run_service_get_recurring_run(self):
+        """Test case for recurring_run_service_get_recurring_run
 
         Finds a specific recurring run by ID.  # noqa: E501
         """
         pass
 
-    def test_list_recurring_runs(self):
-        """Test case for list_recurring_runs
+    def test_recurring_run_service_list_recurring_runs(self):
+        """Test case for recurring_run_service_list_recurring_runs
 
         Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.  # noqa: E501
         """

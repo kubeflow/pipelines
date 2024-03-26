@@ -46,7 +46,7 @@ type V2beta1Run struct {
 	// Pipeline spec.
 	PipelineSpec interface{} `json:"pipeline_spec,omitempty"`
 
-	// ID of an existing pipeline version.
+	// This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.
 	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
 
 	// Reference to a pipeline version containing pipeline_id and pipeline_version_id.
