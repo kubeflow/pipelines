@@ -93,6 +93,8 @@ message ComponentSpec {
     DagSpec dag = 3;
     string executor_label = 4;
   }
+  // Supports platform-specific component features.
+  repeated PlatformSpec platform_specs = 5;
 }
 
 // A DAG contains multiple tasks.
@@ -437,8 +439,8 @@ message ParameterType {
     // are serialized to JSON when passed as an input or output of a pipeline
     // step.
     STRUCT = 6;
-    // Indicates that a parameter is a TaskFinalStatus type; these types can only accept inputs
-    // specified by InputParameterSpec.task_final_status
+    // Indicates that a parameter is a TaskFinalStatus type; these types can
+    // only accept inputs specified by InputParameterSpec.task_final_status
     TASK_FINAL_STATUS = 7;
   }
 }
@@ -534,7 +536,7 @@ message PipelineTaskSpec {
   message RetryPolicy {
     // Number of retries before considering a task as failed. Set to 0 or
     // unspecified to disallow retry."
-    int32 max_retry_count  = 1;
+    int32 max_retry_count = 1;
 
     // The time interval between retries. Defaults to zero (an immediate retry).
     google.protobuf.Duration backoff_duration = 2;
@@ -618,7 +620,7 @@ message PipelineInfo {
   // Required field. The name of the pipeline.
   // The name will be used to create or find pipeline context in MLMD.
   string name = 1;
-  
+
   // Optional fields. The readable display name for the pipeline template.
   // Should not exceed 1024 characters.
   string display_name = 2;
@@ -744,7 +746,7 @@ message PipelineDeploymentConfig {
         int64 count = 2;
       }
       AcceleratorConfig accelerator = 3;
-      
+
       reserved 4;
     }
     ResourceSpec resources = 5;
@@ -1036,17 +1038,21 @@ message PipelineStateEnum {
   }
 }
 
-// Spec for all platforms; second document in IR
+// Platform-specific configurations.
 message PlatformSpec {
   // Platform key to full platform config
-  map<string, SinglePlatformSpec> platforms = 1;
+  map<string, SinglePlatformSpec> platforms = 1 [deprecated = true];
+
+  string platform = 2;
+  // Arbitrary configuration, which will be defined by the platform
+  // protos/libraries.
+  google.protobuf.Struct config = 3;
 }
 
 message SinglePlatformSpec {
   // Mirrors PipelineSpec.deployment_spec structure
   PlatformDeploymentConfig deployment_spec = 1;
 }
-
 
 message PlatformDeploymentConfig {
   // Map of executor label to executor-level config
