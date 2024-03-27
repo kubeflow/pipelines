@@ -22,19 +22,27 @@ from kfp import dsl
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_machine_spec(
-    location: str,
+    accelerator_type: str = 'GPU',
     use_test_spec: bool = False,
 ) -> NamedTuple(
-    'MachineSpec', machine_type=str, accelerator_type=str, accelerator_count=int
+    'MachineSpec',
+    machine_type=str,
+    tuning_location=str,
+    accelerator_type=str,
+    accelerator_count=int,
 ):
-  """Returns machine spec to use for a given location.
+  """Returns machine spec to use for a given accelerator_type.
 
   Args:
-    location: Where the machine will run.
-    use_test_spec: Whether to use a lower resource machine for testing.
+    accelerator_type: One of 'TPU' or 'GPU'. If 'TPU' is specified, tuning
+      components run in europe-west4. Otherwise tuning components run in
+      us-central1 on GPUs. Default is 'GPU'.
+    use_test_spec: Whether to use a lower resource machine for testing. If True,
+      a machine with the specified `accelerator_type` is provisioned.
 
   Returns:
     Machine spec.
+    tuning_location: Where the machine will run.
 
   Raises:
     ValueError: If accelerators are requested in an unsupported location.
@@ -42,40 +50,57 @@ def resolve_machine_spec(
   outputs = NamedTuple(
       'MachineSpec',
       machine_type=str,
-      accelerator_type=str,
       accelerator_count=int,
+      tuning_location=str,
+      accelerator_type=str,
   )
-  tpu_regions = {'europe-west4'}
-  gpu_regions = {'us-central1'}
   if use_test_spec:
-    if location in tpu_regions:
+    if accelerator_type == 'TPU':
       return outputs(
           machine_type='cloud-tpu',
           accelerator_type='TPU_V3',
           accelerator_count=32,
+          tuning_location='europe-west4',
       )
-    else:
+    elif accelerator_type == 'GPU':
       return outputs(
           machine_type='a2-highgpu-1g',
           accelerator_type='NVIDIA_TESLA_A100',
           accelerator_count=1,
+          tuning_location='us-central1',
       )
-  elif location in tpu_regions:
+    elif accelerator_type == 'CPU':
+      return outputs(
+          machine_type='e2-standard-16',
+          accelerator_type='ACCELERATOR_TYPE_UNSPECIFIED',
+          accelerator_count=0,
+          tuning_location='us-central1',
+      )
+    else:
+      raise ValueError(
+          f'Unsupported test accelerator_type {accelerator_type}. Must be one '
+          'of TPU, GPU or CPU.'
+      )
+
+  if accelerator_type == 'TPU':
     return outputs(
         machine_type='cloud-tpu',
         accelerator_type='TPU_V3',
         accelerator_count=64,
+        tuning_location='europe-west4',
     )
-  elif location in gpu_regions:
+  elif accelerator_type == 'GPU':
     return outputs(
         machine_type='a2-ultragpu-8g',
         accelerator_type='NVIDIA_A100_80GB',
         accelerator_count=8,
+        tuning_location='us-central1',
     )
-  raise ValueError(
-      f'Unsupported accelerator location {location}. Must be one of'
-      f' {tpu_regions | gpu_regions}.'
-  )
+  else:
+    raise ValueError(
+        f'Unsupported accelerator_type {accelerator_type}. Must be one of'
+        'TPU or GPU.'
+    )
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
@@ -104,7 +129,7 @@ def resolve_refined_image_uri(
   Raises:
     ValueError: if an unsupported accelerator type is provided.
   """
-  if not accelerator_type:
+  if not accelerator_type or accelerator_type == 'ACCELERATOR_TYPE_UNSPECIFIED':
     accelerator_postfix = 'cpu'
   elif 'TPU' in accelerator_type:
     accelerator_postfix = 'tpu'
@@ -132,22 +157,6 @@ resolve_private_refined_image_uri = functools.partial(
     artifact_registry=env.PRIVATE_ARTIFACT_REGISTRY,
     tag=env.get_private_image_tag(),
 )
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def resolve_data_paths(
-    input_dataset: str,
-) -> NamedTuple('DataPaths', tfds_data_dir=str, tfds_name=str):
-  """Resolves dataset paths needed by downstream components."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import os
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  outputs = NamedTuple('DataPaths', tfds_data_dir=str, tfds_name=str)
-  tfds_data_dir, tfds_name = os.path.split(input_dataset)
-  return outputs(
-      tfds_data_dir=tfds_data_dir,
-      tfds_name=tfds_name,
-  )
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
@@ -454,14 +463,6 @@ def value_exists(value: Optional[str] = None) -> bool:
   if not value:
     return False
   return True
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def resolve_candidate_columns(
-    candidate_columns: Optional[List[str]] = None,
-) -> List[str]:
-  """Returns candidate columns provided by the user or the default: ['candidate_0', 'candidate_1']."""
-  return candidate_columns or ['candidate_0', 'candidate_1']
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)

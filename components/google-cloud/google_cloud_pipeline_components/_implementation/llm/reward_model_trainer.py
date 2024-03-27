@@ -42,6 +42,7 @@ def reward_model_trainer(
     lora_dim: int = 4,
     num_microbatches: int = 0,
     encryption_spec_key_name: str = '',
+    tensorboard_resource_id: str = '',
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Trains a reward model.
 
@@ -76,6 +77,9 @@ def reward_model_trainer(
       then all resources created by the CustomJob will be encrypted with the
       provided encryption key. Note that this is not supported for TPU at the
       moment.
+    tensorboard_resource_id: Optional tensorboard resource id. Format:
+      `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`.
+      If provided, tensorboard metrics will be uploaded to this location.
 
   Returns:
     output_adapter_path: Trained reward LoRA adapter.
@@ -110,6 +114,8 @@ def reward_model_trainer(
               f'--num_microbatches={num_microbatches}',
           ],
           encryption_spec_key_name=encryption_spec_key_name,
+          base_output_directory=tensorboard_metrics.uri,
+          tensorboard=tensorboard_resource_id,
       ),
       gcp_resources=gcp_resources,
   )

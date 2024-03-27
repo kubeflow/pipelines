@@ -12,21 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.deprecated import dsl, components, compiler
+from kfp import dsl, compiler
 from typing import NamedTuple
 
-@components.create_component_from_func
+@dsl.component
 def training_op(n: int) -> int:
     # quickly allocate a lot of memory to verify memory is enough
     a = [i for i in range(n)]
     return len(a)
 
-@components.create_component_from_func
-def generate_resource_request() -> NamedTuple('output', [('memory', str), ('cpu', str)]):
+@dsl.component
+def generate_resource_request() -> NamedTuple('output', memory=str, cpu=str):
     '''Returns the memory and cpu request'''
-    from collections import namedtuple
-
-    resource_output = namedtuple('output', ['memory', 'cpu'])
+    resource_output = NamedTuple('output', memory=str, cpu=str)
     return resource_output('500Mi', '200m')
 
 @dsl.pipeline(
@@ -35,13 +33,17 @@ def generate_resource_request() -> NamedTuple('output', [('memory', str), ('cpu'
 )
 def resource_request_pipeline(n: int = 11234567):
     resource_task = generate_resource_request()
-    traning_task = training_op(n)\
-        .set_memory_limit(resource_task.outputs['memory'])\
-        .set_cpu_limit(resource_task.outputs['cpu'])\
-        .set_cpu_request('200m')
 
-    # Disable cache for KFP v1 mode.
-    traning_task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
+    # TODO: support PipelineParameterChannel for resource input
+    # TypeError: expected string or bytes-like object, got 'PipelineParameterChannel'
+    # traning_task = training_op(n=n)\
+    #     .set_memory_limit(resource_task.outputs['memory'])\
+    #     .set_cpu_limit(resource_task.outputs['cpu'])\
+    #     .set_cpu_request('200m')
+    traning_task = training_op(n=n)\
+        .set_memory_limit('500Mi')\
+        .set_cpu_limit('200m')\
+        .set_cpu_request('200m')
 
 if __name__ == '__main__':
     compiler.Compiler().compile(resource_request_pipeline, __file__ + '.yaml')

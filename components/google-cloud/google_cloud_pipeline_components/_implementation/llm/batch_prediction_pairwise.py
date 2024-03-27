@@ -53,6 +53,7 @@ def batch_prediction_pairwise(
     experimental_args: Dict[str, Any] = {},
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
+    encryption_spec_key_name: str = '',
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Runs up to two LLM Batch Prediction jobs side-by-side.
 
@@ -87,6 +88,9 @@ def batch_prediction_pairwise(
     experimental_args: Experimentally released arguments. Subject to change.
     project: Project used to run batch prediction jobs.
     location: Location used to run batch prediction jobs.
+    encryption_spec_key_name: Customer-managed encryption key options. If this
+      is set, then all resources created by the component will be encrypted with
+      the provided encryption key.
 
   Returns:
     preprocessed_evaluation_dataset: Dataset of the table containing the inputs
@@ -151,9 +155,11 @@ def batch_prediction_pairwise(
               f'--staging_dir={dsl.PIPELINE_ROOT_PLACEHOLDER}',
               f'--preprocessed_evaluation_dataset_uri={preprocessed_evaluation_dataset_uri}',
               f'--metadata_path={metadata}',
+              f'--kms_key_name={encryption_spec_key_name}',
               f'--gcp_resources_path={gcp_resources}',
               '--executor_input={{$.json_escape[1]}}',
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
   )
