@@ -53,7 +53,7 @@ def pipeline(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     accelerator_type: str = 'GPU',
     location: str = _placeholders.LOCATION_PLACEHOLDER,
-    tensorboard_resource_id: Optional[str] = None,
+    tensorboard_resource_id: str = '',
     encryption_spec_key_name: str = '',
 ) -> PipelineOutput:
   # fmt: off
