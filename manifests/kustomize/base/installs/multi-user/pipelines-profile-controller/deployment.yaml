@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: profile-controller
-        image: python:3.7
+        image: python:3.8.13-slim-bullseye
         command: ["python", "/hooks/sync.py"]
         envFrom:
         - configMapRef:
