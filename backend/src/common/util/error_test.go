@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -25,4 +26,8 @@ import (
 func TestIsNotFound(t *testing.T) {
 	assert.Equal(t, true, IsNotFound(errors.NewNotFound(schema.GroupResource{}, "NAME")))
 	assert.Equal(t, false, IsNotFound(errors.NewAlreadyExists(schema.GroupResource{}, "NAME")))
+}
+
+func TestUserErrorWithNil(t *testing.T) {
+	assert.Nil(t, newUserError(nil, "dummy error message", codes.Unknown))
 }

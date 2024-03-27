@@ -91,6 +91,9 @@ type UserError struct {
 func newUserError(internalError error, externalMessage string,
 	externalStatusCode codes.Code,
 ) *UserError {
+	if internalError == nil {
+		return nil
+	}
 	return &UserError{
 		internalError:      internalError,
 		externalMessage:    externalMessage,
