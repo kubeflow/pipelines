@@ -14,6 +14,10 @@
       "url": "https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE"
     }
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
@@ -23,7 +27,7 @@
   "paths": {
     "/apis/v2beta1/auth": {
       "get": {
-        "operationId": "AuthService_Authorize",
+        "operationId": "Authorize",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -32,9 +36,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -78,18 +82,12 @@
     "/apis/v2beta1/experiments": {
       "get": {
         "summary": "Finds all experiments. Supports pagination, and sorting on certain fields.",
-        "operationId": "ExperimentService_ListExperiments",
+        "operationId": "ListExperiments",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v2beta1ListExperimentsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -137,18 +135,12 @@
       },
       "post": {
         "summary": "Creates a new experiment.",
-        "operationId": "ExperimentService_CreateExperiment",
+        "operationId": "CreateExperiment",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v2beta1Experiment"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -171,18 +163,12 @@
     "/apis/v2beta1/experiments/{experiment_id}": {
       "get": {
         "summary": "Finds a specific experiment by ID.",
-        "operationId": "ExperimentService_GetExperiment",
+        "operationId": "GetExperiment",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v2beta1Experiment"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -201,18 +187,12 @@
       },
       "delete": {
         "summary": "Deletes an experiment without deleting the experiment's runs and recurring \nruns. To avoid unexpected behaviors, delete an experiment's runs and recurring \nruns before deleting the experiment.",
-        "operationId": "ExperimentService_DeleteExperiment",
+        "operationId": "DeleteExperiment",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -233,18 +213,12 @@
     "/apis/v2beta1/experiments/{experiment_id}:archive": {
       "post": {
         "summary": "Archives an experiment and the experiment's runs and recurring runs.",
-        "operationId": "ExperimentService_ArchiveExperiment",
+        "operationId": "ArchiveExperiment",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -265,18 +239,12 @@
     "/apis/v2beta1/experiments/{experiment_id}:unarchive": {
       "post": {
         "summary": "Restores an archived experiment. The experiment's archived runs and recurring\nruns will stay archived.",
-        "operationId": "ExperimentService_UnarchiveExperiment",
+        "operationId": "UnarchiveExperiment",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -297,7 +265,7 @@
     "/apis/v2beta1/healthz": {
       "get": {
         "summary": "Get healthz data.",
-        "operationId": "HealthzService_GetHealthz",
+        "operationId": "GetHealthz",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -306,9 +274,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -320,7 +288,7 @@
     "/apis/v2beta1/pipelines": {
       "get": {
         "summary": "Finds all pipelines within a namespace.",
-        "operationId": "PipelineService_ListPipelines",
+        "operationId": "ListPipelines",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -329,9 +297,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -379,7 +347,7 @@
       },
       "post": {
         "summary": "Creates a pipeline.",
-        "operationId": "PipelineService_CreatePipeline",
+        "operationId": "CreatePipeline",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -388,9 +356,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -413,7 +381,7 @@
     "/apis/v2beta1/pipelines/create": {
       "post": {
         "summary": "Creates a new pipeline and a new pipeline version in a single transaction.",
-        "operationId": "PipelineService_CreatePipelineAndVersion",
+        "operationId": "CreatePipelineAndVersion",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -422,9 +390,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -446,7 +414,7 @@
     "/apis/v2beta1/pipelines/names/{name}": {
       "get": {
         "summary": "Finds a specific pipeline by name and namespace.",
-        "operationId": "PipelineService_GetPipelineByName",
+        "operationId": "GetPipelineByName",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -455,9 +423,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -485,7 +453,7 @@
     "/apis/v2beta1/pipelines/{pipeline_id}": {
       "get": {
         "summary": "Finds a specific pipeline by ID.",
-        "operationId": "PipelineService_GetPipeline",
+        "operationId": "GetPipeline",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -494,9 +462,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -515,7 +483,7 @@
       },
       "delete": {
         "summary": "Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.",
-        "operationId": "PipelineService_DeletePipeline",
+        "operationId": "DeletePipeline",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -524,9 +492,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -547,7 +515,7 @@
     "/apis/v2beta1/pipelines/{pipeline_id}/versions": {
       "get": {
         "summary": "Lists all pipeline versions of a given pipeline ID.",
-        "operationId": "PipelineService_ListPipelineVersions",
+        "operationId": "ListPipelineVersions",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -556,9 +524,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -606,7 +574,7 @@
       },
       "post": {
         "summary": "Adds a pipeline version to the specified pipeline ID.",
-        "operationId": "PipelineService_CreatePipelineVersion",
+        "operationId": "CreatePipelineVersion",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -615,9 +583,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -647,7 +615,7 @@
     "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}": {
       "get": {
         "summary": "Gets a pipeline version by pipeline version ID and pipeline ID.",
-        "operationId": "PipelineService_GetPipelineVersion",
+        "operationId": "GetPipelineVersion",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -656,9 +624,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -684,7 +652,7 @@
       },
       "delete": {
         "summary": "Deletes a specific pipeline version by pipeline version ID and pipeline ID.",
-        "operationId": "PipelineService_DeletePipelineVersion",
+        "operationId": "DeletePipelineVersion",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -693,9 +661,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -833,18 +801,12 @@
     "/apis/v2beta1/recurringruns": {
       "get": {
         "summary": "Finds all recurring runs given experiment and namespace. \nIf experiment ID is not specified, find all recurring runs across all experiments.",
-        "operationId": "RecurringRunService_ListRecurringRuns",
+        "operationId": "ListRecurringRuns",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v2beta1ListRecurringRunsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -899,18 +861,12 @@
       },
       "post": {
         "summary": "Creates a new recurring run in an experiment, given the experiment ID.",
-        "operationId": "RecurringRunService_CreateRecurringRun",
+        "operationId": "CreateRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v2beta1RecurringRun"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -933,18 +889,12 @@
     "/apis/v2beta1/recurringruns/{recurring_run_id}": {
       "get": {
         "summary": "Finds a specific recurring run by ID.",
-        "operationId": "RecurringRunService_GetRecurringRun",
+        "operationId": "GetRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v2beta1RecurringRun"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -963,18 +913,12 @@
       },
       "delete": {
         "summary": "Deletes a recurring run.",
-        "operationId": "RecurringRunService_DeleteRecurringRun",
+        "operationId": "DeleteRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -995,18 +939,12 @@
     "/apis/v2beta1/recurringruns/{recurring_run_id}:disable": {
       "post": {
         "summary": "Stops a recurring run and all its associated runs. The recurring run is not deleted.",
-        "operationId": "RecurringRunService_DisableRecurringRun",
+        "operationId": "DisableRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -1027,18 +965,12 @@
     "/apis/v2beta1/recurringruns/{recurring_run_id}:enable": {
       "post": {
         "summary": "Restarts a recurring run that was previously stopped. All runs associated with the \nrecurring run will continue.",
-        "operationId": "RecurringRunService_EnableRecurringRun",
+        "operationId": "EnableRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -1058,18 +990,12 @@
     },
     "/apis/v2beta1/scheduledworkflows": {
       "post": {
-        "operationId": "ReportService_ReportScheduledWorkflow",
+        "operationId": "ReportScheduledWorkflow",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -1091,18 +1017,12 @@
     },
     "/apis/v2beta1/workflows": {
       "post": {
-        "operationId": "ReportService_ReportWorkflow",
+        "operationId": "ReportWorkflow",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -1125,7 +1045,7 @@
     "/apis/v2beta1/runs": {
       "get": {
         "summary": "Finds all runs in an experiment given by experiment ID. \nIf experiment id is not specified, finds all runs across all experiments.",
-        "operationId": "RunService_ListRuns",
+        "operationId": "ListRuns",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1134,9 +1054,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1191,7 +1111,7 @@
       },
       "post": {
         "summary": "Creates a new run in an experiment specified by experiment ID. \nIf experiment ID is not specified, the run is created in the default experiment.",
-        "operationId": "RunService_CreateRun",
+        "operationId": "CreateRun",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1200,9 +1120,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1215,13 +1135,6 @@
             "schema": {
               "$ref": "#/definitions/v2beta1Run"
             }
-          },
-          {
-            "name": "experiment_id",
-            "description": "The ID of the parent experiment.",
-            "in": "query",
-            "required": false,
-            "type": "string"
           }
         ],
         "tags": [
@@ -1232,7 +1145,7 @@
     "/apis/v2beta1/runs/{run_id}": {
       "get": {
         "summary": "Finds a specific run by ID.",
-        "operationId": "RunService_GetRun",
+        "operationId": "GetRun",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1241,9 +1154,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1269,7 +1182,7 @@
       },
       "delete": {
         "summary": "Deletes a run in an experiment given by run ID and experiment ID.",
-        "operationId": "RunService_DeleteRun",
+        "operationId": "DeleteRun",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1278,9 +1191,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1308,7 +1221,7 @@
     "/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
         "summary": "Finds artifact data in a run.",
-        "operationId": "RunService_ReadArtifact",
+        "operationId": "ReadArtifact",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1317,9 +1230,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1361,7 +1274,7 @@
     "/apis/v2beta1/runs/{run_id}:archive": {
       "post": {
         "summary": "Archives a run in an experiment given by run ID and experiment ID.",
-        "operationId": "RunService_ArchiveRun",
+        "operationId": "ArchiveRun",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1370,9 +1283,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1393,7 +1306,7 @@
     "/apis/v2beta1/runs/{run_id}:retry": {
       "post": {
         "summary": "Re-initiates a failed or terminated run.",
-        "operationId": "RunService_RetryRun",
+        "operationId": "RetryRun",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1402,9 +1315,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1425,7 +1338,7 @@
     "/apis/v2beta1/runs/{run_id}:terminate": {
       "post": {
         "summary": "Terminates an active run.",
-        "operationId": "RunService_TerminateRun",
+        "operationId": "TerminateRun",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1434,9 +1347,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1457,7 +1370,7 @@
     "/apis/v2beta1/runs/{run_id}:unarchive": {
       "post": {
         "summary": "Restores an archived run in an experiment given by run ID and experiment ID.",
-        "operationId": "RunService_UnarchiveRun",
+        "operationId": "UnarchiveRun",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1466,9 +1379,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1488,7 +1401,7 @@
     },
     "/apis/v2beta1/visualizations/{namespace}": {
       "post": {
-        "operationId": "VisualizationService_CreateVisualizationV1",
+        "operationId": "CreateVisualizationV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1497,9 +1410,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -1546,6 +1459,28 @@
       "default": "UNASSIGNED_VERB",
       "description": "Type of verbs that act on the resources."
     },
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code]."
+        },
+        "message": {
+          "type": "string",
+          "description": "A developer-facing error message, which should be in English. Any\nuser-facing error message should be localized and sent in the\n[google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client."
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "A list of messages that carry the error details.  There is a common set of\nmessage types for APIs to use."
+        }
+      },
+      "description": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). Each `Status` message contains\nthree pieces of data: error code, error message, and error details.\n\nYou can find out more about this error model and how to work with it in the\n[API Design Guide](https://cloud.google.com/apis/design/errors)."
+    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -1560,27 +1495,6 @@
         }
       },
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(&foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := &pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := &pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": <string>,\n      \"lastName\": <string>\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
-    },
-    "runtimeError": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string"
-        },
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "message": {
-          "type": "string"
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufAny"
-          }
-        }
-      }
     },
     "v2beta1Experiment": {
       "type": "object",
@@ -1759,32 +1673,11 @@
       "properties": {
         "multi_user": {
           "type": "boolean",
+          "format": "boolean",
           "description": "Returns if KFP in multi-user mode",
           "title": "TODO(gkcalat): redesign this service to return status\nand move server configuration into a separate service\nTODO(gkcalat): rename or deprecate v1beta1 HealthzService"
         }
       }
-    },
-    "googlerpcStatus": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32",
-          "description": "The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code]."
-        },
-        "message": {
-          "type": "string",
-          "description": "A developer-facing error message, which should be in English. Any\nuser-facing error message should be localized and sent in the\n[google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client."
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufAny"
-          },
-          "description": "A list of messages that carry the error details.  There is a common set of\nmessage types for APIs to use."
-        }
-      },
-      "description": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). Each `Status` message contains\nthree pieces of data: error code, error message, and error details.\n\nYou can find out more about this error model and how to work with it in the\n[API Design Guide](https://cloud.google.com/apis/design/errors)."
     },
     "protobufNullValue": {
       "type": "string",
@@ -2082,6 +1975,7 @@
         },
         "no_catchup": {
           "type": "boolean",
+          "format": "boolean",
           "description": "Optional input field. Whether the recurring run should catch up if behind schedule.\nIf true, the recurring run will only schedule the latest interval if behind schedule.\nIf false, the recurring run will catch up on each past interval."
         },
         "namespace": {
@@ -2506,9 +2400,5 @@
     {
       "Bearer": []
     }
-  ],
-  "schemes": [
-    "http",
-    "https"
   ]
 }

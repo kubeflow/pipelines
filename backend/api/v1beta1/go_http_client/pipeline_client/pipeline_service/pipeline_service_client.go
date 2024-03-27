@@ -25,23 +25,23 @@ type Client struct {
 }
 
 /*
-PipelineServiceCreatePipelineV1 creates a pipeline
+CreatePipelineV1 creates a pipeline
 */
-func (a *Client) PipelineServiceCreatePipelineV1(params *PipelineServiceCreatePipelineV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceCreatePipelineV1OK, error) {
+func (a *Client) CreatePipelineV1(params *CreatePipelineV1Params, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceCreatePipelineV1Params()
+		params = NewCreatePipelineV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_CreatePipelineV1",
+		ID:                 "CreatePipelineV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/pipelines",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceCreatePipelineV1Reader{formats: a.formats},
+		Reader:             &CreatePipelineV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -49,28 +49,28 @@ func (a *Client) PipelineServiceCreatePipelineV1(params *PipelineServiceCreatePi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceCreatePipelineV1OK), nil
+	return result.(*CreatePipelineV1OK), nil
 
 }
 
 /*
-PipelineServiceCreatePipelineVersionV1 adds a pipeline version to the specified pipeline
+CreatePipelineVersionV1 adds a pipeline version to the specified pipeline
 */
-func (a *Client) PipelineServiceCreatePipelineVersionV1(params *PipelineServiceCreatePipelineVersionV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceCreatePipelineVersionV1OK, error) {
+func (a *Client) CreatePipelineVersionV1(params *CreatePipelineVersionV1Params, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineVersionV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceCreatePipelineVersionV1Params()
+		params = NewCreatePipelineVersionV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_CreatePipelineVersionV1",
+		ID:                 "CreatePipelineVersionV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/pipeline_versions",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceCreatePipelineVersionV1Reader{formats: a.formats},
+		Reader:             &CreatePipelineVersionV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -78,28 +78,28 @@ func (a *Client) PipelineServiceCreatePipelineVersionV1(params *PipelineServiceC
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceCreatePipelineVersionV1OK), nil
+	return result.(*CreatePipelineVersionV1OK), nil
 
 }
 
 /*
-PipelineServiceDeletePipelineV1 deletes a pipeline and its pipeline versions
+DeletePipelineV1 deletes a pipeline and its pipeline versions
 */
-func (a *Client) PipelineServiceDeletePipelineV1(params *PipelineServiceDeletePipelineV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceDeletePipelineV1OK, error) {
+func (a *Client) DeletePipelineV1(params *DeletePipelineV1Params, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceDeletePipelineV1Params()
+		params = NewDeletePipelineV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_DeletePipelineV1",
+		ID:                 "DeletePipelineV1",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v1beta1/pipelines/{id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceDeletePipelineV1Reader{formats: a.formats},
+		Reader:             &DeletePipelineV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -107,28 +107,28 @@ func (a *Client) PipelineServiceDeletePipelineV1(params *PipelineServiceDeletePi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceDeletePipelineV1OK), nil
+	return result.(*DeletePipelineV1OK), nil
 
 }
 
 /*
-PipelineServiceDeletePipelineVersionV1 deletes a pipeline version by pipeline version ID if the deleted pipeline version is the default pipeline version the pipeline s default version changes to the pipeline s most recent pipeline version if there are no remaining pipeline versions the pipeline will have no default version examines the run service api ipynb notebook to learn more about creating a run using a pipeline version https github com kubeflow pipelines blob master tools benchmarks run service api ipynb
+DeletePipelineVersionV1 deletes a pipeline version by pipeline version ID if the deleted pipeline version is the default pipeline version the pipeline s default version changes to the pipeline s most recent pipeline version if there are no remaining pipeline versions the pipeline will have no default version examines the run service api ipynb notebook to learn more about creating a run using a pipeline version https github com kubeflow pipelines blob master tools benchmarks run service api ipynb
 */
-func (a *Client) PipelineServiceDeletePipelineVersionV1(params *PipelineServiceDeletePipelineVersionV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceDeletePipelineVersionV1OK, error) {
+func (a *Client) DeletePipelineVersionV1(params *DeletePipelineVersionV1Params, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineVersionV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceDeletePipelineVersionV1Params()
+		params = NewDeletePipelineVersionV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_DeletePipelineVersionV1",
+		ID:                 "DeletePipelineVersionV1",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v1beta1/pipeline_versions/{version_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceDeletePipelineVersionV1Reader{formats: a.formats},
+		Reader:             &DeletePipelineVersionV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -136,28 +136,28 @@ func (a *Client) PipelineServiceDeletePipelineVersionV1(params *PipelineServiceD
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceDeletePipelineVersionV1OK), nil
+	return result.(*DeletePipelineVersionV1OK), nil
 
 }
 
 /*
-PipelineServiceGetPipelineByNameV1 finds a pipeline by name and namespace
+GetPipelineByNameV1 finds a pipeline by name and namespace
 */
-func (a *Client) PipelineServiceGetPipelineByNameV1(params *PipelineServiceGetPipelineByNameV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceGetPipelineByNameV1OK, error) {
+func (a *Client) GetPipelineByNameV1(params *GetPipelineByNameV1Params, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineByNameV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceGetPipelineByNameV1Params()
+		params = NewGetPipelineByNameV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_GetPipelineByNameV1",
+		ID:                 "GetPipelineByNameV1",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceGetPipelineByNameV1Reader{formats: a.formats},
+		Reader:             &GetPipelineByNameV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -165,28 +165,28 @@ func (a *Client) PipelineServiceGetPipelineByNameV1(params *PipelineServiceGetPi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceGetPipelineByNameV1OK), nil
+	return result.(*GetPipelineByNameV1OK), nil
 
 }
 
 /*
-PipelineServiceGetPipelineV1 finds a specific pipeline by ID
+GetPipelineV1 finds a specific pipeline by ID
 */
-func (a *Client) PipelineServiceGetPipelineV1(params *PipelineServiceGetPipelineV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceGetPipelineV1OK, error) {
+func (a *Client) GetPipelineV1(params *GetPipelineV1Params, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceGetPipelineV1Params()
+		params = NewGetPipelineV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_GetPipelineV1",
+		ID:                 "GetPipelineV1",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/pipelines/{id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceGetPipelineV1Reader{formats: a.formats},
+		Reader:             &GetPipelineV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -194,28 +194,28 @@ func (a *Client) PipelineServiceGetPipelineV1(params *PipelineServiceGetPipeline
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceGetPipelineV1OK), nil
+	return result.(*GetPipelineV1OK), nil
 
 }
 
 /*
-PipelineServiceGetPipelineVersionTemplate returns a y a m l template that contains the specified pipeline version s description parameters and metadata
+GetPipelineVersionTemplate returns a y a m l template that contains the specified pipeline version s description parameters and metadata
 */
-func (a *Client) PipelineServiceGetPipelineVersionTemplate(params *PipelineServiceGetPipelineVersionTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceGetPipelineVersionTemplateOK, error) {
+func (a *Client) GetPipelineVersionTemplate(params *GetPipelineVersionTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionTemplateOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceGetPipelineVersionTemplateParams()
+		params = NewGetPipelineVersionTemplateParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_GetPipelineVersionTemplate",
+		ID:                 "GetPipelineVersionTemplate",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/pipeline_versions/{version_id}/templates",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceGetPipelineVersionTemplateReader{formats: a.formats},
+		Reader:             &GetPipelineVersionTemplateReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -223,28 +223,28 @@ func (a *Client) PipelineServiceGetPipelineVersionTemplate(params *PipelineServi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceGetPipelineVersionTemplateOK), nil
+	return result.(*GetPipelineVersionTemplateOK), nil
 
 }
 
 /*
-PipelineServiceGetPipelineVersionV1 gets a pipeline version by pipeline version ID
+GetPipelineVersionV1 gets a pipeline version by pipeline version ID
 */
-func (a *Client) PipelineServiceGetPipelineVersionV1(params *PipelineServiceGetPipelineVersionV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceGetPipelineVersionV1OK, error) {
+func (a *Client) GetPipelineVersionV1(params *GetPipelineVersionV1Params, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceGetPipelineVersionV1Params()
+		params = NewGetPipelineVersionV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_GetPipelineVersionV1",
+		ID:                 "GetPipelineVersionV1",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/pipeline_versions/{version_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceGetPipelineVersionV1Reader{formats: a.formats},
+		Reader:             &GetPipelineVersionV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -252,28 +252,28 @@ func (a *Client) PipelineServiceGetPipelineVersionV1(params *PipelineServiceGetP
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceGetPipelineVersionV1OK), nil
+	return result.(*GetPipelineVersionV1OK), nil
 
 }
 
 /*
-PipelineServiceGetTemplate returns a single y a m l template that contains the description parameters and metadata associated with the pipeline provided
+GetTemplate returns a single y a m l template that contains the description parameters and metadata associated with the pipeline provided
 */
-func (a *Client) PipelineServiceGetTemplate(params *PipelineServiceGetTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceGetTemplateOK, error) {
+func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetTemplateOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceGetTemplateParams()
+		params = NewGetTemplateParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_GetTemplate",
+		ID:                 "GetTemplate",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/pipelines/{id}/templates",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceGetTemplateReader{formats: a.formats},
+		Reader:             &GetTemplateReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -281,28 +281,28 @@ func (a *Client) PipelineServiceGetTemplate(params *PipelineServiceGetTemplatePa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceGetTemplateOK), nil
+	return result.(*GetTemplateOK), nil
 
 }
 
 /*
-PipelineServiceListPipelineVersionsV1 lists all pipeline versions of a given pipeline
+ListPipelineVersionsV1 lists all pipeline versions of a given pipeline
 */
-func (a *Client) PipelineServiceListPipelineVersionsV1(params *PipelineServiceListPipelineVersionsV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceListPipelineVersionsV1OK, error) {
+func (a *Client) ListPipelineVersionsV1(params *ListPipelineVersionsV1Params, authInfo runtime.ClientAuthInfoWriter) (*ListPipelineVersionsV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceListPipelineVersionsV1Params()
+		params = NewListPipelineVersionsV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_ListPipelineVersionsV1",
+		ID:                 "ListPipelineVersionsV1",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/pipeline_versions",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceListPipelineVersionsV1Reader{formats: a.formats},
+		Reader:             &ListPipelineVersionsV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -310,28 +310,28 @@ func (a *Client) PipelineServiceListPipelineVersionsV1(params *PipelineServiceLi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceListPipelineVersionsV1OK), nil
+	return result.(*ListPipelineVersionsV1OK), nil
 
 }
 
 /*
-PipelineServiceListPipelinesV1 finds all pipelines
+ListPipelinesV1 finds all pipelines
 */
-func (a *Client) PipelineServiceListPipelinesV1(params *PipelineServiceListPipelinesV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceListPipelinesV1OK, error) {
+func (a *Client) ListPipelinesV1(params *ListPipelinesV1Params, authInfo runtime.ClientAuthInfoWriter) (*ListPipelinesV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceListPipelinesV1Params()
+		params = NewListPipelinesV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_ListPipelinesV1",
+		ID:                 "ListPipelinesV1",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/pipelines",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceListPipelinesV1Reader{formats: a.formats},
+		Reader:             &ListPipelinesV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -339,28 +339,28 @@ func (a *Client) PipelineServiceListPipelinesV1(params *PipelineServiceListPipel
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceListPipelinesV1OK), nil
+	return result.(*ListPipelinesV1OK), nil
 
 }
 
 /*
-PipelineServiceUpdatePipelineDefaultVersionV1 updates the default pipeline version of a specific pipeline
+UpdatePipelineDefaultVersionV1 updates the default pipeline version of a specific pipeline
 */
-func (a *Client) PipelineServiceUpdatePipelineDefaultVersionV1(params *PipelineServiceUpdatePipelineDefaultVersionV1Params, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceUpdatePipelineDefaultVersionV1OK, error) {
+func (a *Client) UpdatePipelineDefaultVersionV1(params *UpdatePipelineDefaultVersionV1Params, authInfo runtime.ClientAuthInfoWriter) (*UpdatePipelineDefaultVersionV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewPipelineServiceUpdatePipelineDefaultVersionV1Params()
+		params = NewUpdatePipelineDefaultVersionV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PipelineService_UpdatePipelineDefaultVersionV1",
+		ID:                 "UpdatePipelineDefaultVersionV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &PipelineServiceUpdatePipelineDefaultVersionV1Reader{formats: a.formats},
+		Reader:             &UpdatePipelineDefaultVersionV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -368,7 +368,7 @@ func (a *Client) PipelineServiceUpdatePipelineDefaultVersionV1(params *PipelineS
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceUpdatePipelineDefaultVersionV1OK), nil
+	return result.(*UpdatePipelineDefaultVersionV1OK), nil
 
 }
 

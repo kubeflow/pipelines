@@ -4,6 +4,10 @@
     "title": "backend/api/v1beta1/run.proto",
     "version": "version not set"
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
@@ -14,7 +18,7 @@
     "/apis/v1beta1/runs": {
       "get": {
         "summary": "Finds all runs.",
-        "operationId": "RunService_ListRunsV1",
+        "operationId": "ListRunsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -23,9 +27,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -89,7 +93,7 @@
       },
       "post": {
         "summary": "Creates a new run.",
-        "operationId": "RunService_CreateRunV1",
+        "operationId": "CreateRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -98,9 +102,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -122,7 +126,7 @@
     "/apis/v1beta1/runs/{id}": {
       "delete": {
         "summary": "Deletes a run.",
-        "operationId": "RunService_DeleteRunV1",
+        "operationId": "DeleteRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -131,9 +135,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -154,7 +158,7 @@
     "/apis/v1beta1/runs/{id}:archive": {
       "post": {
         "summary": "Archives a run.",
-        "operationId": "RunService_ArchiveRunV1",
+        "operationId": "ArchiveRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -163,9 +167,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -186,7 +190,7 @@
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
         "summary": "Restores an archived run.",
-        "operationId": "RunService_UnarchiveRunV1",
+        "operationId": "UnarchiveRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -195,9 +199,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -218,7 +222,7 @@
     "/apis/v1beta1/runs/{run_id}": {
       "get": {
         "summary": "Finds a specific run by ID.",
-        "operationId": "RunService_GetRunV1",
+        "operationId": "GetRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -227,9 +231,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -250,7 +254,7 @@
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
         "summary": "Finds a run's artifact data.",
-        "operationId": "RunService_ReadArtifactV1",
+        "operationId": "ReadArtifactV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -259,9 +263,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -296,7 +300,7 @@
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
         "summary": "Re-initiates a failed or terminated run.",
-        "operationId": "RunService_RetryRunV1",
+        "operationId": "RetryRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -305,9 +309,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -328,7 +332,7 @@
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
         "summary": "Terminates an active run.",
-        "operationId": "RunService_TerminateRunV1",
+        "operationId": "TerminateRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -337,9 +341,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -360,7 +364,7 @@
     "/apis/v1beta1/runs/{run_id}:reportMetrics": {
       "post": {
         "summary": "ReportRunMetrics reports metrics of a run. Each metric is reported in its\nown transaction, so this API accepts partial failures. Metric can be\nuniquely identified by (run_id, node_id, name). Duplicate reporting will be\nignored by the API. First reporting wins.",
-        "operationId": "RunService_ReportRunMetricsV1",
+        "operationId": "ReportRunMetricsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -369,9 +373,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -729,7 +733,7 @@
       ],
       "default": "STORAGESTATE_AVAILABLE"
     },
-    "gatewayruntimeError": {
+    "apiStatus": {
       "type": "object",
       "properties": {
         "error": {
@@ -738,9 +742,6 @@
         "code": {
           "type": "integer",
           "format": "int32"
-        },
-        "message": {
-          "type": "string"
         },
         "details": {
           "type": "array",

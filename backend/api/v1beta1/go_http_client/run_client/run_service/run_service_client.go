@@ -25,23 +25,23 @@ type Client struct {
 }
 
 /*
-RunServiceArchiveRunV1 archives a run
+ArchiveRunV1 archives a run
 */
-func (a *Client) RunServiceArchiveRunV1(params *RunServiceArchiveRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceArchiveRunV1OK, error) {
+func (a *Client) ArchiveRunV1(params *ArchiveRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*ArchiveRunV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceArchiveRunV1Params()
+		params = NewArchiveRunV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_ArchiveRunV1",
+		ID:                 "ArchiveRunV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/runs/{id}:archive",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceArchiveRunV1Reader{formats: a.formats},
+		Reader:             &ArchiveRunV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -49,28 +49,28 @@ func (a *Client) RunServiceArchiveRunV1(params *RunServiceArchiveRunV1Params, au
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceArchiveRunV1OK), nil
+	return result.(*ArchiveRunV1OK), nil
 
 }
 
 /*
-RunServiceCreateRunV1 creates a new run
+CreateRunV1 creates a new run
 */
-func (a *Client) RunServiceCreateRunV1(params *RunServiceCreateRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceCreateRunV1OK, error) {
+func (a *Client) CreateRunV1(params *CreateRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*CreateRunV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceCreateRunV1Params()
+		params = NewCreateRunV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_CreateRunV1",
+		ID:                 "CreateRunV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/runs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceCreateRunV1Reader{formats: a.formats},
+		Reader:             &CreateRunV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -78,28 +78,28 @@ func (a *Client) RunServiceCreateRunV1(params *RunServiceCreateRunV1Params, auth
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceCreateRunV1OK), nil
+	return result.(*CreateRunV1OK), nil
 
 }
 
 /*
-RunServiceDeleteRunV1 deletes a run
+DeleteRunV1 deletes a run
 */
-func (a *Client) RunServiceDeleteRunV1(params *RunServiceDeleteRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceDeleteRunV1OK, error) {
+func (a *Client) DeleteRunV1(params *DeleteRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*DeleteRunV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceDeleteRunV1Params()
+		params = NewDeleteRunV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_DeleteRunV1",
+		ID:                 "DeleteRunV1",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v1beta1/runs/{id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceDeleteRunV1Reader{formats: a.formats},
+		Reader:             &DeleteRunV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -107,28 +107,28 @@ func (a *Client) RunServiceDeleteRunV1(params *RunServiceDeleteRunV1Params, auth
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceDeleteRunV1OK), nil
+	return result.(*DeleteRunV1OK), nil
 
 }
 
 /*
-RunServiceGetRunV1 finds a specific run by ID
+GetRunV1 finds a specific run by ID
 */
-func (a *Client) RunServiceGetRunV1(params *RunServiceGetRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceGetRunV1OK, error) {
+func (a *Client) GetRunV1(params *GetRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*GetRunV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceGetRunV1Params()
+		params = NewGetRunV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_GetRunV1",
+		ID:                 "GetRunV1",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/runs/{run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceGetRunV1Reader{formats: a.formats},
+		Reader:             &GetRunV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -136,28 +136,28 @@ func (a *Client) RunServiceGetRunV1(params *RunServiceGetRunV1Params, authInfo r
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceGetRunV1OK), nil
+	return result.(*GetRunV1OK), nil
 
 }
 
 /*
-RunServiceListRunsV1 finds all runs
+ListRunsV1 finds all runs
 */
-func (a *Client) RunServiceListRunsV1(params *RunServiceListRunsV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceListRunsV1OK, error) {
+func (a *Client) ListRunsV1(params *ListRunsV1Params, authInfo runtime.ClientAuthInfoWriter) (*ListRunsV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceListRunsV1Params()
+		params = NewListRunsV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_ListRunsV1",
+		ID:                 "ListRunsV1",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/runs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceListRunsV1Reader{formats: a.formats},
+		Reader:             &ListRunsV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -165,28 +165,28 @@ func (a *Client) RunServiceListRunsV1(params *RunServiceListRunsV1Params, authIn
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceListRunsV1OK), nil
+	return result.(*ListRunsV1OK), nil
 
 }
 
 /*
-RunServiceReadArtifactV1 finds a run s artifact data
+ReadArtifactV1 finds a run s artifact data
 */
-func (a *Client) RunServiceReadArtifactV1(params *RunServiceReadArtifactV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceReadArtifactV1OK, error) {
+func (a *Client) ReadArtifactV1(params *ReadArtifactV1Params, authInfo runtime.ClientAuthInfoWriter) (*ReadArtifactV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceReadArtifactV1Params()
+		params = NewReadArtifactV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_ReadArtifactV1",
+		ID:                 "ReadArtifactV1",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceReadArtifactV1Reader{formats: a.formats},
+		Reader:             &ReadArtifactV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -194,28 +194,28 @@ func (a *Client) RunServiceReadArtifactV1(params *RunServiceReadArtifactV1Params
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceReadArtifactV1OK), nil
+	return result.(*ReadArtifactV1OK), nil
 
 }
 
 /*
-RunServiceReportRunMetricsV1 reports run metrics reports metrics of a run each metric is reported in its own transaction so this API accepts partial failures metric can be uniquely identified by run id node id name duplicate reporting will be ignored by the API first reporting wins
+ReportRunMetricsV1 reports run metrics reports metrics of a run each metric is reported in its own transaction so this API accepts partial failures metric can be uniquely identified by run id node id name duplicate reporting will be ignored by the API first reporting wins
 */
-func (a *Client) RunServiceReportRunMetricsV1(params *RunServiceReportRunMetricsV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceReportRunMetricsV1OK, error) {
+func (a *Client) ReportRunMetricsV1(params *ReportRunMetricsV1Params, authInfo runtime.ClientAuthInfoWriter) (*ReportRunMetricsV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceReportRunMetricsV1Params()
+		params = NewReportRunMetricsV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_ReportRunMetricsV1",
+		ID:                 "ReportRunMetricsV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/runs/{run_id}:reportMetrics",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceReportRunMetricsV1Reader{formats: a.formats},
+		Reader:             &ReportRunMetricsV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -223,28 +223,28 @@ func (a *Client) RunServiceReportRunMetricsV1(params *RunServiceReportRunMetrics
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceReportRunMetricsV1OK), nil
+	return result.(*ReportRunMetricsV1OK), nil
 
 }
 
 /*
-RunServiceRetryRunV1 res initiates a failed or terminated run
+RetryRunV1 res initiates a failed or terminated run
 */
-func (a *Client) RunServiceRetryRunV1(params *RunServiceRetryRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceRetryRunV1OK, error) {
+func (a *Client) RetryRunV1(params *RetryRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*RetryRunV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceRetryRunV1Params()
+		params = NewRetryRunV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_RetryRunV1",
+		ID:                 "RetryRunV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/runs/{run_id}/retry",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceRetryRunV1Reader{formats: a.formats},
+		Reader:             &RetryRunV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -252,28 +252,28 @@ func (a *Client) RunServiceRetryRunV1(params *RunServiceRetryRunV1Params, authIn
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceRetryRunV1OK), nil
+	return result.(*RetryRunV1OK), nil
 
 }
 
 /*
-RunServiceTerminateRunV1 terminates an active run
+TerminateRunV1 terminates an active run
 */
-func (a *Client) RunServiceTerminateRunV1(params *RunServiceTerminateRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceTerminateRunV1OK, error) {
+func (a *Client) TerminateRunV1(params *TerminateRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*TerminateRunV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceTerminateRunV1Params()
+		params = NewTerminateRunV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_TerminateRunV1",
+		ID:                 "TerminateRunV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/runs/{run_id}/terminate",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceTerminateRunV1Reader{formats: a.formats},
+		Reader:             &TerminateRunV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -281,28 +281,28 @@ func (a *Client) RunServiceTerminateRunV1(params *RunServiceTerminateRunV1Params
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceTerminateRunV1OK), nil
+	return result.(*TerminateRunV1OK), nil
 
 }
 
 /*
-RunServiceUnarchiveRunV1 restores an archived run
+UnarchiveRunV1 restores an archived run
 */
-func (a *Client) RunServiceUnarchiveRunV1(params *RunServiceUnarchiveRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*RunServiceUnarchiveRunV1OK, error) {
+func (a *Client) UnarchiveRunV1(params *UnarchiveRunV1Params, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveRunV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRunServiceUnarchiveRunV1Params()
+		params = NewUnarchiveRunV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RunService_UnarchiveRunV1",
+		ID:                 "UnarchiveRunV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/runs/{id}:unarchive",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RunServiceUnarchiveRunV1Reader{formats: a.formats},
+		Reader:             &UnarchiveRunV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -310,7 +310,7 @@ func (a *Client) RunServiceUnarchiveRunV1(params *RunServiceUnarchiveRunV1Params
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RunServiceUnarchiveRunV1OK), nil
+	return result.(*UnarchiveRunV1OK), nil
 
 }
 

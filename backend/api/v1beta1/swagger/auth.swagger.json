@@ -4,6 +4,10 @@
     "title": "backend/api/v1beta1/auth.proto",
     "version": "version not set"
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
@@ -13,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/auth": {
       "get": {
-        "operationId": "AuthService_AuthorizeV1",
+        "operationId": "AuthorizeV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -22,9 +26,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -87,7 +91,7 @@
       "default": "UNASSIGNED_VERB",
       "description": "Type of verbs that act on the resources."
     },
-    "gatewayruntimeError": {
+    "apiStatus": {
       "type": "object",
       "properties": {
         "error": {
@@ -96,9 +100,6 @@
         "code": {
           "type": "integer",
           "format": "int32"
-        },
-        "message": {
-          "type": "string"
         },
         "details": {
           "type": "array",

@@ -25,170 +25,170 @@ type Client struct {
 }
 
 /*
-ExperimentServiceArchiveExperiment archives an experiment and the experiment s runs and recurring runs
+ArchiveExperiment archives an experiment and the experiment s runs and recurring runs
 */
-func (a *Client) ExperimentServiceArchiveExperiment(params *ExperimentServiceArchiveExperimentParams) (*ExperimentServiceArchiveExperimentOK, error) {
+func (a *Client) ArchiveExperiment(params *ArchiveExperimentParams) (*ArchiveExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewExperimentServiceArchiveExperimentParams()
+		params = NewArchiveExperimentParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ExperimentService_ArchiveExperiment",
+		ID:                 "ArchiveExperiment",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}:archive",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ExperimentServiceArchiveExperimentReader{formats: a.formats},
+		Reader:             &ArchiveExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ExperimentServiceArchiveExperimentOK), nil
+	return result.(*ArchiveExperimentOK), nil
 
 }
 
 /*
-ExperimentServiceCreateExperiment creates a new experiment
+CreateExperiment creates a new experiment
 */
-func (a *Client) ExperimentServiceCreateExperiment(params *ExperimentServiceCreateExperimentParams) (*ExperimentServiceCreateExperimentOK, error) {
+func (a *Client) CreateExperiment(params *CreateExperimentParams) (*CreateExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewExperimentServiceCreateExperimentParams()
+		params = NewCreateExperimentParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ExperimentService_CreateExperiment",
+		ID:                 "CreateExperiment",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/experiments",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ExperimentServiceCreateExperimentReader{formats: a.formats},
+		Reader:             &CreateExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ExperimentServiceCreateExperimentOK), nil
+	return result.(*CreateExperimentOK), nil
 
 }
 
 /*
-ExperimentServiceDeleteExperiment deletes an experiment without deleting the experiment s runs and recurring runs to avoid unexpected behaviors delete an experiment s runs and recurring runs before deleting the experiment
+DeleteExperiment deletes an experiment without deleting the experiment s runs and recurring runs to avoid unexpected behaviors delete an experiment s runs and recurring runs before deleting the experiment
 */
-func (a *Client) ExperimentServiceDeleteExperiment(params *ExperimentServiceDeleteExperimentParams) (*ExperimentServiceDeleteExperimentOK, error) {
+func (a *Client) DeleteExperiment(params *DeleteExperimentParams) (*DeleteExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewExperimentServiceDeleteExperimentParams()
+		params = NewDeleteExperimentParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ExperimentService_DeleteExperiment",
+		ID:                 "DeleteExperiment",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ExperimentServiceDeleteExperimentReader{formats: a.formats},
+		Reader:             &DeleteExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ExperimentServiceDeleteExperimentOK), nil
+	return result.(*DeleteExperimentOK), nil
 
 }
 
 /*
-ExperimentServiceGetExperiment finds a specific experiment by ID
+GetExperiment finds a specific experiment by ID
 */
-func (a *Client) ExperimentServiceGetExperiment(params *ExperimentServiceGetExperimentParams) (*ExperimentServiceGetExperimentOK, error) {
+func (a *Client) GetExperiment(params *GetExperimentParams) (*GetExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewExperimentServiceGetExperimentParams()
+		params = NewGetExperimentParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ExperimentService_GetExperiment",
+		ID:                 "GetExperiment",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ExperimentServiceGetExperimentReader{formats: a.formats},
+		Reader:             &GetExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ExperimentServiceGetExperimentOK), nil
+	return result.(*GetExperimentOK), nil
 
 }
 
 /*
-ExperimentServiceListExperiments finds all experiments supports pagination and sorting on certain fields
+ListExperiments finds all experiments supports pagination and sorting on certain fields
 */
-func (a *Client) ExperimentServiceListExperiments(params *ExperimentServiceListExperimentsParams) (*ExperimentServiceListExperimentsOK, error) {
+func (a *Client) ListExperiments(params *ListExperimentsParams) (*ListExperimentsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewExperimentServiceListExperimentsParams()
+		params = NewListExperimentsParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ExperimentService_ListExperiments",
+		ID:                 "ListExperiments",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/experiments",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ExperimentServiceListExperimentsReader{formats: a.formats},
+		Reader:             &ListExperimentsReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ExperimentServiceListExperimentsOK), nil
+	return result.(*ListExperimentsOK), nil
 
 }
 
 /*
-ExperimentServiceUnarchiveExperiment restores an archived experiment the experiment s archived runs and recurring runs will stay archived
+UnarchiveExperiment restores an archived experiment the experiment s archived runs and recurring runs will stay archived
 */
-func (a *Client) ExperimentServiceUnarchiveExperiment(params *ExperimentServiceUnarchiveExperimentParams) (*ExperimentServiceUnarchiveExperimentOK, error) {
+func (a *Client) UnarchiveExperiment(params *UnarchiveExperimentParams) (*UnarchiveExperimentOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewExperimentServiceUnarchiveExperimentParams()
+		params = NewUnarchiveExperimentParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ExperimentService_UnarchiveExperiment",
+		ID:                 "UnarchiveExperiment",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/experiments/{experiment_id}:unarchive",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ExperimentServiceUnarchiveExperimentReader{formats: a.formats},
+		Reader:             &UnarchiveExperimentReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ExperimentServiceUnarchiveExperimentOK), nil
+	return result.(*UnarchiveExperimentOK), nil
 
 }
 

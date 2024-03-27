@@ -4,6 +4,10 @@
     "title": "backend/api/v1beta1/job.proto",
     "version": "version not set"
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
@@ -14,7 +18,7 @@
     "/apis/v1beta1/jobs": {
       "get": {
         "summary": "Finds all jobs.",
-        "operationId": "JobService_ListJobs",
+        "operationId": "ListJobs",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -23,9 +27,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -89,7 +93,7 @@
       },
       "post": {
         "summary": "Creates a new job.",
-        "operationId": "JobService_CreateJob",
+        "operationId": "CreateJob",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -98,9 +102,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -123,7 +127,7 @@
     "/apis/v1beta1/jobs/{id}": {
       "get": {
         "summary": "Finds a specific job by ID.",
-        "operationId": "JobService_GetJob",
+        "operationId": "GetJob",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -132,9 +136,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -153,7 +157,7 @@
       },
       "delete": {
         "summary": "Deletes a job.",
-        "operationId": "JobService_DeleteJob",
+        "operationId": "DeleteJob",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -162,9 +166,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -185,7 +189,7 @@
     "/apis/v1beta1/jobs/{id}/disable": {
       "post": {
         "summary": "Stops a job and all its associated runs. The job is not deleted.",
-        "operationId": "JobService_DisableJob",
+        "operationId": "DisableJob",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -194,9 +198,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -217,7 +221,7 @@
     "/apis/v1beta1/jobs/{id}/enable": {
       "post": {
         "summary": "Restarts a job that was previously stopped. All runs associated with the job will continue.",
-        "operationId": "JobService_EnableJob",
+        "operationId": "EnableJob",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -226,9 +230,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -357,10 +361,12 @@
         },
         "enabled": {
           "type": "boolean",
+          "format": "boolean",
           "description": "Input. Whether the job is enabled or not."
         },
         "no_catchup": {
           "type": "boolean",
+          "format": "boolean",
           "description": "Optional input field. Whether the job should catch up if behind schedule.\nIf true, the job will only schedule the latest interval if behind schedule.\nIf false, the job will catch up on each past interval."
         }
       }
@@ -500,6 +506,24 @@
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
+    "apiStatus": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
     "apiTrigger": {
       "type": "object",
       "properties": {
@@ -511,27 +535,6 @@
         }
       },
       "description": "Trigger defines what starts a pipeline run."
-    },
-    "gatewayruntimeError": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string"
-        },
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "message": {
-          "type": "string"
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufAny"
-          }
-        }
-      }
     },
     "protobufAny": {
       "type": "object",

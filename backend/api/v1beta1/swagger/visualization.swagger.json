@@ -4,6 +4,10 @@
     "title": "backend/api/v1beta1/visualization.proto",
     "version": "version not set"
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
@@ -13,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/visualizations/{namespace}": {
       "post": {
-        "operationId": "VisualizationService_CreateVisualizationV1",
+        "operationId": "CreateVisualizationV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -22,9 +26,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -51,6 +55,24 @@
     }
   },
   "definitions": {
+    "apiStatus": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
     "apiVisualization": {
       "type": "object",
       "properties": {
@@ -86,27 +108,6 @@
       ],
       "default": "ROC_CURVE",
       "description": "Type of visualization to be generated.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
-    },
-    "gatewayruntimeError": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string"
-        },
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "message": {
-          "type": "string"
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufAny"
-          }
-        }
-      }
     },
     "protobufAny": {
       "type": "object",

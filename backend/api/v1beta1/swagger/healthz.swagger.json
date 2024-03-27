@@ -4,6 +4,10 @@
     "title": "backend/api/v1beta1/healthz.proto",
     "version": "version not set"
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
@@ -14,7 +18,7 @@
     "/apis/v1beta1/healthz": {
       "get": {
         "summary": "Get healthz data.",
-        "operationId": "HealthzService_GetHealthz",
+        "operationId": "GetHealthz",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -23,9 +27,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response.",
+            "description": "",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -41,11 +45,12 @@
       "properties": {
         "multi_user": {
           "type": "boolean",
+          "format": "boolean",
           "title": "Returns if KFP in multi-user mode"
         }
       }
     },
-    "gatewayruntimeError": {
+    "apiStatus": {
       "type": "object",
       "properties": {
         "error": {
@@ -54,9 +59,6 @@
         "code": {
           "type": "integer",
           "format": "int32"
-        },
-        "message": {
-          "type": "string"
         },
         "details": {
           "type": "array",
