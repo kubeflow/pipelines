@@ -59,13 +59,14 @@ popd
 
 echo "Checking in the version bump changes"
 git add --all
-git commit --message "chore(release): bumped version to $TAG"
-git tag -a "$TAG" -m "Kubeflow Pipelines $TAG release"
+# to support golang modules the tags are prefixed with "v", https://golang.org/ref/mod#versions
+git commit --message "chore(release): bumped version to v$TAG"
+git tag -a "v$TAG" -m "Kubeflow Pipelines $TAG release"
 
 echo "Pushing the changes upstream"
-read -p "Do you want to push the version change and tag $TAG tag to upstream? [y|n]"
+read -p "Do you want to push the version change and tag v$TAG tag to upstream? [y|n]"
 if [ "$REPLY" != "y" ]; then
    exit
 fi
 git push --set-upstream origin "$BRANCH"
-git push origin "$TAG"
+git push origin "v$TAG"
