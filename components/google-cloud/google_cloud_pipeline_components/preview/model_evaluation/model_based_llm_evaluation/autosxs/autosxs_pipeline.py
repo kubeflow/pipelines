@@ -39,9 +39,9 @@ def autosxs_pipeline(
     evaluation_dataset: str,
     task: str,
     id_columns: List[str],
+    autorater_prompt_parameters: Dict[str, Dict[str, str]],
     model_a: str = '',
     model_b: str = '',
-    autorater_prompt_parameters: Dict[str, Dict[str, str]] = {},
     model_a_prompt_parameters: Dict[str, Dict[str, str]] = {},
     model_b_prompt_parameters: Dict[str, Dict[str, str]] = {},
     response_column_a: str = '',
@@ -63,9 +63,9 @@ def autosxs_pipeline(
     evaluation_dataset: A BigQuery table or comma-separated list of GCS paths to a JSONL dataset containing evaluation examples.
     task: Evaluation task in the form `{task}@{version}`. task can be one of `[summarization, question_answering]`. Version is an integer with 3 digits or "latest". Ex: `summarization@001` or `question_answering@latest`.
     id_columns: The columns which distinguish unique evaluation examples.
+    autorater_prompt_parameters: Map of autorater prompt parameters to columns or templates. The expected parameters are: `inference_instruction` (details on how to perform a task) and `inference_context` (content to reference to perform the task). As an example, `{'inference_context': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the AutoRater's context.
     model_a: A fully-qualified model resource name (`projects/{project}/locations/{location}/models/{model}@{version}`) or publisher model resource name (`publishers/{publisher}/models/{model}`).  This parameter is optional if Model A responses are specified.
     model_b: A fully-qualified model resource name (`projects/{project}/locations/{location}/models/{model}@{version}`) or publisher model resource name (`publishers/{publisher}/models/{model}`).  This parameter is optional if Model B responses are specified.
-    autorater_prompt_parameters: Map of autorater prompt parameters to columns or templates. The expected parameters are: `inference_instruction` (details on how to perform a task) and `inference_context` (content to reference to perform the task). As an example, `{'inference_context': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the AutoRater's context.
     model_a_prompt_parameters: Map of Model A prompt template parameters to columns or templates. This parameter is optional if Model A predictions are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the prompt parameter named `prompt`.
     model_b_prompt_parameters: Map of Model B prompt template parameters to columns or templates. This parameter is optional if Model B predictions are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the prompt parameter named `prompt`.
     response_column_a: Either the name of a column in the evaluation dataset containing predefined predictions, or the name of the column in the Model A output containing predictions. If no value is provided, the correct model output column name will attempt to be inferred.

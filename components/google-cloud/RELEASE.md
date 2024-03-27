@@ -1,5 +1,6 @@
 ## Upcoming release
 * Log TensorBoard metrics from the `preview.llm.rlhf_pipeline` in real time.
+* Fix `preview.model_evaluation.autosxs_pipeline` documentation to show `autorater_prompt_parameters` as required.
 
 ## Release 2.11.0
 * Fix bug in `preview.llm.rlhf_pipeline` that caused wrong output artifact to be used for inference after training.
