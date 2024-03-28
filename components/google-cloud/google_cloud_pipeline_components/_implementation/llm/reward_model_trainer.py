@@ -37,7 +37,7 @@ def reward_model_trainer(
     gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     eval_dataset_path: str = '',
     train_split: str = 'train',
-    batch_size: int = 64,
+    batch_size: int = 128,
     learning_rate_multiplier: float = 1.0,
     lora_dim: int = 4,
     num_microbatches: int = 0,
