@@ -71,7 +71,7 @@ const (
 	clientBurst = "ClientBurst"
 )
 
-// Container for all service clients.
+// ClientManager manages all service clients.
 type ClientManager struct {
 	db                        *storage.DB
 	experimentStore           storage.ExperimentStoreInterface
