@@ -1,6 +1,9 @@
 ## Upcoming release
+
+## Release 2.12.0
 * Log TensorBoard metrics from the `preview.llm.rlhf_pipeline` in real time.
 * Add task_type parameter to `preview.llm.rlaif_pipeline`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.11.0
 * Fix bug in `preview.llm.rlhf_pipeline` that caused wrong output artifact to be used for inference after training.
