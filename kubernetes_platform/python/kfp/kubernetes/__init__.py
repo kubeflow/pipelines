@@ -15,6 +15,7 @@
 __version__ = '1.1.0'
 
 __all__ = [
+    'add_ephemeral_volume',
     'add_node_selector',
     'add_pod_annotation',
     'add_pod_label',
@@ -47,3 +48,4 @@ from kfp.kubernetes.toleration import add_toleration
 from kfp.kubernetes.volume import CreatePVC
 from kfp.kubernetes.volume import DeletePVC
 from kfp.kubernetes.volume import mount_pvc
+from kfp.kubernetes.volume import add_ephemeral_volume
