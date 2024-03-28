@@ -32,12 +32,12 @@ import (
 )
 
 type RunInterface interface {
-	Archive(params *params.ArchiveRunV1Params) error
-	Get(params *params.GetRunV1Params) (*model.APIRunDetail, *workflowapi.Workflow, error)
-	List(params *params.ListRunsV1Params) ([]*model.APIRun, int, string, error)
-	ListAll(params *params.ListRunsV1Params, maxResultSize int) ([]*model.APIRun, error)
-	Unarchive(params *params.UnarchiveRunV1Params) error
-	Terminate(params *params.TerminateRunV1Params) error
+	Archive(params *params.RunServiceArchiveRunV1Params) error
+	Get(params *params.RunServiceGetRunV1Params) (*model.APIRunDetail, *workflowapi.Workflow, error)
+	List(params *params.RunServiceListRunsV1Params) ([]*model.APIRun, int, string, error)
+	ListAll(params *params.RunServiceListRunsV1Params, maxResultSize int) ([]*model.APIRun, error)
+	Unarchive(params *params.RunServiceUnarchiveRunV1Params) error
+	Terminate(params *params.RunServiceTerminateRunV1Params) error
 }
 
 type RunClient struct {
@@ -75,7 +75,7 @@ func NewKubeflowInClusterRunClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.APIRunDetail,
+func (c *RunClient) Create(parameters *params.RunServiceCreateRunV1Params) (*model.APIRunDetail,
 	*workflowapi.Workflow, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -83,9 +83,9 @@ func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.APIRunD
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.CreateRunV1(parameters, c.authInfoWriter)
+	response, err := c.apiClient.RunService.RunServiceCreateRunV1(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.GetRunV1Default); ok {
+		if defaultError, ok := err.(*params.RunServiceGetRunV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -109,7 +109,7 @@ func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.APIRunD
 	return response.Payload, &workflow, nil
 }
 
-func (c *RunClient) Get(parameters *params.GetRunV1Params) (*model.APIRunDetail,
+func (c *RunClient) Get(parameters *params.RunServiceGetRunV1Params) (*model.APIRunDetail,
 	*workflowapi.Workflow, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -117,9 +117,9 @@ func (c *RunClient) Get(parameters *params.GetRunV1Params) (*model.APIRunDetail,
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.GetRunV1(parameters, c.authInfoWriter)
+	response, err := c.apiClient.RunService.RunServiceGetRunV1(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.GetRunV1Default); ok {
+		if defaultError, ok := err.(*params.RunServiceGetRunV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -143,17 +143,17 @@ func (c *RunClient) Get(parameters *params.GetRunV1Params) (*model.APIRunDetail,
 	return response.Payload, &workflow, nil
 }
 
-func (c *RunClient) Archive(parameters *params.ArchiveRunV1Params) error {
+func (c *RunClient) Archive(parameters *params.RunServiceArchiveRunV1Params) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.ArchiveRunV1(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.RunServiceArchiveRunV1(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
+		if defaultError, ok := err.(*params.RunServiceListRunsV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -167,17 +167,17 @@ func (c *RunClient) Archive(parameters *params.ArchiveRunV1Params) error {
 	return nil
 }
 
-func (c *RunClient) Unarchive(parameters *params.UnarchiveRunV1Params) error {
+func (c *RunClient) Unarchive(parameters *params.RunServiceUnarchiveRunV1Params) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.UnarchiveRunV1(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.RunServiceUnarchiveRunV1(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
+		if defaultError, ok := err.(*params.RunServiceListRunsV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -191,17 +191,17 @@ func (c *RunClient) Unarchive(parameters *params.UnarchiveRunV1Params) error {
 	return nil
 }
 
-func (c *RunClient) Delete(parameters *params.DeleteRunV1Params) error {
+func (c *RunClient) Delete(parameters *params.RunServiceDeleteRunV1Params) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.DeleteRunV1(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.RunServiceDeleteRunV1(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
+		if defaultError, ok := err.(*params.RunServiceListRunsV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -215,7 +215,7 @@ func (c *RunClient) Delete(parameters *params.DeleteRunV1Params) error {
 	return nil
 }
 
-func (c *RunClient) List(parameters *params.ListRunsV1Params) (
+func (c *RunClient) List(parameters *params.RunServiceListRunsV1Params) (
 	[]*model.APIRun, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -223,10 +223,10 @@ func (c *RunClient) List(parameters *params.ListRunsV1Params) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.ListRunsV1(parameters, c.authInfoWriter)
+	response, err := c.apiClient.RunService.RunServiceListRunsV1(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
+		if defaultError, ok := err.(*params.RunServiceListRunsV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -240,12 +240,12 @@ func (c *RunClient) List(parameters *params.ListRunsV1Params) (
 	return response.Payload.Runs, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
-func (c *RunClient) ListAll(parameters *params.ListRunsV1Params, maxResultSize int) (
+func (c *RunClient) ListAll(parameters *params.RunServiceListRunsV1Params, maxResultSize int) (
 	[]*model.APIRun, error) {
 	return listAllForRun(c, parameters, maxResultSize)
 }
 
-func listAllForRun(client RunInterface, parameters *params.ListRunsV1Params, maxResultSize int) (
+func listAllForRun(client RunInterface, parameters *params.RunServiceListRunsV1Params, maxResultSize int) (
 	[]*model.APIRun, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
@@ -270,13 +270,13 @@ func listAllForRun(client RunInterface, parameters *params.ListRunsV1Params, max
 	return allResults, nil
 }
 
-func (c *RunClient) Terminate(parameters *params.TerminateRunV1Params) error {
+func (c *RunClient) Terminate(parameters *params.RunServiceTerminateRunV1Params) error {
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.TerminateRunV1(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.RunServiceTerminateRunV1(parameters, c.authInfoWriter)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to terminate run. Params: %+v", parameters),

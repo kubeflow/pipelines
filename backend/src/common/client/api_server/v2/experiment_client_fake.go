@@ -35,17 +35,17 @@ func NewExperimentClientFake() *ExperimentClientFake {
 	return &ExperimentClientFake{}
 }
 
-func (c *ExperimentClientFake) Create(parameters *params.CreateExperimentParams) (
+func (c *ExperimentClientFake) Create(parameters *params.ExperimentServiceCreateExperimentParams) (
 	*model.V2beta1Experiment, error) {
 	return getDefaultExperiment("500", parameters.Body.DisplayName), nil
 }
 
-func (c *ExperimentClientFake) Get(parameters *params.GetExperimentParams) (
+func (c *ExperimentClientFake) Get(parameters *params.ExperimentServiceGetExperimentParams) (
 	*model.V2beta1Experiment, error) {
 	return getDefaultExperiment(parameters.ExperimentID, "EXPERIMENT_NAME"), nil
 }
 
-func (c *ExperimentClientFake) List(params *params.ListExperimentsParams) (
+func (c *ExperimentClientFake) List(params *params.ExperimentServiceListExperimentsParams) (
 	[]*model.V2beta1Experiment, int, string, error) {
 	return []*model.V2beta1Experiment{
 		getDefaultExperiment("100", "MY_FIRST_EXPERIMENT"),
@@ -53,15 +53,15 @@ func (c *ExperimentClientFake) List(params *params.ListExperimentsParams) (
 	}, 2, "SECOND_TOKEN", nil
 }
 
-func (c *ExperimentClientFake) ListAll(params *params.ListExperimentsParams,
+func (c *ExperimentClientFake) ListAll(params *params.ExperimentServiceListExperimentsParams,
 	maxResultSize int) ([]*model.V2beta1Experiment, error) {
 	return listAllForExperiment(c, params, 1)
 }
 
-func (c *ExperimentClientFake) Archive(parameters *params.ArchiveExperimentParams) error {
+func (c *ExperimentClientFake) Archive(parameters *params.ExperimentServiceArchiveExperimentParams) error {
 	return nil
 }
 
-func (c *ExperimentClientFake) Unarchive(parameters *params.UnarchiveExperimentParams) error {
+func (c *ExperimentClientFake) Unarchive(parameters *params.ExperimentServiceUnarchiveExperimentParams) error {
 	return nil
 }

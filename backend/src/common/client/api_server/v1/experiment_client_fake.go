@@ -41,7 +41,7 @@ func NewExperimentClientFake() *ExperimentClientFake {
 	return &ExperimentClientFake{}
 }
 
-func (c *ExperimentClientFake) Create(params *experimentparams.CreateExperimentV1Params) (
+func (c *ExperimentClientFake) Create(params *experimentparams.ExperimentServiceCreateExperimentV1Params) (
 	*experimentmodel.APIExperiment, error) {
 	switch params.Body.Name {
 	case ExperimentForClientErrorTest:
@@ -51,7 +51,7 @@ func (c *ExperimentClientFake) Create(params *experimentparams.CreateExperimentV
 	}
 }
 
-func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentV1Params) (
+func (c *ExperimentClientFake) Get(params *experimentparams.ExperimentServiceGetExperimentV1Params) (
 	*experimentmodel.APIExperiment, error) {
 	switch params.ID {
 	case ExperimentForClientErrorTest:
@@ -61,7 +61,7 @@ func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentV1Param
 	}
 }
 
-func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentsV1Params) (
+func (c *ExperimentClientFake) List(params *experimentparams.ExperimentServiceListExperimentsV1Params) (
 	[]*experimentmodel.APIExperiment, int, string, error) {
 	const (
 		FirstToken  = ""
@@ -89,15 +89,15 @@ func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentsV1Pa
 	}
 }
 
-func (c *ExperimentClientFake) ListAll(params *experimentparams.ListExperimentsV1Params,
+func (c *ExperimentClientFake) ListAll(params *experimentparams.ExperimentServiceListExperimentsV1Params,
 	maxResultSize int) ([]*experimentmodel.APIExperiment, error) {
 	return listAllForExperiment(c, params, maxResultSize)
 }
 
-func (c *ExperimentClientFake) Archive(params *experimentparams.ArchiveExperimentV1Params) error {
+func (c *ExperimentClientFake) Archive(params *experimentparams.ExperimentServiceArchiveExperimentV1Params) error {
 	return nil
 }
 
-func (c *ExperimentClientFake) Unarchive(params *experimentparams.UnarchiveExperimentV1Params) error {
+func (c *ExperimentClientFake) Unarchive(params *experimentparams.ExperimentServiceUnarchiveExperimentV1Params) error {
 	return nil
 }
