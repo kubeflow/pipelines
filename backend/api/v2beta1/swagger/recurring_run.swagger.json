@@ -4,6 +4,10 @@
     "title": "backend/api/v2beta1/recurring_run.proto",
     "version": "version not set"
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
@@ -14,18 +18,12 @@
     "/apis/v2beta1/recurringruns": {
       "get": {
         "summary": "Finds all recurring runs given experiment and namespace. \nIf experiment ID is not specified, find all recurring runs across all experiments.",
-        "operationId": "RecurringRunService_ListRecurringRuns",
+        "operationId": "ListRecurringRuns",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v2beta1ListRecurringRunsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -80,18 +78,12 @@
       },
       "post": {
         "summary": "Creates a new recurring run in an experiment, given the experiment ID.",
-        "operationId": "RecurringRunService_CreateRecurringRun",
+        "operationId": "CreateRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v2beta1RecurringRun"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -114,18 +106,12 @@
     "/apis/v2beta1/recurringruns/{recurring_run_id}": {
       "get": {
         "summary": "Finds a specific recurring run by ID.",
-        "operationId": "RecurringRunService_GetRecurringRun",
+        "operationId": "GetRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/v2beta1RecurringRun"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -144,18 +130,12 @@
       },
       "delete": {
         "summary": "Deletes a recurring run.",
-        "operationId": "RecurringRunService_DeleteRecurringRun",
+        "operationId": "DeleteRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -176,18 +156,12 @@
     "/apis/v2beta1/recurringruns/{recurring_run_id}:disable": {
       "post": {
         "summary": "Stops a recurring run and all its associated runs. The recurring run is not deleted.",
-        "operationId": "RecurringRunService_DisableRecurringRun",
+        "operationId": "DisableRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -208,18 +182,12 @@
     "/apis/v2beta1/recurringruns/{recurring_run_id}:enable": {
       "post": {
         "summary": "Restarts a recurring run that was previously stopped. All runs associated with the \nrecurring run will continue.",
-        "operationId": "RecurringRunService_EnableRecurringRun",
+        "operationId": "EnableRecurringRun",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -293,27 +261,6 @@
       ],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
-    },
-    "runtimeError": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string"
-        },
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "message": {
-          "type": "string"
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufAny"
-          }
-        }
-      }
     },
     "v2beta1CronSchedule": {
       "type": "object",
@@ -457,6 +404,7 @@
         },
         "no_catchup": {
           "type": "boolean",
+          "format": "boolean",
           "description": "Optional input field. Whether the recurring run should catch up if behind schedule.\nIf true, the recurring run will only schedule the latest interval if behind schedule.\nIf false, the recurring run will catch up on each past interval."
         },
         "namespace": {
