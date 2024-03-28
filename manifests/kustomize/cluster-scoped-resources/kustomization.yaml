@@ -5,7 +5,6 @@ namespace: kubeflow
 
 resources:
 - namespace.yaml
-bases:
 - ../third-party/application/cluster-scoped
 - ../third-party/argo/installs/namespace/cluster-scoped
 - ../base/pipeline/cluster-scoped

@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: kfp-launcher
 data:
-   defaultPipelineRoot: $(kfp-default-pipeline-root)
+  defaultPipelineRoot: $(kfp-default-pipeline-root)

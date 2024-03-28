@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-bases:
+resources:
   # Or github.com/kubeflow/pipelines/manifests/kustomize/env/gcp?ref=1.0.0
   - ../env/gcp
   # Kubeflow Pipelines servers are capable of collecting Prometheus metrics.
@@ -31,7 +31,6 @@ secretGenerator:
 # !!! If you want to customize the namespace,
 # please also update sample/cluster-scoped-resources/kustomization.yaml's namespace field to the same value
 namespace: kubeflow
-
 #### Customization ###
 # 1. Change values in params.env file
 # 2. Change values in params-db-secret.env file for CloudSQL username and password
