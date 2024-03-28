@@ -5,6 +5,7 @@ metadata: # kpt-merge: /executor
   annotations:
     workflows.argoproj.io/description: |
       Recomended minimum permissions for `pns` executor.
+    workflows.argoproj.io/version: "< 3.4.0"
     internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|Role|default|executor'
 rules:
   - apiGroups:

@@ -18,10 +18,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/testing/protocmp"
-	"testing"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -46,8 +47,9 @@ func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeRunning,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeRunning,
 				},
 			},
 		},
@@ -98,8 +100,9 @@ func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 				},
 			},
 		},
@@ -125,8 +128,9 @@ func TestReportMetrics_NoMetricsArtifact_NoOP(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-ui-metadata"}},
 					},
@@ -153,8 +157,9 @@ func TestReportMetrics_Succeed(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
@@ -167,7 +172,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "node-1",
+			NodeId:       "MY_NAME-template-1-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -185,12 +190,12 @@ func TestReportMetrics_Succeed(t *testing.T) {
 		Metrics: []*api.RunMetric{
 			{
 				Name:   "accuracy",
-				NodeId: "node-1",
+				NodeId: "MY_NAME-template-1-1",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 0.77},
 			},
 			{
 				Name:   "logloss",
-				NodeId: "node-1",
+				NodeId: "MY_NAME-template-1-1",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 1.2},
 			},
 		},
@@ -216,8 +221,9 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
@@ -229,7 +235,7 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "node-1",
+			NodeId:       "MY_NAME-template-1-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -257,8 +263,9 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "MY_NAME-template-1-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
@@ -272,7 +279,7 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "node-1",
+			NodeId:       "MY_NAME-template-1-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -300,8 +307,9 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
@@ -314,7 +322,7 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "node-1",
+			NodeId:       "MY_NAME-template-1-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -342,15 +350,17 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
 				},
 				"node-2": workflowapi.NodeStatus{
-					ID:    "node-2",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-2",
+					TemplateName: "template-2",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
@@ -366,7 +376,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "node-1",
+			NodeId:       "MY_NAME-template-1-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -375,7 +385,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "node-2",
+			NodeId:       "MY_NAME-template-2-2",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -392,12 +402,12 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 		Metrics: []*api.RunMetric{
 			&api.RunMetric{
 				Name:   "accuracy",
-				NodeId: "node-2",
+				NodeId: "MY_NAME-template-2-2",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 0.77},
 			},
 			&api.RunMetric{
 				Name:   "logloss",
-				NodeId: "node-2",
+				NodeId: "MY_NAME-template-2-2",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 1.2},
 			},
 		},
@@ -423,8 +433,9 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
@@ -435,7 +446,7 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "node-1",
+			NodeId:       "MY_NAME-template-1-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -463,8 +474,9 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
@@ -478,7 +490,7 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "node-1",
+			NodeId:       "MY_NAME-template-1-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -526,8 +538,9 @@ func TestReportMetrics_Unauthorized(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
+					ID:           "node-1",
+					TemplateName: "template-1",
+					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
@@ -540,7 +553,7 @@ func TestReportMetrics_Unauthorized(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "node-1",
+			NodeId:       "MY_NAME-template-1-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
