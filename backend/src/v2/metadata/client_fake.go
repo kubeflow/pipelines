@@ -32,7 +32,7 @@ func NewFakeClient() *FakeClient {
 	return &FakeClient{}
 }
 
-func (c *FakeClient) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string) (*Pipeline, error) {
+func (c *FakeClient) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, bucketSessionInfo string) (*Pipeline, error) {
 	return nil, nil
 }
 

@@ -77,7 +77,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 			fakeMetadataClient := metadata.NewFakeClient()
 			bucket, err := blob.OpenBucket(context.Background(), "gs://test-bucket")
 			assert.Nil(t, err)
-			bucketConfig, err := objectstore.ParseBucketConfig("gs://test-bucket/pipeline-root/")
+			bucketConfig, err := objectstore.ParseBucketConfig("gs://test-bucket/pipeline-root/", nil)
 			assert.Nil(t, err)
 			_, _, err = executeV2(context.Background(), test.executorInput, addNumbersComponent, "sh", test.executorArgs, bucket, bucketConfig, fakeMetadataClient, "namespace", fakeKubernetesClientset)
 

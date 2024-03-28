@@ -156,7 +156,12 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		return err
 	}
 	fingerPrint := execution.FingerPrint()
-	bucketConfig, err := objectstore.ParseBucketConfig(execution.GetPipeline().GetPipelineRoot())
+	bucketSessionInfo, err := objectstore.GetSessionInfoFromString(execution.GetPipeline().GetPipelineBucketSession())
+	if err != nil {
+		return err
+	}
+	pipelineRoot := execution.GetPipeline().GetPipelineRoot()
+	bucketConfig, err := objectstore.ParseBucketConfig(pipelineRoot, bucketSessionInfo)
 	if err != nil {
 		return err
 	}
@@ -534,14 +539,22 @@ func fetchNonDefaultBuckets(
 		}
 		// TODO: Support multiple artifacts someday, probably through the v2 engine.
 		artifact := artifactList.Artifacts[0]
+		// The artifact does not belong under the object store path for this run. Cases:
+		// 1. Artifact is cached from a different run, so it may still be in the default bucket, but under a different run id subpath
+		// 2. Artifact is imported from the same bucket, but from a different path (re-use the same session)
+		// 3. Artifact is imported from a different bucket, or obj store (default to using user env in this case)
 		if !strings.HasPrefix(artifact.Uri, defaultBucketConfig.PrefixedBucket()) {
-			nonDefaultBucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(artifact.Uri)
-			if err != nil {
-				return nonDefaultBuckets, fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, artifact.GetUri(), err)
+			nonDefaultBucketConfig, parseErr := objectstore.ParseBucketConfigForArtifactURI(artifact.Uri)
+			if parseErr != nil {
+				return nonDefaultBuckets, fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, artifact.GetUri(), parseErr)
 			}
-			nonDefaultBucket, err := objectstore.OpenBucket(ctx, k8sClient, namespace, nonDefaultBucketConfig)
-			if err != nil {
-				return nonDefaultBuckets, fmt.Errorf("failed to open bucket for output artifact %q with uri %q: %w", name, artifact.GetUri(), err)
+			// check if it's same bucket but under a different path, re-use the default bucket session in this case.
+			if (nonDefaultBucketConfig.Scheme == defaultBucketConfig.Scheme) && (nonDefaultBucketConfig.BucketName == defaultBucketConfig.BucketName) {
+				nonDefaultBucketConfig.Session = defaultBucketConfig.Session
+			}
+			nonDefaultBucket, bucketErr := objectstore.OpenBucket(ctx, k8sClient, namespace, nonDefaultBucketConfig)
+			if bucketErr != nil {
+				return nonDefaultBuckets, fmt.Errorf("failed to open bucket for output artifact %q with uri %q: %w", name, artifact.GetUri(), bucketErr)
 			}
 			nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()] = nonDefaultBucket
 		}

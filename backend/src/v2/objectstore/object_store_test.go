@@ -12,14 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package objectstore_test
+package objectstore
 
 import (
+	"context"
+	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 	"os"
 	"reflect"
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	_ "gocloud.dev/blob/gcsblob"
 )
 
@@ -27,13 +35,13 @@ func Test_parseCloudBucket(t *testing.T) {
 	tests := []struct {
 		name    string
 		path    string
-		want    *objectstore.Config
+		want    *Config
 		wantErr bool
 	}{
 		{
 			name: "Parses GCS - Just the bucket",
 			path: "gs://my-bucket",
-			want: &objectstore.Config{
+			want: &Config{
 				Scheme:     "gs://",
 				BucketName: "my-bucket",
 				Prefix:     "",
@@ -43,7 +51,7 @@ func Test_parseCloudBucket(t *testing.T) {
 		{
 			name: "Parses GCS - Just the bucket with trailing slash",
 			path: "gs://my-bucket/",
-			want: &objectstore.Config{
+			want: &Config{
 				Scheme:     "gs://",
 				BucketName: "my-bucket",
 				Prefix:     "",
@@ -53,7 +61,7 @@ func Test_parseCloudBucket(t *testing.T) {
 		{
 			name: "Parses GCS - Bucket with prefix",
 			path: "gs://my-bucket/my-path",
-			want: &objectstore.Config{
+			want: &Config{
 				Scheme:     "gs://",
 				BucketName: "my-bucket",
 				Prefix:     "my-path/",
@@ -63,7 +71,7 @@ func Test_parseCloudBucket(t *testing.T) {
 		{
 			name: "Parses GCS - Bucket with prefix and trailing slash",
 			path: "gs://my-bucket/my-path/",
-			want: &objectstore.Config{
+			want: &Config{
 				Scheme:     "gs://",
 				BucketName: "my-bucket",
 				Prefix:     "my-path/",
@@ -73,7 +81,7 @@ func Test_parseCloudBucket(t *testing.T) {
 		{
 			name: "Parses GCS - Bucket with multiple path components in prefix",
 			path: "gs://my-bucket/my-path/123",
-			want: &objectstore.Config{
+			want: &Config{
 				Scheme:     "gs://",
 				BucketName: "my-bucket",
 				Prefix:     "my-path/123/",
@@ -83,7 +91,7 @@ func Test_parseCloudBucket(t *testing.T) {
 		{
 			name: "Parses GCS - Bucket with multiple path components in prefix and trailing slash",
 			path: "gs://my-bucket/my-path/123/",
-			want: &objectstore.Config{
+			want: &Config{
 				Scheme:     "gs://",
 				BucketName: "my-bucket",
 				Prefix:     "my-path/123/",
@@ -93,7 +101,7 @@ func Test_parseCloudBucket(t *testing.T) {
 		{
 			name: "Parses Minio - Bucket with query string",
 			path: "minio://my-bucket",
-			want: &objectstore.Config{
+			want: &Config{
 				Scheme:      "minio://",
 				BucketName:  "my-bucket",
 				Prefix:      "",
@@ -103,7 +111,7 @@ func Test_parseCloudBucket(t *testing.T) {
 		}, {
 			name: "Parses Minio - Bucket with prefix",
 			path: "minio://my-bucket/my-path",
-			want: &objectstore.Config{
+			want: &Config{
 				Scheme:      "minio://",
 				BucketName:  "my-bucket",
 				Prefix:      "my-path/",
@@ -113,18 +121,36 @@ func Test_parseCloudBucket(t *testing.T) {
 		}, {
 			name: "Parses Minio - Bucket with multiple path components in prefix",
 			path: "minio://my-bucket/my-path/123",
-			want: &objectstore.Config{
+			want: &Config{
 				Scheme:      "minio://",
 				BucketName:  "my-bucket",
 				Prefix:      "my-path/123/",
 				QueryString: "",
 			},
 			wantErr: false,
+		}, {
+			name: "Parses S3 - Bucket with session",
+			path: "s3://my-bucket/my-path/123",
+			want: &Config{
+				Scheme:      "s3://",
+				BucketName:  "my-bucket",
+				Prefix:      "my-path/123/",
+				QueryString: "",
+				Session: &SessionInfo{
+					Region:       "us-east-1",
+					Endpoint:     "s3.amazonaws.com",
+					DisableSSL:   true,
+					SecretName:   "s3-provider-secret",
+					SecretKeyKey: "different_secret_key",
+					AccessKeyKey: "different_access_key",
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := objectstore.ParseBucketConfig(tt.path)
+			got, err := ParseBucketConfig(tt.path, tt.want.Session)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%q: parseCloudBucket() error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
@@ -132,6 +158,7 @@ func Test_parseCloudBucket(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("%q: parseCloudBucket() = %v, want %v", tt.name, got, tt.want)
 			}
+			assert.Equal(t, got.Session, tt.want.Session)
 		})
 	}
 }
@@ -145,21 +172,21 @@ func Test_bucketConfig_KeyFromURI(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		bucketConfig *objectstore.Config
+		bucketConfig *Config
 		uri          string
 		want         string
 		wantErr      bool
 	}{
 		{
 			name:         "Bucket with empty prefix",
-			bucketConfig: &objectstore.Config{Scheme: "gs://", BucketName: "my-bucket", Prefix: ""},
+			bucketConfig: &Config{Scheme: "gs://", BucketName: "my-bucket", Prefix: ""},
 			uri:          "gs://my-bucket/path1/path2",
 			want:         "path1/path2",
 			wantErr:      false,
 		},
 		{
 			name:         "Bucket with non-empty Prefix ",
-			bucketConfig: &objectstore.Config{Scheme: "gs://", BucketName: "my-bucket", Prefix: "path0/"},
+			bucketConfig: &Config{Scheme: "gs://", BucketName: "my-bucket", Prefix: "path0/"},
 			uri:          "gs://my-bucket/path0/path1/path2",
 			want:         "path1/path2",
 			wantErr:      false,
@@ -215,12 +242,127 @@ func Test_GetMinioDefaultEndpoint(t *testing.T) {
 			} else {
 				os.Unsetenv("MINIO_SERVICE_SERVICE_PORT")
 			}
-			got := objectstore.MinioDefaultEndpoint()
+			got := MinioDefaultEndpoint()
 			if got != tt.want {
 				t.Errorf(
 					"MinioDefaultEndpoint() = %q, want %q\nwhen MINIO_SERVICE_SERVICE_HOST=%q MINIO_SERVICE_SERVICE_PORT=%q",
 					got, tt.want, tt.minioServiceHostEnv, tt.minioServicePortEnv,
 				)
+			}
+		})
+	}
+}
+
+func Test_createBucketSession(t *testing.T) {
+	tt := []struct {
+		msg            string
+		ns             string
+		sessionInfo    *SessionInfo
+		sessionSecret  *corev1.Secret
+		expectedConfig *aws.Config
+		wantErr        bool
+		errorMsg       string
+	}{
+		{
+			msg: "Bucket with session",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Region:       "us-east-1",
+				Endpoint:     "s3.amazonaws.com",
+				DisableSSL:   false,
+				SecretName:   "s3-provider-secret",
+				SecretKeyKey: "test_secret_key",
+				AccessKeyKey: "test_access_key",
+			},
+			sessionSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "s3-provider-secret", Namespace: "testnamespace"},
+				Data:       map[string][]byte{"test_secret_key": []byte("secretKey"), "test_access_key": []byte("accessKey")},
+			},
+			expectedConfig: &aws.Config{
+				Credentials:      credentials.NewStaticCredentials("accessKey", "secretKey", ""),
+				Region:           aws.String("us-east-1"),
+				Endpoint:         aws.String("s3.amazonaws.com"),
+				DisableSSL:       aws.Bool(false),
+				S3ForcePathStyle: aws.Bool(true),
+			},
+		},
+		{
+			msg:            "Bucket with no session",
+			ns:             "testnamespace",
+			sessionInfo:    nil,
+			sessionSecret:  nil,
+			expectedConfig: nil,
+		},
+		{
+			msg: "Bucket with session but secret doesn't exist",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Region:       "us-east-1",
+				Endpoint:     "s3.amazonaws.com",
+				DisableSSL:   false,
+				SecretName:   "does-not-exist",
+				SecretKeyKey: "test_secret_key",
+				AccessKeyKey: "test_access_key",
+			},
+			sessionSecret:  nil,
+			expectedConfig: nil,
+			wantErr:        true,
+			errorMsg:       "secrets \"does-not-exist\" not found",
+		},
+		{
+			msg: "Bucket with session secret exists but key mismatch",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Region:       "us-east-1",
+				Endpoint:     "s3.amazonaws.com",
+				DisableSSL:   false,
+				SecretName:   "s3-provider-secret",
+				SecretKeyKey: "does_not_exist_secret_key",
+				AccessKeyKey: "does_not_exist_access_key",
+			},
+			sessionSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "s3-provider-secret", Namespace: "testnamespace"},
+				Data:       map[string][]byte{"test_secret_key": []byte("secretKey"), "test_access_key": []byte("accessKey")},
+			},
+			expectedConfig: nil,
+			wantErr:        true,
+			errorMsg:       "could not find specified keys",
+		},
+	}
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			fakeKubernetesClientset := fake.NewSimpleClientset()
+			ctx := context.Background()
+
+			if test.sessionSecret != nil {
+				testersecret, err := fakeKubernetesClientset.CoreV1().Secrets(test.ns).Create(
+					ctx,
+					test.sessionSecret,
+					metav1.CreateOptions{})
+				assert.Nil(t, err)
+				fmt.Printf(testersecret.Namespace)
+			}
+
+			actualSession, err := createBucketSession(ctx, test.ns, test.sessionInfo, fakeKubernetesClientset)
+			if test.wantErr {
+				assert.Error(t, err)
+				if test.errorMsg != "" {
+					assert.Contains(t, err.Error(), test.errorMsg)
+				}
+			} else {
+				assert.Nil(t, err)
+			}
+
+			if test.expectedConfig != nil {
+				// confirm config is populated with values from the session
+				expectedSess, err := session.NewSession(test.expectedConfig)
+				assert.Nil(t, err)
+				assert.Equal(t, expectedSess.Config.Region, actualSession.Config.Region)
+				assert.Equal(t, expectedSess.Config.Credentials, actualSession.Config.Credentials)
+				assert.Equal(t, expectedSess.Config.DisableSSL, actualSession.Config.DisableSSL)
+				assert.Equal(t, expectedSess.Config.S3ForcePathStyle, actualSession.Config.S3ForcePathStyle)
+			} else {
+				assert.Nil(t, actualSession)
 			}
 		})
 	}

@@ -17,6 +17,7 @@ package objectstore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -37,11 +38,25 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// The endpoint uses Kubernetes service DNS name with namespace:
+// https://kubernetes.io/docs/concepts/services-networking/service/#dns
+const defaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
+
 type Config struct {
 	Scheme      string
 	BucketName  string
 	Prefix      string
 	QueryString string
+	Session     *SessionInfo
+}
+
+type SessionInfo struct {
+	Region       string
+	Endpoint     string
+	DisableSSL   bool
+	SecretName   string
+	AccessKeyKey string
+	SecretKeyKey string
 }
 
 func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (bucket *blob.Bucket, err error) {
@@ -50,29 +65,18 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 			err = fmt.Errorf("Failed to open bucket %q: %w", config.BucketName, err)
 		}
 	}()
-	if config.Scheme == "minio://" {
-		cred, err := getMinioCredential(ctx, k8sClient, namespace)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
-		}
-		sess, err := session.NewSession(&aws.Config{
-			Credentials:      cred,
-			Region:           aws.String("minio"),
-			Endpoint:         aws.String(MinioDefaultEndpoint()),
-			DisableSSL:       aws.Bool(true),
-			S3ForcePathStyle: aws.Bool(true),
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
-		}
-		minioBucket, err := s3blob.OpenBucket(ctx, sess, config.BucketName, nil)
+	sess, err := createBucketSession(ctx, namespace, config.Session, k8sClient)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve credentials for bucket %s: %w", config.BucketName, err)
+	}
+	if sess != nil {
+		openedBucket, err := s3blob.OpenBucket(ctx, sess, config.BucketName, nil)
 		if err != nil {
 			return nil, err
 		}
 		// Directly calling s3blob.OpenBucket does not allow overriding prefix via bucketConfig.BucketURL().
 		// Therefore, we need to explicitly configure the prefixed bucket.
-		return blob.PrefixedBucket(minioBucket, config.Prefix), nil
+		return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 
 	}
 	return blob.OpenBucket(ctx, config.bucketURL())
@@ -181,7 +185,17 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 
 var bucketPattern = regexp.MustCompile(`(^[a-z][a-z0-9]+:///?)([^/?]+)(/[^?]*)?(\?.+)?$`)
 
-func ParseBucketConfig(path string) (*Config, error) {
+func ParseBucketConfig(path string, sess *SessionInfo) (*Config, error) {
+	config, err := ParseBucketPathToConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	config.Session = sess
+
+	return config, nil
+}
+
+func ParseBucketPathToConfig(path string) (*Config, error) {
 	ms := bucketPattern.FindStringSubmatch(path)
 	if ms == nil || len(ms) != 5 {
 		return nil, fmt.Errorf("parse bucket config failed: unrecognized pipeline root format: %q", path)
@@ -286,11 +300,6 @@ func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localF
 	return nil
 }
 
-// The endpoint uses Kubernetes service DNS name with namespace:
-// https://kubernetes.io/docs/concepts/services-networking/service/#dns
-const defaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
-const minioArtifactSecretName = "mlpipeline-minio-artifact"
-
 func MinioDefaultEndpoint() string {
 	// Discover minio-service in the same namespace by env var.
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
@@ -307,36 +316,66 @@ func MinioDefaultEndpoint() string {
 	return defaultMinioEndpointInMultiUserMode
 }
 
-func getMinioCredential(ctx context.Context, clientSet kubernetes.Interface, namespace string) (cred *credentials.Credentials, err error) {
+func createBucketSession(ctx context.Context, namespace string, sessionInfo *SessionInfo, client kubernetes.Interface) (*session.Session, error) {
+	if sessionInfo == nil {
+		return nil, nil
+	}
+	creds, err := getBucketCredential(ctx, client, namespace, sessionInfo.SecretName, sessionInfo.SecretKeyKey, sessionInfo.AccessKeyKey)
+	if err != nil {
+		return nil, err
+	}
+	sess, err := session.NewSession(&aws.Config{
+		Credentials:      creds,
+		Region:           aws.String(sessionInfo.Region),
+		Endpoint:         aws.String(sessionInfo.Endpoint),
+		DisableSSL:       aws.Bool(sessionInfo.DisableSSL),
+		S3ForcePathStyle: aws.Bool(true),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
+	}
+	return sess, nil
+}
+
+func getBucketCredential(
+	ctx context.Context,
+	clientSet kubernetes.Interface,
+	namespace string,
+	secretName string,
+	bucketSecretKeyKey string,
+	bucketAccessKeyKey string,
+) (cred *credentials.Credentials, err error) {
 	defer func() {
 		if err != nil {
 			// wrap error before returning
-			err = fmt.Errorf("Failed to get MinIO credential from secret name=%q namespace=%q: %w", minioArtifactSecretName, namespace, err)
+			err = fmt.Errorf("Failed to get Bucket credentials from secret name=%q namespace=%q: %w", secretName, namespace, err)
 		}
 	}()
 	secret, err := clientSet.CoreV1().Secrets(namespace).Get(
 		ctx,
-		minioArtifactSecretName,
+		secretName,
 		metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	accessKey := string(secret.Data["accesskey"])
-	secretKey := string(secret.Data["secretkey"])
+	accessKey := string(secret.Data[bucketAccessKeyKey])
+	secretKey := string(secret.Data[bucketSecretKeyKey])
 
 	if accessKey != "" && secretKey != "" {
 		cred = credentials.NewStaticCredentials(accessKey, secretKey, "")
 		return cred, err
 	}
-
-	aws_cred, err := getAWSCredential()
-	if aws_cred != nil {
-		return aws_cred, err
-	}
-
-	return nil, fmt.Errorf("does not have 'accesskey' or 'secretkey' key")
+	return nil, fmt.Errorf("could not find specified keys '%s' or '%s'", bucketAccessKeyKey, bucketSecretKeyKey)
 }
 
-func getAWSCredential() (cred *credentials.Credentials, err error) {
-	return credentials.NewCredentials(&credentials.ChainProvider{}), nil
+func GetSessionInfoFromString(sessionInfoJSON string) (*SessionInfo, error) {
+	sessionInfo := &SessionInfo{}
+	if sessionInfoJSON == "" {
+		return nil, nil
+	}
+	err := json.Unmarshal([]byte(sessionInfoJSON), sessionInfo)
+	if err != nil {
+		return nil, fmt.Errorf("Encountered error when attempting to unmarshall bucket session properties: %w", err)
+	}
+	return sessionInfo, nil
 }
