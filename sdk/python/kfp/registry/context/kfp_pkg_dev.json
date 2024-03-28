@@ -16,5 +16,6 @@
    "delete_version_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/versions/{version}",
    "package_format":"projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}",
    "tag_format":"projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/tags/{tag}",
-   "version_format":"projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/versions/{version}"
+   "version_format":"projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/versions/{version}",
+   "auth_scopes": "https://www.googleapis.com/auth/cloud-platform"
 }
