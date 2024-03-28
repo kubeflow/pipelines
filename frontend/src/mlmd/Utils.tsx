@@ -24,7 +24,12 @@ import { ArtifactTypeMap, ExecutionTypeMap } from './LineageApi';
 import { Artifact, Execution, Value } from 'src/third_party/mlmd';
 import { LineageTypedResource } from './LineageTypes';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import { ArtifactHelpers, ExecutionHelpers } from './MlmdUtils';
+import {
+  ArtifactHelpers,
+  ExecutionHelpers,
+  getContextsByExecutionID,
+  GetEventsByArtifactIDs,
+} from './MlmdUtils';
 
 const ARTIFACT_FIELD_REPOS = [ArtifactProperties, ArtifactCustomProperties];
 const EXECUTION_FIELD_REPOS = [ExecutionProperties, ExecutionCustomProperties];
@@ -45,6 +50,17 @@ export function getResourceProperty(
     : resource.getPropertiesMap();
 
   return (props && props.get(propertyName) && getMetadataValue(props.get(propertyName))) || null;
+}
+
+export async function getPipelineNameByArtifact(res: Artifact): Promise<string> {
+  const events = await GetEventsByArtifactIDs([res.getId()]);
+  if (events.length === 0) return '[unknown]';
+
+  const executionId = events[0].getExecutionId();
+  const contexts = await getContextsByExecutionID(executionId);
+  if (contexts.length === 0) return '[unknown]';
+
+  return contexts[0].getName();
 }
 
 export function getResourcePropertyViaFallBack(
