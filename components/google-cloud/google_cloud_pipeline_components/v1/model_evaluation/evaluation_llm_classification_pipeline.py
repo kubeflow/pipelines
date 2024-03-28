@@ -18,6 +18,7 @@ from typing import Dict, List, NamedTuple
 from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationClassificationPredictionsPostprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
+from google_cloud_pipeline_components._implementation.model_evaluation import ModelNamePreprocessorOp
 from google_cloud_pipeline_components.types.artifact_types import ClassificationMetrics
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
@@ -97,12 +98,23 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
       evaluation_resource_name=str,
   )
 
+  preprocessed_model_name = ModelNamePreprocessorOp(
+      project=project,
+      location=location,
+      model_name=model_name,
+      service_account=service_account,
+  )
+
   get_vertex_model_task = dsl.importer(
       artifact_uri=(
-          f'https://{location}-aiplatform.googleapis.com/v1/{model_name}'
+          f'https://{location}-aiplatform.googleapis.com/v1/{preprocessed_model_name.outputs["processed_model_name"]}'
       ),
       artifact_class=VertexModel,
-      metadata={'resourceName': model_name},
+      metadata={
+          'resourceName': preprocessed_model_name.outputs[
+              'processed_model_name'
+          ]
+      },
   )
   get_vertex_model_task.set_display_name('get-vertex-model')
 
