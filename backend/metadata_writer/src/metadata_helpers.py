@@ -36,11 +36,16 @@ def connect_to_mlmd() -> metadata_store.MetadataStore:
         'METADATA_GRPC_SERVICE_SERVICE_HOST', 'metadata-grpc-service')
     metadata_service_port = int(os.environ.get(
         'METADATA_GRPC_SERVICE_SERVICE_PORT', 8080))
-
+    metadata_max_receive_message_length = int(os.environ.get(
+        'METADATA_GRPC_MAX_RECEIVE_MESSAGE_LENGTH', 4194304
+    ))
+    
     mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
         host="[{}]".format(metadata_service_host) if isIPv6(metadata_service_host) else metadata_service_host,
         port=metadata_service_port,
     )
+
+    mlmd_connection_config.channel_arguments.max_receive_message_length = metadata_max_receive_message_length
 
     # Checking the connection to the Metadata store.
     for _ in range(100):
