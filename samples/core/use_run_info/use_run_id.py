@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated as kfp
-from kfp.deprecated import components, dsl, compiler
+from kfp import components, dsl, compiler
 
-def get_run_info(run_id: str):
+@dsl.component(packages_to_install=['kfp'])
+def get_run_info_component(run_id: str):
     """Example of getting run info for current pipeline run."""
     print(f'Current run ID is {run_id}.')
     # KFP API server is usually available as ml-pipeline service in the same
@@ -30,17 +30,11 @@ def get_run_info(run_id: str):
     print(run_info.run)
 
 
-get_run_info_component = components.create_component_from_func(
-    func=get_run_info,
-    packages_to_install=['kfp'],
-)
-
-
 @dsl.pipeline(
     name='use-run-id',
     description='A pipeline that demonstrates how to use run information, including run ID etc.'
 )
-def pipeline_use_run_id(run_id: str = kfp.dsl.RUN_ID_PLACEHOLDER):
+def pipeline_use_run_id(run_id: str = dsl.PIPELINE_JOB_ID_PLACEHOLDER):
     """kfp.dsl.RUN_ID_PLACEHOLDER inside a pipeline parameter will be populated
     with KFP Run ID at runtime."""
     run_info_op = get_run_info_component(run_id=run_id)
