@@ -61,6 +61,7 @@ def use_config_map_as_volume(
     task: PipelineTask,
     config_map_name: str,
     mount_path: str,
+    optional: bool = False,
 ) -> PipelineTask:
     """Use a Kubernetes ConfigMap by mounting its data to the task's container as
     described by the `Kubernetes documentation <https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#add-configmap-data-to-a-volume>`_.
@@ -69,6 +70,7 @@ def use_config_map_as_volume(
         task: Pipeline task.
         config_map_name: Name of the ConfigMap.
         mount_path: Path to which to mount the ConfigMap data.
+        optional: Optional field specifying whether the ConfigMap must be defined.
 
     Returns:
         Task object with updated ConfigMap configuration.
@@ -79,6 +81,7 @@ def use_config_map_as_volume(
     config_map_as_vol = pb.ConfigMapAsVolume(
         config_map_name=config_map_name,
         mount_path=mount_path,
+        optional=optional,
     )
     msg.config_map_as_volume.append(config_map_as_vol)
 

@@ -156,7 +156,8 @@ class TestMountPVC:
                                 }],
                                 'secretAsVolume': [{
                                     'secretName': 'secret-name',
-                                    'mountPath': 'secretpath'
+                                    'mountPath': 'secretpath',
+                                    'optional': False
                                 }]
                             }
                         }

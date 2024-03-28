@@ -56,3 +56,4 @@ platforms:
           configMapAsVolume:
           - mountPath: /mnt/my_vol
             configMapName: my-cm
+            optional: False

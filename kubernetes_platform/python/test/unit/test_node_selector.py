@@ -113,7 +113,8 @@ class TestUseSecretAsVolume:
                                 },
                                 'secretAsVolume': [{
                                     'secretName': 'my-secret',
-                                    'mountPath': '/mnt/my_vol'
+                                    'mountPath': '/mnt/my_vol',
+                                    'optional': False
                                 }]
                             }
                         }

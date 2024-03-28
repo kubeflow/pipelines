@@ -38,7 +38,66 @@ class TestUseSecretAsVolume:
                             'exec-comp': {
                                 'secretAsVolume': [{
                                     'secretName': 'secret-name',
-                                    'mountPath': 'secretpath'
+                                    'mountPath': 'secretpath',
+                                    'optional': False
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_use_one_optional_true(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.use_secret_as_volume(
+                task,
+                secret_name='secret-name',
+                mount_path='secretpath',
+                optional=True)
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'secretAsVolume': [{
+                                    'secretName': 'secret-name',
+                                    'mountPath': 'secretpath',
+                                    'optional': True
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_use_one_optional_false(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.use_secret_as_volume(
+                task,
+                secret_name='secret-name',
+                mount_path='secretpath',
+                optional=False)
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'secretAsVolume': [{
+                                    'secretName': 'secret-name',
+                                    'mountPath': 'secretpath',
+                                    'optional': False
                                 }]
                             }
                         }
@@ -72,11 +131,13 @@ class TestUseSecretAsVolume:
                                 'secretAsVolume': [
                                     {
                                         'secretName': 'secret-name1',
-                                        'mountPath': 'secretpath1'
+                                        'mountPath': 'secretpath1',
+                                        'optional': False
                                     },
                                     {
                                         'secretName': 'secret-name2',
-                                        'mountPath': 'secretpath2'
+                                        'mountPath': 'secretpath2',
+                                        'optional': False
                                     },
                                 ]
                             }
@@ -119,7 +180,8 @@ class TestUseSecretAsVolume:
                                 }],
                                 'secretAsVolume': [{
                                     'secretName': 'secret-name2',
-                                    'mountPath': 'secretpath2'
+                                    'mountPath': 'secretpath2',
+                                    'optional': False
                                 },]
                             }
                         }
@@ -156,7 +218,8 @@ class TestUseSecretAsVolume:
                                 }],
                                 'secretAsVolume': [{
                                     'secretName': 'secret-name',
-                                    'mountPath': 'secretpath'
+                                    'mountPath': 'secretpath',
+                                    'optional': False
                                 }]
                             }
                         }
@@ -289,7 +352,8 @@ class TestUseSecretAsEnv:
                                 }],
                                 'secretAsVolume': [{
                                     'secretName': 'secret-name2',
-                                    'mountPath': 'secretpath2'
+                                    'mountPath': 'secretpath2',
+                                    'optional': False
                                 },]
                             }
                         }

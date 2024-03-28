@@ -38,7 +38,66 @@ class TestUseConfigMapAsVolume:
                             'exec-comp': {
                                 'configMapAsVolume': [{
                                     'configMapName': 'cm-name',
-                                    'mountPath': 'cmpath'
+                                    'mountPath': 'cmpath',
+                                    'optional': False
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_use_one_optional_true(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.use_config_map_as_volume(
+                task,
+                config_map_name='cm-name',
+                mount_path='cmpath',
+                optional=True)
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'configMapAsVolume': [{
+                                    'configMapName': 'cm-name',
+                                    'mountPath': 'cmpath',
+                                    'optional': True
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_use_one_optional_false(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.use_config_map_as_volume(
+                task,
+                config_map_name='cm-name',
+                mount_path='cmpath',
+                optional=False)
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'configMapAsVolume': [{
+                                    'configMapName': 'cm-name',
+                                    'mountPath': 'cmpath',
+                                    'optional': False
                                 }]
                             }
                         }
@@ -72,11 +131,13 @@ class TestUseConfigMapAsVolume:
                                 'configMapAsVolume': [
                                     {
                                         'configMapName': 'cm-name1',
-                                        'mountPath': 'cmpath1'
+                                        'mountPath': 'cmpath1',
+                                        'optional': False
                                     },
                                     {
                                         'configMapName': 'cm-name2',
-                                        'mountPath': 'cmpath2'
+                                        'mountPath': 'cmpath2',
+                                        'optional': False
                                     },
                                 ]
                             }
@@ -119,7 +180,8 @@ class TestUseConfigMapAsVolume:
                                 }],
                                 'configMapAsVolume': [{
                                     'configMapName': 'cm-name2',
-                                    'mountPath': 'cmpath2'
+                                    'mountPath': 'cmpath2',
+                                    'optional': False
                                 },]
                             }
                         }
@@ -156,7 +218,8 @@ class TestUseConfigMapAsVolume:
                                 }],
                                 'configMapAsVolume': [{
                                     'configMapName': 'cm-name',
-                                    'mountPath': 'cmpath'
+                                    'mountPath': 'cmpath',
+                                    'optional': False
                                 }]
                             }
                         }
@@ -289,7 +352,8 @@ class TestUseConfigMapAsEnv:
                                 }],
                                 'configMapAsVolume': [{
                                     'configMapName': 'cm-name2',
-                                    'mountPath': 'cmpath2'
+                                    'mountPath': 'cmpath2',
+                                    'optional': False
                                 },]
                             }
                         }
