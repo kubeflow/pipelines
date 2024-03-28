@@ -72,7 +72,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
           "output_text": "your ground truth output text"
         }
     batch_predict_gcs_destination_output_uri: Required. The Google Cloud Storage location of the directory where the eval pipeline output is to be written to.
-    service_account: Required. Sets the default service account for workload run-as account. The service account running the pipeline (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account) submitting jobs must have act-as permission on this run-as account. If unspecified, the Vertex AI Custom Code Service Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents) for the CustomJob's project.
+    service_account: Required. Sets the default service account for workload run-as account. The service account running the pipeline (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account) submitting jobs must have act-as permission on this run-as account.
     model_name: The Model name used to run evaluation. Must be a publisher Model or a managed Model sharing the same ancestor location. Starting this job has no impact on any existing deployments of the Model and their resources.
     evaluation_task: The task that the large language model will be evaluated on. The evaluation component computes a set of metrics relevant to that specific task. Currently supported tasks are: `summarization`, `question-answering`, `text-generation`.
     input_field_name: The field name of the input eval dataset instances that contains the input prompts to the LLM.
