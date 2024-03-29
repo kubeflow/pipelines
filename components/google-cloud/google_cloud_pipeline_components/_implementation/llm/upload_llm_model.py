@@ -26,7 +26,7 @@ from kfp import dsl
 def refined_upload_llm_model(
     project: str,
     location: str,
-    artifact_uri: dsl.Input[dsl.Artifact],
+    artifact_uri: str,
     model_reference_name: str,
     model_display_name: str,
     regional_endpoint: str,
@@ -88,7 +88,7 @@ def refined_upload_llm_model(
             'largeModelReference': {'name': model_reference_name},
             'labels': labels,
             'generatedModelSource': {'genie_source': {'base_model_uri': ''}},
-            'artifactUri': artifact_uri.uri,
+            'artifactUri': artifact_uri,
         }
     }
     if encryption_spec_key_name:

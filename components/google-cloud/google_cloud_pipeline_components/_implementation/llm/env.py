@@ -19,7 +19,7 @@ from google_cloud_pipeline_components._implementation.llm.generated import refin
 
 
 def get_private_image_tag() -> str:
-  return os.getenv('PRIVATE_IMAGE_TAG') or refined_image_versions.IMAGE_TAG
+  return os.getenv('PRIVATE_IMAGE_TAG') or '20240330_0352_RC00'
 
 
 def get_autosxs_image_tag() -> str:
