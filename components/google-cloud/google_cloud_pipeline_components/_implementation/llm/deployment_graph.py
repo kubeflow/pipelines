@@ -55,11 +55,6 @@ def pipeline(
     endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
   # fmt: on
-  adapter_artifact = kfp.dsl.importer(
-      artifact_uri=output_adapter_path,
-      artifact_class=kfp.dsl.Artifact,
-  ).set_display_name('Import Tuned Adapter')
-
   regional_endpoint = function_based.resolve_regional_endpoint(
       upload_location=upload_location
   ).set_display_name('Resolve Regional Endpoint')
@@ -86,7 +81,7 @@ def pipeline(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
       location=upload_location,
       regional_endpoint=regional_endpoint.output,
-      artifact_uri=adapter_artifact.output,
+      artifact_uri=output_adapter_path,
       model_display_name=display_name.output,
       model_reference_name=large_model_reference,
       upload_model=upload_model.output,

@@ -1,4 +1,5 @@
 ## Upcoming release
+* Add support for `text-bison@002` to `preview.llm.rlhf_pipeline`.
 
 ## Release 2.12.0
 * Log TensorBoard metrics from the `preview.llm.rlhf_pipeline` in real time.
