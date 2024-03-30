@@ -20,7 +20,7 @@ import kfp
 
 
 @kfp.dsl.container_component
-def BulkInferrer(  # pylint: disable=invalid-name
+def bulk_inferrer(
     project: str,
     location: str,
     inputs_sequence_length: int,
@@ -37,6 +37,7 @@ def BulkInferrer(  # pylint: disable=invalid-name
     output_prediction_gcs_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     sampling_strategy: str = 'greedy',
+    encryption_spec_key_name: str = '',
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Performs bulk inference.
 
@@ -56,6 +57,10 @@ def BulkInferrer(  # pylint: disable=invalid-name
     input_dataset_path: Path to dataset to use for inference.
     sampling_strategy: The sampling strategy for inference.
     dataset_split: Perform inference on this split of the input dataset.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set,
+      then all resources created by the CustomJob will be encrypted with the
+      provided encryption key. Note that this is not supported for TPU at the
+      moment.
 
   Returns:
     output_prediction: Where to save the output prediction.
@@ -72,6 +77,7 @@ def BulkInferrer(  # pylint: disable=invalid-name
           machine_type=machine_type,
           image_uri=image_uri,
           args=[
+              '--app_name=bulk_inferrer',
               f'--input_model={input_model}',
               f'--input_dataset={input_dataset_path}',
               f'--dataset_split={dataset_split}',
@@ -82,6 +88,7 @@ def BulkInferrer(  # pylint: disable=invalid-name
               f'--output_prediction={output_prediction}',
               f'--output_prediction_gcs_path={output_prediction_gcs_path}',
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
   )

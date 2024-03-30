@@ -41,7 +41,7 @@ def model_evaluation_text_generation(
     ground_truth_gcs_source: str = '',
     enable_row_based_metrics: bool = False,
     display_name: str = 'model-evaluation-text-generation',
-    machine_type: str = 'e2-highmem-16',
+    machine_type: str = 'e2-standard-4',
     service_account: str = '',
     network: str = '',
     reserved_ip_ranges: List[str] = [],
@@ -78,7 +78,7 @@ def model_evaluation_text_generation(
       only ground truth files to be used for this evaluation.
     display_name: The name of the evaluation custom job.
     machine_type: The machine type of this custom job. If not set, defaulted to
-      `e2-highmem-16`. More details:
+      `e2-standard-4`. More details:
       https://cloud.google.com/compute/docs/machine-resource
     service_account: Sets the default service account for workload run-as
       account. The service account running the pipeline

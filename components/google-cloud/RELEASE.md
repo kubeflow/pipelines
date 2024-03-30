@@ -1,7 +1,42 @@
 ## Upcoming release
+* Add support for `text-bison@002` to `preview.llm.rlhf_pipeline`.
+
+## Release 2.12.0
+* Log TensorBoard metrics from the `preview.llm.rlhf_pipeline` in real time.
+* Add task_type parameter to `preview.llm.rlaif_pipeline`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.11.0
+* Fix bug in `preview.llm.rlhf_pipeline` that caused wrong output artifact to be used for inference after training.
+* Fix issue where AutoSxS was not propagating location to all sub-components.
+* Add CMEK support to `preview.llm.infer_pipeline`.
+* Use `eval_dataset` for train-time evalutation when training a reward model. Requires `eval_dataset` to contain the same fields as the [preference dataset](https://cloud.google.com/vertex-ai/docs/generative-ai/models/tune-text-models-rlhf#human-preference-dataset).
+* Update the documentation of `GetModel`.
+* Add CMEK support to `preview.model_evaluation.autosxs_pipeline`.
+* Updated component and pipeline inputs/outputs to support creating ModelEvaluations for ModelRegistry models in the AutoSxS pipeline.
+* Add DRZ-at-rest to `preview.llm.rlhf_pipeline`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.10.0
+* Fix the missing output of pipeline remote runner. `AutoMLImageTrainingJobRunOp` now passes the model artifacts correctly to downstream components.
+* Fix the metadata of Model Evaluation resource when row based metrics is disabled in `preview.model_evaluation.evaluation_llm_text_generation_pipeline`.
+* Support `Jinja2>=3.1.2,<4`.
+* Support custom AutoSxS tasks.
+* Bump supported KFP versions to `kfp>=2.6.0,<=2.7.0`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+* Add CMEK support to `preview.llm.rlhf_pipeline` when tuning in `us-central1` with GPUs.
+## Release 2.9.0
 * Use `large_model_reference` for `model_reference_name` when uploading models from `preview.llm.rlhf_pipeline` instead of hardcoding value as `text-bison@001`.
 * Disable caching when resolving model display names for RLHF-tuned models so a unique name is generated on each `preview.llm.rlhf_pipeline` run.
 * Upload the tuned adapter to Model Registry instead of model checkpoint from `preview.llm.rlhf_pipeline`.
+* Fix the naming of AutoSxS's question answering task. "question_answer" -> "question_answering".
+* Add Vertex model get component (`v1.model.ModelGetOp`).
+* Migrate to Protobuf 4 (`protobuf>=4.21.1,<5`). Require `kfp>=2.6.0`.
+* Support setting version aliases in (`v1.model.ModelUploadOp`).
+* Only run `preview.llm.bulk_inference` pipeline after RLHF tuning for third-party models when `eval_dataset` is provided.
+* Update LLM Evaluation Pipelines to use `text-bison@002` model by default.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+* Add `preview.llm.rlaif_pipeline` that tunes large-language models from AI feedback.
 
 ## Release 2.8.0
 * Release AutoSxS pipeline to preview.

@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package preflight_validations;
+
+option java_multiple_files = true;
+
+// Describes the details of validation items.
+message ValidationItems {
+  // Validation for Google Cloud Service Account.
+  repeated GoogleCloudServiceAccountValidation sa_validations = 1;
+  // Validation for Google Cloud Project Quota.
+  repeated GoogleCloudProjectQuotaValidation quota_validations = 2;
+  // Validation for Google Cloud Api Enablement.
+  repeated GoogleCloudApiEnablementValidation api_validations = 3;
+}
+
+// Describes the details for Google Cloud Project Quota Validation.
+message GoogleCloudProjectQuotaValidation {
+  // Required. Metric name of the quota. Example: "compute.googleapis.com/cpus"
+  string metric_name = 1;
+  // Required. Value of the quota demand. Example: 2 or 3.5
+  // We will validate if the demand is under the limit or not.
+  oneof value {
+    // A signed 64-bit integer value.
+    int64 int64_value = 2;
+    // A double precision floating point value.
+    double double_value = 3;
+  }
+}
+
+// Describes the details for Google Cloud Service Account Validation.
+message GoogleCloudServiceAccountValidation {
+  // Required. Default principal email of the service account used for
+  // validation. Example:
+  // "{{$.pipeline_google_cloud_project_id}}-compute@developer.gserviceaccount.com"
+  // Use placeholder to specify the dynamic value like project id.
+  string default_principal_email = 1;
+
+  // Optional. If specified, the principal email will be overridden based on the
+  // placeholder. Currently support two placeholders: 1.
+  // "{{$.pipeline_google_cloud_service_account}}"(actual value is from
+  // PipelineJob.service_account 2.
+  // "{{$.parameter.service_account}}"(actual value is from the input parameter
+  // of the component/pipeline). If the value doesn't exist or is empty,
+  // overriding won't happen.
+  string override_placeholder = 2;
+
+  // Optional. Permission required to have for the service account.
+  // Pipeline service will check if provided SA has these permissions.
+  // Example: "aiplatform.metadataStores.get"
+  repeated string permissions = 3;
+
+  // Optional. Roles need to be granted for the service account.
+  // The role names will occur in preflight validations' error message
+  // as an action item for users.
+  repeated string role_names = 4;
+}
+
+// Describes the details of Google Cloud Api Enablement Validation.
+message GoogleCloudApiEnablementValidation {
+  // Required. Service names of Google Cloud Api.
+  repeated string service_names = 1;
+}

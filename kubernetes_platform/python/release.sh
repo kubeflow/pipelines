@@ -49,6 +49,6 @@ else
     then
         echo "Something went wrong! Expected version $KFP_KUBERNETES_VERSION but found version $INSTALLED_VERSION"
     else
-        python -m twine upload --username kubeflow-pipelines $TARGET_TAR_FILE
+        python -m twine upload $TARGET_TAR_FILE
     fi
 fi

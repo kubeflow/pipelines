@@ -11,18 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Experimental AutoML forecasting components."""
 import os
 
 from google_cloud_pipeline_components.preview.automl.forecasting.forecasting_ensemble import automl_forecasting_ensemble as ForecastingEnsembleOp
 from google_cloud_pipeline_components.preview.automl.forecasting.forecasting_stage_1_tuner import automl_forecasting_stage_1_tuner as ForecastingStage1TunerOp
 from google_cloud_pipeline_components.preview.automl.forecasting.forecasting_stage_2_tuner import automl_forecasting_stage_2_tuner as ForecastingStage2TunerOp
+from google_cloud_pipeline_components.preview.automl.forecasting.utils import get_learn_to_learn_forecasting_pipeline_and_parameters
+from google_cloud_pipeline_components.preview.automl.forecasting.utils import get_sequence_to_sequence_forecasting_pipeline_and_parameters
+from google_cloud_pipeline_components.preview.automl.forecasting.utils import get_temporal_fusion_transformer_forecasting_pipeline_and_parameters
+from google_cloud_pipeline_components.preview.automl.forecasting.utils import get_time_series_dense_encoder_forecasting_pipeline_and_parameters
 from kfp import components
 
 __all__ = [
-    'ForecastingStage1TunerOp',
     'ForecastingEnsembleOp',
+    'ForecastingStage1TunerOp',
     'ForecastingStage2TunerOp',
+    'get_learn_to_learn_forecasting_pipeline_and_parameters',
+    'get_sequence_to_sequence_forecasting_pipeline_and_parameters',
+    'get_temporal_fusion_transformer_forecasting_pipeline_and_parameters',
+    'get_time_series_dense_encoder_forecasting_pipeline_and_parameters',
     'learn_to_learn_forecasting_pipeline',
     'sequence_to_sequence_forecasting_pipeline',
     'temporal_fusion_transformer_forecasting_pipeline',

@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""The KFP local runner."""
+"""The `kfp.local` module contains objects for running KFP components
+locally."""
 
 from kfp.local.config import DockerRunner
 from kfp.local.config import init
 from kfp.local.config import SubprocessRunner
 
-# TODO: uncomment when local execution is publicly available
-# __all__ = [
-#     'init',
-#     'SubprocessRunner',
-#     'DockerRunner',
-# ]
+__all__ = [
+    'init',
+    'SubprocessRunner',
+    'DockerRunner',
+]

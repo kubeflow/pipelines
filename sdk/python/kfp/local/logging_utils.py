@@ -16,16 +16,23 @@ import builtins
 import contextlib
 import datetime
 import logging
+import shutil
 import sys
 from typing import Any, Dict, Generator, List
 
 from kfp import dsl
+from kfp.local import status
 
 
 class Color:
+    # color for task name
     CYAN = '\033[96m'
+    # color for status success
     GREEN = '\033[92m'
+    # color for status failure
     RED = '\033[91m'
+    # color for pipeline name
+    MAGENTA = '\033[95m'
     RESET = '\033[0m'
 
 
@@ -101,10 +108,10 @@ def make_log_lines_for_artifact(artifact: dsl.Artifact,) -> List[str]:
     """Returns a list of log lines that represent a single artifact output."""
     artifact_class_name_and_paren = f'{artifact.__class__.__name__}( '
     # name
-    artifact_lines = [f'{artifact_class_name_and_paren}name={artifact.name},']
+    artifact_lines = [f"{artifact_class_name_and_paren}name='{artifact.name}',"]
     newline_spaces = len(artifact_class_name_and_paren) * ' '
     # uri
-    artifact_lines.append(f'{newline_spaces}uri={artifact.uri},')
+    artifact_lines.append(f"{newline_spaces}uri='{artifact.uri}',")
     # metadata
     artifact_lines.append(f'{newline_spaces}metadata={artifact.metadata} )')
     return artifact_lines
@@ -135,6 +142,29 @@ def make_log_lines_for_outputs(outputs: Dict[str, Any]) -> List[str]:
 
         # present params
         else:
+            value = f"'{value}'" if isinstance(value, str) else value
             output_lines.append(f'{key_chars}{value}')
 
     return output_lines
+
+
+def print_horizontal_line() -> None:
+    columns, _ = shutil.get_terminal_size(fallback=(80, 24))
+    print('-' * columns)
+
+
+def format_task_name(task_name: str) -> str:
+    return color_text(f'{task_name!r}', Color.CYAN)
+
+
+def format_status(task_status: status.Status) -> str:
+    if task_status == status.Status.SUCCESS:
+        return color_text(task_status.name, Color.GREEN)
+    elif task_status == status.Status.FAILURE:
+        return color_text(task_status.name, Color.RED)
+    else:
+        raise ValueError(f'Got unknown status: {task_status}')
+
+
+def format_pipeline_name(pipeline_name: str) -> str:
+    return color_text(f'{pipeline_name!r}', Color.MAGENTA)

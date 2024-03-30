@@ -13,74 +13,21 @@
 # limitations under the License.
 """Optimization AI Inference and AutoSxS pipeline function."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, NamedTuple
 
 from google_cloud_pipeline_components import _placeholders
-from google_cloud_pipeline_components._implementation.llm import arbiter_preprocess
-from google_cloud_pipeline_components._implementation.llm import autosxs_arbiter
-from google_cloud_pipeline_components._implementation.llm import autosxs_metrics_computer
-from google_cloud_pipeline_components._implementation.llm import function_based
-from google_cloud_pipeline_components._implementation.llm import task_preprocess
-from google_cloud_pipeline_components.types import artifact_types
-from google_cloud_pipeline_components.v1 import batch_predict_job
+from google_cloud_pipeline_components._implementation.llm import batch_prediction_pairwise
+from google_cloud_pipeline_components._implementation.llm import model_evaluation_text_generation_pairwise
+from google_cloud_pipeline_components._implementation.llm import online_evaluation_pairwise
 from kfp import dsl
 
-
-# pylint: disable=no-value-for-parameter
-@dsl.pipeline(
-    name='predictions-pipeline',
-    description='Runs the prediction pipeline for one of the two SxS models.',
+PipelineOutput = NamedTuple(
+    'Outputs',
+    model_a_evaluation_resource_name=str,
+    model_b_evaluation_resource_name=str,
+    evaluation_count=int,
+    evaluation_dataset_path=str,
 )
-def _get_predictions(
-    name: str,
-    project: str,
-    location: str,
-    model: str,
-    model_parameters: Dict[str, str],
-    prediction_inputs: List[str],
-    is_model_inference: bool,
-) -> str:
-  """Makes predictions for a given model."""
-  with dsl.If(is_model_inference == True, name='Inference Required'):  # pylint: disable=singleton-comparison
-    get_vertex_model_task = dsl.importer(
-        artifact_uri=(
-            f'https://{location}-aiplatform.googleapis.com/v1/{model}'
-        ),
-        artifact_class=artifact_types.VertexModel,
-        metadata={'resourceName': model},
-    ).set_display_name('Import Vertex Model Artifact')
-
-    batch_predict_task = batch_predict_job.ModelBatchPredictOp(
-        project=project,
-        location=location,
-        model=get_vertex_model_task.outputs['artifact'],
-        job_display_name=(
-            f'autosxs-{name}-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}'
-        ),
-        gcs_source_uris=prediction_inputs,
-        instances_format='jsonl',
-        predictions_format='jsonl',
-        gcs_destination_output_uri_prefix=(
-            f'{dsl.PIPELINE_ROOT_PLACEHOLDER}/{dsl.PIPELINE_TASK_ID_PLACEHOLDER}'
-            f'/{name}_predictions'
-        ),
-        model_parameters=model_parameters,
-    )
-    prediction_uris_from_inference = function_based.get_uri(
-        artifact=batch_predict_task.outputs['gcs_output_directory'],
-        is_dir=True,
-    )
-
-  with dsl.Else(name='Responses Provided'):  # pylint: disable=singleton-comparison
-    prediction_uris_inference_provided = function_based.get_empty_string()
-
-  prediction_uris = dsl.OneOf(
-      prediction_uris_from_inference.output,
-      prediction_uris_inference_provided.output,
-  )
-
-  # We can't directly output dsl.OneOf, so we need to use identity.
-  return function_based.identity(x=prediction_uris).output
 
 
 # pylint: disable=dangerous-default-value,g-bare-generic,unused-argument
@@ -107,131 +54,62 @@ def autosxs_pipeline(
     judgments_format: str = 'jsonl',
     bigquery_destination_prefix: str = '',
     experimental_args: Dict[str, Any] = {},
-):
+    encryption_spec_key_name: str = '',
+) -> PipelineOutput:
+  # fmt: off
   """Evaluates two models side-by-side using an arbiter model.
 
   Args:
-    evaluation_dataset: A BigQuery table or comma-separated list of GCS paths to
-      a JSONL dataset containing evaluation examples.
-    task: Evaluation task in the form {task}@{version}. task can be one of
-      "summarization", "question_answer". Version is an integer with 3 digits or
-      "latest". Ex: summarization@001 or question_answer@latest.
+    evaluation_dataset: A BigQuery table or comma-separated list of GCS paths to a JSONL dataset containing evaluation examples.
+    task: Evaluation task in the form `{task}@{version}`. task can be one of `[summarization, question_answering]`. Version is an integer with 3 digits or "latest". Ex: `summarization@001` or `question_answering@latest`.
     id_columns: The columns which distinguish unique evaluation examples.
-    model_a: A fully-qualified model resource name
-      (`projects/{project}/locations/{location}/models/{model}@{version}`) or
-      publisher model resource name (`publishers/{publisher}/models/{model}`).
-      This parameter is optional if Model A responses are specified.
-    model_b: A fully-qualified model resource name
-      (`projects/{project}/locations/{location}/models/{model}@{version}`) or
-      publisher model resource name (`publishers/{publisher}/models/{model}`).
-      This parameter is optional if Model B responses are specified.
-    autorater_prompt_parameters: Map of autorater prompt parameters to columns
-      or templates. The expected parameters are: inference_instruction - Details
-      on how to perform a task. inference_context - Content to reference to
-      perform the task. Example - `{'inference_context': {'column':
-      'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the
-      AutoRater's context.
-    model_a_prompt_parameters: Map of Model A prompt template parameters to
-      columns or templates. This parameter is optional if Model A predictions
-      are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the
-      evaluation dataset's `my_prompt` column for the prompt parameter named
-      `prompt`.
-    model_b_prompt_parameters: Map of Model B prompt template parameters to
-      columns or templates. This parameter is optional if Model B predictions
-      are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the
-      evaluation dataset's `my_prompt` column for the prompt parameter named
-      `prompt`.
-    response_column_a: Either the name of a column in the evaluation dataset
-      containing predefined predictions, or the name of the column in the Model
-      A output containing predictions. If no value is provided, the correct
-      model output column name will attempt to be inferred.
-    response_column_b: Either the name of a column in the evaluation dataset
-      containing predefined predictions, or the name of the column in the Model
-      B output containing predictions. If no value is provided, the correct
-      model output column name will attempt to be inferred.
-    model_a_parameters: The parameters that govern the predictions from model A,
-      such as temperature or maximum output tokens.
-    model_b_parameters: The parameters that govern the predictions from model B,
-      such as temperature or maximum output tokens.
-    human_preference_column: The column containing ground truth winners for each
-      example. Providing this parameter adds additional metrics for checking the
-      AutoRater alignment with human preferences.
-    project: Project used to run custom jobs. Default is the same project used
-      to run the pipeline.
-    location: Location used to run custom jobs. Default is the same location
-      used to run the pipeline.
-    judgments_format: The format to write judgments to. Can be either 'json' or
-      'bigquery'.
-    bigquery_destination_prefix: BigQuery table to write judgments to if the
-      specified format is 'bigquery'.
+    model_a: A fully-qualified model resource name (`projects/{project}/locations/{location}/models/{model}@{version}`) or publisher model resource name (`publishers/{publisher}/models/{model}`).  This parameter is optional if Model A responses are specified.
+    model_b: A fully-qualified model resource name (`projects/{project}/locations/{location}/models/{model}@{version}`) or publisher model resource name (`publishers/{publisher}/models/{model}`).  This parameter is optional if Model B responses are specified.
+    autorater_prompt_parameters: Map of autorater prompt parameters to columns or templates. The expected parameters are: `inference_instruction` (details on how to perform a task) and `inference_context` (content to reference to perform the task). As an example, `{'inference_context': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the AutoRater's context.
+    model_a_prompt_parameters: Map of Model A prompt template parameters to columns or templates. This parameter is optional if Model A predictions are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the prompt parameter named `prompt`.
+    model_b_prompt_parameters: Map of Model B prompt template parameters to columns or templates. This parameter is optional if Model B predictions are predefined. Example - `{'prompt': {'column': 'my_prompt'}}` uses the evaluation dataset's `my_prompt` column for the prompt parameter named `prompt`.
+    response_column_a: Either the name of a column in the evaluation dataset containing predefined predictions, or the name of the column in the Model A output containing predictions. If no value is provided, the correct model output column name will attempt to be inferred.
+    response_column_b: Either the name of a column in the evaluation dataset containing predefined predictions, or the name of the column in the Model B output containing predictions. If no value is provided, the correct model output column name will attempt to be inferred.
+    model_a_parameters: The parameters that govern the predictions from model A, such as temperature or maximum output tokens.
+    model_b_parameters: The parameters that govern the predictions from model B, such as temperature or maximum output tokens.
+    human_preference_column: The column containing ground truth winners for each example. Providing this parameter adds additional metrics for checking the AutoRater alignment with human preferences.
+    project: Project used to run custom jobs. This should be the same project used to run the pipeline.
+    location: Location used to run custom jobs. This should be the same location used to run the pipeline.
+    judgments_format: The format to write judgments to. Can be either `[json, bigquery]`.
+    bigquery_destination_prefix: BigQuery table to write judgments to if the specified format is 'bigquery'.
     experimental_args: Experimentally released arguments. Subject to change.
+    encryption_spec_key_name: Customer-managed encryption key options. If this is set, then all resources created by the pipeline will be encrypted with the provided encryption key.
+
+  Returns:
+    model_a_evaluation_resource_name: The path to write the ModelEvaluation for Model A to if Model A is a ModelRegistry Model.
+    model_b_evaluation_resource_name: The path to write the ModelEvaluation for Model B to if Model B is a ModelRegistry Model.
+    evaluation_count: The count of how many evaluations were included for this AutoSxS run.
+    evaluation_dataset_path: The path to the overall evaluation dataset including judgments.
   """
-  prediction_inputs_a = task_preprocess.task_preprocess(
+  # fmt: on
+  responses = batch_prediction_pairwise.batch_prediction_pairwise(
+      display_name='autosxs-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
       evaluation_dataset=evaluation_dataset,
-      task=task,
-      model_prompt_parameters=model_a_prompt_parameters,
-      response_column=response_column_a,
-      human_preference_column=human_preference_column,
       id_columns=id_columns,
-  ).set_display_name('Preprocess Model A Inputs')
-
-  prediction_inputs_b = task_preprocess.task_preprocess(
-      evaluation_dataset=evaluation_dataset,
       task=task,
-      model_prompt_parameters=model_b_prompt_parameters,
-      response_column=response_column_b,
-      human_preference_column=human_preference_column,
-      id_columns=id_columns,
-  ).set_display_name('Preprocess Model B Inputs')
-
-  is_model_a_inference = function_based.get_usage_metric(
-      metadata=prediction_inputs_a.outputs['metadata'],
-      key='is_model_inference',
-  ).set_display_name('Read is_model_a_inference')
-
-  is_model_b_inference = function_based.get_usage_metric(
-      metadata=prediction_inputs_b.outputs['metadata'],
-      key='is_model_inference',
-  ).set_display_name('Read is_model_b_inference')
-
-  inferrer_a = _get_predictions(
-      name='A',
-      project=project,
-      location=location,
-      model=model_a,
-      model_parameters=model_a_parameters,
-      prediction_inputs=prediction_inputs_a.outputs['prediction_inputs'],
-      is_model_inference=is_model_a_inference.output,
-  ).set_display_name('Model A Responses')
-
-  inferrer_b = _get_predictions(
-      name='B',
-      project=project,
-      location=location,
-      model=model_b,
-      model_parameters=model_b_parameters,
-      prediction_inputs=prediction_inputs_b.outputs['prediction_inputs'],
-      is_model_inference=is_model_b_inference.output,
-  ).set_display_name('Model B Responses')
-
-  arbiter_input_preprocess = arbiter_preprocess.arbiter_preprocess(
       autorater_prompt_parameters=autorater_prompt_parameters,
-      evaluation_dataset=evaluation_dataset,
-      id_columns=id_columns,
-      prediction_uris_b=inferrer_b.output,
-      prediction_uris_a=inferrer_a.output,
-      model_a_prompt_parameters=model_a_prompt_parameters,
-      model_b_prompt_parameters=model_b_prompt_parameters,
-      task=task,
       response_column_a=response_column_a,
       response_column_b=response_column_b,
+      model_a=model_a,
+      model_b=model_b,
+      model_a_prompt_parameters=model_a_prompt_parameters,
+      model_b_prompt_parameters=model_b_prompt_parameters,
+      model_a_parameters=model_a_parameters,
+      model_b_parameters=model_b_parameters,
       human_preference_column=human_preference_column,
-      is_bp_output_a=is_model_a_inference.output,
-      is_bp_output_b=is_model_b_inference.output,
-  ).set_display_name('Preprocess Predictions')
+      experimental_args=experimental_args,
+      project=project,
+      location=location,
+      encryption_spec_key_name=encryption_spec_key_name,
+  ).set_display_name('AutoSxS Batch Prediction')
 
-  autosxs_arbiter_task = autosxs_arbiter.autosxs_arbiter(
-      inference_output_uri=arbiter_input_preprocess.outputs[
+  winners = online_evaluation_pairwise.online_evaluation_pairwise(
+      inference_output_uri=responses.outputs[
           'preprocessed_evaluation_dataset_uri'
       ],
       id_columns=id_columns,
@@ -240,14 +118,34 @@ def autosxs_pipeline(
       judgments_format=judgments_format,
       bigquery_destination_prefix=bigquery_destination_prefix,
       experimental_args=experimental_args,
-  ).set_display_name('AutoSxS Arbiter')
+      project=project,
+      location=location,
+      encryption_spec_key_name=encryption_spec_key_name,
+  ).set_display_name('AutoSxS Autorater')
 
-  has_human_preference = function_based.get_usage_metric(
-      metadata=prediction_inputs_a.outputs['metadata'],
-      key='has_human_preference_column',
-  ).set_display_name('Read has_human_preference_column')
+  metrics = model_evaluation_text_generation_pairwise.model_evaluation_text_generation_pairwise(
+      judgments_dir=winners.outputs['judgments_uri'],
+      human_preference_column=human_preference_column,
+      project=project,
+      location=location,
+      encryption_spec_key_name=encryption_spec_key_name,
+      model_a=model_a,
+      model_b=model_b,
+      evaluation_dataset=evaluation_dataset,
+      evaluation_dataset_metadata=winners.outputs['metadata'],
+      task=task,
+  ).set_display_name(
+      'AutoSxS Metrics'
+  )
 
-  autosxs_metrics_computer.autosxs_metrics_computer(
-      judgments_dir=autosxs_arbiter_task.outputs['judgments_uri'],
-      has_human_preference=has_human_preference.output,
-  ).set_display_name('AutoSxS Metrics')
+  return PipelineOutput(
+      model_a_evaluation_resource_name=metrics.outputs[
+          'model_a_evaluation_path'
+      ],
+      model_b_evaluation_resource_name=metrics.outputs[
+          'model_b_evaluation_path'
+      ],
+      evaluation_count=metrics.outputs['evaluation_count_path'],
+      # Needs to be a component output
+      evaluation_dataset_path=metrics.outputs['evaluation_dataset_path'],
+  )

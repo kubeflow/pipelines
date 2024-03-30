@@ -25,6 +25,18 @@ message KubernetesExecutorConfig {
     repeated SecretAsEnv secret_as_env = 2;
     repeated PvcMount pvc_mount = 3;
     NodeSelector node_selector = 4;
+    PodMetadata pod_metadata = 5;
+    repeated ImagePullSecret image_pull_secret = 6;
+    // One of Always, Never, IfNotPresent.
+    string image_pull_policy = 7;
+    repeated ConfigMapAsVolume config_map_as_volume = 8;
+    repeated ConfigMapAsEnv config_map_as_env = 9;
+    int64 active_deadline_seconds = 10;
+    repeated FieldPathAsEnv field_path_as_env = 11;
+    repeated Toleration tolerations = 12;
+    repeated GenericEphemeralVolume generic_ephemeral_volume = 13;
+    repeated NodeAffinityTerm node_affinity = 14;
+    repeated PodAffinityTerm pod_affinity = 15;
 }
 
 message SecretAsVolume {
@@ -32,6 +44,8 @@ message SecretAsVolume {
     string secret_name = 1;
     // Container path to mount the Secret data.
     string mount_path = 2;
+    // An optional boolean value indicating whether the Secret must be defined.
+    optional bool optional = 3;
 }
 
 message SecretAsEnv {
@@ -113,4 +127,104 @@ message NodeSelector {
     // map of label key to label value
     // corresponds to Pod.spec.nodeSelector field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
     map<string, string> labels = 1;
+}
+
+message PodMetadata {
+    // values of metadata spec such as labels and annotations for the pod object
+    // corresponds to Pod.metadata field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Pod
+    map<string, string> labels = 1;
+    map<string, string> annotations = 2;
+}
+
+message ConfigMapAsVolume {
+    // Name of the ConfigMap.
+    string config_map_name = 1;
+    // Container path to mount the ConfigMap data.
+    string mount_path = 2;
+    // An optional boolean value indicating whether the ConfigMap must be defined.
+    optional bool optional = 3;
+}
+
+message ConfigMapAsEnv {
+    // Name of the ConfigMap.
+    string config_map_name = 1;
+
+    message ConfigMapKeyToEnvMap {
+        // Corresponds to a key of the ConfigMap.
+        string config_map_key = 1;
+        // Env var to which configmap_key's data should be set.
+        string env_var = 2;
+    }
+
+    repeated ConfigMapKeyToEnvMap key_to_env = 2;
+}
+
+message GenericEphemeralVolume {
+    // more details in https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes
+    // Name of the ephemeral volume.
+    string volume_name = 1;
+    // Container path to mount the volume
+    string mount_path = 2;
+    // Corresponds to ephemeral.volumeClaimTemplate.spec.accessModes field.
+    repeated string access_modes = 3;
+    // Corresponds to ephemeral.volumeClaimTemplate.spec.resources.requests.storage field.
+    string size = 4;
+    // If true, corresponds to omitted ephemeral.volumeClaimTemplate.spec.storageClassName.
+    bool default_storage_class = 5;
+    // Corresponds to ephemeral.volumeClaimTemplate.spec.storageClassName string field.
+    // Should only be used if default_storage_class is false.
+    string storage_class_name = 6;
+    // Corresponds to ephemeral.volumeClaimTemplate.metadata.
+    // This is not exactly a pod metadata but the fields are the same
+    PodMetadata metadata = 7;
+}
+
+message ImagePullSecret {
+    // Name of the image pull secret.
+    string secret_name = 1;
+}
+
+message FieldPathAsEnv {
+    // Name of the environment variable
+    string name = 1;
+
+    // Value of the field path string
+    string field_path = 2;
+}
+
+message Toleration {
+    string key = 1;
+    string operator = 2;
+    string value = 3;
+    string effect = 4;
+    optional int64 toleration_seconds = 5;
+}
+
+// Matches https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselectorrequirement-v1-meta and
+// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#nodeselectorrequirement-v1-core
+message SelectorRequirement {
+    string key = 1;
+    string operator = 2;
+    repeated string values = 3;
+}
+
+message NodeAffinityTerm {
+    repeated SelectorRequirement match_expressions = 1;
+    repeated SelectorRequirement match_fields = 2;
+    //Setting the weight makes it use PreferredDuringSchedulingIgnoredDuringExecution rules instead of RequiredDuringSchedulingIgnoredDuringExecution rules
+    optional int64 weight = 3;
+} 
+
+
+message PodAffinityTerm {
+    repeated SelectorRequirement match_pod_expressions = 1;
+    map<string,string> match_pod_labels = 2;
+    string topology_key = 3;
+    repeated string namespaces = 4;
+    repeated SelectorRequirement match_namespace_expressions = 5;
+    map<string,string> match_namespace_labels = 6;
+    //Setting a weight makes it use PreferredDuringSchedulingIgnoredDuringExecution rules instead of RequiredDuringSchedulingIgnoredDuringExecution rules
+    optional int64 weight = 7;
+    //Flag indicating if it is a podaffinity or podantiaffinity
+    optional bool anti = 8;
 }

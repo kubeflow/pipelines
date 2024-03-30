@@ -30,6 +30,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
@@ -130,8 +131,14 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		PipelineSpec: string(pipelineFile),
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
 	newPipeline, newPipelineVersion, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
 	if err != nil {
+		if util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
+			s.writeErrorToResponse(w, http.StatusConflict, util.Wrap(err, "Failed to create a pipeline and a pipeline version. The pipeline already exists."))
+			return
+		}
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline and a pipeline version"))
 		return
 	}
@@ -140,7 +147,6 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		pipelineVersionCount.Inc()
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
 
 	if api_version == "v1beta1" {
@@ -211,6 +217,8 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
 	// If new version's name is not included in query string, use file name.
 	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
 	pipelineVersionName := buildPipelineName(versionNameQueryString, header.Filename)
@@ -223,11 +231,14 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 		},
 	)
 	if err != nil {
+		if util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
+			s.writeErrorToResponse(w, http.StatusConflict, util.Wrap(err, "Failed to create a pipeline version. The pipeline already exists."))
+			return
+		}
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version"))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
 	if api_version == "v1beta1" {
 		err = marshaler.Marshal(w, toApiPipelineVersionV1(newPipelineVersion))

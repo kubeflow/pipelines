@@ -23,10 +23,10 @@ from kfp import dsl
 # pytype: disable=unsupported-operands
 # pytype: disable=import-error
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def upload_llm_model(
+def refined_upload_llm_model(
     project: str,
     location: str,
-    artifact_uri: dsl.Input[dsl.Artifact],
+    artifact_uri: str,
     model_reference_name: str,
     model_display_name: str,
     regional_endpoint: str,
@@ -41,7 +41,7 @@ def upload_llm_model(
   Args:
       project: Name of the GCP project.
       location: Location for model upload and deployment.
-      artifact_uri: KFP Artifact for adapter.
+      artifact_uri: Path to the artifact to upload.
       model_reference_name: Large model reference name.
       model_display_name: Name of the model (shown in Model Registry).
       regional_endpoint: Regional API endpoint.
@@ -88,7 +88,7 @@ def upload_llm_model(
             'largeModelReference': {'name': model_reference_name},
             'labels': labels,
             'generatedModelSource': {'genie_source': {'base_model_uri': ''}},
-            'artifactUri': artifact_uri.uri,
+            'artifactUri': artifact_uri,
         }
     }
     if encryption_spec_key_name:

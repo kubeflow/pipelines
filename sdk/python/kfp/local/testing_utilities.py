@@ -75,8 +75,7 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
 
     def tearDown(self):
         # EXIT: use tempdir for all tests
-        # os.chmod(self.temp_dir.name, 0o777)
-        # self.temp_dir.cleanup()
+        self.temp_dir.cleanup()
         os.chdir(self.working_dir)
 
         # EXIT: mount KFP dir to enable install from source for docker runner
@@ -85,16 +84,12 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
     @classmethod
     def setUpClass(cls):
         # ENTER: use local KFP package path for subprocess runner
-        from kfp.dsl import pipeline_task
-        pipeline_task.TEMPORARILY_BLOCK_LOCAL_EXECUTION = False
         cls.original_component, dsl.component = dsl.component, functools.partial(
             dsl.component, kfp_package_path=_LOCAL_KFP_PACKAGE_PATH)
 
     @classmethod
     def tearDownClass(cls):
         # EXIT: use local KFP package path for subprocess runner
-        from kfp.dsl import pipeline_task
-        pipeline_task.TEMPORARILY_BLOCK_LOCAL_EXECUTION = True
         dsl.component = cls.original_component
 
 

@@ -85,3 +85,6 @@ __pycache__
 # Coverage
 .coverage
 .coverage*
+
+# kfp local execution default directory
+local_outputs/

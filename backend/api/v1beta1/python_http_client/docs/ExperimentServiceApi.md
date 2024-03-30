@@ -4,16 +4,16 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**archive_experiment_v1**](ExperimentServiceApi.md#archive_experiment_v1) | **POST** /apis/v1beta1/experiments/{id}:archive | Archives an experiment and the experiment&#39;s runs and jobs.
-[**create_experiment_v1**](ExperimentServiceApi.md#create_experiment_v1) | **POST** /apis/v1beta1/experiments | Creates a new experiment.
-[**delete_experiment_v1**](ExperimentServiceApi.md#delete_experiment_v1) | **DELETE** /apis/v1beta1/experiments/{id} | Deletes an experiment without deleting the experiment&#39;s runs and jobs. To avoid unexpected behaviors, delete an experiment&#39;s runs and jobs before deleting the experiment.
-[**get_experiment_v1**](ExperimentServiceApi.md#get_experiment_v1) | **GET** /apis/v1beta1/experiments/{id} | Finds a specific experiment by ID.
-[**list_experiments_v1**](ExperimentServiceApi.md#list_experiments_v1) | **GET** /apis/v1beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
-[**unarchive_experiment_v1**](ExperimentServiceApi.md#unarchive_experiment_v1) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and jobs will stay archived.
+[**experiment_service_archive_experiment_v1**](ExperimentServiceApi.md#experiment_service_archive_experiment_v1) | **POST** /apis/v1beta1/experiments/{id}:archive | Archives an experiment and the experiment&#39;s runs and jobs.
+[**experiment_service_create_experiment_v1**](ExperimentServiceApi.md#experiment_service_create_experiment_v1) | **POST** /apis/v1beta1/experiments | Creates a new experiment.
+[**experiment_service_delete_experiment_v1**](ExperimentServiceApi.md#experiment_service_delete_experiment_v1) | **DELETE** /apis/v1beta1/experiments/{id} | Deletes an experiment without deleting the experiment&#39;s runs and jobs. To avoid unexpected behaviors, delete an experiment&#39;s runs and jobs before deleting the experiment.
+[**experiment_service_get_experiment_v1**](ExperimentServiceApi.md#experiment_service_get_experiment_v1) | **GET** /apis/v1beta1/experiments/{id} | Finds a specific experiment by ID.
+[**experiment_service_list_experiments_v1**](ExperimentServiceApi.md#experiment_service_list_experiments_v1) | **GET** /apis/v1beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
+[**experiment_service_unarchive_experiment_v1**](ExperimentServiceApi.md#experiment_service_unarchive_experiment_v1) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and jobs will stay archived.
 
 
-# **archive_experiment_v1**
-> object archive_experiment_v1(id)
+# **experiment_service_archive_experiment_v1**
+> object experiment_service_archive_experiment_v1(id)
 
 Archives an experiment and the experiment's runs and jobs.
 
@@ -55,10 +55,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Archives an experiment and the experiment's runs and jobs.
-        api_response = api_instance.archive_experiment_v1(id)
+        api_response = api_instance.experiment_service_archive_experiment_v1(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ExperimentServiceApi->archive_experiment_v1: %s\n" % e)
+        print("Exception when calling ExperimentServiceApi->experiment_service_archive_experiment_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -84,12 +84,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **create_experiment_v1**
-> ApiExperiment create_experiment_v1(body)
+# **experiment_service_create_experiment_v1**
+> ApiExperiment experiment_service_create_experiment_v1(body)
 
 Creates a new experiment.
 
@@ -131,10 +131,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Creates a new experiment.
-        api_response = api_instance.create_experiment_v1(body)
+        api_response = api_instance.experiment_service_create_experiment_v1(body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ExperimentServiceApi->create_experiment_v1: %s\n" % e)
+        print("Exception when calling ExperimentServiceApi->experiment_service_create_experiment_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -160,12 +160,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **delete_experiment_v1**
-> object delete_experiment_v1(id)
+# **experiment_service_delete_experiment_v1**
+> object experiment_service_delete_experiment_v1(id)
 
 Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.
 
@@ -207,10 +207,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.
-        api_response = api_instance.delete_experiment_v1(id)
+        api_response = api_instance.experiment_service_delete_experiment_v1(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ExperimentServiceApi->delete_experiment_v1: %s\n" % e)
+        print("Exception when calling ExperimentServiceApi->experiment_service_delete_experiment_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -236,12 +236,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **get_experiment_v1**
-> ApiExperiment get_experiment_v1(id)
+# **experiment_service_get_experiment_v1**
+> ApiExperiment experiment_service_get_experiment_v1(id)
 
 Finds a specific experiment by ID.
 
@@ -283,10 +283,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Finds a specific experiment by ID.
-        api_response = api_instance.get_experiment_v1(id)
+        api_response = api_instance.experiment_service_get_experiment_v1(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ExperimentServiceApi->get_experiment_v1: %s\n" % e)
+        print("Exception when calling ExperimentServiceApi->experiment_service_get_experiment_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -312,12 +312,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **list_experiments_v1**
-> ApiListExperimentsResponse list_experiments_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
+# **experiment_service_list_experiments_v1**
+> ApiListExperimentsResponse experiment_service_list_experiments_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
 
 Finds all experiments. Supports pagination, and sorting on certain fields.
 
@@ -364,10 +364,10 @@ resource_reference_key_id = 'resource_reference_key_id_example' # str | The ID o
 
     try:
         # Finds all experiments. Supports pagination, and sorting on certain fields.
-        api_response = api_instance.list_experiments_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
+        api_response = api_instance.experiment_service_list_experiments_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ExperimentServiceApi->list_experiments_v1: %s\n" % e)
+        print("Exception when calling ExperimentServiceApi->experiment_service_list_experiments_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -398,12 +398,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **unarchive_experiment_v1**
-> object unarchive_experiment_v1(id)
+# **experiment_service_unarchive_experiment_v1**
+> object experiment_service_unarchive_experiment_v1(id)
 
 Restores an archived experiment. The experiment's archived runs and jobs will stay archived.
 
@@ -445,10 +445,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Restores an archived experiment. The experiment's archived runs and jobs will stay archived.
-        api_response = api_instance.unarchive_experiment_v1(id)
+        api_response = api_instance.experiment_service_unarchive_experiment_v1(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ExperimentServiceApi->unarchive_experiment_v1: %s\n" % e)
+        print("Exception when calling ExperimentServiceApi->experiment_service_unarchive_experiment_v1: %s\n" % e)
 ```
 
 ### Parameters
@@ -474,7 +474,7 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

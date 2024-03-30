@@ -247,7 +247,8 @@ def get_inputs_for_all_groups(
             channel_to_add = channel
 
             while isinstance(channel_to_add, (
-                    for_loop.LoopArgument,
+                    for_loop.LoopParameterArgument,
+                    for_loop.LoopArtifactArgument,
                     for_loop.LoopArgumentVariable,
             )):
                 channels_to_add.append(channel_to_add)
@@ -309,10 +310,11 @@ def get_inputs_for_all_groups(
                 # loop items, we have to go from bottom-up because the
                 # PipelineChannel can be originated from the middle a DAG,
                 # which is not needed and visible to its parent DAG.
-                if isinstance(
-                        channel,
-                    (for_loop.LoopArgument, for_loop.LoopArgumentVariable
-                    )) and channel.is_with_items_loop_argument:
+                if isinstance(channel, (
+                        for_loop.LoopParameterArgument,
+                        for_loop.LoopArtifactArgument,
+                        for_loop.LoopArgumentVariable,
+                )) and channel.is_with_items_loop_argument:
                     for group_name in task_name_to_parent_groups[
                             task.name][::-1]:
 
@@ -520,6 +522,15 @@ def get_outputs_for_all_groups(
                         break
 
             elif isinstance(channel, pipeline_channel.OneOfMixin):
+                if channel in processed_oneofs:
+                    continue
+
+                # we want to mutate the oneof's inner channels ONLY where they
+                # are used in the oneof, not if they are used separately
+                # for example: we should only modify the copy of
+                # foo.output in dsl.OneOf(foo.output), not if foo.output is
+                # passed to another downstream task
+                channel.channels = [copy.copy(c) for c in channel.channels]
                 for inner_channel in channel.channels:
                     producer_task = pipeline.tasks[inner_channel.task_name]
                     consumer_task = task
@@ -546,9 +557,8 @@ def get_outputs_for_all_groups(
                             outputs[upstream_name][channel.name] = channel
                             break
 
-                        # copy so we can update the inner channel for the next iteration
-                        # use copy not deepcopy, since deepcopy will needlessly copy the entire pipeline
-                        # this uses more memory than needed and some objects are uncopiable
+                        # copy as a mechanism for "freezing" the inner channel
+                        # before we make updates for the next iteration
                         outputs[upstream_name][
                             surfaced_output_name] = copy.copy(inner_channel)
 
@@ -594,6 +604,13 @@ def get_outputs_for_all_groups(
             # if the output has already been consumed by a task before it is returned, we don't need to reprocess it
             if channel in processed_oneofs:
                 continue
+
+            # we want to mutate the oneof's inner channels ONLY where they
+            # are used in the oneof, not if they are used separately
+            # for example: we should only modify the copy of
+            # foo.output in dsl.OneOf(foo.output), not if foo.output is passed
+            # to another downstream task
+            channel.channels = [copy.copy(c) for c in channel.channels]
             for inner_channel in channel.channels:
                 producer_task = pipeline.tasks[inner_channel.task_name]
                 upstream_groups = task_name_to_parent_groups[
@@ -613,9 +630,8 @@ def get_outputs_for_all_groups(
                         outputs[upstream_name][channel.name] = channel
                         break
 
-                    # copy so we can update the inner channel for the next iteration
-                    # use copy not deepcopy, since deepcopy will needlessly copy the entire pipeline
-                    # this uses more memory than needed and some objects are uncopiable
+                    # copy as a mechanism for "freezing" the inner channel
+                    # before we make updates for the next iteration
                     outputs[upstream_name][surfaced_output_name] = copy.copy(
                         inner_channel)
 

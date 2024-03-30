@@ -154,8 +154,9 @@ func TestCondition(t *testing.T) {
 		name:      "errorOnTypeMismatch",
 		input:     input,
 		condition: "inputs.parameter_values['num'] == 1",
-		// Note, inputs.parameter_values['num'] is double type, but 1 is integer type.
-		err: "no such overload",
+		// https://github.com/google/cel-spec/blob/master/doc/langdef.md#numbers
+		// overload double and integer is now supported, so the result is true
+		output: true,
 	}, {
 		input:     input,
 		condition: "inputs.parameter_values['type']=='foo' && inputs.parameter_values['num'] == 1.0",

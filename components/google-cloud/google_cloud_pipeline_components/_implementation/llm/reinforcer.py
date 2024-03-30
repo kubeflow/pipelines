@@ -19,7 +19,7 @@ import kfp
 
 
 @kfp.dsl.container_component
-def Reinforcer(  # pylint: disable=invalid-name
+def reinforcer(
     project: str,
     location: str,
     train_steps: int,
@@ -33,7 +33,9 @@ def Reinforcer(  # pylint: disable=invalid-name
     targets_sequence_length: int,
     input_reference_model_path: str,
     input_reward_model_path: str,
+    input_reward_adapter_path: str,
     input_dataset_path: str,
+    input_preference_dataset_path: str,
     output_model_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     output_adapter_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     tensorboard_metrics: kfp.dsl.Output[kfp.dsl.Artifact],  # pytype: disable=unsupported-operands
@@ -43,7 +45,10 @@ def Reinforcer(  # pylint: disable=invalid-name
     learning_rate_multiplier: float = 1.0,
     kl_coeff: float = 0.1,
     lora_dim: int = 0,
+    reward_lora_dim: int = 4,
     num_microbatches: int = 0,
+    encryption_spec_key_name: str = '',
+    tensorboard_resource_id: str = '',
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Trains a model using reinforcement learning.
 
@@ -53,7 +58,9 @@ def Reinforcer(  # pylint: disable=invalid-name
     input_reference_model_path: Path to the base model to fine tune.
     input_reward_model_path: Path to the reward model to use during
       reinforcement learning.
+    input_reward_adapter_path: Path to the reward model's LoRA adapter.
     input_dataset_path: Path to training dataset.
+    input_preference_dataset_path: Path to preference dataset.
     train_steps: Number of training steps. These are the number of steps on top
       of any steps used to train the base model.
     targets_length: Maximum decoder steps. Outputs will be at most this length.
@@ -74,11 +81,20 @@ def Reinforcer(  # pylint: disable=invalid-name
       the reference LM is not loaded into memory.
     lora_dim: The rank of the LoRA adapter. If >0, then use LoRA-tuning. If =0,
       then use full-tuning.
+    reward_lora_dim: The rank of the Reward model LoRA adapter. Full tuning is
+      not support for the reward model. Default is 4.
     learning_rate_multiplier: Constant multiplied by the base learning rate used
       to adjust the learning rate during reinforcement learning.
     num_microbatches: Number of microbatches to break the total batch size into
       during training. If <= 1, the model is trained on the full batch size
       directly.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set,
+      then all resources created by the CustomJob will be encrypted with the
+      provided encryption key. Note that this is not supported for TPU at the
+      moment.
+    tensorboard_resource_id: Optional tensorboard resource id. Format:
+      `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`.
+      If provided, tensorboard metrics will be uploaded to this location.
 
   Returns:
     output_model_path: Path to the trained model checkpoint.
@@ -98,9 +114,12 @@ def Reinforcer(  # pylint: disable=invalid-name
           machine_type=machine_type,
           image_uri=image_uri,
           args=[
+              '--app_name=reinforcer',
               f'--input_reference_model_path={input_reference_model_path}',
               f'--input_reward_model_path={input_reward_model_path}',
+              f'--input_reward_adapter_path={input_reward_adapter_path}',
               f'--input_dataset_path={input_dataset_path}',
+              f'--input_preference_dataset_path={input_preference_dataset_path}',
               f'--train_steps={train_steps}',
               f'--output_model_path={output_model_path}',
               f'--output_adapter_path={output_adapter_path}',
@@ -114,8 +133,12 @@ def Reinforcer(  # pylint: disable=invalid-name
               f'--learning_rate_multiplier={learning_rate_multiplier}',
               f'--kl_coeff={kl_coeff}',
               f'--lora_dim={lora_dim}',
+              f'--reward_lora_dim={reward_lora_dim}',
               f'--num_microbatches={num_microbatches}',
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
+          base_output_directory=tensorboard_metrics.uri,
+          tensorboard=tensorboard_resource_id,
       ),
       gcp_resources=gcp_resources,
   )

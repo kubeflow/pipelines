@@ -41,7 +41,9 @@ def infer_pipeline(
     sampling_strategy: str = 'greedy',
     instruction: Optional[str] = None,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
+    accelerator_type: str = 'GPU',
     location: str = _placeholders.LOCATION_PLACEHOLDER,
+    encryption_spec_key_name: str = '',
 ) -> PipelineOutput:
   # fmt: off
   """Uses a large-language model to perform bulk inference on a prompt dataset.
@@ -55,7 +57,9 @@ def infer_pipeline(
     sampling_strategy: This field specifies the sampling strategy. The valid options are 'greedy' and 'temperature_sampling'.
     instruction: This field lets the model know what task it needs to perform. Base models have been trained over a large set of varied instructions. You can give a simple and intuitive description of the task and the model will follow it, e.g. "Classify this movie review as positive or negative" or "Translate this sentence to Danish". Do not specify this if your dataset already prepends the instruction to the inputs field.
     project: Project used to run custom jobs. If not specified the project used to run the pipeline will be used.
-    location: Location used to run custom jobs. If not specified the location used to run the pipeline will be used.
+    accelerator_type: One of 'TPU' or 'GPU'. If 'TPU' is specified, tuning components run in europe-west4. Otherwise tuning components run in us-central1 on GPUs. Default is 'GPU'.
+    location: Location used to run non-tuning components, i.e. components that do not require accelerators. If not specified the location used to run the pipeline will be used.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
 
   Returns:
     Cloud storage path to output predictions.
@@ -63,7 +67,7 @@ def infer_pipeline(
   # fmt: on
   prompt_column = 'input_text'
   machine_spec = function_based.resolve_machine_spec(
-      location=location,
+      accelerator_type=accelerator_type,
       use_test_spec=env.get_use_test_machine_spec(),
   ).set_display_name('Resolve Machine Spec')
   reference_model_metadata = function_based.resolve_reference_model_metadata(
@@ -82,11 +86,8 @@ def infer_pipeline(
       large_model_reference=large_model_reference,
       instruction=instruction,
   ).set_display_name('Resolve Instruction')
-  prompt_dataset_image_uri = function_based.resolve_private_image_uri(
-      image_name='text_importer',
-  ).set_display_name('Resolve Prompt Dataset Image URI')
   prompt_dataset_importer = (
-      private_text_importer.PrivateTextImporter(
+      private_text_importer.private_text_importer(
           project=project,
           location=location,
           input_text=processed_dataset.outputs['processed_dataset_uri'],
@@ -96,21 +97,19 @@ def infer_pipeline(
           large_model_reference=reference_model_metadata.outputs[
               'large_model_reference'
           ],
-          image_uri=prompt_dataset_image_uri.output,
           instruction=resolved_text_instruction.output,
+          encryption_spec_key_name=encryption_spec_key_name,
       )
       .set_display_name('Import Prompt Dataset')
       .set_caching_options(False)
   )
 
-  bulk_inferrer_image_uri = function_based.resolve_private_image_uri(
-      image_name='infer',
+  bulk_inferrer_image_uri = function_based.resolve_private_refined_image_uri(
       accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
   ).set_display_name('Resolve Bulk Inferrer Image URI')
-  bulk_inference = bulk_inferrer.BulkInferrer(
+  bulk_inference = bulk_inferrer.bulk_inferrer(
       project=project,
-      location=location,
+      location=machine_spec.outputs['tuning_location'],
       input_model=reference_model_metadata.outputs['reference_model_path'],
       input_dataset_path=prompt_dataset_importer.outputs['imported_data_path'],
       dataset_split=env.TRAIN_SPLIT,
@@ -124,6 +123,7 @@ def infer_pipeline(
       accelerator_count=machine_spec.outputs['accelerator_count'],
       machine_type=machine_spec.outputs['machine_type'],
       image_uri=bulk_inferrer_image_uri.output,
+      encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Bulk Inferrer')
 
   return PipelineOutput(
