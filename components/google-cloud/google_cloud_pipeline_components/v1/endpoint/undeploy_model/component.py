@@ -21,6 +21,7 @@ from kfp import dsl
 from kfp.dsl import Input
 from kfp.dsl import OutputPath
 
+print('rerun test')
 
 @dsl.container_component
 def model_undeploy(

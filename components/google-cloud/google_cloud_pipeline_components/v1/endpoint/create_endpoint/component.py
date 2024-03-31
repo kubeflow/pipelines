@@ -23,6 +23,7 @@ from kfp.dsl import ContainerSpec
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
 
+print('rerun test')
 
 @container_component
 def endpoint_create(

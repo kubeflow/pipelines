@@ -21,6 +21,8 @@ from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import OutputPath
 
+print('rerun tests')
+
 
 @container_component
 def dataflow_flex_template(

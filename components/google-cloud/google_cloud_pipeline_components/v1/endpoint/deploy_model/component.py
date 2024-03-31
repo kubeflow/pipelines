@@ -23,6 +23,7 @@ from kfp.dsl import ContainerSpec
 from kfp.dsl import Input
 from kfp.dsl import OutputPath
 
+print('rerun test')
 
 @container_component
 def model_deploy(

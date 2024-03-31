@@ -18,6 +18,7 @@ from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 from kfp import dsl
 from kfp.dsl import Input
 
+print('rerun test')
 
 @dsl.container_component
 def endpoint_delete(
