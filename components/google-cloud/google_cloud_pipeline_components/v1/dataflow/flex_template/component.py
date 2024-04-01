@@ -14,7 +14,6 @@
 
 from typing import Dict, List
 
-from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import _placeholders
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
@@ -100,7 +99,7 @@ def dataflow_flex_template(
   """
   # fmt: on
   return ContainerSpec(
-      image=_image.GCPC_IMAGE_TAG,
+      image='gcr.io/ml-pipeline/google-cloud-pipeline-components:2.13.0',
       command=[
           'python3',
           '-u',
