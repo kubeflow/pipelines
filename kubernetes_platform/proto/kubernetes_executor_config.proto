@@ -25,6 +25,15 @@ message KubernetesExecutorConfig {
     repeated SecretAsEnv secret_as_env = 2;
     repeated PvcMount pvc_mount = 3;
     NodeSelector node_selector = 4;
+    PodMetadata pod_metadata = 5;
+    repeated ImagePullSecret image_pull_secret = 6;
+    // One of Always, Never, IfNotPresent.
+    string image_pull_policy = 7;
+    repeated ConfigMapAsVolume config_map_as_volume = 8;
+    repeated ConfigMapAsEnv config_map_as_env = 9;
+    int64 active_deadline_seconds = 10;
+    repeated FieldPathAsEnv field_path_as_env = 11;
+    repeated Toleration tolerations = 12;
 }
 
 message SecretAsVolume {
@@ -32,6 +41,8 @@ message SecretAsVolume {
     string secret_name = 1;
     // Container path to mount the Secret data.
     string mount_path = 2;
+    // An optional boolean value indicating whether the Secret must be defined.
+    optional bool optional = 3;
 }
 
 message SecretAsEnv {
@@ -113,4 +124,55 @@ message NodeSelector {
     // map of label key to label value
     // corresponds to Pod.spec.nodeSelector field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
     map<string, string> labels = 1;
+}
+
+message PodMetadata {
+    // values of metadata spec such as labels and annotations for the pod object
+    // corresponds to Pod.metadata field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Pod
+    map<string, string> labels = 1;
+    map<string, string> annotations = 2;
+}
+
+message ConfigMapAsVolume {
+    // Name of the ConfigMap.
+    string config_map_name = 1;
+    // Container path to mount the ConfigMap data.
+    string mount_path = 2;
+    // An optional boolean value indicating whether the ConfigMap must be defined.
+    optional bool optional = 3;
+}
+
+message ConfigMapAsEnv {
+    // Name of the ConfigMap.
+    string config_map_name = 1;
+
+    message ConfigMapKeyToEnvMap {
+        // Corresponds to a key of the ConfigMap.
+        string config_map_key = 1;
+        // Env var to which configmap_key's data should be set.
+        string env_var = 2;
+    }
+
+    repeated ConfigMapKeyToEnvMap key_to_env = 2;
+}
+
+message ImagePullSecret {
+    // Name of the image pull secret.
+    string secret_name = 1;
+}
+
+message FieldPathAsEnv {
+    // Name of the environment variable
+    string name = 1;
+
+    // Value of the field path string
+    string field_path = 2;
+}
+
+message Toleration {
+    string key = 1;
+    string operator = 2;
+    string value = 3;
+    string effect = 4;
+    optional int64 toleration_seconds = 5;
 }
