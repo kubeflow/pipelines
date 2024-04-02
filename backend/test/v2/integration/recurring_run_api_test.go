@@ -613,7 +613,8 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_SwfNotFound() {
 	/* ---------- Get recurringRun ---------- */
 	_, err = s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun.RecurringRunID})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "status 404")
+	// Check the error contains a 404 (not found) status code
+	assert.Contains(t, err.Error(), "[404]")
 }
 
 func (s *RecurringRunApiTestSuite) checkHelloWorldRun(run *run_model.V2beta1Run, experimentID string, recurringRunID string) error {
