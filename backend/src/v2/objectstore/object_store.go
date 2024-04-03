@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This package contains helper methods for using object stores.
 package objectstore
 
 import (
 	"context"
 	"fmt"
+	"gocloud.dev/blob/gcsblob"
+	"gocloud.dev/gcp"
+	"golang.org/x/oauth2/google"
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -37,82 +36,43 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type Config struct {
-	Scheme      string
-	BucketName  string
-	Prefix      string
-	QueryString string
-}
-
 func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (bucket *blob.Bucket, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("Failed to open bucket %q: %w", config.BucketName, err)
 		}
 	}()
-	if config.Scheme == "minio://" {
-		cred, err := getMinioCredential(ctx, k8sClient, namespace)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
+	if config.Session != nil {
+		if config.Session.Provider == "minio" || config.Session.Provider == "s3" {
+			sess, err1 := createS3BucketSession(ctx, namespace, config.Session, k8sClient)
+			if err1 != nil {
+				return nil, fmt.Errorf("Failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
+			}
+			if sess != nil {
+				openedBucket, err2 := s3blob.OpenBucket(ctx, sess, config.BucketName, nil)
+				if err2 != nil {
+					return nil, err2
+				}
+				// Directly calling s3blob.OpenBucket does not allow overriding prefix via bucketConfig.BucketURL().
+				// Therefore, we need to explicitly configure the prefixed bucket.
+				return blob.PrefixedBucket(openedBucket, config.Prefix), nil
+			}
+		} else if config.Session.Provider == "gs" {
+			client, err1 := getGCSTokenClient(ctx, namespace, config.Session, k8sClient)
+			if err1 != nil {
+				return nil, err1
+			}
+			if client != nil {
+				openedBucket, err2 := gcsblob.OpenBucket(ctx, client, config.BucketName, nil)
+				if err2 != nil {
+					return openedBucket, err2
+				}
+				return blob.PrefixedBucket(openedBucket, config.Prefix), nil
+			}
 		}
-		sess, err := session.NewSession(&aws.Config{
-			Credentials:      cred,
-			Region:           aws.String("minio"),
-			Endpoint:         aws.String(MinioDefaultEndpoint()),
-			DisableSSL:       aws.Bool(true),
-			S3ForcePathStyle: aws.Bool(true),
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
-		}
-		minioBucket, err := s3blob.OpenBucket(ctx, sess, config.BucketName, nil)
-		if err != nil {
-			return nil, err
-		}
-		// Directly calling s3blob.OpenBucket does not allow overriding prefix via bucketConfig.BucketURL().
-		// Therefore, we need to explicitly configure the prefixed bucket.
-		return blob.PrefixedBucket(minioBucket, config.Prefix), nil
-
 	}
+	// When no provider config is provided, or "FromEnv" is specified, use default credentials from the environment
 	return blob.OpenBucket(ctx, config.bucketURL())
-}
-
-func (b *Config) bucketURL() string {
-	u := b.Scheme + b.BucketName
-
-	// append prefix=b.prefix to existing queryString
-	q := b.QueryString
-	if len(b.Prefix) > 0 {
-		if len(q) > 0 {
-			q = q + "&prefix=" + b.Prefix
-		} else {
-			q = "?prefix=" + b.Prefix
-		}
-	}
-
-	u = u + q
-	return u
-}
-func (b *Config) PrefixedBucket() string {
-	return b.Scheme + path.Join(b.BucketName, b.Prefix)
-}
-
-func (b *Config) KeyFromURI(uri string) (string, error) {
-	prefixedBucket := b.PrefixedBucket()
-	if !strings.HasPrefix(uri, prefixedBucket) {
-		return "", fmt.Errorf("URI %q does not have expected bucket prefix %q", uri, prefixedBucket)
-	}
-
-	key := strings.TrimLeft(strings.TrimPrefix(uri, prefixedBucket), "/")
-	if len(key) == 0 {
-		return "", fmt.Errorf("URI %q has empty key given prefixed bucket %q", uri, prefixedBucket)
-	}
-	return key, nil
-}
-
-func (b *Config) UriFromKey(blobKey string) string {
-	return b.Scheme + path.Join(b.BucketName, b.Prefix, blobKey)
 }
 
 func UploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath string) error {
@@ -179,50 +139,6 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 	return nil
 }
 
-var bucketPattern = regexp.MustCompile(`(^[a-z][a-z0-9]+:///?)([^/?]+)(/[^?]*)?(\?.+)?$`)
-
-func ParseBucketConfig(path string) (*Config, error) {
-	ms := bucketPattern.FindStringSubmatch(path)
-	if ms == nil || len(ms) != 5 {
-		return nil, fmt.Errorf("parse bucket config failed: unrecognized pipeline root format: %q", path)
-	}
-
-	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" {
-		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", path)
-	}
-
-	prefix := strings.TrimPrefix(ms[3], "/")
-	if len(prefix) > 0 && !strings.HasSuffix(prefix, "/") {
-		prefix = prefix + "/"
-	}
-
-	return &Config{
-		Scheme:      ms[1],
-		BucketName:  ms[2],
-		Prefix:      prefix,
-		QueryString: ms[4],
-	}, nil
-}
-
-func ParseBucketConfigForArtifactURI(uri string) (*Config, error) {
-	ms := bucketPattern.FindStringSubmatch(uri)
-	if ms == nil || len(ms) != 5 {
-		return nil, fmt.Errorf("parse bucket config failed: unrecognized uri format: %q", uri)
-	}
-
-	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" {
-		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", uri)
-	}
-
-	return &Config{
-		Scheme:     ms[1],
-		BucketName: ms[2],
-	}, nil
-}
-
-// TODO(neuromage): Move these helper functions to a storage package and add tests.
 func uploadFile(ctx context.Context, bucket *blob.Bucket, localFilePath, blobFilePath string) error {
 	errorF := func(err error) error {
 		return fmt.Errorf("uploadFile(): unable to complete copying %q to remote storage %q: %w", localFilePath, blobFilePath, err)
@@ -286,57 +202,88 @@ func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localF
 	return nil
 }
 
-// The endpoint uses Kubernetes service DNS name with namespace:
-// https://kubernetes.io/docs/concepts/services-networking/service/#dns
-const defaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
-const minioArtifactSecretName = "mlpipeline-minio-artifact"
-
-func MinioDefaultEndpoint() string {
-	// Discover minio-service in the same namespace by env var.
-	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
-	minioHost := os.Getenv("MINIO_SERVICE_SERVICE_HOST")
-	minioPort := os.Getenv("MINIO_SERVICE_SERVICE_PORT")
-	if minioHost != "" && minioPort != "" {
-		// If there is a minio-service Kubernetes service in the same namespace,
-		// MINIO_SERVICE_SERVICE_HOST and MINIO_SERVICE_SERVICE_PORT env vars should
-		// exist by default, so we use it as default.
-		return minioHost + ":" + minioPort
+func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *SessionInfo, clientSet kubernetes.Interface) (client *gcp.HTTPClient, err error) {
+	params, err := StructuredGCSParams(sessionInfo.Params)
+	if err != nil {
+		return nil, err
 	}
-	// If the env vars do not exist, we guess that we are running in KFP multi user mode, so default minio service should be `minio-service.kubeflow:9000`.
-	glog.Infof("Cannot detect minio-service in the same namespace, default to %s as MinIO endpoint.", defaultMinioEndpointInMultiUserMode)
-	return defaultMinioEndpointInMultiUserMode
+	if params.FromEnv {
+		return nil, nil
+	}
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(ctx, params.SecretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	tokenJson, ok := secret.Data[params.TokenKey]
+	if !ok || len(tokenJson) == 0 {
+		return nil, fmt.Errorf("key '%s' not found or is empty", params.TokenKey)
+	}
+	creds, err := google.CredentialsFromJSON(ctx, tokenJson, "https://www.googleapis.com/auth/devstorage.read_write")
+	if err != nil {
+		return nil, err
+	}
+	client, err = gcp.NewHTTPClient(gcp.DefaultTransport(), gcp.CredentialsTokenSource(creds))
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
-func getMinioCredential(ctx context.Context, clientSet kubernetes.Interface, namespace string) (cred *credentials.Credentials, err error) {
+func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *SessionInfo, client kubernetes.Interface) (*session.Session, error) {
+	if sessionInfo == nil {
+		return nil, nil
+	}
+	config := &aws.Config{}
+	params, err := StructuredS3Params(sessionInfo.Params)
+	if err != nil {
+		return nil, err
+	}
+	if params.FromEnv {
+		return nil, nil
+	}
+	creds, err := getS3BucketCredential(ctx, client, namespace, params.SecretName, params.SecretKeyKey, params.AccessKeyKey)
+	if err != nil {
+		return nil, err
+	}
+	config.Credentials = creds
+	config.Region = aws.String(params.Region)
+	config.Endpoint = aws.String(params.Endpoint)
+	config.DisableSSL = aws.Bool(params.DisableSSL)
+	config.S3ForcePathStyle = aws.Bool(true)
+	sess, err := session.NewSession(config)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create object store session, %v", err)
+	}
+	return sess, nil
+}
+
+func getS3BucketCredential(
+	ctx context.Context,
+	clientSet kubernetes.Interface,
+	namespace string,
+	secretName string,
+	bucketSecretKeyKey string,
+	bucketAccessKeyKey string,
+) (cred *credentials.Credentials, err error) {
 	defer func() {
 		if err != nil {
 			// wrap error before returning
-			err = fmt.Errorf("Failed to get MinIO credential from secret name=%q namespace=%q: %w", minioArtifactSecretName, namespace, err)
+			err = fmt.Errorf("Failed to get Bucket credentials from secret name=%q namespace=%q: %w", secretName, namespace, err)
 		}
 	}()
 	secret, err := clientSet.CoreV1().Secrets(namespace).Get(
 		ctx,
-		minioArtifactSecretName,
+		secretName,
 		metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	accessKey := string(secret.Data["accesskey"])
-	secretKey := string(secret.Data["secretkey"])
+	accessKey := string(secret.Data[bucketAccessKeyKey])
+	secretKey := string(secret.Data[bucketSecretKeyKey])
 
 	if accessKey != "" && secretKey != "" {
 		cred = credentials.NewStaticCredentials(accessKey, secretKey, "")
 		return cred, err
 	}
-
-	aws_cred, err := getAWSCredential()
-	if aws_cred != nil {
-		return aws_cred, err
-	}
-
-	return nil, fmt.Errorf("does not have 'accesskey' or 'secretkey' key")
-}
-
-func getAWSCredential() (cred *credentials.Credentials, err error) {
-	return credentials.NewCredentials(&credentials.ChainProvider{}), nil
+	return nil, fmt.Errorf("could not find specified keys '%s' or '%s'", bucketAccessKeyKey, bucketSecretKeyKey)
 }
