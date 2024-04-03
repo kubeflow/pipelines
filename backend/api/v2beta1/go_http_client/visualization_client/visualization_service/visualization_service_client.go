@@ -39,7 +39,7 @@ func (a *Client) VisualizationServiceCreateVisualizationV1(params *Visualization
 		PathPattern:        "/apis/v2beta1/visualizations/{namespace}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &VisualizationServiceCreateVisualizationV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,

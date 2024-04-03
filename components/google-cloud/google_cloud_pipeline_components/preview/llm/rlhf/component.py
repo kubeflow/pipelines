@@ -53,7 +53,7 @@ def rlhf_pipeline(
     accelerator_type: str = 'GPU',
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     encryption_spec_key_name: str = '',
-    tensorboard_resource_id: Optional[str] = None,
+    tensorboard_resource_id: str = '',
 ) -> PipelineOutput:
   # fmt: off
   """Performs reinforcement learning from human feedback.

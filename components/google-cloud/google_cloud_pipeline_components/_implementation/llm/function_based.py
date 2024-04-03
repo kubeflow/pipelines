@@ -13,7 +13,7 @@
 # limitations under the License.
 """Python function-based components used in KFP pipelies."""
 import functools
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components._implementation.llm import env
@@ -278,6 +278,15 @@ def resolve_reference_model_metadata(
           reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
           is_supported=True,
       ),
+      'text-bison@002': reference_model_metadata(
+          large_model_reference='BISON_002',
+          reference_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/'
+          ),
+          reward_model_reference='BISON_002',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/',
+          is_supported=True,
+      ),
       'chat-bison@001': reference_model_metadata(
           large_model_reference='BISON',
           reference_model_path=(
@@ -444,7 +453,7 @@ def resolve_deploy_model(
     deploy_model: bool, large_model_reference: str
 ) -> bool:
   """Resolves runtime parameter that determines whether the tuned model should be deployed."""
-  supported_models = {'BISON'}
+  supported_models = {'BISON', 'BISON_002'}
   if deploy_model and large_model_reference in supported_models:
     return True
   return False
@@ -468,7 +477,7 @@ def value_exists(value: Optional[str] = None) -> bool:
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_upload_model(large_model_reference: str) -> bool:
   """Returns whether the model should be uploaded."""
-  supported_models = {'BISON'}
+  supported_models = {'BISON', 'BISON_002'}
   if large_model_reference in supported_models:
     return True
   return False
@@ -506,65 +515,3 @@ def resolve_num_microbatches(large_model_reference: str) -> int:
   if 'llama' in large_model_reference.lower():
     return 2
   return 0
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def read_file(path: str) -> str:
-  """Reads the contents of the given file."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import re
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-
-  path = re.sub('^gs://', '/gcs/', path)
-  with open(path, 'r') as f:
-    return f.read()
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def get_usage_metric(metadata: Dict[str, Any], key: str) -> bool:  # pytype: disable=unsupported-operands
-  """Extracts a single usage metric from metadata."""
-  return metadata[key]
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def dump_dict(value: Dict[Any, Any]) -> str:
-  """Dumps the given dict to a JSON string."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import json
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-
-  return json.dumps(value).replace('"', '\\"')
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def dump_list(value: List[Any]) -> str:
-  """Dumps the given dict to a JSON string."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import json
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-
-  return json.dumps(value).replace('"', '\\"')
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def identity(
-    x: str,
-) -> str:
-  return x
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def get_uri(artifact: dsl.Input[dsl.Artifact], is_dir: bool = False) -> str:  # pytype: disable=unsupported-operands
-  """Extracts the URI from an artifact."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import os
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-
-  if is_dir:
-    return os.path.join(artifact.uri, '*')
-  return artifact.uri
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def get_empty_string() -> str:
-  return ''
