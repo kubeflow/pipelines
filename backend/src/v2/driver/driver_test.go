@@ -530,7 +530,87 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 					{
 						Name: "secret1",
 						VolumeSource: k8score.VolumeSource{
-							Secret: &k8score.SecretVolumeSource{SecretName: "secret1"},
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional:  &[]bool{false}[0],},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - secret as volume with optional false",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretName: "secret1",
+						MountPath:  "/data/path",
+						Optional:   &[]bool{false}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "secret1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "secret1",
+						VolumeSource: k8score.VolumeSource{
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional: &[]bool{false}[0]},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - secret as volume with optional true",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretName: "secret1",
+						MountPath:  "/data/path",
+						Optional:   &[]bool{true}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "secret1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "secret1",
+						VolumeSource: k8score.VolumeSource{
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional: &[]bool{true}[0]},
 						},
 					},
 				},
@@ -647,7 +727,92 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						Name: "cm1",
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
-								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"}},
+								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
+								Optional:             &[]bool{false}[0],},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - config map as volume with optional false",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
+					{
+						ConfigMapName: "cm1",
+						MountPath:     "/data/path",
+						Optional:      &[]bool{false}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "cm1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "cm1",
+						VolumeSource: k8score.VolumeSource{
+							ConfigMap: &k8score.ConfigMapVolumeSource{
+								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
+								Optional:             &[]bool{false}[0]},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - config map as volume with optional true",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
+					{
+						ConfigMapName: "cm1",
+						MountPath:     "/data/path",
+						Optional:      &[]bool{true}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "cm1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "cm1",
+						VolumeSource: k8score.VolumeSource{
+							ConfigMap: &k8score.ConfigMapVolumeSource{
+								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
+								Optional:             &[]bool{true}[0]},
 						},
 					},
 				},
