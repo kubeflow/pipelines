@@ -17,23 +17,23 @@ package objectstore
 import (
 	"context"
 	"fmt"
-	"gocloud.dev/blob/gcsblob"
-	"gocloud.dev/gcp"
-	"golang.org/x/oauth2/google"
-	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/golang/glog"
 	"gocloud.dev/blob"
+	"gocloud.dev/blob/gcsblob"
 	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
+	"gocloud.dev/gcp"
+	"golang.org/x/oauth2/google"
+	"io"
+	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (bucket *blob.Bucket, err error) {
@@ -247,9 +247,20 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	}
 	config.Credentials = creds
 	config.Region = aws.String(params.Region)
-	config.Endpoint = aws.String(params.Endpoint)
 	config.DisableSSL = aws.Bool(params.DisableSSL)
 	config.S3ForcePathStyle = aws.Bool(true)
+
+	// AWS Specific:
+	// Path-style S3 endpoints, which are commonly used, may fall into either of two subdomains:
+	// 1) s3.amazonaws.com
+	// 2) s3.<AWS Region>.amazonaws.com
+	// for (1) the endpoint is not required, thus we skip it, otherwise the writer will fail to close due to region mismatch.
+	// https://aws.amazon.com/blogs/infrastructure-and-automation/best-practices-for-using-amazon-s3-endpoints-in-aws-cloudformation-templates/
+	// https://docs.aws.amazon.com/sdk-for-go/api/aws/session/
+	if strings.ToLower(params.Endpoint) != "s3.amazonaws.com" {
+		config.Endpoint = aws.String(params.Endpoint)
+	}
+
 	sess, err := session.NewSession(config)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create object store session, %v", err)
