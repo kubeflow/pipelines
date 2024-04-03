@@ -176,9 +176,18 @@ def evaluation_llm_classification_pipeline(  # pylint: disable=dangerous-default
       encryption_spec_key_name=encryption_spec_key_name,
   )
 
+  get_vertex_eval_model_task = dsl.importer(
+      artifact_uri=(
+          f'https://{location}-aiplatform.googleapis.com/v1/{model_name}'
+      ),
+      artifact_class=VertexModel,
+      metadata={'resourceName': model_name},
+  )
+  get_vertex_eval_model_task.set_display_name('get-vertex-eval-model')
+
   import_evaluation_task = ModelImportEvaluationOp(
       classification_metrics=eval_task.outputs['evaluation_metrics'],
-      model=get_vertex_model_task.outputs['artifact'],
+      model=get_vertex_eval_model_task.outputs['artifact'],
       dataset_type=batch_predict_instances_format,
       dataset_paths=batch_predict_gcs_source_uris,
       display_name=evaluation_display_name,
