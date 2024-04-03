@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors
+# Copyright 2024 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,17 +17,17 @@ from kfp import dsl
 from kfp import kubernetes
 
 
-class TestUseSecretAsVolume:
+class TestPodMetadata:
 
     def test_add_one(self):
 
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.add_node_selector(
+            kubernetes.add_pod_label(
                 task,
-                label_key='cloud.google.com/gke-accelerator',
-                label_value='nvidia-tesla-p4',
+                label_key='kubeflow.com/kfp',
+                label_value='pipeline-node',
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
@@ -36,10 +36,9 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeSelector': {
+                                'podMetadata': {
                                     'labels': {
-                                        'cloud.google.com/gke-accelerator':
-                                            'nvidia-tesla-p4'
+                                        'kubeflow.com/kfp': 'pipeline-node'
                                     }
                                 }
                             }
@@ -49,20 +48,20 @@ class TestUseSecretAsVolume:
             }
         }
 
-    def test_add_two(self):
+    def test_add_same_one(self):
 
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.add_node_selector(
+            kubernetes.add_pod_label(
                 task,
-                label_key='cloud.google.com/gke-accelerator',
-                label_value='nvidia-tesla-p4',
+                label_key='kubeflow.com/kfp',
+                label_value='pipeline-node',
             )
-            kubernetes.add_node_selector(
+            kubernetes.add_pod_label(
                 task,
-                label_key='other_label_key',
-                label_value='other_label_value',
+                label_key='kubeflow.com/kfp',
+                label_value='pipeline-node2',
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
@@ -71,13 +70,59 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeSelector': {
+                                'podMetadata': {
                                     'labels': {
-                                        'cloud.google.com/gke-accelerator':
-                                            'nvidia-tesla-p4',
-                                        'other_label_key':
-                                            'other_label_value'
+                                        'kubeflow.com/kfp': 'pipeline-node2'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_add_two_and_mix(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_pod_label(
+                task,
+                label_key='kubeflow.com/kfp',
+                label_value='pipeline-node',
+            )
+            kubernetes.add_pod_label(
+                task,
+                label_key='kubeflow.com/common',
+                label_value='test',
+            )
+            kubernetes.add_pod_annotation(
+                task,
+                annotation_key='run_id',
+                annotation_value='123456',
+            )
+            kubernetes.add_pod_annotation(
+                task,
+                annotation_key='experiment_id',
+                annotation_value='234567',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'podMetadata': {
+                                    'annotations': {
+                                        'run_id': '123456',
+                                        'experiment_id': '234567'
                                     },
+                                    'labels': {
+                                        'kubeflow.com/kfp': 'pipeline-node',
+                                        'kubeflow.com/common': 'test'
+                                    }
                                 }
                             }
                         }
@@ -93,10 +138,10 @@ class TestUseSecretAsVolume:
             task = comp()
             kubernetes.use_secret_as_volume(
                 task, secret_name='my-secret', mount_path='/mnt/my_vol')
-            kubernetes.add_node_selector(
+            kubernetes.add_pod_annotation(
                 task,
-                label_key='cloud.google.com/gke-accelerator',
-                label_value='nvidia-tesla-p4',
+                annotation_key='run_id',
+                annotation_value='123456',
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
@@ -105,10 +150,9 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeSelector': {
-                                    'labels': {
-                                        'cloud.google.com/gke-accelerator':
-                                            'nvidia-tesla-p4'
+                                'podMetadata': {
+                                    'annotations': {
+                                        'run_id': '123456'
                                     }
                                 },
                                 'secretAsVolume': [{

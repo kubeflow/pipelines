@@ -33,8 +33,7 @@ class TestImagePullSecret:
                         'executors': {
                             'exec-comp': {
                                 'imagePullSecret': [{
-                                    'secretName':
-                                        'secret-name'
+                                    'secretName': 'secret-name'
                                 }]
                             }
                         }
@@ -48,7 +47,8 @@ class TestImagePullSecret:
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            kubernetes.set_image_pull_secrets(task, ['secret-name1', 'secret-name2'])
+            kubernetes.set_image_pull_secrets(task,
+                                              ['secret-name1', 'secret-name2'])
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -56,13 +56,13 @@ class TestImagePullSecret:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'imagePullSecret': [{
-                                    'secretName':
-                                        'secret-name1'
-                                }, {
-                                    'secretName':
-                                        'secret-name2'
-                                },
+                                'imagePullSecret': [
+                                    {
+                                        'secretName': 'secret-name1'
+                                    },
+                                    {
+                                        'secretName': 'secret-name2'
+                                    },
                                 ]
                             }
                         }
@@ -92,11 +92,11 @@ class TestImagePullSecret:
                             'exec-comp': {
                                 'secretAsVolume': [{
                                     'secretName': 'secret-name',
-                                    'mountPath': '/mnt/my_vol'
+                                    'mountPath': '/mnt/my_vol',
+                                    'optional': False
                                 }],
                                 'imagePullSecret': [{
-                                    'secretName':
-                                        'secret-name'
+                                    'secretName': 'secret-name'
                                 }]
                             }
                         }
