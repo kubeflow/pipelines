@@ -184,7 +184,7 @@ func (s *UpgradeTests) PrepareExperiments() {
 
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
-	_, err := s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{
+	_, err := s.experimentClient.Create(&experimentParams.ExperimentServiceCreateExperimentV1Params{
 		Body: experiment,
 	})
 	require.Nil(t, err)
@@ -193,14 +193,14 @@ func (s *UpgradeTests) PrepareExperiments() {
 	// This ensures they can be sorted by create time in expected order.
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("prediction", "my second experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{
+	_, err = s.experimentClient.Create(&experimentParams.ExperimentServiceCreateExperimentV1Params{
 		Body: experiment,
 	})
 	require.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("moonshot", "my third experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{
+	_, err = s.experimentClient.Create(&experimentParams.ExperimentServiceCreateExperimentV1Params{
 		Body: experiment,
 	})
 	require.Nil(t, err)
@@ -213,7 +213,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 	// This should have the hello-world experiment in addition to the old experiments.
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experimentParams.ListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
+		&experimentParams.ExperimentServiceListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
 		"",
 	)
 	require.Nil(t, err)
@@ -270,7 +270,7 @@ func (s *UpgradeTests) PreparePipelines() {
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
-	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
+	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml",
 		}},
@@ -287,7 +287,7 @@ func (s *UpgradeTests) PreparePipelines() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
+	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
 		}},
@@ -303,7 +303,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 
 	/* ---------- Verify list pipeline sorted by creation time ---------- */
 	pipelines, _, _, err := s.pipelineClient.List(
-		&pipelineParams.ListPipelinesV1Params{SortBy: util.StringPointer("created_at")})
+		&pipelineParams.PipelineServiceListPipelinesV1Params{SortBy: util.StringPointer("created_at")})
 	require.Nil(t, err)
 	// During upgrade, default pipelines may be installed, so we only verify the
 	// 4 oldest pipelines here.
@@ -316,7 +316,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	verifyPipeline(t, pipelines[0])
 
 	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetTemplate(&pipelineParams.GetTemplateParams{ID: pipelines[0].ID})
+	template, err := s.pipelineClient.GetTemplate(&pipelineParams.PipelineServiceGetTemplateParams{ID: pipelines[0].ID})
 	require.Nil(t, err)
 	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
@@ -338,7 +338,7 @@ func (s *UpgradeTests) PrepareRuns() {
 	require.Equal(t, hello2, helloWorldExperiment)
 
 	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
-	createRunRequest := &runParams.CreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequest := &runParams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
 		PipelineSpec: &run_model.APIPipelineSpec{
@@ -361,14 +361,14 @@ func (s *UpgradeTests) VerifyRuns() {
 	/* ---------- List the runs, sorted by creation time ---------- */
 	runs, _, _, err := test.ListRuns(
 		s.runClient,
-		&runParams.ListRunsV1Params{SortBy: util.StringPointer("created_at")},
+		&runParams.RunServiceListRunsV1Params{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
 	require.Nil(t, err)
 	require.True(t, len(runs) >= 1)
 	require.Equal(t, "hello world", runs[0].Name)
 
 	/* ---------- Get hello world run ---------- */
-	helloWorldRunDetail, _, err := s.runClient.Get(&runParams.GetRunV1Params{RunID: runs[0].ID})
+	helloWorldRunDetail, _, err := s.runClient.Get(&runParams.RunServiceGetRunV1Params{RunID: runs[0].ID})
 	require.Nil(t, err)
 	checkHelloWorldRunDetail(t, helloWorldRunDetail)
 }
@@ -380,7 +380,7 @@ func (s *UpgradeTests) PrepareJobs() {
 	experiment := s.getHelloWorldExperiment(true)
 
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobparams.JobServiceCreateJobParams{Body: &job_model.APIJob{
 		Name:        "hello world",
 		Description: "this is hello world",
 		PipelineSpec: &job_model.APIPipelineSpec{
@@ -448,13 +448,13 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 
 	/* ---------- Get the oldest pipeline and the newest experiment ---------- */
 	pipelines, _, _, err := s.pipelineClient.List(
-		&pipelineParams.ListPipelinesV1Params{SortBy: util.StringPointer("created_at")})
+		&pipelineParams.PipelineServiceListPipelinesV1Params{SortBy: util.StringPointer("created_at")})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", pipelines[0].Name)
 
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experimentParams.ListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
+		&experimentParams.ExperimentServiceListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
 		"",
 	)
 	require.Nil(t, err)
@@ -463,7 +463,7 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 	assert.Equal(t, "hello world experiment", experiments[4].Name)
 
 	/* ---------- Create a new run based on the oldest pipeline and its default pipeline version ---------- */
-	createRunRequest := &runParams.CreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequest := &runParams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
 		Name:        "argument parameter from pipeline",
 		Description: "a run from an old pipeline",
 		PipelineSpec: &run_model.APIPipelineSpec{
@@ -487,7 +487,7 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 	runFromPipeline, _, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 
-	createRunRequestVersion := &runParams.CreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequestVersion := &runParams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
 		Name:        "argument parameter from pipeline version",
 		Description: "a run from an old pipeline version",
 		PipelineSpec: &run_model.APIPipelineSpec{
@@ -534,7 +534,7 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 	))
 
 	/* ---------- Create a new recurring run based on the second oldest pipeline version and belonging to the second oldest experiment ---------- */
-	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobparams.JobServiceCreateJobParams{Body: &job_model.APIJob{
 		Name:        "sequential job from pipeline version",
 		Description: "a recurring run from an old pipeline version",
 		ResourceReferences: []*job_model.APIResourceReference{
@@ -604,7 +604,7 @@ func (s *UpgradeTests) createHelloWorldExperiment() *experiment_model.APIExperim
 	t := s.T()
 
 	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
 	require.Nil(t, err)
 
 	return helloWorldExperiment
@@ -615,7 +615,7 @@ func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experimen
 
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experimentParams.ListExperimentsV1Params{
+		&experimentParams.ExperimentServiceListExperimentsV1Params{
 			PageSize: util.Int32Pointer(1000),
 		},
 		s.resourceNamespace)
@@ -637,7 +637,7 @@ func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experimen
 func (s *UpgradeTests) getHelloWorldPipeline(createIfNotExist bool) *pipeline_model.APIPipeline {
 	t := s.T()
 
-	pipelines, err := s.pipelineClient.ListAll(&pipelineParams.ListPipelinesV1Params{}, 1000)
+	pipelines, err := s.pipelineClient.ListAll(&pipelineParams.PipelineServiceListPipelinesV1Params{}, 1000)
 	require.Nil(t, err)
 	var helloWorldPipeline *pipeline_model.APIPipeline
 	for _, pipeline := range pipelines {
@@ -660,7 +660,7 @@ func (s *UpgradeTests) createHelloWorldPipeline() *pipeline_model.APIPipeline {
 	uploadedPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	require.Nil(t, err)
 
-	helloWorldPipeline, err := s.pipelineClient.Get(&pipelineParams.GetPipelineV1Params{ID: uploadedPipeline.ID})
+	helloWorldPipeline, err := s.pipelineClient.Get(&pipelineParams.PipelineServiceGetPipelineV1Params{ID: uploadedPipeline.ID})
 	require.Nil(t, err)
 
 	return helloWorldPipeline

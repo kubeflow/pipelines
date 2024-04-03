@@ -26,6 +26,7 @@ import "backend/api/v1beta1/resource_reference.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  schemes: [1, 2], // http + https
   responses: {
     key: "default";
     value: {

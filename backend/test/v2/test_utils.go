@@ -76,10 +76,10 @@ func GetDefaultPipelineRunnerServiceAccount(isKubeflowMode bool) string {
 }
 
 func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.V2beta1Experiment, int, string, error) {
-	return ListExperiment(client, &experiment_params.ListExperimentsParams{}, namespace)
+	return ListExperiment(client, &experiment_params.ExperimentServiceListExperimentsParams{}, namespace)
 }
 
-func ListExperiment(client *api_server.ExperimentClient, parameters *experiment_params.ListExperimentsParams, namespace string) ([]*experiment_model.V2beta1Experiment, int, string, error) {
+func ListExperiment(client *api_server.ExperimentClient, parameters *experiment_params.ExperimentServiceListExperimentsParams, namespace string) ([]*experiment_model.V2beta1Experiment, int, string, error) {
 	if namespace != "" {
 		parameters.Namespace = &namespace
 	}
@@ -91,7 +91,7 @@ func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string,
 	assert.Nil(t, err)
 	for _, e := range experiments {
 		if e.DisplayName != "Default" {
-			assert.Nil(t, client.Delete(&experiment_params.DeleteExperimentParams{ExperimentID: e.ExperimentID}))
+			assert.Nil(t, client.Delete(&experiment_params.ExperimentServiceDeleteExperimentParams{ExperimentID: e.ExperimentID}))
 		}
 	}
 }
@@ -109,7 +109,7 @@ func MakeExperiment(name string, description string, namespace string) *experime
 	return experiment
 }
 
-func ListRuns(client *api_server.RunClient, parameters *run_params.ListRunsParams, namespace string) ([]*run_model.V2beta1Run, int, string, error) {
+func ListRuns(client *api_server.RunClient, parameters *run_params.RunServiceListRunsParams, namespace string) ([]*run_model.V2beta1Run, int, string, error) {
 	if namespace != "" {
 		parameters.Namespace = &namespace
 	}
@@ -117,7 +117,7 @@ func ListRuns(client *api_server.RunClient, parameters *run_params.ListRunsParam
 }
 
 func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.V2beta1Run, int, string, error) {
-	parameters := &run_params.ListRunsParams{}
+	parameters := &run_params.RunServiceListRunsParams{}
 	return ListRuns(client, parameters, namespace)
 }
 
@@ -125,11 +125,11 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 	runs, _, _, err := ListAllRuns(client, namespace)
 	assert.Nil(t, err)
 	for _, r := range runs {
-		assert.Nil(t, client.Delete(&run_params.DeleteRunParams{RunID: r.RunID}))
+		assert.Nil(t, client.Delete(&run_params.RunServiceDeleteRunParams{RunID: r.RunID}))
 	}
 }
 
-func ListRecurringRuns(client *api_server.RecurringRunClient, parameters *recurring_run_params.ListRecurringRunsParams, namespace string) ([]*recurring_run_model.V2beta1RecurringRun, int, string, error) {
+func ListRecurringRuns(client *api_server.RecurringRunClient, parameters *recurring_run_params.RecurringRunServiceListRecurringRunsParams, namespace string) ([]*recurring_run_model.V2beta1RecurringRun, int, string, error) {
 	if namespace != "" {
 		parameters.Namespace = &namespace
 	}
@@ -137,28 +137,28 @@ func ListRecurringRuns(client *api_server.RecurringRunClient, parameters *recurr
 }
 
 func ListAllRecurringRuns(client *api_server.RecurringRunClient, namespace string) ([]*recurring_run_model.V2beta1RecurringRun, int, string, error) {
-	return ListRecurringRuns(client, &recurring_run_params.ListRecurringRunsParams{}, namespace)
+	return ListRecurringRuns(client, &recurring_run_params.RecurringRunServiceListRecurringRunsParams{}, namespace)
 }
 
 func DeleteAllRecurringRuns(client *api_server.RecurringRunClient, namespace string, t *testing.T) {
 	recurringRuns, _, _, err := ListAllRecurringRuns(client, namespace)
 	assert.Nil(t, err)
 	for _, r := range recurringRuns {
-		assert.Nil(t, client.Delete(&recurring_run_params.DeleteRecurringRunParams{RecurringRunID: r.RecurringRunID}))
+		assert.Nil(t, client.Delete(&recurring_run_params.RecurringRunServiceDeleteRecurringRunParams{RecurringRunID: r.RecurringRunID}))
 	}
 }
 
 func ListPipelineVersions(client *api_server.PipelineClient, pipelineId string) (
 	[]*pipeline_model.V2beta1PipelineVersion, int, string, error,
 ) {
-	parameters := &pipeline_params.ListPipelineVersionsParams{PipelineID: pipelineId}
+	parameters := &pipeline_params.PipelineServiceListPipelineVersionsParams{PipelineID: pipelineId}
 	return client.ListPipelineVersions(parameters)
 }
 
 func ListPipelines(client *api_server.PipelineClient) (
 	[]*pipeline_model.V2beta1Pipeline, int, string, error,
 ) {
-	parameters := &pipeline_params.ListPipelinesParams{}
+	parameters := &pipeline_params.PipelineServiceListPipelinesParams{}
 	return client.List(parameters)
 }
 
@@ -166,7 +166,7 @@ func DeleteAllPipelineVersions(client *api_server.PipelineClient, t *testing.T, 
 	pipelineVersions, _, _, err := ListPipelineVersions(client, pipelineId)
 	assert.Nil(t, err)
 	for _, pv := range pipelineVersions {
-		assert.Nil(t, client.DeletePipelineVersion(&pipeline_params.DeletePipelineVersionParams{PipelineID: pipelineId, PipelineVersionID: pv.PipelineVersionID}))
+		assert.Nil(t, client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineId, PipelineVersionID: pv.PipelineVersionID}))
 	}
 }
 
@@ -182,7 +182,7 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 			DeleteAllPipelineVersions(client, t, pId)
 			deletedPipelines[pId] = true
 		}
-		assert.Nil(t, client.Delete(&pipeline_params.DeletePipelineParams{PipelineID: pId}))
+		assert.Nil(t, client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pId}))
 	}
 	for _, isRemoved := range deletedPipelines {
 		assert.True(t, isRemoved)

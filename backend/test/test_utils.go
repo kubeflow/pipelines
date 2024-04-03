@@ -81,7 +81,7 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 			DeleteAllPipelineVersions(client, t, pId)
 			deletedPipelines[pId] = true
 		}
-		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineV1Params{ID: pId}))
+		assert.Nil(t, client.Delete(&pipelineparams.PipelineServiceDeletePipelineV1Params{ID: pId}))
 	}
 	for _, isRemoved := range deletedPipelines {
 		assert.True(t, isRemoved)
@@ -92,7 +92,7 @@ func DeleteAllPipelineVersions(client *api_server.PipelineClient, t *testing.T, 
 	pipelineVersions, _, _, err := ListPipelineVersions(client, pipelineId)
 	assert.Nil(t, err)
 	for _, pv := range pipelineVersions {
-		assert.Nil(t, client.DeletePipelineVersion(&pipelineparams.DeletePipelineVersionV1Params{VersionID: pv.ID}))
+		assert.Nil(t, client.DeletePipelineVersion(&pipelineparams.PipelineServiceDeletePipelineVersionV1Params{VersionID: pv.ID}))
 	}
 }
 
@@ -101,7 +101,7 @@ func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string,
 	assert.Nil(t, err)
 	for _, e := range experiments {
 		if e.Name != "Default" {
-			assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentV1Params{ID: e.ID}))
+			assert.Nil(t, client.Delete(&experimentparams.ExperimentServiceDeleteExperimentV1Params{ID: e.ID}))
 		}
 	}
 }
@@ -110,7 +110,7 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 	runs, _, _, err := ListAllRuns(client, namespace)
 	assert.Nil(t, err)
 	for _, r := range runs {
-		assert.Nil(t, client.Delete(&runparams.DeleteRunV1Params{ID: r.ID}))
+		assert.Nil(t, client.Delete(&runparams.RunServiceDeleteRunV1Params{ID: r.ID}))
 	}
 }
 
@@ -118,7 +118,7 @@ func DeleteAllJobs(client *api_server.JobClient, namespace string, t *testing.T)
 	jobs, _, _, err := ListAllJobs(client, namespace)
 	assert.Nil(t, err)
 	for _, j := range jobs {
-		assert.Nil(t, client.Delete(&jobparams.DeleteJobParams{ID: j.ID}))
+		assert.Nil(t, client.Delete(&jobparams.JobServiceDeleteJobParams{ID: j.ID}))
 	}
 }
 
@@ -136,7 +136,7 @@ func GetExperimentIDFromV1beta1ResourceReferences(resourceRefs []*run_model.APIR
 func ListPipelineVersions(client *api_server.PipelineClient, pipelineId string) (
 	[]*pipeline_model.APIPipelineVersion, int, string, error,
 ) {
-	parameters := &pipelineparams.ListPipelineVersionsV1Params{}
+	parameters := &pipelineparams.PipelineServiceListPipelineVersionsV1Params{}
 	parameters.WithResourceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_PIPELINE)]))
 	parameters.SetResourceKeyID(&pipelineId)
 	return client.ListPipelineVersions(parameters)
@@ -145,15 +145,15 @@ func ListPipelineVersions(client *api_server.PipelineClient, pipelineId string) 
 func ListPipelines(client *api_server.PipelineClient) (
 	[]*pipeline_model.APIPipeline, int, string, error,
 ) {
-	parameters := &pipelineparams.ListPipelinesV1Params{}
+	parameters := &pipelineparams.PipelineServiceListPipelinesV1Params{}
 	return client.List(parameters)
 }
 
 func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
-	return ListExperiment(client, &experimentparams.ListExperimentsV1Params{}, namespace)
+	return ListExperiment(client, &experimentparams.ExperimentServiceListExperimentsV1Params{}, namespace)
 }
 
-func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentsV1Params, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
+func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ExperimentServiceListExperimentsV1Params, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -162,11 +162,11 @@ func ListExperiment(client *api_server.ExperimentClient, parameters *experimentp
 }
 
 func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.APIRun, int, string, error) {
-	parameters := &runparams.ListRunsV1Params{}
+	parameters := &runparams.RunServiceListRunsV1Params{}
 	return ListRuns(client, parameters, namespace)
 }
 
-func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsV1Params, namespace string) ([]*run_model.APIRun, int, string, error) {
+func ListRuns(client *api_server.RunClient, parameters *runparams.RunServiceListRunsV1Params, namespace string) ([]*run_model.APIRun, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -176,10 +176,10 @@ func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsV1Para
 }
 
 func ListAllJobs(client *api_server.JobClient, namespace string) ([]*job_model.APIJob, int, string, error) {
-	return ListJobs(client, &jobparams.ListJobsParams{}, namespace)
+	return ListJobs(client, &jobparams.JobServiceListJobsParams{}, namespace)
 }
 
-func ListJobs(client *api_server.JobClient, parameters *jobparams.ListJobsParams, namespace string) ([]*job_model.APIJob, int, string, error) {
+func ListJobs(client *api_server.JobClient, parameters *jobparams.JobServiceListJobsParams, namespace string) ([]*job_model.APIJob, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
