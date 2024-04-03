@@ -136,11 +136,11 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world run by specifying pipeline version ID ---------- */
-	createRunRequest := &run_params.CreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -154,12 +154,12 @@ func (s *RunApiTestSuite) TestRunApis() {
 	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ExperimentID, helloWorldPipelineVersion.PipelineID, helloWorldPipelineVersion.PipelineVersionID)
 
 	/* ---------- Get hello world run ---------- */
-	helloWorldRunDetail, err = s.runClient.Get(&run_params.GetRunParams{RunID: helloWorldRunDetail.RunID})
+	helloWorldRunDetail, err = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: helloWorldRunDetail.RunID})
 	assert.Nil(t, err)
 	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ExperimentID, helloWorldPipelineVersion.PipelineID, helloWorldPipelineVersion.PipelineVersionID)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
-	createExperimentRequest := &experiment_params.CreateExperimentParams{
+	createExperimentRequest := &experiment_params.ExperimentServiceCreateExperimentParams{
 		Body: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
 	}
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
@@ -172,7 +172,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
 	assert.Nil(t, err)
 
-	createRunRequest = &run_params.CreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest = &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
 		DisplayName:  "argument parameter",
 		Description:  "this is argument parameter",
 		PipelineSpec: pipeline_spec,
@@ -197,7 +197,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- List the runs, paginated, sorted by creation time ---------- */
 	runs, totalSize, nextPageToken, err := test.ListRuns(
 		s.runClient,
-		&run_params.ListRunsParams{
+		&run_params.RunServiceListRunsParams{
 			PageSize: util.Int32Pointer(1),
 			SortBy:   util.StringPointer("created_at"),
 		},
@@ -209,7 +209,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* assert.Equal(t, "hello world", runs[0].Name) */
 	runs, totalSize, _, err = test.ListRuns(
 		s.runClient,
-		&run_params.ListRunsParams{
+		&run_params.RunServiceListRunsParams{
 			PageSize:  util.Int32Pointer(1),
 			PageToken: util.StringPointer(nextPageToken),
 		},
@@ -223,7 +223,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- List the runs, paginated, sort by name ---------- */
 	runs, totalSize, nextPageToken, err = test.ListRuns(
 		s.runClient,
-		&run_params.ListRunsParams{
+		&run_params.RunServiceListRunsParams{
 			PageSize: util.Int32Pointer(1),
 			SortBy:   util.StringPointer("name"),
 		},
@@ -234,7 +234,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, "argument parameter", runs[0].DisplayName)
 	runs, totalSize, _, err = test.ListRuns(
 		s.runClient,
-		&run_params.ListRunsParams{
+		&run_params.RunServiceListRunsParams{
 			PageSize:  util.Int32Pointer(1),
 			SortBy:    util.StringPointer("name"),
 			PageToken: util.StringPointer(nextPageToken),
@@ -248,12 +248,12 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- List the runs, sort by unsupported field ---------- */
 	_, _, _, err = test.ListRuns(
 		s.runClient,
-		&run_params.ListRunsParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")},
+		&run_params.RunServiceListRunsParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")},
 		s.resourceNamespace)
 	assert.NotNil(t, err)
 
 	/* ---------- List runs for hello world experiment. One run should be returned ---------- */
-	runs, totalSize, _, err = s.runClient.List(&run_params.ListRunsParams{
+	runs, totalSize, _, err = s.runClient.List(&run_params.RunServiceListRunsParams{
 		ExperimentID: util.StringPointer(helloWorldExperiment.ExperimentID),
 	})
 	assert.Nil(t, err)
@@ -277,7 +277,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	// Check number of filtered runs created before filterTime to be 2
 	runs, totalSize, _, err = test.ListRuns(
 		s.runClient,
-		&run_params.ListRunsParams{
+		&run_params.RunServiceListRunsParams{
 			Filter: util.StringPointer(`{"predicates": [{"key": "created_at", "operation": "LESS_THAN", "string_value": "` + fmt.Sprint(filterTime) + `"}]}`),
 		},
 		s.resourceNamespace)
@@ -286,13 +286,13 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, 2, totalSize)
 
 	/* ---------- Archive a run ------------*/
-	err = s.runClient.Archive(&run_params.ArchiveRunParams{
+	err = s.runClient.Archive(&run_params.RunServiceArchiveRunParams{
 		RunID: helloWorldRunDetail.RunID,
 	})
 	assert.Nil(t, err)
 
 	/* ---------- List runs for hello world experiment. The same run should still be returned, but should be archived ---------- */
-	runs, totalSize, _, err = s.runClient.List(&run_params.ListRunsParams{
+	runs, totalSize, _, err = s.runClient.List(&run_params.RunServiceListRunsParams{
 		ExperimentID: util.StringPointer(helloWorldExperiment.ExperimentID),
 	})
 	assert.Nil(t, err)
@@ -314,7 +314,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new long-running run by specifying pipeline ID ---------- */
-	createLongRunningRunRequest := &run_params.CreateRunParams{Body: &run_model.V2beta1Run{
+	createLongRunningRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
 		DisplayName:  "long running",
 		Description:  "this pipeline will run long enough for us to manually terminate it before it finishes",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -327,13 +327,13 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Terminate the long-running run ------------*/
-	err = s.runClient.Terminate(&run_params.TerminateRunParams{
+	err = s.runClient.Terminate(&run_params.RunServiceTerminateRunParams{
 		RunID: longRunningRun.RunID,
 	})
 	assert.Nil(t, err)
 
 	/* ---------- Get long-running run ---------- */
-	longRunningRun, err = s.runClient.Get(&run_params.GetRunParams{RunID: longRunningRun.RunID})
+	longRunningRun, err = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: longRunningRun.RunID})
 	assert.Nil(t, err)
 	s.checkTerminatedRunDetail(t, longRunningRun, helloWorldExperiment.ExperimentID, longRunningPipelineVersion.PipelineID, longRunningPipelineVersion.PipelineVersionID)
 }

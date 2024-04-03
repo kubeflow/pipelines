@@ -142,7 +142,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	experiment := test.MakeExperiment("training", "my first experiment", s.resourceNamespace)
 	expectedTrainingExperiment := test.MakeExperiment("training", "my first experiment", s.resourceNamespace)
 
-	trainingExperiment, err := s.experimentClient.Create(&params.CreateExperimentParams{
+	trainingExperiment, err := s.experimentClient.Create(&params.ExperimentServiceCreateExperimentParams{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
@@ -154,7 +154,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
 	/* ---------- Create an experiment with same name. Should fail due to name uniqueness ---------- */
-	_, err = s.experimentClient.Create(&params.CreateExperimentParams{Body: experiment})
+	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please specify a new name")
 
@@ -162,12 +162,12 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	// 1 second interval. This ensures they can be sorted by create time in expected order.
 	time.Sleep(1 * time.Second)
 	experiment = test.MakeExperiment("prediction", "my second experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&params.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentParams{
 		Body: experiment,
 	})
 	time.Sleep(1 * time.Second)
 	experiment = test.MakeExperiment("moonshot", "my second experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&params.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentParams{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
@@ -187,7 +187,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments sorted by names ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentsParams{
+		&params.ExperimentServiceListExperimentsParams{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("name"),
 		},
@@ -201,7 +201,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentsParams{
+		&params.ExperimentServiceListExperimentsParams{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
 			SortBy:    util.StringPointer("name"),
@@ -217,7 +217,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments sorted by creation time ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentsParams{
+		&params.ExperimentServiceListExperimentsParams{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("created_at"),
 		},
@@ -231,7 +231,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentsParams{
+		&params.ExperimentServiceListExperimentsParams{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
 			SortBy:    util.StringPointer("created_at"),
@@ -247,7 +247,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- List experiments sort by unsupported field. Should fail. ---------- */
 	_, _, _, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentsParams{
+		&params.ExperimentServiceListExperimentsParams{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("unknownfield"),
 		},
@@ -257,7 +257,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- List experiments sorted by names descend order ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentsParams{
+		&params.ExperimentServiceListExperimentsParams{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("name desc"),
 		},
@@ -271,7 +271,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentsParams{
+		&params.ExperimentServiceListExperimentsParams{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
 			SortBy:    util.StringPointer("name desc"),
@@ -285,7 +285,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get experiment works ---------- */
-	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
+	experiment, err = s.experimentClient.Get(&params.ExperimentServiceGetExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTrainingExperiment, experiment)
 
@@ -299,7 +299,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 			Pipelineid: util.StringPointer(pipeline.PipelineID),
 		})
 	assert.Nil(t, err)
-	createRunRequest := &run_params.CreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: experiment.ExperimentID,
@@ -313,7 +313,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	run2, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createRecurringRunRequest := &recurring_run_params.CreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: experiment.ExperimentID,
@@ -330,42 +330,42 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Nil(t, err)
 
 	/* ---------- Archive an experiment -----------------*/
-	err = s.experimentClient.Archive(&params.ArchiveExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
+	err = s.experimentClient.Archive(&params.ExperimentServiceArchiveExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
 
 	/* ---------- Verify experiment and its runs ------- */
-	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
+	experiment, err = s.experimentClient.Get(&params.ExperimentServiceGetExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
 	assert.Nil(t, err)
 	assert.Equal(t, experiment_model.V2beta1ExperimentStorageStateARCHIVED, experiment.StorageState)
-	retrievedRun1, err := s.runClient.Get(&run_params.GetRunParams{RunID: run1.RunID})
+	retrievedRun1, err := s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: run1.RunID})
 	assert.Nil(t, err)
 	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, retrievedRun1.StorageState)
-	retrievedRun2, err := s.runClient.Get(&run_params.GetRunParams{RunID: run2.RunID})
+	retrievedRun2, err := s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: run2.RunID})
 	assert.Nil(t, err)
 	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, retrievedRun2.StorageState)
-	retrievedRecurringRun1, err := s.recurringRunClient.Get(&recurring_run_params.GetRecurringRunParams{RecurringRunID: recurringRun1.RecurringRunID})
+	retrievedRecurringRun1, err := s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun1.RecurringRunID})
 	assert.Nil(t, err)
 	assert.Equal(t, recurring_run_model.V2beta1RecurringRunStatusDISABLED, retrievedRecurringRun1.Status)
-	retrievedRecurringRun2, err := s.recurringRunClient.Get(&recurring_run_params.GetRecurringRunParams{RecurringRunID: recurringRun2.RecurringRunID})
+	retrievedRecurringRun2, err := s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun2.RecurringRunID})
 	assert.Nil(t, err)
 	assert.Equal(t, recurring_run_model.V2beta1RecurringRunStatusDISABLED, retrievedRecurringRun2.Status)
 
 	/* ---------- Unarchive an experiment -----------------*/
-	err = s.experimentClient.Unarchive(&params.UnarchiveExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
+	err = s.experimentClient.Unarchive(&params.ExperimentServiceUnarchiveExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
 
 	/* ---------- Verify experiment and its runs and jobs --------- */
-	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
+	experiment, err = s.experimentClient.Get(&params.ExperimentServiceGetExperimentParams{ExperimentID: trainingExperiment.ExperimentID})
 	assert.Nil(t, err)
 	assert.Equal(t, experiment_model.V2beta1ExperimentStorageStateAVAILABLE, experiment.StorageState)
-	retrievedRun1, err = s.runClient.Get(&run_params.GetRunParams{RunID: run1.RunID})
+	retrievedRun1, err = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: run1.RunID})
 	assert.Nil(t, err)
 	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, retrievedRun1.StorageState)
-	retrievedRun2, err = s.runClient.Get(&run_params.GetRunParams{RunID: run2.RunID})
+	retrievedRun2, err = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: run2.RunID})
 	assert.Nil(t, err)
 	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, retrievedRun2.StorageState)
-	retrievedRecurringRun1, err = s.recurringRunClient.Get(&recurring_run_params.GetRecurringRunParams{RecurringRunID: recurringRun1.RecurringRunID})
+	retrievedRecurringRun1, err = s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun1.RecurringRunID})
 	assert.Nil(t, err)
 	assert.Equal(t, recurring_run_model.V2beta1RecurringRunStatusDISABLED, retrievedRecurringRun1.Status)
-	retrievedRecurringRun2, err = s.recurringRunClient.Get(&recurring_run_params.GetRecurringRunParams{RecurringRunID: recurringRun2.RecurringRunID})
+	retrievedRecurringRun2, err = s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun2.RecurringRunID})
 	assert.Nil(t, err)
 	assert.Equal(t, recurring_run_model.V2beta1RecurringRunStatusDISABLED, retrievedRecurringRun2.Status)
 }
