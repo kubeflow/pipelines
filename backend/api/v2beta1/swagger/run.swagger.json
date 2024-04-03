@@ -4,6 +4,10 @@
     "title": "backend/api/v2beta1/run.proto",
     "version": "version not set"
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],

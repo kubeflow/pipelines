@@ -25,6 +25,12 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "google/rpc/status.proto";
 
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  schemes: [1, 2], // http + https
+};
+
 service RecurringRunService {
   // Creates a new recurring run in an experiment, given the experiment ID.
   rpc CreateRecurringRun(CreateRecurringRunRequest) returns (RecurringRun) {
