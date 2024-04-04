@@ -21,6 +21,7 @@ from google_cloud_pipeline_components.types.artifact_types import UnmanagedConta
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp.dsl import Artifact
+from kfp.dsl import component
 from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
@@ -28,6 +29,27 @@ from kfp.dsl import IfPresentPlaceholder
 from kfp.dsl import Input
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
+
+
+@component
+def test_component_with_docstring():
+  """Test component with docstring."""
+  print('test component')
+
+
+@component
+def test_component_without_docstring():
+  print('test component')
+
+
+@component
+def test_component_without_docstring_two():
+  print('test component')
+
+
+@component
+def test_component_not_declared_in_public():
+  print('no docstring')
 
 
 @container_component

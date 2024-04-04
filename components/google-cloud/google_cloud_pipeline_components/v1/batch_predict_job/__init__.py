@@ -16,7 +16,12 @@
 # fmt: on
 
 from google_cloud_pipeline_components.v1.batch_predict_job.component import model_batch_predict as ModelBatchPredictOp
+from google_cloud_pipeline_components.v1.batch_predict_job.component import test_component_with_docstring as TestComponentWithDocstringOp
+from google_cloud_pipeline_components.v1.batch_predict_job.component import test_component_without_docstring as TestComponentWithoutDocstringOp
+from google_cloud_pipeline_components.v1.batch_predict_job.component import test_component_without_docstring_two as TestComponentWithoutDocstringTwoOp
 
 __all__ = [
     'ModelBatchPredictOp',
+    'TestComponentWithoutDocstringOp',
+    'TestComponentWithoutDocstringTwoOp',
 ]

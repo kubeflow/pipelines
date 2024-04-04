@@ -31,6 +31,14 @@ PipelineOutput = NamedTuple(
 
 
 @kfp.dsl.pipeline(
+    name='foo',
+    description='',
+)
+def test_rlhf_pipeline():
+  print('i have no docstring')
+
+
+@kfp.dsl.pipeline(
     name='rlhf-train-template',
     description='Performs reinforcement learning from human feedback.',
 )
