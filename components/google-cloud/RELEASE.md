@@ -1,7 +1,8 @@
 ## Upcoming release
 
-## Release 2.14.0
+## Release 2.13.1
 * Fix model name preprocess error, pass correct model to `ModelImportEvaluationOp` component in `v1.model_evaluation.evaluation_llm_text_generation_pipeline` and `v1.model_evaluation.evaluation_llm_classification_pipeline`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.13.0
 * Add support for `text-bison@002` to `preview.llm.rlhf_pipeline`.
