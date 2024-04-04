@@ -1,0 +1,6 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-rolebinding
+$patch: delete
