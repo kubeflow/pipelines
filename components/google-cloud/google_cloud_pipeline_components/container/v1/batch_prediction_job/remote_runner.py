@@ -197,7 +197,7 @@ def create_batch_prediction_job(
     job_name = remote_runner.check_if_job_exists()
     if job_name is None:
       formatted_batch_prediction_payload = insert_system_labels_into_payload(
-          insert_artifact_into_payload(executor_input, payload)
+          payload
       )
       logging.info(
           'Batch prediction payload formatted: %s',

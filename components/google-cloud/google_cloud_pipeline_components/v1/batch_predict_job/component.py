@@ -130,6 +130,12 @@ def model_batch_predict(
                       '",',
                   ]),
               ),
+              IfPresentPlaceholder(
+                  input_name='unmanaged_container_model',
+                  then='{"unmanaged_container_model": {"artifact_uri": "'
+                  + unmanaged_container_model.uri
+                  + '"} }',
+              ),
               ' "input_config": {',
               '"instances_format": "',
               instances_format,
