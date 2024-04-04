@@ -29,6 +29,7 @@ PipelineOutput = NamedTuple(
     'Outputs', model_resource_name=str, endpoint_resource_name=str
 )
 
+print('rerun test')
 
 @kfp.dsl.pipeline(
     name='rlhf-train-template',
