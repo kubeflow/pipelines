@@ -1,4 +1,5 @@
 ## Upcoming release
+* Use larger base reward model when tuning `text` and `chat` variants of `bison@001` with the `preview.llm.rlhf_pipeline`.
 
 ## Release 2.13.1
 * Fix model name preprocess error, pass correct model to `ModelImportEvaluationOp` component in `v1.model_evaluation.evaluation_llm_text_generation_pipeline` and `v1.model_evaluation.evaluation_llm_classification_pipeline`.

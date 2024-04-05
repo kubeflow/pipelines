@@ -265,8 +265,10 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
           ),
-          reward_model_reference='OTTER',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          reward_model_reference='BISON',
+          reward_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
           is_supported=False,  # Deprecated: Use text-bision@001 instead.
       ),
       'text-bison@001': reference_model_metadata(
@@ -274,8 +276,10 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
           ),
-          reward_model_reference='OTTER',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          reward_model_reference='BISON',
+          reward_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
           is_supported=True,
       ),
       'text-bison@002': reference_model_metadata(
@@ -292,8 +296,10 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
           ),
-          reward_model_reference='OTTER',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          reward_model_reference='BISON',
+          reward_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
           is_supported=True,
       ),
       'elephant': reference_model_metadata(
