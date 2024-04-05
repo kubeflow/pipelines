@@ -373,46 +373,6 @@ def convert_to_delimited_string(items: List[str], delimiter: str = ',') -> str:
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def generate_default_instruction(
-    task: str,
-    target_sequence_length: int,
-    instruction_override: str = '',
-) -> str:
-  """Generates a default instruction if no override is provided."""
-  if instruction_override:
-    return instruction_override
-  task = task.lower()
-  if task == 'summarization':
-    return f'Summarize in less than {target_sequence_length} words.'
-
-  elif task == 'question_answer':
-    return f'Answer the question in less than {target_sequence_length} words.'
-
-  else:
-    raise ValueError(
-        f'Task not recognized: {task}. Supported tasks are: "summarization",'
-        ' "question_answer".'
-    )
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def resolve_upload_location(upload_location: Optional[str] = None) -> str:
-  """Gets the region to upload the model.
-
-  Args:
-    upload_location: User-specified region to upload the model to.
-
-  Returns:
-    Where to upload the model. If no location is specified, the model will be
-    uploaded to the region where the pipeline is running.
-  """
-  # pylint: disable=g-import-not-at-top
-  import os
-  # pylint: enable=g-import-not-at-top
-  return upload_location or os.environ['CLOUD_ML_REGION']
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_regional_endpoint(upload_location: str) -> str:
   """Gets the regional endpoint used to upload a model to the registry.
 
