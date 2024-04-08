@@ -46,7 +46,7 @@ def get_model(
       f'{resp_model_name_without_version}@{get_model_response.version_id}'
   )
 
-  vertex_model = artifact_types.VertexModel.create(
-      'model', vertex_uri_prefix + model_resource_name, model_resource_name
+  vertex_model = artifact_types.VertexModel(
+      'model', vertex_uri_prefix + model_resource_name, {'FOO': 'BAR'}
   )
   artifact_utils.update_output_artifacts(executor_input, [vertex_model])

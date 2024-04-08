@@ -17,7 +17,7 @@ from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from kfp import dsl
 
-
+print('trigger test')
 @dsl.container_component
 def model_get(
     model: dsl.Output[VertexModel],
