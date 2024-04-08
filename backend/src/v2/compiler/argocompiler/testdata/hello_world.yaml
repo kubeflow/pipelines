@@ -135,6 +135,8 @@ spec:
         name: dot-local-scratch
       - mountPath: /.cache
         name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
     initContainers:
     - command:
       - launcher-v2
@@ -171,6 +173,8 @@ spec:
       name: dot-local-scratch
     - emptyDir: {}
       name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
   - dag:
       tasks:
       - arguments:
