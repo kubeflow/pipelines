@@ -792,6 +792,14 @@ func (wc *WorkflowClient) Execution(namespace string) ExecutionInterface {
 	}
 }
 
+func (wc *WorkflowClient) Compare(old, new interface{}) bool {
+	newWorkflow := new.(*workflowapi.Workflow)
+	oldWorkflow := old.(*workflowapi.Workflow)
+	// Periodic resync will send update events for all known Workflows.
+	// Two different versions of the same WorkflowHistory will always have different RVs.
+	return newWorkflow.ResourceVersion != oldWorkflow.ResourceVersion
+}
+
 type WorkflowInterface struct {
 	workflowInterface argoclientwf.WorkflowInterface
 	informer          v1alpha1.WorkflowInformer

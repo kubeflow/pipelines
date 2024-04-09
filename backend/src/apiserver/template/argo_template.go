@@ -208,7 +208,7 @@ func (t *Argo) ParametersJSON() (string, error) {
 	if t == nil {
 		return "", nil
 	}
-	return util.MarshalParameters(util.ArgoWorkflow, t.wf.SpecParameters())
+	return util.MarshalParameters(util.CurrentExecutionType(), t.wf.SpecParameters())
 }
 
 func NewArgoTemplateFromWorkflow(wf *workflowapi.Workflow) (*Argo, error) {

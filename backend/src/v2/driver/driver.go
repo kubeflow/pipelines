@@ -1255,7 +1255,7 @@ func kubernetesPlatformOps(
 		// We publish the execution, no matter this operartion succeeds or not
 		perr := publishDriverExecution(k8sClient, mlmd, ctx, createdExecution, outputParameters, nil, status)
 		if perr != nil && err != nil {
-			err = fmt.Errorf("failed to publish driver execution: %w. Also failed the Kubernetes platform operation: %w", perr, err)
+			err = fmt.Errorf("failed to publish driver execution: %s. Also failed the Kubernetes platform operation: %s", perr.Error(), err.Error())
 		} else if perr != nil {
 			err = fmt.Errorf("failed to publish driver execution: %w", perr)
 		}

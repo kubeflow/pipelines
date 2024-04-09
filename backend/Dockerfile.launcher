@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.20.9-alpine3.17 as builder
+FROM golang:1.21.7-alpine3.19 as builder
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
@@ -27,7 +27,7 @@ RUN go-licenses csv ./backend/src/v2/cmd/launcher-v2 > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/launcher.csv && \
     go-licenses save ./backend/src/v2/cmd/launcher-v2 --save_path /tmp/NOTICES
 
-FROM alpine:3.17
+FROM alpine:3.19
 
 RUN adduser -S appuser
 USER appuser

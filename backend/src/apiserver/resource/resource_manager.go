@@ -517,6 +517,21 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
 	executionSpec.SetExecutionNamespace(k8sNamespace)
+
+	// assign OwnerReference to scheduledworkflow
+	if run.RecurringRunId != "" {
+		job, err := r.jobStore.GetJob(run.RecurringRunId)
+		if err != nil {
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("RecurringRunId doesn't exist: %s", run.RecurringRunId), "Failed to create a run due to invalid recurring run id")
+		}
+		swf, err := r.swfClient.ScheduledWorkflow(job.Namespace).Get(ctx, job.K8SName, v1.GetOptions{})
+		if err != nil {
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow doesn't exist: %s", job.K8SName), "Failed to create a run due to invalid name")
+		}
+		executionSpec.SetOwnerReferences(swf)
+		// executionSpec.SetExecutionName(run.Description)
+	}
+
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -708,11 +723,7 @@ func (r *ResourceManager) ListJobs(filterContext *model.FilterContext, opts *lis
 
 // Terminates a workflow by setting its activeDeadlineSeconds to 0.
 func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, name string) error {
-	patchObj := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"activeDeadlineSeconds": 0,
-		},
-	}
+	patchObj := util.GetTerminatePatch(util.CurrentExecutionType())
 	patch, err := json.Marshal(patchObj)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to terminate workflow %s due to error parsing the patch", name)
@@ -881,7 +892,7 @@ func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId 
 		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeId)
 	}
 
-	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(workflowManifest))
+	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(workflowManifest))
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v due error reading execution spec", nodeId)
 	}
