@@ -611,6 +611,47 @@ func extendPodSpecPatch(
 		podSpec.ActiveDeadlineSeconds = &timeout
 	}
 
+	// Get Pod Generic Ephemeral volume information
+	for _, ephemeralVolumeSpec := range kubernetesExecutorConfig.GetGenericEphemeralVolume() {
+		var accessModes []k8score.PersistentVolumeAccessMode
+		for _, value := range ephemeralVolumeSpec.GetAccessModes() {
+			accessModes = append(accessModes, accessModeMap[value])
+		}
+		var storageClassName *string
+		storageClassName = nil
+		if !ephemeralVolumeSpec.GetDefaultStorageClass() {
+			_storageClassName := ephemeralVolumeSpec.GetStorageClassName()
+			storageClassName = &_storageClassName
+		}
+		ephemeralVolume := k8score.Volume{
+			Name: ephemeralVolumeSpec.GetVolumeName(),
+			VolumeSource: k8score.VolumeSource{
+				Ephemeral: &k8score.EphemeralVolumeSource{
+					VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels:      ephemeralVolumeSpec.GetMetadata().GetLabels(),
+							Annotations: ephemeralVolumeSpec.GetMetadata().GetAnnotations(),
+						},
+						Spec: k8score.PersistentVolumeClaimSpec{
+							AccessModes: accessModes,
+							Resources: k8score.ResourceRequirements{
+								Requests: k8score.ResourceList{
+									k8score.ResourceStorage: k8sres.MustParse(ephemeralVolumeSpec.GetSize()),
+								},
+							},
+							StorageClassName: storageClassName,
+						},
+					},
+				},
+			},
+		}
+		ephemeralVolumeMount := k8score.VolumeMount{
+			Name:      ephemeralVolumeSpec.GetVolumeName(),
+			MountPath: ephemeralVolumeSpec.GetMountPath(),
+		}
+		podSpec.Volumes = append(podSpec.Volumes, ephemeralVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, ephemeralVolumeMount)
+	}
 	return nil
 }
 

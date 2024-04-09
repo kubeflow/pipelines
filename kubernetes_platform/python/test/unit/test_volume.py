@@ -186,6 +186,102 @@ class TestMountPVC:
                 )
 
 
+class TestGenericEphemeralVolume:
+
+    def test_mount_one(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_ephemeral_volume(
+                task,
+                volume_name='pvc-name',
+                mount_path='path',
+                access_modes=['ReadWriteOnce'],
+                size='5Gi',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'genericEphemeralVolume': [{
+                                    'volumeName': 'pvc-name',
+                                    'mountPath': 'path',
+                                    'accessModes': ['ReadWriteOnce'],
+                                    'defaultStorageClass': True,
+                                    'size': '5Gi',
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_mount_two(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_ephemeral_volume(
+                task,
+                volume_name='pvc-name',
+                mount_path='path1',
+                access_modes=['ReadWriteOnce'],
+                size='5Gi',
+            )
+            kubernetes.add_ephemeral_volume(
+                task,
+                volume_name='other-pvc-name',
+                mount_path='path2',
+                access_modes=['ReadWriteMany'],
+                size='10Ti',
+                storage_class_name='gp2',
+                labels={
+                    'label1': 'l1',
+                },
+                annotations={
+                    'annotation1': 'a1',
+                }
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'genericEphemeralVolume': [
+                                    {
+                                        'volumeName': 'pvc-name',
+                                        'mountPath': 'path1',
+                                        'accessModes': ['ReadWriteOnce'],
+                                        'defaultStorageClass': True,
+                                        'size': '5Gi',
+                                    },
+                                    {
+                                        'volumeName': 'other-pvc-name',
+                                        'mountPath': 'path2',
+                                        'accessModes': ['ReadWriteMany'],
+                                        'size': '10Ti',
+                                        'storageClassName': 'gp2',
+                                        'metadata': {
+                                            'labels': {'label1': 'l1'},
+                                            'annotations': {'annotation1': 'a1'},
+                                        },
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
 @dsl.component
 def comp():
     pass

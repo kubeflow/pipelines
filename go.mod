@@ -15,7 +15,7 @@ require (
 	github.com/go-openapi/swag v0.22.3
 	github.com/go-openapi/validate v0.20.3
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/golang/glog v1.1.0
+	github.com/golang/glog v1.2.0
 	github.com/golang/protobuf v1.5.3
 	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76
 	github.com/google/cel-go v0.12.6
@@ -28,9 +28,9 @@ require (
 	github.com/jinzhu/gorm v1.9.1
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/kubeflow/pipelines/api v0.0.0-20230331215358-758c91f76784
-	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240403164522-8b2a099e8c9f
-	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800
+	github.com/kubeflow/pipelines/api v0.0.0-20240403202122-a78dc77a301c
+	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240403202122-a78dc77a301c
+	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20240403202122-a78dc77a301c
 	github.com/lestrrat-go/strftime v1.0.4
 	github.com/mattn/go-sqlite3 v1.14.19
 	github.com/minio/minio-go/v6 v6.0.57
