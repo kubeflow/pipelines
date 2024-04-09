@@ -118,7 +118,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
-	sequentialPipeline, err := s.pipelineClient.CreatePipelineAndVersion(&params.CreatePipelineAndVersionParams{
+	sequentialPipeline, err := s.pipelineClient.CreatePipelineAndVersion(&params.PipelineServiceCreatePipelineAndVersionParams{
 		Body: &model.V2beta1CreatePipelineAndVersionRequest{
 			Pipeline: &model.V2beta1Pipeline{
 				DisplayName: "sequential",
@@ -134,7 +134,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.DisplayName)
 	assert.Equal(t, "sequential pipeline", sequentialPipeline.Description)
-	sequentialPipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{PipelineID: sequentialPipeline.PipelineID})
+	sequentialPipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.PipelineServiceListPipelineVersionsParams{PipelineID: sequentialPipeline.PipelineID})
 	require.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, 1, len(sequentialPipelineVersions))
@@ -152,12 +152,12 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
+	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineParams{
 		Body: &model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
 	})
 	require.Nil(t, err)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(
-		&params.CreatePipelineVersionParams{
+		&params.PipelineServiceCreatePipelineVersionParams{
 			PipelineID: argumentUrlPipeline.PipelineID,
 			Body: &model.V2beta1PipelineVersion{
 				DisplayName: "argumentUrl-v1",
@@ -175,7 +175,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "https://storage.googleapis.com/ml-pipeline-dataset/v2/arguments.pipeline.zip", argumentUrlPipelineVersion.PackageURL.PipelineURL)
 
 	/* ---------- Verify list pipeline works ---------- */
-	pipelines, totalSize, _, err := s.pipelineClient.List(&params.ListPipelinesParams{})
+	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{})
 	require.Nil(t, err)
 	assert.Equal(t, 5, len(pipelines))
 	assert.Equal(t, 5, totalSize)
@@ -189,7 +189,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- Verify list pipeline sorted by names ---------- */
 	listFirstPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
-		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
+		&params.PipelineServiceListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	require.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelines))
 	assert.Equal(t, 5, totalSize)
@@ -198,7 +198,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
-		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name")})
+		&params.PipelineServiceListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name")})
 	require.Nil(t, err)
 	assert.Equal(t, 3, len(listSecondPagePipelines))
 	assert.Equal(t, 5, totalSize)
@@ -209,7 +209,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- Verify list pipeline sorted by creation time ---------- */
 	listFirstPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
-		&params.ListPipelinesParams{PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("created_at")})
+		&params.PipelineServiceListPipelinesParams{PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("created_at")})
 	require.Nil(t, err)
 	assert.Equal(t, 3, len(listFirstPagePipelines))
 	assert.Equal(t, 5, totalSize)
@@ -219,7 +219,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
-		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("created_at")})
+		&params.PipelineServiceListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("created_at")})
 	require.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
 	assert.Equal(t, 5, totalSize)
@@ -228,14 +228,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
-	_, _, _, err = s.pipelineClient.List(&params.ListPipelinesParams{
+	_, _, _, err = s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield"),
 	})
 	assert.NotNil(t, err)
 
 	/* ---------- List pipelines sorted by names descend order ---------- */
 	listFirstPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
-		&params.ListPipelinesParams{PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name desc")})
+		&params.PipelineServiceListPipelinesParams{PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name desc")})
 	require.Nil(t, err)
 	assert.Equal(t, 3, len(listFirstPagePipelines))
 	assert.Equal(t, 5, totalSize)
@@ -244,7 +244,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "hello-world.yaml", listFirstPagePipelines[2].DisplayName)
 	assert.NotEmpty(t, nextPageToken)
 
-	listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(&params.ListPipelinesParams{
+	listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{
 		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(3), SortBy: util.StringPointer("name desc"),
 	})
 	require.Nil(t, err)
@@ -255,7 +255,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get pipeline works ---------- */
-	pipeline, err := s.pipelineClient.Get(&params.GetPipelineParams{PipelineID: argumentYAMLPipeline.PipelineID})
+	pipeline, err := s.pipelineClient.Get(&params.PipelineServiceGetPipelineParams{PipelineID: argumentYAMLPipeline.PipelineID})
 	require.Nil(t, err)
 
 	assert.NotNil(t, *pipeline)

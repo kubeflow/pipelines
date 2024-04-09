@@ -39,7 +39,7 @@ func (a *Client) HealthzServiceGetHealthz(params *HealthzServiceGetHealthzParams
 		PathPattern:        "/apis/v2beta1/healthz",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &HealthzServiceGetHealthzReader{formats: a.formats},
 		AuthInfo:           authInfo,

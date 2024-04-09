@@ -187,7 +187,7 @@ func (s *UpgradeTests) PrepareExperiments() {
 
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.MakeExperiment("training", "my first experiment", s.resourceNamespace)
-	_, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{
+	_, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{
 		Body: experiment,
 	})
 	require.Nil(t, err)
@@ -196,14 +196,14 @@ func (s *UpgradeTests) PrepareExperiments() {
 	// This ensures they can be sorted by create time in expected order.
 	time.Sleep(1 * time.Second)
 	experiment = test.MakeExperiment("prediction", "my second experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&experiment_params.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{
 		Body: experiment,
 	})
 	require.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	experiment = test.MakeExperiment("moonshot", "my third experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&experiment_params.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{
 		Body: experiment,
 	})
 	require.Nil(t, err)
@@ -216,7 +216,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 	// This should have the hello-world experiment in addition to the old experiments.
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experiment_params.ListExperimentsParams{SortBy: util.StringPointer("created_at")},
+		&experiment_params.ExperimentServiceListExperimentsParams{SortBy: util.StringPointer("created_at")},
 		"",
 	)
 	require.Nil(t, err)
@@ -268,12 +268,12 @@ func (s *UpgradeTests) PreparePipelines() {
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
-	sequentialPipeline, err := s.pipelineClient.Create(&pipeline_params.CreatePipelineParams{
+	sequentialPipeline, err := s.pipelineClient.Create(&pipeline_params.PipelineServiceCreatePipelineParams{
 		Body: &pipeline_model.V2beta1Pipeline{DisplayName: "sequential"},
 	})
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.DisplayName)
-	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionParams{
+	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: sequentialPipeline.PipelineID,
 		Body: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "sequential",
@@ -295,12 +295,12 @@ func (s *UpgradeTests) PreparePipelines() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	argumentUrlPipeline, err := s.pipelineClient.Create(&pipeline_params.CreatePipelineParams{
+	argumentUrlPipeline, err := s.pipelineClient.Create(&pipeline_params.PipelineServiceCreatePipelineParams{
 		Body: &pipeline_model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
 	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.DisplayName)
-	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionParams{
+	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: argumentUrlPipeline.PipelineID,
 		Body: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "arguments",
@@ -321,7 +321,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 
 	/* ---------- Verify list pipeline sorted by creation time ---------- */
 	pipelines, _, _, err := s.pipelineClient.List(
-		&pipeline_params.ListPipelinesParams{SortBy: util.StringPointer("created_at")})
+		&pipeline_params.PipelineServiceListPipelinesParams{SortBy: util.StringPointer("created_at")})
 	require.Nil(t, err)
 	// During upgrade, default pipelines may be installed, so we only verify the
 	// 4 oldest pipelines here.
@@ -333,12 +333,12 @@ func (s *UpgradeTests) VerifyPipelines() {
 
 	/* ---------- Verify pipeline spec ---------- */
 	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(
-		&params.ListPipelineVersionsParams{
+		&params.PipelineServiceListPipelineVersionsParams{
 			PipelineID: pipelines[0].PipelineID,
 		})
 	require.Nil(t, err)
 	assert.Equal(t, totalSize, 1)
-	pipelineVersion, err := s.pipelineClient.GetPipelineVersion(&params.GetPipelineVersionParams{PipelineID: pipelines[0].PipelineID, PipelineVersionID: pipelineVersions[0].PipelineVersionID})
+	pipelineVersion, err := s.pipelineClient.GetPipelineVersion(&params.PipelineServiceGetPipelineVersionParams{PipelineID: pipelines[0].PipelineID, PipelineVersionID: pipelineVersions[0].PipelineVersionID})
 	require.Nil(t, err)
 	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	expected_bytes, err := yaml.YAMLToJSON(bytes)
@@ -362,7 +362,7 @@ func (s *UpgradeTests) PrepareRuns() {
 	require.Equal(t, hello2, helloWorldExperiment)
 
 	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
-	createRunRequest := &runParams.CreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &runParams.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -381,14 +381,14 @@ func (s *UpgradeTests) VerifyRuns() {
 	/* ---------- List the runs, sorted by creation time ---------- */
 	runs, _, _, err := test.ListRuns(
 		s.runClient,
-		&runParams.ListRunsParams{SortBy: util.StringPointer("created_at")},
+		&runParams.RunServiceListRunsParams{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
 	require.Nil(t, err)
 	assert.True(t, len(runs) >= 1)
 	assert.Equal(t, "hello world", runs[0].DisplayName)
 
 	/* ---------- Get hello world run ---------- */
-	helloWorldRunDetail, err := s.runClient.Get(&runParams.GetRunParams{RunID: runs[0].RunID})
+	helloWorldRunDetail, err := s.runClient.Get(&runParams.RunServiceGetRunParams{RunID: runs[0].RunID})
 	require.Nil(t, err)
 	assert.Equal(t, "hello world", helloWorldRunDetail.DisplayName)
 	assert.Equal(t, "this is hello world", helloWorldRunDetail.Description)
@@ -401,7 +401,7 @@ func (s *UpgradeTests) PrepareRecurringRuns() {
 	experiment := s.getHelloWorldExperiment(true)
 
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createRecurringRunRequest := &recurring_run_params.CreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName: "hello world",
 		Description: "this is hello world",
 		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
@@ -457,10 +457,10 @@ func (s *UpgradeTests) VerifyCreatingRunsAndRecurringRuns() {
 
 	/* ---------- Get the oldest pipeline and the newest experiment ---------- */
 	pipelines, _, _, err := s.pipelineClient.List(
-		&pipeline_params.ListPipelinesParams{SortBy: util.StringPointer("created_at")})
+		&pipeline_params.PipelineServiceListPipelinesParams{SortBy: util.StringPointer("created_at")})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", pipelines[0].DisplayName)
-	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{
+	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.PipelineServiceListPipelineVersionsParams{
 		PipelineID: pipelines[0].PipelineID,
 	})
 	require.Nil(t, err)
@@ -468,7 +468,7 @@ func (s *UpgradeTests) VerifyCreatingRunsAndRecurringRuns() {
 
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experiment_params.ListExperimentsParams{SortBy: util.StringPointer("created_at")},
+		&experiment_params.ExperimentServiceListExperimentsParams{SortBy: util.StringPointer("created_at")},
 		"",
 	)
 	require.Nil(t, err)
@@ -477,7 +477,7 @@ func (s *UpgradeTests) VerifyCreatingRunsAndRecurringRuns() {
 	assert.Equal(t, "hello world experiment", experiments[4].DisplayName)
 
 	/* ---------- Create a new run based on the oldest pipeline and its default pipeline version ---------- */
-	createRunRequest := &runParams.CreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &runParams.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
 		DisplayName: "argument parameter from pipeline",
 		Description: "a run from an old pipeline",
 		// This run should belong to the newest experiment (created after the upgrade)
@@ -499,13 +499,13 @@ func (s *UpgradeTests) VerifyCreatingRunsAndRecurringRuns() {
 	assert.Equal(t, experiments[4].ExperimentID, runFromPipeline.ExperimentID)
 
 	/* ---------- Create a new recurring run based on the second oldest pipeline version and belonging to the second oldest experiment ---------- */
-	pipelineVersions, totalSize, _, err = s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{
+	pipelineVersions, totalSize, _, err = s.pipelineClient.ListPipelineVersions(&params.PipelineServiceListPipelineVersionsParams{
 		PipelineID: pipelines[1].PipelineID,
 	})
 	require.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 
-	createRecurringRunRequest := &recurring_run_params.CreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "sequential job from pipeline version",
 		Description:  "a recurring run from an old pipeline version",
 		ExperimentID: experiments[1].ExperimentID,
@@ -530,7 +530,7 @@ func (s *UpgradeTests) createHelloWorldExperiment() *experiment_model.V2beta1Exp
 	t := s.T()
 
 	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	require.Nil(t, err)
 
 	return helloWorldExperiment
@@ -541,7 +541,7 @@ func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experimen
 
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experiment_params.ListExperimentsParams{
+		&experiment_params.ExperimentServiceListExperimentsParams{
 			PageSize: util.Int32Pointer(1000),
 		},
 		s.resourceNamespace)
@@ -563,7 +563,7 @@ func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experimen
 func (s *UpgradeTests) getHelloWorldPipeline(createIfNotExist bool) *pipeline_model.V2beta1PipelineVersion {
 	t := s.T()
 
-	pipelines, err := s.pipelineClient.ListAll(&pipeline_params.ListPipelinesParams{}, 1000)
+	pipelines, err := s.pipelineClient.ListAll(&pipeline_params.PipelineServiceListPipelinesParams{}, 1000)
 	require.Nil(t, err)
 	var helloWorldPipeline *pipeline_model.V2beta1Pipeline
 	for _, pipeline := range pipelines {
@@ -575,7 +575,7 @@ func (s *UpgradeTests) getHelloWorldPipeline(createIfNotExist bool) *pipeline_mo
 	if helloWorldPipeline == nil && createIfNotExist {
 		return s.createHelloWorldPipeline()
 	}
-	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{
+	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.PipelineServiceListPipelineVersionsParams{
 		PipelineID: helloWorldPipeline.PipelineID,
 	})
 	require.Nil(t, err)
@@ -591,7 +591,7 @@ func (s *UpgradeTests) createHelloWorldPipeline() *pipeline_model.V2beta1Pipelin
 	uploadedPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", upload_params.NewUploadPipelineParams())
 	require.Nil(t, err)
 
-	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{
+	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.PipelineServiceListPipelineVersionsParams{
 		PipelineID: uploadedPipeline.PipelineID,
 	})
 	require.Nil(t, err)

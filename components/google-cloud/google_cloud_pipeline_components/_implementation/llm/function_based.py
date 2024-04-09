@@ -265,8 +265,10 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
           ),
-          reward_model_reference='OTTER',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          reward_model_reference='BISON',
+          reward_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
           is_supported=False,  # Deprecated: Use text-bision@001 instead.
       ),
       'text-bison@001': reference_model_metadata(
@@ -274,8 +276,10 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
           ),
-          reward_model_reference='OTTER',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          reward_model_reference='BISON',
+          reward_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
           is_supported=True,
       ),
       'text-bison@002': reference_model_metadata(
@@ -292,8 +296,10 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
           ),
-          reward_model_reference='OTTER',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          reward_model_reference='BISON',
+          reward_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
           is_supported=True,
       ),
       'elephant': reference_model_metadata(
@@ -370,46 +376,6 @@ def resolve_reference_model_metadata(
 def convert_to_delimited_string(items: List[str], delimiter: str = ',') -> str:
   """Converts a list of strings to single string delimited by the specified character."""
   return delimiter.join(items)
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def generate_default_instruction(
-    task: str,
-    target_sequence_length: int,
-    instruction_override: str = '',
-) -> str:
-  """Generates a default instruction if no override is provided."""
-  if instruction_override:
-    return instruction_override
-  task = task.lower()
-  if task == 'summarization':
-    return f'Summarize in less than {target_sequence_length} words.'
-
-  elif task == 'question_answer':
-    return f'Answer the question in less than {target_sequence_length} words.'
-
-  else:
-    raise ValueError(
-        f'Task not recognized: {task}. Supported tasks are: "summarization",'
-        ' "question_answer".'
-    )
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def resolve_upload_location(upload_location: Optional[str] = None) -> str:
-  """Gets the region to upload the model.
-
-  Args:
-    upload_location: User-specified region to upload the model to.
-
-  Returns:
-    Where to upload the model. If no location is specified, the model will be
-    uploaded to the region where the pipeline is running.
-  """
-  # pylint: disable=g-import-not-at-top
-  import os
-  # pylint: enable=g-import-not-at-top
-  return upload_location or os.environ['CLOUD_ML_REGION']
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)

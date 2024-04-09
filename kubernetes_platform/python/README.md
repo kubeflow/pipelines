@@ -58,6 +58,25 @@ def pipeline():
                                     mount_path='/mnt/my_vol')
 ```
 
+### Secret: As optional source for a mounted volume
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def print_secret():
+    with open('/mnt/my_vol') as f:
+        print(f.read())
+
+@dsl.pipeline
+def pipeline():
+    task = print_secret()
+    kubernetes.use_secret_as_volume(task,
+                                    secret_name='my-secret',
+                                    mount_path='/mnt/my_vol'
+                                    optional=True)
+```
+
 ### ConfigMap: As environment variable
 ```python
 from kfp import dsl
@@ -89,9 +108,28 @@ def print_config_map():
 @dsl.pipeline
 def pipeline():
     task = print_config_map()
-    kubernetes.use_secret_as_volume(task,
-                                    config_map_name='my-cm',
-                                    mount_path='/mnt/my_vol')
+    kubernetes.use_config_map_as_volume(task,
+                                       config_map_name='my-cm',
+                                       mount_path='/mnt/my_vol')
+```
+
+### ConfigMap: As optional source for a mounted volume
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.component
+def print_config_map():
+    with open('/mnt/my_vol') as f:
+        print(f.read())
+
+@dsl.pipeline
+def pipeline():
+    task = print_config_map()
+    kubernetes.use_config_map_as_volume(task,
+                                       config_map_name='my-cm',
+                                       mount_path='/mnt/my_vol',
+				       optional=True)
 ```
 
 
@@ -168,7 +206,7 @@ def my_pipeline():
     )
 ```
 
-# Kubernetes Field: Use Kubernetes Field Path as enviornment variable
+### Kubernetes Field: Use Kubernetes Field Path as enviornment variable
 ```python
 from kfp import dsl
 from kfp import kubernetes

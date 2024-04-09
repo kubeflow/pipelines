@@ -1,5 +1,14 @@
 ## Upcoming release
+* Use larger base reward model when tuning `text` and `chat` variants of `bison@001` with the `preview.llm.rlhf_pipeline`.
+
+## Release 2.13.1
+* Fix model name preprocess error, pass correct model to `ModelImportEvaluationOp` component in `v1.model_evaluation.evaluation_llm_text_generation_pipeline` and `v1.model_evaluation.evaluation_llm_classification_pipeline`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.13.0
 * Add support for `text-bison@002` to `preview.llm.rlhf_pipeline`.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+* Fix `preview.model_evaluation.autosxs_pipeline` documentation to show `autorater_prompt_parameters` as required.
 
 ## Release 2.12.0
 * Log TensorBoard metrics from the `preview.llm.rlhf_pipeline` in real time.

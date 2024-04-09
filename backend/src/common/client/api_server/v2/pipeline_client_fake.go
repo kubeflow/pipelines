@@ -61,26 +61,26 @@ func NewPipelineClientFake() *PipelineClientFake {
 	return &PipelineClientFake{}
 }
 
-func (c *PipelineClientFake) Create(params *params.CreatePipelineParams) (
+func (c *PipelineClientFake) Create(params *params.PipelineServiceCreatePipelineParams) (
 	*model.V2beta1Pipeline, error) {
 	return getDefaultPipeline(params.Body.PipelineID), nil
 }
 
-func (c *PipelineClientFake) CreatePipelineAndVersion(params *params.CreatePipelineAndVersionParams) (*model.V2beta1Pipeline, error) {
+func (c *PipelineClientFake) CreatePipelineAndVersion(params *params.PipelineServiceCreatePipelineAndVersionParams) (*model.V2beta1Pipeline, error) {
 	return getDefaultPipeline(params.Body.Pipeline.PipelineID), nil
 }
 
-func (c *PipelineClientFake) Get(params *params.GetPipelineParams) (
+func (c *PipelineClientFake) Get(params *params.PipelineServiceGetPipelineParams) (
 	*model.V2beta1Pipeline, error) {
 	return getDefaultPipeline(params.PipelineID), nil
 
 }
 
-func (c *PipelineClientFake) Delete(params *params.DeletePipelineParams) error {
+func (c *PipelineClientFake) Delete(params *params.PipelineServiceDeletePipelineParams) error {
 	return nil
 }
 
-func (c *PipelineClientFake) List(params *params.ListPipelinesParams) (
+func (c *PipelineClientFake) List(params *params.PipelineServiceListPipelinesParams) (
 	[]*model.V2beta1Pipeline, int, string, error) {
 	return []*model.V2beta1Pipeline{
 		getDefaultPipeline("PIPELINE_ID_100"),
@@ -88,7 +88,7 @@ func (c *PipelineClientFake) List(params *params.ListPipelinesParams) (
 	}, 2, "", nil
 }
 
-func (c *PipelineClientFake) ListAll(params *params.ListPipelinesParams,
+func (c *PipelineClientFake) ListAll(params *params.PipelineServiceListPipelinesParams,
 	maxResultSize int) ([]*model.V2beta1Pipeline, error) {
 	return listAllForPipeline(c, params, maxResultSize)
 }
