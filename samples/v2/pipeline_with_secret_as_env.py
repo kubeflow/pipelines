@@ -15,6 +15,12 @@
 from kfp import dsl
 from kfp import kubernetes
 
+# Note: this sample will only work if this secret is pre-created before running this pipeline.
+# Is is pre-created by default only in the Google Cloud distribution listed here:
+# https://www.kubeflow.org/docs/started/installing-kubeflow/#packaged-distributions-of-kubeflow
+# If you are using a different distribution, you'll need to pre-create the secret yourself, or
+# use a different secret that you know will exist.
+SECRET_NAME = "user-gcp-sa"
 
 @dsl.component
 def comp():
@@ -34,7 +40,7 @@ def pipeline_secret_env():
     task = comp()
     kubernetes.use_secret_as_env(
         task,
-        secret_name='user-gcp-sa',
+        secret_name=SECRET_NAME,
         secret_key_to_env={'type': 'SECRET_VAR'})
 
 
