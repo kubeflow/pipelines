@@ -191,7 +191,7 @@ httplib2==0.21.0
     #   google-apitools
     #   google-auth-httplib2
     #   oauth2client
-idna==3.4
+idna==3.7
     # via requests
 importlib-metadata==6.8.0
     # via markdown
