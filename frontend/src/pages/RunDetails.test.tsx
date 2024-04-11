@@ -582,6 +582,7 @@ describe('RunDetails', () => {
   it('shows run config fields', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       metadata: {
+        name: 'wf1',
         creationTimestamp: new Date(2018, 6, 5, 4, 3, 2).toISOString(),
       },
       spec: {
@@ -651,7 +652,8 @@ describe('RunDetails', () => {
   it('shows a one-node graph', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       ...WORKFLOW_TEMPLATE,
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     const { getByTestId } = render(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -713,7 +715,8 @@ describe('RunDetails', () => {
 
   it('opens side panel when graph node is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -726,7 +729,8 @@ describe('RunDetails', () => {
   it('opens side panel when valid execution id in router parameter', async () => {
     // Arrange
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     const execution = new Execution();
     const nodePodName = new Value();
@@ -752,10 +756,13 @@ describe('RunDetails', () => {
 
   it('shows clicked node message in side panel', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      metadata: { name: 'workflow1' },
       status: {
         nodes: {
           node1: {
             id: 'node1',
+            name: 'node1',
+            templateName: 'template1',
             message: 'some test message',
             phase: 'Succeeded',
           },
@@ -780,7 +787,8 @@ describe('RunDetails', () => {
 
   it('shows clicked node output in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     pathsWithStepsParser.mockImplementation(() => [
       { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } },
@@ -815,10 +823,12 @@ describe('RunDetails', () => {
 
   it('switches to inputs/outputs tab in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      metadata: { name: 'workflow1' },
       status: {
         nodes: {
           node1: {
             id: 'node1',
+            templateName: 'template1',
             inputs: {
               parameters: [{ name: 'input1', value: 'val1' }],
             },
@@ -849,7 +859,8 @@ describe('RunDetails', () => {
 
   it('switches to volumes tab in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -865,7 +876,8 @@ describe('RunDetails', () => {
 
   it('switches to manifest tab in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -881,7 +893,8 @@ describe('RunDetails', () => {
 
   it('closes side panel when close button is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -897,7 +910,8 @@ describe('RunDetails', () => {
 
   it('keeps side pane open and on same tab when page is refreshed', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -918,10 +932,11 @@ describe('RunDetails', () => {
 
   it('keeps side pane open and on same tab when more nodes are added after refresh', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      metadata: { name: 'workflow1' },
       status: {
         nodes: {
-          node1: { id: 'node1' },
-          node2: { id: 'node2' },
+          node1: { id: 'node1', name: 'node1', templateName: 'template1' },
+          node2: { id: 'node2', name: 'node2', templateName: 'template2' },
         },
       },
     });
@@ -944,7 +959,8 @@ describe('RunDetails', () => {
 
   it('keeps side pane open and on same tab when run status changes, shows new status', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -969,6 +985,7 @@ describe('RunDetails', () => {
 
   it('shows node message banner if node receives message after refresh', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      metadata: { name: 'workflow1' },
       status: { nodes: { node1: { id: 'node1', phase: 'Succeeded', message: '' } } },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
@@ -983,7 +1000,15 @@ describe('RunDetails', () => {
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: {
-        nodes: { node1: { id: 'node1', phase: 'Succeeded', message: 'some node message' } },
+        nodes: {
+          node1: {
+            id: 'node1',
+            name: 'node1',
+            templateName: 'template1',
+            phase: 'Succeeded',
+            message: 'some node message',
+          },
+        },
       },
     });
     await (tree.instance() as RunDetails).refresh();
@@ -995,8 +1020,17 @@ describe('RunDetails', () => {
 
   it('dismisses node message banner if node loses message after refresh', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      metadata: { name: 'workflow1' },
       status: {
-        nodes: { node1: { id: 'node1', phase: 'Succeeded', message: 'some node message' } },
+        nodes: {
+          node1: {
+            id: 'node1',
+            name: 'node1',
+            templateName: 'template1',
+            phase: 'Succeeded',
+            message: 'some node message',
+          },
+        },
       },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
@@ -1013,7 +1047,8 @@ describe('RunDetails', () => {
     );
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
+      metadata: { name: 'workflow1' },
+      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
     });
     await (tree.instance() as RunDetails).refresh();
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
@@ -1086,8 +1121,8 @@ describe('RunDetails', () => {
   describe('logs tab', () => {
     it('switches to logs tab in side pane', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1' } } },
-        metadata: { namespace: 'ns' },
+        status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
@@ -1107,11 +1142,13 @@ describe('RunDetails', () => {
           nodes: {
             node1: {
               id: 'node1',
+              name: 'node1',
+              templateName: 'template1',
               phase: 'Running',
             },
           },
         },
-        metadata: { namespace: 'ns' },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
 
       tree = shallow(<RunDetails {...generateProps()} />);
@@ -1124,14 +1161,22 @@ describe('RunDetails', () => {
         .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
-      expect(getPodLogsSpy).toHaveBeenLastCalledWith('test-run-id', 'node1', 'ns');
+      expect(getPodLogsSpy).toHaveBeenLastCalledWith(
+        'test-run-id',
+        'workflow1-template1-node1',
+        'ns',
+      );
       expect(tree).toMatchSnapshot();
     });
 
     it('shows stackdriver link next to logs in GKE', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', phase: 'Succeeded' } } },
-        metadata: { namespace: 'ns' },
+        status: {
+          nodes: {
+            node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Succeeded' },
+          },
+        },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       tree = shallow(
         <RunDetails
@@ -1189,8 +1234,12 @@ describe('RunDetails', () => {
 
     it("loads logs in run's namespace", async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        metadata: { namespace: 'username' },
-        status: { nodes: { node1: { id: 'node1', phase: 'Succeeded' } } },
+        metadata: { namespace: 'username', name: 'workflow1' },
+        status: {
+          nodes: {
+            node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Succeeded' },
+          },
+        },
       });
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
@@ -1202,13 +1251,21 @@ describe('RunDetails', () => {
         .simulate('switch', STEP_TABS.LOGS);
       await getPodLogsSpy;
       expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
-      expect(getPodLogsSpy).toHaveBeenLastCalledWith('test-run-id', 'node1', 'username');
+      expect(getPodLogsSpy).toHaveBeenLastCalledWith(
+        'test-run-id',
+        'workflow1-template1-node1',
+        'username',
+      );
     });
 
     it('shows warning banner and link to Stackdriver in logs area if fetching logs failed and cluster is in GKE', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', phase: 'Failed' } } },
-        metadata: { namespace: 'ns' },
+        status: {
+          nodes: {
+            node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Failed' },
+          },
+        },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'pod not found');
       tree = shallow(
@@ -1263,8 +1320,12 @@ describe('RunDetails', () => {
 
     it('shows warning banner without stackdriver link in logs area if fetching logs failed and cluster is not in GKE', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', phase: 'Failed' } } },
-        metadata: { namespace: 'ns' },
+        status: {
+          nodes: {
+            node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Failed' },
+          },
+        },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'pod not found');
       tree = shallow(<RunDetails {...generateProps()} gkeMetadata={{}} />);
@@ -1299,10 +1360,13 @@ describe('RunDetails', () => {
 
     it('does not load logs if clicked node status is skipped', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        metadata: { name: 'workflow1' },
         status: {
           nodes: {
             node1: {
               id: 'node1',
+              name: 'node1',
+              templateName: 'template1',
               phase: 'Skipped',
             },
           },
@@ -1328,8 +1392,12 @@ describe('RunDetails', () => {
 
     it('keeps side pane open and on same tab when logs change after refresh', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', phase: 'Succeeded' } } },
-        metadata: { namespace: 'ns' },
+        status: {
+          nodes: {
+            node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Succeeded' },
+          },
+        },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
@@ -1349,8 +1417,12 @@ describe('RunDetails', () => {
 
     it('shows error banner if fetching logs failed not because pod has gone away', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', phase: 'Succeeded' } } },
-        metadata: { namespace: 'ns' },
+        status: {
+          nodes: {
+            node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Succeeded' },
+          },
+        },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
       tree = shallow(<RunDetails {...generateProps()} />);
@@ -1372,8 +1444,12 @@ describe('RunDetails', () => {
 
     it('dismisses log failure warning banner when logs can be fetched after refresh', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', phase: 'Failed' } } },
-        metadata: { namespace: 'ns' },
+        status: {
+          nodes: {
+            node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Failed' },
+          },
+        },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
       tree = shallow(<RunDetails {...generateProps()} />);
@@ -1404,8 +1480,12 @@ describe('RunDetails', () => {
   describe('pod tab', () => {
     it('shows pod info', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', phase: 'Failed' } } },
-        metadata: { namespace: 'ns' },
+        status: {
+          nodes: {
+            node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Failed' },
+          },
+        },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
@@ -1427,7 +1507,7 @@ describe('RunDetails', () => {
             className="page"
           >
             <PodInfo
-              name="node1"
+              name="workflow1-template1-node1"
               namespace="ns"
             />
           </div>
@@ -1437,8 +1517,12 @@ describe('RunDetails', () => {
 
     it('does not show pod pane if selected node skipped', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-        status: { nodes: { node1: { id: 'node1', phase: 'Skipped' } } },
-        metadata: { namespace: 'ns' },
+        status: {
+          nodes: {
+            node1: { id: 'node1', name: 'node1', templateName: 'template1', phase: 'Skipped' },
+          },
+        },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
@@ -1466,6 +1550,8 @@ describe('RunDetails', () => {
           nodes: {
             node1: {
               id: 'node1',
+              name: 'node1',
+              templateName: 'template1',
               displayName: 'Task',
               phase: 'Succeeded',
               startedAt: '1/19/2021, 4:00:00 PM',
@@ -1473,7 +1559,7 @@ describe('RunDetails', () => {
             },
           },
         },
-        metadata: { namespace: 'ns' },
+        metadata: { namespace: 'ns', name: 'workflow1' },
       });
       tree = shallow(<RunDetails {...generateProps()} />);
       await getRunSpy;
@@ -1706,11 +1792,17 @@ describe('RunDetails', () => {
     it('shows a simplified graph', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
         ...WORKFLOW_TEMPLATE,
+        metadata: { name: 'workflow1' },
         status: {
           nodes: {
-            node1: { id: 'node1', children: ['node2', 'node3'] },
-            node2: { id: 'node2', children: ['node3'] },
-            node3: { id: 'node3' },
+            node1: {
+              id: 'node1',
+              name: 'node1',
+              templateName: 'template1',
+              children: ['node2', 'node3'],
+            },
+            node2: { id: 'node2', name: 'node2', templateName: 'template2', children: ['node3'] },
+            node3: { id: 'node3', name: 'node3', templateName: 'template3' },
           },
         },
       });
