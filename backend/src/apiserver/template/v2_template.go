@@ -127,7 +127,12 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 				Parameters: parameters,
 				Spec:       executionSpec.ToStringForSchedule(),
 			},
-			NoCatchup: util.BoolPointer(modelJob.NoCatchup),
+			NoCatchup:         util.BoolPointer(modelJob.NoCatchup),
+			ExperimentId:      modelJob.ExperimentId,
+			PipelineId:        modelJob.PipelineId,
+			PipelineName:      modelJob.PipelineName,
+			PipelineVersionId: modelJob.PipelineVersionId,
+			ServiceAccount:    modelJob.ServiceAccount,
 		},
 	}
 	return scheduledWorkflow, nil

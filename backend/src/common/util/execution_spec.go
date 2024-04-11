@@ -288,8 +288,8 @@ func ScheduleSpecToExecutionSpec(
 		if executionSpecStr, ok := wfr.Spec.(string); ok {
 			return NewPipelineRunFromScheduleWorkflowSpecBytesJSON([]byte(executionSpecStr))
 		}
-		// fall back to Argo WorkflowSpec, need to marshal back to json string then unmarshal to
-		// argo WorkflowSpec because wfr.Spec is a map at this moment
+		// fall back to Tekton PipelineRunSpec, need to marshal back to json string then unmarshal to
+		// Tekton PipelineRunSpec because wfr.Spec is a map at this moment
 		raw, err := json.Marshal(wfr.Spec)
 		if err != nil {
 			return nil, NewInternalServerError(

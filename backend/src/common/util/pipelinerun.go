@@ -229,11 +229,6 @@ func (pr *PipelineRun) VerifyParameters(desiredParams map[string]string) error {
 	return nil
 }
 
-// Get converts this object to a workflowapi.Workflow.
-// func (pr *PipelineRun) Get() *pipelineapi.PipelineRun {
-// 	return pr.PipelineRun
-// }
-
 func (pr *PipelineRun) ScheduledWorkflowUUIDAsStringOrEmpty() string {
 	if pr.OwnerReferences == nil {
 		return ""
@@ -616,50 +611,10 @@ func (pr *PipelineRun) GenerateRetryExecution() (ExecutionSpec, []string, error)
 	//       phases.
 
 	newWF := pr.DeepCopy()
-	// Delete/reset fields which indicate workflow completed
-	// delete(newWF.Labels, common.LabelKeyCompleted)
-	// // Delete/reset fields which indicate workflow is finished being persisted to the database
-	// delete(newWF.Labels, util.LabelKeyWorkflowPersistedFinalState)
-	// newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string("Running")
-	// newWF.Status.Phase = "Running"
-	// newWF.Status.Message = ""
-	// newWF.Status.FinishedAt = metav1.Time{}
-	// if newWF.Spec.ActiveDeadlineSeconds != nil && *newWF.Spec.ActiveDeadlineSeconds == 0 {
-	// 	// if it was terminated, unset the deadline
-	// 	newWF.Spec.ActiveDeadlineSeconds = nil
-	// }
 
 	// // Iterate the previous nodes. If it was successful Pod carry it forward
-	// newWF.Status.Nodes = make(map[string]wfv1.NodeStatus)
-	// onExitNodeName := wf.ObjectMeta.Name + ".onExit"
 	var podsToDelete []string
-	// for _, node := range wf.Status.Nodes {
-	// 	switch node.Phase {
-	// 	case "Succeeded", "Skipped":
-	// 		if !strings.HasPrefix(node.Name, onExitNodeName) {
-	// 			newWF.Status.Nodes[node.ID] = node
-	// 			continue
-	// 		}
-	// 	case "Error", "Failed":
-	// 		if !strings.HasPrefix(node.Name, onExitNodeName) && node.Type == "DAG" {
-	// 			newNode := node.DeepCopy()
-	// 			newNode.Phase = "Running"
-	// 			newNode.Message = ""
-	// 			newNode.FinishedAt = metav1.Time{}
-	// 			newWF.Status.Nodes[newNode.ID] = *newNode
-	// 			continue
-	// 		}
-	// 		// do not add this status to the node. pretend as if this node never existed.
-	// 	default:
-	// 		// Do not allow retry of workflows with pods in Running/Pending phase
-	// 		return nil, nil, util.NewInternalServerError(
-	// 			errors.New("workflow cannot be retried"),
-	// 			"Workflow cannot be retried with node %s in %s phase", node.ID, node.Phase)
-	// 	}
-	// 	if node.Type == "Pod" {
-	// 		podsToDelete = append(podsToDelete, node.ID)
-	// 	}
-	// }
+
 	return NewPipelineRun(newWF), podsToDelete, nil
 }
 
@@ -735,19 +690,6 @@ func collectTaskRunMetricsOrNil(
 func readTaskRunMetricsJSONOrEmpty(
 	runID string, nodeStatus pipelineapi.PipelineRunTaskRunStatus,
 	retrieveArtifact RetrieveArtifact) (string, error) {
-	// Tekton doesn't support any artifact spec, artifact records are done by our custom metadata writers:
-	// 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
-	// 		return "", nil // No output artifacts, skip the reporting
-	// 	}
-	// 	var foundMetricsArtifact bool = false
-	// 	for _, artifact := range nodeStatus.Outputs.Artifacts {
-	// 		if artifact.Name == metricsArtifactName {
-	// 			foundMetricsArtifact = true
-	// 		}
-	// 	}
-	// 	if !foundMetricsArtifact {
-	// 		return "", nil // No metrics artifact, skip the reporting
-	// 	}
 
 	artifactRequest := &api.ReadArtifactRequest{
 		RunId:        runID,
