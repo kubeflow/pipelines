@@ -20,7 +20,7 @@ import setuptools
 NAME = 'kfp-kubernetes'
 REQUIREMENTS = [
     'protobuf>=4.21.1,<5',
-    'kfp>=2.6.0',
+    'kfp>=2.6.0,<3',
 ]
 DEV_REQUIREMENTS = [
     'docformatter==1.4',
