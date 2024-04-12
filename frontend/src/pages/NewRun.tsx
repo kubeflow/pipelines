@@ -527,7 +527,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           <Input
             value={serviceAccount}
             onChange={this.handleChange('serviceAccount')}
-            required={false}
+            required={true}
             label='Service Account'
             variant='outlined'
           />
@@ -1251,6 +1251,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       maxConcurrentRuns,
       runName,
       trigger,
+      serviceAccount,
     } = this.state;
     try {
       if (!pipeline && !workflowFromRun) {
@@ -1261,6 +1262,9 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       }
       if (!runName) {
         throw new Error('Run name is required');
+      }
+      if (!serviceAccount) {
+        throw new Error('Service account is required');
       }
 
       const hasTrigger = trigger && (!!trigger.cron_schedule || !!trigger.periodic_schedule);

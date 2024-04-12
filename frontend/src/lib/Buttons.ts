@@ -74,7 +74,7 @@ export default class Buttons {
         resourceName === 'run'
           ? this._archiveRun(getSelectedIds(), useCurrentResource, callback)
           : this._archiveExperiments(getSelectedIds(), useCurrentResource, callback),
-      disabled: !useCurrentResource,
+      disabled: resourceName === 'run' ? !useCurrentResource : true,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
       id: 'archiveBtn',
       title: 'Archive',

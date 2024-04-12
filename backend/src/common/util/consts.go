@@ -25,7 +25,7 @@ const (
 	LabelKeyScheduledWorkflowStatus = constants.FullName + "/status"
 
 	// The maximum byte sizes of the parameter column in package/pipeline DB.
-	MaxParameterBytes = 10000
+	MaxParameterBytes = 20000 // DPML-576
 
 	// LabelKeyWorkflowEpoch is a label on a Workflow.
 	// It captures the epoch at which the workflow was scheduled.
