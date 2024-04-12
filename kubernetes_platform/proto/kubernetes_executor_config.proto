@@ -212,7 +212,7 @@ message NodeAffinityTerm {
     repeated SelectorRequirement match_expressions = 1;
     repeated SelectorRequirement match_fields = 2;
     //Setting the weight makes it use PreferredDuringSchedulingIgnoredDuringExecution rules instead of RequiredDuringSchedulingIgnoredDuringExecution rules
-    optional int64 weight = 3;
+    optional int32 weight = 3;
 } 
 
 
@@ -224,7 +224,7 @@ message PodAffinityTerm {
     repeated SelectorRequirement match_namespace_expressions = 5;
     map<string,string> match_namespace_labels = 6;
     //Setting a weight makes it use PreferredDuringSchedulingIgnoredDuringExecution rules instead of RequiredDuringSchedulingIgnoredDuringExecution rules
-    optional int64 weight = 7;
+    optional int32 weight = 7;
     //Flag indicating if it is a podaffinity or podantiaffinity
     optional bool anti = 8;
 }
