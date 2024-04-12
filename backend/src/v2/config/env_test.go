@@ -376,7 +376,7 @@ func TestGetBucketSessionInfo(t *testing.T) {
 				}
 			}
 
-			actualSession, err := config.GetBucketSessionInfo(test.pipelineroot)
+			actualSession, err := config.GetStoreSessionInfo(test.pipelineroot)
 			if test.shouldError {
 				assert.Error(t, err)
 				if err != nil && test.errorMsg != "" {

@@ -38,8 +38,9 @@ const (
 	configKeyDefaultPipelineRoot = "defaultPipelineRoot"
 	configBucketProviders        = "providers"
 	minioArtifactSecretName      = "mlpipeline-minio-artifact"
-	minioArtifactSecretKeyKey    = "secretkey"
-	minioArtifactAccessKeyKey    = "accesskey"
+	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
+	minioArtifactSecretKeyKey = "secretkey"
+	minioArtifactAccessKeyKey = "accesskey"
 )
 
 type BucketProviders struct {
@@ -101,7 +102,7 @@ func InPodName() (string, error) {
 	return strings.TrimSuffix(name, "\n"), nil
 }
 
-func (c *Config) GetBucketSessionInfo(path string) (objectstore.SessionInfo, error) {
+func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, error) {
 	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
@@ -174,11 +175,12 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 	sess := objectstore.SessionInfo{
 		Provider: "minio",
 		Params: map[string]string{
-			"region":       "minio",
-			"endpoint":     objectstore.MinioDefaultEndpoint(),
-			"disableSsl":   strconv.FormatBool(true),
-			"fromEnv":      strconv.FormatBool(false),
-			"secretName":   minioArtifactSecretName,
+			"region":     "minio",
+			"endpoint":   objectstore.MinioDefaultEndpoint(),
+			"disableSsl": strconv.FormatBool(true),
+			"fromEnv":    strconv.FormatBool(false),
+			"secretName": minioArtifactSecretName,
+			// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
 			"accessKeyKey": minioArtifactAccessKeyKey,
 			"secretKeyKey": minioArtifactSecretKeyKey,
 		},

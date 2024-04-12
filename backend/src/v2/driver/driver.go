@@ -145,24 +145,24 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 		return nil, err
 	}
 
-	pipelineBucketSessionInfo := objectstore.SessionInfo{}
+	storeSessionInfo := objectstore.SessionInfo{}
 	if pipelineRoot != "" {
 		glog.Infof("PipelineRoot=%q", pipelineRoot)
 	} else {
 		pipelineRoot = cfg.DefaultPipelineRoot()
 		glog.Infof("PipelineRoot=%q from default config", pipelineRoot)
 	}
-	pipelineBucketSessionInfo, err = cfg.GetBucketSessionInfo(pipelineRoot)
+	storeSessionInfo, err = cfg.GetStoreSessionInfo(pipelineRoot)
 	if err != nil {
 		return nil, err
 	}
-	bucketSessionInfo, err := json.Marshal(pipelineBucketSessionInfo)
+	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
 	if err != nil {
 		return nil, err
 	}
-	bucketSessionInfoEntry := string(bucketSessionInfo)
+	storeSessionInfoStr := string(storeSessionInfoJSON)
 	// TODO(Bobgy): fill in run resource.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot, bucketSessionInfoEntry)
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot, storeSessionInfoStr)
 	if err != nil {
 		return nil, err
 	}

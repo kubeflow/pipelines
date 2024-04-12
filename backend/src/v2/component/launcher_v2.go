@@ -156,12 +156,12 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		return err
 	}
 	fingerPrint := execution.FingerPrint()
-	bucketSessionInfo, err := objectstore.GetSessionInfoFromString(execution.GetPipeline().GetPipelineBucketSession())
+	storeSessionInfo, err := objectstore.GetSessionInfoFromString(execution.GetPipeline().GetStoreSessionInfo())
 	if err != nil {
 		return err
 	}
 	pipelineRoot := execution.GetPipeline().GetPipelineRoot()
-	bucketConfig, err := objectstore.ParseBucketConfig(pipelineRoot, bucketSessionInfo)
+	bucketConfig, err := objectstore.ParseBucketConfig(pipelineRoot, storeSessionInfo)
 	if err != nil {
 		return err
 	}
@@ -550,7 +550,7 @@ func fetchNonDefaultBuckets(
 			}
 			// check if it's same bucket but under a different path, re-use the default bucket session in this case.
 			if (nonDefaultBucketConfig.Scheme == defaultBucketConfig.Scheme) && (nonDefaultBucketConfig.BucketName == defaultBucketConfig.BucketName) {
-				nonDefaultBucketConfig.Session = defaultBucketConfig.Session
+				nonDefaultBucketConfig.SessionInfo = defaultBucketConfig.SessionInfo
 			}
 			nonDefaultBucket, bucketErr := objectstore.OpenBucket(ctx, k8sClient, namespace, nonDefaultBucketConfig)
 			if bucketErr != nil {

@@ -136,7 +136,7 @@ func Test_parseCloudBucket(t *testing.T) {
 				BucketName:  "my-bucket",
 				Prefix:      "my-path/123/",
 				QueryString: "",
-				Session: &SessionInfo{
+				SessionInfo: &SessionInfo{
 					Provider: "s3",
 					Params: map[string]string{
 						"region":       "us-east-1",
@@ -154,7 +154,7 @@ func Test_parseCloudBucket(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParseBucketConfig(tt.path, tt.want.Session)
+			got, err := ParseBucketConfig(tt.path, tt.want.SessionInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%q: parseCloudBucket() error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
@@ -162,7 +162,7 @@ func Test_parseCloudBucket(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("%q: parseCloudBucket() = %v, want %v", tt.name, got, tt.want)
 			}
-			assert.Equal(t, got.Session, tt.want.Session)
+			assert.Equal(t, got.SessionInfo, tt.want.SessionInfo)
 		})
 	}
 }

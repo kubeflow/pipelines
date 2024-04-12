@@ -35,7 +35,7 @@ type Config struct {
 	BucketName  string
 	Prefix      string
 	QueryString string
-	Session     *SessionInfo
+	SessionInfo *SessionInfo
 }
 
 type SessionInfo struct {
@@ -50,8 +50,9 @@ type GCSParams struct {
 }
 
 type S3Params struct {
-	FromEnv      bool
-	SecretName   string
+	FromEnv    bool
+	SecretName string
+	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
 	AccessKeyKey string
 	SecretKeyKey string
 	Region       string
@@ -104,7 +105,7 @@ func ParseBucketConfig(path string, sess *SessionInfo) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	config.Session = sess
+	config.SessionInfo = sess
 
 	return config, nil
 }
@@ -173,7 +174,7 @@ func GetSessionInfoFromString(sessionInfoJSON string) (*SessionInfo, error) {
 	}
 	err := json.Unmarshal([]byte(sessionInfoJSON), sessionInfo)
 	if err != nil {
-		return nil, fmt.Errorf("Encountered error when attempting to unmarshall bucket session properties: %w", err)
+		return nil, fmt.Errorf("Encountered error when attempting to unmarshall bucket session info properties: %w", err)
 	}
 	return sessionInfo, nil
 }
@@ -190,6 +191,7 @@ func StructuredS3Params(p map[string]string) (*S3Params, error) {
 	if val, ok := p["secretName"]; ok {
 		sparams.SecretName = val
 	}
+	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
 	if val, ok := p["accessKeyKey"]; ok {
 		sparams.AccessKeyKey = val
 	}

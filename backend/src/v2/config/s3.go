@@ -54,7 +54,8 @@ type S3Override struct {
 	Credentials *S3Credentials `json:"credentials"`
 }
 type S3SecretRef struct {
-	SecretName   string `json:"secretName"`
+	SecretName string `json:"secretName"`
+	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
 	AccessKeyKey string `json:"accessKeyKey"`
 	SecretKeyKey string `json:"secretKeyKey"`
 }
