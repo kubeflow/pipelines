@@ -49,12 +49,30 @@ type GCSSecretRef struct {
 	TokenKey   string `json:"tokenKey"`
 }
 
-func (p GCSProviderConfig) ProvideSessionInfo(bucketName, bucketPrefix string) (objectstore.SessionInfo, error) {
+func (p GCSProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionInfo, error) {
+	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
+	if err != nil {
+		return objectstore.SessionInfo{}, err
+	}
+	bucketName := bucketConfig.BucketName
+	bucketPrefix := bucketConfig.Prefix
+
 	invalidConfigErr := func(err error) error {
 		return fmt.Errorf("invalid provider config: %w", err)
 	}
 
 	params := map[string]string{}
+
+	// 1. If provider config did not have a matching configuration for the provider inferred from pipelineroot OR
+	// 2. If a user has provided query parameters
+	// then we use blob.OpenBucket(ctx, config.bucketURL()) by setting "FromEnv = True"
+	if p.Default == nil && p.Overrides == nil {
+		params["fromEnv"] = strconv.FormatBool(true)
+		return objectstore.SessionInfo{
+			Provider: "gs",
+			Params:   params,
+		}, nil
+	}
 
 	if p.Default == nil || p.Default.Credentials == nil {
 		return objectstore.SessionInfo{}, invalidConfigErr(fmt.Errorf("missing default credentials"))

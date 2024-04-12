@@ -14,16 +14,35 @@
 
 package config
 
-import "github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+import (
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+)
 
 type MinioProviderConfig S3ProviderConfig
 
 // ProvideSessionInfo provides the SessionInfo for minio provider.
 // this is the same as s3ProviderConfig.ProvideSessionInfo except
 // the provider is set to minio
-func (p MinioProviderConfig) ProvideSessionInfo(bucketName, bucketPrefix string) (objectstore.SessionInfo, error) {
+func (p MinioProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionInfo, error) {
+	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
+	if err != nil {
+		return objectstore.SessionInfo{}, err
+	}
+	queryString := bucketConfig.QueryString
+
+	// When using minio root, with no query strings, if no matching provider in kfp-launcher exists
+	// we use the default minio configurations
+	if (p.Default == nil && p.Overrides == nil) && queryString == "" {
+		sess, sessErr := getDefaultMinioSessionInfo()
+		if sessErr != nil {
+			return objectstore.SessionInfo{}, nil
+		}
+		return sess, nil
+	}
+
 	s3ProviderConfig := S3ProviderConfig(p)
-	info, err := s3ProviderConfig.ProvideSessionInfo(bucketName, bucketPrefix)
+
+	info, err := s3ProviderConfig.ProvideSessionInfo(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}

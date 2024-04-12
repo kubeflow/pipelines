@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"io/ioutil"
-	"reflect"
 	"sigs.k8s.io/yaml"
 	"strconv"
 	"strings"
@@ -50,7 +49,7 @@ type BucketProviders struct {
 }
 
 type SessionInfoProvider interface {
-	ProvideSessionInfo(bucketName, bucketPrefix string) (objectstore.SessionInfo, error)
+	ProvideSessionInfo(path string) (objectstore.SessionInfo, error)
 }
 
 // Config is the KFP runtime configuration.
@@ -107,50 +106,41 @@ func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, erro
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}
-	bucketName := bucketConfig.BucketName
-	bucketPrefix := bucketConfig.Prefix
 	provider := strings.TrimSuffix(bucketConfig.Scheme, "://")
 	bucketProviders, err := c.getBucketProviders()
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}
 
-	if bucketProviders == nil {
-		// Use default minio if provider is minio, otherwise we default to executor env
-		if provider == "minio" {
-			sess, sessErr := getDefaultMinioSessionInfo()
-			if sessErr != nil {
-				return objectstore.SessionInfo{}, nil
-			}
-			return sess, nil
-		} else {
-			// If not using minio, and no other provider config is provided
-			// rely on executor env (e.g. IRSA) for authenticating with provider
-			return objectstore.SessionInfo{}, nil
-		}
-	}
-
 	var sessProvider SessionInfoProvider
 
 	switch provider {
 	case "minio":
-		sessProvider = bucketProviders.Minio
+		if bucketProviders == nil || bucketProviders.Minio == nil {
+			sessProvider = &MinioProviderConfig{}
+		} else {
+			sessProvider = bucketProviders.Minio
+		}
 		break
 	case "s3":
-		sessProvider = bucketProviders.S3
+		if bucketProviders == nil || bucketProviders.S3 == nil {
+			sessProvider = &S3ProviderConfig{}
+		} else {
+			sessProvider = bucketProviders.S3
+		}
 		break
 	case "gs":
-		sessProvider = bucketProviders.GCS
+		if bucketProviders == nil || bucketProviders.GCS == nil {
+			sessProvider = &GCSProviderConfig{}
+		} else {
+			sessProvider = bucketProviders.GCS
+		}
 		break
 	default:
-		return objectstore.SessionInfo{}, fmt.Errorf("Encountered unsupported provider in BucketProviders %s", provider)
-	}
-
-	if sessProvider == nil || reflect.ValueOf(sessProvider).IsNil() {
 		return objectstore.SessionInfo{}, fmt.Errorf("Encountered unsupported provider in provider config %s", provider)
 	}
 
-	sess, err := sessProvider.ProvideSessionInfo(bucketName, bucketPrefix)
+	sess, err := sessProvider.ProvideSessionInfo(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}
@@ -177,7 +167,7 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 		Params: map[string]string{
 			"region":     "minio",
 			"endpoint":   objectstore.MinioDefaultEndpoint(),
-			"disableSsl": strconv.FormatBool(true),
+			"disableSSL": strconv.FormatBool(true),
 			"fromEnv":    strconv.FormatBool(false),
 			"secretName": minioArtifactSecretName,
 			// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"

@@ -39,7 +39,7 @@ func Test_getDefaultMinioSessionInfo(t *testing.T) {
 		Params: map[string]string{
 			"region":       "minio",
 			"endpoint":     "minio-service.kubeflow:9000",
-			"disableSsl":   "true",
+			"disableSSL":   "true",
 			"fromEnv":      "false",
 			"secretName":   "mlpipeline-minio-artifact",
 			"accessKeyKey": "accesskey",
@@ -79,6 +79,16 @@ func TestGetBucketSessionInfo(t *testing.T) {
 			errorMsg:            "unsupported Cloud bucket",
 		},
 		{
+			msg:          "valid - only s3 pipelineroot no provider config",
+			pipelineroot: "s3://my-bucket",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+		},
+		{
 			msg:                 "invalid - unsupported pipeline root format",
 			pipelineroot:        "minio.unsupported.format",
 			expectedSessionInfo: objectstore.SessionInfo{},
@@ -93,7 +103,7 @@ func TestGetBucketSessionInfo(t *testing.T) {
 				Params: map[string]string{
 					"region":       "minio",
 					"endpoint":     "minio-service.kubeflow:9000",
-					"disableSsl":   "true",
+					"disableSSL":   "true",
 					"fromEnv":      "false",
 					"secretName":   "mlpipeline-minio-artifact",
 					"accessKeyKey": "accesskey",
@@ -102,20 +112,60 @@ func TestGetBucketSessionInfo(t *testing.T) {
 			},
 		},
 		{
-			msg:                 "invalid - unsupported provider in providers config",
-			pipelineroot:        "s3://my-bucket",
-			expectedSessionInfo: objectstore.SessionInfo{},
-			shouldError:         true,
-			errorMsg:            "unsupported provider in provider config",
-			testDataCase:        "case0",
+			msg:          "valid - no s3 provider match providers config",
+			pipelineroot: "s3://my-bucket",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+			testDataCase: "case0",
 		},
 		{
-			msg:                 "invalid - empty minio provider",
-			pipelineroot:        "minio://my-bucket/v2/artifacts",
-			expectedSessionInfo: objectstore.SessionInfo{},
-			shouldError:         true,
-			errorMsg:            "invalid provider config",
-			testDataCase:        "case1",
+			msg:          "valid - no gcs provider match providers config",
+			pipelineroot: "gs://my-bucket",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "gs",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+			testDataCase: "case0",
+		},
+		{
+			msg:          "valid - no minio provider match providers config, use default minio config",
+			pipelineroot: "minio://my-bucket",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "minio",
+				Params: map[string]string{
+					"region":       "minio",
+					"endpoint":     "minio-service.kubeflow:9000",
+					"disableSSL":   "true",
+					"fromEnv":      "false",
+					"secretName":   "mlpipeline-minio-artifact",
+					"accessKeyKey": "accesskey",
+					"secretKeyKey": "secretkey",
+				},
+			},
+			testDataCase: "case1",
+		},
+		{
+			msg:          "valid - empty minio provider, use default minio config",
+			pipelineroot: "minio://my-bucket/v2/artifacts",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "minio",
+				Params: map[string]string{
+					"region":       "minio",
+					"endpoint":     "minio-service.kubeflow:9000",
+					"disableSSL":   "true",
+					"fromEnv":      "false",
+					"secretName":   "mlpipeline-minio-artifact",
+					"accessKeyKey": "accesskey",
+					"secretKeyKey": "secretkey",
+				},
+			},
+			testDataCase: "case1",
 		},
 		{
 			msg:                 "invalid - empty minio provider no override",
@@ -370,20 +420,20 @@ func TestGetBucketSessionInfo(t *testing.T) {
 		t.Run(test.msg, func(t *testing.T) {
 			config := Config{data: map[string]string{}}
 			if test.testDataCase != "" {
-				config.data["providers"] = fetchProviderFromdata(providersData, test.testDataCase)
+				config.data["providers"] = fetchProviderFromData(providersData, test.testDataCase)
 				if config.data["providers"] == "" {
 					panic(fmt.Errorf("provider not found in testdata"))
 				}
 			}
 
-			actualSession, err := config.GetStoreSessionInfo(test.pipelineroot)
+			actualSession, err1 := config.GetStoreSessionInfo(test.pipelineroot)
 			if test.shouldError {
-				assert.Error(t, err)
-				if err != nil && test.errorMsg != "" {
-					assert.Contains(t, err.Error(), test.errorMsg)
+				assert.Error(t, err1)
+				if err1 != nil && test.errorMsg != "" {
+					assert.Contains(t, err1.Error(), test.errorMsg)
 				}
 			} else {
-				assert.Nil(t, err)
+				assert.Nil(t, err1)
 			}
 
 			assert.Equal(t, test.expectedSessionInfo, actualSession)
@@ -391,7 +441,86 @@ func TestGetBucketSessionInfo(t *testing.T) {
 	}
 }
 
-func fetchProviderFromdata(cases TestcaseData, name string) string {
+func Test_QueryParameters(t *testing.T) {
+	providersDataFile, err := os.ReadFile("testdata/provider_cases.yaml")
+	if os.IsNotExist(err) {
+		panic(err)
+	}
+
+	var providersData TestcaseData
+	err = yaml.Unmarshal(providersDataFile, &providersData)
+	if err != nil {
+		panic(err)
+	}
+
+	tt := []struct {
+		msg                 string
+		config              Config
+		expectedSessionInfo objectstore.SessionInfo
+		pipelineroot        string
+		shouldError         bool
+		errorMsg            string
+		testDataCase        string
+	}{
+		{
+			msg:          "valid - for s3 fetch fromEnv when when query parameters are present, and when no matching provider config is provided",
+			pipelineroot: "s3://bucket_name/v2/artifacts/profile_name?region=bucket_region&endpoint=endpoint&disableSSL=not_use_ssl&s3ForcePathStyle=true",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+			shouldError: false,
+		},
+		{
+			msg:          "valid - for minio fetch fromEnv when when query parameters are present, and when no matching provider config is provided",
+			pipelineroot: "minio://bucket_name/v2/artifacts/profile_name?region=bucket_region&endpoint=endpoint&disableSSL=not_use_ssl&s3ForcePathStyle=true",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "minio",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+			shouldError: false,
+		},
+		{
+			msg:          "valid - for minio fetch fromEnv when when query parameters are present, and when matching provider config is provided",
+			pipelineroot: "minio://bucket_name/v2/artifacts/profile_name?region=bucket_region&endpoint=endpoint&disableSSL=not_use_ssl&s3ForcePathStyle=true",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "minio",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+			shouldError:  false,
+			testDataCase: "case12",
+		},
+	}
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			config := Config{data: map[string]string{}}
+			if test.testDataCase != "" {
+				config.data["providers"] = fetchProviderFromData(providersData, test.testDataCase)
+				if config.data["providers"] == "" {
+					panic(fmt.Errorf("provider not found in testdata"))
+				}
+			}
+			actualSession, err1 := config.GetStoreSessionInfo(test.pipelineroot)
+			if test.shouldError {
+				assert.Error(t, err1)
+				if err1 != nil && test.errorMsg != "" {
+					assert.Contains(t, err1.Error(), test.errorMsg)
+				}
+			} else {
+				assert.Nil(t, err1)
+			}
+			assert.Equal(t, test.expectedSessionInfo, actualSession)
+		})
+	}
+}
+
+func fetchProviderFromData(cases TestcaseData, name string) string {
 	for _, c := range cases.Testcases {
 		if c.Name == name {
 			return c.Value

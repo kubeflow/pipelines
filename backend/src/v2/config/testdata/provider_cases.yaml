@@ -1,24 +1,25 @@
 # Case names should be unique
 cases:
-  # invalid
+  # valid
   - name: case0
     value: |
-      invalid: {}
-  # invalid
+      nomatch: {}
+  # valid
   - name: case1
     value: |
       minio: {}
-  # invalid
+  # valid
   - name: case2
     value: |
       minio:
         overrides: []
-  # invalid
+  # invalid if matching against "minio://"
   - name: case3
     value: |
       minio:
-        endpoint: minio-endpoint-3.com
-  # invalid
+        default:
+          endpoint: minio-endpoint-3.com
+  # invalid if matching against "minio://"
   - name: case4
     value: |
       minio:
@@ -227,6 +228,7 @@ cases:
                 secretName: minio-test-secret-10
                 accessKeyKey: minio-test-accessKeyKey-10
                 secretKeyKey: minio-test-secretKeyKey-10
+  # valid
   - name: case11
     value: |
       gs:
@@ -245,3 +247,22 @@ cases:
               secretRef:
                 secretName: gs-test-secret-11
                 tokenKey: gs-test-tokenKey-11
+  # valid
+  - name: case12
+    value: |
+      minio:
+        default:
+          endpoint: minio-endpoint-12.com
+          region: minio
+          disableSSL: true
+          credentials:
+            fromEnv: true
+        overrides:
+          - bucketName: bucket_name
+            keyPrefix: v2/artifacts/profile_name
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: minio-test-secret-12-a
+                accessKeyKey: minio-test-accessKeyKey-12-a
+                secretKeyKey: minio-test-secretKeyKey-12-a

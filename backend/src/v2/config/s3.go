@@ -60,21 +60,41 @@ type S3SecretRef struct {
 	SecretKeyKey string `json:"secretKeyKey"`
 }
 
-func (p S3ProviderConfig) ProvideSessionInfo(bucketName, bucketPrefix string) (objectstore.SessionInfo, error) {
+func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionInfo, error) {
+	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
+	if err != nil {
+		return objectstore.SessionInfo{}, err
+	}
+	bucketName := bucketConfig.BucketName
+	bucketPrefix := bucketConfig.Prefix
+	queryString := bucketConfig.QueryString
+
 	invalidConfigErr := func(err error) error {
 		return fmt.Errorf("invalid provider config: %w", err)
 	}
 
 	params := map[string]string{}
+
+	// 1. If provider config did not have a matching configuration for the provider inferred from pipelineroot OR
+	// 2. If a user has provided query parameters
+	// then we use blob.OpenBucket(ctx, config.bucketURL()) by setting "FromEnv = True"
+	if (p.Default == nil && p.Overrides == nil) || queryString != "" {
+		params["fromEnv"] = strconv.FormatBool(true)
+		return objectstore.SessionInfo{
+			Provider: "s3",
+			Params:   params,
+		}, nil
+	}
+
 	if p.Default == nil || p.Default.Credentials == nil {
 		return objectstore.SessionInfo{}, invalidConfigErr(fmt.Errorf("missing default credentials"))
 	}
 
-	params["region"] = p.Default.Region
 	params["endpoint"] = p.Default.Endpoint
+	params["region"] = p.Default.Region
 
 	if p.Default.DisableSSL == nil {
-		params["disableSSL"] = "false"
+		params["disableSSL"] = strconv.FormatBool(false)
 	} else {
 		params["disableSSL"] = strconv.FormatBool(*p.Default.DisableSSL)
 	}
