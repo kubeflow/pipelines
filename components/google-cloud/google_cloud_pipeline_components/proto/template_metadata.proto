@@ -240,6 +240,31 @@ message ValidationItems {
   repeated GoogleCloudProjectQuotaValidation quota_validations = 2;
   // Validation for Google Cloud Api Enablement.
   repeated GoogleCloudApiEnablementValidation api_validations = 3;
+  // Validation for Google Cloud Storage.
+  repeated GoogleCloudStorageValidation gcs_validations = 4;
+}
+
+// Describes the details for Google Cloud Storage Validation.
+message GoogleCloudStorageValidation {
+  // Required. URI of the GCS object. Use placeholder to specify the dynamic
+  // value like bucket name. Example:
+  // "gs://{{$.parameter.bucket}}/file_name"
+  string gcs_uri = 1;
+  // Required. Whether the gcs_uri is input or output.
+  bool is_input = 2;
+  // Required. Default service account principal email to access the gcs object.
+  // Example:
+  // "{{$.pipeline_google_cloud_project_id}}-compute@developer.gserviceaccount.com"
+  // Use placeholder to specify the dynamic value like project id.
+  string default_service_account = 3;
+  // Optional. If specified, the principal email will be overridden based on the
+  // placeholder. Currently support two placeholders: 1.
+  // "{{$.pipeline_google_cloud_service_account}}"(actual value is from
+  // PipelineJob.service_account 2.
+  // "{{$.parameter.service_account}}"(actual value is from the input parameter
+  // of the component/pipeline). If the value doesn't exist or is empty,
+  // overriding won't happen.
+  string override_placeholder = 4;
 }
 
 // Describes the details for Google Cloud Project Quota Validation.
