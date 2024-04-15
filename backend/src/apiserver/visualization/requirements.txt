@@ -469,7 +469,7 @@ six==1.16.0
     #   tensorflow
     #   tensorflow-data-validation
     #   tensorflow-model-analysis
-sqlparse==0.4.4
+sqlparse==0.5.0
     # via google-cloud-spanner
 tensorboard==2.10.1
     # via tensorflow
