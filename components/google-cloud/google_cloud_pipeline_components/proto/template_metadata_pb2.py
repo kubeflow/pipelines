@@ -67,10 +67,15 @@ DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
     b' \x01(\x0b\x32\x1a.template_metadata.OptionsH\x00\x42\x08\n\x06values"U\n\x0bMachineType\x12\r\n\x03\x61ny\x18\x01'
     b' \x01(\x08H\x00\x12-\n\x07options\x18\x02'
     b' \x01(\x0b\x32\x1a.template_metadata.OptionsH\x00\x42\x08\n\x06values"1\n\x07Options\x12&\n\x06values\x18\x01'
-    b' \x03(\x0b\x32\x16.google.protobuf.Value"\x82\x02\n\x0fValidationItems\x12N\n\x0esa_validations\x18\x01'
+    b' \x03(\x0b\x32\x16.google.protobuf.Value"\xcc\x02\n\x0fValidationItems\x12N\n\x0esa_validations\x18\x01'
     b' \x03(\x0b\x32\x36.template_metadata.GoogleCloudServiceAccountValidation\x12O\n\x11quota_validations\x18\x02'
     b' \x03(\x0b\x32\x34.template_metadata.GoogleCloudProjectQuotaValidation\x12N\n\x0f\x61pi_validations\x18\x03'
-    b' \x03(\x0b\x32\x35.template_metadata.GoogleCloudApiEnablementValidation"p\n!GoogleCloudProjectQuotaValidation\x12\x13\n\x0bmetric_name\x18\x01'
+    b' \x03(\x0b\x32\x35.template_metadata.GoogleCloudApiEnablementValidation\x12H\n\x0fgcs_validations\x18\x04'
+    b' \x03(\x0b\x32/.template_metadata.GoogleCloudStorageValidation"\x80\x01\n\x1cGoogleCloudStorageValidation\x12\x0f\n\x07gcs_uri\x18\x01'
+    b' \x01(\t\x12\x10\n\x08is_input\x18\x02'
+    b' \x01(\x08\x12\x1f\n\x17\x64\x65\x66\x61ult_service_account\x18\x03'
+    b' \x01(\t\x12\x1c\n\x14override_placeholder\x18\x04'
+    b' \x01(\t"p\n!GoogleCloudProjectQuotaValidation\x12\x13\n\x0bmetric_name\x18\x01'
     b' \x01(\t\x12\x15\n\x0bint64_value\x18\x02'
     b' \x01(\x03H\x00\x12\x16\n\x0c\x64ouble_value\x18\x03'
     b' \x01(\x01H\x00\x42\x07\n\x05value"\x8d\x01\n#GoogleCloudServiceAccountValidation\x12\x1f\n\x17\x64\x65\x66\x61ult_principal_email\x18\x01'
@@ -91,12 +96,12 @@ _builder.BuildTopDescriptorsAndMessages(
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'P\001'
-  _globals['_SIZE']._serialized_start = 2887
-  _globals['_SIZE']._serialized_end = 2958
-  _globals['_CONTENTTYPE']._serialized_start = 2961
-  _globals['_CONTENTTYPE']._serialized_end = 3091
-  _globals['_URITYPE']._serialized_start = 3093
-  _globals['_URITYPE']._serialized_end = 3190
+  _globals['_SIZE']._serialized_start = 3092
+  _globals['_SIZE']._serialized_end = 3163
+  _globals['_CONTENTTYPE']._serialized_start = 3166
+  _globals['_CONTENTTYPE']._serialized_end = 3296
+  _globals['_URITYPE']._serialized_start = 3298
+  _globals['_URITYPE']._serialized_end = 3395
   _globals['_TEMPLATEMETADATA']._serialized_start = 164
   _globals['_TEMPLATEMETADATA']._serialized_end = 301
   _globals['_IOMETADATA']._serialized_start = 303
@@ -136,11 +141,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_OPTIONS']._serialized_start = 2256
   _globals['_OPTIONS']._serialized_end = 2305
   _globals['_VALIDATIONITEMS']._serialized_start = 2308
-  _globals['_VALIDATIONITEMS']._serialized_end = 2566
-  _globals['_GOOGLECLOUDPROJECTQUOTAVALIDATION']._serialized_start = 2568
-  _globals['_GOOGLECLOUDPROJECTQUOTAVALIDATION']._serialized_end = 2680
-  _globals['_GOOGLECLOUDSERVICEACCOUNTVALIDATION']._serialized_start = 2683
-  _globals['_GOOGLECLOUDSERVICEACCOUNTVALIDATION']._serialized_end = 2824
-  _globals['_GOOGLECLOUDAPIENABLEMENTVALIDATION']._serialized_start = 2826
-  _globals['_GOOGLECLOUDAPIENABLEMENTVALIDATION']._serialized_end = 2885
+  _globals['_VALIDATIONITEMS']._serialized_end = 2640
+  _globals['_GOOGLECLOUDSTORAGEVALIDATION']._serialized_start = 2643
+  _globals['_GOOGLECLOUDSTORAGEVALIDATION']._serialized_end = 2771
+  _globals['_GOOGLECLOUDPROJECTQUOTAVALIDATION']._serialized_start = 2773
+  _globals['_GOOGLECLOUDPROJECTQUOTAVALIDATION']._serialized_end = 2885
+  _globals['_GOOGLECLOUDSERVICEACCOUNTVALIDATION']._serialized_start = 2888
+  _globals['_GOOGLECLOUDSERVICEACCOUNTVALIDATION']._serialized_end = 3029
+  _globals['_GOOGLECLOUDAPIENABLEMENTVALIDATION']._serialized_start = 3031
+  _globals['_GOOGLECLOUDAPIENABLEMENTVALIDATION']._serialized_end = 3090
 # @@protoc_insertion_point(module_scope)
