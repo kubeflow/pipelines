@@ -44,6 +44,7 @@ var (
 	numWorker                     int
 	clientQPS                     float64
 	clientBurst                   int
+	executionType                 string
 	saTokenRefreshIntervalInSecs  int64
 )
 
@@ -62,6 +63,7 @@ const (
 	numWorkerName                         = "numWorker"
 	clientQPSFlagName                     = "clientQPS"
 	clientBurstFlagName                   = "clientBurst"
+	executionTypeFlagName                 = "executionType"
 	saTokenRefreshIntervalFlagName        = "saTokenRefreshIntervalInSecs"
 )
 
@@ -75,6 +77,9 @@ func main() {
 
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
+
+	// Use the util to store the ExecutionType
+	util.SetExecutionType(util.ExecutionType(executionType))
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
@@ -99,7 +104,7 @@ func main() {
 	log.SetLevel(level)
 
 	clientParam := util.ClientParameters{QPS: float64(cfg.QPS), Burst: cfg.Burst}
-	execInformer := util.NewExecutionInformerOrFatal(util.ArgoWorkflow, namespace, time.Second*30, clientParam)
+	execInformer := util.NewExecutionInformerOrFatal(util.CurrentExecutionType(), namespace, time.Second*30, clientParam)
 
 	var swfInformerFactory swfinformers.SharedInformerFactory
 	if namespace == "" {
@@ -158,6 +163,7 @@ func init() {
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	flag.Float64Var(&clientQPS, clientQPSFlagName, 5, "The maximum QPS to the master from this client.")
 	flag.IntVar(&clientBurst, clientBurstFlagName, 10, "Maximum burst for throttle from this client.")
+	flag.StringVar(&executionType, executionTypeFlagName, "Workflow", "Custom Resource's name of the backend Orchestration Engine")
 	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
 	flag.Int64Var(&saTokenRefreshIntervalInSecs, saTokenRefreshIntervalFlagName, DefaultSATokenRefresherIntervalInSecs, "Persistence agent service account token read interval in seconds. "+
 		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")

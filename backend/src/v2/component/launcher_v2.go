@@ -143,7 +143,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	defer func() {
 		if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
 			if err != nil {
-				err = fmt.Errorf("failed to publish execution with error %w after execution failed: %w", perr, err)
+				err = fmt.Errorf("failed to publish execution with error %s after execution failed: %s", perr.Error(), err.Error())
 			} else {
 				err = perr
 			}

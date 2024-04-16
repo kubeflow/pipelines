@@ -1,0 +1,548 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    pipelines.kubeflow.org/v2_pipeline: "true"
+    tekton.dev/artifact_bucket: mlpipeline
+    tekton.dev/artifact_endpoint: minio-service.kubeflow:9000
+    tekton.dev/artifact_endpoint_scheme: http://
+  creationTimestamp: null
+  generateName: pipeline-with-exit-handler-
+  labels:
+    pipelines.kubeflow.org/v2_component: "true"
+spec:
+  pipelineSpec:
+    finally:
+    - name: exithandler
+      params:
+      - name: parent-dag-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: ExitHandler
+        metadata: {}
+        spec:
+          pipelineSpec:
+            params:
+            - name: parent-dag-id
+              type: string
+            tasks:
+            - name: print-op
+              params:
+              - name: type
+                value: CONTAINER
+              - name: pipeline-name
+                value: pipeline-with-exit-handler
+              - name: run-id
+                value: $(context.pipelineRun.uid)
+              - name: dag-execution-id
+                value: $(params.parent-dag-id)
+              - name: task
+                value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Exit
+                  handler has worked!"}}}},"taskInfo":{"name":"print-op"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
+              - name: container
+                value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op"],"command":["sh","-c","\nif
+                  ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||
+                  python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+                  python3 -m pip install --quiet     --no-warn-script-location ''kfp==2.0.1''
+                  \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp
+                  -d)\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3
+                  -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+                  kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import
+                  *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.7"}'
+              - name: iteration-index
+                value: ""
+              - name: kubernetes-config
+                value: ""
+              - name: mlmd-server-address
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: mlmd-server-port
+                value: "8080"
+              - name: component
+                value: '{"executorLabel":"exec-print-op","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
+              taskSpec:
+                apiVersion: custom.tekton.dev/v1alpha1
+                kind: KFPTask
+                metadata:
+                  annotations:
+                    pipelines.kubeflow.org/v2_pipeline: "true"
+                  labels:
+                    pipelines.kubeflow.org/v2_component: "true"
+                spec:
+                  taskSpec:
+                    params:
+                    - name: executor-input
+                      type: string
+                    - name: execution-id
+                      type: string
+                    - name: run-id
+                      type: string
+                    - name: component
+                      type: string
+                    steps:
+                    - command:
+                      - launcher-v2
+                      - --copy
+                      - /tekton/home/launch
+                      computeResources: {}
+                      image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+                      imagePullPolicy: Always
+                      name: kfp-launcher
+                    - args:
+                      - sh
+                      - -c
+                      - |2
+
+                        if ! [ -x "$(command -v pip)" ]; then
+                            python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+                        fi
+
+                        PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1' && "$0" "$@"
+                      - sh
+                      - -ec
+                      - |
+                        program_path=$(mktemp -d)
+                        printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                        python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+                      - |2+
+
+                        import kfp
+                        from kfp import dsl
+                        from kfp.dsl import *
+                        from typing import *
+
+                        def print_op(message: str):
+                            """Prints a message."""
+                            print(message)
+
+                      - --executor_input
+                      - '{{$}}'
+                      - --function_to_execute
+                      - print_op
+                      command:
+                      - /tekton/home/launch
+                      - --pipeline_name
+                      - pipeline-with-exit-handler
+                      - --run_id
+                      - $(params.run-id)
+                      - --execution_id
+                      - $(params.execution-id)
+                      - --executor_input
+                      - $(params.executor-input)
+                      - --component_spec
+                      - $(params.component)
+                      - --pod_name
+                      - $(KFP_POD_NAME)
+                      - --pod_uid
+                      - $(KFP_POD_UID)
+                      - --mlmd_server_address
+                      - $(METADATA_GRPC_SERVICE_HOST)
+                      - --mlmd_server_port
+                      - $(METADATA_GRPC_SERVICE_PORT)
+                      - --
+                      computeResources: {}
+                      env:
+                      - name: KFP_POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: KFP_POD_UID
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.uid
+                      - name: METADATA_GRPC_SERVICE_HOST
+                        value: metadata-grpc-service.kubeflow.svc.cluster.local
+                      - name: METADATA_GRPC_SERVICE_PORT
+                        value: "8080"
+                      - name: ML_PIPELINE_SERVICE_HOST
+                        value: ml-pipeline.kubeflow.svc.cluster.local
+                      - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                        value: "8887"
+                      - name: MINIO_SERVICE_SERVICE_HOST
+                        value: minio-service.kubeflow.svc.cluster.local
+                      - name: MINIO_SERVICE_SERVICE_PORT
+                        value: "9000"
+                      envFrom:
+                      - configMapRef:
+                          name: metadata-grpc-configmap
+                          optional: true
+                      image: python:3.7
+                      name: user-main
+            - name: root-system-dag-pub-driver
+              params:
+              - name: type
+                value: DAG_PUB
+              - name: pipeline-name
+                value: pipeline-with-exit-handler
+              - name: run-id
+                value: $(context.pipelineRun.uid)
+              - name: dag-execution-id
+                value: $(params.parent-dag-id)
+              - name: mlmd-server-address
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: mlmd-server-port
+                value: "8080"
+              runAfter:
+              - print-op
+              taskRef:
+                apiVersion: custom.tekton.dev/v1alpha1
+                kind: KFPTask
+    tasks:
+    - name: fail-op
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: pipeline-with-exit-handler
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.exit-handler-1-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
+          failed."}}}},"taskInfo":{"name":"fail-op"}}'
+      - name: container
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","fail_op"],"command":["sh","-c","\nif
+          ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+          -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet     --no-warn-script-location ''kfp==2.0.1''
+          \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\nprintf
+          \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3 -m
+          kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+          kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+          fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.7"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-fail-op","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - sh
+              - -c
+              - |2
+
+                if ! [ -x "$(command -v pip)" ]; then
+                    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+                fi
+
+                PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1' && "$0" "$@"
+              - sh
+              - -ec
+              - |
+                program_path=$(mktemp -d)
+                printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+              - |2+
+
+                import kfp
+                from kfp import dsl
+                from kfp.dsl import *
+                from typing import *
+
+                def fail_op(message: str):
+                    """Fails."""
+                    import sys
+                    print(message)
+                    sys.exit(1)
+
+              - --executor_input
+              - '{{$}}'
+              - --function_to_execute
+              - fail_op
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - pipeline-with-exit-handler
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: python:3.7
+              name: user-main
+    - name: print-op-2
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: pipeline-with-exit-handler
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.exit-handler-1-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op-2"}}'
+      - name: container
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op"],"command":["sh","-c","\nif
+          ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+          -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet     --no-warn-script-location ''kfp==2.0.1''
+          \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\nprintf
+          \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3 -m
+          kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+          kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+          print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.7"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-print-op-2","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - sh
+              - -c
+              - |2
+
+                if ! [ -x "$(command -v pip)" ]; then
+                    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+                fi
+
+                PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1' && "$0" "$@"
+              - sh
+              - -ec
+              - |
+                program_path=$(mktemp -d)
+                printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+              - |2+
+
+                import kfp
+                from kfp import dsl
+                from kfp.dsl import *
+                from typing import *
+
+                def print_op(message: str):
+                    """Prints a message."""
+                    print(message)
+
+              - --executor_input
+              - '{{$}}'
+              - --function_to_execute
+              - print_op
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - pipeline-with-exit-handler
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: python:3.7
+              name: user-main
+    - name: exit-handler-1-dag-driver
+      params:
+      - name: type
+        value: DAG
+      - name: pipeline-name
+        value: pipeline-with-exit-handler
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: component
+        value: '{"dag":{"tasks":{"fail-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
+          failed."}}}},"taskInfo":{"name":"fail-op"}},"print-op-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--message":{"parameterType":"STRING"}}}}'
+      - name: task
+        value: '{"componentRef":{"name":"comp-exit-handler-1"},"inputs":{"parameters":{"pipelinechannel--message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"exit-handler-1"}}'
+      - name: runtime-config
+        value: ""
+      - name: iteration-index
+        value: "-1"
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      taskRef:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+    - name: exit-handler-1-dag-pub-driver
+      params:
+      - name: type
+        value: DAG_PUB
+      - name: pipeline-name
+        value: pipeline-with-exit-handler
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.exit-handler-1-dag-driver.results.execution-id)
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      runAfter:
+      - print-op-2
+      - fail-op
+      taskRef:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+    - name: root-system-dag-driver
+      params:
+      - name: type
+        value: ROOT_DAG
+      - name: pipeline-name
+        value: pipeline-with-exit-handler
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: "0"
+      - name: component
+        value: '{"dag":{"tasks":{"exit-handler-1":{"componentRef":{"name":"comp-exit-handler-1"},"inputs":{"parameters":{"pipelinechannel--message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"exit-handler-1"}},"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Exit
+          handler has worked!"}}}},"taskInfo":{"name":"print-op"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}}},"inputDefinitions":{"parameters":{"message":{"defaultValue":"Hello
+          World!","parameterType":"STRING"}}}}'
+      - name: task
+        value: ""
+      - name: runtime-config
+        value: '{"parameterValues":{"message":"Hello World!"}}'
+      - name: iteration-index
+        value: "-1"
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      taskRef:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+  taskRunTemplate: {}
+status: {}

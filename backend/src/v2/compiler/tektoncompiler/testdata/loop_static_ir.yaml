@@ -1,0 +1,191 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-loop-static
+# Inputs:
+#    greeting: str [Default: 'this is a test for looping through parameters']
+pipelineSpec:
+  components:
+    comp-concat-op:
+      executorLabel: exec-concat-op
+      inputDefinitions:
+        parameters:
+          a:
+            parameterType: STRING
+          b:
+            parameterType: STRING
+      outputDefinitions:
+        parameters:
+          Output:
+            parameterType: STRING
+    comp-for-loop-2:
+      dag:
+        tasks:
+          concat-op:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-concat-op
+            inputs:
+              parameters:
+                a:
+                  componentInputParameter: pipelinechannel--loop-item-param-1
+                  parameterExpressionSelector: parseJson(string_value)["a"]
+                b:
+                  componentInputParameter: pipelinechannel--loop-item-param-1
+                  parameterExpressionSelector: parseJson(string_value)["b"]
+            taskInfo:
+              name: concat-op
+          print-op-2:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-print-op-2
+            dependentTasks:
+            - concat-op
+            inputs:
+              parameters:
+                text:
+                  taskOutputParameter:
+                    outputParameterKey: Output
+                    producerTask: concat-op
+            taskInfo:
+              name: print-op-2
+      inputDefinitions:
+        parameters:
+          pipelinechannel--loop-item-param-1:
+            parameterType: STRUCT
+    comp-print-op:
+      executorLabel: exec-print-op
+      inputDefinitions:
+        parameters:
+          text:
+            parameterType: STRING
+      outputDefinitions:
+        parameters:
+          Output:
+            parameterType: STRING
+    comp-print-op-2:
+      executorLabel: exec-print-op-2
+      inputDefinitions:
+        parameters:
+          text:
+            parameterType: STRING
+      outputDefinitions:
+        parameters:
+          Output:
+            parameterType: STRING
+  deploymentSpec:
+    executors:
+      exec-concat-op:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - concat_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef concat_op(a: str, b: str) -> str:\n    print(a + b)\n    return\
+            \ a + b\n\n"
+          image: python:3.7
+      exec-print-op:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - print_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_op(text: str) -> str:\n    print(text)\n    return text\n\
+            \n"
+          image: python:3.7
+      exec-print-op-2:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - print_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_op(text: str) -> str:\n    print(text)\n    return text\n\
+            \n"
+          image: python:3.7
+  pipelineInfo:
+    name: pipeline-with-loop-static
+  root:
+    dag:
+      tasks:
+        for-loop-2:
+          componentRef:
+            name: comp-for-loop-2
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-1
+            items:
+              raw: '[{"a": "1", "b": "2"}, {"a": "10", "b": "20"}]'
+          taskInfo:
+            name: for-loop-2
+        print-op:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op
+          inputs:
+            parameters:
+              text:
+                componentInputParameter: greeting
+          taskInfo:
+            name: print-op
+    inputDefinitions:
+      parameters:
+        greeting:
+          defaultValue: this is a test for looping through parameters
+          isOptional: true
+          parameterType: STRING
+  schemaVersion: 2.1.0
+  sdkVersion: kfp-2.0.1

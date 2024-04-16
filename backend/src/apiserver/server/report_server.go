@@ -122,7 +122,7 @@ func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
 }
 
 func validateReportWorkflowRequest(wfManifest string) (*util.ExecutionSpec, error) {
-	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(wfManifest))
+	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(wfManifest))
 	if err != nil {
 		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, wfManifest)
 	}

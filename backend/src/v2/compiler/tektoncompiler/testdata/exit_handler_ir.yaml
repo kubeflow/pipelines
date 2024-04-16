@@ -1,0 +1,170 @@
+pipelineSpec:
+  components:
+    comp-exit-handler-1:
+      dag:
+        tasks:
+          fail-op:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-fail-op
+            inputs:
+              parameters:
+                message:
+                  runtimeValue:
+                    constant: Task failed.
+            taskInfo:
+              name: fail-op
+          print-op-2:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-print-op-2
+            inputs:
+              parameters:
+                message:
+                  componentInputParameter: pipelinechannel--message
+            taskInfo:
+              name: print-op-2
+      inputDefinitions:
+        parameters:
+          pipelinechannel--message:
+            parameterType: STRING
+    comp-fail-op:
+      executorLabel: exec-fail-op
+      inputDefinitions:
+        parameters:
+          message:
+            parameterType: STRING
+    comp-print-op:
+      executorLabel: exec-print-op
+      inputDefinitions:
+        parameters:
+          message:
+            parameterType: STRING
+    comp-print-op-2:
+      executorLabel: exec-print-op-2
+      inputDefinitions:
+        parameters:
+          message:
+            parameterType: STRING
+  deploymentSpec:
+    executors:
+      exec-fail-op:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - fail_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n\
+            \    print(message)\n    sys.exit(1)\n\n"
+          image: python:3.7
+      exec-print-op:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - print_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
+            \    print(message)\n\n"
+          image: python:3.7
+      exec-print-op-2:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - print_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
+            \    print(message)\n\n"
+          image: python:3.7
+  pipelineInfo:
+    name: pipeline-with-exit-handler
+  root:
+    dag:
+      tasks:
+        exit-handler-1:
+          componentRef:
+            name: comp-exit-handler-1
+          inputs:
+            parameters:
+              pipelinechannel--message:
+                componentInputParameter: message
+          taskInfo:
+            name: exit-handler-1
+        print-op:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op
+          dependentTasks:
+          - exit-handler-1
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: Exit handler has worked!
+          taskInfo:
+            name: print-op
+          triggerPolicy:
+            strategy: ALL_UPSTREAM_TASKS_COMPLETED
+    inputDefinitions:
+      parameters:
+        message:
+          defaultValue: Hello World!
+          parameterType: STRING
+  schemaVersion: 2.1.0
+  sdkVersion: kfp-2.0.1
