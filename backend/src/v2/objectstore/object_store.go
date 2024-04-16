@@ -359,13 +359,23 @@ func createBucketSession(ctx context.Context, namespace string, sessionInfo *Ses
 	if err != nil {
 		return nil, err
 	}
-	sess, err := session.NewSession(&aws.Config{
-		Credentials:      creds,
-		Region:           aws.String(sessionInfo.Region),
-		Endpoint:         aws.String(sessionInfo.Endpoint),
-		DisableSSL:       aws.Bool(sessionInfo.DisableSSL),
-		S3ForcePathStyle: aws.Bool(true),
-	})
+	config := &aws.Config{}
+	config.Credentials = creds
+	config.Region = aws.String(sessionInfo.Region)
+	config.DisableSSL = aws.Bool(sessionInfo.DisableSSL)
+	config.S3ForcePathStyle = aws.Bool(true)
+	// AWS Specific:
+	// Path-style S3 endpoints, which are commonly used, may fall into either of two subdomains:
+	// 1) s3.amazonaws.com
+	// 2) s3.<AWS Region>.amazonaws.com
+	// for (1) the endpoint is not required, thus we skip it, otherwise the writer will fail to close due to region mismatch.
+	// https://aws.amazon.com/blogs/infrastructure-and-automation/best-practices-for-using-amazon-s3-endpoints-in-aws-cloudformation-templates/
+	// https://docs.aws.amazon.com/sdk-for-go/api/aws/session/
+	awsEndpoint, _ := regexp.MatchString(`^(https://)?s3.amazonaws.com`, strings.ToLower(sessionInfo.Endpoint))
+	if !awsEndpoint {
+		config.Endpoint = aws.String(sessionInfo.Endpoint)
+	}
+	sess, err := session.NewSession(config)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
 	}
