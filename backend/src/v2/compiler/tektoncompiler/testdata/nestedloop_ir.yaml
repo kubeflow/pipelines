@@ -1,0 +1,324 @@
+pipelineSpec:
+  components:
+    comp-condition-3:
+      dag:
+        tasks:
+          condition-4:
+            componentRef:
+              name: comp-condition-4
+            dependentTasks:
+            - get-random-int-op
+            inputs:
+              parameters:
+                pipelinechannel--flip-coin-op-Output:
+                  componentInputParameter: pipelinechannel--flip-coin-op-Output
+                pipelinechannel--get-random-int-op-Output:
+                  taskOutputParameter:
+                    outputParameterKey: Output
+                    producerTask: get-random-int-op
+                pipelinechannel--loop-item-param-1:
+                  componentInputParameter: pipelinechannel--loop-item-param-1
+            taskInfo:
+              name: condition-4
+            triggerPolicy:
+              condition: int(inputs.parameter_values['pipelinechannel--get-random-int-op-Output'])
+                > 5
+          condition-5:
+            componentRef:
+              name: comp-condition-5
+            dependentTasks:
+            - get-random-int-op
+            inputs:
+              parameters:
+                pipelinechannel--flip-coin-op-Output:
+                  componentInputParameter: pipelinechannel--flip-coin-op-Output
+                pipelinechannel--get-random-int-op-Output:
+                  taskOutputParameter:
+                    outputParameterKey: Output
+                    producerTask: get-random-int-op
+                pipelinechannel--loop-item-param-1:
+                  componentInputParameter: pipelinechannel--loop-item-param-1
+            taskInfo:
+              name: condition-5
+            triggerPolicy:
+              condition: int(inputs.parameter_values['pipelinechannel--get-random-int-op-Output'])
+                <= 5
+          get-random-int-op:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-get-random-int-op
+            inputs:
+              parameters:
+                maximum:
+                  runtimeValue:
+                    constant: 9.0
+                minimum:
+                  runtimeValue:
+                    constant: 0.0
+            taskInfo:
+              name: get-random-int-op
+      inputDefinitions:
+        parameters:
+          pipelinechannel--flip-coin-op-Output:
+            parameterType: STRING
+          pipelinechannel--loop-item-param-1:
+            parameterType: STRING
+    comp-condition-4:
+      dag:
+        tasks:
+          print-op:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-print-op
+            inputs:
+              parameters:
+                message:
+                  runtimeValue:
+                    constant: '{{$.inputs.parameters[''pipelinechannel--loop-item-param-1'']}}
+                      and {{$.inputs.parameters[''pipelinechannel--get-random-int-op-Output'']}}
+                      > 5!'
+                pipelinechannel--get-random-int-op-Output:
+                  componentInputParameter: pipelinechannel--get-random-int-op-Output
+                pipelinechannel--loop-item-param-1:
+                  componentInputParameter: pipelinechannel--loop-item-param-1
+            taskInfo:
+              name: print-op
+      inputDefinitions:
+        parameters:
+          pipelinechannel--flip-coin-op-Output:
+            parameterType: STRING
+          pipelinechannel--get-random-int-op-Output:
+            parameterType: NUMBER_INTEGER
+          pipelinechannel--loop-item-param-1:
+            parameterType: STRING
+    comp-condition-5:
+      dag:
+        tasks:
+          print-op-2:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-print-op-2
+            inputs:
+              parameters:
+                message:
+                  runtimeValue:
+                    constant: '{{$.inputs.parameters[''pipelinechannel--loop-item-param-1'']}}
+                      and {{$.inputs.parameters[''pipelinechannel--get-random-int-op-Output'']}}
+                      <= 5!'
+                pipelinechannel--get-random-int-op-Output:
+                  componentInputParameter: pipelinechannel--get-random-int-op-Output
+                pipelinechannel--loop-item-param-1:
+                  componentInputParameter: pipelinechannel--loop-item-param-1
+            taskInfo:
+              name: print-op-2
+      inputDefinitions:
+        parameters:
+          pipelinechannel--flip-coin-op-Output:
+            parameterType: STRING
+          pipelinechannel--get-random-int-op-Output:
+            parameterType: NUMBER_INTEGER
+          pipelinechannel--loop-item-param-1:
+            parameterType: STRING
+    comp-flip-coin-op:
+      executorLabel: exec-flip-coin-op
+      outputDefinitions:
+        parameters:
+          Output:
+            parameterType: STRING
+    comp-for-loop-2:
+      dag:
+        tasks:
+          condition-3:
+            componentRef:
+              name: comp-condition-3
+            inputs:
+              parameters:
+                pipelinechannel--flip-coin-op-Output:
+                  componentInputParameter: pipelinechannel--flip-coin-op-Output
+                pipelinechannel--loop-item-param-1:
+                  componentInputParameter: pipelinechannel--loop-item-param-1
+            taskInfo:
+              name: condition-3
+            triggerPolicy:
+              condition: inputs.parameter_values['pipelinechannel--loop-item-param-1']
+                == inputs.parameter_values['pipelinechannel--flip-coin-op-Output']
+      inputDefinitions:
+        parameters:
+          pipelinechannel--flip-coin-op-Output:
+            parameterType: STRING
+          pipelinechannel--loop-item-param-1:
+            parameterType: STRING
+    comp-get-random-int-op:
+      executorLabel: exec-get-random-int-op
+      inputDefinitions:
+        parameters:
+          maximum:
+            parameterType: NUMBER_INTEGER
+          minimum:
+            parameterType: NUMBER_INTEGER
+      outputDefinitions:
+        parameters:
+          Output:
+            parameterType: NUMBER_INTEGER
+    comp-print-op:
+      executorLabel: exec-print-op
+      inputDefinitions:
+        parameters:
+          message:
+            parameterType: STRING
+    comp-print-op-2:
+      executorLabel: exec-print-op-2
+      inputDefinitions:
+        parameters:
+          message:
+            parameterType: STRING
+  deploymentSpec:
+    executors:
+      exec-flip-coin-op:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - flip_coin_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
+            \ or tails randomly.\"\"\"\n    import random\n    result = random.choice(['heads',\
+            \ 'tails'])\n    print(result)\n    return result\n\n"
+          image: python:3.7
+      exec-get-random-int-op:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - get_random_int_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef get_random_int_op(minimum: int, maximum: int) -> int:\n    \"\
+            \"\"Generate a random number between minimum and maximum (inclusive).\"\"\
+            \"\n    import random\n    result = random.randint(minimum, maximum)\n \
+            \   print(result)\n    return result\n\n"
+          image: python:3.7
+      exec-print-op:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - print_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_op(message: str):\n    \"\"\"Print a message.\"\"\"\n \
+            \   print(message)\n\n"
+          image: python:3.7
+      exec-print-op-2:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - print_op
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_op(message: str):\n    \"\"\"Print a message.\"\"\"\n \
+            \   print(message)\n\n"
+          image: python:3.7
+  pipelineInfo:
+    description: Shows how to use dsl.Condition(), dsl.ParallelFor, and dsl.ExitHandler().
+    name: tutorial-control-flows
+  root:
+    dag:
+      tasks:
+        flip-coin-op:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-flip-coin-op
+          taskInfo:
+            name: flip-coin-op
+        for-loop-2:
+          componentRef:
+            name: comp-for-loop-2
+          dependentTasks:
+          - flip-coin-op
+          inputs:
+            parameters:
+              pipelinechannel--flip-coin-op-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: flip-coin-op
+          iteratorPolicy:
+            parallelismLimit: 2
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-1
+            items:
+              raw: '["heads", "tails"]'
+          taskInfo:
+            name: for-loop-2
+  schemaVersion: 2.1.0
+  sdkVersion: kfp-2.0.1

@@ -188,7 +188,7 @@ func ParseBucketConfig(path string) (*Config, error) {
 	}
 
 	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" {
+	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" {
 		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", path)
 	}
 
@@ -212,7 +212,7 @@ func ParseBucketConfigForArtifactURI(uri string) (*Config, error) {
 	}
 
 	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" {
+	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" {
 		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", uri)
 	}
 

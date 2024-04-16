@@ -1,0 +1,138 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    pipelines.kubeflow.org/v2_pipeline: "true"
+    tekton.dev/artifact_bucket: mlpipeline
+    tekton.dev/artifact_endpoint: minio-service.kubeflow:9000
+    tekton.dev/artifact_endpoint_scheme: http://
+  creationTimestamp: null
+  generateName: pipeline-with-importer-
+  labels:
+    pipelines.kubeflow.org/v2_component: "true"
+spec:
+  pipelineSpec:
+    tasks:
+    - name: importer
+      params:
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}'
+      - name: component
+        value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}}}'
+      - name: importer
+        value: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
+      - name: parent-dag-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      runAfter:
+      - root-system-dag-driver
+      taskSpec:
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        params:
+        - name: task
+          type: string
+        - name: component
+          type: string
+        - name: importer
+          type: string
+        - name: parent-dag-id
+          type: string
+        results:
+        - description: execution id
+          name: execution-id
+        - description: executor input
+          name: executor-input
+        spec: null
+        steps:
+        - args:
+          - --executor_type
+          - importer
+          - --task_spec
+          - $(params.task)
+          - --component_spec
+          - $(params.component)
+          - --importer_spec
+          - $(params.importer)
+          - --pipeline_name
+          - pipeline-with-importer
+          - --run_id
+          - $(params.run-id)
+          - --parent_dag_id
+          - $(params.parent-dag-id)
+          - --pod_name
+          - $(KFP_POD_NAME)
+          - --pod_uid
+          - $(KFP_POD_UID)
+          - --mlmd_server_address
+          - $(METADATA_GRPC_SERVICE_HOST)
+          - --mlmd_server_port
+          - $(METADATA_GRPC_SERVICE_PORT)
+          command:
+          - launcher-v2
+          computeResources: {}
+          env:
+          - name: KFP_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: KFP_POD_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+          - name: METADATA_GRPC_SERVICE_HOST
+            value: metadata-grpc-service.kubeflow.svc.cluster.local
+          - name: METADATA_GRPC_SERVICE_PORT
+            value: "8080"
+          image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+          name: importer-main
+    - name: root-system-dag-driver
+      params:
+      - name: type
+        value: ROOT_DAG
+      - name: pipeline-name
+        value: pipeline-with-importer
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: "0"
+      - name: component
+        value: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}}},"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}}}'
+      - name: task
+        value: ""
+      - name: runtime-config
+        value: '{}'
+      - name: iteration-index
+        value: "-1"
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      taskRef:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+    - name: root-system-dag-pub-driver
+      params:
+      - name: type
+        value: DAG_PUB
+      - name: pipeline-name
+        value: pipeline-with-importer
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      runAfter:
+      - importer
+      taskRef:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+  taskRunTemplate: {}
+status: {}
