@@ -303,6 +303,10 @@ function NewRunV2(props: NewRunV2Props) {
   // Whenever any input value changes, validate and show error if needed.
   useEffect(() => {
     if (isTemplatePullSuccess) {
+      if (!serviceAccount) {
+        setErrorMessage('Service account is required');
+        return;
+      }
       if (runName) {
         setErrorMessage('');
         return;
@@ -319,8 +323,12 @@ function NewRunV2(props: NewRunV2Props) {
         setErrorMessage('A pipeline version must be selected');
         return;
       }
+      if (!serviceAccount) {
+        setErrorMessage('Service account is required');
+        return;
+      }
     }
-  }, [runName, existingPipeline, existingPipelineVersion, isTemplatePullSuccess]);
+  }, [runName, existingPipeline, existingPipelineVersion, isTemplatePullSuccess, serviceAccount]);
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation((run: V2beta1Run) => {
@@ -586,7 +594,7 @@ function NewRunV2(props: NewRunV2Props) {
         <Input
           value={serviceAccount}
           onChange={event => setServiceAccount(event.target.value)}
-          required={false}
+          required={true}
           label='Service Account'
           variant='outlined'
         />
