@@ -26,7 +26,6 @@ import kfp
 
 PipelineOutput = NamedTuple(
     'Outputs',
-    reward_model_base_path=str,
     reward_model_adapter_path=str,
     reward_dataset_path=str,
 )
@@ -39,6 +38,8 @@ PipelineOutput = NamedTuple(
 def pipeline(
     preference_dataset: str,
     large_model_reference: str,
+    reward_model_reference: str,
+    reward_model_path: str,
     prompt_sequence_length: int = 512,
     target_sequence_length: int = 64,
     batch_size: int = 64,
@@ -59,6 +60,8 @@ def pipeline(
   Args:
     preference_dataset: Cloud storage path to a human preference JSONL dataset used to train a reward model. Each example in a preference dataset must contain `candidate_0` and `candidate_1` fields that contain candidate responses, `choice` that specifies the preferred candidate and either `input_text` (if tuning a text model) or `messages` (if tuning a chat model). Chat datasets must contain at least 1 message in a `messages` field. Each message must be valid JSON that contains `author` and `content` fields, where valid `author` values are `user` and `assistant` and `content` must be non-empty. Each row may contain multiple messages, but the first and last author must be the `user`. An optional `context` field may be provided for each example in a chat dataset. If provided, the `context` will preprended to the message `content`. The `instruction` serves as the default context. (Useful if most messages use the same system-level context.) Any context provided in the example will override the default value.
     large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
+    reward_model_reference: Name of the base model. The name should be in capitalized snake case format.
+    reward_model_path: The model checkpoint path for the reward model.
     prompt_sequence_length: Maximum tokenized sequence length for input text. Higher values increase memory overhead. This value should be at most 8192. Default value is 512.
     target_sequence_length:  Maximum tokenized sequence length for target text. Higher values increase memory overhead. This value should be at most 1024. Default value is 64.
     batch_size: Number of examples in each finetuning step. Default is 64.
@@ -73,7 +76,6 @@ def pipeline(
     encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
 
   Returns:
-    reward_model_base_path: Path to the base model used by the reward model.
     reward_model_adapter_path: Path to the output LoRA adapter.
     reward_dataset_path: Preference dataset use for tuning the reward model.
   """
@@ -85,10 +87,6 @@ def pipeline(
       accelerator_type=accelerator_type,
       use_test_spec=env.get_use_test_machine_spec(),
   ).set_display_name('Resolve Machine Spec')
-
-  reference_model_metadata = function_based.resolve_reference_model_metadata(
-      large_model_reference=large_model_reference,
-  ).set_display_name('Resolve Model Metadata')
 
   processed_preference_dataset = (
       preprocess_chat_dataset.preprocess_chat_dataset(
@@ -113,9 +111,7 @@ def pipeline(
           comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
           choice_field_name=choice_column,
           split=env.TRAIN_SPLIT,
-          large_model_reference=reference_model_metadata.outputs[
-              'reward_model_reference'
-          ],
+          large_model_reference=reward_model_reference,
           instruction=instruction,
           encryption_spec_key_name=encryption_spec_key_name,
       )
@@ -132,9 +128,7 @@ def pipeline(
           comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
           choice_field_name=choice_column,
           split=env.TRAIN_SPLIT,
-          large_model_reference=reference_model_metadata.outputs[
-              'reward_model_reference'
-          ],
+          large_model_reference=reward_model_reference,
           instruction=instruction,
           encryption_spec_key_name=encryption_spec_key_name,
       )
@@ -146,17 +140,13 @@ def pipeline(
       accelerator_type=machine_spec.outputs['accelerator_type'],
   ).set_display_name('Resolve Reward Model Image URI')
   num_microbatches = function_based.resolve_num_microbatches(
-      large_model_reference=reference_model_metadata.outputs[
-          'reward_model_reference'
-      ]
+      large_model_reference=reward_model_reference,
   ).set_display_name('Resolve Number of Microbatches')
   reward_model = (
       reward_model_trainer.reward_model_trainer(
           project=project,
           location=machine_spec.outputs['tuning_location'],
-          input_model_path=reference_model_metadata.outputs[
-              'reward_model_path'
-          ],
+          input_model_path=reward_model_path,
           input_dataset_path=preference_dataset_importer.outputs[
               'output_dataset_path'
           ],
@@ -166,9 +156,7 @@ def pipeline(
           train_steps=reward_model_train_steps,
           accelerator_type=machine_spec.outputs['accelerator_type'],
           accelerator_count=machine_spec.outputs['accelerator_count'],
-          large_model_reference=reference_model_metadata.outputs[
-              'reward_model_reference'
-          ],
+          large_model_reference=reward_model_reference,
           machine_type=machine_spec.outputs['machine_type'],
           image_uri=reward_model_image_uri.output,
           inputs_sequence_length=prompt_sequence_length,
@@ -185,9 +173,6 @@ def pipeline(
   )
 
   return PipelineOutput(
-      reward_model_base_path=reference_model_metadata.outputs[
-          'reward_model_path'
-      ],
       reward_model_adapter_path=reward_model.outputs['output_adapter_path'],
       reward_dataset_path=preference_dataset_importer.outputs[
           'output_dataset_path'
