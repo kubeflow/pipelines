@@ -1,0 +1,268 @@
+# Case names should be unique
+cases:
+  # valid
+  - name: case0
+    value: |
+      nomatch: {}
+  # valid
+  - name: case1
+    value: |
+      minio: {}
+  # valid
+  - name: case2
+    value: |
+      minio:
+        overrides: []
+  # invalid if matching against "minio://"
+  - name: case3
+    value: |
+      minio:
+        default:
+          endpoint: minio-endpoint-3.com
+  # invalid if matching against "minio://"
+  - name: case4
+    value: |
+      minio:
+        default:
+          endpoint: minio-endpoint-4.com
+          region: minio
+          overrides: []
+  # valid
+  - name: case5
+    value: |
+      minio:
+        default:
+          endpoint: minio-endpoint-5.com
+          region: minio
+          disableSSL: true
+          credentials:
+            fromEnv: false
+            secretRef:
+              secretName: test-secret-5
+              accessKeyKey: test-accessKeyKey-5
+              secretKeyKey: test-secretKeyKey-5
+        overrides: []
+  # valid
+  - name: case6
+    value: |
+      gs:
+        default:
+          credentials:
+            fromEnv: false
+            secretRef:
+              secretName: gs-test-secret-6
+              tokenKey: gs-test-tokenKey-6
+        overrides:
+          - bucketName: gs-bucket-a
+            keyPrefix: some/gs/path/1/2
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: gs-test-secret-6-a-1
+                tokenKey: gs-test-tokenKey-6-a-1
+          - bucketName: gs-bucket-a
+            keyPrefix: some/gs/path/1
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: gs-test-secret-6-a
+                tokenKey: gs-test-tokenKey-6-a
+      minio:
+        default:
+          endpoint: minio-endpoint-6.com
+          region: minio
+          disableSSL: true
+          credentials:
+            fromEnv: false
+            secretRef:
+              secretName: minio-test-secret-6
+              accessKeyKey: minio-test-accessKeyKey-6
+              secretKeyKey: minio-test-secretKeyKey-6
+        overrides:
+          - endpoint: minio-endpoint-6.com
+            region: minio-a
+            disableSSL: true
+            bucketName: minio-bucket-a
+            keyPrefix: some/minio/path/a
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: minio-test-secret-6-a
+                accessKeyKey: minio-test-accessKeyKey-6-a
+                secretKeyKey: minio-test-secretKeyKey-6-a
+      s3:
+        default:
+          endpoint: s3.amazonaws.com
+          region: us-east-1
+          disableSSL: false
+          credentials:
+            fromEnv: false
+            secretRef:
+              secretName: s3-testsecret-6
+              accessKeyKey: s3-testaccessKeyKey-6
+              secretKeyKey: s3-testsecretKeyKey-6
+        overrides:
+          - bucketName: s3-bucket
+            keyPrefix: some/s3/path/a
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: s3-test-secret-6-a
+                accessKeyKey: s3-test-accessKeyKey-6-a
+                secretKeyKey: s3-test-secretKeyKey-6-a
+          - bucketName: s3-bucket
+            keyPrefix: some/s3/path/a/b
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: s3-test-secret-6-a-1
+                accessKeyKey: s3-test-accessKeyKey-6-a-1
+                secretKeyKey: s3-test-secretKeyKey-6-a-1
+          - bucketName: s3-bucket
+            keyPrefix: some/s3/path/b
+            endpoint: s3.us-east-2.amazonaws.com
+            region: us-east-2
+            disableSSL: false
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: s3-test-secret-6-b
+                accessKeyKey: s3-test-accessKeyKey-6-b
+                secretKeyKey: s3-test-secretKeyKey-6-b
+          - bucketName: s3-bucket
+            keyPrefix: some/s3/path/b/c
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: s3-test-secret-6-b-1
+                accessKeyKey: s3-test-accessKeyKey-6-b-1
+                secretKeyKey: s3-test-secretKeyKey-6-b-1
+          - bucketName: s3-bucket-2
+            keyPrefix: some/s3/path/a
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: s3-test-secret-6-a-2
+                accessKeyKey: s3-test-accessKeyKey-6-a-2
+                secretKeyKey: s3-test-secretKeyKey-6-a-2
+  # invalid
+  - name: case7
+    value: |
+      s3:
+        default:
+          endpoint: s3-endpoint-7.com
+          region: auto
+        overrides: []
+      gs:
+        overrides: []
+      minio:
+        default:
+          endpoint: minio-endpoint-7.com
+          region: auto
+        overrides: []
+  # valid for default case
+  # invalid override - missing secretref in credentials
+  - name: case8
+    value: |
+      minio:
+        default:
+          endpoint: minio-endpoint-8.com
+          region: minio
+          disableSSL: true
+          credentials:
+            fromEnv: false
+            secretRef:
+              secretName: minio-test-secret-8
+              accessKeyKey: minio-test-accessKeyKey-8
+              secretKeyKey: minio-test-secretKeyKey-8
+        overrides:
+          - endpoint: minio-endpoint-8.com
+            region: minio-a
+            disableSSL: true
+            bucketName: minio-bucket-a
+            keyPrefix: some/minio/path/a
+            credentials:
+              fromEnv: false
+  # valid
+  # note that since override has "FromEnv: true"
+  # no secretRef is required
+  - name: case9
+    value: |
+      minio:
+        default:
+          endpoint: minio-endpoint-9.com
+          region: minio
+          disableSSL: true
+          credentials:
+            fromEnv: false
+            secretRef:
+              secretName: minio-test-secret-9
+              accessKeyKey: minio-test-accessKeyKey-9
+              secretKeyKey: minio-test-secretKeyKey-9
+        overrides:
+          - endpoint: minio-endpoint-9.com
+            region: minio-a
+            disableSSL: true
+            bucketName: minio-bucket-a
+            keyPrefix: some/minio/path/a
+            credentials:
+              fromEnv: true
+  - name: case10
+    value: |
+      minio:
+        default:
+          endpoint: minio-endpoint-10.com
+          region: minio
+          disableSSL: true
+          credentials:
+            fromEnv: true
+        overrides:
+          - endpoint: minio-endpoint-10.com
+            region: minio-a
+            disableSSL: true
+            bucketName: minio-bucket-a
+            keyPrefix: some/minio/path/a
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: minio-test-secret-10
+                accessKeyKey: minio-test-accessKeyKey-10
+                secretKeyKey: minio-test-secretKeyKey-10
+  # valid
+  - name: case11
+    value: |
+      gs:
+        default:
+          credentials:
+            fromEnv: true
+        overrides:
+          - bucketName: gs-bucket
+            keyPrefix: some/gs/path/1/2
+            credentials:
+              fromEnv: true
+          - bucketName: gs-bucket
+            keyPrefix: some/gs/path/1
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: gs-test-secret-11
+                tokenKey: gs-test-tokenKey-11
+  # valid
+  - name: case12
+    value: |
+      minio:
+        default:
+          endpoint: minio-endpoint-12.com
+          region: minio
+          disableSSL: true
+          credentials:
+            fromEnv: true
+        overrides:
+          - bucketName: bucket_name
+            keyPrefix: v2/artifacts/profile_name
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: minio-test-secret-12-a
+                accessKeyKey: minio-test-accessKeyKey-12-a
+                secretKeyKey: minio-test-secretKeyKey-12-a
