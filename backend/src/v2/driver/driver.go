@@ -536,10 +536,11 @@ func extendPodSpecPatch(
 
 	// Get secret mount information
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
+		optional := secretAsVolume.Optional != nil && *secretAsVolume.Optional
 		secretVolume := k8score.Volume{
 			Name: secretAsVolume.GetSecretName(),
 			VolumeSource: k8score.VolumeSource{
-				Secret: &k8score.SecretVolumeSource{SecretName: secretAsVolume.GetSecretName()},
+				Secret: &k8score.SecretVolumeSource{SecretName: secretAsVolume.GetSecretName(), Optional: &optional},
 			},
 		}
 		secretVolumeMount := k8score.VolumeMount{
@@ -568,11 +569,12 @@ func extendPodSpecPatch(
 
 	// Get config map mount information
 	for _, configMapAsVolume := range kubernetesExecutorConfig.GetConfigMapAsVolume() {
+		optional := configMapAsVolume.Optional != nil && *configMapAsVolume.Optional
 		configMapVolume := k8score.Volume{
 			Name: configMapAsVolume.GetConfigMapName(),
 			VolumeSource: k8score.VolumeSource{
 				ConfigMap: &k8score.ConfigMapVolumeSource{
-					LocalObjectReference: k8score.LocalObjectReference{Name: configMapAsVolume.GetConfigMapName()}},
+					LocalObjectReference: k8score.LocalObjectReference{Name: configMapAsVolume.GetConfigMapName()}, Optional: &optional},
 			},
 		}
 		configMapVolumeMount := k8score.VolumeMount{
