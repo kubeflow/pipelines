@@ -474,6 +474,36 @@ func extendPodSpecPatch(
 	if len(podSpec.Containers) == 0 {
 		return fmt.Errorf("failed to patch the pod with kubernetes-specific config due to missing user container: %v", podSpec)
 	}
+
+    // Handle Shared Memory Volume if configured
+    if shmConfig := kubernetesExecutorConfig.GetEnabledSharedMemory(); shmConfig != nil {
+        // Create a volume with the name specified in the configuration
+        shmVolume := k8score.Volume{
+            Name: shmConfig.VolumeName, // Use the name from the configuration message
+            VolumeSource: k8score.VolumeSource{
+                EmptyDir: &k8score.EmptyDirVolumeSource{
+                    Medium: k8score.StorageMediumMemory,
+                },
+            },
+        }
+
+        // Set the size if specified in the configuration message
+        if shmConfig.Size != "" {
+            sizeQuantity := k8sres.MustParse(shmConfig.Size) // Parse the string to a Quantity object
+            shmVolume.VolumeSource.EmptyDir.SizeLimit = &sizeQuantity // Assign the address of sizeQuantity
+        }
+
+        // Create a volume mount that mounts the shared memory volume to /dev/shm
+        shmVolumeMount := k8score.VolumeMount{
+            Name:      shmVolume.Name, // Use the same name as the volume
+            MountPath: "/dev/shm",
+        }
+        // Append the created volume to the pod's volumes
+        podSpec.Volumes = append(podSpec.Volumes, shmVolume)
+        // Assume the user container is always the first in the list and add the volume mount
+        podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, shmVolumeMount)
+    }
+
 	// Get volume mount information
 	if kubernetesExecutorConfig.GetPvcMount() != nil {
 		volumeMounts, volumes, err := makeVolumeMountPatch(kubernetesExecutorConfig.GetPvcMount(), dag, dagTasks)

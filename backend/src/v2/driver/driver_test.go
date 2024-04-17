@@ -1621,3 +1621,104 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 		})
 	}
 }
+
+func Test_extendPodSpecPatch_SharedMemory(t *testing.T) {
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - Shared Memory Enabled",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				EnabledSharedMemory: &kubernetesplatform.EnabledSharedMemory{
+					VolumeName: "shm-vol",
+					Size:       "2Gi",
+				},
+			},
+			&k8score.PodSpec{
+				Volumes: []k8score.Volume{
+					{
+						Name: "shm-vol",
+						VolumeSource: k8score.VolumeSource{
+							EmptyDir: &k8score.EmptyDirVolumeSource{
+								Medium: k8score.StorageMediumMemory,
+								SizeLimit: func() *k8sres.Quantity {
+									q := k8sres.MustParse("2Gi")
+									return &q
+								}(),
+							},
+						},
+					},
+				},
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "shm-vol",
+								MountPath: "/dev/shm",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - Shared Memory Enabled without size",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				EnabledSharedMemory: &kubernetesplatform.EnabledSharedMemory{
+					VolumeName: "shm-vol-no-size",
+					Size:       "",
+				},
+			},
+			&k8score.PodSpec{
+				Volumes: []k8score.Volume{
+					{
+						Name: "shm-vol-no-size",
+						VolumeSource: k8score.VolumeSource{
+							EmptyDir: &k8score.EmptyDirVolumeSource{
+								Medium: k8score.StorageMediumMemory,
+							},
+						},
+					},
+				},
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "shm-vol-no-size",
+								MountPath: "/dev/shm",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Invalid - Shared Memory not enabled",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+			err := extendPodSpecPatch(got, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
