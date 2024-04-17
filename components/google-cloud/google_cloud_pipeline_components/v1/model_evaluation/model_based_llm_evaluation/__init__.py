@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Model based LLM evaluation preview components."""
+"""Model based LLM evaluation GA components."""
 
-from google_cloud_pipeline_components.preview.model_evaluation.model_based_llm_evaluation.autosxs.autosxs_pipeline import autosxs_pipeline
+from google_cloud_pipeline_components.v1.model_evaluation.model_based_llm_evaluation.autosxs.autosxs_pipeline import autosxs_pipeline
 
 __all__ = [
     'autosxs_pipeline',
