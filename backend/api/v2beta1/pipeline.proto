@@ -233,7 +233,7 @@ message ListPipelinesRequest {
   string sort_by = 4;
 
   // A url-encoded, JSON-serialized filter protocol buffer (see
-  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
   string filter = 5;
 }
 
@@ -306,7 +306,7 @@ message ListPipelineVersionsRequest {
   string sort_by = 4;
 
   // A url-encoded, JSON-serialized filter protocol buffer (see
-  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
   string filter = 5;
 }
 

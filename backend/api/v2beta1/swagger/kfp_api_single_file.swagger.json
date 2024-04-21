@@ -371,7 +371,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "description": "A url-encoded, JSON-serialized filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -598,7 +598,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "description": "A url-encoded, JSON-serialized filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -884,7 +884,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -1183,7 +1183,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"

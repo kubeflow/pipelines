@@ -433,7 +433,7 @@ type ListPipelinesRequest struct {
 	// Ascending by default.
 	SortBy string `protobuf:"bytes,4,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// A url-encoded, JSON-serialized filter protocol buffer (see
-	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
 	Filter string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 }
 
@@ -867,7 +867,7 @@ type ListPipelineVersionsRequest struct {
 	// Ascending by default.
 	SortBy string `protobuf:"bytes,4,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// A url-encoded, JSON-serialized filter protocol buffer (see
-	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
 	Filter string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 }
 

@@ -185,7 +185,7 @@ message ListRecurringRunsRequest {
   string namespace = 4;
 
   // A url-encoded, JSON-serialized Filter protocol buffer (see
-  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
   string filter = 5;
 
   // The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.

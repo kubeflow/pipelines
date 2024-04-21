@@ -435,7 +435,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 page_size = 56 # int | The number of recurring runs to be listed per page. If there are more recurring runs  than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
 sort_by = 'sort_by_example' # str | Can be formatted as \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default. (optional)
 namespace = 'namespace_example' # str | Optional input. The namespace the recurring runs belong to. (optional)
-filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). (optional)
+filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)). (optional)
 experiment_id = 'experiment_id_example' # str | The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments. (optional)
 
     try:
@@ -454,7 +454,7 @@ Name | Type | Description  | Notes
  **page_size** | **int**| The number of recurring runs to be listed per page. If there are more recurring runs  than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
  **sort_by** | **str**| Can be formatted as \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional] 
  **namespace** | **str**| Optional input. The namespace the recurring runs belong to. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
+ **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)). | [optional] 
  **experiment_id** | **str**| The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments. | [optional] 
 
 ### Return type

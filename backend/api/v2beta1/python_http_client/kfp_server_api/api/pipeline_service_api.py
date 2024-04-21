@@ -1081,7 +1081,7 @@ class PipelineServiceApi(object):
         :type page_size: int
         :param sort_by: Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
         :type filter: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -1117,7 +1117,7 @@ class PipelineServiceApi(object):
         :type page_size: int
         :param sort_by: Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
         :type filter: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -1231,7 +1231,7 @@ class PipelineServiceApi(object):
         :type page_size: int
         :param sort_by: Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
         :type filter: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -1267,7 +1267,7 @@ class PipelineServiceApi(object):
         :type page_size: int
         :param sort_by: Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default.
         :type sort_by: str
-        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
         :type filter: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional

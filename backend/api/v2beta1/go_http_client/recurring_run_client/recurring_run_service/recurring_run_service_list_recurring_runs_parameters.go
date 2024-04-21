@@ -69,7 +69,7 @@ type RecurringRunServiceListRecurringRunsParams struct {
 	ExperimentID *string
 	/*Filter
 	  A url-encoded, JSON-serialized Filter protocol buffer (see
-	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
 
 	*/
 	Filter *string
