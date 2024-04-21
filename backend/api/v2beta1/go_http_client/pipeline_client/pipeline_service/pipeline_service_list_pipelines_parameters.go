@@ -64,7 +64,7 @@ type PipelineServiceListPipelinesParams struct {
 
 	/*Filter
 	  A url-encoded, JSON-serialized filter protocol buffer (see
-	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
+	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
 
 	*/
 	Filter *string

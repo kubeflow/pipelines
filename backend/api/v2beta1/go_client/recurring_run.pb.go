@@ -506,7 +506,7 @@ type ListRecurringRunsRequest struct {
 	// Optional input. The namespace the recurring runs belong to.
 	Namespace string `protobuf:"bytes,4,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	// A url-encoded, JSON-serialized Filter protocol buffer (see
-	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
+	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
 	Filter string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 	// The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.
 	ExperimentId string `protobuf:"bytes,6,opt,name=experiment_id,json=experimentId,proto3" json:"experiment_id,omitempty"`

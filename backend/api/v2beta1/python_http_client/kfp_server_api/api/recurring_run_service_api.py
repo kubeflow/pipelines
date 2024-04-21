@@ -667,7 +667,7 @@ class RecurringRunServiceApi(object):
         :type sort_by: str
         :param namespace: Optional input. The namespace the recurring runs belong to.
         :type namespace: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
         :type filter: str
         :param experiment_id: The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.
         :type experiment_id: str
@@ -705,7 +705,7 @@ class RecurringRunServiceApi(object):
         :type sort_by: str
         :param namespace: Optional input. The namespace the recurring runs belong to.
         :type namespace: str
-        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
+        :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
         :type filter: str
         :param experiment_id: The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.
         :type experiment_id: str

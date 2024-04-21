@@ -623,7 +623,7 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
      * @param {number} [page_size] The number of recurring runs to be listed per page. If there are more recurring runs  than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
      * @param {string} [sort_by] Can be formatted as \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.
      * @param {string} [namespace] Optional input. The namespace the recurring runs belong to.
-     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
      * @param {string} [experiment_id] The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -818,7 +818,7 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
      * @param {number} [page_size] The number of recurring runs to be listed per page. If there are more recurring runs  than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
      * @param {string} [sort_by] Can be formatted as \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.
      * @param {string} [namespace] Optional input. The namespace the recurring runs belong to.
-     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
      * @param {string} [experiment_id] The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -938,7 +938,7 @@ export const RecurringRunServiceApiFactory = function(
      * @param {number} [page_size] The number of recurring runs to be listed per page. If there are more recurring runs  than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
      * @param {string} [sort_by] Can be formatted as \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.
      * @param {string} [namespace] Optional input. The namespace the recurring runs belong to.
-     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
      * @param {string} [experiment_id] The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1054,7 +1054,7 @@ export class RecurringRunServiceApi extends BaseAPI {
    * @param {number} [page_size] The number of recurring runs to be listed per page. If there are more recurring runs  than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
    * @param {string} [sort_by] Can be formatted as \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.
    * @param {string} [namespace] Optional input. The namespace the recurring runs belong to.
-   * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
+   * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)).
    * @param {string} [experiment_id] The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}

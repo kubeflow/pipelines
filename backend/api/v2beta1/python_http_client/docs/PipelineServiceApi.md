@@ -675,7 +675,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 page_token = 'page_token_example' # str | A page token to request the results page. (optional)
 page_size = 56 # int | The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a valid value in the nextPageToken field. (optional)
 sort_by = 'sort_by_example' # str | Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default. (optional)
-filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)). (optional)
+filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)). (optional)
 
     try:
         # Lists all pipeline versions of a given pipeline ID.
@@ -693,7 +693,7 @@ Name | Type | Description  | Notes
  **page_token** | **str**| A page token to request the results page. | [optional] 
  **page_size** | **int**| The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a valid value in the nextPageToken field. | [optional] 
  **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)). | [optional] 
+ **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)). | [optional] 
 
 ### Return type
 
@@ -759,7 +759,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 page_token = 'page_token_example' # str | A page token to request the results page. (optional)
 page_size = 56 # int | The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. (optional)
 sort_by = 'sort_by_example' # str | Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default. (optional)
-filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)). (optional)
+filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)). (optional)
 
     try:
         # Finds all pipelines within a namespace.
@@ -777,7 +777,7 @@ Name | Type | Description  | Notes
  **page_token** | **str**| A page token to request the results page. | [optional] 
  **page_size** | **int**| The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. | [optional] 
  **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)). | [optional] 
+ **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/filter.proto)). | [optional] 
 
 ### Return type
 
