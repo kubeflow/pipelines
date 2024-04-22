@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 200-serviceaccount.yaml
+  - 201-clusterrole.yaml
+  - 201-role.yaml
+  - 201-rolebinding.yaml
+  - 202-clusterrolebinding.yaml
+  - 300-kfptask-crd.yaml
+  - 500-controller.yaml
+  - 500-webhook-configuration.yaml
+  - 500-webhook.yaml
