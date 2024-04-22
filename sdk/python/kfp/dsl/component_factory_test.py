@@ -149,7 +149,7 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             strip_kfp_version(command),
             strip_kfp_version([
                 'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'package1\' \'package2\' && "$0" "$@"\n'
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host myurl.org \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host myurl.org \'package1\' \'package2\' && "$0" "$@"\n'
             ]))
 
 

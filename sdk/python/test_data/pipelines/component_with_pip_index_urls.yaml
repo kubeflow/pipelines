@@ -18,9 +18,9 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet --no-warn-script-location --index-url https://pypi.org/simple\
-          \ --trusted-host https://pypi.org/simple 'kfp==2.7.0' '--no-deps' 'typing-extensions>=3.7.4,<5;\
+          \ --trusted-host pypi.org 'kfp==2.7.0' '--no-deps' 'typing-extensions>=3.7.4,<5;\
           \ python_version<\"3.9\"'  &&  python3 -m pip install --quiet --no-warn-script-location\
-          \ --index-url https://pypi.org/simple --trusted-host https://pypi.org/simple\
+          \ --index-url https://pypi.org/simple --trusted-host pypi.org\
           \ 'yapf' && \"$0\" \"$@\"\n"
         - sh
         - -ec

@@ -19,6 +19,7 @@ import re
 import textwrap
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
                     Union)
+import urllib
 import warnings
 
 import docstring_parser
@@ -94,9 +95,11 @@ def make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
     index_url = pip_index_urls[0]
     extra_index_urls = pip_index_urls[1:]
 
-    options = [f'--index-url {index_url} --trusted-host {index_url}']
+    options = [
+        f'--index-url {index_url} --trusted-host {urllib.parse.urlparse(index_url).hostname}'
+    ]
     options.extend(
-        f'--extra-index-url {extra_index_url} --trusted-host {extra_index_url}'
+        f'--extra-index-url {extra_index_url} --trusted-host {urllib.parse.urlparse(extra_index_url).hostname}'
         for extra_index_url in extra_index_urls)
 
     return ' '.join(options) + ' '
