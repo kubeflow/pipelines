@@ -11,6 +11,8 @@
 * Add support for `text-bison@002` to `preview.llm.rlhf_pipeline`.
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 * Fix `preview.model_evaluation.autosxs_pipeline` documentation to show `autorater_prompt_parameters` as required.
+* Introduce placeholders: `SERVICE_ACCOUNT_PLACEHOLDER`, `NETWORK_PLACEHOLDER`, `PERSISTENT_RESOURCE_ID_PLACEHOLDER` and `ENCRYPTION_SPEC_KMS_KEY_NAME_PLACEHOLDER`
+* Use `PERSISTENT_RESOURCE_ID_PLACEHOLDER` as the default value of `persistent_resource_id` for `CustomTrainingJobOp` and `create_custom_training_job_op_from_component`. With this change, custom job created without explicitly setting `persistent_resource_id` will inherit job level `persistent_resource_id`, if Persistent Resource is set as job level runtime.
 
 ## Release 2.12.0
 * Log TensorBoard metrics from the `preview.llm.rlhf_pipeline` in real time.
