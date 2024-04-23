@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"strconv"
 	"time"
 
@@ -130,26 +131,38 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	}
 	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
 	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
+
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
+	}
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
+	}
+	cfg, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	storeSessionInfo := objectstore.SessionInfo{}
 	if pipelineRoot != "" {
 		glog.Infof("PipelineRoot=%q", pipelineRoot)
 	} else {
-		restConfig, err := rest.InClusterConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-		}
-		k8sClient, err := kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
-		}
-		cfg, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
-		if err != nil {
-			return nil, err
-		}
 		pipelineRoot = cfg.DefaultPipelineRoot()
 		glog.Infof("PipelineRoot=%q from default config", pipelineRoot)
 	}
+	storeSessionInfo, err = cfg.GetStoreSessionInfo(pipelineRoot)
+	if err != nil {
+		return nil, err
+	}
+	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
+	if err != nil {
+		return nil, err
+	}
+	storeSessionInfoStr := string(storeSessionInfoJSON)
 	// TODO(Bobgy): fill in run resource.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot)
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot, storeSessionInfoStr)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +241,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
 	// and pipeline run context have been created by root DAG driver.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -522,10 +535,11 @@ func extendPodSpecPatch(
 
 	// Get secret mount information
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
+		optional := secretAsVolume.Optional != nil && *secretAsVolume.Optional
 		secretVolume := k8score.Volume{
 			Name: secretAsVolume.GetSecretName(),
 			VolumeSource: k8score.VolumeSource{
-				Secret: &k8score.SecretVolumeSource{SecretName: secretAsVolume.GetSecretName()},
+				Secret: &k8score.SecretVolumeSource{SecretName: secretAsVolume.GetSecretName(), Optional: &optional},
 			},
 		}
 		secretVolumeMount := k8score.VolumeMount{
@@ -554,11 +568,12 @@ func extendPodSpecPatch(
 
 	// Get config map mount information
 	for _, configMapAsVolume := range kubernetesExecutorConfig.GetConfigMapAsVolume() {
+		optional := configMapAsVolume.Optional != nil && *configMapAsVolume.Optional
 		configMapVolume := k8score.Volume{
 			Name: configMapAsVolume.GetConfigMapName(),
 			VolumeSource: k8score.VolumeSource{
 				ConfigMap: &k8score.ConfigMapVolumeSource{
-					LocalObjectReference: k8score.LocalObjectReference{Name: configMapAsVolume.GetConfigMapName()}},
+					LocalObjectReference: k8score.LocalObjectReference{Name: configMapAsVolume.GetConfigMapName()}, Optional: &optional},
 			},
 		}
 		configMapVolumeMount := k8score.VolumeMount{
@@ -609,6 +624,47 @@ func extendPodSpecPatch(
 		podSpec.ActiveDeadlineSeconds = &timeout
 	}
 
+	// Get Pod Generic Ephemeral volume information
+	for _, ephemeralVolumeSpec := range kubernetesExecutorConfig.GetGenericEphemeralVolume() {
+		var accessModes []k8score.PersistentVolumeAccessMode
+		for _, value := range ephemeralVolumeSpec.GetAccessModes() {
+			accessModes = append(accessModes, accessModeMap[value])
+		}
+		var storageClassName *string
+		storageClassName = nil
+		if !ephemeralVolumeSpec.GetDefaultStorageClass() {
+			_storageClassName := ephemeralVolumeSpec.GetStorageClassName()
+			storageClassName = &_storageClassName
+		}
+		ephemeralVolume := k8score.Volume{
+			Name: ephemeralVolumeSpec.GetVolumeName(),
+			VolumeSource: k8score.VolumeSource{
+				Ephemeral: &k8score.EphemeralVolumeSource{
+					VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels:      ephemeralVolumeSpec.GetMetadata().GetLabels(),
+							Annotations: ephemeralVolumeSpec.GetMetadata().GetAnnotations(),
+						},
+						Spec: k8score.PersistentVolumeClaimSpec{
+							AccessModes: accessModes,
+							Resources: k8score.ResourceRequirements{
+								Requests: k8score.ResourceList{
+									k8score.ResourceStorage: k8sres.MustParse(ephemeralVolumeSpec.GetSize()),
+								},
+							},
+							StorageClassName: storageClassName,
+						},
+					},
+				},
+			},
+		}
+		ephemeralVolumeMount := k8score.VolumeMount{
+			Name:      ephemeralVolumeSpec.GetVolumeName(),
+			MountPath: ephemeralVolumeSpec.GetMountPath(),
+		}
+		podSpec.Volumes = append(podSpec.Volumes, ephemeralVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, ephemeralVolumeMount)
+	}
 	return nil
 }
 
@@ -630,7 +686,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	}
 	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
 	// and pipeline run context have been created by root DAG driver.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -1212,7 +1268,7 @@ func kubernetesPlatformOps(
 		// We publish the execution, no matter this operartion succeeds or not
 		perr := publishDriverExecution(k8sClient, mlmd, ctx, createdExecution, outputParameters, nil, status)
 		if perr != nil && err != nil {
-			err = fmt.Errorf("failed to publish driver execution: %w. Also failed the Kubernetes platform operation: %w", perr, err)
+			err = fmt.Errorf("failed to publish driver execution: %s. Also failed the Kubernetes platform operation: %s", perr.Error(), err.Error())
 		} else if perr != nil {
 			err = fmt.Errorf("failed to publish driver execution: %w", perr)
 		}
@@ -1297,7 +1353,7 @@ func createPVC(
 	// Create execution regardless the operation succeeds or not
 	defer func() {
 		if createdExecution == nil {
-			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
 			if err != nil {
 				return
 			}
@@ -1377,7 +1433,7 @@ func createPVC(
 	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
 	ecfg.FingerPrint = fingerPrint
 
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("error getting pipeline from MLMD: %w", err)
 	}
@@ -1467,7 +1523,7 @@ func deletePVC(
 	// Create execution regardless the operation succeeds or not
 	defer func() {
 		if createdExecution == nil {
-			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
 			if err != nil {
 				return
 			}
@@ -1497,7 +1553,7 @@ func deletePVC(
 	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
 	ecfg.FingerPrint = fingerPrint
 
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "")
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("error getting pipeline from MLMD: %w", err)
 	}

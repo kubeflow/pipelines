@@ -30,13 +30,13 @@ import (
 )
 
 type RecurringRunInterface interface {
-	Create(params *params.CreateRecurringRunParams) (*model.V2beta1RecurringRun, error)
-	Get(params *params.GetRecurringRunParams) (*model.V2beta1RecurringRun, error)
-	Delete(params *params.DeleteRecurringRunParams) error
-	Enable(params *params.EnableRecurringRunParams) error
-	Disable(params *params.DisableRecurringRunParams) error
-	List(params *params.ListRecurringRunsParams) ([]*model.V2beta1RecurringRun, int, string, error)
-	ListAll(params *params.ListRecurringRunsParams, maxResultSize int) ([]*model.V2beta1RecurringRun, error)
+	Create(params *params.RecurringRunServiceCreateRecurringRunParams) (*model.V2beta1RecurringRun, error)
+	Get(params *params.RecurringRunServiceGetRecurringRunParams) (*model.V2beta1RecurringRun, error)
+	Delete(params *params.RecurringRunServiceDeleteRecurringRunParams) error
+	Enable(params *params.RecurringRunServiceEnableRecurringRunParams) error
+	Disable(params *params.RecurringRunServiceDisableRecurringRunParams) error
+	List(params *params.RecurringRunServiceListRecurringRunsParams) ([]*model.V2beta1RecurringRun, int, string, error)
+	ListAll(params *params.RecurringRunServiceListRecurringRunsParams, maxResultSize int) ([]*model.V2beta1RecurringRun, error)
 }
 
 type RecurringRunClient struct {
@@ -74,7 +74,7 @@ func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *RecurringRunClient) Create(parameters *params.CreateRecurringRunParams) (*model.V2beta1RecurringRun,
+func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreateRecurringRunParams) (*model.V2beta1RecurringRun,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -82,7 +82,7 @@ func (c *RecurringRunClient) Create(parameters *params.CreateRecurringRunParams)
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RecurringRunService.CreateRecurringRun(parameters)
+	response, err := c.apiClient.RecurringRunService.RecurringRunServiceCreateRecurringRun(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
@@ -92,7 +92,7 @@ func (c *RecurringRunClient) Create(parameters *params.CreateRecurringRunParams)
 	return response.Payload, nil
 }
 
-func (c *RecurringRunClient) Get(parameters *params.GetRecurringRunParams) (*model.V2beta1RecurringRun,
+func (c *RecurringRunClient) Get(parameters *params.RecurringRunServiceGetRecurringRunParams) (*model.V2beta1RecurringRun,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -100,7 +100,7 @@ func (c *RecurringRunClient) Get(parameters *params.GetRecurringRunParams) (*mod
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RecurringRunService.GetRecurringRun(parameters)
+	response, err := c.apiClient.RecurringRunService.RecurringRunServiceGetRecurringRun(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to get job. Params: '%+v'", parameters),
@@ -110,14 +110,14 @@ func (c *RecurringRunClient) Get(parameters *params.GetRecurringRunParams) (*mod
 	return response.Payload, nil
 }
 
-func (c *RecurringRunClient) Delete(parameters *params.DeleteRecurringRunParams) error {
+func (c *RecurringRunClient) Delete(parameters *params.RecurringRunServiceDeleteRecurringRunParams) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RecurringRunService.DeleteRecurringRun(parameters)
+	_, err := c.apiClient.RecurringRunService.RecurringRunServiceDeleteRecurringRun(parameters)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to get job. Params: '%+v'", parameters),
@@ -127,14 +127,14 @@ func (c *RecurringRunClient) Delete(parameters *params.DeleteRecurringRunParams)
 	return nil
 }
 
-func (c *RecurringRunClient) Enable(parameters *params.EnableRecurringRunParams) error {
+func (c *RecurringRunClient) Enable(parameters *params.RecurringRunServiceEnableRecurringRunParams) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RecurringRunService.EnableRecurringRun(parameters)
+	_, err := c.apiClient.RecurringRunService.RecurringRunServiceEnableRecurringRun(parameters)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to enable job. Params: '%+v'", parameters),
@@ -144,14 +144,14 @@ func (c *RecurringRunClient) Enable(parameters *params.EnableRecurringRunParams)
 	return nil
 }
 
-func (c *RecurringRunClient) Disable(parameters *params.DisableRecurringRunParams) error {
+func (c *RecurringRunClient) Disable(parameters *params.RecurringRunServiceDisableRecurringRunParams) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RecurringRunService.DisableRecurringRun(parameters)
+	_, err := c.apiClient.RecurringRunService.RecurringRunServiceDisableRecurringRun(parameters)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to disable job. Params: '%+v'", parameters),
@@ -161,7 +161,7 @@ func (c *RecurringRunClient) Disable(parameters *params.DisableRecurringRunParam
 	return nil
 }
 
-func (c *RecurringRunClient) List(parameters *params.ListRecurringRunsParams) (
+func (c *RecurringRunClient) List(parameters *params.RecurringRunServiceListRecurringRunsParams) (
 	[]*model.V2beta1RecurringRun, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -169,7 +169,7 @@ func (c *RecurringRunClient) List(parameters *params.ListRecurringRunsParams) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RecurringRunService.ListRecurringRuns(parameters)
+	response, err := c.apiClient.RecurringRunService.RecurringRunServiceListRecurringRuns(parameters)
 	if err != nil {
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),
@@ -179,12 +179,12 @@ func (c *RecurringRunClient) List(parameters *params.ListRecurringRunsParams) (
 	return response.Payload.RecurringRuns, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
-func (c *RecurringRunClient) ListAll(parameters *params.ListRecurringRunsParams, maxResultSize int) (
+func (c *RecurringRunClient) ListAll(parameters *params.RecurringRunServiceListRecurringRunsParams, maxResultSize int) (
 	[]*model.V2beta1RecurringRun, error) {
 	return listAllForJob(c, parameters, maxResultSize)
 }
 
-func listAllForJob(client RecurringRunInterface, parameters *params.ListRecurringRunsParams,
+func listAllForJob(client RecurringRunInterface, parameters *params.RecurringRunServiceListRecurringRunsParams,
 	maxResultSize int) ([]*model.V2beta1RecurringRun, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0

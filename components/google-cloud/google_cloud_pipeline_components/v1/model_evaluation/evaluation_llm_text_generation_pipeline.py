@@ -18,6 +18,7 @@ from typing import Dict, List, NamedTuple
 from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationTextGenerationOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
+from google_cloud_pipeline_components._implementation.model_evaluation import ModelNamePreprocessorOp
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from kfp import dsl
@@ -96,12 +97,23 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       evaluation_resource_name=str,
   )
 
+  preprocessed_model_name = ModelNamePreprocessorOp(
+      project=project,
+      location=location,
+      model_name=model_name,
+      service_account=service_account,
+  )
+
   get_vertex_model_task = dsl.importer(
       artifact_uri=(
-          f'https://{location}-aiplatform.googleapis.com/v1/{model_name}'
+          f'https://{location}-aiplatform.googleapis.com/v1/{preprocessed_model_name.outputs["processed_model_name"]}'
       ),
       artifact_class=VertexModel,
-      metadata={'resourceName': model_name},
+      metadata={
+          'resourceName': preprocessed_model_name.outputs[
+              'processed_model_name'
+          ]
+      },
   )
   get_vertex_model_task.set_display_name('get-vertex-model')
 
@@ -146,11 +158,20 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       encryption_spec_key_name=encryption_spec_key_name,
   )
 
+  get_vertex_eval_model_task = dsl.importer(
+      artifact_uri=(
+          f'https://{location}-aiplatform.googleapis.com/v1/{model_name}'
+      ),
+      artifact_class=VertexModel,
+      metadata={'resourceName': model_name},
+  )
+  get_vertex_eval_model_task.set_display_name('get-vertex-eval-model')
+
   with dsl.If(enable_row_based_metrics == True):
     import_evaluation_task_with_row_based_metrics = ModelImportEvaluationOp(
         metrics=eval_task.outputs['evaluation_metrics'],
         row_based_metrics=eval_task.outputs['row_based_metrics'],
-        model=get_vertex_model_task.outputs['artifact'],
+        model=get_vertex_eval_model_task.outputs['artifact'],
         problem_type=evaluation_task,
         dataset_type=batch_predict_predictions_format,
         dataset_paths=batch_predict_gcs_source_uris,
@@ -159,7 +180,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
   with dsl.Else():
     import_evaluation_task = ModelImportEvaluationOp(
         metrics=eval_task.outputs['evaluation_metrics'],
-        model=get_vertex_model_task.outputs['artifact'],
+        model=get_vertex_eval_model_task.outputs['artifact'],
         problem_type=evaluation_task,
         dataset_type=batch_predict_predictions_format,
         dataset_paths=batch_predict_gcs_source_uris,

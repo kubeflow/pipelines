@@ -17,7 +17,7 @@ from kfp import dsl
 from kfp import kubernetes
 
 
-class TestUseSecretAsVolume:
+class TestNodeSelector:
 
     def test_add_one(self):
 
@@ -113,7 +113,8 @@ class TestUseSecretAsVolume:
                                 },
                                 'secretAsVolume': [{
                                     'secretName': 'my-secret',
-                                    'mountPath': '/mnt/my_vol'
+                                    'mountPath': '/mnt/my_vol',
+                                    'optional': False
                                 }]
                             }
                         }

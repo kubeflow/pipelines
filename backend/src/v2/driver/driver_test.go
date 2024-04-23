@@ -15,6 +15,8 @@ package driver
 
 import (
 	"encoding/json"
+	k8sres "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -530,7 +532,87 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 					{
 						Name: "secret1",
 						VolumeSource: k8score.VolumeSource{
-							Secret: &k8score.SecretVolumeSource{SecretName: "secret1"},
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional:  &[]bool{false}[0],},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - secret as volume with optional false",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretName: "secret1",
+						MountPath:  "/data/path",
+						Optional:   &[]bool{false}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "secret1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "secret1",
+						VolumeSource: k8score.VolumeSource{
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional: &[]bool{false}[0]},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - secret as volume with optional true",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretName: "secret1",
+						MountPath:  "/data/path",
+						Optional:   &[]bool{true}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "secret1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "secret1",
+						VolumeSource: k8score.VolumeSource{
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional: &[]bool{true}[0]},
 						},
 					},
 				},
@@ -647,7 +729,92 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						Name: "cm1",
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
-								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"}},
+								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
+								Optional:             &[]bool{false}[0],},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - config map as volume with optional false",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
+					{
+						ConfigMapName: "cm1",
+						MountPath:     "/data/path",
+						Optional:      &[]bool{false}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "cm1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "cm1",
+						VolumeSource: k8score.VolumeSource{
+							ConfigMap: &k8score.ConfigMapVolumeSource{
+								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
+								Optional:             &[]bool{false}[0]},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - config map as volume with optional true",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
+					{
+						ConfigMapName: "cm1",
+						MountPath:     "/data/path",
+						Optional:      &[]bool{true}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "cm1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "cm1",
+						VolumeSource: k8score.VolumeSource{
+							ConfigMap: &k8score.ConfigMapVolumeSource{
+								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
+								Optional:             &[]bool{true}[0]},
 						},
 					},
 				},
@@ -1094,6 +1261,193 @@ func Test_extendPodSpecPatch_ImagePullPolicy(t *testing.T) {
 					{
 						Name:            "main",
 						ImagePullPolicy: "Never",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := extendPodSpecPatch(tt.podSpec, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expected, tt.podSpec)
+		})
+	}
+}
+
+func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
+	storageClass := "storageClass"
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		podSpec    *k8score.PodSpec
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - single volume added (default storage class)",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				GenericEphemeralVolume: []*kubernetesplatform.GenericEphemeralVolume{
+					{
+						VolumeName:          "volume",
+						MountPath:           "/data/path",
+						AccessModes:         []string{"ReadWriteOnce"},
+						Size:                "5Gi",
+						DefaultStorageClass: true,
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "volume",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "volume",
+						VolumeSource: k8score.VolumeSource{
+							Ephemeral: &k8score.EphemeralVolumeSource{
+								VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
+									Spec: k8score.PersistentVolumeClaimSpec{
+										AccessModes: []k8score.PersistentVolumeAccessMode{k8score.ReadWriteOnce},
+										Resources: k8score.ResourceRequirements{
+											Requests: k8score.ResourceList{
+												k8score.ResourceStorage: k8sres.MustParse("5Gi"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - no generic volumes specified",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+		{
+			"Valid - multiple volumes specified (one with labels, one with storage class)",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				GenericEphemeralVolume: []*kubernetesplatform.GenericEphemeralVolume{
+					{
+						VolumeName:          "volume",
+						MountPath:           "/data/path",
+						AccessModes:         []string{"ReadWriteOnce"},
+						Size:                "5Gi",
+						DefaultStorageClass: true,
+					},
+					{
+						VolumeName:       "volume2",
+						MountPath:        "/data/path2",
+						AccessModes:      []string{"ReadWriteOnce"},
+						Size:             "10Gi",
+						StorageClassName: storageClass,
+						Metadata: &kubernetesplatform.PodMetadata{
+							Annotations: map[string]string{
+								"annotation1": "a1",
+							},
+							Labels: map[string]string{
+								"label1": "l1",
+							},
+						},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "volume",
+								MountPath: "/data/path",
+							},
+							{
+								Name:      "volume2",
+								MountPath: "/data/path2",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "volume",
+						VolumeSource: k8score.VolumeSource{
+							Ephemeral: &k8score.EphemeralVolumeSource{
+								VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
+									Spec: k8score.PersistentVolumeClaimSpec{
+										AccessModes: []k8score.PersistentVolumeAccessMode{k8score.ReadWriteOnce},
+										Resources: k8score.ResourceRequirements{
+											Requests: k8score.ResourceList{
+												k8score.ResourceStorage: k8sres.MustParse("5Gi"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					{
+						Name: "volume2",
+						VolumeSource: k8score.VolumeSource{
+							Ephemeral: &k8score.EphemeralVolumeSource{
+								VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
+									ObjectMeta: metav1.ObjectMeta{
+										Annotations: map[string]string{
+											"annotation1": "a1",
+										},
+										Labels: map[string]string{
+											"label1": "l1",
+										},
+									},
+									Spec: k8score.PersistentVolumeClaimSpec{
+										AccessModes: []k8score.PersistentVolumeAccessMode{k8score.ReadWriteOnce},
+										Resources: k8score.ResourceRequirements{
+											Requests: k8score.ResourceList{
+												k8score.ResourceStorage: k8sres.MustParse("10Gi"),
+											},
+										},
+										StorageClassName: &storageClass,
+									},
+								},
+							},
+						},
 					},
 				},
 			},

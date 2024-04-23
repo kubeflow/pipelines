@@ -135,7 +135,7 @@ func TestExecutionSpec_NewExecutionSpecFromInterface(t *testing.T) {
 	execSpec, err = NewExecutionSpecFromInterface(TektonPipelineRun, test)
 	assert.Empty(t, execSpec)
 	assert.Error(t, err)
-	assert.EqualError(t, err, "InternalServerError: type:PipelineRun: ExecutionType is not supported")
+	assert.EqualError(t, err, "Invalid input error: not PipelineRun struct")
 }
 
 func TestExecutionSpec_UnmarshalParameters(t *testing.T) {

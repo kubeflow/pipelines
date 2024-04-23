@@ -88,7 +88,14 @@ def validate_pipeline(
           f' {supported_pipeline_regions}.'
       )
 
-    valid_cmek_config = location == 'us-central1' and accelerator_type == 'GPU'
+    valid_cmek_accelerator_types = {
+        'GPU',
+        'CPU',  # Only used for testing.
+    }
+    valid_cmek_config = (
+        location == 'us-central1'
+        and accelerator_type in valid_cmek_accelerator_types
+    )
     if encryption_spec_key_name and not valid_cmek_config:
       raise ValueError(
           'encryption_spec_key_name (CMEK) is only supported for GPU training'

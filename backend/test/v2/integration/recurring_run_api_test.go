@@ -164,11 +164,11 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world recurringRun by specifying pipeline ID ---------- */
-	createRecurringRunRequest := &recurring_run_params.CreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -184,13 +184,13 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	s.checkHelloWorldRecurringRun(t, helloWorldRecurringRun, helloWorldExperiment.ExperimentID, helloWorldPipelineVersion.PipelineID, helloWorldPipelineVersion.PipelineVersionID)
 
 	/* ---------- Get hello world recurringRun ---------- */
-	helloWorldRecurringRun, err = s.recurringRunClient.Get(&recurring_run_params.GetRecurringRunParams{RecurringRunID: helloWorldRecurringRun.RecurringRunID})
+	helloWorldRecurringRun, err = s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: helloWorldRecurringRun.RecurringRunID})
 	assert.Nil(t, err)
 	s.checkHelloWorldRecurringRun(t, helloWorldRecurringRun, helloWorldExperiment.ExperimentID, helloWorldPipelineVersion.PipelineID, helloWorldPipelineVersion.PipelineVersionID)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	experiment = test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace)
-	argParamsExperiment, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{Body: experiment})
+	argParamsExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter recurringRun by uploading workflow manifest ---------- */
@@ -203,7 +203,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
 	assert.Nil(t, err)
 
-	createRecurringRunRequest = &recurring_run_params.CreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "argument parameter",
 		Description:  "this is argument parameter",
 		ExperimentID: argParamsExperiment.ExperimentID,
@@ -230,7 +230,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	/* ---------- List the recurringRuns, paginated, sort by creation time ---------- */
 	recurringRuns, totalSize, nextPageToken, err := test.ListRecurringRuns(
 		s.recurringRunClient,
-		&recurring_run_params.ListRecurringRunsParams{
+		&recurring_run_params.RecurringRunServiceListRecurringRunsParams{
 			PageSize: util.Int32Pointer(1),
 			SortBy:   util.StringPointer("created_at"),
 		},
@@ -241,7 +241,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	assert.Equal(t, "hello world", recurringRuns[0].DisplayName)
 	recurringRuns, totalSize, _, err = test.ListRecurringRuns(
 		s.recurringRunClient,
-		&recurring_run_params.ListRecurringRunsParams{
+		&recurring_run_params.RecurringRunServiceListRecurringRunsParams{
 			PageSize:  util.Int32Pointer(1),
 			PageToken: util.StringPointer(nextPageToken),
 		},
@@ -254,7 +254,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	/* ---------- List the recurringRuns, paginated, sort by name ---------- */
 	recurringRuns, totalSize, nextPageToken, err = test.ListRecurringRuns(
 		s.recurringRunClient,
-		&recurring_run_params.ListRecurringRunsParams{
+		&recurring_run_params.RecurringRunServiceListRecurringRunsParams{
 			PageSize: util.Int32Pointer(1),
 			SortBy:   util.StringPointer("name"),
 		},
@@ -265,7 +265,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	assert.Equal(t, "argument parameter", recurringRuns[0].DisplayName)
 	recurringRuns, totalSize, _, err = test.ListRecurringRuns(
 		s.recurringRunClient,
-		&recurring_run_params.ListRecurringRunsParams{
+		&recurring_run_params.RecurringRunServiceListRecurringRunsParams{
 			PageSize:  util.Int32Pointer(1),
 			SortBy:    util.StringPointer("name"),
 			PageToken: util.StringPointer(nextPageToken),
@@ -279,7 +279,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	/* ---------- List the recurringRuns, sort by unsupported field ---------- */
 	recurringRuns, _, _, err = test.ListRecurringRuns(
 		s.recurringRunClient,
-		&recurring_run_params.ListRecurringRunsParams{
+		&recurring_run_params.RecurringRunServiceListRecurringRunsParams{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("unknown"),
 		},
@@ -288,7 +288,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	assert.Equal(t, len(recurringRuns), 0)
 
 	/* ---------- List recurringRuns for hello world experiment. One recurringRun should be returned ---------- */
-	recurringRuns, totalSize, _, err = s.recurringRunClient.List(&recurring_run_params.ListRecurringRunsParams{
+	recurringRuns, totalSize, _, err = s.recurringRunClient.List(&recurring_run_params.RecurringRunServiceListRecurringRunsParams{
 		ExperimentID: util.StringPointer(helloWorldExperiment.ExperimentID),
 	})
 	assert.Nil(t, err)
@@ -300,7 +300,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	time.Sleep(5 * time.Second) // Sleep for 5 seconds to make sure the previous recurringRuns are created at a different timestamp
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
-	createRecurringRunRequestNew := &recurring_run_params.CreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequestNew := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "new hello world recurringRun",
 		Description:  "this is a new hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -321,7 +321,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	// Check number of filtered recurringRuns finished before filterTime to be 2
 	recurringRuns, totalSize, _, err = test.ListRecurringRuns(
 		s.recurringRunClient,
-		&recurring_run_params.ListRecurringRunsParams{
+		&recurring_run_params.RecurringRunServiceListRecurringRunsParams{
 			Filter: util.StringPointer(`{"predicates": [{"key": "created_at", "operation": "LESS_THAN", "string_value": "` + fmt.Sprint(filterTime) + `"}]}`),
 		},
 		s.resourceNamespace)
@@ -334,7 +334,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 
 	/* ---------- Check run for hello world recurringRun ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		runs, totalSize, _, err := s.runClient.List(&run_params.ListRunsParams{
+		runs, totalSize, _, err := s.runClient.List(&run_params.RunServiceListRunsParams{
 			ExperimentID: util.StringPointer(helloWorldExperiment.ExperimentID),
 		})
 		if err != nil {
@@ -354,7 +354,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 
 	/* ---------- Check run for argument parameter recurringRun ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		runs, totalSize, _, err := s.runClient.List(&run_params.ListRunsParams{
+		runs, totalSize, _, err := s.runClient.List(&run_params.RunServiceListRunsParams{
 			ExperimentID: util.StringPointer(argParamsExperiment.ExperimentID),
 		})
 		if err != nil {
@@ -391,7 +391,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 
 	/* ---------- Create a periodic recurringRun with start and end date in the past and catchup = true ---------- */
 	experiment := test.MakeExperiment("periodic catchup true", "", s.resourceNamespace)
-	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{Body: experiment})
+	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
 	recurringRun := recurringRunInThePastForTwoMinutes(recurringRunOptions{
@@ -403,13 +403,13 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	recurringRun.DisplayName = "periodic-catchup-true-"
 	recurringRun.Description = "A recurringRun with NoCatchup=false will backfill each past interval when behind schedule."
 	recurringRun.NoCatchup = false // This is the key difference.
-	createRecurringRunRequest := &recurring_run_params.CreateRecurringRunParams{Body: recurringRun}
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: recurringRun}
 	_, err = s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
 
 	/* -------- Create another periodic recurringRun with start and end date in the past but catchup = false ------ */
 	experiment = test.MakeExperiment("periodic catchup false", "", s.resourceNamespace)
-	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{Body: experiment})
+	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
 	recurringRun = recurringRunInThePastForTwoMinutes(recurringRunOptions{
@@ -421,13 +421,13 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	recurringRun.DisplayName = "periodic-catchup-false-"
 	recurringRun.Description = "A recurringRun with NoCatchup=true only schedules the last interval when behind schedule."
 	recurringRun.NoCatchup = true // This is the key difference.
-	createRecurringRunRequest = &recurring_run_params.CreateRecurringRunParams{Body: recurringRun}
+	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: recurringRun}
 	_, err = s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
 
 	/* ---------- Create a cron recurringRun with start and end date in the past and catchup = true ---------- */
 	experiment = test.MakeExperiment("cron catchup true", "", s.resourceNamespace)
-	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{Body: experiment})
+	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
 	recurringRun = recurringRunInThePastForTwoMinutes(recurringRunOptions{
@@ -439,13 +439,13 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	recurringRun.DisplayName = "cron-catchup-true-"
 	recurringRun.Description = "A recurringRun with NoCatchup=false will backfill each past interval when behind schedule."
 	recurringRun.NoCatchup = false // This is the key difference.
-	createRecurringRunRequest = &recurring_run_params.CreateRecurringRunParams{Body: recurringRun}
+	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: recurringRun}
 	_, err = s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
 
 	/* -------- Create another cron recurringRun with start and end date in the past but catchup = false ------ */
 	experiment = test.MakeExperiment("cron catchup false", "", s.resourceNamespace)
-	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{Body: experiment})
+	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
 	recurringRun = recurringRunInThePastForTwoMinutes(recurringRunOptions{
@@ -457,7 +457,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	recurringRun.DisplayName = "cron-catchup-false-"
 	recurringRun.Description = "A recurringRun with NoCatchup=true only schedules the last interval when behind schedule."
 	recurringRun.NoCatchup = true // This is the key difference.
-	createRecurringRunRequest = &recurring_run_params.CreateRecurringRunParams{Body: recurringRun}
+	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: recurringRun}
 	_, err = s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
 
@@ -466,7 +466,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 
 	/* ---------- Assert number of runs when catchup = true ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		_, runsWhenCatchupTrue, _, err := s.runClient.List(&run_params.ListRunsParams{
+		_, runsWhenCatchupTrue, _, err := s.runClient.List(&run_params.RunServiceListRunsParams{
 			ExperimentID: util.StringPointer(periodicCatchupTrueExperiment.ExperimentID),
 		})
 		if err != nil {
@@ -476,7 +476,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 			return fmt.Errorf("expected runsWhenCatchupTrue with periodic schedule to be 2, got: %v", runsWhenCatchupTrue)
 		}
 
-		_, runsWhenCatchupTrue, _, err = s.runClient.List(&run_params.ListRunsParams{
+		_, runsWhenCatchupTrue, _, err = s.runClient.List(&run_params.RunServiceListRunsParams{
 			ExperimentID: util.StringPointer(cronCatchupTrueExperiment.ExperimentID),
 		})
 		if err != nil {
@@ -493,7 +493,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 
 	/* ---------- Assert number of runs when catchup = false ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		_, runsWhenCatchupFalse, _, err := s.runClient.List(&run_params.ListRunsParams{
+		_, runsWhenCatchupFalse, _, err := s.runClient.List(&run_params.RunServiceListRunsParams{
 			ExperimentID: util.StringPointer(periodicCatchupFalseExperiment.ExperimentID),
 		})
 		if err != nil {
@@ -503,7 +503,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 			return fmt.Errorf("expected runsWhenCatchupFalse with periodic schedule to be 1, got: %v", runsWhenCatchupFalse)
 		}
 
-		_, runsWhenCatchupFalse, _, err = s.runClient.List(&run_params.ListRunsParams{
+		_, runsWhenCatchupFalse, _, err = s.runClient.List(&run_params.RunServiceListRunsParams{
 			ExperimentID: util.StringPointer(cronCatchupFalseExperiment.ExperimentID),
 		})
 		if err != nil {
@@ -572,7 +572,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_SwfNotFound() {
 	/* ---------- Upload pipelines YAML ---------- */
 	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", upload_params.NewUploadPipelineParams())
 	assert.Nil(t, err)
-	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{
+	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.PipelineServiceListPipelineVersionsParams{
 		PipelineID: pipeline.PipelineID,
 	})
 	assert.Nil(t, err)
@@ -580,10 +580,10 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_SwfNotFound() {
 
 	/* ---------- Create a new hello world recurringRun by specifying pipeline ID ---------- */
 	experiment := test.MakeExperiment("test-swf-not-found experiment", "", s.resourceNamespace)
-	swfNotFoundExperiment, err := s.experimentClient.Create(&experiment_params.CreateExperimentParams{Body: experiment})
+	swfNotFoundExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
-	createRecurringRunRequest := &recurring_run_params.CreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "test-swf-not-found",
 		ExperimentID: swfNotFoundExperiment.ExperimentID,
 		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
@@ -607,13 +607,14 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_SwfNotFound() {
 	err = s.swfClient.ScheduledWorkflow(swfNamespace).DeleteCollection(context.Background(), &v1.DeleteOptions{}, v1.ListOptions{})
 	assert.Nil(t, err)
 
-	err = s.recurringRunClient.Delete(&recurring_run_params.DeleteRecurringRunParams{RecurringRunID: recurringRun.RecurringRunID})
+	err = s.recurringRunClient.Delete(&recurring_run_params.RecurringRunServiceDeleteRecurringRunParams{RecurringRunID: recurringRun.RecurringRunID})
 	assert.Nil(t, err)
 
 	/* ---------- Get recurringRun ---------- */
-	_, err = s.recurringRunClient.Get(&recurring_run_params.GetRecurringRunParams{RecurringRunID: recurringRun.RecurringRunID})
+	_, err = s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{RecurringRunID: recurringRun.RecurringRunID})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "status 404")
+	// Check the error contains a 404 (not found) status code
+	assert.Contains(t, err.Error(), "[404]")
 }
 
 func (s *RecurringRunApiTestSuite) checkHelloWorldRun(run *run_model.V2beta1Run, experimentID string, recurringRunID string) error {

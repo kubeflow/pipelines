@@ -3,6 +3,7 @@ kind: ClusterRoleBinding
 metadata: # kpt-merge: /kubelet-executor-default
   name: kubelet-executor-default
   annotations:
+    workflows.argoproj.io/version: "< 3.4.0"
     internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|ClusterRoleBinding|default|kubelet-executor-default'
 roleRef:
   apiGroup: rbac.authorization.k8s.io

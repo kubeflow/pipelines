@@ -40,6 +40,7 @@ def rlaif_pipeline(
     prompt_dataset: str,
     preference_prompt_dataset: str,
     large_model_reference: str,
+    task_type: str,
     model_display_name: Optional[str] = None,
     prompt_sequence_length: int = 512,
     target_sequence_length: int = 64,
@@ -65,7 +66,9 @@ def rlaif_pipeline(
 
   Args:
     prompt_dataset: Cloud storage path to an unlabled JSONL dataset that contains prompts. Text datasets must contain an `input_text` field that contains the prompt. Chat datasets must contain at least 1 message in a `messages` field. Each message must be valid JSON that contains `author` and `content` fields, where valid `author` values are `user` and `assistant` and `content` must be non-empty. Each row may contain multiple messages, but the first and last author must be the `user`. An optional `context` field may be provided for each example in a chat dataset. If provided, the `context` will preprended to the message `content`. The `instruction` serves as the default context. (Useful if most messages use the same system-level context.) Any context provided in the example will override the default value.
-    preference_prompt_dataset: The prompt dataset used for two models' inferences to build the side by side comparison AI feedback. large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
+    preference_prompt_dataset: The prompt dataset used for two models' inferences to build the side by side comparison AI feedback.
+    large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
+    task_type: Evaluation task in the form {task}@{version}. task can be one of "summarization", "question_answering". Version is an integer with 3 digits or "latest". Ex: summarization@001 or question_answering@latest.
     model_display_name: Name of the fine-tuned model shown in the Model Registry. If not provided, a default name will be created.
     prompt_sequence_length: Maximum tokenized sequence length for input text. Higher values increase memory overhead. This value should be at most 8192. Default value is 512.
     target_sequence_length:  Maximum tokenized sequence length for target text. Higher values increase memory overhead. This value should be at most 1024. Default value is 64.
@@ -90,7 +93,6 @@ def rlaif_pipeline(
   """
   # fmt: on
   id_columns = ['content']
-  task = 'summarization@001'
   deploy_model = True
 
   output_prediction_gcs_path_a = infer.infer_pipeline(
@@ -129,7 +131,7 @@ def rlaif_pipeline(
   autosxs = online_evaluation_pairwise.online_evaluation_pairwise(
       inference_output_uri=inference_output_uri,
       id_columns=id_columns,
-      task=task,
+      task=task_type,
   ).set_display_name('Build AI Feedback')
 
   preference_dataset = (

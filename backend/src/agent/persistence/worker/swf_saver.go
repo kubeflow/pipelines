@@ -53,6 +53,10 @@ func (c *ScheduledWorkflowSaver) Save(key string, namespace string, name string,
 
 	}
 
+	// TODO: wait for officially update to v2beta1
+	//       temporally hack this to v2beta1
+	swf.APIVersion = "kubeflow.org/v2beta1"
+	swf.Kind = "ScheduledWorkflow"
 	// Save this Scheduled Workflow to the database.
 	err = c.pipelineClient.ReportScheduledWorkflow(swf)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)

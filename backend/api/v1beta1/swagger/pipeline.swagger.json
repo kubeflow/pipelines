@@ -4,6 +4,10 @@
     "title": "backend/api/v1beta1/pipeline.proto",
     "version": "version not set"
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],

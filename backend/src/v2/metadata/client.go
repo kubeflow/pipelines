@@ -77,7 +77,7 @@ var (
 )
 
 type ClientInterface interface {
-	GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string) (*Pipeline, error)
+	GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, storeSessionInfo string) (*Pipeline, error)
 	GetDAG(ctx context.Context, executionID int64) (*DAG, error)
 	PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error
 	CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error)
@@ -200,6 +200,18 @@ func (p *Pipeline) GetCtxID() int64 {
 	return p.pipelineCtx.GetId()
 }
 
+func (p *Pipeline) GetStoreSessionInfo() string {
+	if p == nil {
+		return ""
+	}
+	props := p.pipelineRunCtx.GetCustomProperties()
+	storeSessionInfo, ok := props[keyStoreSessionInfo]
+	if !ok {
+		return ""
+	}
+	return storeSessionInfo.GetStringValue()
+}
+
 func (p *Pipeline) GetPipelineRoot() string {
 	if p == nil {
 		return ""
@@ -282,7 +294,7 @@ func GenerateOutputURI(pipelineRoot string, paths []string, preserveQueryString 
 
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
-func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string) (*Pipeline, error) {
+func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, storeSessionInfo string) (*Pipeline, error) {
 	pipelineContext, err := c.getOrInsertContext(ctx, pipelineName, pipelineContextType, nil)
 	if err != nil {
 		return nil, err
@@ -292,7 +304,8 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace
 		keyNamespace:    stringValue(namespace),
 		keyResourceName: stringValue(runResource),
 		// pipeline root of this run
-		keyPipelineRoot: stringValue(GenerateOutputURI(pipelineRoot, []string{pipelineName, runID}, true)),
+		keyPipelineRoot:     stringValue(GenerateOutputURI(pipelineRoot, []string{pipelineName, runID}, true)),
+		keyStoreSessionInfo: stringValue(storeSessionInfo),
 	}
 	runContext, err := c.getOrInsertContext(ctx, runID, pipelineRunContextType, metadata)
 	glog.Infof("Pipeline Run Context: %+v", runContext)
@@ -492,6 +505,7 @@ const (
 	keyNamespace         = "namespace"
 	keyResourceName      = "resource_name"
 	keyPipelineRoot      = "pipeline_root"
+	keyStoreSessionInfo  = "store_session_info"
 	keyCacheFingerPrint  = "cache_fingerprint"
 	keyCachedExecutionID = "cached_execution_id"
 	keyInputs            = "inputs"

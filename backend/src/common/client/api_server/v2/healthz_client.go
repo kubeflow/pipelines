@@ -27,7 +27,7 @@ import (
 )
 
 type HealthzInterface interface {
-	GetHealthz() (*params.GetHealthzOK, error)
+	GetHealthz() (*params.HealthzServiceGetHealthzOK, error)
 }
 
 type HealthzClient struct {
@@ -49,10 +49,10 @@ func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*Healthz
 }
 
 func (c *HealthzClient) GetHealthz() (*model.V2beta1GetHealthzResponse, error) {
-	parameters := params.NewGetHealthzParamsWithTimeout(api_server.APIServerDefaultTimeout)
-	response, err := c.apiClient.HealthzService.GetHealthz(parameters, api_server.PassThroughAuth)
+	parameters := params.NewHealthzServiceGetHealthzParamsWithTimeout(api_server.APIServerDefaultTimeout)
+	response, err := c.apiClient.HealthzService.HealthzServiceGetHealthz(parameters, api_server.PassThroughAuth)
 	if err != nil {
-		if defaultError, ok := err.(*params.GetHealthzDefault); ok {
+		if defaultError, ok := err.(*params.HealthzServiceGetHealthzDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)

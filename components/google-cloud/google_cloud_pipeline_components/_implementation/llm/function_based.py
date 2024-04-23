@@ -13,7 +13,7 @@
 # limitations under the License.
 """Python function-based components used in KFP pipelies."""
 import functools
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components._implementation.llm import env
@@ -22,7 +22,7 @@ from kfp import dsl
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_machine_spec(
-    accelerator_type: str = '',
+    accelerator_type: str = 'GPU',
     use_test_spec: bool = False,
 ) -> NamedTuple(
     'MachineSpec',
@@ -37,7 +37,8 @@ def resolve_machine_spec(
     accelerator_type: One of 'TPU' or 'GPU'. If 'TPU' is specified, tuning
       components run in europe-west4. Otherwise tuning components run in
       us-central1 on GPUs. Default is 'GPU'.
-    use_test_spec: Whether to use a lower resource machine for testing.
+    use_test_spec: Whether to use a lower resource machine for testing. If True,
+      a machine with the specified `accelerator_type` is provisioned.
 
   Returns:
     Machine spec.
@@ -61,14 +62,27 @@ def resolve_machine_spec(
           accelerator_count=32,
           tuning_location='europe-west4',
       )
-    else:
+    elif accelerator_type == 'GPU':
       return outputs(
           machine_type='a2-highgpu-1g',
           accelerator_type='NVIDIA_TESLA_A100',
           accelerator_count=1,
           tuning_location='us-central1',
       )
-  elif accelerator_type == 'TPU':
+    elif accelerator_type == 'CPU':
+      return outputs(
+          machine_type='e2-standard-16',
+          accelerator_type='ACCELERATOR_TYPE_UNSPECIFIED',
+          accelerator_count=0,
+          tuning_location='us-central1',
+      )
+    else:
+      raise ValueError(
+          f'Unsupported test accelerator_type {accelerator_type}. Must be one '
+          'of TPU, GPU or CPU.'
+      )
+
+  if accelerator_type == 'TPU':
     return outputs(
         machine_type='cloud-tpu',
         accelerator_type='TPU_V3',
@@ -82,10 +96,11 @@ def resolve_machine_spec(
         accelerator_count=8,
         tuning_location='us-central1',
     )
-  raise ValueError(
-      f'Unsupported accelerator type {accelerator_type}. Must be one of'
-      'TPU or GPU.'
-  )
+  else:
+    raise ValueError(
+        f'Unsupported accelerator_type {accelerator_type}. Must be one of'
+        'TPU or GPU.'
+    )
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
@@ -114,7 +129,7 @@ def resolve_refined_image_uri(
   Raises:
     ValueError: if an unsupported accelerator type is provided.
   """
-  if not accelerator_type:
+  if not accelerator_type or accelerator_type == 'ACCELERATOR_TYPE_UNSPECIFIED':
     accelerator_postfix = 'cpu'
   elif 'TPU' in accelerator_type:
     accelerator_postfix = 'tpu'
@@ -216,8 +231,8 @@ def resolve_reference_model_metadata(
               'gs://vertex-llm-restricted/cloud-llm-restricted/checkpoints/'
               'safe_flan_t5/xxl/v1/checkpoint_1190000/'
           ),
-          reward_model_reference='T5_XL',
-          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xl',
+          reward_model_reference='T5_XXL',
+          reward_model_path='gs://t5-data/pretrained_models/t5x/t5_1_1_xxl',
           is_supported=True,
       ),
       'palm-tiny': reference_model_metadata(
@@ -250,8 +265,10 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
           ),
-          reward_model_reference='OTTER',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          reward_model_reference='BISON',
+          reward_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
           is_supported=False,  # Deprecated: Use text-bision@001 instead.
       ),
       'text-bison@001': reference_model_metadata(
@@ -259,8 +276,19 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
           ),
-          reward_model_reference='OTTER',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          reward_model_reference='BISON',
+          reward_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
+          is_supported=True,
+      ),
+      'text-bison@002': reference_model_metadata(
+          large_model_reference='BISON_002',
+          reference_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/'
+          ),
+          reward_model_reference='BISON_002',
+          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison_002/',
           is_supported=True,
       ),
       'chat-bison@001': reference_model_metadata(
@@ -268,8 +296,10 @@ def resolve_reference_model_metadata(
           reference_model_path=(
               'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
           ),
-          reward_model_reference='OTTER',
-          reward_model_path='gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_otter_pretrain/',
+          reward_model_reference='BISON',
+          reward_model_path=(
+              'gs://vertex-rlhf-restricted/pretrained_models/palm/t5x_bison/'
+          ),
           is_supported=True,
       ),
       'elephant': reference_model_metadata(
@@ -349,46 +379,6 @@ def convert_to_delimited_string(items: List[str], delimiter: str = ',') -> str:
 
 
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def generate_default_instruction(
-    task: str,
-    target_sequence_length: int,
-    instruction_override: str = '',
-) -> str:
-  """Generates a default instruction if no override is provided."""
-  if instruction_override:
-    return instruction_override
-  task = task.lower()
-  if task == 'summarization':
-    return f'Summarize in less than {target_sequence_length} words.'
-
-  elif task == 'question_answer':
-    return f'Answer the question in less than {target_sequence_length} words.'
-
-  else:
-    raise ValueError(
-        f'Task not recognized: {task}. Supported tasks are: "summarization",'
-        ' "question_answer".'
-    )
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def resolve_upload_location(upload_location: Optional[str] = None) -> str:
-  """Gets the region to upload the model.
-
-  Args:
-    upload_location: User-specified region to upload the model to.
-
-  Returns:
-    Where to upload the model. If no location is specified, the model will be
-    uploaded to the region where the pipeline is running.
-  """
-  # pylint: disable=g-import-not-at-top
-  import os
-  # pylint: enable=g-import-not-at-top
-  return upload_location or os.environ['CLOUD_ML_REGION']
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_regional_endpoint(upload_location: str) -> str:
   """Gets the regional endpoint used to upload a model to the registry.
 
@@ -429,7 +419,7 @@ def resolve_deploy_model(
     deploy_model: bool, large_model_reference: str
 ) -> bool:
   """Resolves runtime parameter that determines whether the tuned model should be deployed."""
-  supported_models = {'BISON'}
+  supported_models = {'BISON', 'BISON_002'}
   if deploy_model and large_model_reference in supported_models:
     return True
   return False
@@ -453,7 +443,7 @@ def value_exists(value: Optional[str] = None) -> bool:
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def resolve_upload_model(large_model_reference: str) -> bool:
   """Returns whether the model should be uploaded."""
-  supported_models = {'BISON'}
+  supported_models = {'BISON', 'BISON_002'}
   if large_model_reference in supported_models:
     return True
   return False
@@ -491,65 +481,3 @@ def resolve_num_microbatches(large_model_reference: str) -> int:
   if 'llama' in large_model_reference.lower():
     return 2
   return 0
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def read_file(path: str) -> str:
-  """Reads the contents of the given file."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import re
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-
-  path = re.sub('^gs://', '/gcs/', path)
-  with open(path, 'r') as f:
-    return f.read()
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def get_usage_metric(metadata: Dict[str, Any], key: str) -> bool:  # pytype: disable=unsupported-operands
-  """Extracts a single usage metric from metadata."""
-  return metadata[key]
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def dump_dict(value: Dict[Any, Any]) -> str:
-  """Dumps the given dict to a JSON string."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import json
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-
-  return json.dumps(value).replace('"', '\\"')
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def dump_list(value: List[Any]) -> str:
-  """Dumps the given dict to a JSON string."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import json
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-
-  return json.dumps(value).replace('"', '\\"')
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def identity(
-    x: str,
-) -> str:
-  return x
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def get_uri(artifact: dsl.Input[dsl.Artifact], is_dir: bool = False) -> str:  # pytype: disable=unsupported-operands
-  """Extracts the URI from an artifact."""
-  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-  import os
-  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
-
-  if is_dir:
-    return os.path.join(artifact.uri, '*')
-  return artifact.uri
-
-
-@dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
-def get_empty_string() -> str:
-  return ''

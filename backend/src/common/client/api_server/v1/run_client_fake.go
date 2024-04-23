@@ -46,7 +46,7 @@ func NewRunClientFake() *RunClientFake {
 	return &RunClientFake{}
 }
 
-func (c *RunClientFake) Get(params *runparams.GetRunV1Params) (*runmodel.APIRunDetail,
+func (c *RunClientFake) Get(params *runparams.RunServiceGetRunV1Params) (*runmodel.APIRunDetail,
 	*workflowapi.Workflow, error) {
 	switch params.RunID {
 	case RunForClientErrorTest:
@@ -56,7 +56,7 @@ func (c *RunClientFake) Get(params *runparams.GetRunV1Params) (*runmodel.APIRunD
 	}
 }
 
-func (c *RunClientFake) List(params *runparams.ListRunsV1Params) (
+func (c *RunClientFake) List(params *runparams.RunServiceListRunsV1Params) (
 	[]*runmodel.APIRun, int, string, error) {
 	const (
 		FirstToken  = ""
@@ -84,20 +84,20 @@ func (c *RunClientFake) List(params *runparams.ListRunsV1Params) (
 	}
 }
 
-func (c *RunClientFake) ListAll(params *runparams.ListRunsV1Params, maxResultSize int) (
+func (c *RunClientFake) ListAll(params *runparams.RunServiceListRunsV1Params, maxResultSize int) (
 	[]*runmodel.APIRun, error) {
 	return listAllForRun(c, params, maxResultSize)
 }
 
-func (c *RunClientFake) Archive(params *runparams.ArchiveRunV1Params) error {
+func (c *RunClientFake) Archive(params *runparams.RunServiceArchiveRunV1Params) error {
 	return nil
 }
 
-func (c *RunClientFake) Unarchive(params *runparams.UnarchiveRunV1Params) error {
+func (c *RunClientFake) Unarchive(params *runparams.RunServiceUnarchiveRunV1Params) error {
 	return nil
 }
 
-func (c *RunClientFake) Terminate(params *runparams.TerminateRunV1Params) error {
+func (c *RunClientFake) Terminate(params *runparams.RunServiceTerminateRunV1Params) error {
 	switch params.RunID {
 	case RunForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)

@@ -1,0 +1,54 @@
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tekton-pipelineloop-controller
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pipeline-loops
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get"]
+    resourceNames: ["config-leader-election", "config-logging", "config-observability", "object-store-config"]
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    resourceNames: ["tekton-pipelines", "openshift-pipelines"]
+    verbs: ["use"]
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tekton-pipelineloop-webhook
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pipeline-loops
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["list", "watch"]
+  # The webhook needs access to these configmaps for logging information.
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get"]
+    resourceNames: ["config-logging", "config-observability", "config-leader-election", "object-store-config"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["list", "watch"]
+  # The webhook daemon makes a reconciliation loop on tekton-pipelineloop-webhook-certs. Whenever
+  # the secret changes it updates the webhook configurations with the certificates
+  # stored in the secret.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "update"]
+    resourceNames: ["tekton-pipelineloop-webhook-certs"]
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    resourceNames: ["tekton-pipelines", "openshift-pipelines"]
+    verbs: ["use"]
