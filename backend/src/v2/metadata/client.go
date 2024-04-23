@@ -18,8 +18,10 @@ package metadata
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"path"
 	"strconv"
 	"strings"
@@ -90,7 +92,7 @@ type ClientInterface interface {
 	GetArtifactName(ctx context.Context, artifactId int64) (string, error)
 	GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact, error)
 	GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string]*OutputArtifact, error)
-	RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error)
+	RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error)
 	GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error)
 	FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error)
 }
@@ -301,11 +303,11 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace
 	}
 	glog.Infof("Pipeline Context: %+v", pipelineContext)
 	metadata := map[string]*pb.Value{
-		keyNamespace:    stringValue(namespace),
-		keyResourceName: stringValue(runResource),
+		keyNamespace:    StringValue(namespace),
+		keyResourceName: StringValue(runResource),
 		// pipeline root of this run
-		keyPipelineRoot:     stringValue(GenerateOutputURI(pipelineRoot, []string{pipelineName, runID}, true)),
-		keyStoreSessionInfo: stringValue(storeSessionInfo),
+		keyPipelineRoot:     StringValue(GenerateOutputURI(pipelineRoot, []string{pipelineName, runID}, true)),
+		keyStoreSessionInfo: StringValue(storeSessionInfo),
 	}
 	runContext, err := c.getOrInsertContext(ctx, runID, pipelineRunContextType, metadata)
 	glog.Infof("Pipeline Run Context: %+v", runContext)
@@ -401,7 +403,7 @@ func (c *Client) getExecutionTypeID(ctx context.Context, executionType *pb.Execu
 	return eType.GetTypeId(), nil
 }
 
-func stringValue(s string) *pb.Value {
+func StringValue(s string) *pb.Value {
 	return &pb.Value{Value: &pb.Value_StringValue{StringValue: s}}
 }
 
@@ -531,8 +533,8 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		TypeId: &typeID,
 		CustomProperties: map[string]*pb.Value{
 			// We should support overriding display name in the future, for now it defaults to task name.
-			keyDisplayName: stringValue(config.TaskName),
-			keyTaskName:    stringValue(config.TaskName),
+			keyDisplayName: StringValue(config.TaskName),
+			keyTaskName:    StringValue(config.TaskName),
 		},
 	}
 	if config.Name != "" {
@@ -555,15 +557,15 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		e.CustomProperties[keyIterationCount] = intValue(int64(*config.IterationCount))
 	}
 	if config.ExecutionType == ContainerExecutionTypeName {
-		e.CustomProperties[keyPodName] = stringValue(config.PodName)
-		e.CustomProperties[keyPodUID] = stringValue(config.PodUID)
-		e.CustomProperties[keyNamespace] = stringValue(config.Namespace)
-		e.CustomProperties[keyImage] = stringValue(config.Image)
+		e.CustomProperties[keyPodName] = StringValue(config.PodName)
+		e.CustomProperties[keyPodUID] = StringValue(config.PodUID)
+		e.CustomProperties[keyNamespace] = StringValue(config.Namespace)
+		e.CustomProperties[keyImage] = StringValue(config.Image)
 		if config.CachedMLMDExecutionID != "" {
-			e.CustomProperties[keyCachedExecutionID] = stringValue(config.CachedMLMDExecutionID)
+			e.CustomProperties[keyCachedExecutionID] = StringValue(config.CachedMLMDExecutionID)
 		}
 		if config.FingerPrint != "" {
-			e.CustomProperties[keyCacheFingerPrint] = stringValue(config.FingerPrint)
+			e.CustomProperties[keyCacheFingerPrint] = StringValue(config.FingerPrint)
 		}
 	}
 	if config.InputParameters != nil {
@@ -623,9 +625,9 @@ func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, 
 	if e.CustomProperties == nil {
 		e.CustomProperties = make(map[string]*pb.Value)
 	}
-	e.CustomProperties[keyPodName] = stringValue(config.PodName)
-	e.CustomProperties[keyPodUID] = stringValue(config.PodUID)
-	e.CustomProperties[keyNamespace] = stringValue(config.Namespace)
+	e.CustomProperties[keyPodName] = StringValue(config.PodName)
+	e.CustomProperties[keyPodUID] = StringValue(config.PodUID)
+	e.CustomProperties[keyNamespace] = StringValue(config.Namespace)
 	e.LastKnownState = pb.Execution_RUNNING.Enum()
 
 	_, err := c.svc.PutExecution(ctx, &pb.PutExecutionRequest{
@@ -889,7 +891,7 @@ func SchemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 }
 
 // RecordArtifact ...
-func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error) {
+func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error) {
 	artifact, err := toMLMDArtifact(runtimeArtifact)
 	if err != nil {
 		return nil, err
@@ -911,7 +913,20 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	}
 	if _, ok := artifact.CustomProperties["display_name"]; !ok {
 		// display name default value
-		artifact.CustomProperties["display_name"] = stringValue(outputName)
+		artifact.CustomProperties["display_name"] = StringValue(outputName)
+	}
+
+	// An artifact can belong to an external store specified via kfp-launcher
+	// or via executor environment (e.g. IRSA)
+	// This allows us to easily identify where to locate the artifact both
+	// in user executor environment as well as in kfp ui
+	if _, ok := artifact.CustomProperties["store_session_info"]; !ok {
+		storeSessionInfoJSON, err1 := json.Marshal(bucketConfig.SessionInfo)
+		if err1 != nil {
+			return nil, err1
+		}
+		storeSessionInfoStr := string(storeSessionInfoJSON)
+		artifact.CustomProperties["store_session_info"] = StringValue(storeSessionInfoStr)
 	}
 
 	res, err := c.svc.PutArtifacts(ctx, &pb.PutArtifactsRequest{
