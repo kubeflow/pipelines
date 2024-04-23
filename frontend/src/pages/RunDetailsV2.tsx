@@ -44,6 +44,7 @@ import {
   getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
+  KfpExecutionProperties,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, Event, Execution } from 'src/third_party/mlmd';
@@ -89,9 +90,19 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
 
-  const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
-    if (element && element.data && element.data.label) {
-      return element.data.label;
+  // const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
+  //   if (element && element.data && element.data.label) {
+  //     return element.data.label;
+  //   }
+
+  //   return 'unknown';
+  // };
+
+  const getPodName = function(element: NodeMlmdInfo | null): string {
+    if (element && element.execution) {
+      const customPropertiesMap = element.execution.getCustomPropertiesMap();
+      const podName = customPropertiesMap.get(KfpExecutionProperties.POD_NAME)?.getStringValue() || '-';
+      return podName;
     }
 
     return 'unknown';
@@ -206,7 +217,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
             <div className='z-20'>
               <SidePanel
                 isOpen={!!selectedNode}
-                title={getNodeName(selectedNode)}
+                // title={getNodeName(selectedNode)}
+                title={getPodName(selectedNodeMlmdInfo)}
                 onClose={() => onSelectionChange(null)}
                 defaultWidth={'50%'}
               >
