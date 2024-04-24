@@ -152,7 +152,7 @@ def _parent_dirs_maker_that_returns_open_file(mode: str, encoding: str = None):
     return make_parent_dirs_and_return_path
 
 
-default_base_image_or_builder = 'python:3.8'
+default_base_image_or_builder = 'python:3.7'
 
 
 def _python_function_name_to_component_name(name):
