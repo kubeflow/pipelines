@@ -22,6 +22,7 @@ from google_cloud_pipeline_components.preview.automl.vision.json_utils import Co
 from kfp import dsl
 
 
+# pylint: disable=singleton-comparison
 # pylint: disable=g-doc-args
 @dsl.container_component
 def data_converter(
@@ -31,6 +32,7 @@ def data_converter(
     objective: str,
     output_dir: dsl.Output[dsl.Artifact],
     gcp_resources: dsl.OutputPath(str),
+    enable_input_validation: bool = True,
     location: str = 'us-central1',
     timeout: str = '604800s',
     service_account: Optional[str] = None,
@@ -75,7 +77,7 @@ def data_converter(
                   'image_uri': 'us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/data-converter',
                   'args': [
                       '--enable_input_validation',
-                      'true',
+                      str(enable_input_validation),
                       '--input_file_path',
                       input_file_path,
                       '--input_file_type',
