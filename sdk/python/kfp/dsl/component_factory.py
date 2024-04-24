@@ -537,7 +537,7 @@ def create_component_from_func(
     if base_image is None:
         base_image = _DEFAULT_BASE_IMAGE
         warnings.warn(
-            ("Python 3.8 has reached end-of-life. The default base_image used by the @dsl.component decorator will switch from 'python:3.8' to 'python:3.9' in Dec, 2024. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.9."
+            ("Python 3.8 has reached end-of-life. The default base_image used by the @dsl.component decorator will switch from 'python:3.8' to 'python:3.9' in Oct, 2024. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.9."
             ),
             FutureWarning,
             stacklevel=2,
