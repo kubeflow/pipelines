@@ -1,0 +1,157 @@
+name: Presubmits
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  presubmit-kubeflow-pipelines:
+    name: Presubmit Kubeflow Pipelines
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Set up Docker
+      uses: actions/checkout@v2
+    - name: Set up KinD
+      uses: azure/setup-kind@v1
+      with:
+        version: v0.11.1
+    - name: Build KinD cluster
+      run: |
+        kind create cluster --name build-kubeflow
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
+        chmod +x ./kind
+        sudo mv ./kind /usr/local/bin/kind
+        curl -Lo ./kubectl https://dl.k8s.io/release/v1.23.0/bin/linux/amd64/kubectl
+        chmod +x ./kubectl
+        sudo mv ./kubectl /usr/local/bin/kubectl
+    - name: Presubmit kubeflow-pipeline-frontend-test
+      run: |
+        kubectl apply -f frontend-deployment.yaml
+        kubectl wait --for=condition=available --timeout=600s deployment/kubeflow-pipeline-frontend
+        kubectl exec -it deployment/kubeflow-pipeline-frontend npm run test:ci:prow
+    - name: Presubmit kubeflow-pipeline-backend-test
+      run: |
+        ./test/presubmit-backend-test.sh
+    - name: Presubmit kubeflow-pipeline-e2e-test
+      run: |
+        ./test/presubmit-tests-with-pipeline-deployment.sh --workflow_file e2e_test_gke_v2.yaml --test_result_folder e2e_test
+    - name: Presubmit kubeflow-pipeline-mkp-test
+      run: |
+        ./test/presubmit-tests-mkp.sh
+    - name: Presubmit kubeflow-pipeline-mkp-snapshot-test
+      run: |
+        ./manifests/gcp_marketplace/test/presubmit.sh
+    - name: Presubmit kubeflow-pipeline-upgrade-test
+      run: |
+        ./test/upgrade-tests.sh --test_result_folder upgrade_test
+    - name: Presubmit kubeflow-pipeline-upgrade-test-v2
+      run: |
+        ./test/upgrade-tests.sh --test_result_folder upgrade_test --test_v2_api
+    - name: Presubmit kubeflow-pipelines-sdk-python37
+      run: |
+        ./test/presubmit-tests-sdk.sh
+    - name: Presubmit kubeflow-pipelines-sdk-python38
+      run: |
+        ./test/presubmit-tests-sdk.sh
+    - name: Presubmit kubeflow-pipelines-sdk-python39
+      run: |
+        ./test/presubmit-tests-sdk.sh
+    - name: Presubmit kubeflow-pipelines-sdk-python310
+      run: |
+        ./test/presubmit-tests-sdk.sh
+    - name: Presubmit kubeflow-pipelines-sdk-python311
+      run: |
+        ./test/presubmit-tests-sdk.sh
+    - name: Presubmit kubeflow-pipelines-sdk-python312
+      run: |
+        ./test/presubmit-tests-sdk.sh
+    - name: Presubmit kubeflow-pipelines-tfx-python37
+      run: |
+        ./test/presubmit-tests-tfx.sh
+    - name: Presubmit kubeflow-pipelines-component-yaml
+      run: |
+        ./test/presubmit-component-yaml.sh
+    - name: Presubmit kubeflow-pipelines-components-google-cloud-python38
+      run: |
+        ./components/google-cloud/tests/presubmit.sh
+    - name: Presubmit kubeflow-pipelines-backend-visualization
+      run: |
+        ./test/presubmit-backend-visualization.sh
+    - name: Presubmit kubeflow-pipelines-samples-v2
+      run: |
+        ./backend/src/v2/test/sample-test.sh
+    - name: Presubmit kubeflow-pipelines-integration-v2
+      run: |
+        ./backend/src/v2/test/integration-test.sh
+    - name: Presubmit kubeflow-pipelines-manifests
+      run: |
+        ./manifests/kustomize/hack/presubmit.sh
+    - name: Presubmit kubeflow-pipelines-sdk-isort
+      run: |
+        ./test/presubmit-isort-sdk.sh
+    - name: Presubmit kubeflow-pipelines-sdk-yapf
+      run: |
+        ./test/presubmit-yapf-sdk.sh
+    - name: Presubmit kubeflow-pipelines-sdk-docformatter
+      run: |
+        ./test/presubmit-docformatter-sdk.sh
+    - name: Presubmit kubeflow-pipelines-sdk-execution-tests
+      run: |
+        ./test/presubmit-sdk-execution-tests.sh
+    - name: Presubmit kfp-kubernetes-test-python37
+      run: |
+        ./test/presubmit-test-kfp-kubernetes-library.sh
+    - name: Presubmit kfp-kubernetes-test-python38
+      run: |
+        ./test/presubmit-test-kfp-kubernetes-library.sh
+    - name: Presubmit kfp-kubernetes-test-python39
+      run: |
+        ./test/presubmit-test-kfp-kubernetes-library.sh
+    - name: Presubmit kfp-kubernetes-test-python310
+      run: |
+        ./test/presubmit-test-kfp-kubernetes-library.sh
+    - name: Presubmit kfp-kubernetes-test-python311
+      run: |
+        ./test/presubmit-test-kfp-kubernetes-library.sh
+    - name: Presubmit kfp-kubernetes-test-python312
+      run: |
+        ./test/presubmit-test-kfp-kubernetes-library.sh
+    - name: Presubmit kfp-kubernetes-execution-tests
+      run: |
+        ./test/presubmit-kfp-kubernetes-execution-tests.sh
+    - name: Presubmit test-run-all-gcpc-modules
+      run: |
+        ./test/presubmit-test-run-all-gcpc-modules.sh
+    - name: Presubmit test-upgrade-kfp-sdk
+      run: |
+        ./test/presubmit-test-sdk-upgrade.sh
+    - name: Presubmit test-kfp-runtime-code-python37
+      run: |
+        ./test/presubmit-test-kfp-runtime-code.sh
+    - name: Presubmit test-kfp-runtime-code-python38
+      run: |
+        ./test/presubmit-test-kfp-runtime-code.sh
+    - name: Presubmit test-kfp-runtime-code-python39
+      run: |
+        ./test/presubmit-test-kfp-runtime-code.sh
+    - name: Presubmit test-kfp-runtime-code-python310
+      run: |
+        ./test/presubmit-test-kfp-runtime-code.sh
+    - name: Presubmit test-kfp-runtime-code-python311
+      run: |
+        ./test/presubmit-test-kfp-runtime-code.sh
+    - name: Presubmit test-kfp-runtime-code-python312
+      run: |
+        ./test/presubmit-test-kfp-runtime-code.sh
+    - name: Collect test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: kfp-tekton-backend-artifacts
+        path: /tmp/tmp.*/*
