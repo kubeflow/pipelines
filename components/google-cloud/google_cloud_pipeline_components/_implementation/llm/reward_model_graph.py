@@ -57,6 +57,7 @@ def pipeline(
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     tensorboard_resource_id: str = '',
     encryption_spec_key_name: str = '',
+    num_microbatches: int = 0,
 ) -> PipelineOutput:
   # fmt: off
   """Trains a reward model.
@@ -82,6 +83,7 @@ def pipeline(
     location: Location used to run non-tuning components, i.e. components that do not require accelerators. If not specified the location used to run the pipeline will be used.
     tensorboard_resource_id: Optional tensorboard resource id in format `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`. If provided, tensorboard metrics will be uploaded to this location.
     encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
+    num_microbatches: The number of microbatches to break the total batch size into during training.
 
   Returns:
     reward_model_adapter_path: Path to the output LoRA adapter.
@@ -140,9 +142,6 @@ def pipeline(
       .set_caching_options(False)
   )
 
-  num_microbatches = function_based.resolve_num_microbatches(
-      large_model_reference=reward_model_reference,
-  ).set_display_name('Resolve Number of Microbatches')
   reward_model = (
       reward_model_trainer.reward_model_trainer(
           project=project,
@@ -165,7 +164,7 @@ def pipeline(
           batch_size=batch_size,
           learning_rate_multiplier=reward_model_learning_rate_multiplier,
           lora_dim=lora_dim,
-          num_microbatches=num_microbatches.output,
+          num_microbatches=num_microbatches,
           encryption_spec_key_name=encryption_spec_key_name,
           tensorboard_resource_id=tensorboard_resource_id,
       )
