@@ -11,7 +11,6 @@
 
 ## Documentation updates
 * Make full version dropdown visible on all KFP SDK docs versions [\#10577](https://github.com/kubeflow/pipelines/pull/10577)
-* Drop support for Python 3.7 since it has reached end-of-life. [\#10734](https://github.com/kubeflow/pipelines/pull/10734)
 
 # 2.7.0
 
