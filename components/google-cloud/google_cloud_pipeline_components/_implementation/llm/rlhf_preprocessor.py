@@ -42,6 +42,7 @@ def rlhf_preprocessor(
     metadata_accelerator_type: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     metadata_accelerator_count: dsl.OutputPath(int),  # pytype: disable=invalid-annotation
     metadata_refined_image_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    metadata_num_microbatches: dsl.OutputPath(int),  # pytype: disable=invalid-annotation
     use_experimental_image: bool = False,
     evaluation_dataset: str = '',
     tensorboard_resource_id: str = '',
@@ -77,6 +78,8 @@ def rlhf_preprocessor(
     metadata_accelerator_type: Specific accelerator type for the custom job.
     metadata_accelerator_count: The number of accelerator.
     metadata_refined_image_uri: Docker image URI to use for the custom job.
+    metadata_num_microbatches: Number of microbatches to break the total batch
+      size into during training.
   """
   # fmt: on
   return gcpc_utils.build_serverless_customjob_container_spec(
@@ -110,6 +113,7 @@ def rlhf_preprocessor(
               f'--metadata_accelerator_type_path={metadata_accelerator_type}',
               f'--metadata_accelerator_count_path={metadata_accelerator_count}',
               f'--metadata_refined_image_uri_path={metadata_refined_image_uri}',
+              f'--metadata_num_microbatches_path={metadata_num_microbatches}',
           ],
       ),
       gcp_resources=gcp_resources,
