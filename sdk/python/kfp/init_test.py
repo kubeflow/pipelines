@@ -18,7 +18,7 @@ import unittest
 from unittest import mock
 
 
-@mock.patch.object(sys, 'version_info', new=(3, 8, 12, 'final', 0))
+@mock.patch.object(sys, 'version_info', new=(3, 7, 12, 'final', 0))
 class TestPythonEOLWarning(unittest.TestCase):
 
     def test(self):
