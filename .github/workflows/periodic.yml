@@ -1,0 +1,46 @@
+name: Periodic Functional Tests
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Run every 5 minutes
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      jobs:
+      setup_kind:
+      runs-on: ubuntu-latest
+      steps:
+    - name: Check if Docker is installed
+      run: |
+        if ! command -v docker &> /dev/null
+        then
+            echo "Docker is not installed. Installing Docker..."
+            sudo apt-get update
+            sudo apt-get install -y docker.io
+        else
+            echo "Docker is already installed."
+        fi
+    - name: Install KinD
+      run: |
+        curl -Lo kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
+        chmod +x kind
+        sudo mv kind /usr/local/bin
+    - name: Verify KinD installation
+      run: kind version        
+    - name: Run Functional Tests
+      run: 
+        ./test/kfp-functional-test/kfp-functional-test.sh
+    - name: Collect test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+          name: periodic-test-artifacts
+          path: /tmp/tmp.*/*
+
+
+
+          
