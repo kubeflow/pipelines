@@ -191,11 +191,10 @@ def rlhf_pipeline(
       encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Reinforcement Learning')
 
-  has_inference_dataset = function_based.value_exists(
-      value=eval_dataset
-  ).set_display_name('Resolve Inference Dataset')
+  has_inference_dataset = preprocess_metadata.outputs['has_inference_dataset']
+
   with kfp.dsl.Condition(
-      has_inference_dataset.output == True,  # pylint: disable=singleton-comparison
+      has_inference_dataset == True,  # pylint: disable=singleton-comparison
       name='Perform Inference',
   ):
     has_model_checkpoint = function_based.value_exists(
