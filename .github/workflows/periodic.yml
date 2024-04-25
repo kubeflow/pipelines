@@ -14,32 +14,19 @@ jobs:
       setup_kind:
       runs-on: ubuntu-latest
       steps:
-    - name: Check if Docker is installed
-      run: |
-        if ! command -v docker &> /dev/null
-        then
-            echo "Docker is not installed. Installing Docker..."
-            sudo apt-get update
-            sudo apt-get install -y docker.io
-        else
-            echo "Docker is already installed."
-        fi
-    - name: Install KinD
-      run: |
-        curl -Lo kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
-        chmod +x kind
-        sudo mv kind /usr/local/bin
-    - name: Verify KinD installation
-      run: kind version        
+    - name: Create k8s Kind Cluster
+      uses: container-tools/kind-action@v2
+      with:
+        cluster_name: kfp-tekton
+        kubectl_version: v1.29.2
+        version: v0.22.0
+        node_image: kindest/node:v1.29.2      
     - name: Run Functional Tests
       run: 
-        ./test/kfp-functional-test/kfp-functional-test.sh
-    - name: Collect test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-          name: periodic-test-artifacts
-          path: /tmp/tmp.*/*
+        ./test/kfp-functional-test/kfp-functional-test.sh > periodic_tests.txt
+        mkdir -p ./test/artifacts  # Directory to store artifacts
+        cp periodic_tests.txt ./test/artifacts/
+    
 
 
 
