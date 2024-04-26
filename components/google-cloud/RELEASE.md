@@ -4,6 +4,7 @@
 * Use larger base reward model when tuning `text-bison@001`, `chat-bison@001` and `t5-xxl` with the `preview.llm.rlhf_pipeline`.
 * Move `preview.model_evaluation.autosxs_pipeline` to `v1.model_evaluation.autosxs_pipeline`.
 * Remove default prediction column names in `v1.model_evaluation.classification_component` component to fix pipeline errors when using bigquery data source.
+* Move `_implementation.model_evaluation.ModelImportEvaluationOp` component to preview namespace `preview.model_evaluation.ModelImportEvaluationOp`.
 * Drop support for Python 3.7 since it has reached end-of-life.
 * Expand number of regions supported by `preview.llm.rlhf_pipeline`.
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates).
