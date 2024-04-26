@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2024 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,8 +53,9 @@ def model_evaluation_import(
 
   For more details, see
   https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models.evaluations
-  One of the four metrics inputs must be provided, metrics & problem_type,
-  classification_metrics, regression_metrics, or forecasting_metrics.
+  One of the metrics inputs must be provided, metrics & problem_type,
+  classification_metrics, regression_metrics, or forecasting_metrics, text_generation_metrics,
+  question_answering_metrics, summarization_metrics, embedding_metrics.
 
   Args:
     model: Vertex model resource that will be the parent resource of the

@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2024 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ from google_cloud_pipeline_components._implementation.model_evaluation import Ev
 from google_cloud_pipeline_components._implementation.model_evaluation import EvaluationDatasetPreprocessorOp as DatasetPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation import FeatureExtractorOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluatedAnnotationOp
-from google_cloud_pipeline_components._implementation.model_evaluation import ModelImportEvaluationOp
+from google_cloud_pipeline_components.preview.model_evaluation.model_evaluation_import_component import model_evaluation_import as ModelImportEvaluationOp
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from google_cloud_pipeline_components.v1.dataset import GetVertexDatasetOp
 from google_cloud_pipeline_components.v1.model_evaluation.classification_component import model_evaluation_classification as ModelEvaluationClassificationOp
@@ -224,14 +224,12 @@ def vision_model_error_analysis_pipeline(  # pylint: disable=dangerous-default-v
     )
 
   with dsl.Condition(
-      (
-          (
-              test_dataset_resource_name == ''
-              and training_dataset_resource_name == ''
-              and test_dataset_annotation_set_name == ''
-              and training_dataset_annotation_set_name == ''
-          )
-      ),
+      ((
+          test_dataset_resource_name == ''
+          and training_dataset_resource_name == ''
+          and test_dataset_annotation_set_name == ''
+          and training_dataset_annotation_set_name == ''
+      )),
       name='CustomDataset',
   ):
     dataset_preprocessor_task = DatasetPreprocessorOp(
