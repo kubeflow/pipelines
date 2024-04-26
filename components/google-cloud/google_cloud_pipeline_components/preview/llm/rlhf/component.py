@@ -133,6 +133,9 @@ def rlhf_pipeline(
               reward_model_image_uri=preprocess_metadata.outputs[
                   'metadata_refined_image_uri'
               ],
+              comma_separated_candidates_field_names=preprocess_metadata.outputs[
+                  'metadata_candidate_columns_string'
+              ],
               prompt_sequence_length=prompt_sequence_length,
               target_sequence_length=target_sequence_length,
               eval_dataset=validate_pipeline_task.outputs[
