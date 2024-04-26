@@ -14,6 +14,7 @@
 """Component that preprocesses inputs for Reinforcement Learning from Human Feedback (RLHF)."""
 
 import os
+from typing import List
 
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components import utils as gcpc_utils
@@ -33,6 +34,7 @@ def rlhf_preprocessor(
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     has_tensorboard_id: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
     has_inference_dataset: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
+    metadata_candidate_columns_string: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     metadata_large_model_reference: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     metadata_reference_model_path: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     metadata_reward_model_reference: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
@@ -104,6 +106,7 @@ def rlhf_preprocessor(
               f'--use_experimental_image={use_experimental_image}',
               f'--has_tensorboard_id_path={has_tensorboard_id}',
               f'--has_inference_dataset_path={has_inference_dataset}',
+              f'--metadata_candidate_columns_string_path={metadata_candidate_columns_string}',
               f'--metadata_large_model_reference_path={metadata_large_model_reference}',
               f'--metadata_reference_model_path_path={metadata_reference_model_path}',
               f'--metadata_reward_model_reference_path={metadata_reward_model_reference}',
