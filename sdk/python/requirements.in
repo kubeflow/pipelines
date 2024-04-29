@@ -20,7 +20,7 @@ kfp-server-api>=2.1.0,<2.4.0
 kubernetes>=8.0.0,<31
 protobuf>=4.21.1,<5
 PyYAML>=5.3,<7
-requests-toolbelt>=0.8.0,<1
+requests-toolbelt>=0.8.0,<2
 tabulate>=0.8.6,<1
 urllib3<2.0.0
 
