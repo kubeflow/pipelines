@@ -14,6 +14,7 @@
 """Component that preprocesses inputs for Reinforcement Learning from Human Feedback (RLHF)."""
 
 import os
+from typing import List
 
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components import utils as gcpc_utils
@@ -33,6 +34,7 @@ def rlhf_preprocessor(
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     has_tensorboard_id: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
     has_inference_dataset: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
+    metadata_candidate_columns_string: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     metadata_large_model_reference: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     metadata_reference_model_path: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     metadata_reward_model_reference: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
@@ -42,6 +44,7 @@ def rlhf_preprocessor(
     metadata_accelerator_type: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     metadata_accelerator_count: dsl.OutputPath(int),  # pytype: disable=invalid-annotation
     metadata_refined_image_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    metadata_num_microbatches: dsl.OutputPath(int),  # pytype: disable=invalid-annotation
     use_experimental_image: bool = False,
     evaluation_dataset: str = '',
     tensorboard_resource_id: str = '',
@@ -77,6 +80,8 @@ def rlhf_preprocessor(
     metadata_accelerator_type: Specific accelerator type for the custom job.
     metadata_accelerator_count: The number of accelerator.
     metadata_refined_image_uri: Docker image URI to use for the custom job.
+    metadata_num_microbatches: Number of microbatches to break the total batch
+      size into during training.
   """
   # fmt: on
   return gcpc_utils.build_serverless_customjob_container_spec(
@@ -101,6 +106,7 @@ def rlhf_preprocessor(
               f'--use_experimental_image={use_experimental_image}',
               f'--has_tensorboard_id_path={has_tensorboard_id}',
               f'--has_inference_dataset_path={has_inference_dataset}',
+              f'--metadata_candidate_columns_string_path={metadata_candidate_columns_string}',
               f'--metadata_large_model_reference_path={metadata_large_model_reference}',
               f'--metadata_reference_model_path_path={metadata_reference_model_path}',
               f'--metadata_reward_model_reference_path={metadata_reward_model_reference}',
@@ -110,6 +116,7 @@ def rlhf_preprocessor(
               f'--metadata_accelerator_type_path={metadata_accelerator_type}',
               f'--metadata_accelerator_count_path={metadata_accelerator_count}',
               f'--metadata_refined_image_uri_path={metadata_refined_image_uri}',
+              f'--metadata_num_microbatches_path={metadata_num_microbatches}',
           ],
       ),
       gcp_resources=gcp_resources,

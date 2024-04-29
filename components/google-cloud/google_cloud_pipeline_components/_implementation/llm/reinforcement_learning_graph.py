@@ -62,6 +62,7 @@ def pipeline(
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     tensorboard_resource_id: str = '',
     encryption_spec_key_name: str = '',
+    num_microbatches: int = 0,
 ) -> PipelineOutput:
   # fmt: off
   """Trains a reward model.
@@ -122,9 +123,6 @@ def pipeline(
       .set_display_name('Import Prompt Dataset')
       .set_caching_options(False)
   )
-  num_microbatches = function_based.resolve_num_microbatches(
-      large_model_reference=policy_model_reference,
-  ).set_display_name('Resolve Number of Microbatches')
   rl_model = (
       reinforcer.reinforcer(
           project=project,
@@ -150,7 +148,7 @@ def pipeline(
           kl_coeff=kl_coeff,
           lora_dim=lora_dim,
           reward_lora_dim=reward_lora_dim,
-          num_microbatches=num_microbatches.output,
+          num_microbatches=num_microbatches,
           encryption_spec_key_name=encryption_spec_key_name,
           tensorboard_resource_id=tensorboard_resource_id,
       )

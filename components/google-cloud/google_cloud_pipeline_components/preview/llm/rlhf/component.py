@@ -107,6 +107,7 @@ def rlhf_pipeline(
       evaluation_dataset=eval_dataset,
       tensorboard_resource_id=tensorboard_resource_id,
   ).set_display_name('Preprocess Inputs')
+  num_microbatches = preprocess_metadata.outputs['metadata_num_microbatches']
 
   reward_model_pipeline = (
       (
@@ -132,6 +133,9 @@ def rlhf_pipeline(
               reward_model_image_uri=preprocess_metadata.outputs[
                   'metadata_refined_image_uri'
               ],
+              comma_separated_candidates_field_names=preprocess_metadata.outputs[
+                  'metadata_candidate_columns_string'
+              ],
               prompt_sequence_length=prompt_sequence_length,
               target_sequence_length=target_sequence_length,
               eval_dataset=validate_pipeline_task.outputs[
@@ -145,6 +149,7 @@ def rlhf_pipeline(
               location=location,
               tensorboard_resource_id=tensorboard_resource_id,
               encryption_spec_key_name=encryption_spec_key_name,
+              num_microbatches=num_microbatches,
           )
       )
       .set_display_name('Train Reward Model')
@@ -189,6 +194,7 @@ def rlhf_pipeline(
       location=location,
       tensorboard_resource_id=tensorboard_resource_id,
       encryption_spec_key_name=encryption_spec_key_name,
+      num_microbatches=num_microbatches,
   ).set_display_name('Reinforcement Learning')
 
   has_inference_dataset = preprocess_metadata.outputs['has_inference_dataset']

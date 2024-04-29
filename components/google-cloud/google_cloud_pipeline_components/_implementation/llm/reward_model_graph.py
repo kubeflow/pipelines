@@ -21,6 +21,7 @@ from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import preprocess_chat_dataset
 from google_cloud_pipeline_components._implementation.llm import private_text_comparison_importer
 from google_cloud_pipeline_components._implementation.llm import reward_model_trainer
+from google_cloud_pipeline_components._implementation.llm import rlhf_preprocessor
 from google_cloud_pipeline_components._implementation.llm import upload_tensorboard_metrics
 import kfp
 
@@ -45,6 +46,7 @@ def pipeline(
     accelerator_type: str,
     accelerator_count: int,
     reward_model_image_uri: str,
+    comma_separated_candidates_field_names: str,
     prompt_sequence_length: int = 512,
     target_sequence_length: int = 64,
     batch_size: int = 64,
@@ -57,6 +59,7 @@ def pipeline(
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     tensorboard_resource_id: str = '',
     encryption_spec_key_name: str = '',
+    num_microbatches: int = 0,
 ) -> PipelineOutput:
   # fmt: off
   """Trains a reward model.
@@ -71,6 +74,7 @@ def pipeline(
     accelerator_type: Specific accelerator type for the custom job.
     accelerator_count: The number of accelerator.
     reward_model_image_uri: Docker image URI to use for the reward model training job.
+    comma_separated_candidates_field_names: Comma separated list of fields that contain candidate text, e.g. ``'field_1,field_2,field_3'``.
     prompt_sequence_length: Maximum tokenized sequence length for input text. Higher values increase memory overhead. This value should be at most 8192. Default value is 512.
     target_sequence_length:  Maximum tokenized sequence length for target text. Higher values increase memory overhead. This value should be at most 1024. Default value is 64.
     batch_size: Number of examples in each finetuning step. Default is 64.
@@ -82,6 +86,7 @@ def pipeline(
     location: Location used to run non-tuning components, i.e. components that do not require accelerators. If not specified the location used to run the pipeline will be used.
     tensorboard_resource_id: Optional tensorboard resource id in format `projects/{project_number}/locations/{location}/tensorboards/{tensorboard_id}`. If provided, tensorboard metrics will be uploaded to this location.
     encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
+    num_microbatches: The number of microbatches to break the total batch size into during training.
 
   Returns:
     reward_model_adapter_path: Path to the output LoRA adapter.
@@ -89,7 +94,6 @@ def pipeline(
   """
   # fmt: on
   prompt_column = 'input_text'
-  candidate_columns = ['candidate_0', 'candidate_1']
   choice_column = 'choice'
 
   processed_preference_dataset = (
@@ -101,9 +105,6 @@ def pipeline(
       ).set_display_name('Preprocess Prompt Dataset')
   )
 
-  comma_separated_candidates_field_names = (
-      function_based.convert_to_delimited_string(items=candidate_columns)
-  )
   preference_dataset_importer = (
       private_text_comparison_importer.private_text_comparison_importer(
           project=project,
@@ -112,7 +113,7 @@ def pipeline(
               'processed_dataset_uri'
           ],
           inputs_field_name=prompt_column,
-          comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
+          comma_separated_candidates_field_names=comma_separated_candidates_field_names,
           choice_field_name=choice_column,
           split=env.TRAIN_SPLIT,
           large_model_reference=reward_model_reference,
@@ -129,7 +130,7 @@ def pipeline(
           location=location,
           input_text=eval_dataset,
           inputs_field_name=prompt_column,
-          comma_separated_candidates_field_names=comma_separated_candidates_field_names.output,
+          comma_separated_candidates_field_names=comma_separated_candidates_field_names,
           choice_field_name=choice_column,
           split=env.TRAIN_SPLIT,
           large_model_reference=reward_model_reference,
@@ -140,9 +141,6 @@ def pipeline(
       .set_caching_options(False)
   )
 
-  num_microbatches = function_based.resolve_num_microbatches(
-      large_model_reference=reward_model_reference,
-  ).set_display_name('Resolve Number of Microbatches')
   reward_model = (
       reward_model_trainer.reward_model_trainer(
           project=project,
@@ -165,7 +163,7 @@ def pipeline(
           batch_size=batch_size,
           learning_rate_multiplier=reward_model_learning_rate_multiplier,
           lora_dim=lora_dim,
-          num_microbatches=num_microbatches.output,
+          num_microbatches=num_microbatches,
           encryption_spec_key_name=encryption_spec_key_name,
           tensorboard_resource_id=tensorboard_resource_id,
       )
