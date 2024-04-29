@@ -20,11 +20,10 @@ from google_cloud_pipeline_components.version import __version__
 if sys.version_info < (3, 9):
   warnings.warn(
       (
-          'Python 3.8 has reached end-of-life. Google Cloud Pipeline Components'
-          ' will drop support for Python 3.8 in Oct, 2024. To use new'
-          ' versions of the KFP SDK after that date, you will need to upgrade'
-          ' to Python >= 3.9. See https://devguide.python.org/versions/ for'
-          ' more details.'
+          ' Google Cloud Pipeline Components will drop support for Python 3.8'
+          ' on Oct 1, 2024. To use new versions of the GCPC SDK after that'
+          ' date, you will need to upgrade to Python >= 3.9. See'
+          ' https://devguide.python.org/versions/ for more details.'
       ),
       FutureWarning,
       stacklevel=2,
