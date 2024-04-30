@@ -27,7 +27,7 @@ echo "Start deploying cache service to existing cluster:"
 NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
 MUTATING_WEBHOOK_CONFIGURATION_NAME="cache-webhook-${NAMESPACE}"
 WEBHOOK_SECRET_NAME=webhook-server-tls
-
+ARCH=$(uname -m)
 # Getting correct kubectl. Kubernetes only supports kubectl versions within +/-1 minor version.
 # kubectl has some resource version information hardcoded, so using too old kubectl can lead to errors
 mkdir -p "$HOME/bin"
@@ -35,7 +35,9 @@ export PATH="$HOME/bin:$PATH"
 {
     server_version_major_minor=$(kubectl version --output json | jq --raw-output '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '"+')
     stable_build_version=$(curl -s "https://storage.googleapis.com/kubernetes-release/release/stable-${server_version_major_minor}.txt")
-    kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/amd64/kubectl"
+    if [ "$ARCH" = "x86_64" ]; then \
+        ARCH="amd64"; fi 
+    kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/${ARCH}/kubectl"
     curl -L -o "$HOME/bin/kubectl" "$kubectl_url"
     chmod +x "$HOME/bin/kubectl"
 } || true

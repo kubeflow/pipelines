@@ -1,6 +1,7 @@
 BUILD=build
 MOD_ROOT=..
 CSV_PATH=backend/third_party_licenses
+DOCKER_PLATFORMS=linux/amd64,linux/s390x,linux/ppc64le
 
 # Whenever build command for any of the binaries change, we should update them both here and in backend/Dockerfiles.
 
@@ -55,19 +56,19 @@ image_all: image_apiserver image_persistence_agent image_cache image_swf image_v
 
 .PHONY: image_apiserver
 image_apiserver:
-	cd $(MOD_ROOT) && docker build -t apiserver -f backend/Dockerfile .
+	cd $(MOD_ROOT) && docker buildx build --platform $(DOCKER_PLATFORMS)-t apiserver -f backend/Dockerfile .
 .PHONY: image_persistence_agent
 image_persistence_agent:
-	cd $(MOD_ROOT) && docker build -t persistence-agent -f backend/Dockerfile.persistenceagent .
+	cd $(MOD_ROOT) && docker buildx build --platform $(DOCKER_PLATFORMS) -t persistence-agent -f backend/Dockerfile.persistenceagent .
 .PHONY: image_cache
 image_cache:
-	cd $(MOD_ROOT) && docker build -t cache-server -f backend/Dockerfile.cacheserver .
+	cd $(MOD_ROOT) && docker buildx build --platform $(DOCKER_PLATFORMS) -t cache-server -f backend/Dockerfile.cacheserver .
 .PHONY: image_swf
 image_swf:
-	cd $(MOD_ROOT) && docker build -t scheduledworkflow -f backend/Dockerfile.scheduledworkflow .
+	cd $(MOD_ROOT) && docker buildx build --platform $(DOCKER_PLATFORMS) -t scheduledworkflow -f backend/Dockerfile.scheduledworkflow .
 .PHONY: image_viewer
 image_viewer:
-	cd $(MOD_ROOT) && docker build -t viewercontroller -f backend/Dockerfile.viewercontroller .
+	cd $(MOD_ROOT) && docker buildx build --platform $(DOCKER_PLATFORMS) -t viewercontroller -f backend/Dockerfile.viewercontroller .
 .PHONY: image_visualization
 image_visualization:
-	cd $(MOD_ROOT) && docker build -t visualization -f backend/Dockerfile.visualization .
+	cd $(MOD_ROOT) && docker buildx build --platform $(DOCKER_PLATFORMS) -t visualization -f backend/Dockerfile.visualization .
