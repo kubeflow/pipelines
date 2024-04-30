@@ -106,6 +106,7 @@ def rlhf_pipeline(
       tag=env.get_private_image_tag(),
       evaluation_dataset=eval_dataset,
       tensorboard_resource_id=tensorboard_resource_id,
+      upload_location=location,
   ).set_display_name('Preprocess Inputs')
   num_microbatches = preprocess_metadata.outputs['metadata_num_microbatches']
 
@@ -233,6 +234,7 @@ def rlhf_pipeline(
       deploy_model=deploy_model,
       encryption_spec_key_name=encryption_spec_key_name,
       upload_location=location,
+      regional_endpoint=preprocess_metadata.outputs['metadata_upload_location'],
   ).set_display_name('Upload and Deploy Tuned Model')
 
   return PipelineOutput(
