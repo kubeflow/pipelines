@@ -27,9 +27,9 @@ import (
 
 const (
 	volumeNameKFPLauncher = "kfp-launcher"
-	DefaultLauncherImage  = "gcr.io/ml-pipeline/kfp-launcher@sha256:c639c51cf19749922fe3f750968e7e32c2a418c73e30ddfd7162ba1a16bad0d0"
+	DefaultLauncherImage  = "gcr.io/ml-pipeline/kfp-launcher@sha256:8fe5e6e4718f20b021736022ad3741ddf2abd82aa58c86ae13e89736fdc3f08f"
 	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
-	DefaultDriverImage    = "gcr.io/ml-pipeline/kfp-driver@sha256:f308b24f51df1165592563b1892fad50f9faaaf314b4ac0638e37aeee3aa8f2c"
+	DefaultDriverImage    = "gcr.io/ml-pipeline/kfp-driver@sha256:3c0665cd36aa87e4359a4c8b6271dcba5bdd817815cd0496ed12eb5dde5fd2ec"
 	DriverImageEnvVar     = "V2_DRIVER_IMAGE"
 )
 
