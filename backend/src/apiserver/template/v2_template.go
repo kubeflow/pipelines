@@ -41,7 +41,7 @@ type V2Spec struct {
 }
 
 // Converts modelJob to ScheduledWorkflow.
-func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
 
 	bytes, err := protojson.Marshal(t.spec)
@@ -108,7 +108,10 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			APIVersion: "kubeflow.org/v2beta1",
 			Kind:       "ScheduledWorkflow",
 		},
-		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName:    swfGeneratedName,
+			OwnerReferences: ownerReferences,
+		},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        modelJob.Enabled,
 			MaxConcurrency: &modelJob.MaxConcurrency,

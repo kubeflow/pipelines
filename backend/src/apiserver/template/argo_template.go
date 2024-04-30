@@ -94,7 +94,7 @@ type Argo struct {
 	wf *util.Workflow
 }
 
-func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *Argo) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 	// Overwrite namespace from the job object
 	if modelJob.Namespace != "" {
@@ -137,7 +137,10 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 			APIVersion: "kubeflow.org/v1beta1",
 			Kind:       "ScheduledWorkflow",
 		},
-		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName:    swfGeneratedName,
+			OwnerReferences: ownerReferences,
+		},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        modelJob.Enabled,
 			MaxConcurrency: &modelJob.MaxConcurrency,

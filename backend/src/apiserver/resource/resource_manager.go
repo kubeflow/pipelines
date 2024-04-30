@@ -967,7 +967,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Convert modelJob into scheduledWorkflow.
-	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job)
+	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 	}
@@ -1010,6 +1010,27 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		job.PipelineSpec.PipelineSpecManifest = manifest
 	}
 	return r.jobStore.CreateJob(job)
+}
+
+func (r *ResourceManager) getOwnerReferences() []v1.OwnerReference {
+	ownerName := common.GetStringConfigWithDefault("OWNER_NAME", "")
+	ownerAPIVersion := common.GetStringConfigWithDefault("OWNER_API_VERSION", "")
+	ownerKind := common.GetStringConfigWithDefault("OWNER_KIND", "")
+	ownerUID := types.UID(common.GetStringConfigWithDefault("OWNER_UID", ""))
+
+	if ownerName == "" || ownerAPIVersion == "" || ownerKind == "" || ownerUID == "" {
+		glog.Info("Missing ScheduledWorkflow owner fields. Proceeding without OwnerReferences")
+		return []v1.OwnerReference{}
+	} else {
+		return []v1.OwnerReference{
+			{
+				APIVersion: ownerAPIVersion,
+				Kind:       ownerKind,
+				Name:       ownerName,
+				UID:        ownerUID,
+			},
+		}
+	}
 }
 
 // Enables or disables a recurring run with given id.
