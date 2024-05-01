@@ -13,8 +13,8 @@
 // limitations under the License.
 import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
-import { Client as MinioClient } from 'minio';
-import { PreviewStream, findFileOnPodVolume } from '../utils';
+import {Client as MinioClient} from 'minio';
+import {PreviewStream, findFileOnPodVolume, parseJSONString} from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
@@ -24,6 +24,9 @@ import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
 
 import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker';
+import {getK8sSecret} from "../k8s-helper";
+import {StorageOptions} from "@google-cloud/storage/build/src/storage";
+import {CredentialBody} from "google-auth-library/build/src/auth/credentials";
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -38,6 +41,31 @@ interface ArtifactsQueryStrings {
   key: string;
   /** return only the first x characters or bytes. */
   peek?: number;
+  /** optional provider info to use to query object store */
+  providerInfo?: string;
+  namespace?: string;
+}
+
+export interface S3ProviderInfo {
+  Provider: string;
+  Params: {
+    fromEnv: string;
+    secretName?: string;
+    accessKeyKey?: string;
+    secretKeyKey?: string;
+    region?: string;
+    endpoint?: string;
+    disableSSL?: string;
+  };
+}
+
+export interface GCSProviderInfo {
+  Provider: string;
+  Params: {
+    fromEnv: string;
+    secretName?: string;
+    tokenKey?: string;
+  };
 }
 
 /**
@@ -49,10 +77,10 @@ interface ArtifactsQueryStrings {
  * @param tryExtract whether the handler try to extract content from *.tar.gz files.
  */
 export function getArtifactsHandler({
-  artifactsConfigs,
-  useParameter,
-  tryExtract,
-}: {
+                                      artifactsConfigs,
+                                      useParameter,
+                                      tryExtract,
+                                    }: {
   artifactsConfigs: {
     aws: AWSConfigs;
     http: HttpConfigs;
@@ -67,7 +95,7 @@ export function getArtifactsHandler({
     const source = useParameter ? req.params.source : req.query.source;
     const bucket = useParameter ? req.params.bucket : req.query.bucket;
     const key = useParameter ? req.params[0] : req.query.key;
-    const { peek = 0 } = req.query as Partial<ArtifactsQueryStrings>;
+    const { peek = 0, providerInfo = "", namespace = ""} = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
       return;
@@ -81,53 +109,63 @@ export function getArtifactsHandler({
       return;
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
+
+    let client :  MinioClient;
     switch (source) {
       case 'gcs':
-        getGCSArtifactHandler({ bucket, key }, peek)(req, res);
+        await getGCSArtifactHandler({bucket, key}, peek, providerInfo, namespace)(req, res);
         break;
-
       case 'minio':
-        getMinioArtifactHandler(
-          {
-            bucket,
-            client: new MinioClient(minio),
-            key,
-            tryExtract,
-          },
-          peek,
+        try {
+          client = await createMinioClient(minio, 'minio', providerInfo, namespace);
+        } catch (e) {
+          res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
+          return;
+        }
+        await getMinioArtifactHandler(
+            {
+              bucket,
+              client,
+              key,
+              tryExtract,
+            },
+            peek,
         )(req, res);
         break;
       case 's3':
-        getMinioArtifactHandler(
-          {
-            bucket,
-            client: await createMinioClient(aws),
-            key,
-          },
-          peek,
+        try {
+          client = await createMinioClient(minio, 's3', providerInfo, namespace);
+        } catch (e) {
+          res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
+          return;
+        }
+        await getMinioArtifactHandler(
+            {
+              bucket,
+              client,
+              key,
+            },
+            peek,
         )(req, res);
         break;
-
       case 'http':
       case 'https':
-        getHttpArtifactsHandler(
-          allowedDomain,
-          getHttpUrl(source, http.baseUrl || '', bucket, key),
-          http.auth,
-          peek,
+        await getHttpArtifactsHandler(
+            allowedDomain,
+            getHttpUrl(source, http.baseUrl || '', bucket, key),
+            http.auth,
+            peek,
         )(req, res);
         break;
-
       case 'volume':
         await getVolumeArtifactsHandler(
-          {
-            bucket,
-            key,
-          },
-          peek,
+            {
+              bucket,
+              key,
+            },
+            peek,
         )(req, res);
         break;
-
       default:
         res.status(500).send('Unknown storage source');
         return;
@@ -164,7 +202,7 @@ function getHttpArtifactsHandler(
     if (auth.key.length > 0) {
       // inject original request's value if exists, otherwise default to provided default value
       headers[auth.key] =
-        req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
+          req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
     }
     if (!isAllowedDomain(url, allowedDomain)) {
       res.status(500).send(`Domain not allowed.`);
@@ -172,9 +210,9 @@ function getHttpArtifactsHandler(
     }
     const response = await fetch(url, { headers });
     response.body
-      .on('error', err => res.status(500).send(`Unable to retrieve artifact: ${err}`))
-      .pipe(new PreviewStream({ peek }))
-      .pipe(res);
+        .on('error', err => res.status(500).send(`Unable to retrieve artifact: ${err}`))
+        .pipe(new PreviewStream({ peek }))
+        .pipe(res);
   };
 }
 
@@ -196,16 +234,43 @@ function getMinioArtifactHandler(
   };
 }
 
-function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: number = 0) {
+async function parseGCSProviderInfo(providerInfo: GCSProviderInfo, namespace: string): Promise<StorageOptions> {
+  if (!providerInfo.Params.tokenKey || !providerInfo.Params.secretName) {
+    throw new Error('Provider info with fromEnv:false supplied with incomplete secret credential info.');
+  }
+  let configGCS: StorageOptions;
+  try {
+    const tokenString = await getK8sSecret(providerInfo.Params.secretName, providerInfo.Params.tokenKey, namespace);
+    const credentials = parseJSONString<CredentialBody>(tokenString);
+    configGCS = {credentials};
+    configGCS.scopes = "https://www.googleapis.com/auth/devstorage.read_write";
+    return configGCS;
+  } catch (err) {
+    throw new Error('Failed to parse GCS Provider config. Error: ' + err);
+  }
+}
+
+function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: number = 0, providerInfoString?: string, namespace?: string) {
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
     try {
+      let storageOptions : StorageOptions | undefined;
+      if(providerInfoString) {
+        const providerInfo  = parseJSONString<GCSProviderInfo>(providerInfoString);
+        if (providerInfo && providerInfo.Params.fromEnv === "false") {
+          if (!namespace){
+            res.status(500).send('Failed to parse provider info. Reason: No namespace provided');
+          } else {
+            storageOptions = await parseGCSProviderInfo(providerInfo, namespace);
+          }
+        }
+      }
       // Read all files that match the key pattern, which can include wildcards '*'.
       // The way this works is we list all paths whose prefix is the substring
       // of the pattern until the first wildcard, then we create a regular
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
-      const storage = new Storage();
+      const storage = new Storage(storageOptions);
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
       const files = await storage.bucket(bucket).getFiles({ prefix });
       const matchingFiles = files[0].filter(f => {
@@ -214,11 +279,11 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
         // Build a RegExp object that only recognizes asterisks ('*'), and
         // escapes everything else.
         const regex = new RegExp(
-          '^' +
+            '^' +
             key
-              .split(/\*+/)
-              .map(escapeRegexChars)
-              .join('.*') +
+                .split(/\*+/)
+                .map(escapeRegexChars)
+                .join('.*') +
             '$',
         );
         return regex.test(f.name);
@@ -230,16 +295,16 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
         return;
       }
       console.log(
-        `Found ${matchingFiles.length} matching files: `,
-        matchingFiles.map(file => file.name).join(','),
+          `Found ${matchingFiles.length} matching files: `,
+          matchingFiles.map(file => file.name).join(','),
       );
       let contents = '';
       // TODO: support peek for concatenated matching files
       if (peek) {
         matchingFiles[0]
-          .createReadStream()
-          .pipe(new PreviewStream({ peek }))
-          .pipe(res);
+            .createReadStream()
+            .pipe(new PreviewStream({ peek }))
+            .pipe(res);
         return;
       }
 
@@ -247,17 +312,17 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
       matchingFiles.forEach((f, i) => {
         const buffer: Buffer[] = [];
         f.createReadStream()
-          .on('data', data => buffer.push(Buffer.from(data)))
-          .on('end', () => {
-            contents +=
-              Buffer.concat(buffer)
-                .toString()
-                .trim() + '\n';
-            if (i === matchingFiles.length - 1) {
-              res.send(contents);
-            }
-          })
-          .on('error', () => res.status(500).send('Failed to read file: ' + f.name));
+            .on('data', data => buffer.push(Buffer.from(data)))
+            .on('end', () => {
+              contents +=
+                  Buffer.concat(buffer)
+                      .toString()
+                      .trim() + '\n';
+              if (i === matchingFiles.length - 1) {
+                res.send(contents);
+              }
+            })
+            .on('error', () => res.status(500).send('Failed to read file: ' + f.name));
       });
     } catch (err) {
       res.status(500).send('Failed to download GCS file(s). Error: ' + err);
@@ -297,14 +362,14 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       const stat = await fs.promises.stat(filePath);
       if (stat.isDirectory()) {
         res
-          .status(400)
-          .send(`Failed to open volume file ${filePath} is directory, does not support now`);
+            .status(400)
+            .send(`Failed to open volume file ${filePath} is directory, does not support now`);
         return;
       }
 
       fs.createReadStream(filePath)
-        .pipe(new PreviewStream({ peek }))
-        .pipe(res);
+          .pipe(new PreviewStream({ peek }))
+          .pipe(res);
     } catch (err) {
       console.log(`Failed to open volume: ${err}`);
       res.status(500).send(`Failed to open volume.`);
@@ -340,10 +405,10 @@ const QUERIES = {
 };
 
 export function getArtifactsProxyHandler({
-  enabled,
-  allowedDomain,
-  namespacedServiceGetter,
-}: {
+                                           enabled,
+                                           allowedDomain,
+                                           namespacedServiceGetter,
+                                         }: {
   enabled: boolean;
   allowedDomain: string;
   namespacedServiceGetter: NamespacedServiceGetter;
@@ -352,36 +417,36 @@ export function getArtifactsProxyHandler({
     return (req, res, next) => next();
   }
   return proxy(
-    (_pathname, req) => {
-      // only proxy requests with namespace query parameter
-      return !!getNamespaceFromUrl(req.url || '');
-    },
-    {
-      changeOrigin: true,
-      onProxyReq: proxyReq => {
-        console.log('Proxied artifact request: ', proxyReq.path);
+      (_pathname, req) => {
+        // only proxy requests with namespace query parameter
+        return !!getNamespaceFromUrl(req.url || '');
       },
-      pathRewrite: (pathStr, req) => {
-        const url = new URL(pathStr || '', DUMMY_BASE_PATH);
-        url.searchParams.delete(QUERIES.NAMESPACE);
-        return url.pathname + url.search;
+      {
+        changeOrigin: true,
+        onProxyReq: proxyReq => {
+          console.log('Proxied artifact request: ', proxyReq.path);
+        },
+        pathRewrite: (pathStr, req) => {
+          const url = new URL(pathStr || '', DUMMY_BASE_PATH);
+          url.searchParams.delete(QUERIES.NAMESPACE);
+          return url.pathname + url.search;
+        },
+        router: req => {
+          const namespace = getNamespaceFromUrl(req.url || '');
+          if (!namespace) {
+            console.log(`namespace query param expected in ${req.url}.`);
+            throw new Error(`namespace query param expected.`);
+          }
+          const urlStr = namespacedServiceGetter(namespace!);
+          if (!isAllowedDomain(urlStr, allowedDomain)) {
+            console.log(`Domain is not allowed.`);
+            throw new Error(`Domain is not allowed.`);
+          }
+          return namespacedServiceGetter(namespace!);
+        },
+        target: '/artifacts',
+        headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       },
-      router: req => {
-        const namespace = getNamespaceFromUrl(req.url || '');
-        if (!namespace) {
-          console.log(`namespace query param expected in ${req.url}.`);
-          throw new Error(`namespace query param expected.`);
-        }
-        const urlStr = namespacedServiceGetter(namespace!);
-        if (!isAllowedDomain(urlStr, allowedDomain)) {
-          console.log(`Domain is not allowed.`);
-          throw new Error(`Domain is not allowed.`);
-        }
-        return namespacedServiceGetter(namespace!);
-      },
-      target: '/artifacts',
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-    },
   );
 }
 

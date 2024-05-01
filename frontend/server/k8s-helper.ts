@@ -333,13 +333,20 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
  * Retrieves k8s secret by key and decode from base64.
  * @param name name of the secret
  * @param key key in the secret
+ * @param providedNamespace use this namespace when provided, otherwise default to server's namespace
  */
-export async function getK8sSecret(name: string, key: string) {
-  if (!serverNamespace) {
+export async function getK8sSecret(name: string, key: string, providedNamespace?: string) {
+  let namespace = serverNamespace;
+
+  if (providedNamespace) {
+    namespace = providedNamespace;
+  }
+
+  if (!namespace) {
     throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
-  const k8sSecret = await k8sV1Client.readNamespacedSecret(name, serverNamespace);
+  const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
   const secretb64 = k8sSecret.body.data[key];
   const buff = new Buffer(secretb64, 'base64');
   return buff.toString('ascii');
