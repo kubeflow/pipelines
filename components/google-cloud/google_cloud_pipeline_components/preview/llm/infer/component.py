@@ -19,7 +19,6 @@ from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.llm import bulk_inferrer
 from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
-from google_cloud_pipeline_components._implementation.llm import infer_preprocessor
 from google_cloud_pipeline_components._implementation.llm import preprocess_chat_dataset
 from google_cloud_pipeline_components._implementation.llm import private_text_importer
 import kfp
@@ -67,8 +66,6 @@ def infer_pipeline(
   """
   # fmt: on
   prompt_column = 'input_text'
-  infer_preprocessor.infer_preprocessor().set_display_name('Preprocess Inputs')
-
   machine_spec = function_based.resolve_machine_spec(
       accelerator_type=accelerator_type,
       use_test_spec=env.get_use_test_machine_spec(),
