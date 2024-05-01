@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Apis } from './Apis';
-import { StorageService } from './WorkflowParser';
+import {Apis} from './Apis';
+import {StorageService} from './WorkflowParser';
 
 const fetchSpy = (response: string) => {
   const spy = jest.fn(() =>
@@ -128,9 +128,7 @@ describe('Apis', () => {
     const spy = fetchSpy('file contents');
     expect(
       await Apis.readFile({
-        bucket: 'testbucket',
-        key: 'testkey',
-        source: StorageService.GCS,
+        path: {source: StorageService.GCS, key:"testkey", bucket:'testbucket'},
       }),
     ).toEqual('file contents');
     expect(spy).toHaveBeenCalledWith('artifacts/get?source=gcs&bucket=testbucket&key=testkey', {
