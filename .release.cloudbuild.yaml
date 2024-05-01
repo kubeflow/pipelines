@@ -478,14 +478,14 @@ steps:
     docker push gcr.io/ml-pipeline/google/pipelines-test/cloudsqlproxy:$(cat /workspace/mm.ver)
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v3.3.10-license-compliance']
+  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v3.4.16-license-compliance']
   id:   'pullArgoExecutor'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/ml-pipeline/argoexec:v3.3.10-license-compliance', 'gcr.io/ml-pipeline/google/pipelines/argoexecutor:$TAG_NAME']
+  args: ['tag', 'gcr.io/ml-pipeline/argoexec:v3.4.16-license-compliance', 'gcr.io/ml-pipeline/google/pipelines/argoexecutor:$TAG_NAME']
   id:   'tagArgoExecutorForMarketplace'
   waitFor: ['pullArgoExecutor']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/ml-pipeline/argoexec:v3.3.10-license-compliance', 'gcr.io/ml-pipeline/google/pipelines-test/argoexecutor:$TAG_NAME']
+  args: ['tag', 'gcr.io/ml-pipeline/argoexec:v3.4.16-license-compliance', 'gcr.io/ml-pipeline/google/pipelines-test/argoexecutor:$TAG_NAME']
   id:   'tagArgoExecutorForMarketplaceTest'
   waitFor: ['pullArgoExecutor']
 - id:   'tagArgoExecutorForMarketplaceMajorMinor'
@@ -495,20 +495,20 @@ steps:
   args:
   - -ceux
   - |
-    docker tag gcr.io/ml-pipeline/argoexec:v3.3.10-license-compliance gcr.io/ml-pipeline/google/pipelines/argoexecutor:$(cat /workspace/mm.ver)
-    docker tag gcr.io/ml-pipeline/argoexec:v3.3.10-license-compliance gcr.io/ml-pipeline/google/pipelines-test/argoexecutor:$(cat /workspace/mm.ver)
+    docker tag gcr.io/ml-pipeline/argoexec:v3.4.16-license-compliance gcr.io/ml-pipeline/google/pipelines/argoexecutor:$(cat /workspace/mm.ver)
+    docker tag gcr.io/ml-pipeline/argoexec:v3.4.16-license-compliance gcr.io/ml-pipeline/google/pipelines-test/argoexecutor:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines/argoexecutor:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test/argoexecutor:$(cat /workspace/mm.ver)
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v3.3.10-license-compliance']
+  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v3.4.16-license-compliance']
   id:   'pullArgoWorkflowController'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/ml-pipeline/workflow-controller:v3.3.10-license-compliance', 'gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:$TAG_NAME']
+  args: ['tag', 'gcr.io/ml-pipeline/workflow-controller:v3.4.16-license-compliance', 'gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:$TAG_NAME']
   id:   'tagArgoWorkflowControllerForMarketplace'
   waitFor: ['pullArgoWorkflowController']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/ml-pipeline/workflow-controller:v3.3.10-license-compliance', 'gcr.io/ml-pipeline/google/pipelines-test/argoworkflowcontroller:$TAG_NAME']
+  args: ['tag', 'gcr.io/ml-pipeline/workflow-controller:v3.4.16-license-compliance', 'gcr.io/ml-pipeline/google/pipelines-test/argoworkflowcontroller:$TAG_NAME']
   id:   'tagArgoWorkflowControllerForMarketplaceTest'
   waitFor: ['pullArgoWorkflowController']
 - id:   'tagArgoWorkflowControllerForMarketplaceMajorMinor'
@@ -518,8 +518,8 @@ steps:
   args:
   - -ceux
   - |
-    docker tag gcr.io/ml-pipeline/workflow-controller:v3.3.10-license-compliance gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:$(cat /workspace/mm.ver)
-    docker tag gcr.io/ml-pipeline/workflow-controller:v3.3.10-license-compliance gcr.io/ml-pipeline/google/pipelines-test/argoworkflowcontroller:$(cat /workspace/mm.ver)
+    docker tag gcr.io/ml-pipeline/workflow-controller:v3.4.16-license-compliance gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:$(cat /workspace/mm.ver)
+    docker tag gcr.io/ml-pipeline/workflow-controller:v3.4.16-license-compliance gcr.io/ml-pipeline/google/pipelines-test/argoworkflowcontroller:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test/argoworkflowcontroller:$(cat /workspace/mm.ver)
 

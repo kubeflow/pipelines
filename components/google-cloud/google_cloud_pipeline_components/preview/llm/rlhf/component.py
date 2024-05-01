@@ -21,6 +21,8 @@ from google_cloud_pipeline_components._implementation.llm import env
 from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import reinforcement_learning_graph
 from google_cloud_pipeline_components._implementation.llm import reward_model_graph
+from google_cloud_pipeline_components._implementation.llm import rlhf_preprocessor
+from google_cloud_pipeline_components._implementation.llm import utils
 from google_cloud_pipeline_components._implementation.llm import validate_pipeline
 from google_cloud_pipeline_components.preview.llm.infer import component
 import kfp
@@ -94,11 +96,47 @@ def rlhf_pipeline(
       eval_dataset=eval_dataset,
   ).set_display_name('Validate Inputs')
 
+  preprocess_metadata = rlhf_preprocessor.rlhf_preprocessor(
+      large_model_reference=large_model_reference,
+      accelerator_type=accelerator_type,
+      use_test_spec=env.get_use_test_machine_spec(),
+      project=env.PRIVATE_ARTIFACT_REGISTRY_PROJECT,
+      location=env.PRIVATE_ARTIFACT_REGISTRY_LOCATION,
+      artifact_registry=env.PRIVATE_ARTIFACT_REGISTRY,
+      tag=env.get_private_image_tag(),
+      evaluation_dataset=eval_dataset,
+      tensorboard_resource_id=tensorboard_resource_id,
+      upload_location=location,
+  ).set_display_name('Preprocess Inputs')
+  num_microbatches = preprocess_metadata.outputs['metadata_num_microbatches']
+
   reward_model_pipeline = (
       (
           reward_model_graph.pipeline(
               preference_dataset=preference_dataset,
               large_model_reference=large_model_reference,
+              reward_model_reference=preprocess_metadata.outputs[
+                  'metadata_reward_model_reference'
+              ],
+              reward_model_path=preprocess_metadata.outputs[
+                  'metadata_reward_model_path'
+              ],
+              machine_type=preprocess_metadata.outputs['metadata_machine_type'],
+              tuning_location=preprocess_metadata.outputs[
+                  'metadata_tuning_location'
+              ],
+              accelerator_type=preprocess_metadata.outputs[
+                  'metadata_accelerator_type'
+              ],
+              accelerator_count=preprocess_metadata.outputs[
+                  'metadata_accelerator_count'
+              ],
+              reward_model_image_uri=preprocess_metadata.outputs[
+                  'metadata_refined_image_uri'
+              ],
+              comma_separated_candidates_field_names=preprocess_metadata.outputs[
+                  'metadata_candidate_columns_string'
+              ],
               prompt_sequence_length=prompt_sequence_length,
               target_sequence_length=target_sequence_length,
               eval_dataset=validate_pipeline_task.outputs[
@@ -110,9 +148,9 @@ def rlhf_pipeline(
               lora_dim=reward_lora_dim,
               project=project,
               location=location,
-              accelerator_type=accelerator_type,
               tensorboard_resource_id=tensorboard_resource_id,
               encryption_spec_key_name=encryption_spec_key_name,
+              num_microbatches=num_microbatches,
           )
       )
       .set_display_name('Train Reward Model')
@@ -120,8 +158,8 @@ def rlhf_pipeline(
   )
   rl_model_pipeline = reinforcement_learning_graph.pipeline(
       prompt_dataset=prompt_dataset,
-      input_reward_model_path=reward_model_pipeline.outputs[
-          'reward_model_base_path'
+      input_reward_model_path=preprocess_metadata.outputs[
+          'metadata_reward_model_path'
       ],
       input_reward_adapter_path=reward_model_pipeline.outputs[
           'reward_model_adapter_path'
@@ -130,6 +168,22 @@ def rlhf_pipeline(
           'reward_dataset_path'
       ],
       large_model_reference=large_model_reference,
+      reward_model_reference=preprocess_metadata.outputs[
+          'metadata_reward_model_reference'
+      ],
+      policy_model_reference=preprocess_metadata.outputs[
+          'metadata_large_model_reference'
+      ],
+      policy_model_path=preprocess_metadata.outputs[
+          'metadata_reference_model_path'
+      ],
+      machine_type=preprocess_metadata.outputs['metadata_machine_type'],
+      tuning_location=preprocess_metadata.outputs['metadata_tuning_location'],
+      accelerator_type=preprocess_metadata.outputs['metadata_accelerator_type'],
+      accelerator_count=preprocess_metadata.outputs[
+          'metadata_accelerator_count'
+      ],
+      rl_image_uri=preprocess_metadata.outputs['metadata_refined_image_uri'],
       prompt_sequence_length=prompt_sequence_length,
       target_sequence_length=target_sequence_length,
       reinforcement_learning_rate_multiplier=reinforcement_learning_rate_multiplier,
@@ -138,17 +192,16 @@ def rlhf_pipeline(
       instruction=instruction,
       reward_lora_dim=reward_lora_dim,
       project=project,
-      accelerator_type=accelerator_type,
       location=location,
       tensorboard_resource_id=tensorboard_resource_id,
       encryption_spec_key_name=encryption_spec_key_name,
+      num_microbatches=num_microbatches,
   ).set_display_name('Reinforcement Learning')
 
-  has_inference_dataset = function_based.value_exists(
-      value=eval_dataset
-  ).set_display_name('Resolve Inference Dataset')
+  has_inference_dataset = preprocess_metadata.outputs['has_inference_dataset']
+
   with kfp.dsl.Condition(
-      has_inference_dataset.output == True,  # pylint: disable=singleton-comparison
+      has_inference_dataset == True,  # pylint: disable=singleton-comparison
       name='Perform Inference',
   ):
     has_model_checkpoint = function_based.value_exists(
@@ -174,10 +227,14 @@ def rlhf_pipeline(
   llm_model_handler = deployment_graph.pipeline(
       output_adapter_path=rl_model_pipeline.outputs['output_adapter_path'],
       large_model_reference=large_model_reference,
+      policy_model_reference=preprocess_metadata.outputs[
+          'metadata_large_model_reference'
+      ],
       model_display_name=model_display_name,
       deploy_model=deploy_model,
       encryption_spec_key_name=encryption_spec_key_name,
       upload_location=location,
+      regional_endpoint=preprocess_metadata.outputs['metadata_upload_location'],
   ).set_display_name('Upload and Deploy Tuned Model')
 
   return PipelineOutput(

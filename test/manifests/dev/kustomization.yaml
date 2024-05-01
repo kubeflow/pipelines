@@ -7,7 +7,6 @@ resources:
   - ../../../manifests/kustomize/env/dev
 patches:
   - path: proxy-agent-patch.yaml
-  - path: workflow-controller-configmap-patch.yaml
 
 # Used by Kustomize.
 configMapGenerator:
