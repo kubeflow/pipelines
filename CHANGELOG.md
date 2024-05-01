@@ -1,5 +1,58 @@
 # Changelog
 
+## [2.2.0](https://github.com/kubeflow/pipelines/compare/2.1.0...2.2.0) (2024-04-30)
+
+
+### Features
+
+* **backend:** add namespace & prefix scoped credentials to kfp-launcher config for object store paths ([\#10625](https://github.com/kubeflow/pipelines/issues/10625)) ([5e0f9b1](https://github.com/kubeflow/pipelines/commit/5e0f9b188e2ff0b312a9a77cb07b792f8ddc6a82))
+* **backend:** Merge kfp-tekton backend code ([\#10678](https://github.com/kubeflow/pipelines/issues/10678)) ([60a443e](https://github.com/kubeflow/pipelines/commit/60a443e93b565cc5b1283f291c9b84db201e438f))
+* **backend:** Upgrade argo to v3.4.16 ([\#10568](https://github.com/kubeflow/pipelines/issues/10568)) ([809d576](https://github.com/kubeflow/pipelines/commit/809d5766fc9ec436ff05c083e9a2ae65ad2667b7))
+* **components:** Add model name preprocess component; Use publisher model if user uploaded model is non-tuned ([084f2c2](https://github.com/kubeflow/pipelines/commit/084f2c22295f92e407c283c0d524ffb693a11a4e))
+* **components:** add resolve_machine_spec and resolve_refined_image_uri to rlhf_preprocessor component ([2a8d39e](https://github.com/kubeflow/pipelines/commit/2a8d39ec68affe508008eb2e3c91abe52a198c18))
+* **components:** add resolve_reference_model_metadata to rlhf_preprocessor component ([92a7969](https://github.com/kubeflow/pipelines/commit/92a7969318c7439b7f60188837e8a76e012a1945))
+* **components:** add task_type as a parameter to rlaif ([64d288a](https://github.com/kubeflow/pipelines/commit/64d288a2f531b1ea0450328304c80d79f0508e14))
+* **components:** Added support for text-bison@002 to preview.llm.rlhf_pipeline ([2f27751](https://github.com/kubeflow/pipelines/commit/2f27751d0fd0e4db6eda372605380a2b9225072a))
+* **components:** AutoSxS GA pending release ([aee464c](https://github.com/kubeflow/pipelines/commit/aee464c92da2dddadef5c9f7c29e5e58154a9898))
+* **components:** Expand regions supported by `preview.llm.rlhf_pipeline` ([22a98d9](https://github.com/kubeflow/pipelines/commit/22a98d9f8de728a18c071bf7fa560bd141b03cbb))
+* **components:** internal ([a4f01b7](https://github.com/kubeflow/pipelines/commit/a4f01b70f27bcb1a4318bd1c86282e1957e7324a))
+* **components:** Introduce placeholders: SERVICE_ACCOUNT_PLACEHOLDER, NETWORK_PLACEHOLDER, PERSISTENT_RESOURCE_ID_PLACEHOLDER and ENCYRPTION_SPEC_KMS_KEY_NAME_PLACEHOLDER. In addition, use PERSISTENT_RESOURCE_ID_PLACEHOLDER as the default value of persistent_resource_id for CustomTrainingJobOp and create_custom_training_job_op_from_component. With this change, custom job created without explicitly setting persistent_resource_id will inherit job level persistent_resource_id, if Persistent Resource is set as job level runtime ([67d3cd6](https://github.com/kubeflow/pipelines/commit/67d3cd6dbc0569d0050ee11bbcca9bcd80e457fb))
+* **components:** migrate function_based convert_to_delimited_string to rlhf_preprocessor component ([efefe34](https://github.com/kubeflow/pipelines/commit/efefe346f0a97004e5bd000c0e68d06e7d8f0b4b))
+* **components:** migrate function_based resolve_num_microbatches to rlhf_preprocessor component ([ee28c72](https://github.com/kubeflow/pipelines/commit/ee28c72893a0bbe1963d6b6f158937e1f4a0651d))
+* **components:** migrate function_based resolve_regional_endpoint to rlhf_preprocessor component ([f175c71](https://github.com/kubeflow/pipelines/commit/f175c71aea461455451f9de22780be922ae706d3))
+* **components:** Move AutoSxS pipeline to v1 directory ([d919ae7](https://github.com/kubeflow/pipelines/commit/d919ae7216b60efdd08441eee64bc18ad8f30e70))
+* **components:** Move ModelImportEvaluationOp component to preview namespace ([33db128](https://github.com/kubeflow/pipelines/commit/33db1284f57b5b277c95d4a44b35b1fdd830bd18))
+* **components:** Report TensorBoard metrics for `preview.llm.rlhf_pipeline` in real time ([3d8069b](https://github.com/kubeflow/pipelines/commit/3d8069bf2c9c4eecca3df2e45da4d4fa2ed43af5))
+* **components:** Use larger base reward model when tuning `t5-xxl` with the `preview.llm.rlhf_pipeline` ([ff7f660](https://github.com/kubeflow/pipelines/commit/ff7f660c3c13e8e9f5f047ae4ee0dfbcebf6bfb8))
+* **components:** Use larger base reward model when tuning `text` and `chat` variants of `bison@001` with the `preview.llm.rlhf_pipeline` ([ac39931](https://github.com/kubeflow/pipelines/commit/ac399315e66d6ed2666dc9dbaecbce4938f87356))
+* **components:** use rlhf_preprocessor to replace the current value_exists call in rlhf ([c967d9f](https://github.com/kubeflow/pipelines/commit/c967d9f7df0bec5827cdf45ea02d3463d8b17aff))
+* **kubernetes_platform:** Update kubernetes_platform go package to include generic ephemerl volume ([\#10602](https://github.com/kubeflow/pipelines/issues/10602)) ([2fc1492](https://github.com/kubeflow/pipelines/commit/2fc1492a0602be7f5aab94d246d4e0bc483de47a))
+* **kubernetes_platform:** Update kubernetes_platform go package to include node affinities and pod (anti)affinities ([\#10583](https://github.com/kubeflow/pipelines/issues/10583)) ([4f8cae2](https://github.com/kubeflow/pipelines/commit/4f8cae2a633552d0a6fcc11a24e81fa5077a9fd2))
+* **sdk+backend:** Add support for generic ephemeral volume ([\#10605](https://github.com/kubeflow/pipelines/issues/10605)) ([3fb76a8](https://github.com/kubeflow/pipelines/commit/3fb76a8e1590238abd1226ae961c5871bf41f5ef))
+
+
+### Bug Fixes
+
+* **backend:** Update backend common code and integration tests with updated API Service Params ([\#10640](https://github.com/kubeflow/pipelines/issues/10640)) ([8b2a099](https://github.com/kubeflow/pipelines/commit/8b2a099e8c9f216a139602be3d349f5b1aab9d2c))
+* **Backend + SDK:** Add missing optional field to SecretAsVolume and … ([\#10550](https://github.com/kubeflow/pipelines/issues/10550)) ([a78dc77](https://github.com/kubeflow/pipelines/commit/a78dc77a301c9432f3e2791083b5d99266ae4e55))
+* **components:** Ensure `preview.llm.rlhf_pipeline` runs if no `tensorboard_id` is provided ([ff0d0a7](https://github.com/kubeflow/pipelines/commit/ff0d0a7706123d427458e65d98b38d23975204c8))
+* **components:** Fix image version parameter in rl pipelines ([cef6e51](https://github.com/kubeflow/pipelines/commit/cef6e510121e9956b9b78126a4f7565cf69b960a))
+* **components:** Fix model eval import error in text generation/classification eval pipeline ([7630f85](https://github.com/kubeflow/pipelines/commit/7630f85031269abd8921eb6daed7cf65c19eeac4))
+* **components:** Make AutoSxS autorater_prompt_parameters required ([df20088](https://github.com/kubeflow/pipelines/commit/df20088328353fd60e77f20dfc082b577381e5a0))
+* **components:** remove default prediction column names in evaluation classification component to fix incorrect column names for bigquery data source ([54f2e45](https://github.com/kubeflow/pipelines/commit/54f2e45375999b2a57b3f7988a61b503dfd70834))
+* **components:** Remove the unused functions from function_based ([e052dc8](https://github.com/kubeflow/pipelines/commit/e052dc8daf7c30f362a95ab6eec6a618ae7a9f70))
+* **components:** Remove the unused generate_default_instruction and resolve_upload_location from function_based ([e9d8764](https://github.com/kubeflow/pipelines/commit/e9d8764f2066892027528e6bca8ced547f3457e0))
+* **components:** Remove the unused resolve_data_paths from function_based ([c386913](https://github.com/kubeflow/pipelines/commit/c3869137d0e55f69f447d5d684a4a85bc7078166))
+* **components:** Update service account comment ([bf444ac](https://github.com/kubeflow/pipelines/commit/bf444ac84b5cbee0ab364ae14c3174ee1d74723b))
+* **metadata envoy:** upgrade envoy and config from 1.12 to 1.27 ([\#10589](https://github.com/kubeflow/pipelines/issues/10589)) ([96aaad9](https://github.com/kubeflow/pipelines/commit/96aaad9421a0449fa7634959f522964394fc26e9))
+
+
+### Other Pull Requests
+
+* No public description ([cab99f7](https://github.com/kubeflow/pipelines/commit/cab99f7443bc57abb296ee13ae9c79b4adad1ef5))
+* No public description ([79d0a5c](https://github.com/kubeflow/pipelines/commit/79d0a5c4a8d45274d5d7753183cda8864176cdd4))
+* Update loop_output.py example for the new parallel loop type requirement ([\#10637](https://github.com/kubeflow/pipelines/issues/10637)) ([afddae9](https://github.com/kubeflow/pipelines/commit/afddae993bb367815f51de45c4dd8e5516e9ac1b))
+
 ## [2.1.0](https://github.com/kubeflow/pipelines/compare/2.0.5...2.1.0) (2024-03-25)
 
 

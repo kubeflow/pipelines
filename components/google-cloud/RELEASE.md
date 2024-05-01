@@ -1,5 +1,8 @@
 ## Upcoming release
 
+## Release 2.15.0
+* Add input parameter `autorater_prompt_parameters` to `_implementation.llm.online_evaluation_pairwise` component.
+
 ## Release 2.14.0
 * Use larger base reward model when tuning `text-bison@001`, `chat-bison@001` and `t5-xxl` with the `preview.llm.rlhf_pipeline`.
 * Move `preview.model_evaluation.autosxs_pipeline` to `v1.model_evaluation.autosxs_pipeline`.

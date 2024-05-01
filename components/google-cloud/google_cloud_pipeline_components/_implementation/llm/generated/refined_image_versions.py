@@ -17,4 +17,4 @@
 DO NOT EDIT - This file is generated, manual changes will be overridden.
 """
 
-IMAGE_TAG = '20240425_1734_RC00'
+IMAGE_TAG = '20240430_1158_RC00'

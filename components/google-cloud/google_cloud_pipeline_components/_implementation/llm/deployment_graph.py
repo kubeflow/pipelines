@@ -39,6 +39,7 @@ def pipeline(
     deploy_model: bool = True,
     encryption_spec_key_name: str = '',
     upload_location: str = _placeholders.LOCATION_PLACEHOLDER,
+    regional_endpoint: str = '',
 ) -> PipelineOutput:
   # fmt: off
   """Uploads a tuned language model and (optionally) deploys it to an endpoint.
@@ -51,16 +52,13 @@ def pipeline(
     deploy_model: Whether to deploy the model to an endpoint in `us-central1`. Default is True.
     encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
     upload_location: Region to upload and deploy the model to. Default is the location used to run the pipeline components.
+    regional_endpoint: Regional endpoint to upload the model.
 
   Returns:
     model_resource_name: Path to the model uploaded to the Model Registry. This will be an empty string if the model was not deployed.
     endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
   # fmt: on
-  regional_endpoint = function_based.resolve_regional_endpoint(
-      upload_location=upload_location
-  ).set_display_name('Resolve Regional Endpoint')
-
   display_name = (
       function_based.resolve_model_display_name(
           large_model_reference=large_model_reference,
@@ -76,7 +74,7 @@ def pipeline(
   upload_task = upload_llm_model.refined_upload_llm_model(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
       location=upload_location,
-      regional_endpoint=regional_endpoint.output,
+      regional_endpoint=regional_endpoint,
       artifact_uri=output_adapter_path,
       model_display_name=display_name.output,
       model_reference_name=large_model_reference,
@@ -93,7 +91,7 @@ def pipeline(
       location=upload_location,
       model_resource_name=upload_task.outputs['model_resource_name'],
       display_name=display_name.output,
-      regional_endpoint=regional_endpoint.output,
+      regional_endpoint=regional_endpoint,
       deploy_model=deploy_model.output,
       encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Deploy Model')
