@@ -37,9 +37,10 @@ describe('/artifacts', () => {
   const { argv } = commonSetup();
 
   let artifactContent: any = 'hello world';
+  let mockedMinioClient: jest.Mock = MinioClient as any;
   beforeEach(() => {
     artifactContent = 'hello world'; // reset
-    const mockedMinioClient: jest.Mock = MinioClient as any;
+    mockedMinioClient = MinioClient as any;
     mockedMinioClient.mockImplementation(function() {
       return {
         getObject: async (bucket: string, key: string) => {
@@ -90,14 +91,33 @@ describe('/artifacts', () => {
         });
     });
 
+    it('creates s3 minio client if source=s3', done => {
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      process.env.AWS_ACCESS_KEY_ID = 'aws123';
+      process.env.AWS_SECRET_ACCESS_KEY = 'awsSecret123';
+      const request = requests(app.start());
+      request
+          .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
+          .expect(200, artifactContent, err => {
+            expect(mockedMinioClient).toBeCalledWith({
+              accessKey: 'aws123',
+              endPoint: 's3.amazonaws.com',
+              region: 'us-east-1',
+              secretKey: 'awsSecret123',
+              useSSL: true,
+            });
+            done(err);
+          });
+    });
+
     it('responds with a s3 artifact if source=s3', done => {
-      const mockedMinioClient: jest.Mock = jest.spyOn(minioHelper, 'createMinioClient') as any;
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
         AWS_SECRET_ACCESS_KEY: 'awsSecret123',
       });
       app = new UIServer(configs);
-
       const request = requests(app.start());
       request
         .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
@@ -114,7 +134,6 @@ describe('/artifacts', () => {
     });
 
     it('responds with partial s3 artifact if peek=5 flag is set', done => {
-      const mockedMinioClient = jest.spyOn(minioHelper, 'createMinioClient');
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
         AWS_SECRET_ACCESS_KEY: 'awsSecret123',
@@ -137,7 +156,6 @@ describe('/artifacts', () => {
     });
 
     it('responds with a s3 artifact from bucket in non-default region if source=s3', done => {
-      const mockedMinioClient: jest.Mock = jest.spyOn(minioHelper, 'createMinioClient') as any;
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
         AWS_SECRET_ACCESS_KEY: 'awsSecret123',

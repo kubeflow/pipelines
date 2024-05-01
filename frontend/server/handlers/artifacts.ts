@@ -15,7 +15,7 @@ import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import {Client as MinioClient} from 'minio';
 import {PreviewStream, findFileOnPodVolume, parseJSONString} from '../utils';
-import { createMinioClient, getObjectStream } from '../minio-helper';
+import {createMinioClient, getObjectStream} from '../minio-helper';
 import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
@@ -134,7 +134,7 @@ export function getArtifactsHandler({
         break;
       case 's3':
         try {
-          client = await createMinioClient(minio, 's3', providerInfo, namespace);
+          client = await createMinioClient(aws, 's3', providerInfo, namespace);
         } catch (e) {
           res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
           return;

@@ -21,14 +21,8 @@ import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'mini
 import { awsInstanceProfileCredentials, isAWSS3Endpoint } from './aws-helper';
 import { S3ProviderInfo} from "./handlers/artifacts";
 import {getK8sSecret} from "./k8s-helper";
-import {ErrorDetails, parseError, parseJSONString} from "./utils";
-import {AuthorizeFn} from "./helpers/auth";
-import {AuthorizeRequestResources, AuthorizeRequestVerb} from "./src/generated/apis/auth";
-import * as k8sHelper from "./k8s-helper";
-import {ParamsDictionary} from "express-serve-static-core";
-import { Request } from 'express';
-const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
-
+import {parseJSONString} from "./utils";
+const { fromNodeProviderChain, fromEnv } = require('@aws-sdk/credential-providers');
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {
   bucket: string;
@@ -55,16 +49,14 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
  * (defaultConfigs or ProviderInfo), and return a minio client configured
  * respectively.
  *
- * @param defaultConfig minio client options where `accessKey` and `secretKey` are optional.
+ * @param config minio client options where `accessKey` and `secretKey` are optional.
  * @param providerType provider type ('s3' or 'minio')
  * @param authorizeFn
  * @param req
  * @param namespace
  * @param providerInfoString?? json string container optional provider info
  */
-export async function createMinioClient(defaultConfig: MinioClientOptionsWithOptionalSecrets, providerType: string, providerInfoString?: string, namespace?: string) {
-  let config = defaultConfig;
-
+export async function createMinioClient(config: MinioClientOptionsWithOptionalSecrets, providerType: string, providerInfoString?: string, namespace?: string) {
   if (providerInfoString) {
     const providerInfo  = parseJSONString<S3ProviderInfo>(providerInfoString);
     // If fromEnv == false, we rely on the default credentials or env to provide credentials (e.g. IRSA)
@@ -76,45 +68,27 @@ export async function createMinioClient(defaultConfig: MinioClientOptionsWithOpt
       }
     }
   }
-  // If using s3 and sourcing credentials from environment (currently only check aws env)
+
+  // If using s3 and sourcing credentials from environment (currently only aws is supported)
   if (providerType === "s3" && (!config.accessKey || !config.secretKey)) {
     // AWS S3 with credentials from provider chain
     if (isAWSS3Endpoint(config.endPoint)) {
       try {
         const credentials = fromNodeProviderChain();
-        const aws_credentials = await credentials();
-        if (aws_credentials) {
+        const awsCredentials = await credentials();
+        if (awsCredentials) {
           const {
             accessKeyId: accessKey,
             secretAccessKey: secretKey,
-            sessionToken: sessionToken,
-          } = aws_credentials;
+            sessionToken,
+          } = awsCredentials;
           return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
         }
-      } catch (err) {
-        console.error('Unable to get credentials from AWS credential provider chain: ', err);
+      } catch (e) {
+        console.error('Unable to get aws instance profile credentials: ', e);
       }
     } else {
-      // If no access/secret key or endpoint provided
-      // attempt to fetch AWS S3 instance profile credentials
-      if (!config.accessKey || !config.secretKey) {
-        try {
-          if (await awsInstanceProfileCredentials.ok()) {
-            const credentials = await awsInstanceProfileCredentials.getCredentials();
-            if (credentials) {
-              const {
-                AccessKeyId: accessKey,
-                SecretAccessKey: secretKey,
-                Token: sessionToken,
-              } = credentials;
-              return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
-            }
-            console.error('Unable to get credentials from AWS metadata store.');
-          }
-        } catch (err) {
-          console.error('Unable to get aws instance profile credentials: ', err);
-        }
-      }
+      console.error('Encountered S3-compatible provider type with no provided credentials, and unsupported environment based credential support.');
     }
   }
 
@@ -201,8 +175,8 @@ export function isTarball(buf: Buffer) {
   const v0 = [0x75, 0x73, 0x74, 0x61, 0x72, 0x20, 0x20, 0x00];
 
   return (
-    v1.reduce((res, curr, i) => res && curr === buf[offset + i], true) ||
-    v0.reduce((res, curr, i) => res && curr === buf[offset + i], true as boolean)
+      v1.reduce((res, curr, i) => res && curr === buf[offset + i], true) ||
+      v0.reduce((res, curr, i) => res && curr === buf[offset + i], true as boolean)
   );
 }
 
@@ -212,11 +186,11 @@ export function isTarball(buf: Buffer) {
  */
 export function maybeTarball(): Transform {
   return peek(
-    { newline: false, maxBuffer: 264 },
-    (data: Buffer, swap: (error?: Error, parser?: Transform) => void) => {
-      if (isTarball(data)) swap(undefined, extractFirstTarRecordAsStream());
-      else swap(undefined, new PassThrough());
-    },
+      { newline: false, maxBuffer: 264 },
+      (data: Buffer, swap: (error?: Error, parser?: Transform) => void) => {
+        if (isTarball(data)) swap(undefined, extractFirstTarRecordAsStream());
+        else swap(undefined, new PassThrough());
+      },
   );
 }
 
@@ -258,11 +232,11 @@ function extractFirstTarRecordAsStream() {
  *
  */
 export async function getObjectStream({
-  bucket,
-  key,
-  client,
-  tryExtract = true,
-}: MinioRequestConfig): Promise<Transform> {
+                                        bucket,
+                                        key,
+                                        client,
+                                        tryExtract = true,
+                                      }: MinioRequestConfig): Promise<Transform> {
   const stream = await client.getObject(bucket, key);
   return tryExtract ? stream.pipe(gunzip()).pipe(maybeTarball()) : stream.pipe(new PassThrough());
 }
