@@ -70,7 +70,7 @@ export function parseJSONString<T>(str: string) {
   try {
     const jsonValue: T = JSON.parse(str);
     return jsonValue;
-  } catch {
+  } catch (e) {
     return undefined;
   }
 }

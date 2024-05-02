@@ -59,8 +59,11 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
 export async function createMinioClient(config: MinioClientOptionsWithOptionalSecrets, providerType: string, providerInfoString?: string, namespace?: string) {
   if (providerInfoString) {
     const providerInfo  = parseJSONString<S3ProviderInfo>(providerInfoString);
+    if (!providerInfo) {
+      throw new Error("Failed to parse provider info.");
+    }
     // If fromEnv == false, we rely on the default credentials or env to provide credentials (e.g. IRSA)
-    if (providerInfo && providerInfo.Params.fromEnv === "false") {
+    if (providerInfo.Params.fromEnv === "false") {
       if (!namespace){
         throw new Error("Artifact Store provider given, but no namespace provided.");
       } else {
