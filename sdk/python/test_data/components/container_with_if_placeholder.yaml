@@ -81,4 +81,4 @@ root:
       output_path:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.1.3
+sdkVersion: kfp-2.7.0
