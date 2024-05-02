@@ -3,7 +3,7 @@
 ## Features
 
 ## Breaking changes
-* Drop support for Python 3.7 since it has reached end-of-life(part1). [\#10750](https://github.com/kubeflow/pipelines/pull/10750)
+* Drop support for Python 3.7 since it has reached end-of-life. [\#10750](https://github.com/kubeflow/pipelines/pull/10750)
 
 ## Deprecations
 
