@@ -32,6 +32,11 @@ PipelineOutput = NamedTuple(
 )
 
 
+@kfp.dsl.component
+def new_component():
+  pass
+
+
 @kfp.dsl.pipeline(
     name='rlhf-train-template',
     description='Performs reinforcement learning from human feedback.',
