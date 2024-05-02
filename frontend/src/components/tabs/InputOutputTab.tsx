@@ -27,7 +27,8 @@ import {
   getArtifactName,
   getArtifactTypeName,
   getArtifactTypes,
-  getLinkedArtifactsByExecution, getStoreSessionInfoFromArtifact,
+  getLinkedArtifactsByExecution,
+  getStoreSessionInfoFromArtifact,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';

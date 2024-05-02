@@ -14,12 +14,11 @@
 import * as zlib from 'zlib';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
-import { awsInstanceProfileCredentials } from './aws-helper';
 import { createMinioClient, isTarball, maybeTarball, getObjectStream } from './minio-helper';
-import { V1beta1JobTemplateSpec } from '@kubernetes/client-node';
+const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
 
 jest.mock('minio');
-jest.mock('./aws-helper');
+jest.mock('@aws-sdk/credential-providers');
 
 describe('minio-helper', () => {
   const MockedMinioClient: jest.Mock = MinioClient as any;
@@ -57,30 +56,23 @@ describe('minio-helper', () => {
     });
 
     it('uses EC2 metadata credentials if access key are not provided.', async () => {
-      (awsInstanceProfileCredentials.getCredentials as jest.Mock).mockImplementation(() =>
-        Promise.resolve({
-          AccessKeyId: 'AccessKeyId',
-          Code: 'Success',
-          Expiration: new Date(Date.now() + 1000).toISOString(), // expires 1 sec later
-          LastUpdated: '2019-12-17T10:55:38Z',
-          SecretAccessKey: 'SecretAccessKey',
-          Token: 'SessionToken',
-          Type: 'AWS-HMAC',
-        }),
+      (fromNodeProviderChain as jest.Mock).mockImplementation(() =>
+          () =>
+              Promise.resolve({
+                accessKeyId: 'AccessKeyId',
+                secretAccessKey: 'SecretAccessKey',
+                sessionToken: 'SessionToken',
+              })
       );
-      (awsInstanceProfileCredentials.ok as jest.Mock).mockImplementation(() =>
-        Promise.resolve(true),
-      );
-
-      const client = await createMinioClient({ endPoint: 's3.awsamazon.com' }, 's3');
-
+      const client = await createMinioClient({ endPoint: 's3.amazonaws.com' }, 's3');
       expect(client).toBeInstanceOf(MinioClient);
       expect(MockedMinioClient).toHaveBeenCalledWith({
         accessKey: 'AccessKeyId',
-        endPoint: 's3.awsamazon.com',
+        endPoint: 's3.amazonaws.com',
         secretKey: 'SecretAccessKey',
         sessionToken: 'SessionToken',
       });
+      expect(MockedMinioClient).toBeCalledTimes(1);
     });
   });
 

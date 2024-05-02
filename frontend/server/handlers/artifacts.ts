@@ -13,8 +13,8 @@
 // limitations under the License.
 import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
-import {Client as MinioClient} from 'minio';
-import {PreviewStream, findFileOnPodVolume, parseJSONString} from '../utils';
+import { Client as MinioClient } from 'minio';
+import { PreviewStream, findFileOnPodVolume, parseJSONString } from '../utils';
 import {createMinioClient, getObjectStream} from '../minio-helper';
 import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
@@ -24,9 +24,9 @@ import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
 
 import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker';
-import {getK8sSecret} from "../k8s-helper";
-import {StorageOptions} from "@google-cloud/storage/build/src/storage";
-import {CredentialBody} from "google-auth-library/build/src/auth/credentials";
+import { getK8sSecret } from "../k8s-helper";
+import { StorageOptions } from "@google-cloud/storage/build/src/storage";
+import { CredentialBody } from "google-auth-library/build/src/auth/credentials";
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs

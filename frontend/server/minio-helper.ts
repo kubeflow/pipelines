@@ -18,11 +18,11 @@ import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
-import { awsInstanceProfileCredentials, isAWSS3Endpoint } from './aws-helper';
-import { S3ProviderInfo} from "./handlers/artifacts";
-import {getK8sSecret} from "./k8s-helper";
-import {parseJSONString} from "./utils";
-const { fromNodeProviderChain, fromEnv } = require('@aws-sdk/credential-providers');
+import { isAWSS3Endpoint } from './aws-helper';
+import { S3ProviderInfo } from "./handlers/artifacts";
+import { getK8sSecret } from "./k8s-helper";
+import { parseJSONString } from "./utils";
+const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {
   bucket: string;

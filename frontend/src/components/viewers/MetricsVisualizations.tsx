@@ -27,7 +27,8 @@ import { getMetadataValue } from 'src/mlmd/library';
 import {
   filterArtifactsByType,
   filterLinkedArtifactsByType,
-  getArtifactName, getStoreSessionInfoFromArtifact,
+  getArtifactName,
+  getStoreSessionInfoFromArtifact,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
