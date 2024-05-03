@@ -67,16 +67,16 @@ def infer_pipeline(
   """
   # fmt: on
   prompt_column = 'input_text'
-  infer_preprocessor.infer_preprocessor().set_display_name('Preprocess Inputs')
-
-  machine_spec = function_based.resolve_machine_spec(
+  preprocess_metadata = infer_preprocessor.infer_preprocessor(
+      large_model_reference=large_model_reference,
       accelerator_type=accelerator_type,
       use_test_spec=env.get_use_test_machine_spec(),
-  ).set_display_name('Resolve Machine Spec')
-  reference_model_metadata = function_based.resolve_reference_model_metadata(
-      large_model_reference=large_model_reference,
-      reference_model_path=model_checkpoint,
-  ).set_display_name('Resolve Model Metadata')
+      project=env.PRIVATE_ARTIFACT_REGISTRY_PROJECT,
+      location=env.PRIVATE_ARTIFACT_REGISTRY_LOCATION,
+      artifact_registry=env.PRIVATE_ARTIFACT_REGISTRY,
+      tag=env.get_private_image_tag(),
+      instruction=instruction,
+  ).set_display_name('Preprocess Inputs')
 
   processed_dataset = preprocess_chat_dataset.preprocess_chat_dataset(
       large_model_reference=large_model_reference,
@@ -85,10 +85,6 @@ def infer_pipeline(
       dataset_type='prompt',
   ).set_display_name('Preprocess Dataset')
 
-  resolved_text_instruction = function_based.resolve_instruction(
-      large_model_reference=large_model_reference,
-      instruction=instruction,
-  ).set_display_name('Resolve Instruction')
   prompt_dataset_importer = (
       private_text_importer.private_text_importer(
           project=project,
@@ -97,35 +93,34 @@ def infer_pipeline(
           inputs_field_name=prompt_column,
           targets_field_name='',  # ignore targets_field_name
           output_split_name=env.TRAIN_SPLIT,
-          large_model_reference=reference_model_metadata.outputs[
-              'large_model_reference'
+          large_model_reference=preprocess_metadata.outputs[
+              'metadata_large_model_reference'
           ],
-          instruction=resolved_text_instruction.output,
+          instruction=preprocess_metadata.outputs['metadata_instruction'],
           encryption_spec_key_name=encryption_spec_key_name,
       )
       .set_display_name('Import Prompt Dataset')
       .set_caching_options(False)
   )
 
-  bulk_inferrer_image_uri = function_based.resolve_private_refined_image_uri(
-      accelerator_type=machine_spec.outputs['accelerator_type'],
-  ).set_display_name('Resolve Bulk Inferrer Image URI')
   bulk_inference = bulk_inferrer.bulk_inferrer(
       project=project,
-      location=machine_spec.outputs['tuning_location'],
-      input_model=reference_model_metadata.outputs['reference_model_path'],
+      location=preprocess_metadata.outputs['metadata_tuning_location'],
+      input_model=preprocess_metadata.outputs['metadata_reference_model_path'],
       input_dataset_path=prompt_dataset_importer.outputs['imported_data_path'],
       dataset_split=env.TRAIN_SPLIT,
       inputs_sequence_length=prompt_sequence_length,
       targets_sequence_length=target_sequence_length,
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
+      large_model_reference=preprocess_metadata.outputs[
+          'metadata_large_model_reference'
       ],
       sampling_strategy=sampling_strategy,
-      accelerator_type=machine_spec.outputs['accelerator_type'],
-      accelerator_count=machine_spec.outputs['accelerator_count'],
-      machine_type=machine_spec.outputs['machine_type'],
-      image_uri=bulk_inferrer_image_uri.output,
+      accelerator_type=preprocess_metadata.outputs['metadata_accelerator_type'],
+      accelerator_count=preprocess_metadata.outputs[
+          'metadata_accelerator_count'
+      ],
+      machine_type=preprocess_metadata.outputs['metadata_machine_type'],
+      image_uri=preprocess_metadata.outputs['metadata_refined_image_uri'],
       encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Bulk Inferrer')
 
