@@ -79,7 +79,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -97,7 +97,7 @@ deploymentSpec:
           \ = []\n    for dataset in datasets:\n        with open(dataset.path, 'r')\
           \ as f:\n            texts.append(f.read())\n\n    return ''.join(texts)\n\
           \n"
-        image: python:3.7
+        image: python:3.8
     exec-make-dataset:
       container:
         args:
@@ -110,7 +110,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.2.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -127,7 +127,7 @@ deploymentSpec:
           \ *\n\ndef make_dataset(text: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
           \ metadata={'length': len(text)})\n    with open(dataset.path, 'w') as f:\n\
           \        f.write(text)\n    return dataset\n\n"
-        image: python:3.7
+        image: python:3.8
 pipelineInfo:
   name: make-and-join-datasets
 root:
@@ -184,4 +184,4 @@ root:
           schemaTitle: system.Dataset
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.2.0
+sdkVersion: kfp-2.7.0
