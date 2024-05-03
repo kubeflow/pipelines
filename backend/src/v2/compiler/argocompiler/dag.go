@@ -72,6 +72,15 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		if err != nil {
 			return err
 		}
+		// Add Parallelism Limit if present
+		parallel := int64(kfpTask.GetIteratorPolicy().GetParallelismLimit())
+		if parallel > 0 {
+			currentParallelism := dag.Parallelism
+			if currentParallelism == nil || parallel > *currentParallelism {
+				dag.Parallelism = &parallel
+			}
+		}
+
 		dag.DAG.Tasks = append(dag.DAG.Tasks, tasks...)
 	}
 	_, err = c.addTemplate(dag, name)
