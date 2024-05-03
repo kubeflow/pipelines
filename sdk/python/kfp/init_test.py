@@ -26,7 +26,7 @@ class TestPythonEOLWarning(unittest.TestCase):
 
         with self.assertWarnsRegex(
                 FutureWarning,
-                r'Python 3\.7 has reached end-of-life\. KFP will drop support for Python 3\.7 on April 23, 2024\. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3\.8\. See https:\/\/devguide\.python\.org\/versions\/ for more details\.'
+                r'KFP will drop support for Python 3\.8 on Oct 1, 2024\. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3\.9\. See https:\/\/devguide\.python\.org\/versions\/ for more details\.'
         ):
             # simulate first import from kfp
             importlib.reload(mod)
