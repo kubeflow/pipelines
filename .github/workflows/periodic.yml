@@ -19,6 +19,7 @@ jobs:
           node_image: kindest/node:v1.29.2
       - name: Run Functional Tests
         run: |
+          log_dir=$(mktemp -d)
           ./test/kfp-functional-test/kfp-functional-test.sh > $log_dir/periodic_tests.txt
       - name: Collect test results
         if: always()
