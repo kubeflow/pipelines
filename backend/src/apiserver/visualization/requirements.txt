@@ -220,7 +220,7 @@ itables==0.1.0
     # via -r requirements.in
 jedi==0.19.0
     # via ipython
-jinja2==2.11.3
+jinja2==3.1.4
     # via
     #   -r requirements.in
     #   bokeh
