@@ -121,7 +121,6 @@ def autosxs_pipeline(
       project=project,
       location=location,
       encryption_spec_key_name=encryption_spec_key_name,
-      autorater_prompt_parameters=autorater_prompt_parameters,
   ).set_display_name('AutoSxS Autorater')
 
   metrics = model_evaluation_text_generation_pairwise.model_evaluation_text_generation_pairwise(
