@@ -107,6 +107,8 @@ def rlhf_pipeline(
       evaluation_dataset=eval_dataset,
       tensorboard_resource_id=tensorboard_resource_id,
       upload_location=location,
+      model_display_name=model_display_name,
+      deploy_model=deploy_model,
   ).set_display_name('Preprocess Inputs')
   num_microbatches = preprocess_metadata.outputs['metadata_num_microbatches']
 
@@ -230,8 +232,11 @@ def rlhf_pipeline(
       policy_model_reference=preprocess_metadata.outputs[
           'metadata_large_model_reference'
       ],
-      model_display_name=model_display_name,
-      deploy_model=deploy_model,
+      model_display_name=preprocess_metadata.outputs[
+          'metadata_model_display_name'
+      ],
+      deploy_model=preprocess_metadata.outputs['metadata_deploy_model'],
+      upload_model=preprocess_metadata.outputs['metadata_upload_model'],
       encryption_spec_key_name=encryption_spec_key_name,
       upload_location=location,
       regional_endpoint=preprocess_metadata.outputs['metadata_upload_location'],
