@@ -18,7 +18,6 @@ from typing import NamedTuple, Optional
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components._implementation.llm import bulk_inferrer
 from google_cloud_pipeline_components._implementation.llm import env
-from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import infer_preprocessor
 from google_cloud_pipeline_components._implementation.llm import preprocess_chat_dataset
 from google_cloud_pipeline_components._implementation.llm import private_text_importer
