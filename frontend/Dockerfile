@@ -1,4 +1,4 @@
-FROM node:14.21.3 as build
+FROM node:14.21.3-bullseye as build
 
 ARG COMMIT_HASH
 ENV COMMIT_HASH=${COMMIT_HASH}
