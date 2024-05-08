@@ -1,6 +1,7 @@
 ## Upcoming release
 
 ## Release 2.15.0
+* Add staging and temp location parameters to prophet trainer component.
 * Add input parameter `autorater_prompt_parameters` to `_implementation.llm.online_evaluation_pairwise` component.
 * Mitigate bug in `v1.model_evaluation.autosxs_pipeline` where batch prediction would fail the first time it is run in a project by retrying.
 
