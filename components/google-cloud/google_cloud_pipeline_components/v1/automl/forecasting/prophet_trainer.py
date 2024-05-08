@@ -180,6 +180,16 @@ def prophet_trainer(
                   '--dataflow_use_public_ips=',
                   dataflow_use_public_ips,
                   '", "',
+                  '--dataflow_staging_dir=',
+                  root_dir,
+                  (
+                      f'/{dsl.PIPELINE_JOB_ID_PLACEHOLDER}/{dsl.PIPELINE_TASK_ID_PLACEHOLDER}/dataflow_staging", "'
+                  ),
+                  '--dataflow_tmp_dir=',
+                  root_dir,
+                  (
+                      f'/{dsl.PIPELINE_JOB_ID_PLACEHOLDER}/{dsl.PIPELINE_TASK_ID_PLACEHOLDER}/dataflow_tmp", "'
+                  ),
                   '--gcp_resources_path=',
                   gcp_resources,
                   '", "',
