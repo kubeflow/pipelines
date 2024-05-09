@@ -14,6 +14,8 @@
 
 REMOTE=gcr.io/ml-pipeline-test/release@sha256:ed1a4dbe536e7e161ad0d846b5681aacc0e0e7f285985cb1808c5c8987bcfeb0
 
+CONTAINER_ENGINE ?= docker
+
 .PHONY: release
 release:
 	# Usage: TAG=<TAG> BRANCH=<BRANCH> make release
@@ -33,7 +35,7 @@ release-in-place:
 # Build a release image locally using docker.
 .PHONY: build
 build:
-	docker build -t $(REMOTE) - < Dockerfile.release
+	${CONTAINER_ENGINE} build -t $(REMOTE) - < Dockerfile.release
 
 # Push locally built release image to remote container registry,
 # so that others can use the new image next time.
@@ -41,9 +43,9 @@ build:
 push: build
 	# Only some maintainers have access to push,
 	# contact @chensun @zijianjoy if you have any needs.
-	docker push $(REMOTE)
+	${CONTAINER_ENGINE} push $(REMOTE)
 
 # Run the docker image interactively in shell as current user.
 .PHONY: dev
 dev:
-	docker run -it -u $$(id -u):$$(id -g) $(REMOTE) /bin/bash
+	${CONTAINER_ENGINE} run -it -u $$(id -u):$$(id -g) $(REMOTE) /bin/bash
