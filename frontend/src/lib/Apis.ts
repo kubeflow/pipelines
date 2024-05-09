@@ -265,13 +265,18 @@ export class Apis {
   /**
    * Reads file from storage using server.
    */
-  public static readFile({path, providerInfo, namespace, peek} : {
+  public static readFile({
+    path,
+    providerInfo,
+    namespace,
+    peek,
+  }: {
     path: StoragePath;
     namespace?: string;
     providerInfo?: string;
     peek?: number;
   }): Promise<string> {
-    let query = this.buildReadFileUrl({ path, namespace, providerInfo, peek, isDownload: false })
+    let query = this.buildReadFileUrl({ path, namespace, providerInfo, peek, isDownload: false });
     return this._fetch(query);
   }
 

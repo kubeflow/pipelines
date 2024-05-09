@@ -24,7 +24,7 @@ import { stylesheet } from 'typestyle';
 import Banner from './Banner';
 import { ValueComponentProps } from './DetailsTable';
 import { logger } from 'src/lib/Utils';
-import { URIToSessionInfo } from "./tabs/InputOutputTab";
+import { URIToSessionInfo } from './tabs/InputOutputTab';
 
 const css = stylesheet({
   root: {
@@ -66,12 +66,12 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   maxbytes = 255,
   maxlines = 20,
 }) => {
-  let storage: StoragePath | undefined
-  let providerInfo: string | undefined
+  let storage: StoragePath | undefined;
+  let providerInfo: string | undefined;
 
   if (value) {
     try {
-      providerInfo = sessionMap?.get(value)
+      providerInfo = sessionMap?.get(value);
       storage = WorkflowParser.parseStoragePath(value);
     } catch (error) {
       logger.error(error);
@@ -140,7 +140,12 @@ async function getPreview(
     return ``;
   }
   // TODO how to handle binary data (can probably use magic number to id common mime types)
-  let data = await Apis.readFile({path: storagePath, providerInfo: providerInfo, namespace: namespace, peek: maxbytes +1});
+  let data = await Apis.readFile({
+    path: storagePath,
+    providerInfo: providerInfo,
+    namespace: namespace,
+    peek: maxbytes + 1,
+  });
   // is preview === data and no maxlines
   if (data.length <= maxbytes && (!maxlines || data.split('\n').length < maxlines)) {
     return data;

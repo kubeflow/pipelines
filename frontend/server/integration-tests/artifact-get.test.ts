@@ -23,7 +23,7 @@ import { UIServer } from '../app';
 import { loadConfigs } from '../configs';
 import * as serverInfo from '../helpers/server-info';
 import { commonSetup, mkTempDir } from './test-helper';
-import {getK8sSecret} from "../k8s-helper";
+import { getK8sSecret } from '../k8s-helper';
 
 const MinioClient = minio.Client;
 jest.mock('minio');
@@ -100,17 +100,17 @@ describe('/artifacts', () => {
       process.env.AWS_SECRET_ACCESS_KEY = 'awsSecret123';
       const request = requests(app.start());
       request
-          .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
-          .expect(200, artifactContent, err => {
-            expect(mockedMinioClient).toBeCalledWith({
-              accessKey: 'aws123',
-              endPoint: 's3.amazonaws.com',
-              region: 'us-east-1',
-              secretKey: 'awsSecret123',
-              useSSL: true,
-            });
-            done(err);
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(200, artifactContent, err => {
+          expect(mockedMinioClient).toBeCalledWith({
+            accessKey: 'aws123',
+            endPoint: 's3.amazonaws.com',
+            region: 'us-east-1',
+            secretKey: 'awsSecret123',
+            useSSL: true,
           });
+          done(err);
+        });
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Load Configs', done => {
@@ -145,39 +145,43 @@ describe('/artifacts', () => {
       app = new UIServer(configs);
       const request = requests(app.start());
       const providerInfo = {
-        "Params": {
-          "accessKeyKey": "someSecret",
+        Params: {
+          accessKeyKey: 'someSecret',
           // this not set and default is used (tls=true)
           // since aws connections are always tls secured
-          "disableSSL": "false",
-          "endpoint": "s3.amazonaws.com",
-          "fromEnv": "false",
+          disableSSL: 'false',
+          endpoint: 's3.amazonaws.com',
+          fromEnv: 'false',
           // this not set and default is used
           // since aws connections always have the same port
-          "port": "0001",
-          "region": "us-east-2",
-          "secretKeyKey": "someSecret",
-          "secretName": "aws-s3-creds"
+          port: '0001',
+          region: 'us-east-2',
+          secretKeyKey: 'someSecret',
+          secretName: 'aws-s3-creds',
         },
-        "Provider": "s3",
+        Provider: 's3',
       };
-      const namespace = "test";
+      const namespace = 'test';
       request
-          .get(`/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(providerInfo)}`)
-          .expect(200, artifactContent, err => {
-            expect(mockedMinioClient).toBeCalledWith({
-              accessKey: 'someSecret',
-              endPoint: 's3.amazonaws.com',
-              port: undefined,
-              region: 'us-east-2',
-              secretKey: 'someSecret',
-              useSSL: undefined,
-            });
-            expect(mockedMinioClient).toBeCalledTimes(1);
-            expect(mockedGetK8sSecret).toBeCalledWith("aws-s3-creds", "someSecret", `${namespace}`);
-            expect(mockedGetK8sSecret).toBeCalledTimes(2);
-            done(err);
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(200, artifactContent, err => {
+          expect(mockedMinioClient).toBeCalledWith({
+            accessKey: 'someSecret',
+            endPoint: 's3.amazonaws.com',
+            port: undefined,
+            region: 'us-east-2',
+            secretKey: 'someSecret',
+            useSSL: undefined,
           });
+          expect(mockedMinioClient).toBeCalledTimes(1);
+          expect(mockedGetK8sSecret).toBeCalledWith('aws-s3-creds', 'someSecret', `${namespace}`);
+          expect(mockedGetK8sSecret).toBeCalledTimes(2);
+          done(err);
+        });
     });
 
     it('responds error when source is s3, and creds are sourced from Provider Configs, but no namespace is provided', done => {
@@ -186,23 +190,31 @@ describe('/artifacts', () => {
       app = new UIServer(configs);
       const request = requests(app.start());
       const providerInfo = {
-        "Params": {
-          "accessKeyKey": "AWS_ACCESS_KEY_ID",
-          "disableSSL": "false",
-          "endpoint": "s3.amazonaws.com",
-          "fromEnv": "false",
-          "region": "us-east-2",
-          "secretKeyKey": "AWS_SECRET_ACCESS_KEY",
-          "secretName": "aws-s3-creds"
+        Params: {
+          accessKeyKey: 'AWS_ACCESS_KEY_ID',
+          disableSSL: 'false',
+          endpoint: 's3.amazonaws.com',
+          fromEnv: 'false',
+          region: 'us-east-2',
+          secretKeyKey: 'AWS_SECRET_ACCESS_KEY',
+          secretName: 'aws-s3-creds',
         },
-        "Provider": "s3",
+        Provider: 's3',
       };
       request
-          .get(`/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt$&providerInfo=${JSON.stringify(providerInfo)}`)
-          .expect(500, 'Failed to initialize Minio Client for S3 Provider: Error: Artifact Store provider given, but no namespace provided.', err => {
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt$&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(
+          500,
+          'Failed to initialize Minio Client for S3 Provider: Error: Artifact Store provider given, but no namespace provided.',
+          err => {
             expect(mockedGetK8sSecret).toBeCalledTimes(0);
             done(err);
-          });
+          },
+        );
     });
 
     it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs', done => {
@@ -213,34 +225,38 @@ describe('/artifacts', () => {
       app = new UIServer(configs);
       const request = requests(app.start());
       const providerInfo = {
-        "Params": {
-          "accessKeyKey": "someSecret",
-          "disableSSL": "false",
-          "endpoint": "https://mys3.com",
-          "fromEnv": "false",
-          "region": "auto",
-          "secretKeyKey": "someSecret",
-          "secretName": "my-secret"
+        Params: {
+          accessKeyKey: 'someSecret',
+          disableSSL: 'false',
+          endpoint: 'https://mys3.com',
+          fromEnv: 'false',
+          region: 'auto',
+          secretKeyKey: 'someSecret',
+          secretName: 'my-secret',
         },
-        "Provider": "s3",
+        Provider: 's3',
       };
-      const namespace = "test";
+      const namespace = 'test';
       request
-          .get(`/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(providerInfo)}`)
-          .expect(200, artifactContent, err => {
-            expect(mockedMinioClient).toBeCalledWith({
-              accessKey: 'someSecret',
-              endPoint: 'mys3.com',
-              port: undefined,
-              region: 'auto',
-              secretKey: 'someSecret',
-              useSSL: true,
-            });
-            expect(mockedMinioClient).toBeCalledTimes(1);
-            expect(mockedGetK8sSecret).toBeCalledWith("my-secret", "someSecret", `${namespace}`);
-            expect(mockedGetK8sSecret).toBeCalledTimes(2);
-            done(err);
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(200, artifactContent, err => {
+          expect(mockedMinioClient).toBeCalledWith({
+            accessKey: 'someSecret',
+            endPoint: 'mys3.com',
+            port: undefined,
+            region: 'auto',
+            secretKey: 'someSecret',
+            useSSL: true,
           });
+          expect(mockedMinioClient).toBeCalledTimes(1);
+          expect(mockedGetK8sSecret).toBeCalledWith('my-secret', 'someSecret', `${namespace}`);
+          expect(mockedGetK8sSecret).toBeCalledTimes(2);
+          done(err);
+        });
     });
 
     it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs, with endpoint port', done => {
@@ -251,34 +267,38 @@ describe('/artifacts', () => {
       app = new UIServer(configs);
       const request = requests(app.start());
       const providerInfo = {
-        "Params": {
-          "accessKeyKey": "someSecret",
-          "disableSSL": "false",
-          "endpoint": "https://mys3.ns.svc.cluster.local:1234",
-          "fromEnv": "false",
-          "region": "auto",
-          "secretKeyKey": "someSecret",
-          "secretName": "my-secret"
+        Params: {
+          accessKeyKey: 'someSecret',
+          disableSSL: 'false',
+          endpoint: 'https://mys3.ns.svc.cluster.local:1234',
+          fromEnv: 'false',
+          region: 'auto',
+          secretKeyKey: 'someSecret',
+          secretName: 'my-secret',
         },
-        "Provider": "s3",
+        Provider: 's3',
       };
-      const namespace = "test";
+      const namespace = 'test';
       request
-          .get(`/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(providerInfo)}`)
-          .expect(200, artifactContent, err => {
-            expect(mockedMinioClient).toBeCalledWith({
-              accessKey: 'someSecret',
-              endPoint: 'mys3.ns.svc.cluster.local',
-              port: 1234,
-              region: 'auto',
-              secretKey: 'someSecret',
-              useSSL: true,
-            });
-            expect(mockedMinioClient).toBeCalledTimes(1);
-            expect(mockedGetK8sSecret).toBeCalledWith("my-secret", "someSecret", `${namespace}`);
-            expect(mockedGetK8sSecret).toBeCalledTimes(2);
-            done(err);
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(200, artifactContent, err => {
+          expect(mockedMinioClient).toBeCalledWith({
+            accessKey: 'someSecret',
+            endPoint: 'mys3.ns.svc.cluster.local',
+            port: 1234,
+            region: 'auto',
+            secretKey: 'someSecret',
+            useSSL: true,
           });
+          expect(mockedMinioClient).toBeCalledTimes(1);
+          expect(mockedGetK8sSecret).toBeCalledWith('my-secret', 'someSecret', `${namespace}`);
+          expect(mockedGetK8sSecret).toBeCalledTimes(2);
+          done(err);
+        });
     });
 
     it('responds with artifact if source is gcs, and creds are sourced from Provider Configs', done => {
@@ -292,36 +312,40 @@ describe('/artifacts', () => {
       mockedGcsStorage.mockImplementationOnce(() => ({
         bucket: () => ({
           getFiles: () =>
-              Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
+            Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
         }),
       }));
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
       const request = requests(app.start());
       const providerInfo = {
-        "Params": {
-          "fromEnv": "false",
-          "secretName": "someSecret",
-          "tokenKey": 'somekey'
+        Params: {
+          fromEnv: 'false',
+          secretName: 'someSecret',
+          tokenKey: 'somekey',
         },
-        "Provider": "gs",
+        Provider: 'gs',
       };
-      const namespace = "test";
+      const namespace = 'test';
       request
-          .get(`/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(providerInfo)}`)
-          .expect(200, artifactContent + '\n', err => {
-            const expectedArg = {
-              "credentials": {
-                "client_email": "testemail",
-                "private_key": "testkey",
-              },
-              "scopes": "https://www.googleapis.com/auth/devstorage.read_write"
-            };
-            expect(mockedGcsStorage).toBeCalledWith(expectedArg);
-            expect(mockedGetK8sSecret).toBeCalledWith("someSecret", "somekey", `${namespace}`);
-            expect(mockedGetK8sSecret).toBeCalledTimes(1);
-            done(err);
-          });
+        .get(
+          `/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(200, artifactContent + '\n', err => {
+          const expectedArg = {
+            credentials: {
+              client_email: 'testemail',
+              private_key: 'testkey',
+            },
+            scopes: 'https://www.googleapis.com/auth/devstorage.read_write',
+          };
+          expect(mockedGcsStorage).toBeCalledWith(expectedArg);
+          expect(mockedGetK8sSecret).toBeCalledWith('someSecret', 'somekey', `${namespace}`);
+          expect(mockedGetK8sSecret).toBeCalledTimes(1);
+          done(err);
+        });
     });
 
     it('responds with partial s3 artifact if peek=5 flag is set', done => {

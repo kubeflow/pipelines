@@ -42,7 +42,7 @@ export type ParamList = Array<KeyValue<string>>;
 export type URIToSessionInfo = Map<string, string | undefined>;
 export interface ArtifactParamsWithSessionInfo {
   params: ParamList;
-  sessionMap: URIToSessionInfo
+  sessionMap: URIToSessionInfo;
 }
 
 export interface ArtifactLocation {
@@ -93,15 +93,15 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
     );
   }
 
-  let inputArtifacts : ParamList = []
-  let outputArtifacts : ParamList = []
+  let inputArtifacts: ParamList = [];
+  let outputArtifacts: ParamList = [];
 
-  if (inputArtifactsWithSessionInfo){
-    inputArtifacts = inputArtifactsWithSessionInfo.params
+  if (inputArtifactsWithSessionInfo) {
+    inputArtifacts = inputArtifactsWithSessionInfo.params;
   }
 
   if (outputArtifactsWithSessionInfo) {
-    outputArtifacts = outputArtifactsWithSessionInfo.params
+    outputArtifacts = outputArtifactsWithSessionInfo.params;
   }
 
   let isIoEmpty = false;
@@ -215,34 +215,33 @@ function extractParamFromExecution(execution: Execution, name: string): KeyValue
 export function getArtifactParamList(
   inputArtifacts: LinkedArtifact[],
   artifactTypeNames: string[],
-): (ArtifactParamsWithSessionInfo) {
-
-  let sessMap : URIToSessionInfo = new Map<string, string | undefined>()
+): ArtifactParamsWithSessionInfo {
+  let sessMap: URIToSessionInfo = new Map<string, string | undefined>();
 
   let params = Object.values(inputArtifacts).map((linkedArtifact, index) => {
     let key = getArtifactName(linkedArtifact);
     if (
-        key &&
-        (artifactTypeNames[index] === 'system.Metrics' ||
-            artifactTypeNames[index] === 'system.ClassificationMetrics')
+      key &&
+      (artifactTypeNames[index] === 'system.Metrics' ||
+        artifactTypeNames[index] === 'system.ClassificationMetrics')
     ) {
       key += ' (This is an empty file by default)';
     }
     const artifactId = linkedArtifact.artifact.getId();
     const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (
-        <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifactId)}>
-          {key}
-        </Link>
+      <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifactId)}>
+        {key}
+      </Link>
     ) : (
-        key
+      key
     );
 
     const uri = linkedArtifact.artifact.getUri();
     const sessInfo = getStoreSessionInfoFromArtifact(linkedArtifact);
-    sessMap.set(uri, sessInfo)
+    sessMap.set(uri, sessInfo);
 
     return [artifactElement, uri];
   });
 
-  return {params: params, sessionMap: sessMap}
+  return { params: params, sessionMap: sessMap };
 }

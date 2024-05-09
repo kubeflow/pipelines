@@ -30,11 +30,14 @@ describe('minio-helper', () => {
 
   describe('createMinioClient', () => {
     it('creates a minio client with the provided configs.', async () => {
-      const client = await createMinioClient({
-        accessKey: 'accesskey',
-        endPoint: 'minio.kubeflow:80',
-        secretKey: 'secretkey',
-      }, 's3');
+      const client = await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'minio.kubeflow:80',
+          secretKey: 'secretkey',
+        },
+        's3',
+      );
 
       expect(client).toBeInstanceOf(MinioClient);
       expect(MockedMinioClient).toHaveBeenCalledWith({
@@ -45,9 +48,12 @@ describe('minio-helper', () => {
     });
 
     it('fallbacks to the provided configs if EC2 metadata is not available.', async () => {
-      const client = await createMinioClient({
-        endPoint: 'minio.kubeflow:80',
-      }, 's3');
+      const client = await createMinioClient(
+        {
+          endPoint: 'minio.kubeflow:80',
+        },
+        's3',
+      );
 
       expect(client).toBeInstanceOf(MinioClient);
       expect(MockedMinioClient).toHaveBeenCalledWith({
@@ -56,13 +62,12 @@ describe('minio-helper', () => {
     });
 
     it('uses EC2 metadata credentials if access key are not provided.', async () => {
-      (fromNodeProviderChain as jest.Mock).mockImplementation(() =>
-          () =>
-              Promise.resolve({
-                accessKeyId: 'AccessKeyId',
-                secretAccessKey: 'SecretAccessKey',
-                sessionToken: 'SessionToken',
-              })
+      (fromNodeProviderChain as jest.Mock).mockImplementation(() => () =>
+        Promise.resolve({
+          accessKeyId: 'AccessKeyId',
+          secretAccessKey: 'SecretAccessKey',
+          sessionToken: 'SessionToken',
+        }),
       );
       const client = await createMinioClient({ endPoint: 's3.amazonaws.com' }, 's3');
       expect(client).toBeInstanceOf(MinioClient);

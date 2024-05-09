@@ -19,9 +19,9 @@ import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
 import { isAWSS3Endpoint } from './aws-helper';
-import { S3ProviderInfo } from "./handlers/artifacts";
-import { getK8sSecret } from "./k8s-helper";
-import { parseJSONString } from "./utils";
+import { S3ProviderInfo } from './handlers/artifacts';
+import { getK8sSecret } from './k8s-helper';
+import { parseJSONString } from './utils';
 const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {
@@ -56,16 +56,21 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
  * @param namespace
  * @param providerInfoString?? json string container optional provider info
  */
-export async function createMinioClient(config: MinioClientOptionsWithOptionalSecrets, providerType: string, providerInfoString?: string, namespace?: string) {
+export async function createMinioClient(
+  config: MinioClientOptionsWithOptionalSecrets,
+  providerType: string,
+  providerInfoString?: string,
+  namespace?: string,
+) {
   if (providerInfoString) {
-    const providerInfo  = parseJSONString<S3ProviderInfo>(providerInfoString);
+    const providerInfo = parseJSONString<S3ProviderInfo>(providerInfoString);
     if (!providerInfo) {
-      throw new Error("Failed to parse provider info.");
+      throw new Error('Failed to parse provider info.');
     }
     // If fromEnv == false, we rely on the default credentials or env to provide credentials (e.g. IRSA)
-    if (providerInfo.Params.fromEnv === "false") {
-      if (!namespace){
-        throw new Error("Artifact Store provider given, but no namespace provided.");
+    if (providerInfo.Params.fromEnv === 'false') {
+      if (!namespace) {
+        throw new Error('Artifact Store provider given, but no namespace provided.');
       } else {
         config = await parseS3ProviderInfo(config, providerInfo, namespace);
       }
@@ -73,7 +78,7 @@ export async function createMinioClient(config: MinioClientOptionsWithOptionalSe
   }
 
   // If using s3 and sourcing credentials from environment (currently only aws is supported)
-  if (providerType === "s3" && (!config.accessKey || !config.secretKey)) {
+  if (providerType === 's3' && (!config.accessKey || !config.secretKey)) {
     // AWS S3 with credentials from provider chain
     if (isAWSS3Endpoint(config.endPoint)) {
       try {
@@ -91,12 +96,14 @@ export async function createMinioClient(config: MinioClientOptionsWithOptionalSe
         console.error('Unable to get aws instance profile credentials: ', e);
       }
     } else {
-      console.error('Encountered S3-compatible provider type with no provided credentials, and unsupported environment based credential support.');
+      console.error(
+        'Encountered S3-compatible provider type with no provided credentials, and unsupported environment based credential support.',
+      );
     }
   }
 
   // If using any AWS or S3 compatible store (e.g. minio, aws s3 when using manual creds, ceph, etc.)
-  let mc : MinioClient;
+  let mc: MinioClient;
   try {
     mc = await new MinioClient(config as MinioClientOptions);
   } catch (err) {
@@ -106,21 +113,41 @@ export async function createMinioClient(config: MinioClientOptionsWithOptionalSe
 }
 
 // Parse provider info for any s3 compatible store that's not AWS S3
-async function parseS3ProviderInfo(config: MinioClientOptionsWithOptionalSecrets, providerInfo: S3ProviderInfo, namespace: string) : Promise<MinioClientOptionsWithOptionalSecrets> {
-  if (!providerInfo.Params.accessKeyKey || !providerInfo.Params.secretKeyKey || !providerInfo.Params.secretName) {
-    throw new Error('Provider info with fromEnv:false supplied with incomplete secret credential info.');
+async function parseS3ProviderInfo(
+  config: MinioClientOptionsWithOptionalSecrets,
+  providerInfo: S3ProviderInfo,
+  namespace: string,
+): Promise<MinioClientOptionsWithOptionalSecrets> {
+  if (
+    !providerInfo.Params.accessKeyKey ||
+    !providerInfo.Params.secretKeyKey ||
+    !providerInfo.Params.secretName
+  ) {
+    throw new Error(
+      'Provider info with fromEnv:false supplied with incomplete secret credential info.',
+    );
   }
 
   try {
-    config.accessKey = await getK8sSecret(providerInfo.Params.secretName, providerInfo.Params.accessKeyKey, namespace);
-    config.secretKey = await getK8sSecret(providerInfo.Params.secretName, providerInfo.Params.secretKeyKey, namespace);
+    config.accessKey = await getK8sSecret(
+      providerInfo.Params.secretName,
+      providerInfo.Params.accessKeyKey,
+      namespace,
+    );
+    config.secretKey = await getK8sSecret(
+      providerInfo.Params.secretName,
+      providerInfo.Params.secretKeyKey,
+      namespace,
+    );
   } catch (e) {
-    throw new Error(`Encountered error when trying to fetch provider secret ${providerInfo.Params.secretName}.`);
+    throw new Error(
+      `Encountered error when trying to fetch provider secret ${providerInfo.Params.secretName}.`,
+    );
   }
 
   if (isAWSS3Endpoint(providerInfo.Params.endpoint)) {
     if (providerInfo.Params.endpoint) {
-      if(providerInfo.Params.endpoint.startsWith("https")){
+      if (providerInfo.Params.endpoint.startsWith('https')) {
         const parseEndpoint = new URL(providerInfo.Params.endpoint);
         config.endPoint = parseEndpoint.hostname;
       } else {
@@ -153,7 +180,7 @@ async function parseS3ProviderInfo(config: MinioClientOptionsWithOptionalSecrets
     config.region = providerInfo.Params.region ? providerInfo.Params.region : undefined;
 
     if (providerInfo.Params.disableSSL) {
-      config.useSSL = !(providerInfo.Params.disableSSL.toLowerCase() === "true");
+      config.useSSL = !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
     } else {
       config.useSSL = undefined;
     }
@@ -178,8 +205,8 @@ export function isTarball(buf: Buffer) {
   const v0 = [0x75, 0x73, 0x74, 0x61, 0x72, 0x20, 0x20, 0x00];
 
   return (
-      v1.reduce((res, curr, i) => res && curr === buf[offset + i], true) ||
-      v0.reduce((res, curr, i) => res && curr === buf[offset + i], true as boolean)
+    v1.reduce((res, curr, i) => res && curr === buf[offset + i], true) ||
+    v0.reduce((res, curr, i) => res && curr === buf[offset + i], true as boolean)
   );
 }
 
@@ -189,11 +216,11 @@ export function isTarball(buf: Buffer) {
  */
 export function maybeTarball(): Transform {
   return peek(
-      { newline: false, maxBuffer: 264 },
-      (data: Buffer, swap: (error?: Error, parser?: Transform) => void) => {
-        if (isTarball(data)) swap(undefined, extractFirstTarRecordAsStream());
-        else swap(undefined, new PassThrough());
-      },
+    { newline: false, maxBuffer: 264 },
+    (data: Buffer, swap: (error?: Error, parser?: Transform) => void) => {
+      if (isTarball(data)) swap(undefined, extractFirstTarRecordAsStream());
+      else swap(undefined, new PassThrough());
+    },
   );
 }
 
@@ -235,11 +262,11 @@ function extractFirstTarRecordAsStream() {
  *
  */
 export async function getObjectStream({
-                                        bucket,
-                                        key,
-                                        client,
-                                        tryExtract = true,
-                                      }: MinioRequestConfig): Promise<Transform> {
+  bucket,
+  key,
+  client,
+  tryExtract = true,
+}: MinioRequestConfig): Promise<Transform> {
   const stream = await client.getObject(bucket, key);
   return tryExtract ? stream.pipe(gunzip()).pipe(maybeTarball()) : stream.pipe(new PassThrough());
 }

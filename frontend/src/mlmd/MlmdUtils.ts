@@ -287,8 +287,11 @@ export interface LinkedArtifact {
   artifact: Artifact;
 }
 
-export function getStoreSessionInfoFromArtifact(artifact : LinkedArtifact) : string | undefined {
-  return artifact.artifact.getCustomPropertiesMap().get("store_session_info")?.getStringValue();
+export function getStoreSessionInfoFromArtifact(artifact: LinkedArtifact): string | undefined {
+  return artifact.artifact
+    .getCustomPropertiesMap()
+    .get('store_session_info')
+    ?.getStringValue();
 }
 
 export async function getLinkedArtifactsByEvents(events: Event[]): Promise<LinkedArtifact[]> {

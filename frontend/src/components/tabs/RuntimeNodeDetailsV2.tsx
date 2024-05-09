@@ -49,7 +49,7 @@ import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizati
 import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
 import InputOutputTab, {
   getArtifactParamList,
-  ParamList
+  ParamList,
 } from 'src/components/tabs/InputOutputTab';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
@@ -180,7 +180,7 @@ function TaskNodeDetail({
         {selectedTab === 0 &&
           (() => {
             if (execution) {
-              return <InputOutputTab execution={execution} namespace={namespace}/>;
+              return <InputOutputTab execution={execution} namespace={namespace} />;
             }
             return NODE_STATE_UNAVAILABLE;
           })()}
@@ -422,10 +422,10 @@ function ArtifactInfo({
   ];
 
   let artifactParamsWithSessionInfo = getArtifactParamList([linkedArtifact], artifactTypeName);
-  let artifactParams : ParamList = []
+  let artifactParams: ParamList = [];
 
-  if (artifactParamsWithSessionInfo){
-    artifactParams = artifactParamsWithSessionInfo.params
+  if (artifactParamsWithSessionInfo) {
+    artifactParams = artifactParamsWithSessionInfo.params;
   }
 
   return (
