@@ -1,4 +1,4 @@
-FROM node:14.21.3 as build
+FROM node:18.18.2 as build
 
 ARG COMMIT_HASH
 ENV COMMIT_HASH=${COMMIT_HASH}
@@ -25,7 +25,7 @@ RUN mkdir -p ./server/dist && \
 # concatenate them to one file under ./src/server
 RUN ./scripts/yarn-licenses.sh
 
-FROM node:14.21.3-alpine3.17
+FROM node:18.18.2-alpine3.17
 
 COPY --from=build ./src/frontend/server /server
 COPY --from=build ./src/frontend/build /client
