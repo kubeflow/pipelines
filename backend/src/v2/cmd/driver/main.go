@@ -68,6 +68,8 @@ var (
 	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
+
+	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -147,18 +149,24 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	cacheClient, err := cacheutils.NewClient()
+	mlPipelineServiceTLSEnabled, err := strconv.ParseBool(*mlPipelineServiceTLSEnabledStr)
+	if err != nil {
+		return err
+	}
+
+	cacheClient, err := cacheutils.NewClient(mlPipelineServiceTLSEnabled)
 	if err != nil {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:   *pipelineName,
-		RunID:          *runID,
-		Namespace:      namespace,
-		Component:      componentSpec,
-		Task:           taskSpec,
-		DAGExecutionID: *dagExecutionID,
-		IterationIndex: *iterationIndex,
+		PipelineName:         *pipelineName,
+		RunID:                *runID,
+		Namespace:            namespace,
+		Component:            componentSpec,
+		Task:                 taskSpec,
+		DAGExecutionID:       *dagExecutionID,
+		IterationIndex:       *iterationIndex,
+		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
 	}
 	var execution *driver.Execution
 	var driverErr error

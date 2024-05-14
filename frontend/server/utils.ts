@@ -20,7 +20,7 @@ export function getAddress({
   host,
   port,
   namespace,
-  schema = 'http',
+  schema,
 }: {
   host: string;
   port?: string | number;

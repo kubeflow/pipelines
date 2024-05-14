@@ -118,10 +118,17 @@ spec:
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
+      - "--mlPipelineServiceTLSEnabled"
+      - "false"
       command:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver
       name: ""
+      env:
+        - name: ML_PIPELINE_SERVICE_HOST
+          value: ml-pipeline.kubeflow.svc.cluster.local
+        - name: ML_PIPELINE_SERVICE_PORT_GRPC
+          value: '8887'
       resources:
         limits:
           cpu: 500m

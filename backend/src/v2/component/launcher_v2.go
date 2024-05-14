@@ -52,6 +52,8 @@ type LauncherV2Options struct {
 	MLMDServerPort,
 	PipelineName,
 	RunID string
+	// set to true if ml pipeline server is serving over tls
+	MLPipelineTLSEnabled bool
 }
 
 type LauncherV2 struct {
@@ -112,7 +114,7 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
-	cacheClient, err := cacheutils.NewClient()
+	cacheClient, err := cacheutils.NewClient(opts.MLPipelineTLSEnabled)
 	if err != nil {
 		return nil, err
 	}
