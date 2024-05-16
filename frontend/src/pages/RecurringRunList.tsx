@@ -273,7 +273,19 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     let experimentsResponse: V2beta1ListExperimentsResponse;
     let experimentsGetError: string;
     try {
-      experimentsResponse = await Apis.experimentServiceApiV2.listExperiments();
+      if (!this.props.namespaceMask) {
+        // Single-user mode.
+        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments();
+      } else {
+        // Multi-user mode.
+        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments(
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          this.props.namespaceMask,
+        );
+      }
     } catch (error) {
       experimentsGetError = 'Failed to get associated experiment: ' + (await errorToMessage(error));
     }
