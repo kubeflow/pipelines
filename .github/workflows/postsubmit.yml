@@ -1,0 +1,55 @@
+name: Postsubmits
+
+on:
+  push:
+    branches:
+    - master
+    - release-*
+jobs:
+  kubeflow-pipelines-postsubmit-integration-v2:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Create k8s Kind Cluster
+      uses: container-tools/kind-action@v2
+      with:
+        cluster_name: build-kubeflow
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.7
+    - name: Run tests 
+      run: |
+        ./backend/src/v2/test/integration-test.sh
+    - name: Collect test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: kfp-postsubmit-integration-v2-artifacts
+        path: /tmp/tmp.*/*
+
+  kubeflow-pipeline-postsubmit-mkp-e2e-test:
+    runs-on: ubuntu-latest
+    container: 
+      image: gcr.io/k8s-testimages/kubekins-e2e:v20210113-cc576af-master
+    steps:
+      - name: Create k8s Kind Cluster
+        uses: container-tools/kind-action@v2
+        with:
+          cluster_name: build-kubeflow
+      - name: Run tests
+        run: |
+          ./test/postsubmit-tests-with-pipeline-deployment.sh
+          --kfp_deployment mkp
+          --workflow_file e2e_test_gke_v2.yaml
+          --test_result_folder e2e_test
+          --timeout "7200"
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-postsubmit-mkp-e2e-test-artifacts
+          path: /tmp/tmp.*/*
+
+
