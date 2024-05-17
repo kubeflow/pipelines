@@ -1,11 +1,14 @@
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 version: 2
 sphinx:
-  configuration: docs/conf.py
+  configuration: components/google-cloud/docs/source/conf.py
 python:
   install:
-    - requirements: docs/requirements.txt
+    - method: pip
+      path: components/google-cloud
+      extra_requirements:
+        - docs
 build:
   os: ubuntu-22.04
   tools:
-    python: "3.7"
+    python: "3.8"
