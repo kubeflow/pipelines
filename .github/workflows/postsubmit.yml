@@ -39,7 +39,7 @@ jobs:
         with:
           cluster_name: build-kubeflow
       - name: Run tests
-        run: |
+        run: >
           ./test/postsubmit-tests-with-pipeline-deployment.sh
           --kfp_deployment mkp
           --workflow_file e2e_test_gke_v2.yaml
