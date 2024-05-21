@@ -1,9 +1,10 @@
 ## Upcoming release
 
-## Release 2.15.0
+## Release 2.14.1
 * Add staging and temp location parameters to prophet trainer component.
 * Add input parameter `autorater_prompt_parameters` to `_implementation.llm.online_evaluation_pairwise` component.
 * Mitigate bug in `v1.model_evaluation.autosxs_pipeline` where batch prediction would fail the first time it is run in a project by retrying.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.14.0
 * Use larger base reward model when tuning `text-bison@001`, `chat-bison@001` and `t5-xxl` with the `preview.llm.rlhf_pipeline`.
