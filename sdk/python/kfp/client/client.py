@@ -1445,7 +1445,7 @@ class Client:
         """
 
         if all([pipeline_id, pipeline_name
-            ]) or not any([pipeline_id, pipeline_name]):
+               ]) or not any([pipeline_id, pipeline_name]):
             raise ValueError('Either pipeline_id or pipeline_name is required.')
 
         if pipeline_name:
