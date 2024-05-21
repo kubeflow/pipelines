@@ -12,8 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apt-get update -y
-apt --no-install-recommends -y -q install curl
+sudo apt-get update -y
+sudo apt --no-install-recommends -y -q install curl
 source_root="$(pwd)"
 
 python3 -m pip install -r "${source_root}/test/kfp-functional-test/requirements.txt"
