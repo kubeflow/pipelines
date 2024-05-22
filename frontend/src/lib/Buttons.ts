@@ -530,7 +530,7 @@ export default class Buttons {
       'Terminate',
       'run',
       'KNOWN ISSUE(AIP-6621)',
-      'https://analytics.pages.zgtools.net/artificial-intelligence/ai-platform/aip-docs/kubeflow/internal/runbooks/components/batch.html#kfp-ui-terminate-button-fails-to-terminate-running-pipeline'
+      'https://analytics.pages.zgtools.net/artificial-intelligence/ai-platform/aip-docs/kubeflow/user_journeys/faq.html#i-attempted-to-terminate-my-workflow-but-my-pods-are-still-running'
 
     );
   }
