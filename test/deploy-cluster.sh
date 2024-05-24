@@ -87,7 +87,7 @@ else
     SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   fi
   # Use regular release channel to keep up with newly created clusters in Google Cloud Marketplace.
-  gcloud container clusters create ${TEST_CLUSTER} --image-type cos_containerd --release-channel stable ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
+  gcloud container clusters create ${TEST_CLUSTER} --image-type cos_containerd --release-channel stable --cluster-version 1.26.14-gke.1044001 ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
