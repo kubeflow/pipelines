@@ -28,6 +28,7 @@ import {
   V2beta1RecurringRunStatus,
   V2beta1Trigger,
 } from 'src/apisv2beta1/recurringrun';
+import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
 
 interface DisplayRecurringRun {
   experiment?: ExperimentInfo;
@@ -269,10 +270,47 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
   private async _setColumns(
     displayRecurringRuns: DisplayRecurringRun[],
   ): Promise<DisplayRecurringRun[]> {
+    let experimentsResponse: V2beta1ListExperimentsResponse;
+    let experimentsGetError: string;
+    try {
+      if (!this.props.namespaceMask) {
+        // Single-user mode.
+        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments();
+      } else {
+        // Multi-user mode.
+        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments(
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          this.props.namespaceMask,
+        );
+      }
+    } catch (error) {
+      experimentsGetError = 'Failed to get associated experiment: ' + (await errorToMessage(error));
+    }
+
     return Promise.all(
-      displayRecurringRuns.map(async displayRecurringRun => {
+      displayRecurringRuns.map(displayRecurringRun => {
         if (!this.props.hideExperimentColumn) {
-          await this._getAndSetExperimentNames(displayRecurringRun);
+          const experimentId = displayRecurringRun.recurringRun.experiment_id;
+
+          if (experimentId) {
+            const experiment = experimentsResponse?.experiments?.find(
+              e => e.experiment_id === displayRecurringRun.recurringRun.experiment_id,
+            );
+            // If matching experiment id not found (typically because it has
+            // been deleted), set display name to "-".
+            const displayName = experiment?.display_name || '-';
+            if (experimentsGetError) {
+              displayRecurringRun.error = experimentsGetError;
+            } else {
+              displayRecurringRun.experiment = {
+                displayName: displayName,
+                id: experimentId,
+              };
+            }
+          }
         }
         return displayRecurringRun;
       }),
@@ -300,31 +338,6 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
         return displayRecurringRun;
       }),
     );
-  }
-
-  /**
-   * For the given DisplayRecurringRun, get its recurring run and retrieve the Experiment ID
-   * if it has one, then use that Experiment ID to fetch its associated Experiment and attach
-   * that Experiment's name to the DisplayRecurringRun. If the recurring run has no Experiment ID,
-   * then the corresponding DisplayRecurringRun will show '-'.
-   */
-  private async _getAndSetExperimentNames(displayRecurringRun: DisplayRecurringRun): Promise<void> {
-    const experimentId = displayRecurringRun.recurringRun.experiment_id;
-    if (experimentId) {
-      let experimentName;
-      try {
-        const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
-        experimentName = experiment.display_name || '';
-      } catch (err) {
-        displayRecurringRun.error =
-          'Failed to get associated experiment: ' + (await errorToMessage(err));
-        return;
-      }
-      displayRecurringRun.experiment = {
-        displayName: experimentName,
-        id: experimentId,
-      };
-    }
   }
 }
 
