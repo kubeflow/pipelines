@@ -36,8 +36,8 @@ COPY ${SOURCE_CODE}/ ./
 
 RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
 
-#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:8.9)
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.9
+#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:latest)
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 WORKDIR /bin
 
 COPY --from=builder /bin/persistence_agent /bin/persistence_agent

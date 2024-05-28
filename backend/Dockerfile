@@ -34,8 +34,8 @@ COPY ${SOURCE_CODE}/ ./
 RUN GO111MODULE=on go build -o /bin/apiserver ./backend/src/apiserver/ && \
     dnf clean all
 
-#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:8.9)
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.9
+#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:latest)
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 WORKDIR /bin
 
