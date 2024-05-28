@@ -1,4 +1,4 @@
-name: Trigger build images for PRs
+name: Trigger PR CI
 on:
   pull_request:
     paths-ignore:

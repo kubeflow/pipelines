@@ -1,7 +1,7 @@
 name: Build images for PRs
 on:
   workflow_run:
-    workflows: ["Trigger build images for PRs"]
+    workflows: ["Trigger PR CI"]
     types:
       - completed
 env:
@@ -11,37 +11,6 @@ env:
   GH_USER_EMAIL: 140449482+dsp-developers@users.noreply.github.com
   GH_USER_NAME: dsp-developers
 jobs:
-  commit_checker:
-    name: Run Commit Checker report
-    runs-on: ubuntu-latest
-    needs: build-pr-images
-    steps:
-      - uses: actions/checkout@v3
-      - name: Get Commits
-        id: get-commits
-        run: |
-          master_commit=$(cat .git/refs/remotes/origin/master)
-          echo "master_commit_hash=$master_commit" >> $GITHUB_OUTPUT
-          last_commit=$(cat .git/refs/remotes/pull/${{ github.event.pull_request.number }}/merge)
-          echo "last_commit_hash=$last_commit" >> $GITHUB_OUTPUT
-      - name: Run Commit Checker
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN_PROJECT_EDIT }}
-        continue-on-error: true
-        run: |
-          git config user.email "${{ env.GH_USER_EMAIL }}"
-          git config user.name "${{ env.GH_USER_NAME }}"
-
-          cat <<"EOF" >> /tmp/body-file.txt
-          Commit Checker results:
-          ==== These are the results of the commit checker scans         ====
-          ==== If these are not commits from upstream kfp, then          ====
-          ==== please ensure you adhere to the commit checker formatting ====
-          $(podman run -q -v ${{ github.workspace }}:/src/app-root quay.io/rmartine/commitchecker:latest --start ${{ steps.get-commits.outputs.master_commit_hash }} --end ${{ steps.get-commits.outputs.last_commit_hash }})
-          EOF
-
-          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/body-file.txt
   fetch-data:
     name: Fetch workflow payload
     runs-on: ubuntu-latest
