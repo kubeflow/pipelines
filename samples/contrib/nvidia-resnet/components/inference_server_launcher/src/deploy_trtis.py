@@ -19,7 +19,7 @@ import subprocess
 import requests
 
 
-KUBEFLOW_NAMESPACE = 'kubeflow'
+KUBEFLOW_NAMESPACE = 'kubeflow-user-example-com'
 YAML_TEMPLATE = 'trtis-service-template.yaml'
 YAML_FILE = 'trtis-service.yaml'
 
@@ -42,17 +42,17 @@ def main():
     with open(template_file, 'r') as template:
         with open(target_file, "w") as target:
             data = template.read()
-            changed = data.replace('TRTSERVER_NAME', args.trtserver_name)
+            changed = data.replace('TRTSERVER_NAME', str(args.trtserver_name))
             changed1 = changed.replace(
                 'KUBEFLOW_NAMESPACE', KUBEFLOW_NAMESPACE)
-            changed2 = changed1.replace('MODEL_PATH', args.model_path)
+            changed2 = changed1.replace('MODEL_PATH', str(args.model_path))
             target.write(changed2)
-
+            
     logging.info('Deploying TRTIS service')
     subprocess.call(['kubectl', 'apply', '-f', YAML_FILE])
 
     with open('/output.txt', 'w') as f:
-        f.write(args.trtserver_name)
+        f.write(str(args.trtserver_name))
     
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ def main():
     parser = argparse.ArgumentParser(description='Data processor')
     parser.add_argument('--input_dir', help='Raw data directory')
     parser.add_argument('--output_dir', help='Processed data directory')
+    
 
     args = parser.parse_args()
 
@@ -31,18 +32,18 @@ def main():
 
     def save_data(processed_data, output_dir):
         (x_train, y_train), (x_test, y_test) = processed_data
-        if not os.path.isdir(output_dir):
-            os.mkdir(output_dir)
-        np.save(os.path.join(output_dir, 'x_train.npy'), x_train)
-        np.save(os.path.join(output_dir, 'y_train.npy'), y_train)
-        np.save(os.path.join(output_dir, 'x_test.npy'), x_test)
-        np.save(os.path.join(output_dir, 'y_test.npy'), y_test)
+        if not os.path.isdir(str(output_dir)):
+            os.mkdir(str(output_dir))
+        np.save(os.path.join(str(output_dir), 'x_train.npy'), x_train)
+        np.save(os.path.join(str(output_dir), 'y_train.npy'), y_train)
+        np.save(os.path.join(str(output_dir), 'x_test.npy'), x_test)
+        np.save(os.path.join(str(output_dir), 'y_test.npy'), y_test)
 
     processed_data = load_and_process_data(args.input_dir)
     save_data(processed_data, args.output_dir)
 
     with open('/output.txt', 'w') as f:
-        f.write(args.output_dir)
+        f.write(str(args.output_dir))
 
     print('input_dir: {}'.format(args.input_dir))
     print('output_dir: {}'.format(args.output_dir))

@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:16.04
+FROM ubuntu:18.04
+#FROM ubuntu:16.04
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q ca-certificates curl python-dev python-setuptools wget unzip
-RUN easy_install pip && \
-    pip install pyyaml six requests
+#RUN easy_install pip && \
+    #pip install pyyaml six requests
+    
+RUN apt install -y python-pip
+RUN pip install pyyaml six requests 
 
 # Install kubectl
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl

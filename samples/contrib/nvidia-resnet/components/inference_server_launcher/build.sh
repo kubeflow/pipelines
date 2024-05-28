@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMAGE=<inference-server-launcher-image>
+IMAGE=cculab509/inference_server_launcher
 
 docker build -t $IMAGE .
 docker push $IMAGE

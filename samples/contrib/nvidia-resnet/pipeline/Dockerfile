@@ -15,7 +15,10 @@
 FROM python:3.6
 
 # Install Kubeflow Pipelines
-RUN pip3 install kfp --upgrade
+#RUN pip3 install kfp --upgrade
+RUN pip3 install kfp==1.8.11
+
+#ADD src /workspace/src
 WORKDIR /workspace
 
-ENTRYPOINT ["python", "pipeline.py"]
+ENTRYPOINT ["python3", "pipeline.py"]

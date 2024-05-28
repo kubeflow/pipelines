@@ -20,7 +20,7 @@ import subprocess
 import requests
 
 
-KUBEFLOW_NAMESPACE = 'kubeflow'
+KUBEFLOW_NAMESPACE = 'kubeflow-user-example-com'
 YAML_TEMPLATE = 'webapp-service-template.yaml'
 YAML_FILE = 'webapp-service.yaml'
 

@@ -14,9 +14,11 @@
 
 
 import kfp.dsl as dsl
+import kfp
 import datetime
 import os
 from kubernetes import client as k8s_client
+
 
 
 # Modify image='<image>' in each op to match IMAGE in the build.sh of its corresponding component
@@ -24,7 +26,9 @@ from kubernetes import client as k8s_client
 def PreprocessOp(name, input_dir, output_dir):
     return dsl.ContainerOp(
         name=name,
-        image='<preprocess-image>',
+        #image='<preprocess-image>',
+        image='cculab509/preprocess',
+        command=['python', 'preprocess.py'],
         arguments=[
             '--input_dir', input_dir,
             '--output_dir', output_dir,
@@ -36,7 +40,9 @@ def PreprocessOp(name, input_dir, output_dir):
 def TrainOp(name, input_dir, output_dir, model_name, model_version, epochs):
     return dsl.ContainerOp(
         name=name,
-        image='<train-image>',
+        #image='<train-image>',
+        image='cculab509/train',
+        command=['python', 'train.py'],
         arguments=[
             '--input_dir', input_dir,
             '--output_dir', output_dir,
@@ -51,7 +57,9 @@ def TrainOp(name, input_dir, output_dir, model_name, model_version, epochs):
 def InferenceServerLauncherOp(name, input_dir, trtserver_name):
     return dsl.ContainerOp(
         name=name,
-        image='<inference-server-launcher-image>',
+        #image='<inference-server-launcher-image>',
+        image='cculab509/inference_server_launcher',
+        command=['python', 'deploy_trtis.py'],
         arguments=[
             '--trtserver_name', trtserver_name,
             '--model_path', input_dir,
@@ -63,7 +71,9 @@ def InferenceServerLauncherOp(name, input_dir, trtserver_name):
 def WebappLauncherOp(name, trtserver_name, model_name, model_version, webapp_prefix, webapp_port):
     return dsl.ContainerOp(
         name=name,
-        image='<webapp-launcher-image>',
+        #image='<webapp-launcher-image>',
+        image='cculab509/webapplauncher',
+        command=['python', 'deploy_webapp.py'],
         arguments=[
             '--workflow_name', '{{workflow.name}}',
             '--trtserver_name', trtserver_name,
@@ -81,19 +91,21 @@ def WebappLauncherOp(name, trtserver_name, model_name, model_version, webapp_pre
     description='Demonstrate an end-to-end training & serving pipeline using ResNet and CIFAR-10'
 )
 def resnet_pipeline(
-    raw_data_dir='/mnt/workspace/raw_data',
-    processed_data_dir='/mnt/workspace/processed_data',
-    model_dir='/mnt/workspace/saved_model',
-    epochs=50,
-    trtserver_name='trtis',
-    model_name='resnet_graphdef',
-    model_version=1,
-    webapp_prefix='webapp',
-    webapp_port=80
+    raw_data_dir:str ='/mnt/workspace/raw_data',
+    processed_data_dir:str ='/mnt/workspace/processed_data',
+    model_dir:str ='/mnt/workspace/saved_model',
+    epochs:int =15,
+    trtserver_name:str ='trtis',
+    model_name:str ='resnet_graphdef',
+    model_version:int =1,
+    webapp_prefix:str ='webapp',
+    webapp_port:int =80
 ):
 
     persistent_volume_name = 'nvidia-workspace'
     persistent_volume_path = '/mnt/workspace'
+    
+    
 
     op_dict = {}
 
@@ -122,3 +134,5 @@ def resnet_pipeline(
 if __name__ == '__main__':
     import kfp.compiler as compiler
     compiler.Compiler().compile(resnet_pipeline, __file__ + '.tar.gz')
+  
+

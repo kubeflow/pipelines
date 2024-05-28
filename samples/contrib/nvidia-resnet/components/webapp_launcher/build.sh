@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMAGE=<webapp-launcher-image>
+IMAGE=cculab509/webapplauncher
 
 docker build -t $IMAGE .
 docker push $IMAGE
