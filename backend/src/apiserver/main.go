@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"io"
 	"io/ioutil"
 	"math"
@@ -112,7 +113,7 @@ func main() {
 }
 
 // A custom http request header matcher to pass on the user identity
-// Reference: https://github.com/grpc-ecosystem/grpc-gateway/blob/master/docs/_docs/customizingyourgateway.md#mapping-from-http-request-headers-to-grpc-client-metadata
+// Reference: https://github.com/grpc-ecosystem/grpc-gateway/blob/v1.16.0/docs/_docs/customizingyourgateway.md#mapping-from-http-request-headers-to-grpc-client-metadata
 func grpcCustomMatcher(key string) (string, bool) {
 	if strings.EqualFold(key, common.GetKubeflowUserIDHeader()) {
 		return strings.ToLower(key), true
@@ -252,6 +253,17 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		glog.Infof("Samples already loaded in the past. Skip loading.")
 		return nil
 	}
+
+	pathExists, err := client.PathExists(*sampleConfigPath)
+	if err != nil {
+		return err
+	}
+
+	if !pathExists {
+		glog.Infof("No samples path provided, skipping loading samples..")
+		return nil
+	}
+
 	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to read sample configurations file. Err: %v", err)
