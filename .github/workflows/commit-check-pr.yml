@@ -69,7 +69,7 @@ jobs:
         run: |
           master_commit=$(cat .git/refs/remotes/origin/master)
           echo "master_commit_hash=$master_commit" >> $GITHUB_OUTPUT
-          last_commit=$(cat .git/refs/remotes/pull/${{ PR_NUMBER }}/merge)
+          last_commit=$(cat .git/refs/remotes/pull/${{ env.PR_NUMBER }}/merge)
           echo "last_commit_hash=$last_commit" >> $GITHUB_OUTPUT
       - name: Run Commit Checker
         shell: bash
@@ -88,4 +88,4 @@ jobs:
           $(podman run -q -v ${{ github.workspace }}:/src/app-root quay.io/rmartine/commitchecker:latest --start ${{ steps.get-commits.outputs.master_commit_hash }} --end ${{ steps.get-commits.outputs.last_commit_hash }})
           EOF
 
-          gh pr comment ${{ PR_NUMBER }} --body-file /tmp/body-file.txt
+          gh pr comment ${{ env.PR_NUMBER }} --body-file /tmp/body-file.txt
