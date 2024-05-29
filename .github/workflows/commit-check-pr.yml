@@ -81,11 +81,14 @@ jobs:
           git config user.name "${{ env.GH_USER_NAME }}"
 
           cat <<"EOF" >> /tmp/body-file.txt
-          Commit Checker results:
-          ==== These are the results of the commit checker scans         ====
-          ==== If these are not commits from upstream kfp, then          ====
-          ==== please ensure you adhere to the commit checker formatting ====
-          $(podman run -q -v ${{ github.workspace }}:/src/app-root quay.io/rmartine/commitchecker:latest --start ${{ steps.get-commits.outputs.master_commit_hash }} --end ${{ steps.get-commits.outputs.last_commit_hash }})
+          ### Commit Checker results:
+
+          ```
+          **NOTE**: These are the results of the commit checker scans. 
+          If these are not commits from upstream kfp, then please ensure
+          you adhere to the commit checker formatting
+          ```
           EOF
+          podman run -q -v ${{ github.workspace }}:/src/app-root quay.io/rmartine/commitchecker:latest --start ${{ steps.get-commits.outputs.master_commit_hash }} --end ${{ steps.get-commits.outputs.last_commit_hash }} >> /tmp/body-file.txt 2>&1
 
           gh pr comment ${{ env.PR_NUMBER }} --body-file /tmp/body-file.txt
