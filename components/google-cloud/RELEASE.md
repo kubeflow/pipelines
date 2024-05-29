@@ -1,4 +1,5 @@
 ## Upcoming release
+* Add Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline`.
 
 ## Release 2.14.1
 * Add staging and temp location parameters to prophet trainer component.
