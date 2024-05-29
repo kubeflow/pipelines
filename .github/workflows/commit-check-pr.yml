@@ -89,6 +89,6 @@ jobs:
           you adhere to the commit checker formatting
           ```
           EOF
-          podman run -q -v ${{ github.workspace }}:/src/app-root quay.io/rmartine/commitchecker:latest --start ${{ steps.get-commits.outputs.master_commit_hash }} --end ${{ steps.get-commits.outputs.last_commit_hash }} >> /tmp/body-file.txt 2>&1
+          podman run -q -v ${{ github.workspace }}:/src/app-root quay.io/rmartine/commitchecker:latest --start ${{ steps.get-commits.outputs.master_commit_hash }} --end ${{ steps.get-commits.outputs.last_commit_hash }} >> /tmp/body-file.txt 2>&1 || true
 
           gh pr comment ${{ env.PR_NUMBER }} --body-file /tmp/body-file.txt
