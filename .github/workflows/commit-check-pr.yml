@@ -62,6 +62,7 @@ jobs:
     needs: fetch-data
     env:
       PR_NUMBER: ${{ needs.fetch-data.outputs.pr_number }}
+      PR_HASH: ${{ needs.fetch-data.outputs.head_sha }}
     steps:
       - uses: actions/checkout@v3
       - name: Get Commits
@@ -69,8 +70,7 @@ jobs:
         run: |
           master_commit=$(cat .git/refs/remotes/origin/master)
           echo "master_commit_hash=$master_commit" >> $GITHUB_OUTPUT
-          last_commit=$(cat .git/refs/remotes/pull/${{ env.PR_NUMBER }}/merge)
-          echo "last_commit_hash=$last_commit" >> $GITHUB_OUTPUT
+          echo "last_commit_hash=${{ env.PR_HASH }}" >> $GITHUB_OUTPUT
       - name: Run Commit Checker
         shell: bash
         env:
