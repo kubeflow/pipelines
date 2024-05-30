@@ -92,7 +92,7 @@ def pipeline():
     task = print_config_map()
     kubernetes.use_config_map_as_env(task,
                                  config_map_name='my-cm',
-                                 secret_key_to_env={'foo': 'CM_VAR'})
+                                 config_map_key_to_env={'foo': 'CM_VAR'})
 ```
 
 ### ConfigMap: As mounted volume
