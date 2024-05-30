@@ -36,8 +36,8 @@ COPY ${SOURCE_CODE}/ ./
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
 
-#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:8.9)
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.9
+#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:latest)
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 WORKDIR /bin
 

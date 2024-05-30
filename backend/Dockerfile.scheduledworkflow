@@ -16,8 +16,8 @@
 ARG SOURCE_CODE=.
 
 # Use ubi8/nodejs-14 as base image
-#@follow_tag(registry.access.redhat.com/ubi8/go-toolset:1.19)
-FROM registry.access.redhat.com/ubi8/go-toolset:1.19 as builder
+#@follow_tag(registry.access.redhat.com/ubi8/go-toolset:1.20)
+FROM registry.access.redhat.com/ubi8/go-toolset:1.20 as builder
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
@@ -41,8 +41,8 @@ COPY ${SOURCE_CODE}/ ./
 
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
 
-#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:8.8)
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.8
+#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:latest)
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 WORKDIR /bin
 
 COPY --from=builder /bin/controller /bin/controller
