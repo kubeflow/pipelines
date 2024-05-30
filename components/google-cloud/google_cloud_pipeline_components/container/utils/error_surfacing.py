@@ -20,10 +20,10 @@ from google.protobuf import json_format
 from google_cloud_pipeline_components.proto import task_error_pb2
 
 
-def write_user_defined_error(
+def write_customized_error(
     executor_input: str, error: task_error_pb2.TaskError
 ):
-  """Writes a TaskError to a JSON file ('executor_error.json') in the output directory specified in the executor input.
+  """Writes a TaskError customized by the author of the pipelines to a JSON file ('executor_error.json') in the output directory specified in the executor input.
 
   Args:
     executor_input: JSON string containing executor input data.
