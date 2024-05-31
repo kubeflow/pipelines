@@ -6,8 +6,6 @@ on:
       - completed
 env:
   QUAY_ORG: opendatahub
-  QUAY_ID: ${{ secrets.QUAY_ROBOT_USERNAME }}
-  QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
   GH_USER_EMAIL: 140449482+dsp-developers@users.noreply.github.com
   GH_USER_NAME: dsp-developers
 jobs:
@@ -79,6 +77,7 @@ jobs:
         run: |
           git config user.email "${{ env.GH_USER_EMAIL }}"
           git config user.name "${{ env.GH_USER_NAME }}"
+          gh pr checkout ${{ env.PR_NUMBER }}
 
           cat <<"EOF" >> /tmp/body-file.txt
           ### Commit Checker results:
@@ -89,6 +88,9 @@ jobs:
           you adhere to the commit checker formatting
           ```
           EOF
+
+          echo "\`\`\`" >> /tmp/body-file.txt
           podman run -q -v ${{ github.workspace }}:/src/app-root quay.io/rmartine/commitchecker:latest --start ${{ steps.get-commits.outputs.master_commit_hash }} --end ${{ steps.get-commits.outputs.last_commit_hash }} >> /tmp/body-file.txt 2>&1 || true
+          echo "\`\`\`" >> /tmp/body-file.txt
 
           gh pr comment ${{ env.PR_NUMBER }} --body-file /tmp/body-file.txt
