@@ -15,12 +15,13 @@
 package model
 
 type Experiment struct {
-	UUID           string       `gorm:"column:UUID; not null; primary_key;"`
-	Name           string       `gorm:"column:Name; not null; unique_index:idx_name_namespace;"`
-	Description    string       `gorm:"column:Description; not null;"`
-	CreatedAtInSec int64        `gorm:"column:CreatedAtInSec; not null;"`
-	Namespace      string       `gorm:"column:Namespace; not null; unique_index:idx_name_namespace;"`
-	StorageState   StorageState `gorm:"column:StorageState; not null;"`
+	UUID                  string       `gorm:"column:UUID; not null; primary_key;"`
+	Name                  string       `gorm:"column:Name; not null; unique_index:idx_name_namespace;"`
+	Description           string       `gorm:"column:Description; not null;"`
+	CreatedAtInSec        int64        `gorm:"column:CreatedAtInSec; not null;"`
+	LastRunCreatedAtInSec int64        `gorm:"column:LastRunCreatedAtInSec; not null;"`
+	Namespace             string       `gorm:"column:Namespace; not null; unique_index:idx_name_namespace;"`
+	StorageState          StorageState `gorm:"column:StorageState; not null;"`
 }
 
 // Note: Experiment.StorageState can have values: "STORAGE_STATE_UNSPECIFIED", "AVAILABLE" or "ARCHIVED"
@@ -44,14 +45,15 @@ func (e *Experiment) DefaultSortField() string {
 }
 
 var experimentAPIToModelFieldMap = map[string]string{
-	"id":            "UUID", // v1beta1 API
-	"experiment_id": "UUID", // v2beta1 API
-	"name":          "Name", // v1beta1 API
-	"display_name":  "Name", // v2beta1 API
-	"created_at":    "CreatedAtInSec",
-	"description":   "Description",
-	"namespace":     "Namespace", // v2beta1 API
-	"storage_state": "StorageState",
+	"id":                  "UUID", // v1beta1 API
+	"experiment_id":       "UUID", // v2beta1 API
+	"name":                "Name", // v1beta1 API
+	"display_name":        "Name", // v2beta1 API
+	"created_at":          "CreatedAtInSec",
+	"last_run_created_at": "LastRunCreatedAtInSec", // v2beta1 API
+	"description":         "Description",
+	"namespace":           "Namespace", // v2beta1 API
+	"storage_state":       "StorageState",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model
@@ -80,6 +82,8 @@ func (e *Experiment) GetFieldValue(name string) interface{} {
 		return e.Name
 	case "CreatedAtInSec":
 		return e.CreatedAtInSec
+	case "LastRunCreatedAtInSec":
+		return e.LastRunCreatedAtInSec
 	case "Description":
 		return e.Description
 	case "Namespace":
