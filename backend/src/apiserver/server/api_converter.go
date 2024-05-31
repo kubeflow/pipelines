@@ -113,12 +113,13 @@ func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
 		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"])
 	}
 	return &apiv2beta1.Experiment{
-		ExperimentId: experiment.UUID,
-		DisplayName:  experiment.Name,
-		Description:  experiment.Description,
-		CreatedAt:    &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
-		Namespace:    experiment.Namespace,
-		StorageState: storageState,
+		ExperimentId:     experiment.UUID,
+		DisplayName:      experiment.Name,
+		Description:      experiment.Description,
+		CreatedAt:        &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: experiment.LastRunCreatedAtInSec},
+		Namespace:        experiment.Namespace,
+		StorageState:     storageState,
 	}
 }
 
