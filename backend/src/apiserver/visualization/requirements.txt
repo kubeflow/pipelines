@@ -427,7 +427,7 @@ referencing==0.30.2
     #   jsonschema-specifications
 regex==2023.8.8
     # via apache-beam
-requests==2.31.0
+requests==2.32.2
     # via
     #   apache-beam
     #   gcsfs
