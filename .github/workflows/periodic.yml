@@ -10,13 +10,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Create k8s Kind Cluster
-        uses: container-tools/kind-action@v2
-        with:
-          cluster_name: kfp-tekton
-          kubectl_version: v1.29.2
-          version: v0.22.0
-          node_image: kindest/node:v1.29.2
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
       - name: Run Functional Tests
         run: |
           log_dir=$(mktemp -d)
