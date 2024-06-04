@@ -19,10 +19,11 @@ package config
 import (
 	"context"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"io/ioutil"
-	"sigs.k8s.io/yaml"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"sigs.k8s.io/yaml"
 
 	"github.com/golang/glog"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
@@ -123,8 +124,7 @@ type SecretRef struct {
 	SecretKeyKey string `json:"secretKeyKey"`
 }
 
-func (c *Config) GetBucketSessionInfo() (objectstore.SessionInfo, error) {
-	path := c.DefaultPipelineRoot()
+func (c *Config) GetBucketSessionInfo(path string) (objectstore.SessionInfo, error) {
 	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err

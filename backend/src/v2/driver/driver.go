@@ -22,8 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
-
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/uuid"
@@ -34,6 +32,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -134,28 +133,30 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	}
 	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
 	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
+
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
+	}
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
+	}
+	cfg, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
 	pipelineBucketSessionInfo := objectstore.SessionInfo{}
 	if pipelineRoot != "" {
 		glog.Infof("PipelineRoot=%q", pipelineRoot)
 	} else {
-		restConfig, err := rest.InClusterConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-		}
-		k8sClient, err := kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
-		}
-		cfg, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
-		if err != nil {
-			return nil, err
-		}
 		pipelineRoot = cfg.DefaultPipelineRoot()
 		glog.Infof("PipelineRoot=%q from default config", pipelineRoot)
-		pipelineBucketSessionInfo, err = cfg.GetBucketSessionInfo()
-		if err != nil {
-			return nil, err
-		}
+	}
+	pipelineBucketSessionInfo, err = cfg.GetBucketSessionInfo(pipelineRoot)
+	if err != nil {
+		return nil, err
 	}
 	bucketSessionInfo, err := json.Marshal(pipelineBucketSessionInfo)
 	if err != nil {
