@@ -15,4 +15,4 @@
 
 source_root="$(pwd)"
 python3 -m pip install -r "${source_root}/test/kfp-functional-test/requirements.txt"
-python3 "${source_root}/test/kfp-functional-test/run_kfp_functional_test.py" --host ""
+python3 "${source_root}/test/kfp-functional-test/run_kfp_functional_test.py" --host "http://localhost:8888"  # host configured in workflow file

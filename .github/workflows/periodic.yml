@@ -12,6 +12,9 @@ jobs:
         uses: actions/checkout@v4
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
+      - name: Port forward kfp apiserver
+        run: |
+          nohup kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
       - name: Run Functional Tests
         run: |
           log_dir=$(mktemp -d)
