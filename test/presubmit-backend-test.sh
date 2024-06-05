@@ -19,16 +19,16 @@ set -ex
 
 # Add installed go binaries to PATH.
 export PATH="${PATH}:$(go env GOPATH)/bin"
-# The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
-cd /home/prow/go/src/github.com/kubeflow/pipelines
+
 # 1. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
 go mod download
 go mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
-# 2. run test in project directory
+
+# 2. Run tests in the backend directory
 go test -v -cover ./backend/...
+
 # 3. Check for forbidden go licenses
 ./hack/install-go-licenses.sh
 go-licenses check ./backend/src/apiserver ./backend/src/cache ./backend/src/agent/persistence ./backend/src/crd/controller/scheduledworkflow ./backend/src/crd/controller/viewer
-
