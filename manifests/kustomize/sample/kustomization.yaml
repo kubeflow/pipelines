@@ -34,5 +34,5 @@ namespace: kubeflow
 #### Customization ###
 # 1. Change values in params.env file
 # 2. Change values in params-db-secret.env file for CloudSQL username and password
-# 3. kubectl apply -k ./
+# 3. kustomize build ./ | kubectl apply -f -
 ####
