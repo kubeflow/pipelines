@@ -303,9 +303,9 @@ message GoogleCloudServiceAccountValidation {
   // Example: "aiplatform.metadataStores.get"
   repeated string permissions = 3;
 
-  // Optional. Roles need to be granted for the service account.
-  // The role names will occur in preflight validations' error message
-  // as an action item for users.
+  // Optional. Roles suggestions for users to grant to SA. We will ***not***
+  // verify if the SA has the role granted or not. The role names will occur in
+  // preflight validations' error message as an action item for users.
   repeated string role_names = 4;
 }
 
