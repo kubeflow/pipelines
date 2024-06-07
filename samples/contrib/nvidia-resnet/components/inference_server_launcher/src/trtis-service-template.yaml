@@ -43,5 +43,3 @@ spec:
       - name: persistent-data-store
         persistentVolumeClaim:
           claimName: nvidia-workspace-read-claim
-
-

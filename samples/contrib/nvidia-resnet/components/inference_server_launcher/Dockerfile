@@ -16,7 +16,6 @@ FROM ubuntu:18.04
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q ca-certificates curl python-dev python-setuptools wget unzip
-    
 RUN apt install -y python-pip
 RUN pip install pyyaml six requests 
 
