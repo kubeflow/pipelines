@@ -21,8 +21,7 @@ from keras.datasets import cifar10
 def main():
     parser = argparse.ArgumentParser(description='Data processor')
     parser.add_argument('--input_dir', help='Raw data directory')
-    parser.add_argument('--output_dir', help='Processed data directory')
-    
+    parser.add_argument('--output_dir', help='Processed data directory') 
 
     args = parser.parse_args()
 
