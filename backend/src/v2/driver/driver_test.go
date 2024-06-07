@@ -1040,6 +1040,255 @@ func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
 	}
 }
 
+func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
+	var preferredWeightA int32 = 50 
+	var preferredWeightB int32 = 42
+	tests := []struct{
+		name string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - no affinity",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},	
+		},
+		{
+			"Valid - Affinity with terms without weight",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						MatchExpressions: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key: "key1",
+								Operator: "In",
+								Values: []string{
+									"val1",
+									"val2",
+								},
+							},
+						},
+						MatchFields: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key: "key2",
+								Operator: "In",
+								Values: []string{
+									"val1",
+									"val2",
+								},
+							},
+						},
+					},
+
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &k8score.NodeSelector{
+							NodeSelectorTerms: []k8score.NodeSelectorTerm{
+								{
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key: "key1",
+											Operator: "In",
+											Values: []string{
+												"val1",
+												"val2",
+											},
+										},
+									},
+									MatchFields: []k8score.NodeSelectorRequirement{
+										{
+											Key: "key2",
+											Operator: "In",
+											Values: []string{
+												"val1",
+												"val2",
+											},
+
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+
+			},	
+		},
+		{
+			"Valid - Affinity with terms with weight",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						MatchExpressions: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key: "key1",
+								Operator: "In",
+								Values: []string{
+									"val1",
+									"val2",
+								},
+							},
+						},
+						MatchFields: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key: "key2",
+								Operator: "In",
+								Values: []string{
+									"val1",
+									"val2",
+								},
+							},
+						},
+						Weight: &preferredWeightA,
+					},
+
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						
+						PreferredDuringSchedulingIgnoredDuringExecution: []k8score.PreferredSchedulingTerm{
+							{
+								Weight: preferredWeightA,
+								Preference: k8score.NodeSelectorTerm{
+									
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key: "key1",
+											Operator: "In",
+											Values: []string{
+												"val1",
+												"val2",
+											},
+										},
+									},
+									MatchFields: []k8score.NodeSelectorRequirement{
+										{
+											Key: "key2",
+											Operator: "In",
+											Values: []string{
+												"val1",
+												"val2",
+											},
+										},
+									},
+								
+								},
+							},
+						},
+					},
+				},
+
+			},	
+		},
+		{
+			"Valid - Affinity mixed terms",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						MatchExpressions: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key: "key1",
+								Operator: "In",
+								Values: []string{
+									"val1",
+								},
+							},
+						},
+					},
+					{
+						Weight: &preferredWeightB,
+						MatchFields: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key: "field1",
+								Operator: "Exists",
+							},
+						},
+					},
+
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &k8score.NodeSelector{
+							NodeSelectorTerms: []k8score.NodeSelectorTerm{
+								{
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key: "key1",
+											Operator: "In",
+											Values: []string{
+												"val1",
+											},
+										},
+									},
+								}, 
+							},
+						},
+						PreferredDuringSchedulingIgnoredDuringExecution: []k8score.PreferredSchedulingTerm{
+							{
+								Weight: preferredWeightB,
+								Preference: k8score.NodeSelectorTerm{
+									
+									MatchFields: []k8score.NodeSelectorRequirement{
+										{
+											Key: "field1",
+											Operator: "Exists",
+										},
+									},
+									
+								
+								},
+							},
+						},
+					},
+				},
+
+			},	
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+			err := extendPodSpecPatch(got, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+
 func Test_extendPodSpecPatch_FieldPathAsEnv(t *testing.T) {
 	tests := []struct {
 		name       string
