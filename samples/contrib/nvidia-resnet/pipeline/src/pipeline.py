@@ -89,15 +89,15 @@ def WebappLauncherOp(name, trtserver_name, model_name, model_version, webapp_pre
     description='Demonstrate an end-to-end training & serving pipeline using ResNet and CIFAR-10'
 )
 def resnet_pipeline(
-    raw_data_dir:str ='/mnt/workspace/raw_data',
-    processed_data_dir:str ='/mnt/workspace/processed_data',
-    model_dir:str ='/mnt/workspace/saved_model',
-    epochs:int =15,
-    trtserver_name:str ='trtis',
-    model_name:str ='resnet_graphdef',
-    model_version:int =1,
-    webapp_prefix:str ='webapp',
-    webapp_port:int =80
+    raw_data_dir:str='/mnt/workspace/raw_data',
+    processed_data_dir:str='/mnt/workspace/processed_data',
+    model_dir:str='/mnt/workspace/saved_model',
+    epochs:int=50,
+    trtserver_name:str='trtis',
+    model_name:str='resnet_graphdef',
+    model_version:int=1,
+    webapp_prefix:str='webapp',
+    webapp_port:int=80
 ):
 
     persistent_volume_name = 'nvidia-workspace'
