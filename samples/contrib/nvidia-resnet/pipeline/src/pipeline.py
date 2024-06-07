@@ -14,7 +14,6 @@
 
 
 import kfp.dsl as dsl
-import kfp
 import datetime
 import os
 from kubernetes import client as k8s_client
