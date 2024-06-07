@@ -13,12 +13,9 @@
 # limitations under the License.
 
 FROM ubuntu:18.04
-#FROM ubuntu:16.04
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q ca-certificates curl python-dev python-setuptools wget unzip
-#RUN easy_install pip && \
-    #pip install pyyaml six requests
     
 RUN apt install -y python-pip
 RUN pip install pyyaml six requests 
