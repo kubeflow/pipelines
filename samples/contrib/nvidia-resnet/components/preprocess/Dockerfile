@@ -17,7 +17,6 @@ FROM nvcr.io/nvidia/tensorflow:19.03-py3
 
 COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt 
-    
 RUN rm -f requirements.txt
 
 ADD src /workspace
