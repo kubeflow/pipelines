@@ -20,7 +20,6 @@ import os
 from kubernetes import client as k8s_client
 
 
-
 # Modify image='<image>' in each op to match IMAGE in the build.sh of its corresponding component
 
 def PreprocessOp(name, input_dir, output_dir):

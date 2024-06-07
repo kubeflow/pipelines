@@ -12,11 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 IMAGE=cculab509/webapp
 
 # Build base TRTIS client image
 git clone https://github.com/NVIDIA/tensorrt-inference-server.git
-
 base=tensorrt-inference-server
 git clone https://github.com/triton-inference-server/client.git $base/clientrepo
 docker build -t base-trtis-client -f $base/Dockerfile.sdk $base
