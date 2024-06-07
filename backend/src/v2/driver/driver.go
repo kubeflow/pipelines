@@ -538,17 +538,17 @@ func extendPodSpecPatch(
 		var nodeSelectorTerms []k8score.NodeSelectorTerm
 		var preferredSchedulingTerms []k8score.PreferredSchedulingTerm
 		var requiredDuringSchedulingIgnoredDuringExecution *k8score.NodeSelector
-		
-		for _ , nodeAffinityTerm := range nodeAffinity {
+
+		for _, nodeAffinityTerm := range nodeAffinity {
 			if nodeAffinityTerm != nil {
 				var matchExpressions []k8score.NodeSelectorRequirement
 				var matchFields []k8score.NodeSelectorRequirement
 				for _, requirement := range nodeAffinityTerm.MatchExpressions {
 					if requirement != nil {
 						matchExpressions = append(matchExpressions, k8score.NodeSelectorRequirement{
-							Key: requirement.Key,
+							Key:      requirement.Key,
 							Operator: k8score.NodeSelectorOperator(requirement.Operator),
-							Values: requirement.Values,
+							Values:   requirement.Values,
 						})
 					}
 				}
@@ -556,21 +556,21 @@ func extendPodSpecPatch(
 				for _, requirement := range nodeAffinityTerm.MatchFields {
 					if requirement != nil {
 						matchFields = append(matchFields, k8score.NodeSelectorRequirement{
-							Key: requirement.Key,
+							Key:      requirement.Key,
 							Operator: k8score.NodeSelectorOperator(requirement.Operator),
-							Values: requirement.Values,
+							Values:   requirement.Values,
 						})
 					}
 				}
-				
+
 				nodeSelectorTerm := k8score.NodeSelectorTerm{
 					MatchExpressions: matchExpressions,
-					MatchFields: matchFields,
+					MatchFields:      matchFields,
 				}
 
 				if (0 < nodeAffinityTerm.GetWeight()) && (nodeAffinityTerm.GetWeight() < 101) {
 					preferredSchedulingTerms = append(preferredSchedulingTerms, k8score.PreferredSchedulingTerm{
-						Weight: nodeAffinityTerm.GetWeight(),
+						Weight:     nodeAffinityTerm.GetWeight(),
 						Preference: nodeSelectorTerm,
 					})
 				} else {
@@ -581,13 +581,13 @@ func extendPodSpecPatch(
 		}
 		if nodeSelectorTerms != nil {
 			requiredDuringSchedulingIgnoredDuringExecution = &k8score.NodeSelector{
-				NodeSelectorTerms: nodeSelectorTerms, 
+				NodeSelectorTerms: nodeSelectorTerms,
 			}
 		}
 
 		podSpec.Affinity = &k8score.Affinity{
 			NodeAffinity: &k8score.NodeAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: requiredDuringSchedulingIgnoredDuringExecution,
+				RequiredDuringSchedulingIgnoredDuringExecution:  requiredDuringSchedulingIgnoredDuringExecution,
 				PreferredDuringSchedulingIgnoredDuringExecution: preferredSchedulingTerms,
 			},
 		}

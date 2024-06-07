@@ -532,7 +532,7 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 					{
 						Name: "secret1",
 						VolumeSource: k8score.VolumeSource{
-							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional:  &[]bool{false}[0],},
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional: &[]bool{false}[0]},
 						},
 					},
 				},
@@ -730,7 +730,7 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
 								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
-								Optional:             &[]bool{false}[0],},
+								Optional:             &[]bool{false}[0]},
 						},
 					},
 				},
@@ -1040,11 +1040,11 @@ func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
 	}
 }
 
-func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
-	var preferredWeightA int32 = 50 
+func Test_extendPodSpecPatch_NodeAffinity(t *testing.T) {
+	var preferredWeightA int32 = 50
 	var preferredWeightB int32 = 42
-	tests := []struct{
-		name string
+	tests := []struct {
+		name       string
 		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
 		expected   *k8score.PodSpec
 	}{
@@ -1057,7 +1057,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 						Name: "main",
 					},
 				},
-			},	
+			},
 		},
 		{
 			"Valid - Affinity with terms without weight",
@@ -1066,7 +1066,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 					{
 						MatchExpressions: []*kubernetesplatform.SelectorRequirement{
 							{
-								Key: "key1",
+								Key:      "key1",
 								Operator: "In",
 								Values: []string{
 									"val1",
@@ -1076,7 +1076,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 						},
 						MatchFields: []*kubernetesplatform.SelectorRequirement{
 							{
-								Key: "key2",
+								Key:      "key2",
 								Operator: "In",
 								Values: []string{
 									"val1",
@@ -1085,7 +1085,6 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 							},
 						},
 					},
-
 				},
 			},
 			&k8score.PodSpec{
@@ -1101,7 +1100,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 								{
 									MatchExpressions: []k8score.NodeSelectorRequirement{
 										{
-											Key: "key1",
+											Key:      "key1",
 											Operator: "In",
 											Values: []string{
 												"val1",
@@ -1111,13 +1110,12 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 									},
 									MatchFields: []k8score.NodeSelectorRequirement{
 										{
-											Key: "key2",
+											Key:      "key2",
 											Operator: "In",
 											Values: []string{
 												"val1",
 												"val2",
 											},
-
 										},
 									},
 								},
@@ -1125,8 +1123,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 						},
 					},
 				},
-
-			},	
+			},
 		},
 		{
 			"Valid - Affinity with terms with weight",
@@ -1135,7 +1132,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 					{
 						MatchExpressions: []*kubernetesplatform.SelectorRequirement{
 							{
-								Key: "key1",
+								Key:      "key1",
 								Operator: "In",
 								Values: []string{
 									"val1",
@@ -1145,7 +1142,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 						},
 						MatchFields: []*kubernetesplatform.SelectorRequirement{
 							{
-								Key: "key2",
+								Key:      "key2",
 								Operator: "In",
 								Values: []string{
 									"val1",
@@ -1155,7 +1152,6 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 						},
 						Weight: &preferredWeightA,
 					},
-
 				},
 			},
 			&k8score.PodSpec{
@@ -1166,15 +1162,15 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 				},
 				Affinity: &k8score.Affinity{
 					NodeAffinity: &k8score.NodeAffinity{
-						
+
 						PreferredDuringSchedulingIgnoredDuringExecution: []k8score.PreferredSchedulingTerm{
 							{
 								Weight: preferredWeightA,
 								Preference: k8score.NodeSelectorTerm{
-									
+
 									MatchExpressions: []k8score.NodeSelectorRequirement{
 										{
-											Key: "key1",
+											Key:      "key1",
 											Operator: "In",
 											Values: []string{
 												"val1",
@@ -1184,7 +1180,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 									},
 									MatchFields: []k8score.NodeSelectorRequirement{
 										{
-											Key: "key2",
+											Key:      "key2",
 											Operator: "In",
 											Values: []string{
 												"val1",
@@ -1192,14 +1188,12 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 											},
 										},
 									},
-								
 								},
 							},
 						},
 					},
 				},
-
-			},	
+			},
 		},
 		{
 			"Valid - Affinity mixed terms",
@@ -1208,7 +1202,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 					{
 						MatchExpressions: []*kubernetesplatform.SelectorRequirement{
 							{
-								Key: "key1",
+								Key:      "key1",
 								Operator: "In",
 								Values: []string{
 									"val1",
@@ -1220,12 +1214,11 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 						Weight: &preferredWeightB,
 						MatchFields: []*kubernetesplatform.SelectorRequirement{
 							{
-								Key: "field1",
+								Key:      "field1",
 								Operator: "Exists",
 							},
 						},
 					},
-
 				},
 			},
 			&k8score.PodSpec{
@@ -1241,36 +1234,33 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 								{
 									MatchExpressions: []k8score.NodeSelectorRequirement{
 										{
-											Key: "key1",
+											Key:      "key1",
 											Operator: "In",
 											Values: []string{
 												"val1",
 											},
 										},
 									},
-								}, 
+								},
 							},
 						},
 						PreferredDuringSchedulingIgnoredDuringExecution: []k8score.PreferredSchedulingTerm{
 							{
 								Weight: preferredWeightB,
 								Preference: k8score.NodeSelectorTerm{
-									
+
 									MatchFields: []k8score.NodeSelectorRequirement{
 										{
-											Key: "field1",
+											Key:      "field1",
 											Operator: "Exists",
 										},
 									},
-									
-								
 								},
 							},
 						},
 					},
 				},
-
-			},	
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -1287,7 +1277,6 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T){
 		})
 	}
 }
-
 
 func Test_extendPodSpecPatch_FieldPathAsEnv(t *testing.T) {
 	tests := []struct {
