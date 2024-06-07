@@ -58,7 +58,7 @@ func (s *RunApiTestSuite) SetupTest() {
 	}
 
 	if !*isDevMode {
-		err := test.WaitForReady(*namespace, *initializeTimeout)
+		err := test.WaitForReady(*initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
