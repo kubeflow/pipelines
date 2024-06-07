@@ -104,8 +104,6 @@ def resnet_pipeline(
 
     persistent_volume_name = 'nvidia-workspace'
     persistent_volume_path = '/mnt/workspace'
-    
-    
 
     op_dict = {}
 
@@ -134,5 +132,3 @@ def resnet_pipeline(
 if __name__ == '__main__':
     import kfp.compiler as compiler
     compiler.Compiler().compile(resnet_pipeline, __file__ + '.tar.gz')
-  
-
