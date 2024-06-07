@@ -47,7 +47,7 @@ def main():
                 'KUBEFLOW_NAMESPACE', KUBEFLOW_NAMESPACE)
             changed2 = changed1.replace('MODEL_PATH', str(args.model_path))
             target.write(changed2)
-     
+
     logging.info('Deploying TRTIS service')
     subprocess.call(['kubectl', 'apply', '-f', YAML_FILE])
 
