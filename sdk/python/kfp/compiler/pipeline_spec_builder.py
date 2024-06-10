@@ -54,7 +54,7 @@ def replace_and_inject_placeholders(
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
     tasks_in_current_dag: List[str]
-) -> tuple[Union[str, Dict, List], pipeline_spec_pb2.PipelineTaskSpec]:
+) -> tuple[Union[str, Dict, list], pipeline_spec_pb2.PipelineTaskSpec]:
     """Replaces placeholders in task input and injects placeholders as
     component inputs.
 

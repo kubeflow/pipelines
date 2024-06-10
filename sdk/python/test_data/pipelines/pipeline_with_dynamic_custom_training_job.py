@@ -1,6 +1,6 @@
-from kfp import dsl
-from kfp import components
 import google_cloud_pipeline_components.v1.custom_job as custom_job
+from kfp import components
+from kfp import dsl
 
 
 @dsl.component
