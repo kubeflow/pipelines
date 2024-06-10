@@ -29,6 +29,7 @@ import (
 
 const (
 	volumeNameKFPLauncher    = "kfp-launcher"
+	volumeNameCABundle       = "ca-bundle"
 	DefaultLauncherImage     = "gcr.io/ml-pipeline/kfp-launcher@sha256:8fe5e6e4718f20b021736022ad3741ddf2abd82aa58c86ae13e89736fdc3f08f"
 	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
 	DefaultDriverImage       = "gcr.io/ml-pipeline/kfp-driver@sha256:3c0665cd36aa87e4359a4c8b6271dcba5bdd817815cd0496ed12eb5dde5fd2ec"
@@ -395,7 +396,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 			Value: sslCertDir,
 		})
 		volume := k8score.Volume{
-			Name: volumeNameCABUndle,
+			Name: volumeNameCABundle,
 			VolumeSource: k8score.VolumeSource{
 				ConfigMap: &k8score.ConfigMapVolumeSource{
 					LocalObjectReference: k8score.LocalObjectReference{
@@ -408,7 +409,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 		executor.Volumes = append(executor.Volumes, volume)
 
 		volumeMount := k8score.VolumeMount{
-			Name:      volumeNameCABUndle,
+			Name:      volumeNameCABundle,
 			MountPath: caFile,
 			SubPath:   caBundleCfgMapKey,
 		}
