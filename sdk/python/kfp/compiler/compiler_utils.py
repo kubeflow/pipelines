@@ -772,3 +772,29 @@ def get_dependencies(
             dependencies[downstream_names[0]].add(upstream_names[0])
 
     return dependencies
+
+
+def recursive_replace(
+        data: Union[Dict, List], old_value: Union[int, float, bool, str],
+        new_value: Union[int, float, bool, str]) -> Union[Dict, List]:
+    """Replaces values in a nested dict/list object.
+
+    Args:
+        data: A nested object that can contain dictionaries and/or lists.
+        old_value: The value that will be replaced.
+        new_value: The value to replace the old value with.
+
+    Returns:
+        A copy of data with all occurences of old_value replaced by new_value.
+    """
+    if isinstance(data, dict):
+        return {
+            k: recursive_replace(v, old_value, new_value)
+            for k, v in data.items()
+        }
+    elif isinstance(data, list):
+        return [recursive_replace(i, old_value, new_value) for i in data]
+    else:
+        if isinstance(data, pipeline_channel.PipelineChannel):
+            data = str(data)
+        return new_value if data == old_value else data
