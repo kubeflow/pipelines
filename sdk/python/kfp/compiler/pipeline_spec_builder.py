@@ -49,12 +49,12 @@ group_type_to_dsl_class = {
 
 
 def replace_and_inject_placeholders(
-    input_value: Union[str, Dict, List[Any]],
+    input_value: Union[str, Dict, List],
     pipeline_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
     tasks_in_current_dag: List[str]
-) -> tuple[Union[str, Dict, List[Any]], pipeline_spec_pb2.PipelineTaskSpec]:
+) -> Tuple[Union[str, Dict, List], pipeline_spec_pb2.PipelineTaskSpec]:
     """Replaces placeholders in task input and injects placeholders as
     component inputs.
 
