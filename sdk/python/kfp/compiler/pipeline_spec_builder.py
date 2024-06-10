@@ -49,24 +49,24 @@ group_type_to_dsl_class = {
 
 
 def replace_and_inject_placeholders(
-    input_value: Union[str, Dict, List],
+    input_value: Union[str, Dict, List[Any]],
     pipeline_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
     tasks_in_current_dag: List[str]
-) -> tuple[Union[str, Dict, list], pipeline_spec_pb2.PipelineTaskSpec]:
+) -> tuple[Union[str, Dict, List[Any]], pipeline_spec_pb2.PipelineTaskSpec]:
     """Replaces placeholders in task input and injects placeholders as
     component inputs.
 
     Args:
         input_value: Input value to replace placeholders and inject inputs.
         pipeline_task_spec: A PipelineTaskSpec object representing the task.
-        task: The task to build a PipelineTaskSpec for.
+        task: The task associated with the PipelineTaskSpec.
         parent_component_inputs: The task's parent component's input specs.
         tasks_in_current_dag: The list of tasks names for tasks in the same dag.
 
     Returns:
-        A copy of input_value with PipelineChannel placeholders.
+        A copy of input_value with replaced PipelineChannel placeholders.
         A copy of pipeline_task_spec with injected component inputs.
     """
     pipeline_channels = (
@@ -100,9 +100,6 @@ def replace_and_inject_placeholders(
             input_value = input_value.replace(channel.pattern,
                                               additional_input_placeholder)
         else:
-            print('\n',input_value)
-            print(channel.pattern)
-            print(additional_input_placeholder)
             input_value = compiler_utils.recursive_replace(
                 input_value, channel.pattern, additional_input_placeholder)
 

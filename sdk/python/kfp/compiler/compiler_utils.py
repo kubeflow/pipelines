@@ -15,7 +15,7 @@
 
 import collections
 import copy
-from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
+from typing import Any, DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 from kfp import dsl
 from kfp.dsl import for_loop
@@ -775,8 +775,8 @@ def get_dependencies(
 
 
 def recursive_replace(
-        data: Union[Dict, List], old_value: Union[int, float, bool, str],
-        new_value: Union[int, float, bool, str]) -> Union[Dict, List]:
+        data: Union[Dict, List[Any]], old_value: Union[int, float, bool, str],
+        new_value: Union[int, float, bool, str]) -> Union[Dict, List[Any]]:
     """Replaces values in a nested dict/list object.
 
     Args:
