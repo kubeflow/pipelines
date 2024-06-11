@@ -100,7 +100,7 @@ def replace_and_inject_placeholders(
             input_value = input_value.replace(channel.pattern,
                                               additional_input_placeholder)
         else:
-            input_value = compiler_utils.recursive_replace(
+            input_value = compiler_utils.recursive_replace_placeholders(
                 input_value, channel.pattern, additional_input_placeholder)
 
         if channel.task_name:

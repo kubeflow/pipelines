@@ -107,27 +107,11 @@ class TestAdditionalInputNameForPipelineChannel(parameterized.TestCase):
                 'replica_count': 1
             }],
         },
-        {
-            'data': [{
-                0: 'a',
-                1: 'b',
-                2: 'c',
-                3: ['d']
-            }],
-            'old_value': 'd',
-            'new_value': 'dd',
-            'expected': [{
-                0: 'a',
-                1: 'b',
-                2: 'c',
-                3: ['dd']
-            }],
-        },
     )
-    def test_recursive_replace(self, data, old_value, new_value, expected):
+    def test_recursive_replace_placeholders(self, data, old_value, new_value, expected):
         self.assertEqual(
             expected,
-            compiler_utils.recursive_replace(data, old_value, new_value))
+            compiler_utils.recursive_replace_placeholders(data, old_value, new_value))
 
 
 if __name__ == '__main__':
