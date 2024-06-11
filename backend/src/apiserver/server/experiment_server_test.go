@@ -16,6 +16,8 @@ package server
 
 import (
 	"context"
+	"google.golang.org/protobuf/types/known/structpb"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 
@@ -66,12 +68,13 @@ func TestCreateExperiment(t *testing.T) {
 	result, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &apiV2beta1.Experiment{
-		ExperimentId: DefaultFakeUUID,
-		DisplayName:  "ex1",
-		Description:  "first experiment",
-		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		StorageState: apiV2beta1.Experiment_AVAILABLE,
-		Namespace:    "",
+		ExperimentId:     DefaultFakeUUID,
+		DisplayName:      "ex1",
+		Description:      "first experiment",
+		CreatedAt:        &timestamp.Timestamp{Seconds: 1},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 0},
+		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		Namespace:        "",
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -395,16 +398,18 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 		{
 			"Valid",
 			&apiV2beta1.Experiment{
-				DisplayName: "exp1",
-				Description: "first experiment",
-				Namespace:   "ns1",
+				DisplayName:      "exp1",
+				Description:      "first experiment",
+				LastRunCreatedAt: &timestamp.Timestamp{Seconds: 0},
+				Namespace:        "ns1",
 			},
 			&apiV2beta1.Experiment{
-				ExperimentId: DefaultFakeUUID,
-				DisplayName:  "exp1",
-				Description:  "first experiment",
-				Namespace:    "ns1",
-				StorageState: apiV2beta1.Experiment_AVAILABLE,
+				ExperimentId:     DefaultFakeUUID,
+				DisplayName:      "exp1",
+				Description:      "first experiment",
+				LastRunCreatedAt: &timestamp.Timestamp{Seconds: 0},
+				Namespace:        "ns1",
+				StorageState:     apiV2beta1.Experiment_AVAILABLE,
 			},
 			false,
 			"",
@@ -481,12 +486,13 @@ func TestGetExperiment(t *testing.T) {
 	result, err := server.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
 	assert.Nil(t, err)
 	expectedExperiment := &apiV2beta1.Experiment{
-		ExperimentId: createResult.ExperimentId,
-		DisplayName:  "ex1",
-		Description:  "first experiment",
-		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		StorageState: apiV2beta1.Experiment_AVAILABLE,
-		Namespace:    "",
+		ExperimentId:     createResult.ExperimentId,
+		DisplayName:      "ex1",
+		Description:      "first experiment",
+		CreatedAt:        &timestamp.Timestamp{Seconds: 1},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 0},
+		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		Namespace:        "",
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -619,12 +625,13 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 	result, err := server.GetExperiment(ctx, &apiV2beta1.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
 	assert.Nil(t, err)
 	expectedExperiment := &apiV2beta1.Experiment{
-		ExperimentId: createResult.ExperimentId,
-		DisplayName:  "exp1",
-		Description:  "first experiment",
-		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		Namespace:    "ns1",
-		StorageState: apiV2beta1.Experiment_AVAILABLE,
+		ExperimentId:     createResult.ExperimentId,
+		DisplayName:      "exp1",
+		Description:      "first experiment",
+		CreatedAt:        &timestamp.Timestamp{Seconds: 1},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 0},
+		Namespace:        "ns1",
+		StorageState:     apiV2beta1.Experiment_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -667,15 +674,95 @@ func TestListExperiments(t *testing.T) {
 	assert.Nil(t, err)
 	result, err := server.ListExperiments(nil, &apiV2beta1.ListExperimentsRequest{})
 	expectedExperiment := []*apiV2beta1.Experiment{{
-		ExperimentId: createResult.ExperimentId,
-		DisplayName:  "ex1",
-		Description:  "first experiment",
-		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		StorageState: apiV2beta1.Experiment_AVAILABLE,
-		Namespace:    "",
+		ExperimentId:     createResult.ExperimentId,
+		DisplayName:      "ex1",
+		Description:      "first experiment",
+		CreatedAt:        &timestamp.Timestamp{Seconds: 1},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 0},
+		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		Namespace:        "",
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedExperiment, result.Experiments)
+}
+
+func TestListExperimentsByLastRunCreation(t *testing.T) {
+	// Create experiment and runs/jobs under it.
+	clients, manager, experiment1, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+
+	// Create another experiment
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
+	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	server := ExperimentServer{resourceManager: manager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "exp2"}
+	experiment2, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+
+	// Create a generic run object
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+	genericRun := &apiV2beta1.Run{
+		PipelineSource: &apiV2beta1.Run_PipelineSpec{
+			PipelineSpec: pipelineSpecStruct,
+		},
+		RuntimeConfig: &apiV2beta1.RuntimeConfig{
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
+		},
+	}
+
+	// Create a run in experiment 1
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdThree, nil))
+	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	genericRun.DisplayName = "run1"
+	genericRun.ExperimentId = experiment1.UUID
+	_, err = runServer.CreateRun(nil, &apiV2beta1.CreateRunRequest{Run: genericRun})
+	assert.Nil(t, err)
+
+	// Create a run in experiment 2
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdFour, nil))
+	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	genericRun.DisplayName = "run2"
+	genericRun.ExperimentId = experiment2.ExperimentId
+	_, err = runServer.CreateRun(nil, &apiV2beta1.CreateRunRequest{Run: genericRun})
+	assert.Nil(t, err)
+
+	// Expected runs, note that because run 2 in experiment 2
+	// was created last, experiment 2 has the latest run execution
+	experimentServer := ExperimentServer{resourceManager: manager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	expected1 := &apiV2beta1.Experiment{
+		ExperimentId:     experiment1.UUID,
+		DisplayName:      "exp1",
+		Description:      "",
+		CreatedAt:        &timestamp.Timestamp{Seconds: 1},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 6},
+		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		Namespace:        "",
+	}
+	expected2 := &apiV2beta1.Experiment{
+		ExperimentId:     experiment2.ExperimentId,
+		DisplayName:      "exp2",
+		Description:      "",
+		CreatedAt:        &timestamp.Timestamp{Seconds: 5},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 8},
+		StorageState:     apiV2beta1.Experiment_AVAILABLE,
+		Namespace:        "",
+	}
+
+	// First list runs sorted by last_run_created_at ascending
+	listExperimentsRequest := &apiV2beta1.ListExperimentsRequest{SortBy: "last_run_created_at asc"}
+	result, err := experimentServer.ListExperiments(nil, listExperimentsRequest)
+	assert.Nil(t, err)
+	assert.Equal(t, []*apiV2beta1.Experiment{expected1, expected2}, result.Experiments)
+
+	// Then list runs sorted by last_run_created_at descending, note the order is switched
+	listExperimentsRequest = &apiV2beta1.ListExperimentsRequest{SortBy: "last_run_created_at desc"}
+	result, err = experimentServer.ListExperiments(nil, listExperimentsRequest)
+	assert.Equal(t, []*apiV2beta1.Experiment{expected2, expected1}, result.Experiments)
 }
 
 func TestListExperimentsV1_Failed(t *testing.T) {
@@ -913,12 +1000,13 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 			false,
 			"",
 			[]*apiV2beta1.Experiment{{
-				ExperimentId: createResult.ExperimentId,
-				DisplayName:  "exp1",
-				Description:  "first experiment",
-				CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-				Namespace:    "ns1",
-				StorageState: apiV2beta1.Experiment_AVAILABLE,
+				ExperimentId:     createResult.ExperimentId,
+				DisplayName:      "exp1",
+				Description:      "first experiment",
+				CreatedAt:        &timestamp.Timestamp{Seconds: 1},
+				LastRunCreatedAt: &timestamp.Timestamp{Seconds: 0},
+				Namespace:        "ns1",
+				StorageState:     apiV2beta1.Experiment_AVAILABLE,
 			}},
 		},
 		{

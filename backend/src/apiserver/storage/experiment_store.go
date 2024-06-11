@@ -33,6 +33,7 @@ type ExperimentStoreInterface interface {
 	ArchiveExperiment(expId string) error
 	UnarchiveExperiment(expId string) error
 	DeleteExperiment(uuid string) error
+	UpdateLastRun(run *model.Run) error
 }
 
 type ExperimentStore struct {
@@ -48,6 +49,7 @@ var experimentColumns = []string{
 	"Name",
 	"Description",
 	"CreatedAtInSec",
+	"LastRunCreatedAtInSec",
 	"Namespace",
 	"StorageState",
 }
@@ -195,17 +197,19 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 	for rows.Next() {
 		var uuid, name, description, namespace, storageState string
 		var createdAtInSec sql.NullInt64
-		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &namespace, &storageState)
+		var lastRunCreatedAtInSec sql.NullInt64
+		err := rows.Scan(&uuid, &name, &description, &createdAtInSec, &lastRunCreatedAtInSec, &namespace, &storageState)
 		if err != nil {
 			return experiments, err
 		}
 		experiment := &model.Experiment{
-			UUID:           uuid,
-			Name:           name,
-			Description:    description,
-			CreatedAtInSec: createdAtInSec.Int64,
-			Namespace:      namespace,
-			StorageState:   model.StorageState(storageState).ToV2(),
+			UUID:                  uuid,
+			Name:                  name,
+			Description:           description,
+			CreatedAtInSec:        createdAtInSec.Int64,
+			LastRunCreatedAtInSec: lastRunCreatedAtInSec.Int64,
+			Namespace:             namespace,
+			StorageState:          model.StorageState(storageState).ToV2(),
 		}
 		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and we use AVAILABLE in that case.
 		if experiment.StorageState == "" || experiment.StorageState == model.StorageStateUnspecified {
@@ -220,6 +224,9 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	newExperiment := *experiment
 	now := s.time.Now().Unix()
 	newExperiment.CreatedAtInSec = now
+	// When an experiment has no runs
+	// we default to "1970-01-01T00:00:00Z"
+	newExperiment.LastRunCreatedAtInSec = 0
 	id, err := s.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create an experiment id")
@@ -236,12 +243,13 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	sql, args, err := sq.
 		Insert("experiments").
 		SetMap(sq.Eq{
-			"UUID":           newExperiment.UUID,
-			"CreatedAtInSec": newExperiment.CreatedAtInSec,
-			"Name":           newExperiment.Name,
-			"Description":    newExperiment.Description,
-			"Namespace":      newExperiment.Namespace,
-			"StorageState":   newExperiment.StorageState.ToV2().ToString(),
+			"UUID":                  newExperiment.UUID,
+			"CreatedAtInSec":        newExperiment.CreatedAtInSec,
+			"LastRunCreatedAtInSec": newExperiment.LastRunCreatedAtInSec,
+			"Name":                  newExperiment.Name,
+			"Description":           newExperiment.Description,
+			"Namespace":             newExperiment.Namespace,
+			"StorageState":          newExperiment.StorageState.ToV2().ToString(),
 		}).
 		ToSql()
 	if err != nil {
@@ -408,6 +416,28 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 			"Failed to unarchive experiment %s. error: '%v'", expId, err.Error())
 	}
 
+	return nil
+}
+
+func (s *ExperimentStore) UpdateLastRun(run *model.Run) error {
+	expId := run.ExperimentId
+	// UpdateLastRun results in the experiment getting last_run_created_at updated
+	query, args, err := sq.
+		Update("experiments").
+		SetMap(sq.Eq{
+			"LastRunCreatedAtInSec": run.CreatedAtInSec,
+		}).
+		Where(sq.Eq{"UUID": expId}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to set experiment LastRunCreatedAtInSec %s. error: '%v'", expId, err.Error())
+	}
+	_, err = s.db.Exec(query, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to set experiment LastRunCreatedAtInSec %s. error: '%v'", expId, err.Error())
+	}
 	return nil
 }
 
