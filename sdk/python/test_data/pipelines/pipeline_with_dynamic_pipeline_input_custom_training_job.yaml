@@ -1,22 +1,13 @@
 # PIPELINE DEFINITION
 # Name: pipeline
 # Inputs:
+#    accelerator_count: int
+#    accelerator_type: str
 #    encryption_spec_key_name: str [Default: '']
 #    location: str
+#    machine_type: str
 #    project: str
 components:
-  comp-accelerator-count:
-    executorLabel: exec-accelerator-count
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: NUMBER_INTEGER
-  comp-accelerator-type:
-    executorLabel: exec-accelerator-type
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRING
   comp-custom-training-job:
     executorLabel: exec-custom-training-job
     inputDefinitions:
@@ -124,71 +115,8 @@ components:
           description: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
             which tracks the CustomJob.
           parameterType: STRING
-  comp-machine-type:
-    executorLabel: exec-machine-type
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRING
 deploymentSpec:
   executors:
-    exec-accelerator-count:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - accelerator_count
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef accelerator_count() -> int:\n    # This can either be int or\
-          \ int string\n    return 1\n\n"
-        image: python:3.8
-    exec-accelerator-type:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - accelerator_type
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef accelerator_type() -> str:\n    return 'NVIDIA_TESLA_P4'\n\n"
-        image: python:3.8
     exec-custom-training-job:
       container:
         args:
@@ -217,62 +145,16 @@ deploymentSpec:
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.14.1
-    exec-machine-type:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - machine_type
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef machine_type() -> str:\n    return 'n1-standard-4'\n\n"
-        image: python:3.8
 pipelineInfo:
   name: pipeline
 root:
   dag:
     tasks:
-      accelerator-count:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-accelerator-count
-        taskInfo:
-          name: accelerator-count
-      accelerator-type:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-accelerator-type
-        taskInfo:
-          name: accelerator-type
       custom-training-job:
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-custom-training-job
-        dependentTasks:
-        - accelerator-count
-        - accelerator-type
-        - machine-type
         inputs:
           parameters:
             display_name:
@@ -282,18 +164,12 @@ root:
               componentInputParameter: encryption_spec_key_name
             location:
               componentInputParameter: location
-            pipelinechannel--accelerator-count-Output:
-              taskOutputParameter:
-                outputParameterKey: Output
-                producerTask: accelerator-count
-            pipelinechannel--accelerator-type-Output:
-              taskOutputParameter:
-                outputParameterKey: Output
-                producerTask: accelerator-type
-            pipelinechannel--machine-type-Output:
-              taskOutputParameter:
-                outputParameterKey: Output
-                producerTask: machine-type
+            pipelinechannel--accelerator_count:
+              componentInputParameter: accelerator_count
+            pipelinechannel--accelerator_type:
+              componentInputParameter: accelerator_type
+            pipelinechannel--machine_type:
+              componentInputParameter: machine_type
             project:
               componentInputParameter: project
             worker_pool_specs:
@@ -306,26 +182,25 @@ root:
                     - echo
                     image_uri: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0
                   machine_spec:
-                    accelerator_count: '{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}'
-                    accelerator_type: '{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}'
-                    machine_type: '{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}'
+                    accelerator_count: '{{$.inputs.parameters[''pipelinechannel--accelerator_count'']}}'
+                    accelerator_type: '{{$.inputs.parameters[''pipelinechannel--accelerator_type'']}}'
+                    machine_type: '{{$.inputs.parameters[''pipelinechannel--machine_type'']}}'
                   replica_count: 1.0
         taskInfo:
           name: custom-training-job
-      machine-type:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-machine-type
-        taskInfo:
-          name: machine-type
   inputDefinitions:
     parameters:
+      accelerator_count:
+        parameterType: NUMBER_INTEGER
+      accelerator_type:
+        parameterType: STRING
       encryption_spec_key_name:
         defaultValue: ''
         isOptional: true
         parameterType: STRING
       location:
+        parameterType: STRING
+      machine_type:
         parameterType: STRING
       project:
         parameterType: STRING

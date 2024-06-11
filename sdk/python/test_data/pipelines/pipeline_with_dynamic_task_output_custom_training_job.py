@@ -14,7 +14,6 @@ def accelerator_type() -> str:
 
 @dsl.component
 def accelerator_count() -> int:
-    # This can either be int or int string
     return 1
 
 
@@ -32,8 +31,6 @@ def pipeline(
         display_name='add-numbers',
         worker_pool_specs=[{
             'container_spec': {
-                # doesn't need to be the container under test
-                # just need an image within the VPC-SC perimeter
                 'image_uri':
                     ('gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0'
                     ),
