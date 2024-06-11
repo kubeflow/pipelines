@@ -15,8 +15,7 @@
 # Build arguments
 ARG SOURCE_CODE=.
 
-#@follow_tag(registry.access.redhat.com/ubi8/go-toolset:1.20)
-FROM registry.access.redhat.com/ubi8/go-toolset:1.20 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.21 as builder
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
@@ -34,7 +33,6 @@ COPY ${SOURCE_CODE}/ ./
 RUN GO111MODULE=on go build -o /bin/apiserver ./backend/src/apiserver/ && \
     dnf clean all
 
-#@follow_tag(registry.access.redhat.com/ubi8/ubi-minimal:latest)
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 WORKDIR /bin
