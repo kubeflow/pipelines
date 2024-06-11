@@ -81,7 +81,9 @@ class TestAdditionalInputNameForPipelineChannel(parameterized.TestCase):
             'old_value':
                 '{{channel:task=machine-type;name=Output;type=String;}}',
             'new_value':
-                '{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}',
+                '{{$.inputs.parameters['
+                'pipelinechannel--machine-type-Output'
+                ']}}',
             'expected': [{
                 'container_spec': {
                     'image_uri':
@@ -91,7 +93,9 @@ class TestAdditionalInputNameForPipelineChannel(parameterized.TestCase):
                 },
                 'machine_spec': {
                     'machine_type':
-                        '{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}',
+                        '{{$.inputs.parameters['
+                        'pipelinechannel--machine-type-Output'
+                        ']}}',
                     'accelerator_type':
                         pipeline_channel.PipelineParameterChannel(
                             name='Output',
