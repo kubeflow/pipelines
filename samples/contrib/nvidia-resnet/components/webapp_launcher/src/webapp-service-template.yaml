@@ -1,3 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: TRTSERVER_NAME
+  name: TRTSERVER_NAME
+  namespace: KUBEFLOW_NAMESPACE
+spec:
+  ports:
+  - name: grpc-trtis-serving
+    port: 8001
+    targetPort: 8001
+  - name: http-trtis-serving
+    port: 8000
+    targetPort: 8000
+  - name: prometheus-metrics
+    port: 8002
+    targetPort: 8002
+  selector:
+    app: TRTSERVER_NAME
+  type: ClusterIP
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
