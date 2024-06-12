@@ -779,7 +779,7 @@ def recursive_replace_placeholders(
         new_value: str) -> Union[Dict, List]:
     """Recursively replaces values in a nested dict/list object.
 
-    This method is used to replace PipelineChannel objects with pipeine channel
+    This method is used to replace PipelineChannel objects with input parameter
     placeholders in a nested object like worker_pool_specs for custom jobs.
 
     Args:
