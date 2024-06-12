@@ -34,10 +34,14 @@ spec:
       labels:
         app: demo-client-ui
         role: frontend
-    spec:
+    spec: 
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
       containers:
       - name: webapp
-        image: <webapp-image>
+        image: cculab509/webapp
         imagePullPolicy: Always
         env:
         - name: TRTSERVER_HOST

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 '''
 Copyright 2018 The Kubeflow Authors
 
@@ -24,292 +24,280 @@ from builtins import range
 from functools import partial
 import grpc
 
-from tensorrtserver.api import api_pb2
-from tensorrtserver.api import grpc_service_pb2
-from tensorrtserver.api import grpc_service_pb2_grpc
-import tensorrtserver.api.model_config_pb2 as model_config
+import tritonclient.grpc as grpcclient
+from tritonclient.grpc import service_pb2
+from tritonclient.grpc import service_pb2_grpc
 
 from PIL import Image
 
 
 def model_dtype_to_np(model_dtype):
-  if model_dtype == model_config.TYPE_BOOL:
-    return np.bool
-  elif model_dtype == model_config.TYPE_INT8:
-    return np.int8
-  elif model_dtype == model_config.TYPE_INT16:
-    return np.int16
-  elif model_dtype == model_config.TYPE_INT32:
-    return np.int32
-  elif model_dtype == model_config.TYPE_INT64:
-    return np.int64
-  elif model_dtype == model_config.TYPE_UINT8:
-    return np.uint8
-  elif model_dtype == model_config.TYPE_UINT16:
-    return np.uint16
-  elif model_dtype == model_config.TYPE_FP16:
-    return np.float16
-  elif model_dtype == model_config.TYPE_FP32:
-    return np.float32
-  elif model_dtype == model_config.TYPE_FP64:
-    return np.float64
-  elif model_dtype == model_config.TYPE_STRING:
-    return np.dtype(object)
-  return None
+    if model_dtype == "BOOL":
+        return np.bool
+    elif model_dtype == "INT8":
+        return np.int8
+    elif model_dtype == "INT16":
+        return np.int16
+    elif model_dtype == "INT32":
+        return np.int32
+    elif model_dtype == "INT64":
+        return np.int64
+    elif model_dtype == "UINT8":
+        return np.uint8
+    elif model_dtype == "UINT16":
+        return np.uint16
+    elif model_dtype == "FP16":
+        return np.float16
+    elif model_dtype == "FP32":
+        return np.float32
+    elif model_dtype == "FP64":
+        return np.float64
+    elif model_dtype == "STRING":
+        return np.dtype(object)
+    return None
 
 
-def parse_model(status, model_name, batch_size, verbose=False):
-  """
-  Check the configuration of a model to make sure it meets the
-  requirements for an image classification network (as expected by
-  this client)
-  """
-  server_status = status.server_status
-  if model_name not in server_status.model_status.keys():
-    raise Exception("unable to get status for '" + model_name + "'")
+def parse_model(metadata, config, batch_size, verbose=False):
+    """
+    Check the configuration of a model to make sure it meets the
+    requirements for an image classification network (as expected by
+    this client)
+    """
+    if len(config.input) != 1:
+        raise Exception("expecting 1 input, got {}".format(len(config.input)))
+    if len(config.output) != 1:
+        raise Exception("expecting 1 output, got {}".format(len(config.output)))
 
-  status = server_status.model_status[model_name]
-  config = status.config
+    input = config.input[0]
+    output = config.output[0]
 
-  if len(config.input) != 1:
-    raise Exception("expecting 1 input, got {}".format(len(config.input)))
-  if len(config.output) != 1:
-    raise Exception("expecting 1 output, got {}".format(len(config.output)))
+    if output.data_type != "FP32":
+        raise Exception("expecting output datatype to be FP32, model output type is " +
+                        output.data_type)
 
-  input = config.input[0]
-  output = config.output[0]
+    # Output is expected to be a vector. But allow any number of
+    # dimensions as long as all but 1 is size 1 (e.g. { 10 }, { 1, 10
+    # }, { 10, 1, 1 } are all ok).
+    non_one_cnt = 0
+    for dim in output.dims:
+        if dim > 1:
+            non_one_cnt += 1
+            if non_one_cnt > 1:
+                raise Exception("expecting model output to be a vector")
 
-  if output.data_type != model_config.TYPE_FP32:
-    raise Exception("expecting output datatype to be TYPE_FP32, model '" +
-                    model_name + "' output type is " +
-                    model_config.DataType.Name(output.data_type))
+    # Model specifying maximum batch size of 0 indicates that batching
+    # is not supported and so the input tensors do not expect an "N"
+    # dimension (and 'batch_size' should be 1 so that only a single
+    # image instance is inferred at a time).
+    max_batch_size = config.max_batch_size
+    if max_batch_size == 0:
+        if batch_size != 1:
+            raise Exception("batching not supported for model")
+    else:  # max_batch_size > 0
+        if batch_size > max_batch_size:
+            raise Exception(
+                "expecting batch size <= {} for model".format(max_batch_size))
 
-  # Output is expected to be a vector. But allow any number of
-  # dimensions as long as all but 1 is size 1 (e.g. { 10 }, { 1, 10
-  # }, { 10, 1, 1 } are all ok).
-  non_one_cnt = 0
-  for dim in output.dims:
-    if dim > 1:
-      non_one_cnt += 1
-      if non_one_cnt > 1:
-        raise Exception("expecting model output to be a vector")
+    # Model input must have 3 dims, either CHW or HWC
+    if len(input.dims) != 3:
+        raise Exception(
+            "expecting input to have 3 dimensions, model input has {}".format(len(input.dims)))
 
-  # Model specifying maximum batch size of 0 indicates that batching
-  # is not supported and so the input tensors do not expect an "N"
-  # dimension (and 'batch_size' should be 1 so that only a single
-  # image instance is inferred at a time).
-  max_batch_size = config.max_batch_size
-  if max_batch_size == 0:
-    if batch_size != 1:
-      raise Exception("batching not supported for model '" + model_name + "'")
-  else:  # max_batch_size > 0
-    if batch_size > max_batch_size:
-      raise Exception(
-        "expecting batch size <= {} for model '{}'".format(max_batch_size, model_name))
+    if ((input.format != "FORMAT_NCHW") and
+            (input.format != "FORMAT_NHWC")):
+        raise Exception("unexpected input format " +
+                        input.format +
+                        ", expecting FORMAT_NCHW or FORMAT_NHWC")
 
-  # Model input must have 3 dims, either CHW or HWC
-  if len(input.dims) != 3:
-    raise Exception(
-      "expecting input to have 3 dimensions, model '{}' input has {}".format(
-        model_name, len(input.dims)))
+    if input.format == "FORMAT_NHWC":
+        h = input.dims[0]
+        w = input.dims[1]
+        c = input.dims[2]
+    else:
+        c = input.dims[0]
+        h = input.dims[1]
+        w = input.dims[2]
 
-  if ((input.format != model_config.ModelInput.FORMAT_NCHW) and
-      (input.format != model_config.ModelInput.FORMAT_NHWC)):
-    raise Exception("unexpected input format " + model_config.ModelInput.Format.Name(input.format) +
-                    ", expecting " +
-                    model_config.ModelInput.Format.Name(model_config.ModelInput.FORMAT_NCHW) +
-                    " or " +
-                    model_config.ModelInput.Format.Name(model_config.ModelInput.FORMAT_NHWC))
-
-  if input.format == model_config.ModelInput.FORMAT_NHWC:
-    h = input.dims[0]
-    w = input.dims[1]
-    c = input.dims[2]
-  else:
-    c = input.dims[0]
-    h = input.dims[1]
-    w = input.dims[2]
-
-  return (input.name, output.name, c, h, w, input.format, model_dtype_to_np(input.data_type))
+    return (input.name, output.name, c, h, w, input.format, model_dtype_to_np(input.data_type))
 
 
 def preprocess(img, format, dtype, c, h, w):
-  """
-  Pre-process an image to meet the size, type and format
-  requirements specified by the parameters.
-  """
-  # np.set_printoptions(threshold='nan')
+    """
+    Pre-process an image to meet the size, type and format
+    requirements specified by the parameters.
+    """
+    # np.set_printoptions(threshold='nan')
 
-  if c == 1:
-    sample_img = img.convert('L')
-  else:
-    sample_img = img.convert('RGB')
+    if c == 1:
+        sample_img = img.convert('L')
+    else:
+        sample_img = img.convert('RGB')
 
-  resized_img = sample_img.resize((w, h), Image.BILINEAR)
-  resized = np.array(resized_img)
-  if resized.ndim == 2:
-    resized = resized[:, :, np.newaxis]
+    resized_img = sample_img.resize((w, h), Image.BILINEAR)
+    resized = np.array(resized_img)
+    if resized.ndim == 2:
+        resized = resized[:, :, np.newaxis]
 
-  typed = resized.astype(dtype)
+    typed = resized.astype(dtype)
 
-  scaled = (typed / 255) - 0.5
+    scaled = (typed / 255) - 0.5
 
-  # Channels are in RGB order. Currently model configuration data
-  # doesn't provide any information as to other channel orderings
-  # (like BGR) so we just assume RGB.
-  return scaled
+    # Channels are in RGB order. Currently model configuration data
+    # doesn't provide any information as to other channel orderings
+    # (like BGR) so we just assume RGB.
+    return scaled
 
 
 def postprocess(results, filenames, batch_size):
-  """
-  Post-process results to show classifications.
-  """
-  if len(results) != 1:
-    raise Exception("expected 1 result, got {}".format(len(results)))
+    """
+    Post-process results to show classifications.
+    """
+    if len(results) != 1:
+        raise Exception("expected 1 result, got {}".format(len(results)))
 
-  batched_result = results[0].batch_classes
-  if len(batched_result) != batch_size:
-    raise Exception("expected {} results, got {}".format(batch_size, len(batched_result)))
-  if len(filenames) != batch_size:
-    raise Exception("expected {} filenames, got {}".format(batch_size, len(filenames)))
+    batched_result = results[0].batch_classes
+    if len(batched_result) != batch_size:
+        raise Exception("expected {} results, got {}".format(batch_size, len(batched_result)))
+    if len(filenames) != batch_size:
+        raise Exception("expected {} filenames, got {}".format(batch_size, len(filenames)))
 
-  label, score = [], []
-  # batch size is always 1 here, need to modify if were to larger batch_size
-  for (index, result) in enumerate(batched_result):
-    print("Image '{}':".format(filenames[index]))
-    for cls in result.cls:
-      label.append(cls.label)
-      score += [{"index": cls.label, "val": cls.value}]
-      print("    {} ({}) = {}".format(cls.idx, cls.label, cls.value))
-  return label[0], score
+    label, score = [], []
+    # batch size is always 1 here, need to modify if were to larger batch_size
+    for (index, result) in enumerate(batched_result):
+        print("Image '{}':".format(filenames[index]))
+        for cls in result.cls:
+            label.append(cls.label)
+            score += [{"index": cls.label, "val": cls.value}]
+            print("    {} ({}) = {}".format(cls.idx, cls.label, cls.value))
+    return label[0], score
 
 
 def requestGenerator(input_name, output_name, c, h, w, format, dtype, model_name, model_version, image_filename,
                      result_filenames):
-  # Prepare request for Infer gRPC
-  # The meta data part can be reused across requests
-  request = grpc_service_pb2.InferRequest()
-  request.model_name = model_name
-  if model_version is None:
-    request.model_version = -1
-  else:
-    request.model_version = model_version
-  # optional pass in a batch size for generate requester over a set of image files, need to refactor
-  batch_size = 1
-  request.meta_data.batch_size = batch_size
-  output_message = api_pb2.InferRequestHeader.Output()
-  output_message.name = output_name
-  # Number of class results to report. Default is 10 to match with demo.
-  output_message.cls.count = 10
-  request.meta_data.output.extend([output_message])
+    # Prepare request for Infer gRPC
+    # The meta data part can be reused across requests
+    request = service_pb2.ModelInferRequest()
+    request.model_name = model_name
+    if model_version is None:
+        request.model_version = ""
+    else:
+        request.model_version = model_version
+    # optional pass in a batch size for generate requester over a set of image files, need to refactor
+    batch_size = 1
 
-  filenames = []
-  if os.path.isdir(image_filename):
-    filenames = [os.path.join(image_filename, f)
-                 for f in os.listdir(image_filename)
-                 if os.path.isfile(os.path.join(image_filename, f))]
-  else:
-    filenames = [image_filename, ]
+    request.outputs.append(service_pb2.ModelInferRequest().InferRequestedOutputTensor(name=output_name))
 
-  filenames.sort()
+    filenames = []
+    if os.path.isdir(image_filename):
+        filenames = [os.path.join(image_filename, f)
+                     for f in os.listdir(image_filename)
+                     if os.path.isfile(os.path.join(image_filename, f))]
+    else:
+        filenames = [image_filename, ]
 
-  # Preprocess the images into input data according to model
-  # requirements
-  image_data = []
-  for filename in filenames:
-    img = Image.open(filename)
-    image_data.append(preprocess(img, format, dtype, c, h, w))
+    filenames.sort()
 
-  request.meta_data.input.add(name=input_name)
+    # Preprocess the images into input data according to model
+    # requirements
+    image_data = []
+    for filename in filenames:
+        img = Image.open(filename)
+        image_data.append(preprocess(img, format, dtype, c, h, w))
 
-  # Send requests of batch_size images. If the number of
-  # images isn't an exact multiple of batch_size then just
-  # start over with the first images until the batch is filled.
-  image_idx = 0
-  last_request = False
-  while not last_request:
-    input_bytes = None
-    input_filenames = []
-    del request.raw_input[:]
-    for idx in range(batch_size):
-      input_filenames.append(filenames[image_idx])
-      if input_bytes is None:
-        input_bytes = image_data[image_idx].tobytes()
-      else:
-        input_bytes += image_data[image_idx].tobytes()
+    request.inputs.append(service_pb2.ModelInferRequest().InferInputTensor(name=input_name))
 
-      image_idx = (image_idx + 1) % len(image_data)
-      if image_idx == 0:
-        last_request = True
+    # Send requests of batch_size images. If the number of
+    # images isn't an exact multiple of batch_size then just
+    # start over with the first images until the batch is filled.
+    image_idx = 0
+    last_request = False
+    while not last_request:
+        input_bytes = None
+        input_filenames = []
+        del request.raw_input[:]
+        for idx in range(batch_size):
+            input_filenames.append(filenames[image_idx])
+            if input_bytes is None:
+                input_bytes = image_data[image_idx].tobytes()
+            else:
+                input_bytes += image_data[image_idx].tobytes()
 
-    request.raw_input.extend([input_bytes])
-    result_filenames.append(input_filenames)
-    yield request
+            image_idx = (image_idx + 1) % len(image_data)
+            if image_idx == 0:
+                last_request = True
+
+        request.raw_input.append(input_bytes)
+        result_filenames.append(input_filenames)
+        yield request
 
 
 def get_prediction(image_filename, server_host='localhost', server_port=8001,
                    model_name="end2end-demo", model_version=None):
-  """
-  Retrieve a prediction from a TensorFlow model server
+    """
+    Retrieve a prediction from a TensorFlow model server
 
-  :param image:       a end2end-demo image
-  :param server_host: the address of the TensorRT inference server
-  :param server_port: the port used by the server
-  :param model_name: the name of the model
-  :param timeout:     the amount of time to wait for a prediction to complete
-  :return 0:          the integer predicted in the end2end-demo image
-  :return 1:          the confidence scores for all classes
-  """
-  channel = grpc.insecure_channel(server_host + ':' + str(server_port))
-  grpc_stub = grpc_service_pb2_grpc.GRPCServiceStub(channel)
+    :param image_filename: a end2end-demo image filename or directory containing images
+    :param server_host: the address of the TensorRT inference server
+    :param server_port: the port used by the server
+    :param model_name: the name of the model
+    :param model_version: the version of the model
+    :return 0: the integer predicted in the end2end-demo image
+    :return 1: the confidence scores for all classes
+    """
+    channel = grpc.insecure_channel(server_host + ':' + str(server_port))
+    grpc_stub = service_pb2_grpc.GRPCInferenceServiceStub(channel)
 
-  # Prepare request for Status gRPC
-  request = grpc_service_pb2.StatusRequest(model_name=model_name)
-  # Call and receive response from Status gRPC
-  response = grpc_stub.Status(request)
-  # Make sure the model matches our requirements, and get some
-  # properties of the model that we need for preprocessing
-  batch_size = 1
-  verbose = False
-  input_name, output_name, c, h, w, format, dtype = parse_model(
-    response, model_name, batch_size, verbose)
+    # Prepare request for ModelMetadata and ModelConfig gRPC
+    metadata_request = service_pb2.ModelMetadataRequest(name=model_name, version=model_version)
+    config_request = service_pb2.ModelConfigRequest(name=model_name, version=model_version)
 
-  filledRequestGenerator = partial(requestGenerator, input_name, output_name, c, h, w, format, dtype, model_name,
-                                   model_version, image_filename)
+    # Call and receive response from ModelMetadata and ModelConfig gRPC
+    metadata_response = grpc_stub.ModelMetadata(metadata_request)
+    config_response = grpc_stub.ModelConfig(config_request)
+    
+    # Make sure the model matches our requirements, and get some
+    # properties of the model that we need for preprocessing
+    batch_size = 1
+    verbose = False
+    input_name, output_name, c, h, w, format, dtype = parse_model(
+        metadata_response, config_response, batch_size, verbose)
 
-  # Send requests of batch_size images. If the number of
-  # images isn't an exact multiple of batch_size then just
-  # start over with the first images until the batch is filled.
-  result_filenames = []
-  requests = []
-  responses = []
+    filledRequestGenerator = partial(requestGenerator, input_name, output_name, c, h, w, format, dtype, model_name,
+                                     model_version, image_filename)
 
-  # Send request
-  for request in filledRequestGenerator(result_filenames):
-    responses.append(grpc_stub.Infer(request))
+    # Send requests of batch_size images. If the number of
+    # images isn't an exact multiple of batch_size then just
+    # start over with the first images until the batch is filled.
+    result_filenames = []
+    requests = []
+    responses = []
 
-  # For async, retrieve results according to the send order
-  for request in requests:
-    responses.append(request.result())
+    # Send request
+    for request in filledRequestGenerator(result_filenames):
+        responses.append(grpc_stub.ModelInfer(request))
 
-  idx = 0
-  for response in responses:
-    print("Request {}, batch size {}".format(idx, batch_size))
-    label, score = postprocess(response.meta_data.output, result_filenames[idx], batch_size)
-    idx += 1
+    # For async, retrieve results according to the send order
+    for request in requests:
+        responses.append(request.result())
 
-  return label, score
+    idx = 0
+    for response in responses:
+        print("Request {}, batch size {}".format(idx, batch_size))
+        label, score = postprocess(response.outputs, result_filenames[idx], batch_size)
+        idx += 1
+
+    return label, score
 
 
 def random_image(img_path='/workspace/web_server/static/images'):
-  """
-  Pull a random image out of the small end2end-demo dataset
+    """
+    Pull a random image out of the small end2end-demo dataset
 
-  :param savePath: the path to save the file to. If None, file is not saved
-  :return 0: file selected
-  :return 1: label selelcted
-  """
-  random_dir = random.choice(os.listdir(img_path))
-  random_file = random.choice(os.listdir(img_path + '/' + random_dir))
+    :param img_path: the path to the image directory
+    :return 0: file selected
+    :return 1: label selected
+    """
+    random_dir = random.choice(os.listdir(img_path))
+    random_file = random.choice(os.listdir(img_path + '/' + random_dir))
 
-  return img_path + '/' + random_dir + '/' + random_file, random_dir, 'static/images' + '/' + random_dir + '/' + random_file
+    return img_path + '/' + random_dir + '/' + random_file, random_dir, 'static/images' + '/' + random_dir + '/' + random_file

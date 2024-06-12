@@ -38,6 +38,10 @@ spec:
         app: TRTSERVER_NAME
         version: v1
     spec:
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
       containers:
       - image: nvcr.io/nvidia/tensorrtserver:19.03-py3
         command: ["/bin/sh", "-c"]
