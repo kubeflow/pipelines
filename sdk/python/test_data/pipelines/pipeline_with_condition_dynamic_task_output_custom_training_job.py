@@ -33,15 +33,15 @@ def pipeline(
     machine_type_task = machine_type()
     accelerator_type_task = accelerator_type()
     accelerator_count_task = accelerator_count()
-    
+
     with dsl.Condition(flip1.output == 'heads'):
         custom_job.CustomTrainingJobOp(
             display_name='add-numbers',
             worker_pool_specs=[{
                 'container_spec': {
-                    'image_uri':
-                        ('gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0'
-                        ),
+                    'image_uri': (
+                        'gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0'
+                    ),
                     'command': ['echo'],
                     'args': ['foo'],
                 },

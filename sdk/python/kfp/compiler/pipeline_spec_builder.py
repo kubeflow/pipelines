@@ -241,7 +241,8 @@ def build_task_spec_for_task(
         elif isinstance(input_value, (str, int, float, bool, dict, list)):
             if isinstance(input_value, (str, dict, list)):
                 pipeline_channels = (
-                    pipeline_channel.extract_pipeline_channels_from_any(input_value))
+                    pipeline_channel.extract_pipeline_channels_from_any(
+                        input_value))
                 for channel in pipeline_channels:
                     # NOTE: case like this   p3 = print_and_return_str(s='Project = {}'.format(project))
                     # triggers this code
@@ -252,7 +253,8 @@ def build_task_spec_for_task(
                     # Form the name for the compiler injected input, and make sure it
                     # doesn't collide with any existing input names.
                     additional_input_name = (
-                        compiler_utils.additional_input_name_for_pipeline_channel(channel))
+                        compiler_utils
+                        .additional_input_name_for_pipeline_channel(channel))
 
                     # We don't expect collision to happen because we prefix the name
                     # of additional input with 'pipelinechannel--'. But just in case
@@ -268,11 +270,12 @@ def build_task_spec_for_task(
                         additional_input_name)._to_string()
 
                     if isinstance(input_value, str):
-                        input_value = input_value.replace(channel.pattern,
-                                                        additional_input_placeholder)
+                        input_value = input_value.replace(
+                            channel.pattern, additional_input_placeholder)
                     else:
                         input_value = compiler_utils.recursive_replace_placeholders(
-                            input_value, channel.pattern, additional_input_placeholder)
+                            input_value, channel.pattern,
+                            additional_input_placeholder)
 
                     if channel.task_name:
                         # Value is produced by an upstream task.
@@ -287,7 +290,8 @@ def build_task_spec_for_task(
                         else:
                             # Dependent task not from the same DAG.
                             component_input_parameter = (
-                                compiler_utils.additional_input_name_for_pipeline_channel(
+                                compiler_utils
+                                .additional_input_name_for_pipeline_channel(
                                     channel))
                             assert component_input_parameter in parent_component_inputs.parameters, \
                                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
@@ -299,7 +303,8 @@ def build_task_spec_for_task(
                         component_input_parameter = channel.full_name
                         if component_input_parameter not in parent_component_inputs.parameters:
                             component_input_parameter = (
-                                compiler_utils.additional_input_name_for_pipeline_channel(
+                                compiler_utils
+                                .additional_input_name_for_pipeline_channel(
                                     channel))
                         pipeline_task_spec.inputs.parameters[
                             additional_input_name].component_input_parameter = (

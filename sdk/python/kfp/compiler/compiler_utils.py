@@ -774,9 +774,8 @@ def get_dependencies(
     return dependencies
 
 
-def recursive_replace_placeholders(
-        data: Union[Dict, List], old_value: str,
-        new_value: str) -> Union[Dict, List]:
+def recursive_replace_placeholders(data: Union[Dict, List], old_value: str,
+                                   new_value: str) -> Union[Dict, List]:
     """Recursively replaces values in a nested dict/list object.
 
     This method is used to replace PipelineChannel objects with input parameter
@@ -796,7 +795,10 @@ def recursive_replace_placeholders(
             for k, v in data.items()
         }
     elif isinstance(data, list):
-        return [recursive_replace_placeholders(i, old_value, new_value) for i in data]
+        return [
+            recursive_replace_placeholders(i, old_value, new_value)
+            for i in data
+        ]
     else:
         if isinstance(data, pipeline_channel.PipelineChannel):
             data = str(data)
