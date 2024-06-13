@@ -9,3 +9,4 @@ Preview Components
    dataflow
    llm
    model_evaluation
+   starry_net
