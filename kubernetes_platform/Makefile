@@ -25,7 +25,7 @@ clean: clean-go clean-python
 golang: proto/*.proto
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
-		--mount type=bind,source="$$(pwd)/..",target=/go/src/github.com/kubeflow/pipelines \
+		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE)  \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform && make generate-go-in-container'
 
