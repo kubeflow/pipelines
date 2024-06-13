@@ -17,7 +17,7 @@ IMAGE=cculab509/webapp
 
 # Build base TRTIS client image
 base=tensorrt-inference-server
-git clone https://github.com/triton-inference-server/client.git $base/clientrepo
+git clone https://github.com/triton-inference-server/server.git $base/clientrepo
 docker build -t base-trtis-client -f $base/Dockerfile.sdk $base
 rm -rf $base
 

@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: None
+  name: None
+  namespace: kubeflow-user-example-com
+spec:
+  ports:
+  - name: grpc-trtis-serving
+    port: 8001
+    targetPort: 8001
+  - name: http-trtis-serving
+    port: 8000
+    targetPort: 8000
+  - name: prometheus-metrics
+    port: 8002
+    targetPort: 8002
+  selector:
+    app: None
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-client-ui
+  template:
+    metadata:
+      labels:
+        app: demo-client-ui
+        role: frontend
+    spec: 
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: webapp
+        image: cculab509/webapp
+        imagePullPolicy: Always
+        env:
+        - name: TRTSERVER_HOST
+          value: None.kubeflow-user-example-com
+        - name: MODEL_SERVE_NAME
+          value: None
+        - name: MODEL_VERSION
+          value: "None"
+        - name: TRTSERVER_PORT
+          value: "8001"
+        ports:
+        - name: http-server
+          containerPort: 8080

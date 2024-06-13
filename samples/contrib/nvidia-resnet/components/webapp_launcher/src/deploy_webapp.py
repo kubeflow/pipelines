@@ -52,15 +52,15 @@ def main():
     with open(template_file, 'r') as template:
         with open(target_file, "w") as target:
             data = template.read()
-            changed = data.replace('MODEL_PASSIN_NAME', args.model_name)
+            changed = data.replace('MODEL_PASSIN_NAME', str(args.model_name))
             changed1 = changed.replace(
                 'KUBEFLOW_NAMESPACE', KUBEFLOW_NAMESPACE)
             changed2 = changed1.replace(
-                'MODEL_PASSIN_VERSION', args.model_version)
-            changed3 = changed2.replace('TRTSERVER_NAME', args.trtserver_name)
-            changed4 = changed3.replace('WORKFLOW_NAME', args.workflow_name)
-            changed5 = changed4.replace('WEBAPP_PREFIX', args.webapp_prefix)
-            changed6 = changed5.replace('WEBAPP_PORT', args.webapp_port)
+                'MODEL_PASSIN_VERSION', str(args.model_version))
+            changed3 = changed2.replace('TRTSERVER_NAME', str(args.trtserver_name))
+            changed4 = changed3.replace('WORKFLOW_NAME', str(args.workflow_name))
+            changed5 = changed4.replace('WEBAPP_PREFIX', str(args.webapp_prefix))
+            changed6 = changed5.replace('WEBAPP_PORT', str(args.webapp_port))
             target.write(changed6)
 
     subprocess.call(['kubectl', 'apply', '-f', YAML_FILE])

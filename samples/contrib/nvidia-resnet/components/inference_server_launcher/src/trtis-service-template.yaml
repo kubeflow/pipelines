@@ -43,7 +43,7 @@ spec:
         operator: "Exists"
         effect: "NoSchedule"
       containers:
-      - image: nvcr.io/nvidia/tensorrtserver:19.03-py3
+      - image: nvcr.io/nvidia/tensorrt:23.01-py3
         command: ["/bin/sh", "-c"]
         args: ["trtserver --model-store=MODEL_PATH"]
         imagePullPolicy: IfNotPresent
