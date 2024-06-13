@@ -772,3 +772,34 @@ def get_dependencies(
             dependencies[downstream_names[0]].add(upstream_names[0])
 
     return dependencies
+
+
+def recursive_replace_placeholders(data: Union[Dict, List], old_value: str,
+                                   new_value: str) -> Union[Dict, List]:
+    """Recursively replaces values in a nested dict/list object.
+
+    This method is used to replace PipelineChannel objects with input parameter
+    placeholders in a nested object like worker_pool_specs for custom jobs.
+
+    Args:
+        data: A nested object that can contain dictionaries and/or lists.
+        old_value: The value that will be replaced.
+        new_value: The value to replace the old value with.
+
+    Returns:
+        A copy of data with all occurences of old_value replaced by new_value.
+    """
+    if isinstance(data, dict):
+        return {
+            k: recursive_replace_placeholders(v, old_value, new_value)
+            for k, v in data.items()
+        }
+    elif isinstance(data, list):
+        return [
+            recursive_replace_placeholders(i, old_value, new_value)
+            for i in data
+        ]
+    else:
+        if isinstance(data, pipeline_channel.PipelineChannel):
+            data = str(data)
+        return new_value if data == old_value else data
