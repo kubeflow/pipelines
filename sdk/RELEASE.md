@@ -1,6 +1,7 @@
 # Current Version (in development)
 
 ## Features
+* Support dynamic machine type parameters in CustomTrainingJobOp. [\#10883](https://github.com/kubeflow/pipelines/pull/10883)
 
 ## Breaking changes
 * Drop support for Python 3.7 since it has reached end-of-life. [\#10750](https://github.com/kubeflow/pipelines/pull/10750)

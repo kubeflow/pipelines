@@ -53,6 +53,67 @@ class TestAdditionalInputNameForPipelineChannel(parameterized.TestCase):
             expected,
             compiler_utils.additional_input_name_for_pipeline_channel(channel))
 
+    @parameterized.parameters(
+        {
+            'data': [{
+                'container_spec': {
+                    'image_uri':
+                        'gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0',
+                    'command': ['echo'],
+                    'args': ['foo']
+                },
+                'machine_spec': {
+                    'machine_type':
+                        pipeline_channel.PipelineParameterChannel(
+                            name='Output',
+                            channel_type='String',
+                            task_name='machine-type'),
+                    'accelerator_type':
+                        pipeline_channel.PipelineParameterChannel(
+                            name='Output',
+                            channel_type='String',
+                            task_name='accelerator-type'),
+                    'accelerator_count':
+                        1
+                },
+                'replica_count': 1
+            }],
+            'old_value':
+                '{{channel:task=machine-type;name=Output;type=String;}}',
+            'new_value':
+                '{{$.inputs.parameters['
+                'pipelinechannel--machine-type-Output'
+                ']}}',
+            'expected': [{
+                'container_spec': {
+                    'image_uri':
+                        'gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0',
+                    'command': ['echo'],
+                    'args': ['foo']
+                },
+                'machine_spec': {
+                    'machine_type':
+                        '{{$.inputs.parameters['
+                        'pipelinechannel--machine-type-Output'
+                        ']}}',
+                    'accelerator_type':
+                        pipeline_channel.PipelineParameterChannel(
+                            name='Output',
+                            channel_type='String',
+                            task_name='accelerator-type'),
+                    'accelerator_count':
+                        1
+                },
+                'replica_count': 1
+            }],
+        },)
+    def test_recursive_replace_placeholders(self, data, old_value, new_value,
+                                            expected):
+        self.assertEqual(
+            expected,
+            compiler_utils.recursive_replace_placeholders(
+                data, old_value, new_value))
+
 
 if __name__ == '__main__':
     unittest.main()

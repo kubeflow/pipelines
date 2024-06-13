@@ -1,0 +1,419 @@
+# PIPELINE DEFINITION
+# Name: pipeline
+# Inputs:
+#    encryption_spec_key_name: str [Default: '']
+#    location: str
+#    project: str
+components:
+  comp-accelerator-count:
+    executorLabel: exec-accelerator-count
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-accelerator-type:
+    executorLabel: exec-accelerator-type
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-condition-1:
+    dag:
+      tasks:
+        custom-training-job:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-custom-training-job
+          inputs:
+            parameters:
+              display_name:
+                runtimeValue:
+                  constant: add-numbers
+              encryption_spec_key_name:
+                componentInputParameter: pipelinechannel--encryption_spec_key_name
+              location:
+                componentInputParameter: pipelinechannel--location
+              pipelinechannel--accelerator-count-Output:
+                componentInputParameter: pipelinechannel--accelerator-count-Output
+              pipelinechannel--accelerator-type-Output:
+                componentInputParameter: pipelinechannel--accelerator-type-Output
+              pipelinechannel--machine-type-Output:
+                componentInputParameter: pipelinechannel--machine-type-Output
+              project:
+                componentInputParameter: pipelinechannel--project
+              worker_pool_specs:
+                runtimeValue:
+                  constant:
+                  - container_spec:
+                      args:
+                      - foo
+                      command:
+                      - echo
+                      image_uri: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0
+                    machine_spec:
+                      accelerator_count: '{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}'
+                      accelerator_type: '{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}'
+                      machine_type: '{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}'
+                    replica_count: 1.0
+          taskInfo:
+            name: custom-training-job
+    inputDefinitions:
+      parameters:
+        pipelinechannel--accelerator-count-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--accelerator-type-Output:
+          parameterType: STRING
+        pipelinechannel--encryption_spec_key_name:
+          parameterType: STRING
+        pipelinechannel--flip-biased-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--location:
+          parameterType: STRING
+        pipelinechannel--machine-type-Output:
+          parameterType: STRING
+        pipelinechannel--project:
+          parameterType: STRING
+  comp-custom-training-job:
+    executorLabel: exec-custom-training-job
+    inputDefinitions:
+      parameters:
+        base_output_directory:
+          defaultValue: ''
+          description: The Cloud Storage location to store the output of this CustomJob
+            or HyperparameterTuningJob. See [more information ](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).
+          isOptional: true
+          parameterType: STRING
+        display_name:
+          description: The name of the CustomJob.
+          parameterType: STRING
+        enable_web_access:
+          defaultValue: false
+          description: Whether you want Vertex AI to enable [interactive shell access
+            ](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+            to training containers. If `True`, you can access interactive shells at
+            the URIs given by [CustomJob.web_access_uris][].
+          isOptional: true
+          parameterType: BOOLEAN
+        encryption_spec_key_name:
+          defaultValue: ''
+          description: Customer-managed encryption key options for the CustomJob.
+            If this is set, then all resources created by the CustomJob will be encrypted
+            with the provided encryption key.
+          isOptional: true
+          parameterType: STRING
+        labels:
+          defaultValue: {}
+          description: The labels with user-defined metadata to organize the CustomJob.
+            See [more information](https://goo.gl/xmQnxf).
+          isOptional: true
+          parameterType: STRUCT
+        location:
+          defaultValue: us-central1
+          description: Location for creating the custom training job. If not set,
+            default to us-central1.
+          isOptional: true
+          parameterType: STRING
+        network:
+          defaultValue: ''
+          description: The full name of the Compute Engine network to which the job
+            should be peered. For example, `projects/12345/global/networks/myVPC`.
+            Format is of the form `projects/{project}/global/networks/{network}`.
+            Where `{project}` is a project number, as in `12345`, and `{network}`
+            is a network name. Private services access must already be configured
+            for the network. If left unspecified, the job is not peered with any network.
+          isOptional: true
+          parameterType: STRING
+        project:
+          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
+          description: Project to create the custom training job in. Defaults to the
+            project in which the PipelineJob is run.
+          isOptional: true
+          parameterType: STRING
+        reserved_ip_ranges:
+          defaultValue: []
+          description: A list of names for the reserved IP ranges under the VPC network
+            that can be used for this job. If set, we will deploy the job within the
+            provided IP ranges. Otherwise, the job will be deployed to any IP ranges
+            under the provided VPC network.
+          isOptional: true
+          parameterType: LIST
+        restart_job_on_worker_restart:
+          defaultValue: false
+          description: Restarts the entire CustomJob if a worker gets restarted. This
+            feature can be used by distributed training jobs that are not resilient
+            to workers leaving and joining a job.
+          isOptional: true
+          parameterType: BOOLEAN
+        service_account:
+          defaultValue: ''
+          description: Sets the default service account for workload run-as account.
+            The [service account ](https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
+            running the pipeline submitting jobs must have act-as permission on this
+            run-as account. If unspecified, the Vertex AI Custom Code [Service Agent
+            ](https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
+            for the CustomJob's project.
+          isOptional: true
+          parameterType: STRING
+        tensorboard:
+          defaultValue: ''
+          description: The name of a Vertex AI TensorBoard resource to which this
+            CustomJob will upload TensorBoard logs.
+          isOptional: true
+          parameterType: STRING
+        timeout:
+          defaultValue: 604800s
+          description: 'The maximum job running time. The default is 7 days. A duration
+            in seconds with up to nine fractional digits, terminated by ''s'', for
+            example: "3.5s".'
+          isOptional: true
+          parameterType: STRING
+        worker_pool_specs:
+          defaultValue: []
+          description: Serialized json spec of the worker pools including machine
+            type and Docker image. All worker pools except the first one are optional
+            and can be skipped by providing an empty value. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec).
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        gcp_resources:
+          description: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
+            which tracks the CustomJob.
+          parameterType: STRING
+  comp-flip-biased-coin-op:
+    executorLabel: exec-flip-biased-coin-op
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-machine-type:
+    executorLabel: exec-machine-type
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-accelerator-count:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - accelerator_count
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef accelerator_count() -> int:\n    return 1\n\n"
+        image: python:3.8
+    exec-accelerator-type:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - accelerator_type
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef accelerator_type() -> str:\n    return 'NVIDIA_TESLA_P4'\n\n"
+        image: python:3.8
+    exec-custom-training-job:
+      container:
+        args:
+        - --type
+        - CustomJob
+        - --payload
+        - '{"display_name": "{{$.inputs.parameters[''display_name'']}}", "job_spec":
+          {"worker_pool_specs": {{$.inputs.parameters[''worker_pool_specs'']}}, "scheduling":
+          {"timeout": "{{$.inputs.parameters[''timeout'']}}", "restart_job_on_worker_restart":
+          {{$.inputs.parameters[''restart_job_on_worker_restart'']}}}, "service_account":
+          "{{$.inputs.parameters[''service_account'']}}", "tensorboard": "{{$.inputs.parameters[''tensorboard'']}}",
+          "enable_web_access": {{$.inputs.parameters[''enable_web_access'']}}, "network":
+          "{{$.inputs.parameters[''network'']}}", "reserved_ip_ranges": {{$.inputs.parameters[''reserved_ip_ranges'']}},
+          "base_output_directory": {"output_uri_prefix": "{{$.inputs.parameters[''base_output_directory'']}}"}},
+          "labels": {{$.inputs.parameters[''labels'']}}, "encryption_spec": {"kms_key_name":
+          "{{$.inputs.parameters[''encryption_spec_key_name'']}}"}}'
+        - --project
+        - '{{$.inputs.parameters[''project'']}}'
+        - --location
+        - '{{$.inputs.parameters[''location'']}}'
+        - --gcp_resources
+        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
+        command:
+        - python3
+        - -u
+        - -m
+        - google_cloud_pipeline_components.container.v1.custom_job.launcher
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.14.1
+    exec-flip-biased-coin-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flip_biased_coin_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flip_biased_coin_op() -> str:\n    \"\"\"Flip a coin and output\
+          \ heads.\"\"\"\n    return 'heads'\n\n"
+        image: python:3.8
+    exec-machine-type:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - machine_type
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef machine_type() -> str:\n    return 'n1-standard-4'\n\n"
+        image: python:3.8
+pipelineInfo:
+  name: pipeline
+root:
+  dag:
+    tasks:
+      accelerator-count:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-accelerator-count
+        taskInfo:
+          name: accelerator-count
+      accelerator-type:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-accelerator-type
+        taskInfo:
+          name: accelerator-type
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - accelerator-count
+        - accelerator-type
+        - flip-biased-coin-op
+        - machine-type
+        inputs:
+          parameters:
+            pipelinechannel--accelerator-count-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: accelerator-count
+            pipelinechannel--accelerator-type-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: accelerator-type
+            pipelinechannel--encryption_spec_key_name:
+              componentInputParameter: encryption_spec_key_name
+            pipelinechannel--flip-biased-coin-op-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: flip-biased-coin-op
+            pipelinechannel--location:
+              componentInputParameter: location
+            pipelinechannel--machine-type-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: machine-type
+            pipelinechannel--project:
+              componentInputParameter: project
+        taskInfo:
+          name: condition-1
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--flip-biased-coin-op-Output']
+            == 'heads'
+      flip-biased-coin-op:
+        cachingOptions: {}
+        componentRef:
+          name: comp-flip-biased-coin-op
+        taskInfo:
+          name: flip-biased-coin-op
+      machine-type:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-machine-type
+        taskInfo:
+          name: machine-type
+  inputDefinitions:
+    parameters:
+      encryption_spec_key_name:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      location:
+        parameterType: STRING
+      project:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
