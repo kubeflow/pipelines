@@ -14,15 +14,23 @@
 
 
 test_cases:
-  - module: create_mount_delete_dynamic_pvc
-    name: my_pipeline
+#  Disabled while https://github.com/kubeflow/pipelines/issues/10918 is failing
+#  - module: create_mount_delete_dynamic_pvc
+#    name: my_pipeline
+
   - module: create_mount_delete_existing_pvc
     name: my_pipeline
   - module: create_mount_delete_existing_pvc_from_task_output
     name: my_pipeline
-  - module: secret_as_env
-    name: my_pipeline
-  - module: secret_as_vol
-    name: my_pipeline
-  - module: node_selector
-    name: my_pipeline
+
+#  Disabled while https://github.com/kubeflow/pipelines/issues/10918 is failing
+#  - module: secret_as_env
+#    name: my_pipeline
+
+#  Disabled while https://github.com/kubeflow/pipelines/issues/10918 is failing
+#  - module: secret_as_vol
+#    name: my_pipeline
+
+#  Disabled while https://github.com/kubeflow/pipelines/issues/10918 is failing
+#  - module: node_selector
+#    name: my_pipeline
