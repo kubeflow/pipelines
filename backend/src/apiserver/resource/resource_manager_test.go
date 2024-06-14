@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"strings"
 	"testing"
 	"time"
@@ -70,6 +71,14 @@ func (m *FakeBadObjectStore) AddAsYamlFile(o interface{}, filePath string) error
 
 func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+func (m *FakeBadObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string) (string, error) {
+	return "", util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+func (m *FakeBadObjectStore) GetObjectSize(bucketConfig *objectstore.Config, secret *corev1.Secret, artifactURI string) (int64, error) {
+	return 0, util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
 func createPipelineV1(name string) *model.Pipeline {

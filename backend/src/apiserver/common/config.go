@@ -32,6 +32,9 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	MetadataGrpcServiceServiceHost          string = "METADATA_GRPC_SERVICE_SERVICE_HOST"
+	MetadataGrpcServiceServicePort          string = "METADATA_GRPC_SERVICE_SERVICE_PORT"
+	SignedURLExpiryTimeSeconds              string = "SIGNED_URL_EXPIRY_TIME_SECONDS"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -126,4 +129,16 @@ func GetKubeflowUserIDPrefix() string {
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
+}
+
+func GetMetadataGrpcServiceServiceHost() string {
+	return GetStringConfigWithDefault(MetadataGrpcServiceServiceHost, DefaultMetadataGrpcServiceServiceHost)
+}
+
+func GetMetadataGrpcServiceServicePort() string {
+	return GetStringConfigWithDefault(MetadataGrpcServiceServicePort, DefaultMetadataGrpcServiceServicePort)
+}
+
+func GetSignedURLExpiryTimeSeconds() int {
+	return GetIntConfigWithDefault(SignedURLExpiryTimeSeconds, DefaultSignedURLExpiryTimeSeconds)
 }

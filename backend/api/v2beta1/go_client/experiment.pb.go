@@ -111,7 +111,7 @@ type Experiment struct {
 	Namespace string `protobuf:"bytes,5,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	// Output. Specifies whether this experiment is in archived or available state.
 	StorageState Experiment_StorageState `protobuf:"varint,6,opt,name=storage_state,json=storageState,proto3,enum=kubeflow.pipelines.backend.api.v2beta1.Experiment_StorageState" json:"storage_state,omitempty"`
-	// Output. The time the created time of the last run in this experiment.
+	// Output. The creation time of the last run in this experiment.
 	LastRunCreatedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_run_created_at,json=lastRunCreatedAt,proto3" json:"last_run_created_at,omitempty"`
 }
 

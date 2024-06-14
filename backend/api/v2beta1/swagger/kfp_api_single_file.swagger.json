@@ -25,6 +25,107 @@
     "application/json"
   ],
   "paths": {
+    "/apis/v2beta1/artifacts": {
+      "get": {
+        "summary": "Finds all artifacts within the specified namespace.\nNamespace field is required. In multi-user mode, the caller\nis required to have RBAC verb \"list\" on the \"artifacts\"\nresource for the specified namespace.",
+        "operationId": "ListArtifacts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1ListArtifactResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "max_result_size",
+            "description": "Optional.\nMax number of resources to return in the result. A value of zero or less\nwill result in the default (20).\nThe API implementation also enforces an upper-bound of 100, and picks the\nminimum between this value and the one specified here.\n[default = 20].",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "order_by_field",
+            "description": "Optional. Ordering field. [default = ID].",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "FIELD_UNSPECIFIED",
+              "CREATE_TIME",
+              "LAST_UPDATE_TIME",
+              "ID"
+            ],
+            "default": "FIELD_UNSPECIFIED"
+          },
+          {
+            "name": "order_by",
+            "description": "Optional. Can be either \"asc\" (ascending) or \"dsc\" (descending). [default = asc].",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "next_page_token",
+            "description": "Optional. The next_page_token value returned from a previous List request, if any.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "Required. Namespace of the Artifact's context.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ArtifactService"
+        ]
+      }
+    },
+    "/apis/v2beta1/artifacts/{artifact_id}": {
+      "get": {
+        "summary": "Finds a specific Artifact by ID.",
+        "operationId": "GetArtifact",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Artifact"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "artifact_id",
+            "description": "Required. The ID of the artifact to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "view",
+            "description": "Optional. Set to \"DOWNLOAD\" to included a signed URL with\nan expiry (default 15 seconds, unless configured other wise).\nThis URL can be used to download the Artifact directly from\nthe Artifact's storage provider. Set to \"BASIC\" to exclude\nthe download_url from server responses, thus preventing the\ncreation of any signed url.\nDefaults to BASIC.\n\n - ARTIFACT_VIEW_UNSPECIFIED: Not specified, equivalent to BASIC.\n - BASIC: Server responses excludes download_url\n - DOWNLOAD: Server responses include download_url",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "ARTIFACT_VIEW_UNSPECIFIED",
+              "BASIC",
+              "DOWNLOAD"
+            ],
+            "default": "ARTIFACT_VIEW_UNSPECIFIED"
+          }
+        ],
+        "tags": [
+          "ArtifactService"
+        ]
+      }
+    },
     "/apis/v2beta1/auth": {
       "get": {
         "operationId": "Authorize",
@@ -1439,25 +1540,25 @@
     }
   },
   "definitions": {
-    "AuthorizeRequestResources": {
+    "GetArtifactRequestArtifactView": {
       "type": "string",
       "enum": [
-        "UNASSIGNED_RESOURCES",
-        "VIEWERS"
+        "ARTIFACT_VIEW_UNSPECIFIED",
+        "BASIC",
+        "DOWNLOAD"
       ],
-      "default": "UNASSIGNED_RESOURCES",
-      "description": "Type of resources in pipelines system."
+      "default": "ARTIFACT_VIEW_UNSPECIFIED",
+      "title": "- ARTIFACT_VIEW_UNSPECIFIED: Not specified, equivalent to BASIC.\n - BASIC: Server responses excludes download_url\n - DOWNLOAD: Server responses include download_url"
     },
-    "AuthorizeRequestVerb": {
+    "ListArtifactRequestField": {
       "type": "string",
       "enum": [
-        "UNASSIGNED_VERB",
-        "CREATE",
-        "GET",
-        "DELETE"
+        "FIELD_UNSPECIFIED",
+        "CREATE_TIME",
+        "LAST_UPDATE_TIME",
+        "ID"
       ],
-      "default": "UNASSIGNED_VERB",
-      "description": "Type of verbs that act on the resources."
+      "default": "FIELD_UNSPECIFIED"
     },
     "googlerpcStatus": {
       "type": "object",
@@ -1496,6 +1597,94 @@
       },
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(&foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := &pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := &pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": <string>,\n      \"lastName\": <string>\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
     },
+    "v2beta1Artifact": {
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "description": "Unique Artifact ID. Generated by MLMD."
+        },
+        "storage_provider": {
+          "type": "string",
+          "description": "Storage Provider to which this Artifact is located (e.g. S3, Minio, etc.)."
+        },
+        "storage_path": {
+          "type": "string",
+          "description": "The path location of this Artifact within the storage provider.\nFor example an object located at s3://my-bucket/path/a/b/c will\nresult in \"path/a/b/c\"."
+        },
+        "uri": {
+          "type": "string",
+          "title": "The Artifact URI"
+        },
+        "download_url": {
+          "type": "string",
+          "description": "Optional Output. Specifies a signed-url that can be used to\ndownload this Artifact directly from its store."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "The namespace associated with this Artifact. This is determined\nby the namespace of the parent PipelineRun that created this Artifact."
+        },
+        "artifact_type": {
+          "type": "string",
+          "title": "The MLMD type of the artifact (e.g. system.Dataset)"
+        },
+        "artifact_size": {
+          "type": "string",
+          "format": "int64",
+          "description": "The size of the artifact in bytes.\nIf the artifact does not exist in object store (e.g. Metrics)\nthen this is omitted."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation time of the artifact."
+        },
+        "last_updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update time of the artifact."
+        },
+        "error": {
+          "$ref": "#/definitions/googlerpcStatus",
+          "description": "In case any error happens retrieving an artifact field, only artifact ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful when calling ListArtifacts."
+        }
+      }
+    },
+    "v2beta1ListArtifactResponse": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2beta1Artifact"
+          },
+          "description": "List of retrieved artifacts."
+        },
+        "next_page_token": {
+          "type": "string",
+          "title": "Token to retrieve the next page of results, or empty if there are none"
+        }
+      }
+    },
+    "AuthorizeRequestResources": {
+      "type": "string",
+      "enum": [
+        "UNASSIGNED_RESOURCES",
+        "VIEWERS"
+      ],
+      "default": "UNASSIGNED_RESOURCES",
+      "description": "Type of resources in pipelines system."
+    },
+    "AuthorizeRequestVerb": {
+      "type": "string",
+      "enum": [
+        "UNASSIGNED_VERB",
+        "CREATE",
+        "GET",
+        "DELETE"
+      ],
+      "default": "UNASSIGNED_VERB",
+      "description": "Type of verbs that act on the resources."
+    },
     "v2beta1Experiment": {
       "type": "object",
       "properties": {
@@ -1527,7 +1716,7 @@
         "last_run_created_at": {
           "type": "string",
           "format": "date-time",
-          "description": "Output. The time the created time of the last run in this experiment."
+          "description": "Output. The creation time of the last run in this experiment."
         }
       }
     },

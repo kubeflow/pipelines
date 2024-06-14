@@ -17,6 +17,7 @@ package clientmanager
 import (
 	"database/sql"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"os"
 	"strings"
 	"time"
@@ -88,6 +89,7 @@ type ClientManager struct {
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
 	tokenReviewClient         client.TokenReviewInterface
+	metadataClient            metadata.ClientInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
@@ -150,6 +152,10 @@ func (c *ClientManager) TokenReviewClient() client.TokenReviewInterface {
 	return c.tokenReviewClient
 }
 
+func (c *ClientManager) MetadataClient() metadata.ClientInterface {
+	return c.metadataClient
+}
+
 func (c *ClientManager) LogArchive() archive.LogArchiveInterface {
 	return c.logArchive
 }
@@ -201,6 +207,12 @@ func (c *ClientManager) init() {
 	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+
+	newClient, err := metadata.NewClient(common.GetMetadataGrpcServiceServiceHost(), common.GetMetadataGrpcServiceServicePort())
+	if err != nil {
+		glog.Fatalf("Failed to create metadata client. Error: %v", err)
+	}
+	c.metadataClient = newClient
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore

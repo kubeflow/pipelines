@@ -52,7 +52,13 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 			err = fmt.Errorf("Failed to open bucket %q: %w", config.BucketName, err)
 		}
 	}()
-	sess, err := createBucketSession(ctx, namespace, config.Session, k8sClient)
+
+	creds, err := getBucketCredential(ctx, k8sClient, namespace, config.Session.SecretName, config.Session.SecretKeyKey, config.Session.AccessKeyKey)
+	if err != nil {
+		return nil, err
+	}
+
+	sess, err := createBucketSession(config.Session, creds)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve credentials for bucket %s: %w", config.BucketName, err)
 	}
@@ -223,6 +229,15 @@ func ParseBucketConfigForArtifactURI(uri string) (*Config, error) {
 	}, nil
 }
 
+// ArtifactKeyFromURI extracts the object key from the artifact uri
+func ArtifactKeyFromURI(uri string) (string, error) {
+	ms := bucketPattern.FindStringSubmatch(uri)
+	if ms == nil || len(ms) != 5 {
+		return "", fmt.Errorf("parse uri failed: unrecognized uri format: %q", uri)
+	}
+	return strings.TrimPrefix(ms[3], "/"), nil
+}
+
 // TODO(neuromage): Move these helper functions to a storage package and add tests.
 func uploadFile(ctx context.Context, bucket *blob.Bucket, localFilePath, blobFilePath string) error {
 	errorF := func(err error) error {
@@ -351,13 +366,9 @@ type SessionInfo struct {
 	SecretKeyKey string
 }
 
-func createBucketSession(ctx context.Context, namespace string, sessionInfo *SessionInfo, client kubernetes.Interface) (*session.Session, error) {
+func createBucketSession(sessionInfo *SessionInfo, creds *credentials.Credentials) (*session.Session, error) {
 	if sessionInfo == nil {
 		return nil, nil
-	}
-	creds, err := getBucketCredential(ctx, client, namespace, sessionInfo.SecretName, sessionInfo.SecretKeyKey, sessionInfo.AccessKeyKey)
-	if err != nil {
-		return nil, err
 	}
 	config := &aws.Config{}
 	config.Credentials = creds
@@ -376,6 +387,7 @@ func createBucketSession(ctx context.Context, namespace string, sessionInfo *Ses
 		config.Endpoint = aws.String(sessionInfo.Endpoint)
 	}
 	sess, err := session.NewSession(config)
+
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
 	}

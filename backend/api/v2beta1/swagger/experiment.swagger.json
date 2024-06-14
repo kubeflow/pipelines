@@ -231,7 +231,7 @@
         "last_run_created_at": {
           "type": "string",
           "format": "date-time",
-          "description": "Output. The time the created time of the last run in this experiment."
+          "description": "Output. The creation time of the last run in this experiment."
         }
       }
     },

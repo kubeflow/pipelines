@@ -88,11 +88,14 @@ type ClientInterface interface {
 	GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline) (executionsMap map[string]*Execution, err error)
 	GetEventsByArtifactIDs(ctx context.Context, artifactIds []int64) ([]*pb.Event, error)
 	GetArtifactName(ctx context.Context, artifactId int64) (string, error)
-	GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact, error)
+	GetArtifacts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*pb.Artifact, *string, error)
+	GetContexts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*pb.Context, *string, error)
+	GetArtifactsByID(ctx context.Context, ids []int64) ([]*pb.Artifact, error)
 	GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string]*OutputArtifact, error)
 	RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error)
 	GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error)
 	FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error)
+	GetContextByArtifactID(ctx context.Context, id int64) (*pb.Context, error)
 }
 
 // Client is an MLMD service client.
@@ -743,14 +746,25 @@ func (c *Client) GetArtifactName(ctx context.Context, artifactId int64) (string,
 	return getArtifactName(event.Path)
 }
 
-// GetArtifacts ...
-func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact, error) {
+// GetArtifactsByID ...
+func (c *Client) GetArtifactsByID(ctx context.Context, ids []int64) ([]*pb.Artifact, error) {
 	req := &pb.GetArtifactsByIDRequest{ArtifactIds: ids}
 	res, err := c.svc.GetArtifactsByID(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 	return res.Artifacts, nil
+}
+
+// GetArtifacts ...
+func (c *Client) GetArtifacts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*pb.Artifact, *string, error) {
+	opts := buildListOpts(maxResultSize, orderByAscending, orderByField, filterQuery, nextPageToken)
+	req := &pb.GetArtifactsRequest{Options: opts}
+	res, err := c.svc.GetArtifacts(ctx, req)
+	if err != nil {
+		return nil, nil, err
+	}
+	return res.Artifacts, res.NextPageToken, nil
 }
 
 // GetOutputArtifactsByExecutionId ...
@@ -773,7 +787,7 @@ func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionI
 			outputArtifactNamesById[event.GetArtifactId()] = artifactName
 		}
 	}
-	outputArtifacts, err := c.GetArtifacts(ctx, outputArtifactsIDs)
+	outputArtifacts, err := c.GetArtifactsByID(ctx, outputArtifactsIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get output artifacts: %w", err)
 	}
@@ -815,7 +829,7 @@ func (c *Client) GetInputArtifactsByExecutionID(ctx context.Context, executionID
 			nameByID[event.GetArtifactId()] = name
 		}
 	}
-	artifacts, err := c.GetArtifacts(ctx, artifactIDs)
+	artifacts, err := c.GetArtifactsByID(ctx, artifactIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -978,6 +992,40 @@ func (c *Client) matchedArtifactOrNot(ctx context.Context, target *pb.Artifact, 
 	return false, nil
 }
 
+// GetContexts ...
+func (c *Client) GetContexts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*pb.Context, *string, error) {
+	opts := buildListOpts(maxResultSize, orderByAscending, orderByField, filterQuery, nextPageToken)
+	req := &pb.GetContextsRequest{Options: opts}
+	res, err := c.svc.GetContexts(ctx, req)
+	if err != nil {
+		return nil, nil, err
+	}
+	return res.Contexts, res.NextPageToken, nil
+}
+
+// GetContextByArtifactID fetches the system.PipelineRun context for this Artifact ID
+func (c *Client) GetContextByArtifactID(ctx context.Context, id int64) (*pb.Context, error) {
+	res, err := c.svc.GetContextsByArtifact(ctx, &pb.GetContextsByArtifactRequest{ArtifactId: &id})
+	if err != nil {
+		return nil, fmt.Errorf("getContext(id=%v): %w", id, err)
+	}
+	contexts := res.GetContexts()
+
+	if len(contexts) == 0 {
+		return nil, fmt.Errorf("getContext(id=%v): not found", id)
+	}
+	if contexts[0] == nil {
+		return nil, fmt.Errorf("getContext(id=%v): got nil context", id)
+	}
+
+	for _, artifactContext := range contexts {
+		if *artifactContext.Type == "system.PipelineRun" {
+			return artifactContext, nil
+		}
+	}
+	return nil, fmt.Errorf("unable to find artifact context")
+}
+
 func (c *Client) getContextTypeID(ctx context.Context, contextType *pb.ContextType) (typeID int64, err error) {
 	defer func() {
 		if err != nil {
@@ -1098,4 +1146,25 @@ func (c *Client) getContextByID(ctx context.Context, id int64) (*pb.Context, err
 		return nil, fmt.Errorf("getContext(id=%v): got nil context", id)
 	}
 	return contexts[0], nil
+}
+
+func buildListOpts(maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) *pb.ListOperationOptions {
+	orderByFieldOpt := &pb.ListOperationOptions_OrderByField{
+		IsAsc: &orderByAscending,
+	}
+	// Get artifacts with unspecified field will result is an error response from mlmd
+	// so we omit it in this case.
+	field := pb.ListOperationOptions_OrderByField_Field(pb.ListOperationOptions_OrderByField_Field_value[orderByField])
+	unspecifiedField := pb.ListOperationOptions_OrderByField_Field_name[int32(pb.ListOperationOptions_OrderByField_FIELD_UNSPECIFIED)]
+	if orderByField != "" && orderByField != unspecifiedField {
+		orderByFieldOpt.Field = &field
+	}
+
+	opts := &pb.ListOperationOptions{
+		MaxResultSize: &maxResultSize,
+		OrderByField:  orderByFieldOpt,
+		FilterQuery:   &filterQuery,
+		NextPageToken: &nextPageToken,
+	}
+	return opts
 }

@@ -24,7 +24,8 @@ import (
 )
 
 type FakeKuberneteCoreClient struct {
-	podClientFake *FakePodClient
+	podClientFake    *FakePodClient
+	secretClientFake *FakeSecretClient
 }
 
 func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
@@ -34,20 +35,37 @@ func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
 }
 
+func (c *FakeKuberneteCoreClient) SecretClient(namespace string) v1.SecretInterface {
+	if len(namespace) == 0 {
+		panic(util.NewResourceNotFoundError("Namespace", namespace))
+	}
+	return c.secretClientFake
+}
+
 func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
-	return &FakeKuberneteCoreClient{&FakePodClient{}}
+	return &FakeKuberneteCoreClient{
+		&FakePodClient{},
+		&FakeSecretClient{},
+	}
 }
 
 type FakeKubernetesCoreClientWithBadPodClient struct {
-	podClientFake *FakeBadPodClient
+	podClientFake    *FakeBadPodClient
+	secretClientFake *FakeSecretClient
 }
 
 func NewFakeKubernetesCoreClientWithBadPodClient() *FakeKubernetesCoreClientWithBadPodClient {
-	return &FakeKubernetesCoreClientWithBadPodClient{&FakeBadPodClient{}}
+	return &FakeKubernetesCoreClientWithBadPodClient{
+		podClientFake: &FakeBadPodClient{},
+	}
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
+}
+
+func (c *FakeKubernetesCoreClientWithBadPodClient) SecretClient(namespace string) v1.SecretInterface {
+	return c.secretClientFake
 }
 
 func (c *FakePodClient) EvictV1(context.Context, *policyv1.Eviction) error {
