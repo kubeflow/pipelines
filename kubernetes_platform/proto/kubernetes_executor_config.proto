@@ -38,7 +38,7 @@ message KubernetesExecutorConfig {
     repeated NodeAffinityTerm node_affinity = 14;
     repeated PodAffinityTerm pod_affinity = 15;
     EnabledSharedMemory enabled_shared_memory = 16;
-    repeated EmptyDirMount empty_dir_mount = 17;
+    repeated EmptyDirMount empty_dir_mounts = 17;
 }
 
 message EnabledSharedMemory {
