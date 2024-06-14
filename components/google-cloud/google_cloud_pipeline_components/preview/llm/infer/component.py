@@ -74,6 +74,7 @@ def infer_pipeline(
       location=env.PRIVATE_ARTIFACT_REGISTRY_LOCATION,
       artifact_registry=env.PRIVATE_ARTIFACT_REGISTRY,
       tag=env.get_private_image_tag(),
+      input_reference_model_path=model_checkpoint,
       instruction=instruction,
   ).set_display_name('Preprocess Inputs')
 
