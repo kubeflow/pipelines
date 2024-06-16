@@ -22,6 +22,7 @@ __all__ = [
     'add_toleration',
     'CreatePVC',
     'DeletePVC',
+    'empty_dir_mount',
     'mount_pvc',
     'set_image_pull_policy',
     'use_field_path_as_env',
@@ -49,3 +50,4 @@ from kfp.kubernetes.volume import add_ephemeral_volume
 from kfp.kubernetes.volume import CreatePVC
 from kfp.kubernetes.volume import DeletePVC
 from kfp.kubernetes.volume import mount_pvc
+from kfp.kubernetes.empty_dir import empty_dir_mount
