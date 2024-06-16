@@ -1,0 +1,28 @@
+name: KFP Backend Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'backend/**'
+      - 'test/presubmit-backend-test.sh'
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.21'
+
+    - name: Run Backend Tests
+      run: ./test/presubmit-backend-test.sh

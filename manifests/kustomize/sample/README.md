@@ -63,11 +63,11 @@ gsutil mb -p myProjectId gs://myBucketName/
 6. Install
 
 ```
-kubectl apply -k sample/cluster-scoped-resources/
+kustomize build sample/cluster-scoped-resources/ | kubectl apply -f -
 
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
 
-kubectl apply -k sample/
+kustomize build sample/ | kubectl apply -f -
 # If upper one action got failed, e.x. you used wrong value, try delete, fix and apply again
 # kubectl delete -k sample/
 

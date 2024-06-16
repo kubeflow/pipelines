@@ -238,12 +238,14 @@ def build_task_spec_for_task(
                     input_name].component_input_parameter = (
                         component_input_parameter)
 
-        elif isinstance(input_value, str):
-            # Handle extra input due to string concat
+        elif isinstance(input_value, (str, int, float, bool, dict, list)):
             pipeline_channels = (
                 pipeline_channel.extract_pipeline_channels_from_any(input_value)
             )
             for channel in pipeline_channels:
+                # NOTE: case like this   p3 = print_and_return_str(s='Project = {}'.format(project))
+                # triggers this code
+
                 # value contains PipelineChannel placeholders which needs to be
                 # replaced. And the input needs to be added to the task spec.
 
@@ -265,8 +267,14 @@ def build_task_spec_for_task(
 
                 additional_input_placeholder = placeholders.InputValuePlaceholder(
                     additional_input_name)._to_string()
-                input_value = input_value.replace(channel.pattern,
-                                                  additional_input_placeholder)
+
+                if isinstance(input_value, str):
+                    input_value = input_value.replace(
+                        channel.pattern, additional_input_placeholder)
+                else:
+                    input_value = compiler_utils.recursive_replace_placeholders(
+                        input_value, channel.pattern,
+                        additional_input_placeholder)
 
                 if channel.task_name:
                     # Value is produced by an upstream task.
@@ -298,11 +306,6 @@ def build_task_spec_for_task(
                     pipeline_task_spec.inputs.parameters[
                         additional_input_name].component_input_parameter = (
                             component_input_parameter)
-
-            pipeline_task_spec.inputs.parameters[
-                input_name].runtime_value.constant.string_value = input_value
-
-        elif isinstance(input_value, (str, int, float, bool, dict, list)):
 
             pipeline_task_spec.inputs.parameters[
                 input_name].runtime_value.constant.CopyFrom(
