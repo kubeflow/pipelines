@@ -210,6 +210,6 @@ replace (
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 )
 
-go 1.20
+go 1.21
 
 exclude github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f
