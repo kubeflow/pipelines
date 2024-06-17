@@ -92,7 +92,7 @@ tabulate==0.8.10
     # via -r requirements.in
 typing-extensions==4.5.0 ; python_version < "3.9"
     # via -r requirements.in
-urllib3==1.26.12
+urllib3==1.26.19
     # via
     #   -r requirements.in
     #   kfp-server-api
