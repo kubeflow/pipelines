@@ -55,7 +55,7 @@ def get_training_artifacts(
       instance_schema_uri=str,
   )
   return outputs(
-      f'{docker_region}-docker.pkg.dev/vertex-ai/starryn/predictor:20240610_0542_RC00',  # pylint: disable=too-many-function-args
+      f'{docker_region}-docker.pkg.dev/vertex-ai/starryn/predictor:20240617_2142_RC00',  # pylint: disable=too-many-function-args
       private_dir,  # pylint: disable=too-many-function-args
       os.path.join(private_dir, 'predict_schema.yaml'),  # pylint: disable=too-many-function-args
       os.path.join(private_dir, 'instance_schema.yaml'),  # pylint: disable=too-many-function-args
