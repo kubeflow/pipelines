@@ -72,3 +72,4 @@ Distributed under the MIT License. See ``LICENSE.md`` for more information.
 [twitter-url]: https://twitter.com/Fernando_LpzV
 [linkedin-shield]: https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white
 [linkedin-url]: https://www.linkedin.com/in/fernando-lopezvelasco/
+<!-- turn ODC off -->
