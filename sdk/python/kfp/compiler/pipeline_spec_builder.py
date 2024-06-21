@@ -28,6 +28,7 @@ from kfp.compiler import compiler_utils
 from kfp.dsl import component_factory
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_config
 from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
 from kfp.dsl import placeholders
@@ -1850,6 +1851,7 @@ def create_pipeline_spec(
     pipeline: pipeline_context.Pipeline,
     component_spec: structures.ComponentSpec,
     pipeline_outputs: Optional[Any] = None,
+    pipeline_config: pipeline_config.PipelineConfig = None,
 ) -> Tuple[pipeline_spec_pb2.PipelineSpec, pipeline_spec_pb2.PlatformSpec]:
     """Creates a pipeline spec object.
 
@@ -1857,6 +1859,7 @@ def create_pipeline_spec(
         pipeline: The instantiated pipeline object.
         component_spec: The component spec structures.
         pipeline_outputs: The pipeline outputs via return.
+        pipeline_config: The pipeline config object.
 
     Returns:
         A PipelineSpec proto representing the compiled pipeline.
@@ -1873,6 +1876,10 @@ def create_pipeline_spec(
     pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
     # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
     pipeline_spec.schema_version = '2.1.0'
+
+    # pipeline-level config options
+    pipeline_config_spec = pipeline_spec_pb2.PipelineConfig()
+    # TODO add pipeline-level config options
 
     pipeline_spec.root.CopyFrom(
         _build_component_spec_from_component_spec_structure(component_spec))
@@ -1950,6 +1957,9 @@ def create_pipeline_spec(
     _validate_dag_output_types(
         dag_outputs=modified_pipeline_outputs_dict,
         structures_component_spec=component_spec)
+    
+    # add pipeline-level config options
+    pipeline_spec.pipeline_config.CopyFrom(pipeline_config_spec)
 
     return pipeline_spec, platform_spec
 

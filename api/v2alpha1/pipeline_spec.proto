@@ -80,6 +80,9 @@ message PipelineSpec {
 
   // Optional field. The default root output directory of the pipeline.
   string default_pipeline_root = 10;
+
+  // Contains pipeline-level config options. See PipelineConfig DSL class.
+  PipelineConfig pipeline_config = 11;
 }
 
 // Definition of a component.
@@ -1047,9 +1050,13 @@ message SinglePlatformSpec {
   PlatformDeploymentConfig deployment_spec = 1;
 }
 
-
 message PlatformDeploymentConfig {
   // Map of executor label to executor-level config
   // Mirrors PipelineSpec.deployment_spec.executors structure
   map<string, google.protobuf.Struct> executors = 1;
+}
+
+// Spec for pipeline-level config options. See PipelineConfig DSL class.
+message PipelineConfig {
+  // TODO add pipeline-level configs
 }
