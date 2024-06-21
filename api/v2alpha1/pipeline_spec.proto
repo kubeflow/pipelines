@@ -1091,11 +1091,17 @@ message SinglePlatformSpec {
   // Arbitrary configuration, which will be defined by the platform
   // protos/libraries.
   google.protobuf.Struct config = 3;
-}
 
+  PipelineConfig pipelineConfig = 4;
+}
 
 message PlatformDeploymentConfig {
   // Map of executor label to executor-level config
   // Mirrors PipelineSpec.deployment_spec.executors structure
   map<string, google.protobuf.Struct> executors = 1;
+}
+
+// Spec for pipeline-level config options. See PipelineConfig DSL class.
+message PipelineConfig {
+  // TODO add pipeline-level configs
 }
