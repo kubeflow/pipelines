@@ -17,6 +17,7 @@ import functools
 from typing import Callable, Optional
 
 from kfp.dsl import component_factory
+from kfp.dsl import pipeline_config
 from kfp.dsl import pipeline_task
 from kfp.dsl import tasks_group
 from kfp.dsl import utils
@@ -27,7 +28,8 @@ def pipeline(func: Optional[Callable] = None,
              name: Optional[str] = None,
              description: Optional[str] = None,
              pipeline_root: Optional[str] = None,
-             display_name: Optional[str] = None) -> Callable:
+             display_name: Optional[str] = None,
+             pipeline_config: pipeline_config.PipelineConfig = None) -> Callable:
     """Decorator used to construct a pipeline.
 
     Example
@@ -57,6 +59,7 @@ def pipeline(func: Optional[Callable] = None,
             description=description,
             pipeline_root=pipeline_root,
             display_name=display_name,
+            pipeline_config=pipeline_config,
         )
 
     if pipeline_root:
@@ -67,6 +70,7 @@ def pipeline(func: Optional[Callable] = None,
         name=name,
         description=description,
         display_name=display_name,
+        pipeline_config=pipeline_config,
     )
 
 

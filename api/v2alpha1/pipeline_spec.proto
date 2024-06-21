@@ -679,7 +679,8 @@ message ValueOrRuntimeParameter {
 }
 
 // The definition of the deployment config of the pipeline. It contains the
-// the platform specific executor configs for KFP OSS.
+// the platform specific executor configs for KFP OSS, as well as platform level config
+// such as settings to pass to an Argo Workflows Workflow CR.
 message PipelineDeploymentConfig {
   // The specification on a container invocation.
   // The string fields of the message support string based placeholder contract
@@ -852,6 +853,11 @@ message PipelineDeploymentConfig {
   }
   // Map from executor label to executor spec.
   map<string, ExecutorSpec> executors = 1;
+
+  // begin platform level / workflow level config
+
+  // duration in seconds after which the pipeline platform will do garbage collection
+  optional int32 completed_pipeline_ttl = 2;
 }
 
 // Value is the value of the field.
