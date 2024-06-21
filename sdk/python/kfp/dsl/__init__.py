@@ -264,6 +264,7 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.for_loop import Collected
     from kfp.dsl.importer_node import importer
     from kfp.dsl.pipeline_channel import OneOf
+    from kfp.dsl.pipeline_config import PipelineConfig
     from kfp.dsl.pipeline_context import pipeline
     from kfp.dsl.pipeline_task import PipelineTask
     from kfp.dsl.placeholders import ConcatPlaceholder
@@ -292,4 +293,5 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
         'IfPresentPlaceholder',
         'ConcatPlaceholder',
         'PipelineTask',
+        'PipelineConfig',
     ])
