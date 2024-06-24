@@ -35,7 +35,7 @@ if __name__ == '__main__':
     Pandas_Transform_DataFrame_in_ApacheParquet_format_op = create_component_from_func(
         Pandas_Transform_DataFrame_in_ApacheParquet_format,
         output_component_file='component.yaml',
-        base_image='python:3.7',
+        base_image='python:3.12',
         packages_to_install=[
             'pandas==1.0.4',
             'pyarrow==0.14.1',

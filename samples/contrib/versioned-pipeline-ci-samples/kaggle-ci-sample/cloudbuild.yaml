@@ -114,7 +114,7 @@ steps:
     id: "PushSubmitImage"
     waitFor: ["BuildSubmitImage"]
 
-  - name: "python:3.7-slim"
+  - name: "python:3.12-slim"
     entrypoint: "/bin/sh"
     args: [
         "-c",

@@ -42,7 +42,7 @@ implementation:
 
 # Accessing GCS using the Google Cloud Python library
 @dsl.component(
-    base_image='python:3.7', 
+    base_image='python:3.12', 
     packages_to_install=['google-cloud-storage==1.31.2']
 )
 def gcs_list_buckets():

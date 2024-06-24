@@ -3512,7 +3512,7 @@ spec:
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
-      - {name: KFP_V2_IMAGE, value: 'python:3.7'}
+      - {name: KFP_V2_IMAGE, value: 'python:3.12'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
           "INT"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
           "schemaTitle": "system.Dataset", "instanceSchema": ""}}, "outputParameters":
@@ -3520,7 +3520,7 @@ spec:
           "", "metadataPath": "/tmp/outputs/model/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
-      image: python:3.7
+      image: python:3.12
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
     inputs:
@@ -4044,7 +4044,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: python:3.7
+        image: python:3.12
 pipelineInfo:
   name: hello-world
 root:
@@ -4077,7 +4077,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.7
+        image: python:3.12
 pipelineInfo:
   name: pipelines/p1/versions/v1
 root:
