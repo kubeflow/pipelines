@@ -18,7 +18,7 @@ RUN curl -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-rel
 
 # FROM python:3.6.8-stretch
 
-FROM python:3.7-alpine3.9 
+FROM python:3.12-alpine3.9 
 
 RUN apk update && \
     apk add --no-cache ca-certificates py-dev python-setuptools wget unzip git bash \

@@ -81,7 +81,7 @@ if __name__ == '__main__':
     create_component_from_func(
         xgboost_train,
         output_component_file='component.yaml',
-        base_image='python:3.7',
+        base_image='python:3.12',
         packages_to_install=[
             'xgboost==1.1.1',
             'pandas==1.0.5',

@@ -121,7 +121,7 @@ class LoadYamlTests(unittest.TestCase):
         self.assertEqual(component.name, 'identity')
         self.assertEqual(
             component.component_spec.implementation.container.image,
-            'python:3.7')
+            'python:3.12')
 
 
 if __name__ == '__main__':

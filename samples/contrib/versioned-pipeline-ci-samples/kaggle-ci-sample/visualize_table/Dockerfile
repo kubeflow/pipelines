@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.12
 COPY requirements.txt .
 RUN python3 -m pip install -r \
     requirements.txt --quiet --no-cache-dir \

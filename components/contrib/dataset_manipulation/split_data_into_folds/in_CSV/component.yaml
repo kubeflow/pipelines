@@ -39,7 +39,7 @@ outputs:
 - {name: test_5, type: CSV}
 implementation:
   container:
-    image: python:3.7
+    image: python:3.12
     command:
     - sh
     - -c

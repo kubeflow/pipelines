@@ -20,7 +20,7 @@ outputs:
 - {name: metrics, type: JsonObject}
 implementation:
   container:
-    image: python:3.7
+    image: python:3.12
     command:
     - sh
     - -c

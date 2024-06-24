@@ -3354,7 +3354,7 @@ deploymentSpec:
           \      # specs from user input and the default booster parameter specs.\n\
           \      override_param['conditional_parameter_specs'] = booster_param_specs\n\
           \n  return study_spec_parameters\n\n"
-        image: python:3.7
+        image: python:3.12
     exec-model-batch-predict:
       container:
         args:

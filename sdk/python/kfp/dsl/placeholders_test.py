@@ -514,7 +514,7 @@ class OtherPlaceholderTests(parameterized.TestCase):
             text1: str,
         ):
             return dsl.ContainerSpec(
-                image='python:3.7',
+                image='python:3.12',
                 command=[
                     'my_program',
                     f'prefix-{text1}',
@@ -540,7 +540,7 @@ class OtherPlaceholderTests(parameterized.TestCase):
                 text2: str,
             ):
                 return dsl.ContainerSpec(
-                    image='python:3.7',
+                    image='python:3.12',
                     command=[
                         'my_program',
                         f'another-prefix-{dsl.ConcatPlaceholder([text1, text2])}',
@@ -557,7 +557,7 @@ class OtherPlaceholderTests(parameterized.TestCase):
                 text2: str,
             ):
                 return dsl.ContainerSpec(
-                    image='python:3.7',
+                    image='python:3.12',
                     command=[
                         'echo',
                         f"another-prefix-{dsl.IfPresentPlaceholder(input_name='text1', then=['val'])}",

@@ -53,7 +53,7 @@ if __name__ == '__main__':
     catboost_predict_values_op = create_component_from_func(
         catboost_predict_values,
         output_component_file='component.yaml',
-        base_image='python:3.7',
+        base_image='python:3.12',
         packages_to_install=['catboost==0.23'],
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",

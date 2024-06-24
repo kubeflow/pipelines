@@ -60,7 +60,7 @@ if __name__ == '__main__':
     automl_create_dataset_for_tables_op = create_component_from_func(
         automl_create_dataset_for_tables,
         output_component_file='component.yaml',
-        base_image='python:3.7',
+        base_image='python:3.12',
         packages_to_install=['google-cloud-automl==0.4.0'],
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",

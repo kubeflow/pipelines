@@ -36,7 +36,7 @@ spec:
           kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
           flip_coin_op() -\u003e str:\n    \"\"\"Flip a coin and output heads or tails
           randomly.\"\"\"\n    import random\n    result = random.choice([''heads'',
-          ''tails''])\n    print(result)\n    return result\n\n"],"image":"python:3.7"}'
+          ''tails''])\n    print(result)\n    return result\n\n"],"image":"python:3.12"}'
       - name: iteration-index
         value: ""
       - name: kubernetes-config
@@ -156,7 +156,7 @@ spec:
               - configMapRef:
                   name: metadata-grpc-configmap
                   optional: true
-              image: python:3.7
+              image: python:3.12
               name: user-main
     - name: for-loop-2-pipelineloop
       params:
@@ -228,7 +228,7 @@ spec:
                   -d)\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3
                   -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
                   kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import
-                  *\n\ndef print_op(message: str):\n    \"\"\"Print a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.7"}'
+                  *\n\ndef print_op(message: str):\n    \"\"\"Print a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.12"}'
               - name: iteration-index
                 value: ""
               - name: kubernetes-config
@@ -345,7 +345,7 @@ spec:
                       - configMapRef:
                           name: metadata-grpc-configmap
                           optional: true
-                      image: python:3.7
+                      image: python:3.12
                       name: user-main
               when:
               - input: $(tasks.condition-4-dag-driver.results.condition)
@@ -424,7 +424,7 @@ spec:
                   -d)\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3
                   -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
                   kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import
-                  *\n\ndef print_op(message: str):\n    \"\"\"Print a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.7"}'
+                  *\n\ndef print_op(message: str):\n    \"\"\"Print a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.12"}'
               - name: iteration-index
                 value: ""
               - name: kubernetes-config
@@ -541,7 +541,7 @@ spec:
                       - configMapRef:
                           name: metadata-grpc-configmap
                           optional: true
-                      image: python:3.7
+                      image: python:3.12
                       name: user-main
               when:
               - input: $(tasks.condition-5-dag-driver.results.condition)
@@ -621,7 +621,7 @@ spec:
                   *\n\ndef get_random_int_op(minimum: int, maximum: int) -\u003e int:\n    \"\"\"Generate
                   a random number between minimum and maximum (inclusive).\"\"\"\n    import
                   random\n    result = random.randint(minimum, maximum)\n    print(result)\n    return
-                  result\n\n"],"image":"python:3.7"}'
+                  result\n\n"],"image":"python:3.12"}'
               - name: iteration-index
                 value: ""
               - name: kubernetes-config
@@ -741,7 +741,7 @@ spec:
                       - configMapRef:
                           name: metadata-grpc-configmap
                           optional: true
-                      image: python:3.7
+                      image: python:3.12
                       name: user-main
               when:
               - input: $(tasks.condition-3-dag-driver.results.condition)

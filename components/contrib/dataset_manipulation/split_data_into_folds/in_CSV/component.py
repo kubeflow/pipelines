@@ -80,7 +80,7 @@ def split_table_into_folds(
 if __name__ == '__main__':
     split_table_into_folds_op = create_component_from_func(
         split_table_into_folds,
-        base_image='python:3.7',
+        base_image='python:3.12',
         packages_to_install=['scikit-learn==0.23.1', 'pandas==1.0.5'],
         output_component_file='component.yaml',
         annotations={

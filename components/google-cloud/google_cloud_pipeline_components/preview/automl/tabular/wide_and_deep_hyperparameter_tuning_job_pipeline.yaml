@@ -2954,7 +2954,7 @@ deploymentSpec:
           \    warnings.warn(\n        f'The overrides {extra_override_str} were not\
           \ found in the params and '\n        'will be ignored.'\n    )\n\n  return\
           \ study_spec_parameters\n\n"
-        image: python:3.7
+        image: python:3.12
     exec-model-batch-predict:
       container:
         args:

@@ -70,6 +70,6 @@ if __name__ == '__main__':
     calculate_regression_metrics_from_csv_op = create_component_from_func(
         calculate_classification_metrics_from_csv,
         output_component_file='component.yaml',
-        base_image='python:3.7',
+        base_image='python:3.12',
         packages_to_install=['numpy==1.19.0', 'scikit-learn==0.23.2']
     )

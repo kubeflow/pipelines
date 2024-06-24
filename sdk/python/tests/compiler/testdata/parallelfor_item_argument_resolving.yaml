@@ -28,7 +28,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = consume(**_parsed_args)
-      image: python:3.7
+      image: python:3.12
     inputs:
       parameters:
       - {name: produce-list-of-strings-Output}
@@ -44,7 +44,7 @@ spec:
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
-          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+          "image": "python:3.12"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.produce-list-of-strings-Output}}"}'}
   - name: consume-2
@@ -67,7 +67,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = consume(**_parsed_args)
-      image: python:3.7
+      image: python:3.12
     inputs:
       parameters:
       - {name: produce-list-of-strings-Output-loop-item}
@@ -83,7 +83,7 @@ spec:
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
-          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+          "image": "python:3.12"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.produce-list-of-strings-Output-loop-item}}"}'}
   - name: consume-3
@@ -106,7 +106,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = consume(**_parsed_args)
-      image: python:3.7
+      image: python:3.12
     inputs:
       parameters:
       - {name: produce-str-Output}
@@ -122,7 +122,7 @@ spec:
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
-          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+          "image": "python:3.12"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.produce-str-Output}}"}'}
   - name: consume-4
@@ -145,7 +145,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = consume(**_parsed_args)
-      image: python:3.7
+      image: python:3.12
     inputs:
       parameters:
       - {name: produce-list-of-ints-Output}
@@ -161,7 +161,7 @@ spec:
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
-          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+          "image": "python:3.12"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.produce-list-of-ints-Output}}"}'}
   - name: consume-5
@@ -184,7 +184,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = consume(**_parsed_args)
-      image: python:3.7
+      image: python:3.12
     inputs:
       parameters:
       - {name: produce-list-of-ints-Output-loop-item}
@@ -200,7 +200,7 @@ spec:
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
-          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+          "image": "python:3.12"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.produce-list-of-ints-Output-loop-item}}"}'}
   - name: consume-6
@@ -223,7 +223,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = consume(**_parsed_args)
-      image: python:3.7
+      image: python:3.12
     inputs:
       parameters:
       - {name: produce-list-of-dicts-Output}
@@ -239,7 +239,7 @@ spec:
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
-          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+          "image": "python:3.12"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.produce-list-of-dicts-Output}}"}'}
   - name: consume-7
@@ -262,7 +262,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = consume(**_parsed_args)
-      image: python:3.7
+      image: python:3.12
     inputs:
       parameters:
       - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa}
@@ -278,7 +278,7 @@ spec:
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
-          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+          "image": "python:3.12"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}"}'}
   - name: consume-8
@@ -301,7 +301,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = consume(**_parsed_args)
-      image: python:3.7
+      image: python:3.12
     metadata:
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
@@ -314,7 +314,7 @@ spec:
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
-          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+          "image": "python:3.12"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "[{\"a\": 1, \"b\": 2}, {\"a\": 10, \"b\": 20}]"}'}
   - name: consume-9
@@ -337,7 +337,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = consume(**_parsed_args)
-      image: python:3.7
+      image: python:3.12
     inputs:
       parameters:
       - {name: loop-item-param-4}
@@ -353,7 +353,7 @@ spec:
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
-          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+          "image": "python:3.12"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.loop-item-param-4}}"}'}
   - name: for-loop-1
@@ -517,7 +517,7 @@ spec:
                 pass
             with open(output_file, 'w') as f:
                 f.write(_output_serializers[idx](_outputs[idx]))
-      image: python:3.7
+      image: python:3.12
     outputs:
       parameters:
       - name: produce-list-of-dicts-Output
@@ -546,7 +546,7 @@ spec:
           = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport
           os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
           OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
-          "image": "python:3.7"}}, "name": "Produce list of dicts", "outputs": [{"name":
+          "image": "python:3.12"}}, "name": "Produce list of dicts", "outputs": [{"name":
           "Output", "type": "JsonArray"}]}', pipelines.kubeflow.org/component_ref: '{}'}
   - name: produce-list-of-ints
     container:
@@ -600,7 +600,7 @@ spec:
                 pass
             with open(output_file, 'w') as f:
                 f.write(_output_serializers[idx](_outputs[idx]))
-      image: python:3.7
+      image: python:3.12
     outputs:
       parameters:
       - name: produce-list-of-ints-Output
@@ -628,7 +628,7 @@ spec:
           = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport
           os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
           OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
-          "image": "python:3.7"}}, "name": "Produce list of ints", "outputs": [{"name":
+          "image": "python:3.12"}}, "name": "Produce list of ints", "outputs": [{"name":
           "Output", "type": "JsonArray"}]}', pipelines.kubeflow.org/component_ref: '{}'}
   - name: produce-list-of-strings
     container:
@@ -682,7 +682,7 @@ spec:
                 pass
             with open(output_file, 'w') as f:
                 f.write(_output_serializers[idx](_outputs[idx]))
-      image: python:3.7
+      image: python:3.12
     outputs:
       parameters:
       - name: produce-list-of-strings-Output
@@ -710,7 +710,7 @@ spec:
           = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport
           os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
           OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
-          "image": "python:3.7"}}, "name": "Produce list of strings", "outputs": [{"name":
+          "image": "python:3.12"}}, "name": "Produce list of strings", "outputs": [{"name":
           "Output", "type": "JsonArray"}]}', pipelines.kubeflow.org/component_ref: '{}'}
   - name: produce-str
     container:
@@ -755,7 +755,7 @@ spec:
                 pass
             with open(output_file, 'w') as f:
                 f.write(_output_serializers[idx](_outputs[idx]))
-      image: python:3.7
+      image: python:3.12
     outputs:
       parameters:
       - name: produce-str-Output
@@ -781,7 +781,7 @@ spec:
           = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport
           os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
           OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
-          "image": "python:3.7"}}, "name": "Produce str", "outputs": [{"name": "Output",
+          "image": "python:3.12"}}, "name": "Produce str", "outputs": [{"name": "Output",
           "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}'}
   arguments:
     parameters: []

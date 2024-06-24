@@ -1936,7 +1936,7 @@ executors:
 		_parsed_args = vars(_parser.parse_args())
 
 		_outputs = hello_world(**_parsed_args)
-	  image: python:3.7
+	  image: python:3.12
 pipelineInfo:
 name: hello-world
 root:
