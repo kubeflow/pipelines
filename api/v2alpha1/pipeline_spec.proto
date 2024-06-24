@@ -93,6 +93,7 @@ message ComponentSpec {
     DagSpec dag = 3;
     string executor_label = 4;
   }
+  repeated PlatformSpec platform_specs = 5;
 }
 
 // A DAG contains multiple tasks.
@@ -1040,6 +1041,11 @@ message PipelineStateEnum {
 message PlatformSpec {
   // Platform key to full platform config
   map<string, SinglePlatformSpec> platforms = 1;
+
+  string platform = 2;
+  // Arbitrary configuration, which will be defined by the platform
+  // protos/libraries.
+  google.protobuf.Struct config = 3;
 }
 
 message SinglePlatformSpec {
