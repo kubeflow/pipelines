@@ -1,37 +1,8 @@
 # Kubeflow Pipelines v2
 
-There are two modes Kubeflow Pipelines (KFP) v2 can run in:
+## Design
 
-* v2 compatible -- supports core v2 features in KFP v1
-* v2 (v2 engine) -- full feature v2 in KFP v2's new architecture
-
-Code for both modes live inside this folder.
-
-## Kubeflow Pipelines v2 compatible
-
-Status: [Beta](../docs/release/feature-stages.md#beta), to be deprecated in KFP SDK v1.9.
-Documentation: [Introducing Kubeflow Pipelines SDK v2](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/)
-[Known Caveats & breaking changes](https://github.com/kubeflow/pipelines/issues/6133)
-Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
-Github Project: [KFP v2 compatible mode project](https://github.com/kubeflow/pipelines/projects/13)
-
-Plan:
-
-* [x] 2021 late May - first release
-* [x] 2021 early August (delayed from mid July) - feature complete
-* [x] [End of support in KFP SDK v1.9](https://github.com/kubeflow/pipelines/issues/6829)
-
-## Kubeflow Pipelines v2 engine
-
-Status: not released (WIP)
-Design: [bit.ly/kfp-v2](https://bit.ly/kfp-v2) (You need to join [kubeflow-discuss google group](https://groups.google.com/g/kubeflow-discuss) to get access.)
-Github Project: [KFP v2 project](https://github.com/kubeflow/pipelines/projects/9)
-Tracker Issue: [KFP v2 tracker](https://github.com/kubeflow/pipelines/issues/6110)
-
-Plan:
-
-* [ ] 2021 October - Alpha release
-* [ ] TBD - Beta/Stable release
+[bit.ly/kfp-v2](https://bit.ly/kfp-v2) (You need to join [kubeflow-discuss google group](https://groups.google.com/g/kubeflow-discuss) to get access).
 
 ## Developing
 
@@ -108,10 +79,10 @@ it should have the following content:
   * KFP backend version should be at least 1.7.0-rc.2.
 
   Requirements on the KFP SDK package:
-  
-  * KFP v2 components defined using `@component` decorator installs KFP SDK package at runtime. 
+
+  * KFP v2 components defined using `@component` decorator installs KFP SDK package at runtime.
   To use a compatible KFP SDK, define the following environment variable before running e2e test:
-  
+
   ```
   export KFP_PACKAGE_PATH="git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python"
   ```
@@ -170,23 +141,3 @@ If something is unexpected, examine the unexpected dependencies by yourself and 
 overrides to [go-licenses.yaml](./go-licenses.yaml).
 
 For detailed documentation about the tool: <https://github.com/Bobgy/go-licenses/tree/main/v2>.
-
-### Releasing KFP v2 compatible image
-
-Note, this is currently outdated instructions for v2 compatible mode. We haven't set up releasing workflow for v2 engine.
-
-1. Build & release gcr.io/ml-pipeline/kfp-launcher:$TAG_NAME (this step needs write permission to gcr.io/ml-pipeline):
-
-    ```bash
-    # login locally
-    gcloud auth login
-    gcloud auth configure-docker
-
-    cd kubeflow/pipelines/backend/src/v2
-    TAG_NAME=1.6.0
-    LAUNCHER_IMAGE="gcr.io/ml-pipeline/kfp-launcher:${TAG_NAME}" make push-launcher
-    ```
-
-2. Edit [v2_compat.py](https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/compiler/v2_compat.py#L26) -- pin _DEFAULT_LAUNCHER_IMAGE to the tag we will release.
-
-3. Continue with KFP python SDK release instructions.
