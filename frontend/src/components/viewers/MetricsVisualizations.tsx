@@ -28,6 +28,7 @@ import {
   filterArtifactsByType,
   filterLinkedArtifactsByType,
   getArtifactName,
+  getStoreSessionInfoFromArtifact,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
@@ -887,8 +888,10 @@ export async function getHtmlViewerConfig(
       throw new Error('HTML Artifact storagePath unknown');
     }
 
+    const providerInfo = getStoreSessionInfoFromArtifact(linkedArtifact);
+
     // TODO(zijianjoy): Limit the size of HTML file fetching to prevent UI frozen.
-    let data = await Apis.readFile(storagePath, namespace);
+    let data = await Apis.readFile({ path: storagePath, providerInfo, namespace: namespace });
     return { htmlContent: data, type: PlotType.WEB_APP } as HTMLViewerConfig;
   });
   return Promise.all(htmlViewerConfigs);
@@ -913,8 +916,10 @@ export async function getMarkdownViewerConfig(
       throw new Error('Markdown Artifact storagePath unknown');
     }
 
+    const providerInfo = getStoreSessionInfoFromArtifact(linkedArtifact);
+
     // TODO(zijianjoy): Limit the size of Markdown file fetching to prevent UI frozen.
-    let data = await Apis.readFile(storagePath, namespace);
+    let data = await Apis.readFile({ path: storagePath, providerInfo, namespace: namespace });
     return { markdownContent: data, type: PlotType.MARKDOWN } as MarkdownViewerConfig;
   });
   return Promise.all(markdownViewerConfigs);
