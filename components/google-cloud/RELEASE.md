@@ -1,6 +1,9 @@
 ## Upcoming release
+
+## Release 2.15.0
 * Add Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline`.
 * Add Starry Net forecasting pipeline to `preview.starry_net.starry_net_pipeline`
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.14.1
 * Add staging and temp location parameters to prophet trainer component.
