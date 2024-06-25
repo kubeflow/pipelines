@@ -58,7 +58,7 @@ export class OutputArtifactLoader {
   public static async load(outputPath: StoragePath, namespace?: string): Promise<ViewerConfig[]> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
-      const metadataFile = await Apis.readFile(outputPath, namespace);
+      const metadataFile = await Apis.readFile({ path: outputPath, namespace: namespace });
       if (metadataFile) {
         try {
           plotMetadataList = OutputArtifactLoader.parseOutputMetadataInJson(
@@ -516,7 +516,10 @@ async function readSourceContent(
   if (storage === 'inline') {
     return source;
   }
-  return await Apis.readFile(WorkflowParser.parseStoragePath(source), namespace);
+  return await Apis.readFile({
+    path: WorkflowParser.parseStoragePath(source),
+    namespace: namespace,
+  });
 }
 
 export const TEST_ONLY = {

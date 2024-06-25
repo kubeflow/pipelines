@@ -138,7 +138,7 @@ export function createPodLogsMinioRequestConfig(
   // different bucket/prefix for diff namespace?
   return async (podName: string, _namespace?: string): Promise<MinioRequestConfig> => {
     // create a new client each time to ensure session token has not expired
-    const client = await createMinioClient(minioOptions);
+    const client = await createMinioClient(minioOptions, 's3');
     const workflowName = workflowNameFromPodName(podName);
     return {
       bucket,
@@ -189,13 +189,17 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
 
   const { host, port } = urlSplit(s3Artifact.endpoint, s3Artifact.insecure);
   const { accessKey, secretKey } = await getMinioClientSecrets(s3Artifact);
-  const client = await createMinioClient({
-    accessKey,
-    endPoint: host,
-    port,
-    secretKey,
-    useSSL: !s3Artifact.insecure,
-  });
+
+  const client = await createMinioClient(
+    {
+      accessKey,
+      endPoint: host,
+      port,
+      secretKey,
+      useSSL: !s3Artifact.insecure,
+    },
+    's3',
+  );
   return {
     bucket: s3Artifact.bucket,
     client,

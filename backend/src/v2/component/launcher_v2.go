@@ -459,7 +459,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 		if err != nil {
 			return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
-		mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE)
+		mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE, opts.bucketConfig)
 		if err != nil {
 			return nil, metadataErr(err)
 		}

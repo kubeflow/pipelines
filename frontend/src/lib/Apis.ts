@@ -265,23 +265,39 @@ export class Apis {
   /**
    * Reads file from storage using server.
    */
-  public static readFile(path: StoragePath, namespace?: string, peek?: number): Promise<string> {
-    return this._fetch(this.buildReadFileUrl({ path, namespace, peek, isDownload: false }));
+  public static readFile({
+    path,
+    providerInfo,
+    namespace,
+    peek,
+  }: {
+    path: StoragePath;
+    namespace?: string;
+    providerInfo?: string;
+    peek?: number;
+  }): Promise<string> {
+    let query = this.buildReadFileUrl({ path, namespace, providerInfo, peek, isDownload: false });
+    return this._fetch(query);
   }
 
   /**
    * Builds an url for the readFile API to retrieve a workflow artifact.
    * @param path object describing the artifact (e.g. source, bucket, and key)
+   * @param namespace the experiment namespace
+   * @param providerInfo non default provider info to build session for the object store where the artifact is stored
+   * @param peek the amount used to be read
    * @param isDownload whether we download the artifact as is (e.g. skip extracting from *.tar.gz)
    */
   public static buildReadFileUrl({
     path,
     namespace,
+    providerInfo,
     peek,
     isDownload,
   }: {
     path: StoragePath;
     namespace?: string;
+    providerInfo?: string;
     peek?: number;
     isDownload?: boolean;
   }) {
@@ -289,10 +305,11 @@ export class Apis {
     if (isDownload) {
       return `artifacts/${source}/${bucket}/${key}${buildQuery({
         namespace,
+        providerInfo,
         peek,
       })}`;
     } else {
-      return `artifacts/get${buildQuery({ source, namespace, peek, bucket, key })}`;
+      return `artifacts/get${buildQuery({ source, namespace, providerInfo, peek, bucket, key })}`;
     }
   }
 
