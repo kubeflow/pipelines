@@ -35,7 +35,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Create KFP cluster
-        uses: ./.github/actions/kfp-cluster
+        uses: ./.github/actions/kfp-tekton-cluster
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
