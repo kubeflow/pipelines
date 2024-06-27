@@ -552,9 +552,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 
 	// Upon run creation, update owning experiment
-	err = r.experimentStore.UpdateLastRun(newRun)
+	err = r.experimentStore.SetLastRunTimestamp(newRun)
 	if err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("Failed to update last_run_created_at in experiment %s for run %s", newRun.ExperimentId, newRun.UUID))
+		return nil, util.Wrap(err, fmt.Sprintf("Failed to set last run timestamp on experiment %s for run %s", newRun.ExperimentId, newRun.UUID))
 	}
 
 	return newRun, nil
@@ -1264,7 +1264,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			runId = run.UUID
 		}
 		// Upon run creation, update owning experiment
-		if updateError = r.experimentStore.UpdateLastRun(run); updateError != nil {
+		if updateError = r.experimentStore.SetLastRunTimestamp(run); updateError != nil {
 			return nil, util.Wrapf(updateError, "Failed to report a workflow for existing run %s during updating the owning experiment.", runId)
 		}
 	}
