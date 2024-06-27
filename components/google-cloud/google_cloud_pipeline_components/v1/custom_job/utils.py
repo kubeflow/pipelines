@@ -18,6 +18,7 @@ import textwrap
 from typing import Callable, Dict, List, Optional
 import warnings
 
+from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.v1.custom_job import component
 from kfp import components
 import yaml
@@ -68,6 +69,7 @@ def create_custom_training_job_from_component(
     nfs_mounts: Optional[List[Dict[str, str]]] = None,
     base_output_directory: str = '',
     labels: Optional[Dict[str, str]] = None,
+    persistent_resource_id: str = _placeholders.PERSISTENT_RESOURCE_ID_PLACEHOLDER,
     env: Optional[List[Dict[str, str]]] = None,
 ) -> Callable:
   # fmt: off
@@ -95,6 +97,7 @@ def create_custom_training_job_from_component(
     nfs_mounts: A list of [NfsMount](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount) resource specs in Json dict format. For more details about mounting NFS for CustomJob, see [Mount an NFS share for custom training](https://cloud.google.com/vertex-ai/docs/training/train-nfs-share).
     base_output_directory: The Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).
     labels: The labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).
+    persistent_resource_id: The ID of the PersistentResource in the same Project and Location which to run. The default value is a placeholder that will be resolved to the PipelineJob [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)'s persistent resource id at runtime. However, if the PipelineJob doesn't set Persistent Resource as the job level runtime, the placedholder will be resolved to an empty string and the custom job will be run on demand. If the value is set explicitly, the custom job will runs in the specified persistent resource, in this case, please note the network and CMEK configs on the job should be consistent with those on the PersistentResource, otherwise, the job will be rejected.
     env: Environment variables to be passed to the container. Takes the form `[{'name': '...', 'value': '...'}]`. Maximum limit is 100.
 
    Returns:
@@ -199,6 +202,7 @@ def create_custom_training_job_from_component(
       'base_output_directory': base_output_directory,
       'labels': labels or {},
       'encryption_spec_key_name': encryption_spec_key_name,
+      'persistent_resource_id': persistent_resource_id,
   }
 
   for param_name, default_value in custom_job_param_defaults.items():
