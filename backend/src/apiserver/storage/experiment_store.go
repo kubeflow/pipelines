@@ -33,7 +33,7 @@ type ExperimentStoreInterface interface {
 	ArchiveExperiment(expId string) error
 	UnarchiveExperiment(expId string) error
 	DeleteExperiment(uuid string) error
-	UpdateLastRun(run *model.Run) error
+	SetLastRunTimestamp(run *model.Run) error
 }
 
 type ExperimentStore struct {
@@ -419,9 +419,9 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 	return nil
 }
 
-func (s *ExperimentStore) UpdateLastRun(run *model.Run) error {
+func (s *ExperimentStore) SetLastRunTimestamp(run *model.Run) error {
 	expId := run.ExperimentId
-	// UpdateLastRun results in the experiment getting last_run_created_at updated
+	// SetLastRunTimestamp results in the experiment getting last_run_created_at updated
 	query, args, err := sq.
 		Update("experiments").
 		SetMap(sq.Eq{
