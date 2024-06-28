@@ -230,7 +230,7 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	if wf.Kind != argoK8sResource {
 		return nil, util.NewInvalidInputError("Unexpected resource type. Expected: %v. Received: %v", argoK8sResource, wf.Kind)
 	}
-	err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
+	_, err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
 		Lint:                       true,
 		IgnoreEntrypoint:           true,
 		WorkflowTemplateValidation: false, // not used by kubeflow
