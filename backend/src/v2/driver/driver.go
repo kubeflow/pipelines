@@ -36,6 +36,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -665,6 +666,33 @@ func extendPodSpecPatch(
 		podSpec.Volumes = append(podSpec.Volumes, ephemeralVolume)
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, ephemeralVolumeMount)
 	}
+
+	// EmptyDirMounts
+	for _, emptyDirVolumeSpec := range kubernetesExecutorConfig.GetEmptyDirMounts() {
+		var sizeLimitResource *resource.Quantity
+		if emptyDirVolumeSpec.GetSizeLimit() != "" {
+			r := k8sres.MustParse(emptyDirVolumeSpec.GetSizeLimit())
+			sizeLimitResource = &r
+		}
+
+		emptyDirVolume := k8score.Volume{
+			Name: emptyDirVolumeSpec.GetVolumeName(),
+			VolumeSource: k8score.VolumeSource{
+				EmptyDir: &k8score.EmptyDirVolumeSource{
+					Medium:    k8score.StorageMedium(emptyDirVolumeSpec.GetMedium()),
+					SizeLimit: sizeLimitResource,
+				},
+			},
+		}
+		emptyDirVolumeMount := k8score.VolumeMount{
+			Name:      emptyDirVolumeSpec.GetVolumeName(),
+			MountPath: emptyDirVolumeSpec.GetMountPath(),
+		}
+
+		podSpec.Volumes = append(podSpec.Volumes, emptyDirVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
+	}
+
 	return nil
 }
 
