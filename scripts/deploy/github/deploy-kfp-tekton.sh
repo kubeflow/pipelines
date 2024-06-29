@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2023 kubeflow.org
+# Copyright 2024 kubeflow.org
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,12 +32,11 @@ then
   exit $EXIT_CODE
 fi
 
-PLATFORM_AGNOSTIC_MANIFESTS="manifests/kustomize/env/platform-agnostic"
-
-kubectl apply -k "${PLATFORM_AGNOSTIC_MANIFESTS}" || EXIT_CODE=$?
+# Deploy manifest
+kubectl apply -k "scripts/deploy/github/manifests" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
-  echo "Deploy unsuccessful. Failure applying ${PLATFORM_AGNOSTIC_MANIFESTS}."
+  echo "Deploy unsuccessful. Failure applying $KUSTOMIZE_DIR."
   exit 1
 fi
 
@@ -53,5 +52,9 @@ echo "List Kubeflow: "
 kubectl get pod -n kubeflow
 collect_artifacts kubeflow
 
-echo "Finished KFP deployment."
+echo "List Tekton control plane: "
+kubectl get pod -n tekton-pipelines
+collect_artifacts tekton-pipelines
+
+echo "Finished kfp-tekton deployment."
 
