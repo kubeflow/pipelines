@@ -1,0 +1,36 @@
+name: KFP SDK YAPF Tests
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'sdk/python/**'
+      - 'test/presubmit-yapf-sdk.sh'
+      - '.github/workflows/sdk-yapf.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'sdk/python/**'
+      - 'test/presubmit-yapf-sdk.sh'
+      - '.github/workflows/sdk-yapf.yml'
+
+jobs:
+  yapf-sdk:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: pip install yapf
+
+    - name: Run YAPF SDK Tests
+      run: ./test/presubmit-yapf-sdk.sh
