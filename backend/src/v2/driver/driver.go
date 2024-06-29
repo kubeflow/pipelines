@@ -533,6 +533,67 @@ func extendPodSpecPatch(
 		podSpec.Tolerations = k8sTolerations
 	}
 
+	//Set node affinity
+	if nodeAffinity := kubernetesExecutorConfig.GetNodeAffinity(); nodeAffinity != nil {
+		var nodeSelectorTerms []k8score.NodeSelectorTerm
+		var preferredSchedulingTerms []k8score.PreferredSchedulingTerm
+		var requiredDuringSchedulingIgnoredDuringExecution *k8score.NodeSelector
+
+		for _, nodeAffinityTerm := range nodeAffinity {
+			if nodeAffinityTerm != nil {
+				var matchExpressions []k8score.NodeSelectorRequirement
+				var matchFields []k8score.NodeSelectorRequirement
+				for _, requirement := range nodeAffinityTerm.MatchExpressions {
+					if requirement != nil {
+						matchExpressions = append(matchExpressions, k8score.NodeSelectorRequirement{
+							Key:      requirement.Key,
+							Operator: k8score.NodeSelectorOperator(requirement.Operator),
+							Values:   requirement.Values,
+						})
+					}
+				}
+
+				for _, requirement := range nodeAffinityTerm.MatchFields {
+					if requirement != nil {
+						matchFields = append(matchFields, k8score.NodeSelectorRequirement{
+							Key:      requirement.Key,
+							Operator: k8score.NodeSelectorOperator(requirement.Operator),
+							Values:   requirement.Values,
+						})
+					}
+				}
+
+				nodeSelectorTerm := k8score.NodeSelectorTerm{
+					MatchExpressions: matchExpressions,
+					MatchFields:      matchFields,
+				}
+
+				if (0 < nodeAffinityTerm.GetWeight()) && (nodeAffinityTerm.GetWeight() < 101) {
+					preferredSchedulingTerms = append(preferredSchedulingTerms, k8score.PreferredSchedulingTerm{
+						Weight:     nodeAffinityTerm.GetWeight(),
+						Preference: nodeSelectorTerm,
+					})
+				} else {
+					nodeSelectorTerms = append(nodeSelectorTerms, nodeSelectorTerm)
+				}
+
+			}
+		}
+		if nodeSelectorTerms != nil {
+			requiredDuringSchedulingIgnoredDuringExecution = &k8score.NodeSelector{
+				NodeSelectorTerms: nodeSelectorTerms,
+			}
+		}
+
+		podSpec.Affinity = &k8score.Affinity{
+			NodeAffinity: &k8score.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution:  requiredDuringSchedulingIgnoredDuringExecution,
+				PreferredDuringSchedulingIgnoredDuringExecution: preferredSchedulingTerms,
+			},
+		}
+
+	}
+
 	// Get secret mount information
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
 		optional := secretAsVolume.Optional != nil && *secretAsVolume.Optional
