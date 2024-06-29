@@ -52,7 +52,7 @@ var (
 					Command: []string{"python"},
 					Env: []corev1.EnvVar{{
 						Name:  ArgoWorkflowTemplateEnvKey,
-						Value: `{"name": "Does not matter","container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+						Value: `{"name": "Does not matter","container":{"command":["echo", "Hello"],"image":"python:3.12"}}`,
 					}},
 				},
 			},
@@ -171,7 +171,7 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.12"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -190,7 +190,7 @@ func TestDefaultImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.12"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -209,7 +209,7 @@ func TestSetImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.12"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -226,7 +226,7 @@ func TestCacheNodeRestriction(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"},"nodeSelector":{"disktype":"ssd"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.12"},"nodeSelector":{"disktype":"ssd"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -241,7 +241,7 @@ func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "5a20e3f2e74863b363291953082d9812a58e25f7117bface1c76d40ef0ee88fc",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"python:3.7"},"outputs":"anything"}`,
+		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"python:3.12"},"outputs":"anything"}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -253,7 +253,7 @@ func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 			"name": "Does not matter",
 			"metadata": "anything",
 			"container": {
-				"image": "python:3.7",
+				"image": "python:3.12",
 				"command": ["echo", "Hello"]
 			},
 			"outputs": "anything",

@@ -20,7 +20,7 @@ from kfp import dsl
 @dsl.container_component
 def container_no_input():
     return dsl.ContainerSpec(
-        image='python:3.7',
+        image='python:3.12',
         command=['echo', 'hello world'],
         args=[],
     )

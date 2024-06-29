@@ -70,7 +70,7 @@ if __name__ == '__main__':
     automl_prediction_service_batch_predict_op = create_component_from_func(
         automl_prediction_service_batch_predict,
         output_component_file='component.yaml',
-        base_image='python:3.7',
+        base_image='python:3.12',
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
             "canonical_location": "https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/gcp/automl/prediction_service_batch_predict/component.yaml",

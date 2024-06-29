@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.7
+FROM python:3.12
 
 COPY requirements.txt .
 RUN python3 -m pip install -r \
