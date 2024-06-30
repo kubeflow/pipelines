@@ -120,6 +120,10 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
      * e.g. a valid header value for default values can be like `accounts.google.com:user@gmail.com`.
      */
     KUBEFLOW_USERID_PREFIX = 'accounts.google.com:',
+    /** Verify headers from IAP */
+    ENABLE_IAP_VERIFICATION = 'false',
+    /** IAP expected audience */
+    IAP_EXPECTED_AUDIENCE = '',
   } = env;
 
   return {
@@ -205,6 +209,10 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       kubeflowUserIdHeader: KUBEFLOW_USERID_HEADER,
       kubeflowUserIdPrefix: KUBEFLOW_USERID_PREFIX,
     },
+    iap: {
+      enabled: asBool(ENABLE_IAP_VERIFICATION),
+      expectedAudience: IAP_EXPECTED_AUDIENCE,
+    },
   };
 }
 
@@ -272,6 +280,10 @@ export interface AuthConfigs {
   kubeflowUserIdHeader: string;
   kubeflowUserIdPrefix: string;
 }
+export interface IapConfigs {
+  enabled: boolean;
+  expectedAudience: string;
+}
 export interface UIConfigs {
   server: ServerConfigs;
   artifacts: {
@@ -292,4 +304,5 @@ export interface UIConfigs {
   pipeline: PipelineConfigs;
   gkeMetadata: GkeMetadataConfigs;
   auth: AuthConfigs;
+  iap: IapConfigs;
 }
