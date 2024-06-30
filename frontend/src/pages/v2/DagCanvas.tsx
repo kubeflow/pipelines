@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -43,8 +43,12 @@ export default function DagCanvas({
   onSelectionChange,
   setFlowElements,
 }: DagCanvasProps) {
+  const instanceRef = useRef<OnLoadParams | null>(null);
+  const prevLayer = useRef(layers);
+
   const onLoad = (reactFlowInstance: OnLoadParams) => {
     reactFlowInstance.fitView();
+    instanceRef.current = reactFlowInstance;
   };
 
   const subDagExpand = (nodeKey: string) => {
@@ -58,6 +62,13 @@ export default function DagCanvas({
       elem.data.expand = subDagExpand;
     }
   });
+
+  useEffect(() => {
+    if (instanceRef.current && prevLayer.current !== layers) {
+      instanceRef.current.fitView();
+    }
+    prevLayer.current = layers;
+  }, [elements, layers, prevLayer]);
 
   return (
     <>
