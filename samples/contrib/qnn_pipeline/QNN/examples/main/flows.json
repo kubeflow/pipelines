@@ -1,0 +1,827 @@
+[
+    {
+        "id": "f6f2187d.f17ca8",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "c9fd2f76f856879d",
+        "type": "tab",
+        "label": "base flow",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "e0941514f4cd8be3",
+        "type": "tab",
+        "label": "流程1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "3cc11d24.ff01a2",
+        "type": "comment",
+        "z": "f6f2187d.f17ca8",
+        "name": "WARNING: please check you have started this container with a volume that is mounted to /data\\n otherwise any flow changes are lost when you redeploy or upgrade the container\\n (e.g. upgrade to a more recent node-red docker image).\\n  If you are using named volumes you can ignore this warning.\\n Double click or see info side panel to learn how to start Node-RED in Docker to save your work",
+        "info": "\nTo start docker with a bind mount volume (-v option), for example:\n\n```\ndocker run -it -p 1880:1880 -v /home/user/node_red_data:/data --name mynodered nodered/node-red\n```\n\nwhere `/home/user/node_red_data` is a directory on your host machine where you want to store your flows.\n\nIf you do not do this then you can experiment and redploy flows, but if you restart or upgrade the container the flows will be disconnected and lost. \n\nThey will still exist in a hidden data volume, which can be recovered using standard docker techniques, but that is much more complex than just starting with a named volume as described above.",
+        "x": 350,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "b126ea03f7d74573",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "692c86b087eed4a0",
+        "type": "pythonshell in",
+        "z": "f6f2187d.f17ca8",
+        "name": "install dependency",
+        "pyfile": "/data/main/py/install.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 270,
+        "y": 300,
+        "wires": [
+            [
+                "0b5c3b39a424dc6a"
+            ]
+        ]
+    },
+    {
+        "id": "0b5c3b39a424dc6a",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 470,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "3b1a0675389769a1",
+        "type": "comment",
+        "z": "f6f2187d.f17ca8",
+        "name": "install python dependency",
+        "info": "",
+        "x": 370,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "04e11dfd70107dcf",
+        "type": "comment",
+        "z": "f6f2187d.f17ca8",
+        "name": "read experiemnt data from kfp",
+        "info": "",
+        "x": 380,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "ffe395298ffe40e0",
+        "type": "pythonshell in",
+        "z": "f6f2187d.f17ca8",
+        "name": "list experiments",
+        "pyfile": "/data/main/py/api_examples/list_experiments.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 260,
+        "y": 440,
+        "wires": [
+            [
+                "b126ea03f7d74573"
+            ]
+        ]
+    },
+    {
+        "id": "4e8d2c69191dc03a",
+        "type": "inject",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 130,
+        "y": 520,
+        "wires": [
+            [
+                "87ffd06469d347e5"
+            ]
+        ]
+    },
+    {
+        "id": "b9d284a1377a535d",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 1110,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "87ffd06469d347e5",
+        "type": "datasets",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "customized_datasets": "none",
+        "traditional_datasets": "cifar10",
+        "label_column_name": "none",
+        "source": "traditional",
+        "x": 290,
+        "y": 540,
+        "wires": [
+            [
+                "1ffc5ae0e5b21c99"
+            ]
+        ]
+    },
+    {
+        "id": "83e76df28cb9dcba",
+        "type": "algorithm",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "algorithm": "randomforest",
+        "max_depth": "20",
+        "min_samples_split": "2",
+        "min_samples_leaf": "2",
+        "n_estimators": "100",
+        "criterion": "gini",
+        "splitter": "best",
+        "penalty": "l2",
+        "solver": "lbfgs",
+        "x": 610,
+        "y": 560,
+        "wires": [
+            [
+                "73e3be293de5bbfc"
+            ]
+        ]
+    },
+    {
+        "id": "ed6b798a90e35168",
+        "type": "deploy",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "x": 950,
+        "y": 640,
+        "wires": [
+            [
+                "b9d284a1377a535d"
+            ]
+        ]
+    },
+    {
+        "id": "1ffc5ae0e5b21c99",
+        "type": "data process",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "procedures": "datareshape",
+        "fillna_requirement": "",
+        "fillna": "",
+        "fillnavalue": "",
+        "datapath": "",
+        "labelencoding_requirement": "",
+        "labelencoding_column_name": "",
+        "onehotencoding_requirement": "",
+        "onehotencoding_column_name": "",
+        "feature_scaling_requirement": true,
+        "feature_scaling": "standardlization",
+        "train_test_split": "0.25",
+        "data_reshape": "1D",
+        "height": "32",
+        "width": "32",
+        "channel": "3",
+        "x": 450,
+        "y": 540,
+        "wires": [
+            [
+                "83e76df28cb9dcba"
+            ]
+        ]
+    },
+    {
+        "id": "73e3be293de5bbfc",
+        "type": "model",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "epochs": "5",
+        "model_name": "model01",
+        "overwrite": true,
+        "model_name_isvalid": "true",
+        "x": 840,
+        "y": 580,
+        "wires": [
+            [
+                "ed6b798a90e35168"
+            ]
+        ]
+    },
+    {
+        "id": "b33d174d94620977",
+        "type": "debug",
+        "z": "c9fd2f76f856879d",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 730,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "6b5130cec3efaf0a",
+        "type": "debug",
+        "z": "c9fd2f76f856879d",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "84f40c6e98828bb5",
+        "type": "debug",
+        "z": "c9fd2f76f856879d",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 770,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "25c2644a197da5cb",
+        "type": "decisionTree",
+        "z": "c9fd2f76f856879d",
+        "name": "",
+        "pyfile": "/data/main/py/examples/decisionTree.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": "",
+        "python3": true,
+        "x": 510,
+        "y": 240,
+        "wires": [
+            [
+                "b33d174d94620977"
+            ]
+        ]
+    },
+    {
+        "id": "afa926c570fdc7dd",
+        "type": "randomForest",
+        "z": "c9fd2f76f856879d",
+        "name": "",
+        "pyfile": "/data/main/py/examples/examples/randomForest.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": "",
+        "python3": true,
+        "x": 520,
+        "y": 320,
+        "wires": [
+            [
+                "6b5130cec3efaf0a"
+            ]
+        ]
+    },
+    {
+        "id": "dc3a69d232e3d366",
+        "type": "logisticRegression",
+        "z": "c9fd2f76f856879d",
+        "name": "",
+        "pyfile": "/data/main/py/examples/logisticRegression.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": "",
+        "python3": true,
+        "x": 530,
+        "y": 400,
+        "wires": [
+            [
+                "84f40c6e98828bb5"
+            ]
+        ]
+    },
+    {
+        "id": "1a03c8eab24f2d9d",
+        "type": "pythonshell in",
+        "z": "c9fd2f76f856879d",
+        "name": "test",
+        "pyfile": "/data/main/py/model35.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 510,
+        "y": 520,
+        "wires": [
+            [
+                "241bb407c3b1a512"
+            ]
+        ]
+    },
+    {
+        "id": "241bb407c3b1a512",
+        "type": "debug",
+        "z": "c9fd2f76f856879d",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 730,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "9211da9222209e48",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "f2394d82583d42d2",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "install dependency",
+        "pyfile": "/data/main/py/install.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 550,
+        "y": 80,
+        "wires": [
+            [
+                "cec42d56788a6d86"
+            ]
+        ]
+    },
+    {
+        "id": "cec42d56788a6d86",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 750,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "6df33a3d52decf56",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "list experiments",
+        "pyfile": "/data/main/py/api_examples/list_experiments.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 540,
+        "y": 140,
+        "wires": [
+            [
+                "9211da9222209e48"
+            ]
+        ]
+    },
+    {
+        "id": "20410c4e397c7805",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "list_pipelines",
+        "pyfile": "/data/main/py/api_examples/list_pipelines.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 530,
+        "y": 200,
+        "wires": [
+            [
+                "8400360595296c8f"
+            ]
+        ]
+    },
+    {
+        "id": "8400360595296c8f",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "20ae5c175bd4bd4d",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "upload_pipeline",
+        "pyfile": "/data/main/py/api_examples/upload_pipeline.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 540,
+        "y": 260,
+        "wires": [
+            [
+                "711b376a156b58a2"
+            ]
+        ]
+    },
+    {
+        "id": "711b376a156b58a2",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "5dc55b480c912ba0",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "create_experiment",
+        "pyfile": "/data/main/py/api_examples/create_experiment.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 550,
+        "y": 320,
+        "wires": [
+            [
+                "47ae84a2b85aec74"
+            ]
+        ]
+    },
+    {
+        "id": "47ae84a2b85aec74",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "bf79cd5247e6d498",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "create_run.py",
+        "pyfile": "/data/main/py/api_examples/create_run.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 540,
+        "y": 380,
+        "wires": [
+            [
+                "41280a3e2bd16bf1"
+            ]
+        ]
+    },
+    {
+        "id": "41280a3e2bd16bf1",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "9c2a05f63fa71bc7",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "delete_experiment",
+        "pyfile": "/data/main/py/api_examples/delete_experiment.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 550,
+        "y": 440,
+        "wires": [
+            [
+                "5a77999e669b4c06"
+            ]
+        ]
+    },
+    {
+        "id": "5a77999e669b4c06",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "ef4b5e874d4c37ab",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "delete_pipeline",
+        "pyfile": "/data/main/py/api_examples/delete_pipeline.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 540,
+        "y": 500,
+        "wires": [
+            [
+                "29e24d1ea757f2c6"
+            ]
+        ]
+    },
+    {
+        "id": "29e24d1ea757f2c6",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "a2c4616e7a1591b7",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "delete_run.py",
+        "pyfile": "/data/main/py/api_examples/delete_run.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 540,
+        "y": 560,
+        "wires": [
+            [
+                "5f127d565442e111"
+            ]
+        ]
+    },
+    {
+        "id": "5f127d565442e111",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "80de59953d4b8556",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "get_run",
+        "pyfile": "/data/main/py/api_examples/get_run.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 520,
+        "y": 620,
+        "wires": [
+            [
+                "4ccad67787ec0207"
+            ]
+        ]
+    },
+    {
+        "id": "4ccad67787ec0207",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "45cde0d735c7fa70",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "kfp_login.py",
+        "pyfile": "/data/main/py/api_examples/kfp_login.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 530,
+        "y": 680,
+        "wires": [
+            [
+                "9f35716a8bed686e"
+            ]
+        ]
+    },
+    {
+        "id": "9f35716a8bed686e",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "b33bc4ad7e423460",
+        "type": "pythonshell in",
+        "z": "e0941514f4cd8be3",
+        "name": "kfp_login.py",
+        "pyfile": "/data/main/py/api_examples/kfp_namespace.py",
+        "virtualenv": "",
+        "continuous": true,
+        "stdInData": false,
+        "python3": true,
+        "x": 530,
+        "y": 740,
+        "wires": [
+            [
+                "a139fa9944b79f94"
+            ]
+        ]
+    },
+    {
+        "id": "a139fa9944b79f94",
+        "type": "debug",
+        "z": "e0941514f4cd8be3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 740,
+        "wires": []
+    }
+]

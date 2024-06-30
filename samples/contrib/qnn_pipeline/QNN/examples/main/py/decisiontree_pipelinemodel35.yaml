@@ -1,0 +1,822 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: final-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2023-11-09T14:22:01.345437',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline to train a
+      model on dataset output accuracy.", "inputs": [{"default": "5", "name": "epochs",
+      "optional": true}, {"default": "model35", "name": "model_name", "optional":
+      true}], "name": "Final pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
+spec:
+  entrypoint: final-pipeline
+  templates:
+  - name: data-process-func
+    container:
+      args: [--log-folder, /data, --samples-path, '{{inputs.parameters.load-data-func-samples}}',
+        --labels-path, '{{inputs.parameters.load-data-func-labels}}', '----output-paths',
+        /tmp/outputs/x_train/data, /tmp/outputs/y_train/data, /tmp/outputs/x_test/data,
+        /tmp/outputs/y_test/data]
+      command:
+      - sh
+      - -c
+      - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+        'scikit-learn' 'pandas' 'minio' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+        -m pip install --quiet --no-warn-script-location 'scikit-learn' 'pandas' 'minio'
+        --user) && "$0" "$@"
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - "def data_process_func(log_folder, samples_path, labels_path):\n    from typing\
+        \ import NamedTuple\n    import os\n    import tensorflow as tf\n    import\
+        \ numpy as np\n    from sklearn.model_selection import train_test_split\n\
+        \    import pandas as pd\n    from sklearn.preprocessing import LabelEncoder\n\
+        \    from sklearn.preprocessing import MinMaxScaler\n    from sklearn.preprocessing\
+        \ import StandardScaler\n    from minio import Minio\n    from minio.error\
+        \ import S3Error\n    import pickle\n    from io import BytesIO\n\n    samples\
+        \ = np.load(samples_path)\n    labels = np.load(labels_path)\n    scaler =\
+        \ False\n\n    label_column_name = undefined\n    col_names = undefined\n\
+        \    col_names.remove(label_col_name)\n    data = pd.DataFrame(samples, columns=col_names[:])\
+        \  \n    data.fillna(value=0, inplace=True)  \n    samples = data.values\n\
+        \n    x_train, x_test, y_train, y_test = train_test_split(samples, labels,\
+        \ test_size=0.2, random_state=42)\n\n    scaler = MinMaxScaler(feature_range=(0,\
+        \ 1))\n    x_train = x_train.reshape(x_train.shape[0],-1)\n    x_test = x_test.reshape(x_test.shape[0],-1)\n\
+        \    x_train = scaler.fit_transform(x_train)\n    x_test = scaler.transform(x_test)\n\
+        \n    x_train = x_train.reshape(x_train.shape[0], -1)\n    x_test = x_test.reshape(x_test.shape[0],\
+        \ -1)\n\n    if scaler:\n        serialized_scaler = pickle.dumps(scaler)\n\
+        \n        host = \"140.128.102.162:9000\"\n        username = \"pyj93\"\n\
+        \        password = \"a0909791335\"\n\n        # Initialize MinIO client\n\
+        \        client = Minio(host ,\n                    access_key=username,\n\
+        \                    secret_key=password,\n                    secure=False)\n\
+        \n        bucket_name = \"scalers\"    \n\n        if not client.bucket_exists(bucket_name):\n\
+        \            client.make_bucket(bucket_name)\n        try:\n            result\
+        \ = client.put_object(bucket_name, 'scaler.pkl', BytesIO(serialized_scaler),\
+        \ len(serialized_scaler))\n            print(\"Uploaded\", result.object_name,\
+        \ \"with ETag:\", result.etag)\n        except S3Error as err:\n         \
+        \   print(\"Error:\", err)\n\n    np.save(os.path.join(log_folder, 'x_train.npy'),\
+        \ x_train)\n    np.save(os.path.join(log_folder, 'y_train.npy'), y_train)\n\
+        \    np.save(os.path.join(log_folder, 'x_test.npy'), x_test)\n    np.save(os.path.join(log_folder,\
+        \ 'y_test.npy'), y_test)\n    result = NamedTuple('Outputs', [('x_train',\
+        \ str), ('y_train', str), ('x_test', str), ('y_test', str)])\n    return result(\n\
+        \        os.path.join(log_folder, 'x_train.npy'),\n        os.path.join(log_folder,\
+        \ 'y_train.npy'),\n        os.path.join(log_folder, 'x_test.npy'),\n     \
+        \   os.path.join(log_folder, 'y_test.npy')\n    )\n\ndef _serialize_str(str_value:\
+        \ str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value\
+        \ \"{}\" has type \"{}\" instead of str.'.format(str(str_value), str(type(str_value))))\n\
+        \    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Data\
+        \ process func', description='')\n_parser.add_argument(\"--log-folder\", dest=\"\
+        log_folder\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
+        --samples-path\", dest=\"samples_path\", type=str, required=True, default=argparse.SUPPRESS)\n\
+        _parser.add_argument(\"--labels-path\", dest=\"labels_path\", type=str, required=True,\
+        \ default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"\
+        _output_paths\", type=str, nargs=4)\n_parsed_args = vars(_parser.parse_args())\n\
+        _output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = data_process_func(**_parsed_args)\n\
+        \n_output_serializers = [\n    _serialize_str,\n    _serialize_str,\n    _serialize_str,\n\
+        \    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n\
+        \    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n\
+        \        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+      image: tensorflow/tensorflow:2.14.0
+      resources:
+        limits: {cpu: '1'}
+        requests: {cpu: '0.5'}
+      volumeMounts:
+      - {mountPath: /data, name: mypvc}
+    inputs:
+      parameters:
+      - {name: load-data-func-labels}
+      - {name: load-data-func-samples}
+      - {name: mypvc-name}
+    outputs:
+      parameters:
+      - name: data-process-func-x_test
+        valueFrom: {path: /tmp/outputs/x_test/data}
+      - name: data-process-func-x_train
+        valueFrom: {path: /tmp/outputs/x_train/data}
+      - name: data-process-func-y_test
+        valueFrom: {path: /tmp/outputs/y_test/data}
+      - name: data-process-func-y_train
+        valueFrom: {path: /tmp/outputs/y_train/data}
+      artifacts:
+      - {name: data-process-func-x_test, path: /tmp/outputs/x_test/data}
+      - {name: data-process-func-x_train, path: /tmp/outputs/x_train/data}
+      - {name: data-process-func-y_test, path: /tmp/outputs/y_test/data}
+      - {name: data-process-func-y_train, path: /tmp/outputs/y_train/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--log-folder", {"inputValue": "log_folder"}, "--samples-path",
+          {"inputValue": "samples_path"}, "--labels-path", {"inputValue": "labels_path"},
+          "----output-paths", {"outputPath": "x_train"}, {"outputPath": "y_train"},
+          {"outputPath": "x_test"}, {"outputPath": "y_test"}], "command": ["sh", "-c",
+          "(PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+          ''scikit-learn'' ''pandas'' ''minio'' || PIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet --no-warn-script-location ''scikit-learn''
+          ''pandas'' ''minio'' --user) && \"$0\" \"$@\"", "sh", "-ec", "program_path=$(mktemp)\nprintf
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+          "def data_process_func(log_folder, samples_path, labels_path):\n    from
+          typing import NamedTuple\n    import os\n    import tensorflow as tf\n    import
+          numpy as np\n    from sklearn.model_selection import train_test_split\n    import
+          pandas as pd\n    from sklearn.preprocessing import LabelEncoder\n    from
+          sklearn.preprocessing import MinMaxScaler\n    from sklearn.preprocessing
+          import StandardScaler\n    from minio import Minio\n    from minio.error
+          import S3Error\n    import pickle\n    from io import BytesIO\n\n    samples
+          = np.load(samples_path)\n    labels = np.load(labels_path)\n    scaler =
+          False\n\n    label_column_name = undefined\n    col_names = undefined\n    col_names.remove(label_col_name)\n    data
+          = pd.DataFrame(samples, columns=col_names[:])  \n    data.fillna(value=0,
+          inplace=True)  \n    samples = data.values\n\n    x_train, x_test, y_train,
+          y_test = train_test_split(samples, labels, test_size=0.2, random_state=42)\n\n    scaler
+          = MinMaxScaler(feature_range=(0, 1))\n    x_train = x_train.reshape(x_train.shape[0],-1)\n    x_test
+          = x_test.reshape(x_test.shape[0],-1)\n    x_train = scaler.fit_transform(x_train)\n    x_test
+          = scaler.transform(x_test)\n\n    x_train = x_train.reshape(x_train.shape[0],
+          -1)\n    x_test = x_test.reshape(x_test.shape[0], -1)\n\n    if scaler:\n        serialized_scaler
+          = pickle.dumps(scaler)\n\n        host = \"140.128.102.162:9000\"\n        username
+          = \"pyj93\"\n        password = \"a0909791335\"\n\n        # Initialize
+          MinIO client\n        client = Minio(host ,\n                    access_key=username,\n                    secret_key=password,\n                    secure=False)\n\n        bucket_name
+          = \"scalers\"    \n\n        if not client.bucket_exists(bucket_name):\n            client.make_bucket(bucket_name)\n        try:\n            result
+          = client.put_object(bucket_name, ''scaler.pkl'', BytesIO(serialized_scaler),
+          len(serialized_scaler))\n            print(\"Uploaded\", result.object_name,
+          \"with ETag:\", result.etag)\n        except S3Error as err:\n            print(\"Error:\",
+          err)\n\n    np.save(os.path.join(log_folder, ''x_train.npy''), x_train)\n    np.save(os.path.join(log_folder,
+          ''y_train.npy''), y_train)\n    np.save(os.path.join(log_folder, ''x_test.npy''),
+          x_test)\n    np.save(os.path.join(log_folder, ''y_test.npy''), y_test)\n    result
+          = NamedTuple(''Outputs'', [(''x_train'', str), (''y_train'', str), (''x_test'',
+          str), (''y_test'', str)])\n    return result(\n        os.path.join(log_folder,
+          ''x_train.npy''),\n        os.path.join(log_folder, ''y_train.npy''),\n        os.path.join(log_folder,
+          ''x_test.npy''),\n        os.path.join(log_folder, ''y_test.npy'')\n    )\n\ndef
+          _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value,
+          str):\n        raise TypeError(''Value \"{}\" has type \"{}\" instead of
+          str.''.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Data process func'',
+          description='''')\n_parser.add_argument(\"--log-folder\", dest=\"log_folder\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--samples-path\",
+          dest=\"samples_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--labels-path\",
+          dest=\"labels_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=4)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = data_process_func(**_parsed_args)\n\n_output_serializers
+          = [\n    _serialize_str,\n    _serialize_str,\n    _serialize_str,\n    _serialize_str,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "tensorflow/tensorflow:2.14.0"}}, "inputs": [{"name": "log_folder",
+          "type": "String"}, {"name": "samples_path", "type": "String"}, {"name":
+          "labels_path", "type": "String"}], "name": "Data process func", "outputs":
+          [{"name": "x_train", "type": "String"}, {"name": "y_train", "type": "String"},
+          {"name": "x_test", "type": "String"}, {"name": "y_test", "type": "String"}]}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"labels_path":
+          "{{inputs.parameters.load-data-func-labels}}", "log_folder": "/data", "samples_path":
+          "{{inputs.parameters.load-data-func-samples}}"}'}
+    volumes:
+    - name: mypvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.mypvc-name}}'}
+  - name: final-pipeline
+    inputs:
+      parameters:
+      - {name: epochs}
+      - {name: model_name}
+    dag:
+      tasks:
+      - name: data-process-func
+        template: data-process-func
+        dependencies: [load-data-func, mypvc]
+        arguments:
+          parameters:
+          - {name: load-data-func-labels, value: '{{tasks.load-data-func.outputs.parameters.load-data-func-labels}}'}
+          - {name: load-data-func-samples, value: '{{tasks.load-data-func.outputs.parameters.load-data-func-samples}}'}
+          - {name: mypvc-name, value: '{{tasks.mypvc.outputs.parameters.mypvc-name}}'}
+      - name: load-data-func
+        template: load-data-func
+        dependencies: [mypvc]
+        arguments:
+          parameters:
+          - {name: mypvc-name, value: '{{tasks.mypvc.outputs.parameters.mypvc-name}}'}
+      - name: model-func
+        template: model-func
+        dependencies: [data-process-func, mypvc]
+        arguments:
+          parameters:
+          - {name: data-process-func-x_test, value: '{{tasks.data-process-func.outputs.parameters.data-process-func-x_test}}'}
+          - {name: data-process-func-x_train, value: '{{tasks.data-process-func.outputs.parameters.data-process-func-x_train}}'}
+          - {name: data-process-func-y_test, value: '{{tasks.data-process-func.outputs.parameters.data-process-func-y_test}}'}
+          - {name: data-process-func-y_train, value: '{{tasks.data-process-func.outputs.parameters.data-process-func-y_train}}'}
+          - {name: epochs, value: '{{inputs.parameters.epochs}}'}
+          - {name: model_name, value: '{{inputs.parameters.model_name}}'}
+          - {name: mypvc-name, value: '{{tasks.mypvc.outputs.parameters.mypvc-name}}'}
+      - {name: mypvc, template: mypvc}
+      - name: predict-func
+        template: predict-func
+        dependencies: [mypvc]
+        arguments:
+          parameters:
+          - {name: model_name, value: '{{inputs.parameters.model_name}}'}
+          - {name: mypvc-name, value: '{{tasks.mypvc.outputs.parameters.mypvc-name}}'}
+      - name: show-results
+        template: show-results
+        dependencies: [model-func, mypvc]
+        arguments:
+          parameters:
+          - {name: model-func-accuracy, value: '{{tasks.model-func.outputs.parameters.model-func-accuracy}}'}
+          - {name: mypvc-name, value: '{{tasks.mypvc.outputs.parameters.mypvc-name}}'}
+  - name: load-data-func
+    container:
+      args: [--log-folder, /data, '----output-paths', /tmp/outputs/samples/data, /tmp/outputs/labels/data]
+      command:
+      - sh
+      - -c
+      - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+        'minio' 'pandas' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install
+        --quiet --no-warn-script-location 'minio' 'pandas' --user) && "$0" "$@"
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def load_data_func(log_folder):
+            from typing import NamedTuple
+            import os
+            import tensorflow as tf
+            import numpy as np
+
+            # START_DATASET_CODE
+            dataset = tf.keras.datasets.mnist
+            # END_DATASET_CODE
+
+            (x_train, y_train), (x_test, y_test) = dataset.load_data()
+
+            x = np.concatenate((x_train, x_test), axis=0)
+            y = np.concatenate((y_train, y_test), axis=0)
+
+            np.save(os.path.join(log_folder, 'samples.npy'), x)
+            np.save(os.path.join(log_folder, 'labels.npy'), y)
+            result = NamedTuple('Outputs', [('samples', str), ('labels', str)])
+            return result(
+                os.path.join(log_folder, 'samples.npy'),
+                os.path.join(log_folder, 'labels.npy')
+            )
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Load data func', description='')
+        _parser.add_argument("--log-folder", dest="log_folder", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = load_data_func(**_parsed_args)
+
+        _output_serializers = [
+            _serialize_str,
+            _serialize_str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: tensorflow/tensorflow:2.14.0
+      resources:
+        limits: {cpu: '1'}
+        requests: {cpu: '0.5'}
+      volumeMounts:
+      - {mountPath: /data, name: mypvc}
+    inputs:
+      parameters:
+      - {name: mypvc-name}
+    outputs:
+      parameters:
+      - name: load-data-func-labels
+        valueFrom: {path: /tmp/outputs/labels/data}
+      - name: load-data-func-samples
+        valueFrom: {path: /tmp/outputs/samples/data}
+      artifacts:
+      - {name: load-data-func-labels, path: /tmp/outputs/labels/data}
+      - {name: load-data-func-samples, path: /tmp/outputs/samples/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--log-folder", {"inputValue": "log_folder"}, "----output-paths",
+          {"outputPath": "samples"}, {"outputPath": "labels"}], "command": ["sh",
+          "-c", "(PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+          ''minio'' ''pandas'' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install
+          --quiet --no-warn-script-location ''minio'' ''pandas'' --user) && \"$0\"
+          \"$@\"", "sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def load_data_func(log_folder):\n    from
+          typing import NamedTuple\n    import os\n    import tensorflow as tf\n    import
+          numpy as np\n\n    # START_DATASET_CODE\n    dataset = tf.keras.datasets.mnist\n    #
+          END_DATASET_CODE\n\n    (x_train, y_train), (x_test, y_test) = dataset.load_data()\n\n    x
+          = np.concatenate((x_train, x_test), axis=0)\n    y = np.concatenate((y_train,
+          y_test), axis=0)\n\n    np.save(os.path.join(log_folder, ''samples.npy''),
+          x)\n    np.save(os.path.join(log_folder, ''labels.npy''), y)\n    result
+          = NamedTuple(''Outputs'', [(''samples'', str), (''labels'', str)])\n    return
+          result(\n        os.path.join(log_folder, ''samples.npy''),\n        os.path.join(log_folder,
+          ''labels.npy'')\n    )\n\ndef _serialize_str(str_value: str) -> str:\n    if
+          not isinstance(str_value, str):\n        raise TypeError(''Value \"{}\"
+          has type \"{}\" instead of str.''.format(str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Load
+          data func'', description='''')\n_parser.add_argument(\"--log-folder\", dest=\"log_folder\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=2)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = load_data_func(**_parsed_args)\n\n_output_serializers
+          = [\n    _serialize_str,\n    _serialize_str,\n\n]\n\nimport os\nfor idx,
+          output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "tensorflow/tensorflow:2.14.0"}}, "inputs": [{"name": "log_folder",
+          "type": "String"}], "name": "Load data func", "outputs": [{"name": "samples",
+          "type": "String"}, {"name": "labels", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"log_folder": "/data"}'}
+    volumes:
+    - name: mypvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.mypvc-name}}'}
+  - name: model-func
+    container:
+      args: [--epochs, '{{inputs.parameters.epochs}}', --model-name, '{{inputs.parameters.model_name}}',
+        --log-folder, /data, --x-train-path, '{{inputs.parameters.data-process-func-x_train}}',
+        --y-train-path, '{{inputs.parameters.data-process-func-y_train}}', --x-test-path,
+        '{{inputs.parameters.data-process-func-x_test}}', --y-test-path, '{{inputs.parameters.data-process-func-y_test}}',
+        '----output-paths', /tmp/outputs/logdir/data, /tmp/outputs/accuracy/data]
+      command:
+      - sh
+      - -c
+      - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+        'scikit-learn' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+        --no-warn-script-location 'scikit-learn' --user) && "$0" "$@"
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def model_func(epochs, model_name, log_folder, x_train_path, y_train_path, x_test_path, y_test_path):
+            import tensorflow as tf
+            import numpy as np
+            import datetime
+            import json
+            import os
+            from sklearn.metrics import accuracy_score
+
+            import joblib
+            print('model_func:', log_folder)
+
+            x_train = np.load(x_train_path)
+            y_train = np.load(y_train_path)
+            x_test = np.load(x_test_path)
+            y_test = np.load(y_test_path)
+
+            def create_model():
+                # START_MODEL_CODE
+                from sklearn.tree import DecisionTreeClassifier
+                return DecisionTreeClassifier(criterion='gini', splitter='best', max_depth=20, min_samples_split=5, min_samples_leaf=5)
+                # END_MODEL_CODE
+
+            model = create_model()
+
+            ### add log
+            log_dir = os.path.join(log_folder, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+            ######
+
+            # Train the model
+            model.fit(x_train, y_train)
+
+            # Get predictions
+            y_pred = model.predict(x_test)
+
+            # Get accuracy
+            accuracy = accuracy_score(y_test, y_pred)
+
+            model_path = os.path.join(log_folder, model_name, 'model.joblib') # remove 1
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            joblib.dump(model, model_path)
+
+            print('logdir:', log_dir)
+            print('accuracy', accuracy)
+            accuracy = float(accuracy)
+            return ([log_dir, accuracy])
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Model func', description='')
+        _parser.add_argument("--epochs", dest="epochs", type=int, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--model-name", dest="model_name", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--log-folder", dest="log_folder", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--x-train-path", dest="x_train_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--y-train-path", dest="y_train_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--x-test-path", dest="x_test_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--y-test-path", dest="y_test_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = model_func(**_parsed_args)
+
+        _output_serializers = [
+            _serialize_str,
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: tensorflow/tensorflow:2.0.0-py3
+      resources:
+        limits: {cpu: '1'}
+        requests: {cpu: '0.5'}
+      volumeMounts:
+      - {mountPath: /data, name: mypvc}
+    inputs:
+      parameters:
+      - {name: data-process-func-x_test}
+      - {name: data-process-func-x_train}
+      - {name: data-process-func-y_test}
+      - {name: data-process-func-y_train}
+      - {name: epochs}
+      - {name: model_name}
+      - {name: mypvc-name}
+    outputs:
+      parameters:
+      - name: model-func-accuracy
+        valueFrom: {path: /tmp/outputs/accuracy/data}
+      artifacts:
+      - {name: model-func-accuracy, path: /tmp/outputs/accuracy/data}
+      - {name: model-func-logdir, path: /tmp/outputs/logdir/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--epochs", {"inputValue": "epochs"}, "--model-name", {"inputValue":
+          "model_name"}, "--log-folder", {"inputValue": "log_folder"}, "--x-train-path",
+          {"inputValue": "x_train_path"}, "--y-train-path", {"inputValue": "y_train_path"},
+          "--x-test-path", {"inputValue": "x_test_path"}, "--y-test-path", {"inputValue":
+          "y_test_path"}, "----output-paths", {"outputPath": "logdir"}, {"outputPath":
+          "accuracy"}], "command": ["sh", "-c", "(PIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet --no-warn-script-location ''scikit-learn''
+          || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+          ''scikit-learn'' --user) && \"$0\" \"$@\"", "sh", "-ec", "program_path=$(mktemp)\nprintf
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+          "def model_func(epochs, model_name, log_folder, x_train_path, y_train_path,
+          x_test_path, y_test_path):\n    import tensorflow as tf\n    import numpy
+          as np\n    import datetime\n    import json\n    import os\n    from sklearn.metrics
+          import accuracy_score\n\n    import joblib\n    print(''model_func:'', log_folder)\n\n    x_train
+          = np.load(x_train_path)\n    y_train = np.load(y_train_path)\n    x_test
+          = np.load(x_test_path)\n    y_test = np.load(y_test_path)\n\n    def create_model():\n        #
+          START_MODEL_CODE\n        from sklearn.tree import DecisionTreeClassifier\n        return
+          DecisionTreeClassifier(criterion=''gini'', splitter=''best'', max_depth=20,
+          min_samples_split=5, min_samples_leaf=5)\n        # END_MODEL_CODE\n\n    model
+          = create_model()\n\n    ### add log\n    log_dir = os.path.join(log_folder,
+          datetime.datetime.now().strftime(\"%Y%m%d-%H%M%S\"))\n    ######\n\n    #
+          Train the model\n    model.fit(x_train, y_train)\n\n    # Get predictions\n    y_pred
+          = model.predict(x_test)\n\n    # Get accuracy\n    accuracy = accuracy_score(y_test,
+          y_pred)\n\n    model_path = os.path.join(log_folder, model_name, ''model.joblib'')
+          # remove 1\n    os.makedirs(os.path.dirname(model_path), exist_ok=True)\n    joblib.dump(model,
+          model_path)\n\n    print(''logdir:'', log_dir)\n    print(''accuracy'',
+          accuracy)\n    accuracy = float(accuracy)\n    return ([log_dir, accuracy])\n\ndef
+          _serialize_float(float_value: float) -> str:\n    if isinstance(float_value,
+          str):\n        return float_value\n    if not isinstance(float_value, (float,
+          int)):\n        raise TypeError(''Value \"{}\" has type \"{}\" instead of
+          float.''.format(str(float_value), str(type(float_value))))\n    return str(float_value)\n\ndef
+          _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value,
+          str):\n        raise TypeError(''Value \"{}\" has type \"{}\" instead of
+          str.''.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Model func'', description='''')\n_parser.add_argument(\"--epochs\",
+          dest=\"epochs\", type=int, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--model-name\",
+          dest=\"model_name\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--log-folder\",
+          dest=\"log_folder\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--x-train-path\",
+          dest=\"x_train_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--y-train-path\",
+          dest=\"y_train_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--x-test-path\",
+          dest=\"x_test_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--y-test-path\",
+          dest=\"y_test_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=2)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = model_func(**_parsed_args)\n\n_output_serializers
+          = [\n    _serialize_str,\n    _serialize_float,\n\n]\n\nimport os\nfor idx,
+          output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "tensorflow/tensorflow:2.0.0-py3"}}, "inputs": [{"name": "epochs",
+          "type": "Integer"}, {"name": "model_name", "type": "String"}, {"name": "log_folder",
+          "type": "String"}, {"name": "x_train_path", "type": "String"}, {"name":
+          "y_train_path", "type": "String"}, {"name": "x_test_path", "type": "String"},
+          {"name": "y_test_path", "type": "String"}], "name": "Model func", "outputs":
+          [{"name": "logdir", "type": "String"}, {"name": "accuracy", "type": "Float"}]}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"epochs":
+          "{{inputs.parameters.epochs}}", "log_folder": "/data", "model_name": "{{inputs.parameters.model_name}}",
+          "x_test_path": "{{inputs.parameters.data-process-func-x_test}}", "x_train_path":
+          "{{inputs.parameters.data-process-func-x_train}}", "y_test_path": "{{inputs.parameters.data-process-func-y_test}}",
+          "y_train_path": "{{inputs.parameters.data-process-func-y_train}}"}'}
+    volumes:
+    - name: mypvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.mypvc-name}}'}
+  - name: mypvc
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: '{{workflow.name}}-newpvc'
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+    outputs:
+      parameters:
+      - name: mypvc-manifest
+        valueFrom: {jsonPath: '{}'}
+      - name: mypvc-name
+        valueFrom: {jsonPath: '{.metadata.name}'}
+      - name: mypvc-size
+        valueFrom: {jsonPath: '{.status.capacity.storage}'}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: predict-func
+    container:
+      args: [--model-name, '{{inputs.parameters.model_name}}', --log-folder, /data,
+        '----output-paths', /tmp/outputs/prediction/data]
+      command:
+      - sh
+      - -c
+      - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+        'requests' 'opencv-python-headless' 'numpy' 'minio' || PIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location 'requests' 'opencv-python-headless'
+        'numpy' 'minio' --user) && "$0" "$@"
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - "def predict_func(model_name, log_folder):\n    import json\n    import requests\n\
+        \    import cv2\n    import numpy as np\n    import pickle\n    from minio\
+        \ import Minio\n    from minio.error import S3Error\n    from io import StringIO,\
+        \ BytesIO\n    from kfp_login import get_istio_auth_session\n    from retrieve_namespaces\
+        \ import retrieve_namespaces\n\n    host = \"http://140.128.102.163:31740\"\
+        \n    username = \"kubeflow08@gmail.com\"\n    password = \"bnxm4k\"\n\n \
+        \   auth_session = get_istio_auth_session(\n        url=host,\n        username=username,\n\
+        \        password=password\n    )\n\n    configuration = kfp_server_api.Configuration(\n\
+        \        host = os.path.join(host, \"pipeline\"),\n    )\n    configuration.debug\
+        \ = True\n\n    namespaces = retrieve_namespaces(host, auth_session)\n\n \
+        \   auth = 'authservice_session={}'.format(auth_session['session_cookie'][20:])\n\
+        \    host = '{}-predictor-default.kubeflow-user-thu10.ai4edu.thu01.footprint-ai.com'.format(model_name)\n\
+        \    predict_url = 'https://ai4edu.thu01.footprint-ai.com/v1/models/{}:predict'.format(model_name)\n\
+        \n    min_host = \"http://140.128.102.162:9000\"\n    min_username = \"pyj93\"\
+        \n    min_password = \"a0909791335\"\n\n    # Initialize MinIO client\n  \
+        \  client = Minio(min_host ,\n                access_key=min_username,\n \
+        \               secret_key=min_password ,\n                secure=False)\n\
+        \n    bucket_name = \"sample-bucket\"\n    object_name = \"tiny-4.png\"\n\n\
+        \    try:\n        response = client.get_object(bucket_name, object_name)\n\
+        \n        if \"image\" != 'image':\n            try:\n                csvFile\
+        \ = response.read().decode('utf-8')\n            except UnicodeDecodeError\
+        \ as ude:\n                raise ValueError(\"Failed to decode the data from\
+        \ MinIO\") from ude\n\n            data = pd.read_csv(StringIO(csvFile))\n\
+        \            col_names = data.columns.tolist()\n            data = data.values\n\
+        \n        else:\n            image_data = response.read()\n            numpy_array\
+        \ = np.frombuffer(image_data, np.uint8)\n            orig = cv2.imdecode(numpy_array,\
+        \ cv2.IMREAD_GRAYSCALE)\n            data = cv2.resize(orig, (28,28,1), interpolation\
+        \ = cv2.INTER_AREA)\n\n        client.remove_object(bucket_name, object_name)\n\
+        \n        scaler = False\n        if True:\n            response = client.get_object(\"\
+        scaler\", 'scaler.pkl')\n            scaler_data = response.read()\n     \
+        \       scaler = pickle.loads(scaler_data)\n\n            client.remove_object(\"\
+        scaler\", \"scaler.pkl\")\n    except S3Error as err:\n        print(\"Error:\"\
+        , err)\n\n    if scaler:\n      data = data.reshape(data.shape[0],-1)\n  \
+        \    data = scaler.transform(data)  \n\n    data = data.reshape(1, -1)\n\n\
+        \    headers = {'Host': host, 'Cookie': auth}\n    classnames = ['0', '1',\
+        \ '2', '3', '4', '5', '6', '7', '8', '9']\n    payload={\"signature_name\"\
+        : \"serving_default\", \"instances\": data.tolist()}\n    resp = requests.post(predict_url,\
+        \ headers=headers, data=json.dumps(payload))\n    resp_json = json.loads(resp.content)\n\
+        \    print('prediction:', resp_json['predictions'][0])\n\n    result = NamedTuple('Outputs',\
+        \ [('prediction', str)])\n    prediction_value = resp_json['predictions'][0]\n\
+        \    result_instance = result(prediction=prediction_value)\n\n    return result_instance\n\
+        \ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value,\
+        \ str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of\
+        \ str.'.format(str(str_value), str(type(str_value))))\n    return str_value\n\
+        \nimport argparse\n_parser = argparse.ArgumentParser(prog='Predict func',\
+        \ description='')\n_parser.add_argument(\"--model-name\", dest=\"model_name\"\
+        , type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"\
+        --log-folder\", dest=\"log_folder\", type=str, required=True, default=argparse.SUPPRESS)\n\
+        _parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str,\
+        \ nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"\
+        _output_paths\", [])\n\n_outputs = predict_func(**_parsed_args)\n\n_output_serializers\
+        \ = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n\
+        \    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n\
+        \        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+      image: python:3.7
+      resources:
+        limits: {cpu: '1'}
+        requests: {cpu: '0.5'}
+      volumeMounts:
+      - {mountPath: /data, name: mypvc}
+    inputs:
+      parameters:
+      - {name: model_name}
+      - {name: mypvc-name}
+    outputs:
+      artifacts:
+      - {name: predict-func-prediction, path: /tmp/outputs/prediction/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--model-name", {"inputValue": "model_name"}, "--log-folder",
+          {"inputValue": "log_folder"}, "----output-paths", {"outputPath": "prediction"}],
+          "command": ["sh", "-c", "(PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip
+          install --quiet --no-warn-script-location ''requests'' ''opencv-python-headless''
+          ''numpy'' ''minio'' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install
+          --quiet --no-warn-script-location ''requests'' ''opencv-python-headless''
+          ''numpy'' ''minio'' --user) && \"$0\" \"$@\"", "sh", "-ec", "program_path=$(mktemp)\nprintf
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+          "def predict_func(model_name, log_folder):\n    import json\n    import
+          requests\n    import cv2\n    import numpy as np\n    import pickle\n    from
+          minio import Minio\n    from minio.error import S3Error\n    from io import
+          StringIO, BytesIO\n    from kfp_login import get_istio_auth_session\n    from
+          retrieve_namespaces import retrieve_namespaces\n\n    host = \"http://140.128.102.163:31740\"\n    username
+          = \"kubeflow08@gmail.com\"\n    password = \"bnxm4k\"\n\n    auth_session
+          = get_istio_auth_session(\n        url=host,\n        username=username,\n        password=password\n    )\n\n    configuration
+          = kfp_server_api.Configuration(\n        host = os.path.join(host, \"pipeline\"),\n    )\n    configuration.debug
+          = True\n\n    namespaces = retrieve_namespaces(host, auth_session)\n\n    auth
+          = ''authservice_session={}''.format(auth_session[''session_cookie''][20:])\n    host
+          = ''{}-predictor-default.kubeflow-user-thu10.ai4edu.thu01.footprint-ai.com''.format(model_name)\n    predict_url
+          = ''https://ai4edu.thu01.footprint-ai.com/v1/models/{}:predict''.format(model_name)\n\n    min_host
+          = \"http://140.128.102.162:9000\"\n    min_username = \"pyj93\"\n    min_password
+          = \"a0909791335\"\n\n    # Initialize MinIO client\n    client = Minio(min_host
+          ,\n                access_key=min_username,\n                secret_key=min_password
+          ,\n                secure=False)\n\n    bucket_name = \"sample-bucket\"\n    object_name
+          = \"tiny-4.png\"\n\n    try:\n        response = client.get_object(bucket_name,
+          object_name)\n\n        if \"image\" != ''image'':\n            try:\n                csvFile
+          = response.read().decode(''utf-8'')\n            except UnicodeDecodeError
+          as ude:\n                raise ValueError(\"Failed to decode the data from
+          MinIO\") from ude\n\n            data = pd.read_csv(StringIO(csvFile))\n            col_names
+          = data.columns.tolist()\n            data = data.values\n\n        else:\n            image_data
+          = response.read()\n            numpy_array = np.frombuffer(image_data, np.uint8)\n            orig
+          = cv2.imdecode(numpy_array, cv2.IMREAD_GRAYSCALE)\n            data = cv2.resize(orig,
+          (28,28,1), interpolation = cv2.INTER_AREA)\n\n        client.remove_object(bucket_name,
+          object_name)\n\n        scaler = False\n        if True:\n            response
+          = client.get_object(\"scaler\", ''scaler.pkl'')\n            scaler_data
+          = response.read()\n            scaler = pickle.loads(scaler_data)\n\n            client.remove_object(\"scaler\",
+          \"scaler.pkl\")\n    except S3Error as err:\n        print(\"Error:\", err)\n\n    if
+          scaler:\n      data = data.reshape(data.shape[0],-1)\n      data = scaler.transform(data)  \n\n    data
+          = data.reshape(1, -1)\n\n    headers = {''Host'': host, ''Cookie'': auth}\n    classnames
+          = [''0'', ''1'', ''2'', ''3'', ''4'', ''5'', ''6'', ''7'', ''8'', ''9'']\n    payload={\"signature_name\":
+          \"serving_default\", \"instances\": data.tolist()}\n    resp = requests.post(predict_url,
+          headers=headers, data=json.dumps(payload))\n    resp_json = json.loads(resp.content)\n    print(''prediction:'',
+          resp_json[''predictions''][0])\n\n    result = NamedTuple(''Outputs'', [(''prediction'',
+          str)])\n    prediction_value = resp_json[''predictions''][0]\n    result_instance
+          = result(prediction=prediction_value)\n\n    return result_instance\n\ndef
+          _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value,
+          str):\n        raise TypeError(''Value \"{}\" has type \"{}\" instead of
+          str.''.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Predict func'', description='''')\n_parser.add_argument(\"--model-name\",
+          dest=\"model_name\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--log-folder\",
+          dest=\"log_folder\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = predict_func(**_parsed_args)\n\n_output_serializers
+          = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "model_name", "type": "String"},
+          {"name": "log_folder", "type": "String"}], "name": "Predict func", "outputs":
+          [{"name": "prediction", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"log_folder": "/data", "model_name":
+          "{{inputs.parameters.model_name}}"}'}
+    volumes:
+    - name: mypvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.mypvc-name}}'}
+  - name: show-results
+    container:
+      args: [--log-folder, /data, --accuracy, '{{inputs.parameters.model-func-accuracy}}',
+        '----output-paths', /tmp/outputs/accuracy/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def show_results(log_folder, accuracy):
+            import os
+
+            accuracy_file_path = os.path.join(log_folder, 'accuracy')
+            os.makedirs(os.path.dirname(accuracy_file_path), exist_ok=True)
+
+            return ([accuracy])
+
+        def _serialize_float(float_value: float) -> str:
+            if isinstance(float_value, str):
+                return float_value
+            if not isinstance(float_value, (float, int)):
+                raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+            return str(float_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Show results', description='')
+        _parser.add_argument("--log-folder", dest="log_folder", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--accuracy", dest="accuracy", type=float, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = show_results(**_parsed_args)
+
+        _output_serializers = [
+            _serialize_float,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: tensorflow/tensorflow:2.0.0-py3
+      resources:
+        limits: {cpu: '1'}
+        requests: {cpu: '0.5'}
+      volumeMounts:
+      - {mountPath: /data, name: mypvc}
+    inputs:
+      parameters:
+      - {name: model-func-accuracy}
+      - {name: mypvc-name}
+    outputs:
+      artifacts:
+      - {name: show-results-accuracy, path: /tmp/outputs/accuracy/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--log-folder", {"inputValue": "log_folder"}, "--accuracy", {"inputValue":
+          "accuracy"}, "----output-paths", {"outputPath": "accuracy"}], "command":
+          ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def show_results(log_folder, accuracy):\n    import
+          os\n\n    accuracy_file_path = os.path.join(log_folder, ''accuracy'')\n    os.makedirs(os.path.dirname(accuracy_file_path),
+          exist_ok=True)\n\n    return ([accuracy])\n\ndef _serialize_float(float_value:
+          float) -> str:\n    if isinstance(float_value, str):\n        return float_value\n    if
+          not isinstance(float_value, (float, int)):\n        raise TypeError(''Value
+          \"{}\" has type \"{}\" instead of float.''.format(str(float_value), str(type(float_value))))\n    return
+          str(float_value)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Show
+          results'', description='''')\n_parser.add_argument(\"--log-folder\", dest=\"log_folder\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--accuracy\",
+          dest=\"accuracy\", type=float, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = show_results(**_parsed_args)\n\n_output_serializers
+          = [\n    _serialize_float,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "tensorflow/tensorflow:2.0.0-py3"}}, "inputs": [{"name": "log_folder",
+          "type": "String"}, {"name": "accuracy", "type": "Float"}], "name": "Show
+          results", "outputs": [{"name": "accuracy", "type": "Float"}]}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"accuracy": "{{inputs.parameters.model-func-accuracy}}",
+          "log_folder": "/data"}'}
+    volumes:
+    - name: mypvc
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.mypvc-name}}'}
+  arguments:
+    parameters:
+    - {name: epochs, value: '5'}
+    - {name: model_name, value: model35}
+  serviceAccountName: pipeline-runner
