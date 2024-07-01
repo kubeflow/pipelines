@@ -339,6 +339,7 @@ class SlicedClassificationMetrics(Artifact):
     """
 
     schema_title = 'system.SlicedClassificationMetrics'
+    _sliced_metrics = {}
 
     def _upsert_classification_metrics_for_slice(self, slice: str) -> None:
         """Upserts the classification metrics instance for a slice."""
@@ -443,7 +444,7 @@ class SlicedClassificationMetrics(Artifact):
           matrix: Complete confusion matrix.
         """
         self._upsert_classification_metrics_for_slice(slice)
-        self._sliced_metrics[slice].log_confusion_matrix_cell(
+        self._sliced_metrics[slice].log_confusion_matrix(
             categories, matrix)
         self._update_metadata(slice)
 
