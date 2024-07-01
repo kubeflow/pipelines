@@ -15,3 +15,4 @@ types-PyYAML==6.0.5
 types-requests==2.27.14
 types-tabulate==0.8.6
 yapf==0.32.0
+uritemplate>=3.0.1,<4

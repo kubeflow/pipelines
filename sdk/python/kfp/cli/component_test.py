@@ -496,9 +496,9 @@ class Test(unittest.TestCase):
 
                 WORKDIR /usr/local/src/kfp/components
                 COPY runtime-requirements.txt runtime-requirements.txt
-                RUN pip install --index-url https://pypi.org/simple --trusted-host https://pypi.org/simple --no-cache-dir -r runtime-requirements.txt
+                RUN pip install --index-url https://pypi.org/simple --trusted-host pypi.org --no-cache-dir -r runtime-requirements.txt
 
-                RUN pip install --index-url https://pypi.org/simple --trusted-host https://pypi.org/simple --no-cache-dir kfp==1.2.3
+                RUN pip install --index-url https://pypi.org/simple --trusted-host pypi.org --no-cache-dir kfp==1.2.3
                 COPY . .
                 '''))
 
@@ -527,9 +527,9 @@ class Test(unittest.TestCase):
 
                 WORKDIR /usr/local/src/kfp/components
                 COPY runtime-requirements.txt runtime-requirements.txt
-                RUN pip install --index-url https://pypi.org/simple --trusted-host https://pypi.org/simple --extra-index-url https://example.com/pypi/simple --trusted-host https://example.com/pypi/simple --no-cache-dir -r runtime-requirements.txt
+                RUN pip install --index-url https://pypi.org/simple --trusted-host pypi.org --extra-index-url https://example.com/pypi/simple --trusted-host example.com --no-cache-dir -r runtime-requirements.txt
 
-                RUN pip install --index-url https://pypi.org/simple --trusted-host https://pypi.org/simple --extra-index-url https://example.com/pypi/simple --trusted-host https://example.com/pypi/simple --no-cache-dir kfp==1.2.3
+                RUN pip install --index-url https://pypi.org/simple --trusted-host pypi.org --extra-index-url https://example.com/pypi/simple --trusted-host example.com --no-cache-dir kfp==1.2.3
                 COPY . .
                 '''))
 
