@@ -101,11 +101,6 @@ def create_version(ctx: click.Context,
     output_format = ctx.obj['output']
     if bool(pipeline_id) == bool(pipeline_name):
         raise ValueError(either_option_required)
-    if pipeline_name is not None:
-        pipeline_id = client_obj.get_pipeline_id(name=pipeline_name)
-        if pipeline_id is None:
-            raise ValueError(
-                f"Can't find a pipeline with name: {pipeline_name}")
     version = client_obj.upload_pipeline_version(
         pipeline_package_path=package_file,
         pipeline_version_name=pipeline_version,
