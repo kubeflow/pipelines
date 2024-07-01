@@ -34,7 +34,7 @@ COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION v3.4.16
+ENV ARGO_VERSION v3.4.17
 RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
     gunzip argo-linux-amd64.gz && \
     chmod +x argo-linux-amd64 && \
