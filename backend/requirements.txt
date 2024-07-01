@@ -82,7 +82,7 @@ requests==2.31.0
     #   requests-toolbelt
 requests-oauthlib==1.3.1
     # via kubernetes
-requests-toolbelt==0.10.1
+requests-toolbelt==1.0.0
     # via kfp
 rsa==4.9
     # via google-auth
