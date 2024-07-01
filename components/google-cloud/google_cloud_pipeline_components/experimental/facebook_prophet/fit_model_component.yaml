@@ -1,0 +1,189 @@
+name: Facebook Prophet Model Fit
+description: |
+  Fit a time-series forecasting Facebook Prophet model.
+
+  Args:
+    data_source (Dataset):
+      The source of training data. Either 1: a string representing the path to a CSV file,
+      a GCS URI, or a BigQuery table or 2: a Dataset.
+    features (Optional[List[str]]):
+      List of column names for additional regressors
+    countries (Optional[List[str]]):
+      List of two-letter country codes to include major holidays from
+    n_changepoints (Optional[int]):
+      Number of potential changepoints to include selected uniformly from the first
+      changepoint_range proportion of the history.
+    changepoint_range (Optional[float]):
+      Proportion of history in which trend changepoints will be estimated. Defaults to 0.8 for the
+      first 80%%.
+    yearly_seasonality (Optional[str]):
+      Fit yearly seasonality. Can be "auto", True, False, or a number of Fourier terms to generate.
+    weekly_seasonality (Optional[str]):
+      Fit weekly seasonality. Can be "auto", True, False, or a number of Fourier terms to generate.
+    daily_seasonality (Optional[str]):
+      Fit daily seasonality. Can be "auto", True, False, or a number of Fourier terms to generate.
+    seasonality_mode (Optional[str]):
+      "additive" (default) or "multiplicative".
+    seasonality_prior_scale (Optional[float]):
+      Parameter modulating the strength of the seasonality model. Larger values allow the model t
+      fit larger seasonal fluctuations, smaller values dampen the seasonality. Can be specified for
+      individual seasonalities using add_seasonality.
+    holidays_prior_scale (Optional[float]):
+      Parameter modulating the strength of the holiday components model, unless overridden in the
+      holidays input.
+    changepoint_prior_scale (Optional[float]):
+      Parameter modulating the flexibility of the automatic changepoint selection. Large values
+      will allow many changepoints, small values will allow few changepoints.
+    mcmc_samples (Optional[int]):
+      Integer, if greater than 0, will do full Bayesian inference with the specified number of MCMC
+      samples. If 0, will do MAP estimation.
+    interval_width (Optional[float]):
+      Float, width of the uncertainty intervals provided for the forecast. If mcmc_samples=0, this
+      will be only the uncertainty in the trend using the MAP estimate of the extrapolated
+      generative model. If mcmc.samples>0, this will be integrated over all model parameters, which
+      will include uncertainty in seasonality.
+    uncertainty_samples (Optional[float]):
+      Number of simulated draws used to estimate uncertainty intervals. Settings this value to 0 or
+      False will disable uncertainty estimation and speed up the calculation.
+    stan_backend (Optional[str]):
+      str as defined in StanBackendEnum default: None - will try to iterate over all available
+      backends and find the working one.
+    cross_validation_horizon (Optional[str]):
+      When set enables cross-validation for time series. The value is a string with pd.Timedelta
+      compatible style, e.g., "5 days", "3 hours", "10 seconds"
+
+  Returns:
+    The fitted model and cross validation results if the cross validation horizon was specified.
+
+inputs:
+  - {name: Data Source, type: Dataset}
+  - {name: Features, type: List, optional: True}
+  - {name: Countries, type: List, optional: True}
+  - {name: N Changepoints, type: Integer, optional: True}
+  - {name: Changepoint Range, type: Float, optional: True}
+  - {name: Yearly Seasonality, type: String, optional: True}
+  - {name: Weekly Seasonality, type: String, optional: True}
+  - {name: Daily Seasonality, type: String, optional: True}
+  - {name: Seasonality Mode, type: String, optional: True}
+  - {name: Seasonality Prior Scale, type: Float, optional: True}
+  - {name: Holidays Prior Scale, type: Float, optional: True}
+  - {name: Changepoint Prior Scale, type: Float, optional: True}
+  - {name: Mcmc Samples, type: Integer, optional: True}
+  - {name: Interval Width, type: Float, optional: True}
+  - {name: Uncertainty Samples, type: Integer, optional: True}
+  - {name: Stan Backend, type: String, optional: True}
+  - {name: Cross Validation Horizon, type: String, optional: True}
+outputs:
+  - {name: Model, type: Model}
+  - {name: Cross Validation Results, type: Dataset}
+
+implementation:
+  container:
+    image: us-docker.pkg.dev/vertex-ai/prophet/prophet
+    command: [
+      python3,
+      /pipelines/component/src/fit_model.py
+      ]
+    args:
+      - '--data_source'
+      - {inputPath: Data Source}
+      - if:
+          cond:
+            isPresent: Features
+          then:
+            - '--features'
+            - {inputValue: Features}
+      - if:
+          cond:
+            isPresent: Countries
+          then:
+            - '--countries'
+            - {inputValue: Countries}
+      - if:
+          cond:
+            isPresent: N Changepoints
+          then:
+            - '--n_changepoints'
+            - {inputValue: N Changepoints}
+      - if:
+          cond:
+            isPresent: Changepoint Range
+          then:
+            - '--changepoint_range'
+            - {inputValue: Changepoint Range}
+      - if:
+          cond:
+            isPresent: Yearly Seasonality
+          then:
+            - '--yearly_seasonality'
+            - {inputValue: Yearly Seasonality}
+      - if:
+          cond:
+            isPresent: Weekly Seasonality
+          then:
+            - '--weekly_seasonality'
+            - {inputValue: Weekly Seasonality}
+      - if:
+          cond:
+            isPresent: Daily Seasonality
+          then:
+            - '--daily_seasonality'
+            - {inputValue: Daily Seasonality}
+      - if:
+          cond:
+            isPresent: Seasonality Mode
+          then:
+            - '--seasonality_mode'
+            - {inputValue: Seasonality Mode}
+      - if:
+          cond:
+            isPresent: Seasonality Prior Scale
+          then:
+            - '--seasonality_prior_scale'
+            - {inputValue: Seasonality Prior Scale}
+      - if:
+          cond:
+            isPresent: Holidays Prior Scale
+          then:
+            - '--holidays_prior_scale'
+            - {inputValue: Holidays Prior Scale}
+      - if:
+          cond:
+            isPresent: Changepoint Prior Scale
+          then:
+            - '--changepoint_prior_scale'
+            - {inputValue: Changepoint Prior Scale}
+      - if:
+          cond:
+            isPresent: Mcmc Samples
+          then:
+            - '--mcmc_samples'
+            - {inputValue: Mcmc Samples}
+      - if:
+          cond:
+            isPresent: Interval Width
+          then:
+            - '--interval_width'
+            - {inputValue: Interval Width}
+      - if:
+          cond:
+            isPresent: Uncertainty Samples
+          then:
+            - '--uncertainty_samples'
+            - {inputValue: Uncertainty Samples}
+      - if:
+          cond:
+            isPresent: Stan Backend
+          then:
+            - '--stan_backend'
+            - {inputValue: Stan Backend}
+      - if:
+          cond:
+            isPresent: Cross Validation Horizon
+          then:
+            - '--cross_validation_horizon'
+            - {inputValue: Cross Validation Horizon}
+      - '--model'
+      - {outputPath: Model}
+      - '--cross_validation_results'
+      - {outputPath: Cross Validation Results}
