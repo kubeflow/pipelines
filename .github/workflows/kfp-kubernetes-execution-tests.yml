@@ -14,14 +14,6 @@ on:
 jobs:
   kfp-kubernetes-execution-tests:
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        python: [
-          { 'version': '3.9' },
-          { 'version': '3.10' },
-          { 'version': '3.11' },
-          { 'version': '3.12' }
-        ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,7 +27,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{matrix.python.version}}
+          python-version: '3.9'
 
       - name: apt-get update
         run: sudo apt-get update
@@ -68,8 +60,6 @@ jobs:
 
       - name: Install kfp-kubernetes from source
         run: |
-          # rust needed for transitive deps in dev extras on Python:3.12
-          sudo apt-get install rustc -y
           pip install -e ./kubernetes_platform/python[dev]
 
       - name: Install requirements
