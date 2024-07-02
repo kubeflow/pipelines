@@ -16,9 +16,11 @@
 from google_cloud_pipeline_components.preview.llm.infer.component import infer_pipeline
 from google_cloud_pipeline_components.preview.llm.rlaif.component import rlaif_pipeline
 from google_cloud_pipeline_components.preview.llm.rlhf.component import rlhf_pipeline
+# from google_cloud_pipeline_components.preview.llm.rlhf.component import new_component
 
 __all__ = [
     'infer_pipeline',
     'rlhf_pipeline',
     'rlaif_pipeline',
+    # 'new_component',
 ]
