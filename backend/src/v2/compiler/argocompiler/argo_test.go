@@ -137,3 +137,30 @@ func load(t *testing.T, path string, platformSpecPath string) (*pipelinespec.Pip
 	}
 	return job, nil
 }
+
+func Test_extractBaseComponentName(t *testing.T) {
+	tests := []struct {
+		name             string
+		componentName    string
+		expectedBaseName string
+	}{
+		{
+			name:             "With dash and int",
+			componentName:    "component-2",
+			expectedBaseName: "component",
+		},
+		{
+			name:             "Without dash and int",
+			componentName:    "component",
+			expectedBaseName: "component",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := argocompiler.ExtractBaseComponentName(tt.componentName)
+			if result != tt.expectedBaseName {
+				t.Errorf("Expected: %s, Got: %s", tt.expectedBaseName, result)
+			}
+		})
+	}
+}
