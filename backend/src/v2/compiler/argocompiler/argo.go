@@ -72,6 +72,13 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		}
 	}
 
+	// pipeline-level config options
+	var completedPipelineTtl int32 = 0
+
+	if deploy.CompletedPipelineTtl != nil {
+		completedPipelineTtl = *deploy.CompletedPipelineTtl
+	}
+
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
 	if kubernetesSpecArg != nil {
 		// clone kubernetesSpecArg, because we don't want to change it
@@ -112,6 +119,16 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Entrypoint:         tmplEntrypoint,
 		},
 	}
+
+	// set pipeline-level config options
+
+	// completed pipeline ttl
+	if completedPipelineTtl > 0 {
+		wf.Spec.TTLStrategy = &wfapi.TTLStrategy{
+			SecondsAfterCompletion: &completedPipelineTtl,
+		}
+	}
+
 	c := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
