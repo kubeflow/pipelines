@@ -1,0 +1,63 @@
+name: KFP SDK execution tests
+
+on:
+  push:
+    branches: [master]
+
+  pull_request:
+    paths:
+      - '.github/workflows/sdk-execution.yml'
+      - 'sdk/python/**'
+      - 'api/v2alpha1/**'
+
+jobs:
+  sdk-execution-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - name: apt-get update
+        run: sudo apt-get update
+
+      - name: Install protobuf-compiler
+        run: sudo apt-get install protobuf-compiler -y
+
+      - name: Install setuptools
+        run: | 
+          pip3 install setuptools
+          pip3 freeze
+
+      - name: Install Wheel
+        run: pip3 install wheel==0.42.0
+
+      - name: Install protobuf
+        run: pip3 install protobuf==4.25.3
+
+      - name: Generate API proto files
+        working-directory: ./api
+        run: make clean python
+
+      - name: Install kfp-pipeline-spec from source
+        run: |
+          python3 -m pip install api/v2alpha1/python
+
+      - name: Install requirements
+        run: pip install -r ./test/sdk-execution-tests/requirements.txt
+
+      - name: Run tests
+        run: |
+          export KFP_ENDPOINT="http://localhost:8888"
+          export TIMEOUT_SECONDS=2700
+          pytest ./test/sdk-execution-tests/sdk_execution_tests.py --asyncio-task-timeout $TIMEOUT_SECONDS
