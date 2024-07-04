@@ -51,6 +51,7 @@ def pipeline(func: Optional[Callable] = None,
         pipeline_root: The root directory from which to read input and output
             parameters and artifacts.
         display_name: A human-readable name for the pipeline.
+        pipeline_config: Pipeline-level config options.
     """
     if func is None:
         return functools.partial(

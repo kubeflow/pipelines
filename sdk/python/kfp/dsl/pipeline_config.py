@@ -14,7 +14,7 @@
 """Pipeline-level config options."""
 
 
-class PipelineConfig():
+class PipelineConfig:
     """PipelineConfig contains pipeline-level config options."""
 
     def __init__(self):
