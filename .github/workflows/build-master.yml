@@ -27,10 +27,6 @@ jobs:
             dockerfile: backend/Dockerfile.persistenceagent
           - image: ds-pipelines-scheduledworkflow
             dockerfile: backend/Dockerfile.scheduledworkflow
-          - image: ds-pipelines-metadata-grpc
-            dockerfile: third_party/ml-metadata/Dockerfile
-          - image: ds-pipelines-metadata-envoy
-            dockerfile: third_party/metadata_envoy/Dockerfile
           - image: ds-pipelines-driver
             dockerfile: backend/Dockerfile.driver
           - image: ds-pipelines-launcher
