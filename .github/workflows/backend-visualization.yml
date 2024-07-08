@@ -1,0 +1,26 @@
+name: KFP backend visualization tests
+
+on:
+  push:
+    branches: [ master ]
+
+  pull_request:
+    paths:
+      - '.github/workflows/backend-visualization.yml'
+      - 'backend/src/apiserver/visualization/**'
+      - 'test/presubmit-backend-visualization.sh'
+
+jobs:
+  backend-visualization-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Run tests
+        run: ./test/presubmit-backend-visualization.sh
