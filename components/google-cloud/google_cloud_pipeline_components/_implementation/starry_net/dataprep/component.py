@@ -45,6 +45,8 @@ def dataprep(
     disk_size_gb: int,
     test_set_only: bool,
     bigquery_output: str,
+    nan_threshold: float,
+    zero_threshold: float,
     gcs_source: str,
     gcs_static_covariate_source: str,
     encryption_spec_key_name: str,
@@ -90,6 +92,13 @@ def dataprep(
       to create TFRecords for traiing and validation.
     bigquery_output: The BigQuery dataset where the test set is written in the
       form bq://project.dataset.
+    nan_threshold: Series having more nan / missing values than
+      nan_threshold (inclusive) in percentage for either backtest or forecast
+      will not be sampled in the training set (including missing due to
+      train_start and train_end). All existing nans are replaced by zeros.
+    zero_threshold: Series having more 0.0 values than zero_threshold
+      (inclusive) in percentage for either backtest or forecast will not be
+      sampled in the training set.
     gcs_source: The path the csv file of the data source.
     gcs_static_covariate_source: The path to the csv file of static covariates.
     encryption_spec_key_name: Customer-managed encryption key options for the
@@ -129,6 +138,8 @@ def dataprep(
                       f'--config.datasets.val_rolling_window_size={test_set_stride}',
                       f'--config.datasets.n_test_windows={n_test_windows}',
                       f'--config.datasets.test_rolling_window_size={test_set_stride}',
+                      f'--config.datasets.nan_threshold={nan_threshold}',
+                      f'--config.datasets.zero_threshold={zero_threshold}',
                       f'--config.model.static_cov_names={static_covariate_columns}',
                       f'--config.model.blocks_list={model_blocks}',
                       f'--bigquery_source={bigquery_source}',

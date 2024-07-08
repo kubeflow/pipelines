@@ -57,6 +57,8 @@ def starry_net(  # pylint: disable=dangerous-default-value
     dataprep_target_column: str = '',
     dataprep_static_covariate_columns: List[str] = [],
     dataprep_previous_run_dir: str = '',
+    dataprep_nan_threshold: float = 0.2,
+    dataprep_zero_threshold: float = 0.2,
     trainer_machine_type: str = 'n1-standard-4',
     trainer_accelerator_type: str = 'NVIDIA_TESLA_V100',
     trainer_num_epochs: int = 50,
@@ -84,7 +86,16 @@ def starry_net(  # pylint: disable=dangerous-default-value
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Trains a STARRY-Net model.
+  """Starry Net is a state-of-the-art forecaster used internally by Google.
+
+  Starry Net is a glass-box neural network inspired by statistical time series
+  models, capable of cleaning step changes and spikes, modeling seasonality and
+  events, forecasting trend, and providing both point and prediction interval
+  forecasts in a single, lightweight model. Starry Net stands out among neural
+  network based forecasting models by providing the explainability,
+  interpretability and tunability of traditional statistical forecasters.
+  For example, it features time series feature decomposition and damped local
+  linear exponential smoothing model as the trend structure.
 
   Args:
     tensorboard_instance_id: The tensorboard instance ID. This must be in same
@@ -149,6 +160,13 @@ def starry_net(  # pylint: disable=dangerous-default-value
     dataprep_previous_run_dir: The dataprep dir from a previous run. Use this
       to save time if you've already created TFRecords from your BigQuery
       dataset with the same dataprep parameters as this run.
+    dataprep_nan_threshold: Series having more nan / missing values than
+      nan_threshold (inclusive) in percentage for either backtest or forecast
+      will not be sampled in the training set (including missing due to
+      train_start and train_end). All existing nans are replaced by zeros.
+    dataprep_zero_threshold: Series having more 0.0 values than zero_threshold
+      (inclusive) in percentage for either backtest or forecast will not be
+      sampled in the training set.
     trainer_machine_type: The machine type for training. Must be compatible with
       trainer_accelerator_type.
     trainer_accelerator_type: The accelerator type for training.
@@ -247,6 +265,8 @@ def starry_net(  # pylint: disable=dangerous-default-value
       disk_size_gb=dataflow_disk_size_gb,
       test_set_only=True,
       bigquery_output=dataprep_test_set_bigquery_dataset,
+      nan_threshold=dataprep_nan_threshold,
+      zero_threshold=dataprep_zero_threshold,
       gcs_source=dataprep_csv_data_path,
       gcs_static_covariate_source=dataprep_csv_static_covariates_path,
       encryption_spec_key_name=encryption_spec_key_name
@@ -282,6 +302,8 @@ def starry_net(  # pylint: disable=dangerous-default-value
         disk_size_gb=dataflow_disk_size_gb,
         test_set_only=False,
         bigquery_output=dataprep_test_set_bigquery_dataset,
+        nan_threshold=dataprep_nan_threshold,
+        zero_threshold=dataprep_zero_threshold,
         gcs_source=dataprep_csv_data_path,
         gcs_static_covariate_source=dataprep_csv_static_covariates_path,
         encryption_spec_key_name=encryption_spec_key_name
@@ -330,6 +352,8 @@ def starry_net(  # pylint: disable=dangerous-default-value
       n_val_windows=dataprep_n_val_windows,
       n_test_windows=dataprep_n_test_windows,
       test_set_stride=dataprep_test_set_stride,
+      nan_threshold=dataprep_nan_threshold,
+      zero_threshold=dataprep_zero_threshold,
       cleaning_activation_regularizer_coeff=trainer_cleaning_activation_regularizer_coeff,
       change_point_activation_regularizer_coeff=trainer_change_point_activation_regularizer_coeff,
       change_point_output_regularizer_coeff=trainer_change_point_output_regularizer_coeff,
