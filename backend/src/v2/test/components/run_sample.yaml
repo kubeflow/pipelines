@@ -15,12 +15,12 @@
 name: Run KFP Test Sample
 inputs:
 - {name: Name, type: String}
-- {name: Sample Path, type: Path}
-- {name: GCS Root, type: URI}
-- {name: Host, type: URI, default: "http://ml-pipeline:8888"}
-- {name: External Host, type: URI}
-- {name: Launcher v2 Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher-v2:latest"}
-- {name: Driver Image, type: URI, default: "gcr.io/ml-pipeline/kfp-driver:latest"}
+- {name: Sample Path, type: String}
+- {name: GCS Root, type: String}
+- {name: Host, type: String, default: "http://ml-pipeline:8888"}
+- {name: External Host, type: String}
+- {name: Launcher v2 Image, type: String, default: "gcr.io/ml-pipeline/kfp-launcher-v2:latest"}
+- {name: Driver Image, type: String, default: "gcr.io/ml-pipeline/kfp-driver:latest"}
 - {name: backend_compiler, type: Binary}
 implementation:
   container:
