@@ -1,0 +1,28 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: seaweedfs-config
+stringData:
+  config.json: >-
+    {
+      "identities": [
+        {
+          "name": "admin",
+          "credentials": [
+            {
+              "accessKey": "admin_access_key",
+              "secretKey": "admin_secret_key"
+            }
+          ],
+          "actions": [
+            "Admin",
+            "Read",
+            "ReadAcp",
+            "List",
+            "Tagging",
+            "Write",
+            "WriteAcp"
+          ]
+        }
+      ]
+    }
