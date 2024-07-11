@@ -17,7 +17,7 @@
 # Remove the x if you need no print out of each command
 set -e
 
-REGISTRY="${REGISTRY:-kind-registry:5000}"
+REGISTRY="na.artifactory.swg-devops.com/sys-linux-power-team-ftp3distro-docker-images-docker-local/kubeflow"
 EXIT_CODE=0
 
 C_DIR="${BASH_SOURCE%/*}"

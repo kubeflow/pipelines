@@ -1,12 +1,10 @@
 name: Periodic Functional Tests
 
-on:
-  schedule:
-    - cron: '0 0 * * *' # Run every day at midnight
+on: [ push, workflow_dispatch ]
 
 jobs:
   run_tests:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
