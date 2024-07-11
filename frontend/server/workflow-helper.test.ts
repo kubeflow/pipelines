@@ -174,7 +174,7 @@ describe('workflow-helper', () => {
       mockedClientGetObject.mockResolvedValueOnce(objStream);
       objStream.end('some fake logs.');
 
-      const stream = await getPodLogsStreamFromWorkflow('workflow-name-abc');
+      const stream = await getPodLogsStreamFromWorkflow('workflow-name-abc', "2024-07-09");
 
       expect(mockedGetArgoWorkflow).toBeCalledWith('workflow-name');
 

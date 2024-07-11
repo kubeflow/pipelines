@@ -61,15 +61,15 @@ export interface SecretSelector {
  * fails.
  */
 export function composePodLogsStreamHandler<T = Stream>(
-  handler: (podName: string, namespace?: string) => Promise<T>,
-  fallback?: (podName: string, namespace?: string) => Promise<T>,
+  handler: (podName: string, createdAt: string, namespace?: string) => Promise<T>,
+  fallback?: (podName: string, createdAt: string, namespace?: string) => Promise<T>,
 ) {
-  return async (podName: string, namespace?: string) => {
+  return async (podName: string, createdAt: string, namespace?: string) => {
     try {
-      return await handler(podName, namespace);
+      return await handler(podName, createdAt, namespace);
     } catch (err) {
       if (fallback) {
-        return await fallback(podName, namespace);
+        return await fallback(podName, createdAt, namespace);
       }
       console.warn(err);
       throw err;
@@ -85,6 +85,7 @@ export function composePodLogsStreamHandler<T = Stream>(
  */
 export async function getPodLogsStreamFromK8s(
   podName: string,
+  createdAt: string,
   namespace?: string,
   containerName: string = 'main',
 ) {
@@ -112,10 +113,10 @@ export const getPodLogsStreamFromWorkflow = toGetPodLogsStream(
  * on the provided pod name and namespace (optional).
  */
 export function toGetPodLogsStream(
-  getMinioRequestConfig: (podName: string, namespace?: string) => Promise<MinioRequestConfig>,
+  getMinioRequestConfig: (podName: string, createdAt: string, namespace?: string) => Promise<MinioRequestConfig>,
 ) {
-  return async (podName: string, namespace?: string) => {
-    const request = await getMinioRequestConfig(podName, namespace);
+  return async (podName: string, createdAt: string, namespace?: string) => {
+    const request = await getMinioRequestConfig(podName, createdAt, namespace);
     console.log(`Getting logs for pod:${podName} from ${request.bucket}/${request.key}.`);
     return await getObjectStream(request);
   };
@@ -132,19 +133,25 @@ export function toGetPodLogsStream(
 export function createPodLogsMinioRequestConfig(
   minioOptions: MinioClientOptions,
   bucket: string,
-  prefix: string,
+  keyFormat: string,
 ) {
   // TODO: support pod log artifacts for diff namespace.
   // different bucket/prefix for diff namespace?
-  return async (podName: string, _namespace?: string): Promise<MinioRequestConfig> => {
+  return async (podName: string, createdAt: string, _namespace?: string): Promise<MinioRequestConfig> => {
     // create a new client each time to ensure session token has not expired
     const client = await createMinioClient(minioOptions, 's3');
-    const workflowName = workflowNameFromPodName(podName);
-    return {
-      bucket,
-      client,
-      key: path.join(prefix, workflowName, podName, 'main.log'),
-    };
+    const createdAtArray = createdAt.split("-")
+    let key: string = keyFormat
+      .replace("{{workflow.name}}", podName.replace(/-system-container-impl-.*/, ''))
+      .replace("{{workflow.creationTimestamp.Y}}", createdAtArray[0])
+      .replace("{{workflow.creationTimestamp.m}}", createdAtArray[1])
+      .replace("{{workflow.creationTimestamp.d}}", createdAtArray[2])
+      .replace("{{pod.name}}", podName)
+    // TODO: Add namespace tag replacement.
+    key = key + "/main.log"
+    console.log("keyFormat: ", keyFormat)
+    console.log("key: ", key)
+    return { bucket, client, key };
   };
 }
 
