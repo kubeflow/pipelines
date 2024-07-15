@@ -15,11 +15,20 @@
 
 source_root=$(pwd)
 
+if [ $(id -u) = 0 ]; then
+  apt-get update && apt-get install -y protobuf-compiler
+  # rust needed for transitive deps in dev extras on Python:3.12
+  apt-get install rustc -y
+else
+  sudo apt-get update && sudo apt-get install -y protobuf-compiler
+  # rust needed for transitive deps in dev extras on Python:3.12
+  sudo apt-get install rustc -y
+fi
+
 pip install --upgrade pip
 pip install wheel
-
 pip install sdk/python
-apt-get update && apt-get install -y protobuf-compiler
+
 pushd api
 make clean python
 popd
@@ -31,7 +40,5 @@ pushd "$source_root/kubernetes_platform"
 make clean python
 popd
 
-# rust needed for transitive deps in dev extras on Python:3.12
-apt-get install rustc -y
 pip install -e "$source_root/kubernetes_platform/python[dev]"
 pytest "$source_root/kubernetes_platform/python/test" -n auto
