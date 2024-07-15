@@ -18,7 +18,7 @@ from kfp import dsl
 
 
 @dsl.component
-def int_0_to_9999() -> int:
+def int_0_to_9999_func() -> int:
     import random
     return random.randint(0, 9999)
 
@@ -49,7 +49,7 @@ def lucky_number_pipeline(add_drumroll: bool = True,
                           repeat_if_lucky_number: bool = True,
                           trials: List[int] = [1, 2, 3]):
     with dsl.ParallelFor(trials) as trial:
-        int_task = int_0_to_9999().set_caching_options(False)
+        int_task = int_0_to_9999_func().set_caching_options(False)
         with dsl.If(add_drumroll == True):
             with dsl.If(trial == 3):
                 print_and_return(text='Adding drumroll on last trial!')

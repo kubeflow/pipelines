@@ -154,6 +154,21 @@ func Test_extractBaseComponentName(t *testing.T) {
 			componentName:    "component",
 			expectedBaseName: "component",
 		},
+		{
+			name:             "Last char is int",
+			componentName:    "component-v2",
+			expectedBaseName: "component-v2",
+		},
+		{
+			name:             "Multiple dashes, ends with int",
+			componentName:    "service-api-v2",
+			expectedBaseName: "service-api-v2",
+		},
+		{
+			name:             "Multiple dashes and ints",
+			componentName:    "module-1-2-3",
+			expectedBaseName: "module-1-2",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

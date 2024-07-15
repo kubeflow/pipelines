@@ -262,7 +262,7 @@ func (c *workflowCompiler) argumentsPlaceholder(componentName string) (string, e
 	return workflowParameter(componentName), nil
 }
 
-// extractBaseComponentName removes the iteration suffix that the IR compiler
+// ExtractBaseComponentName removes the iteration suffix that the IR compiler
 // adds to the component name.
 func ExtractBaseComponentName(componentName string) string {
 	baseComponentName := componentName
@@ -270,7 +270,6 @@ func ExtractBaseComponentName(componentName string) string {
 
 	if _, err := strconv.Atoi(componentNameArray[len(componentNameArray)-1]); err == nil {
 		baseComponentName = strings.Join(componentNameArray[:len(componentNameArray)-1], "-")
-
 	}
 
 	return baseComponentName

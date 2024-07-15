@@ -66,6 +66,13 @@ REGISTERED_MODULES = None
 
 def _python_function_name_to_component_name(name):
     name_with_spaces = re.sub(' +', ' ', name.replace('_', ' ')).strip(' ')
+    name_list = name_with_spaces.split(' ')
+
+    if name_list[-1].isdigit():
+        raise ValueError(
+            f'Invalid function name "{name}". The function name must not end in `_<int>`.'
+        )
+
     return name_with_spaces[0].upper() + name_with_spaces[1:]
 
 

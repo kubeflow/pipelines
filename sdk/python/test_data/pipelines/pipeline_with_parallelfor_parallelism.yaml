@@ -47,15 +47,15 @@ components:
           inputs:
             parameters:
               x:
-                componentInputParameter: pipelinechannel--list-dict-maker-1-Output-loop-item
+                componentInputParameter: pipelinechannel--list-dict-maker-v1-Output-loop-item
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-3
     inputDefinitions:
       parameters:
-        pipelinechannel--list-dict-maker-1-Output:
+        pipelinechannel--list-dict-maker-v1-Output:
           parameterType: LIST
-        pipelinechannel--list-dict-maker-1-Output-loop-item:
+        pipelinechannel--list-dict-maker-v1-Output-loop-item:
           parameterType: STRUCT
   comp-for-loop-11:
     dag:
@@ -68,15 +68,15 @@ components:
           inputs:
             parameters:
               x:
-                componentInputParameter: pipelinechannel--list-dict-maker-2-Output-loop-item
+                componentInputParameter: pipelinechannel--list-dict-maker-v2-Output-loop-item
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-4
     inputDefinitions:
       parameters:
-        pipelinechannel--list-dict-maker-2-Output:
+        pipelinechannel--list-dict-maker-v2-Output:
           parameterType: LIST
-        pipelinechannel--list-dict-maker-2-Output-loop-item:
+        pipelinechannel--list-dict-maker-v2-Output-loop-item:
           parameterType: STRUCT
   comp-for-loop-12:
     dag:
@@ -89,15 +89,15 @@ components:
           inputs:
             parameters:
               x:
-                componentInputParameter: pipelinechannel--list-dict-maker-3-Output-loop-item
+                componentInputParameter: pipelinechannel--list-dict-maker-v3-Output-loop-item
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-5
     inputDefinitions:
       parameters:
-        pipelinechannel--list-dict-maker-3-Output:
+        pipelinechannel--list-dict-maker-v3-Output:
           parameterType: LIST
-        pipelinechannel--list-dict-maker-3-Output-loop-item:
+        pipelinechannel--list-dict-maker-v3-Output-loop-item:
           parameterType: STRING
   comp-for-loop-13:
     dag:
@@ -110,15 +110,15 @@ components:
           inputs:
             parameters:
               x:
-                componentInputParameter: pipelinechannel--list-dict-maker-1-2-Output-loop-item
+                componentInputParameter: pipelinechannel--list-dict-maker-v1-2-Output-loop-item
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-6
     inputDefinitions:
       parameters:
-        pipelinechannel--list-dict-maker-1-2-Output:
+        pipelinechannel--list-dict-maker-v1-2-Output:
           parameterType: LIST
-        pipelinechannel--list-dict-maker-1-2-Output-loop-item:
+        pipelinechannel--list-dict-maker-v1-2-Output-loop-item:
           parameterType: STRING
   comp-for-loop-2:
     dag:
@@ -243,42 +243,42 @@ components:
           inputs:
             parameters:
               x:
-                componentInputParameter: pipelinechannel--list-dict-maker-0-Output-loop-item
+                componentInputParameter: pipelinechannel--list-dict-maker-v0-Output-loop-item
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-2
     inputDefinitions:
       parameters:
-        pipelinechannel--list-dict-maker-0-Output:
+        pipelinechannel--list-dict-maker-v0-Output:
           parameterType: LIST
-        pipelinechannel--list-dict-maker-0-Output-loop-item:
+        pipelinechannel--list-dict-maker-v0-Output-loop-item:
           parameterType: STRUCT
-  comp-list-dict-maker-0:
-    executorLabel: exec-list-dict-maker-0
+  comp-list-dict-maker-v0:
+    executorLabel: exec-list-dict-maker-v0
     outputDefinitions:
       parameters:
         Output:
           parameterType: LIST
-  comp-list-dict-maker-1:
-    executorLabel: exec-list-dict-maker-1
+  comp-list-dict-maker-v1:
+    executorLabel: exec-list-dict-maker-v1
     outputDefinitions:
       parameters:
         Output:
           parameterType: LIST
-  comp-list-dict-maker-1-2:
-    executorLabel: exec-list-dict-maker-1-2
+  comp-list-dict-maker-v1-2:
+    executorLabel: exec-list-dict-maker-v1-2
     outputDefinitions:
       parameters:
         Output:
           parameterType: LIST
-  comp-list-dict-maker-2:
-    executorLabel: exec-list-dict-maker-2
+  comp-list-dict-maker-v2:
+    executorLabel: exec-list-dict-maker-v2
     outputDefinitions:
       parameters:
         Output:
           parameterType: LIST
-  comp-list-dict-maker-3:
-    executorLabel: exec-list-dict-maker-3
+  comp-list-dict-maker-v3:
+    executorLabel: exec-list-dict-maker-v3
     outputDefinitions:
       parameters:
         Output:
@@ -357,19 +357,19 @@ components:
           parameterType: STRING
 deploymentSpec:
   executors:
-    exec-list-dict-maker-0:
+    exec-list-dict-maker-v0:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - list_dict_maker_0
+        - list_dict_maker_v0
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -383,25 +383,25 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_0() -> List[Dict[str, int]]:\n    \"\"\"Enforces\
+          \ *\n\ndef list_dict_maker_v0() -> List[Dict[str, int]]:\n    \"\"\"Enforces\
           \ strict type checking - returns a list of dictionaries \n    where keys\
           \ are strings and values are integers. For testing type \n    handling during\
           \ compilation.\"\"\"\n    return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a':\
           \ 3, 'b': 4}]\n\n"
         image: python:3.8
-    exec-list-dict-maker-1:
+    exec-list-dict-maker-v1:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - list_dict_maker_1
+        - list_dict_maker_v1
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -415,24 +415,24 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_1() -> List[Dict]:\n    \"\"\"Utilizes generic\
+          \ *\n\ndef list_dict_maker_v1() -> List[Dict]:\n    \"\"\"Utilizes generic\
           \ dictionary typing (no enforcement of specific key or\n    value types).\n\
           \n    Tests flexibility in type handling.\n    \"\"\"\n    return [{'a':\
           \ 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
         image: python:3.8
-    exec-list-dict-maker-1-2:
+    exec-list-dict-maker-v1-2:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - list_dict_maker_1
+        - list_dict_maker_v1
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -446,24 +446,24 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_1() -> List[Dict]:\n    \"\"\"Utilizes generic\
+          \ *\n\ndef list_dict_maker_v1() -> List[Dict]:\n    \"\"\"Utilizes generic\
           \ dictionary typing (no enforcement of specific key or\n    value types).\n\
           \n    Tests flexibility in type handling.\n    \"\"\"\n    return [{'a':\
           \ 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]\n\n"
         image: python:3.8
-    exec-list-dict-maker-2:
+    exec-list-dict-maker-v2:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - list_dict_maker_2
+        - list_dict_maker_v2
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -477,24 +477,24 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_2() -> List[dict]:\n    \"\"\"Returns a list\
+          \ *\n\ndef list_dict_maker_v2() -> List[dict]:\n    \"\"\"Returns a list\
           \ of dictionaries without type enforcement.\n\n    Tests flexibility in\
           \ type handling.\n    \"\"\"\n    return [{'a': 1, 'b': 2}, {'a': 2, 'b':\
           \ 3}, {'a': 3, 'b': 4}]\n\n"
         image: python:3.8
-    exec-list-dict-maker-3:
+    exec-list-dict-maker-v3:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - list_dict_maker_3
+        - list_dict_maker_v3
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -508,7 +508,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef list_dict_maker_3() -> List:\n    \"\"\"Returns a basic list\
+          \ *\n\ndef list_dict_maker_v3() -> List:\n    \"\"\"Returns a basic list\
           \ (no typing or structure guarantees).\n\n    Tests the limits of compiler\
           \ type handling.\n    \"\"\"\n    return [{'a': 1, 'b': 2}, {'a': 2, 'b':\
           \ 3}, {'a': 3, 'b': 4}]\n\n"
@@ -525,7 +525,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -553,7 +553,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -581,7 +581,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -609,7 +609,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -637,7 +637,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -665,7 +665,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -693,7 +693,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -721,7 +721,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -749,7 +749,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -777,7 +777,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -805,7 +805,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -833,7 +833,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -873,68 +873,68 @@ root:
         componentRef:
           name: comp-for-loop-10
         dependentTasks:
-        - list-dict-maker-1
+        - list-dict-maker-v1
         inputs:
           parameters:
-            pipelinechannel--list-dict-maker-1-Output:
+            pipelinechannel--list-dict-maker-v1-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: list-dict-maker-1
+                producerTask: list-dict-maker-v1
         parameterIterator:
-          itemInput: pipelinechannel--list-dict-maker-1-Output-loop-item
+          itemInput: pipelinechannel--list-dict-maker-v1-Output-loop-item
           items:
-            inputParameter: pipelinechannel--list-dict-maker-1-Output
+            inputParameter: pipelinechannel--list-dict-maker-v1-Output
         taskInfo:
           name: for-loop-10
       for-loop-11:
         componentRef:
           name: comp-for-loop-11
         dependentTasks:
-        - list-dict-maker-2
+        - list-dict-maker-v2
         inputs:
           parameters:
-            pipelinechannel--list-dict-maker-2-Output:
+            pipelinechannel--list-dict-maker-v2-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: list-dict-maker-2
+                producerTask: list-dict-maker-v2
         parameterIterator:
-          itemInput: pipelinechannel--list-dict-maker-2-Output-loop-item
+          itemInput: pipelinechannel--list-dict-maker-v2-Output-loop-item
           items:
-            inputParameter: pipelinechannel--list-dict-maker-2-Output
+            inputParameter: pipelinechannel--list-dict-maker-v2-Output
         taskInfo:
           name: for-loop-11
       for-loop-12:
         componentRef:
           name: comp-for-loop-12
         dependentTasks:
-        - list-dict-maker-3
+        - list-dict-maker-v3
         inputs:
           parameters:
-            pipelinechannel--list-dict-maker-3-Output:
+            pipelinechannel--list-dict-maker-v3-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: list-dict-maker-3
+                producerTask: list-dict-maker-v3
         parameterIterator:
-          itemInput: pipelinechannel--list-dict-maker-3-Output-loop-item
+          itemInput: pipelinechannel--list-dict-maker-v3-Output-loop-item
           items:
-            inputParameter: pipelinechannel--list-dict-maker-3-Output
+            inputParameter: pipelinechannel--list-dict-maker-v3-Output
         taskInfo:
           name: for-loop-12
       for-loop-13:
         componentRef:
           name: comp-for-loop-13
         dependentTasks:
-        - list-dict-maker-1-2
+        - list-dict-maker-v1-2
         inputs:
           parameters:
-            pipelinechannel--list-dict-maker-1-2-Output:
+            pipelinechannel--list-dict-maker-v1-2-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: list-dict-maker-1-2
+                producerTask: list-dict-maker-v1-2
         parameterIterator:
-          itemInput: pipelinechannel--list-dict-maker-1-2-Output-loop-item
+          itemInput: pipelinechannel--list-dict-maker-v1-2-Output-loop-item
           items:
-            inputParameter: pipelinechannel--list-dict-maker-1-2-Output
+            inputParameter: pipelinechannel--list-dict-maker-v1-2-Output
         taskInfo:
           name: for-loop-13
       for-loop-4:
@@ -961,57 +961,57 @@ root:
         componentRef:
           name: comp-for-loop-9
         dependentTasks:
-        - list-dict-maker-0
+        - list-dict-maker-v0
         inputs:
           parameters:
-            pipelinechannel--list-dict-maker-0-Output:
+            pipelinechannel--list-dict-maker-v0-Output:
               taskOutputParameter:
                 outputParameterKey: Output
-                producerTask: list-dict-maker-0
+                producerTask: list-dict-maker-v0
         parameterIterator:
-          itemInput: pipelinechannel--list-dict-maker-0-Output-loop-item
+          itemInput: pipelinechannel--list-dict-maker-v0-Output-loop-item
           items:
-            inputParameter: pipelinechannel--list-dict-maker-0-Output
+            inputParameter: pipelinechannel--list-dict-maker-v0-Output
         taskInfo:
           name: for-loop-9
-      list-dict-maker-0:
+      list-dict-maker-v0:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-list-dict-maker-0
+          name: comp-list-dict-maker-v0
         taskInfo:
-          name: list-dict-maker-0
-      list-dict-maker-1:
+          name: list-dict-maker-v0
+      list-dict-maker-v1:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-list-dict-maker-1
+          name: comp-list-dict-maker-v1
         taskInfo:
-          name: list-dict-maker-1
-      list-dict-maker-1-2:
+          name: list-dict-maker-v1
+      list-dict-maker-v1-2:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-list-dict-maker-1-2
+          name: comp-list-dict-maker-v1-2
         taskInfo:
-          name: list-dict-maker-1-2
-      list-dict-maker-2:
+          name: list-dict-maker-v1-2
+      list-dict-maker-v2:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-list-dict-maker-2
+          name: comp-list-dict-maker-v2
         taskInfo:
-          name: list-dict-maker-2
-      list-dict-maker-3:
+          name: list-dict-maker-v2
+      list-dict-maker-v3:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-list-dict-maker-3
+          name: comp-list-dict-maker-v3
         taskInfo:
-          name: list-dict-maker-3
+          name: list-dict-maker-v3
   inputDefinitions:
     parameters:
       loop_parameter:
         parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.8.0

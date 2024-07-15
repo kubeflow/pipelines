@@ -33,7 +33,7 @@ def print_int(x: int):
 
 
 @component
-def list_dict_maker_0() -> List[Dict[str, int]]:
+def list_dict_maker_v0() -> List[Dict[str, int]]:
     """Enforces strict type checking - returns a list of dictionaries 
     where keys are strings and values are integers. For testing type 
     handling during compilation."""
@@ -41,7 +41,7 @@ def list_dict_maker_0() -> List[Dict[str, int]]:
 
 
 @component
-def list_dict_maker_1() -> List[Dict]:
+def list_dict_maker_v1() -> List[Dict]:
     """Utilizes generic dictionary typing (no enforcement of specific key or
     value types).
 
@@ -51,7 +51,7 @@ def list_dict_maker_1() -> List[Dict]:
 
 
 @component
-def list_dict_maker_2() -> List[dict]:
+def list_dict_maker_v2() -> List[dict]:
     """Returns a list of dictionaries without type enforcement.
 
     Tests flexibility in type handling.
@@ -60,7 +60,7 @@ def list_dict_maker_2() -> List[dict]:
 
 
 @component
-def list_dict_maker_3() -> List:
+def list_dict_maker_v3() -> List:
     """Returns a basic list (no typing or structure guarantees).
 
     Tests the limits of compiler type handling.
@@ -71,7 +71,7 @@ def list_dict_maker_3() -> List:
 with tempfile.TemporaryDirectory() as tmpdir:
     pipeline_package_path = os.path.join(tmpdir, 'upstream_component.yaml')
     compiler.Compiler().compile(
-        pipeline_func=list_dict_maker_1,
+        pipeline_func=list_dict_maker_v1,
         package_path=pipeline_package_path,
     )
 
@@ -113,19 +113,19 @@ def my_pipeline(loop_parameter: List[str]):
         print_int(x=item.a)
 
     # Loop argument that coming from the upstream component.
-    t_0 = list_dict_maker_0()
+    t_0 = list_dict_maker_v0()
     with dsl.ParallelFor(items=t_0.output) as item:
         print_int(x=item.a)
 
-    t_1 = list_dict_maker_1()
+    t_1 = list_dict_maker_v1()
     with dsl.ParallelFor(items=t_1.output) as item:
         print_int(x=item.a)
 
-    t_2 = list_dict_maker_2()
+    t_2 = list_dict_maker_v2()
     with dsl.ParallelFor(items=t_2.output) as item:
         print_int(x=item.a)
 
-    t_3 = list_dict_maker_3()
+    t_3 = list_dict_maker_v3()
     with dsl.ParallelFor(items=t_3.output) as item:
         print_int(x=item.a)
 

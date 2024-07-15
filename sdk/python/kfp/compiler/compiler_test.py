@@ -129,7 +129,7 @@ def comp():
 
 
 @dsl.component
-def return_1() -> int:
+def return_one() -> int:
     return 1
 
 
@@ -3369,43 +3369,43 @@ class TestResourceConfig(unittest.TestCase):
 
         @dsl.pipeline
         def simple_pipeline():
-            return_1()
-            return_1().set_cpu_limit('5')
-            return_1().set_memory_limit('50G')
-            return_1().set_cpu_request('2').set_cpu_limit(
+            return_one()
+            return_one().set_cpu_limit('5')
+            return_one().set_memory_limit('50G')
+            return_one().set_cpu_request('2').set_cpu_limit(
                 '5').set_memory_request('4G').set_memory_limit('50G')
 
         dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
 
         self.assertNotIn(
             'resources', dict_format['deploymentSpec']['executors']
-            ['exec-return-1']['container'])
+            ['exec-return-one']['container'])
 
         self.assertEqual(
-            5, dict_format['deploymentSpec']['executors']['exec-return-1-2']
+            5, dict_format['deploymentSpec']['executors']['exec-return-one-2']
             ['container']['resources']['cpuLimit'])
         self.assertNotIn(
             'memoryLimit', dict_format['deploymentSpec']['executors']
-            ['exec-return-1-2']['container']['resources'])
+            ['exec-return-one-2']['container']['resources'])
 
         self.assertEqual(
-            50, dict_format['deploymentSpec']['executors']['exec-return-1-3']
+            50, dict_format['deploymentSpec']['executors']['exec-return-one-3']
             ['container']['resources']['memoryLimit'])
         self.assertNotIn(
             'cpuLimit', dict_format['deploymentSpec']['executors']
-            ['exec-return-1-3']['container']['resources'])
+            ['exec-return-one-3']['container']['resources'])
 
         self.assertEqual(
-            2, dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            2, dict_format['deploymentSpec']['executors']['exec-return-one-4']
             ['container']['resources']['cpuRequest'])
         self.assertEqual(
-            5, dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            5, dict_format['deploymentSpec']['executors']['exec-return-one-4']
             ['container']['resources']['cpuLimit'])
         self.assertEqual(
-            4, dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            4, dict_format['deploymentSpec']['executors']['exec-return-one-4']
             ['container']['resources']['memoryRequest'])
         self.assertEqual(
-            50, dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            50, dict_format['deploymentSpec']['executors']['exec-return-one-4']
             ['container']['resources']['memoryLimit'])
 
 

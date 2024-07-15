@@ -28,7 +28,7 @@ components:
             name: print-and-return-5
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-2-Output:
           parameterType: STRING
@@ -59,7 +59,7 @@ components:
             name: print-and-return-6
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-2-Output:
           parameterType: STRING
@@ -75,8 +75,8 @@ components:
             name: comp-condition-14
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
               pipelinechannel--repeat_if_lucky_number:
                 componentInputParameter: pipelinechannel--repeat_if_lucky_number
           taskInfo:
@@ -99,7 +99,7 @@ components:
             name: print-and-return-8
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--repeat_if_lucky_number:
           parameterType: BOOLEAN
@@ -111,8 +111,8 @@ components:
             name: comp-for-loop-16
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
               pipelinechannel--repeat_if_lucky_number:
                 componentInputParameter: pipelinechannel--repeat_if_lucky_number
           parameterIterator:
@@ -123,7 +123,7 @@ components:
             name: for-loop-16
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--repeat_if_lucky_number:
           parameterType: BOOLEAN
@@ -194,7 +194,7 @@ components:
             name: print-and-return-2
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-Output:
           parameterType: STRING
@@ -225,7 +225,7 @@ components:
             name: print-and-return-3
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-Output:
           parameterType: STRING
@@ -243,8 +243,8 @@ components:
           - is-even-or-odd
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
               pipelinechannel--is-even-or-odd-Output:
                 taskOutputParameter:
                   outputParameterKey: Output
@@ -259,7 +259,7 @@ components:
           inputs:
             parameters:
               num:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
           taskInfo:
             name: is-even-or-odd
         print-and-return-4:
@@ -279,7 +279,7 @@ components:
             name: print-and-return-4
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
   comp-condition-9:
     dag:
@@ -291,8 +291,8 @@ components:
           - is-even-or-odd-2
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
               pipelinechannel--is-even-or-odd-2-Output:
                 taskOutputParameter:
                   outputParameterKey: Output
@@ -307,7 +307,7 @@ components:
           inputs:
             parameters:
               num:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
           taskInfo:
             name: is-even-or-odd-2
         print-and-return-7:
@@ -327,7 +327,7 @@ components:
             name: print-and-return-7
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
   comp-condition-branches-10:
     dag:
@@ -346,8 +346,8 @@ components:
             name: comp-condition-11
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
               pipelinechannel--is-even-or-odd-2-Output:
                 componentInputParameter: pipelinechannel--is-even-or-odd-2-Output
           taskInfo:
@@ -360,8 +360,8 @@ components:
             name: comp-condition-12
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
               pipelinechannel--is-even-or-odd-2-Output:
                 componentInputParameter: pipelinechannel--is-even-or-odd-2-Output
           taskInfo:
@@ -371,7 +371,7 @@ components:
               == ''even'')'
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-2-Output:
           parameterType: STRING
@@ -387,44 +387,44 @@ components:
             name: comp-condition-13
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
               pipelinechannel--repeat_if_lucky_number:
                 componentInputParameter: pipelinechannel--repeat_if_lucky_number
           taskInfo:
             name: condition-13
           triggerPolicy:
-            condition: '!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
-              < 5000) && !(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+            condition: '!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-func-Output''])
+              < 5000) && !(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-func-Output''])
               > 5000)'
         condition-8:
           componentRef:
             name: comp-condition-8
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
           taskInfo:
             name: condition-8
           triggerPolicy:
-            condition: int(inputs.parameter_values['pipelinechannel--int-0-to-9999-Output'])
+            condition: int(inputs.parameter_values['pipelinechannel--int-0-to-9999-func-Output'])
               < 5000
         condition-9:
           componentRef:
             name: comp-condition-9
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
           taskInfo:
             name: condition-9
           triggerPolicy:
-            condition: '!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
-              < 5000) && int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+            condition: '!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-func-Output''])
+              < 5000) && int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-func-Output''])
               > 5000'
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--repeat_if_lucky_number:
           parameterType: BOOLEAN
@@ -445,8 +445,8 @@ components:
             name: comp-condition-6
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
               pipelinechannel--is-even-or-odd-Output:
                 componentInputParameter: pipelinechannel--is-even-or-odd-Output
           taskInfo:
@@ -459,8 +459,8 @@ components:
             name: comp-condition-7
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
-                componentInputParameter: pipelinechannel--int-0-to-9999-Output
+              pipelinechannel--int-0-to-9999-func-Output:
+                componentInputParameter: pipelinechannel--int-0-to-9999-func-Output
               pipelinechannel--is-even-or-odd-Output:
                 componentInputParameter: pipelinechannel--is-even-or-odd-Output
           taskInfo:
@@ -470,7 +470,7 @@ components:
               == ''even'')'
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--is-even-or-odd-Output:
           parameterType: STRING
@@ -482,10 +482,10 @@ components:
     dag:
       outputs:
         parameters:
-          pipelinechannel--int-0-to-9999-Output:
+          pipelinechannel--int-0-to-9999-func-Output:
             valueFromParameter:
               outputParameterKey: Output
-              producerSubtask: int-0-to-9999
+              producerSubtask: int-0-to-9999-func
       tasks:
         condition-2:
           componentRef:
@@ -505,23 +505,23 @@ components:
           componentRef:
             name: comp-condition-branches-4
           dependentTasks:
-          - int-0-to-9999
+          - int-0-to-9999-func
           inputs:
             parameters:
-              pipelinechannel--int-0-to-9999-Output:
+              pipelinechannel--int-0-to-9999-func-Output:
                 taskOutputParameter:
                   outputParameterKey: Output
-                  producerTask: int-0-to-9999
+                  producerTask: int-0-to-9999-func
               pipelinechannel--repeat_if_lucky_number:
                 componentInputParameter: pipelinechannel--repeat_if_lucky_number
           taskInfo:
             name: condition-branches-4
-        int-0-to-9999:
+        int-0-to-9999-func:
           cachingOptions: {}
           componentRef:
-            name: comp-int-0-to-9999
+            name: comp-int-0-to-9999-func
           taskInfo:
-            name: int-0-to-9999
+            name: int-0-to-9999-func
     inputDefinitions:
       parameters:
         pipelinechannel--add_drumroll:
@@ -534,7 +534,7 @@ components:
           parameterType: NUMBER_INTEGER
     outputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: LIST
   comp-for-loop-16:
     dag:
@@ -554,14 +554,14 @@ components:
             name: print-and-return-9
     inputDefinitions:
       parameters:
-        pipelinechannel--int-0-to-9999-Output:
+        pipelinechannel--int-0-to-9999-func-Output:
           parameterType: NUMBER_INTEGER
         pipelinechannel--loop-item-param-15:
           parameterType: NUMBER_INTEGER
         pipelinechannel--repeat_if_lucky_number:
           parameterType: BOOLEAN
-  comp-int-0-to-9999:
-    executorLabel: exec-int-0-to-9999
+  comp-int-0-to-9999-func:
+    executorLabel: exec-int-0-to-9999-func
     outputDefinitions:
       parameters:
         Output:
@@ -684,19 +684,19 @@ components:
           parameterType: LIST
 deploymentSpec:
   executors:
-    exec-int-0-to-9999:
+    exec-int-0-to-9999-func:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - int_0_to_9999
+        - int_0_to_9999_func
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -710,7 +710,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef int_0_to_9999() -> int:\n    import random\n    return random.randint(0,\
+          \ *\n\ndef int_0_to_9999_func() -> int:\n    import random\n    return random.randint(0,\
           \ 9999)\n\n"
         image: python:3.8
     exec-is-even-or-odd:
@@ -725,7 +725,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -754,7 +754,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -783,7 +783,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -812,7 +812,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -841,7 +841,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -870,7 +870,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -899,7 +899,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -928,7 +928,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -957,7 +957,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -986,7 +986,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -1015,7 +1015,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -1044,7 +1044,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -1093,7 +1093,7 @@ root:
           parameters:
             ints:
               taskOutputParameter:
-                outputParameterKey: pipelinechannel--int-0-to-9999-Output
+                outputParameterKey: pipelinechannel--int-0-to-9999-func-Output
                 producerTask: for-loop-1
         taskInfo:
           name: print-ints
@@ -1115,4 +1115,4 @@ root:
         isOptional: true
         parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.8.0
