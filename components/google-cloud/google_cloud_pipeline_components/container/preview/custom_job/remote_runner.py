@@ -81,7 +81,7 @@ def create_custom_job(
   remote_runner = job_remote_runner.JobRemoteRunner(
       type, project, location, gcp_resources
   )
-
+  assert False
   try:
     # Create custom job if it does not exist
     job_name = remote_runner.check_if_job_exists()
