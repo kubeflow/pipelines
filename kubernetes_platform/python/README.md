@@ -30,7 +30,7 @@ from kfp import kubernetes
 @dsl.component
 def print_secret():
     import os
-    print(os.environ['my-secret'])
+    print(os.environ['SECRET_VAR'])
 
 @dsl.pipeline
 def pipeline():
@@ -85,7 +85,7 @@ from kfp import kubernetes
 @dsl.component
 def print_config_map():
     import os
-    print(os.environ['my-cm'])
+    print(os.environ['CM_VAR'])
 
 @dsl.pipeline
 def pipeline():
