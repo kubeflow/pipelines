@@ -135,22 +135,44 @@ export function createPodLogsMinioRequestConfig(
   bucket: string,
   keyFormat: string,
 ) {
-  // TODO: support pod log artifacts for diff namespace.
-  // different bucket/prefix for diff namespace?
-  return async (podName: string, createdAt: string, _namespace?: string): Promise<MinioRequestConfig> => {
+  return async (podName: string, createdAt: string, namespace: string = ''): Promise<MinioRequestConfig> => {
     // create a new client each time to ensure session token has not expired
     const client = await createMinioClient(minioOptions, 's3');
     const createdAtArray = createdAt.split("-")
+
     let key: string = keyFormat
       .replace("{{workflow.name}}", podName.replace(/-system-container-impl-.*/, ''))
       .replace("{{workflow.creationTimestamp.Y}}", createdAtArray[0])
       .replace("{{workflow.creationTimestamp.m}}", createdAtArray[1])
       .replace("{{workflow.creationTimestamp.d}}", createdAtArray[2])
       .replace("{{pod.name}}", podName)
-    // TODO: Add namespace tag replacement.
-    key = key + "/main.log"
+      .replace("{{workflow.namespace}}", namespace)
+
+    if (!key.endsWith("/")) {
+      key = key + "/"
+    }
+    key = key + "main.log"
+
     console.log("keyFormat: ", keyFormat)
     console.log("key: ", key)
+
+    // If there are unresolved template tags in the keyFormat, throw an error
+    // that surfaces in the frontend's console log.
+    if (key.includes("{") || key.includes("}")) {
+      throw new Error(
+        `keyFormat, which is defined in config.ts or through the ARGO_KEYFORMAT env var, appears to include template tags that are not supported. ` +
+        `The resulting log key, ${key}, includes unresolved template tags and is therefore invalid.`
+      )
+    }
+
+    const regex = /^[a-zA-Z0-9\-._/]+$/; // Allow letters, numbers, -, ., _, /
+    if (!regex.test(key)) {
+      throw new Error(
+        `The log key, ${key}, which is derived from keyFormat in config.ts or through the ARGO_KEYFORMAT env var, is an invalid path. ` +
+        `Supported characters include: letters, numbers, -, ., _, and /.`
+      )
+    }
+
     return { bucket, client, key };
   };
 }
