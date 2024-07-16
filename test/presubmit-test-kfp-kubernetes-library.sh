@@ -1,5 +1,5 @@
 #!/bin/bash -ex
-# Copyright 2023 Kubeflow Pipelines contributors
+# Copyright 2024 Kubeflow Pipelines contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,20 +15,11 @@
 
 source_root=$(pwd)
 
-if [ $(id -u) = 0 ]; then
-  apt-get update && apt-get install -y protobuf-compiler
-  # rust needed for transitive deps in dev extras on Python:3.12
-  apt-get install rustc -y
-else
-  sudo apt-get update && sudo apt-get install -y protobuf-compiler
-  # rust needed for transitive deps in dev extras on Python:3.12
-  sudo apt-get install rustc -y
-fi
-
 pip install --upgrade pip
 pip install wheel
-pip install sdk/python
 
+pip install sdk/python
+sudo apt-get update && sudo apt-get install -y protobuf-compiler
 pushd api
 make clean python
 popd
@@ -40,5 +31,7 @@ pushd "$source_root/kubernetes_platform"
 make clean python
 popd
 
+# rust needed for transitive deps in dev extras on Python:3.12
+sudo apt-get install rustc -y
 pip install -e "$source_root/kubernetes_platform/python[dev]"
 pytest "$source_root/kubernetes_platform/python/test" -n auto
