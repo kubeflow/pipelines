@@ -1,11 +1,11 @@
-name: KFP K8s Platform Tests
+name: kfp-kubernetes library tests
 
 on:
   push:
     branches: [master]
   pull_request:
     paths:
-      - '.github/workflows/kfp-kubernetes-library.yaml'
+      - '.github/workflows/kfp-kubernetes-library-test.yaml'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
       - 'kubernetes_platform/**'
@@ -33,5 +33,4 @@ jobs:
           python-version: ${{matrix.python.version}}
 
       - name: Run tests
-        # original file is using sudo
         run: ./test/presubmit-test-kfp-kubernetes-library.sh
