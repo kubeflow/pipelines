@@ -15,7 +15,10 @@
 package util
 
 import (
+	"crypto/tls"
 	"fmt"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"net/http"
 	"strings"
 	"time"
@@ -28,9 +31,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAddress string) error {
+func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAddress string, scheme string) error {
 	operation := func() error {
-		response, err := http.Get(fmt.Sprintf("http://%s%s/healthz", apiAddress, basePath))
+		response, err := http.Get(fmt.Sprintf("%s://%s%s/healthz", scheme, apiAddress, basePath))
 		if err != nil {
 			return err
 		}
@@ -74,8 +77,17 @@ func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 	return clientSet, config, namespace, nil
 }
 
-func GetRpcConnection(address string) (*grpc.ClientConn, error) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+func GetRpcConnection(address string, tlsEnabled bool) (*grpc.ClientConn, error) {
+	creds := insecure.NewCredentials()
+	if tlsEnabled {
+		config := &tls.Config{}
+		creds = credentials.NewTLS(config)
+	}
+
+	conn, err := grpc.Dial(
+		address,
+		grpc.WithTransportCredentials(creds),
+	)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
 	}

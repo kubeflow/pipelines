@@ -19,6 +19,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
@@ -27,20 +28,21 @@ import (
 
 // TODO: use https://github.com/spf13/cobra as a framework to create more complex CLI tools with subcommands.
 var (
-	copy              = flag.String("copy", "", "copy this binary to specified destination path")
-	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
-	runID             = flag.String("run_id", "", "pipeline run uid")
-	parentDagID       = flag.Int64("parent_dag_id", 0, "parent DAG execution ID")
-	executorType      = flag.String("executor_type", "container", "The type of the ExecutorSpec")
-	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
-	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
-	componentSpecJSON = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
-	importerSpecJSON  = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
-	taskSpecJSON      = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
-	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
-	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")
-	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
-	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
+	copy                           = flag.String("copy", "", "copy this binary to specified destination path")
+	pipelineName                   = flag.String("pipeline_name", "", "pipeline context name")
+	runID                          = flag.String("run_id", "", "pipeline run uid")
+	parentDagID                    = flag.Int64("parent_dag_id", 0, "parent DAG execution ID")
+	executorType                   = flag.String("executor_type", "container", "The type of the ExecutorSpec")
+	executionID                    = flag.Int64("execution_id", 0, "Execution ID of this task.")
+	executorInputJSON              = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
+	componentSpecJSON              = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
+	importerSpecJSON               = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
+	taskSpecJSON                   = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
+	podName                        = flag.String("pod_name", "", "Kubernetes Pod name.")
+	podUID                         = flag.String("pod_uid", "", "Kubernetes Pod UID.")
+	mlmdServerAddress              = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
+	mlmdServerPort                 = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
+	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
 )
 
 func main() {
@@ -64,14 +66,20 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	mlPipelineServiceTLSEnabled, err := strconv.ParseBool(*mlPipelineServiceTLSEnabledStr)
+	if err != nil {
+		return err
+	}
 	launcherV2Opts := &component.LauncherV2Options{
-		Namespace:         namespace,
-		PodName:           *podName,
-		PodUID:            *podUID,
-		MLMDServerAddress: *mlmdServerAddress,
-		MLMDServerPort:    *mlmdServerPort,
-		PipelineName:      *pipelineName,
-		RunID:             *runID,
+		Namespace:            namespace,
+		PodName:              *podName,
+		PodUID:               *podUID,
+		MLMDServerAddress:    *mlmdServerAddress,
+		MLMDServerPort:       *mlmdServerPort,
+		PipelineName:         *pipelineName,
+		RunID:                *runID,
+		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
 	}
 
 	switch *executorType {

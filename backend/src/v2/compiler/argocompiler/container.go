@@ -15,33 +15,31 @@
 package argocompiler
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
+	"os"
+	"strconv"
 )
 
 const (
-	volumeNameKFPLauncher   = "kfp-launcher"
-	volumeNameCABUndle      = "ca-bundle"
-	DefaultLauncherImage    = "gcr.io/ml-pipeline/kfp-launcher@sha256:80cf120abd125db84fa547640fd6386c4b2a26936e0c2b04a7d3634991a850a4"
-	LauncherImageEnvVar     = "V2_LAUNCHER_IMAGE"
-	DefaultDriverImage      = "gcr.io/ml-pipeline/kfp-driver@sha256:8e60086b04d92b657898a310ca9757631d58547e76bbbb8bfc376d654bef1707"
-	DriverImageEnvVar       = "V2_DRIVER_IMAGE"
-	gcsScratchLocation      = "/gcs"
-	gcsScratchName          = "gcs-scratch"
-	s3ScratchLocation       = "/s3"
-	s3ScratchName           = "s3-scratch"
-	minioScratchLocation    = "/minio"
-	minioScratchName        = "minio-scratch"
-	dotLocalScratchLocation = "/.local"
-	dotLocalScratchName     = "dot-local-scratch"
-	dotCacheScratchLocation = "/.cache"
-	dotCacheScratchName     = "dot-cache-scratch"
+	volumeNameKFPLauncher    = "kfp-launcher"
+	volumeNameCABUndle       = "ca-bundle"
+	DefaultLauncherImage     = "gcr.io/ml-pipeline/kfp-launcher@sha256:80cf120abd125db84fa547640fd6386c4b2a26936e0c2b04a7d3634991a850a4"
+	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
+	DefaultDriverImage       = "gcr.io/ml-pipeline/kfp-driver@sha256:8e60086b04d92b657898a310ca9757631d58547e76bbbb8bfc376d654bef1707"
+	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
+	gcsScratchLocation       = "/gcs"
+	gcsScratchName           = "gcs-scratch"
+	s3ScratchLocation        = "/s3"
+	s3ScratchName            = "s3-scratch"
+	minioScratchLocation     = "/minio"
+	minioScratchName         = "minio-scratch"
+	dotLocalScratchLocation  = "/.local"
+	dotLocalScratchName      = "dot-local-scratch"
+	dotCacheScratchLocation  = "/.cache"
+	dotCacheScratchName      = "dot-cache-scratch"
 	dotConfigScratchLocation = "/.config"
 	dotConfigScratchName     = "dot-config-scratch"
 )
@@ -150,6 +148,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		Container: &k8score.Container{
 			Image:   GetDriverImage(),
 			Command: []string{"driver"},
+			Env:     MLPipelineServiceEnv,
 			Args: []string{
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
@@ -163,10 +162,14 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
 				"--condition_path", outputPath(paramCondition),
 				"--kubernetes_config", inputValue(paramKubernetesConfig),
+				"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
 			},
 			Resources: driverResources,
 		},
 	}
+
+	ConfigureCABundle(t)
+
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name
@@ -352,70 +355,10 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 				},
 			},
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     commonEnvs,
+			Env:     append(commonEnvs, MLPipelineServiceEnv...),
 		},
 	}
-	caBundleCfgMapName := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_NAME")
-	caBundleCfgMapKey := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_KEY")
-	caBundleMountPath := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_MOUNTPATH")
-	if caBundleCfgMapName != "" && caBundleCfgMapKey != "" {
-		caFile := fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCfgMapKey)
-		var certDirectories = []string{
-			caBundleMountPath,
-			"/etc/ssl/certs",
-			"/etc/pki/tls/certs",
-		}
-		// Add to REQUESTS_CA_BUNDLE for python request library.
-		// As many python web based libraries utilize this, we add it here so the user
-		// does not have to manually include this in the user pipeline.
-		// Note: for packages like Boto3, even though it is documented to use AWS_CA_BUNDLE,
-		// we found the python boto3 client only works if we include REQUESTS_CA_BUNDLE.
-		// https://requests.readthedocs.io/en/latest/user/advanced/#ssl-cert-verification
-		// https://github.com/aws/aws-cli/issues/3425
-		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
-			Name:  "REQUESTS_CA_BUNDLE",
-			Value: caFile,
-		})
-		// For AWS utilities like cli, and packages.
-		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
-			Name:  "AWS_CA_BUNDLE",
-			Value: caFile,
-		})
-		// OpenSSL default cert file env variable.
-		// Similar to AWS_CA_BUNDLE, the SSL_CERT_DIR equivalent for paths had unyielding
-		// results, even after rehashing.
-		// https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
-		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
-			Name:  "SSL_CERT_FILE",
-			Value: caFile,
-		})
-		sslCertDir := strings.Join(certDirectories, ":")
-		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
-			Name:  "SSL_CERT_DIR",
-			Value: sslCertDir,
-		})
-		volume := k8score.Volume{
-			Name: volumeNameCABUndle,
-			VolumeSource: k8score.VolumeSource{
-				ConfigMap: &k8score.ConfigMapVolumeSource{
-					LocalObjectReference: k8score.LocalObjectReference{
-						Name: caBundleCfgMapName,
-					},
-				},
-			},
-		}
-
-		executor.Volumes = append(executor.Volumes, volume)
-
-		volumeMount := k8score.VolumeMount{
-			Name:      volumeNameCABUndle,
-			MountPath: caFile,
-			SubPath:   caBundleCfgMapKey,
-		}
-
-		executor.Container.VolumeMounts = append(executor.Container.VolumeMounts, volumeMount)
-
-	}
+	ConfigureCABundle(executor)
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
 	return nameContainerExecutor

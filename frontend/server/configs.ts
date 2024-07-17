@@ -75,6 +75,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ML_PIPELINE_SERVICE_HOST = 'localhost',
     /** API service will listen to this port */
     ML_PIPELINE_SERVICE_PORT = '3001',
+    /** API service will listen via this transfer protocol */
+    ML_PIPELINE_SERVICE_SCHEME = "http",
     /** path to viewer:tensorboard pod template spec */
     VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH,
     /** Tensorflow image used for tensorboard viewer */
@@ -170,6 +172,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     pipeline: {
       host: ML_PIPELINE_SERVICE_HOST,
       port: ML_PIPELINE_SERVICE_PORT,
+      schema: ML_PIPELINE_SERVICE_SCHEME,
     },
     server: {
       apiVersion1Prefix,
@@ -232,6 +235,7 @@ export interface HttpConfigs {
 export interface PipelineConfigs {
   host: string;
   port: string | number;
+  schema: string;
 }
 export interface ViewerTensorboardConfig {
   podTemplateSpec?: object;
