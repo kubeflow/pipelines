@@ -110,8 +110,9 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	)
 	sharedJobServer := server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
 	sharedRunServer := server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
-
+	sharedArtifactServer := server.NewArtifactServer(resourceManager, &server.ArtifactServerOptions{CollectMetrics: *collectMetricsFlag})
 	apiv1beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
+	apiv2beta1.RegisterArtifactServiceServer(s, sharedArtifactServer)
 	apiv1beta1.RegisterPipelineServiceServer(s, sharedPipelineServer)
 	apiv1beta1.RegisterJobServiceServer(s, sharedJobServer)
 	apiv1beta1.RegisterRunServiceServer(s, sharedRunServer)
@@ -163,6 +164,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	registerHttpHandlerFromEndpoint(apiv2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux)
 	registerHttpHandlerFromEndpoint(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService", ctx, runtimeMux)
 	registerHttpHandlerFromEndpoint(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService", ctx, runtimeMux)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := mux.NewRouter()

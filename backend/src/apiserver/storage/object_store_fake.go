@@ -14,7 +14,50 @@
 
 package storage
 
+import (
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"k8s.io/api/core/v1"
+	"time"
+)
+
+type fakeMinioObjectStore struct {
+	minioObjectStore *MinioObjectStore
+}
+
+func (m *fakeMinioObjectStore) GetPipelineKey(pipelineID string) string {
+	return m.minioObjectStore.GetPipelineKey(pipelineID)
+}
+
+func (m *fakeMinioObjectStore) AddFile(file []byte, filePath string) error {
+	return m.minioObjectStore.AddFile(file, filePath)
+}
+
+func (m *fakeMinioObjectStore) DeleteFile(filePath string) error {
+	return m.minioObjectStore.DeleteFile(filePath)
+}
+
+func (m *fakeMinioObjectStore) GetFile(filePath string) ([]byte, error) {
+	return m.minioObjectStore.GetFile(filePath)
+}
+
+func (m *fakeMinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
+	return m.minioObjectStore.AddAsYamlFile(o, filePath)
+}
+
+func (m *fakeMinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
+	return m.minioObjectStore.GetFromYamlFile(o, filePath)
+}
+
+func (m *fakeMinioObjectStore) GetSignedUrl(*objectstore.Config, *v1.Secret, time.Duration, string) (string, error) {
+	return "dummy-signed-url", nil
+}
+
+func (m *fakeMinioObjectStore) GetObjectSize(*objectstore.Config, *v1.Secret, string) (int64, error) {
+	return 123, nil
+}
+
 // Return the object store with faked minio client.
 func NewFakeObjectStore() ObjectStoreInterface {
-	return NewMinioObjectStore(NewFakeMinioClient(), "", "pipelines", false)
+	newMinioObjectStore := NewMinioObjectStore(NewFakeMinioClient(), "", "pipelines", false)
+	return &fakeMinioObjectStore{newMinioObjectStore}
 }
