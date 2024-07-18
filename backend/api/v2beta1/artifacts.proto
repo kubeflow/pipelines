@@ -87,7 +87,7 @@ message ListArtifactRequest {
 
   // Optional. Ordering field. [default = ID]
   Field order_by_field = 2;
-  // Optional. Can be either "asc" (ascending) or "dsc" (descending). [default = asc]
+  // Optional. Can be either "asc" (ascending) or "desc" (descending). [default = asc]
   string order_by = 3;
 
   // Optional. The next_page_token value returned from a previous List request, if any.

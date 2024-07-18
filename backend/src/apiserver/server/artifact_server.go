@@ -82,13 +82,8 @@ func (s *ArtifactServer) ListArtifacts(ctx context.Context, r *apiv2beta1.ListAr
 	orderByField := r.OrderByField.String()
 
 	orderByAsc := true
-	switch r.OrderBy {
-	case "asc":
-		orderByAsc = true
-	case "dsc":
+	if r.OrderBy == "desc" {
 		orderByAsc = false
-	default:
-		return nil, util.Wrap(err, "Invalid value for order_by, valid values are 'asc' or 'dsc'.")
 	}
 
 	maxResultSize := r.MaxResultSize

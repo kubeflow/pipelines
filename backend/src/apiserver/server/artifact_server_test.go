@@ -190,7 +190,7 @@ func TestListArtifacts(t *testing.T) {
 			artifactRequest: &apiv2beta1.ListArtifactRequest{
 				MaxResultSize: 2,
 				Namespace:     "test-namespace",
-				OrderBy:       "dsc",
+				OrderBy:       "desc",
 			},
 			expectedArtifacts: []*apiv2beta1.Artifact{artifact1, artifact0},
 			wantErr:           false,
@@ -200,7 +200,7 @@ func TestListArtifacts(t *testing.T) {
 			artifactRequest: &apiv2beta1.ListArtifactRequest{
 				MaxResultSize: 2,
 				Namespace:     "",
-				OrderBy:       "dsc",
+				OrderBy:       "desc",
 			},
 			expectedArtifacts: []*apiv2beta1.Artifact{artifact1, artifact0},
 			wantErr:           true,

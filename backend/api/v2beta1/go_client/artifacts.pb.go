@@ -225,7 +225,7 @@ type ListArtifactRequest struct {
 	MaxResultSize int32 `protobuf:"varint,1,opt,name=max_result_size,json=maxResultSize,proto3" json:"max_result_size,omitempty"`
 	// Optional. Ordering field. [default = ID]
 	OrderByField ListArtifactRequest_Field `protobuf:"varint,2,opt,name=order_by_field,json=orderByField,proto3,enum=kubeflow.pipelines.backend.api.v2beta1.ListArtifactRequest_Field" json:"order_by_field,omitempty"`
-	// Optional. Can be either "asc" (ascending) or "dsc" (descending). [default = asc]
+	// Optional. Can be either "asc" (ascending) or "desc" (descending). [default = asc]
 	OrderBy string `protobuf:"bytes,3,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	// Optional. The next_page_token value returned from a previous List request, if any.
 	NextPageToken string `protobuf:"bytes,4,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
