@@ -52,7 +52,7 @@
           },
           {
             "name": "order_by",
-            "description": "Optional. Can be either \"asc\" (ascending) or \"dsc\" (descending). [default = asc].",
+            "description": "Optional. Can be either \"asc\" (ascending) or \"desc\" (descending). [default = asc].",
             "in": "query",
             "required": false,
             "type": "string"
