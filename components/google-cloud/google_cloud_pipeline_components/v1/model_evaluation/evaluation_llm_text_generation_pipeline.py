@@ -127,6 +127,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       gcs_source_uris=batch_predict_gcs_source_uris,
       input_field_name=input_field_name,
       role_field_name=role_field_name,
+      target_field_name=target_field_name,
       model_name=model_name,
       machine_type=machine_type,
       service_account=service_account,
