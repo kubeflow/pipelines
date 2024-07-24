@@ -1,6 +1,8 @@
 ## Upcoming release
 * Updated the Starry Net pipeline's template gallery description, and added dataprep_nan_threshold and dataprep_zero_threshold args to the Starry Net pipeline.
 * Fix bug in Starry Net's upload decomposition plot step due to protobuf upgrade, by pinning protobuf library to 3.20.*.
+* Bump Starry Net image tags.
+* In the Starry-Net pipeline, enforce that TF Record generation always runs before test set generation to speed up pipelines runs.
 * Add support for running tasks on a `PersistentResource` (see [CustomJobSpec](https://cloud.google.com/vertex-ai/docs/reference/rest/v1beta1/CustomJobSpec)) via `persistent_resource_id` parameter on `v1.custom_job.CustomTrainingJobOp` and `v1.custom_job.create_custom_training_job_from_component`
 * Bump image for Structured Data pipelines.
 

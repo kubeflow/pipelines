@@ -239,41 +239,6 @@ def starry_net(  # pylint: disable=dangerous-default-value
       model_blocks=trainer_model_blocks,
       static_covariates=dataprep_static_covariate_columns,
   )
-  test_set_task = DataprepOp(
-      backcast_length=dataprep_backcast_length,
-      forecast_length=dataprep_forecast_length,
-      train_end_date=dataprep_train_end_date,
-      n_val_windows=dataprep_n_val_windows,
-      n_test_windows=dataprep_n_test_windows,
-      test_set_stride=dataprep_test_set_stride,
-      model_blocks=create_dataprep_args_task.outputs['model_blocks'],
-      bigquery_source=dataprep_bigquery_data_path,
-      ts_identifier_columns=create_dataprep_args_task.outputs[
-          'ts_identifier_columns'],
-      time_column=dataprep_time_column,
-      static_covariate_columns=create_dataprep_args_task.outputs[
-          'static_covariate_columns'],
-      target_column=dataprep_target_column,
-      machine_type=dataflow_machine_type,
-      docker_region=create_dataprep_args_task.outputs['docker_region'],
-      location=location,
-      project=project,
-      job_id=job_id,
-      job_name_prefix='test-set',
-      num_workers=dataflow_starting_replica_count,
-      max_num_workers=dataflow_max_replica_count,
-      disk_size_gb=dataflow_disk_size_gb,
-      test_set_only=True,
-      bigquery_output=dataprep_test_set_bigquery_dataset,
-      nan_threshold=dataprep_nan_threshold,
-      zero_threshold=dataprep_zero_threshold,
-      gcs_source=dataprep_csv_data_path,
-      gcs_static_covariate_source=dataprep_csv_static_covariates_path,
-      encryption_spec_key_name=encryption_spec_key_name
-  )
-  test_set_task.set_display_name('create-test-set')
-  set_test_set_task = SetTestSetOp(
-      dataprep_dir=test_set_task.outputs['dataprep_dir'])
   with dsl.If(create_dataprep_args_task.outputs['create_tf_records'] == True,  # pylint: disable=singleton-comparison
               'create-tf-records'):
     create_tf_records_task = DataprepOp(
@@ -290,6 +255,7 @@ def starry_net(  # pylint: disable=dangerous-default-value
         time_column=dataprep_time_column,
         static_covariate_columns=create_dataprep_args_task.outputs[
             'static_covariate_columns'],
+        static_covariates_vocab_path='',
         target_column=dataprep_target_column,
         machine_type=dataflow_machine_type,
         docker_region=create_dataprep_args_task.outputs['docker_region'],
@@ -325,6 +291,42 @@ def starry_net(  # pylint: disable=dangerous-default-value
           'static_covariates_vocab_path'],
       set_tfrecord_args_this_run_task.outputs['static_covariates_vocab_path']
   )
+  test_set_task = DataprepOp(
+      backcast_length=dataprep_backcast_length,
+      forecast_length=dataprep_forecast_length,
+      train_end_date=dataprep_train_end_date,
+      n_val_windows=dataprep_n_val_windows,
+      n_test_windows=dataprep_n_test_windows,
+      test_set_stride=dataprep_test_set_stride,
+      model_blocks=create_dataprep_args_task.outputs['model_blocks'],
+      bigquery_source=dataprep_bigquery_data_path,
+      ts_identifier_columns=create_dataprep_args_task.outputs[
+          'ts_identifier_columns'],
+      time_column=dataprep_time_column,
+      static_covariate_columns=create_dataprep_args_task.outputs[
+          'static_covariate_columns'],
+      static_covariates_vocab_path=static_covariates_vocab_path,
+      target_column=dataprep_target_column,
+      machine_type=dataflow_machine_type,
+      docker_region=create_dataprep_args_task.outputs['docker_region'],
+      location=location,
+      project=project,
+      job_id=job_id,
+      job_name_prefix='test-set',
+      num_workers=dataflow_starting_replica_count,
+      max_num_workers=dataflow_max_replica_count,
+      disk_size_gb=dataflow_disk_size_gb,
+      test_set_only=True,
+      bigquery_output=dataprep_test_set_bigquery_dataset,
+      nan_threshold=dataprep_nan_threshold,
+      zero_threshold=dataprep_zero_threshold,
+      gcs_source=dataprep_csv_data_path,
+      gcs_static_covariate_source=dataprep_csv_static_covariates_path,
+      encryption_spec_key_name=encryption_spec_key_name
+  )
+  test_set_task.set_display_name('create-test-set')
+  set_test_set_task = SetTestSetOp(
+      dataprep_dir=test_set_task.outputs['dataprep_dir'])
   train_tf_record_patterns = dsl.OneOf(
       set_tfrecord_args_previous_run_task.outputs['train_tf_record_patterns'],
       set_tfrecord_args_this_run_task.outputs['train_tf_record_patterns']
