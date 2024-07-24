@@ -33,6 +33,7 @@ def dataprep(
     ts_identifier_columns: str,
     time_column: str,
     static_covariate_columns: str,
+    static_covariates_vocab_path: str,  # pytype: disable=unused-argument
     target_column: str,
     machine_type: str,
     docker_region: str,
@@ -78,6 +79,8 @@ def dataprep(
       data source.
     time_column: The column with timestamps in the BigQuery source.
     static_covariate_columns: The names of the staic covariates.
+    static_covariates_vocab_path: The path to the master static covariates vocab
+      json.
     target_column: The target column in the Big Query data source.
     machine_type: The machine type of the dataflow workers.
     docker_region: The docker region, used to determine which image to use.
