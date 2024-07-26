@@ -36,10 +36,15 @@ clean-go:
 	rm -rf v2alpha1/go
 	rm -f v2alpha1/google/rpc/status.proto
 
-# Generate Python package.
+# Build and locally install Python package.
 .PHONY: python
 python: v2alpha1/pipeline_spec.proto v2alpha1/google/rpc/status.proto
 	python3 v2alpha1/python/generate_proto.py && cd v2alpha1/python && python3 setup.py bdist_wheel
+
+# Build and locally install Python package using editable mode for development.
+.PHONY: python-dev
+python-dev: v2alpha1/pipeline_spec.proto v2alpha1/google/rpc/status.proto
+	python3 v2alpha1/python/generate_proto.py && cd v2alpha1/python && pip install -e .
 
 # Delete all generated Python packages
 .PHONY: clean-python
