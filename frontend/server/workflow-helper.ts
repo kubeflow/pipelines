@@ -141,6 +141,7 @@ export function createPodLogsMinioRequestConfig(
     const createdAtArray = createdAt.split("-")
 
     let key: string = keyFormat
+      .replace(/\s+/g, '')  // Remove all whitespace.
       .replace("{{workflow.name}}", podName.replace(/-system-container-impl-.*/, ''))
       .replace("{{workflow.creationTimestamp.Y}}", createdAtArray[0])
       .replace("{{workflow.creationTimestamp.m}}", createdAtArray[1])
