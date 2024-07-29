@@ -18,7 +18,7 @@ from typing import Dict, List
 import json
 import yaml
 from kubernetes import client as k8s_client
-import kfp.deprecated as kfp
+import kfp as kfp
 
 download_gcs_tgz = kfp.components.load_component_from_file(
     'components/download_gcs_tgz.yaml')
@@ -38,33 +38,34 @@ def v2_sample_test(
             'path': 'samples.v2.hello_world_test'
         }
     ],
-    context: 'URI' = 'gs://your-bucket/path/to/context.tar.gz',
-    gcs_root: 'URI' = 'gs://ml-pipeline-test/v2',
-    image_registry: 'URI' = 'gcr.io/ml-pipeline-test',
-    kfp_host: 'URI' = 'http://ml-pipeline:8888',
+    context: str = 'gs://your-bucket/path/to/context.tar.gz',
+    gcs_root: str = 'gs://ml-pipeline-test/v2',
+    image_registry: str = 'gcr.io/ml-pipeline-test',
+    kfp_host: str = 'http://ml-pipeline:8888',
     kfp_package_path:
-    'URI' = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
+    str = 'git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
 ):
     download_src_op = download_gcs_tgz(gcs_path=context).set_cpu_limit(
-        '0.5').set_memory_limit('500Mi').set_display_name('download_src')
-    download_src_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
+        '0.5').set_memory_limit('500Mi')
+    # download_src_op.caching_strategy.max_cache_staleness = "P0D"  # TODO(gfrasca): re-enable
 
-    def build_image(name: str, dockerfile: str) -> kfp.dsl.ContainerOp:
-        task: kfp.dsl.ContainerOp = kaniko(
+    def build_image(name: str, dockerfile: str) -> kfp.dsl.ContainerSpec:
+        task: kfp.dsl.ContainerSpec = kaniko(
             context_artifact=download_src_op.outputs['folder'],
             destination=f'{image_registry}/{name}',
             dockerfile=dockerfile,
         )
         # CPU request/limit can be more flexible (request < limit), because being assigned to a node
         # with insufficient CPU resource will only slow the task down, but not fail.
-        task.container.set_cpu_request('1').set_cpu_limit('2')
+        task.set_cpu_request('1').set_cpu_limit('2')
         # Memory request/limit needs to be more rigid (request == limit), because in a node without
         # enough memory, the task can hang indefinetely or OOM.
-        task.container.set_memory_request('4Gi').set_memory_limit('4Gi')
+        task.set_memory_request('4Gi').set_memory_limit('4Gi')
         task.set_display_name(f'build-image-{name}')
         task.set_retry(
-            1, policy='Always'
-        )  # Always -> retry on both system error and user code failure.
+            1, 
+            # policy='Always'  # TODO(gfrasca): new RetryPolicy doesn't support policy, implement?
+        )   # Always -> retry on both system error and user code failure.
         return task
 
     # build v2 go images
@@ -72,9 +73,9 @@ def v2_sample_test(
         destination=f'{image_registry}/kfp-',
         context=download_src_op.outputs['folder'],
     )
-    build_go_op.set_retry(1, policy='Always')
-    build_go_op.container.set_cpu_request('1').set_cpu_limit('2')
-    build_go_op.container.set_memory_request('4Gi').set_memory_limit('4Gi')
+    build_go_op.set_retry(1) # TODO(gfrasca): new RetryPolicy doesn't support policy, implement?
+    build_go_op.set_cpu_request('1').set_cpu_limit('2')
+    build_go_op.set_memory_request('4Gi').set_memory_limit('4Gi')
 
     # build sample test image
     build_samples_image_op = build_image(
@@ -84,7 +85,7 @@ def v2_sample_test(
 
     # run test samples in parallel
     with kfp.dsl.ParallelFor(samples_config) as sample:
-        run_sample_op: kfp.dsl.ContainerOp = run_sample(
+        run_sample_op: kfp.dsl.ContainerSpec = run_sample(
             name=sample.name,
             sample_path=sample.path,
             gcs_root=gcs_root,
@@ -93,14 +94,12 @@ def v2_sample_test(
             driver_image=build_go_op.outputs['digest_driver'],
             backend_compiler=build_go_op.outputs['backend_compiler'],
         )
-        run_sample_op.container.image = build_samples_image_op.outputs['digest']
+        run_sample_op.image = build_samples_image_op.outputs['digest']
         run_sample_op.set_display_name(f'sample_{sample.name}')
-        run_sample_op.set_retry(1, policy='Always')
+        build_go_op.set_retry(1) # TODO(gfrasca): new RetryPolicy doesn't support policy, implement?
 
-        run_sample_op.container.add_env_variable(
-            k8s_client.V1EnvVar(
-                name='KFP_PACKAGE_PATH', value=kfp_package_path))
-
+        run_sample_op.set_env_variable(name='KFP_PACKAGE_PATH', value=kfp_package_path.value)
+        
 
 def main(
         context: str,
@@ -125,10 +124,12 @@ def main(
         name=experiment,
         description='An experiment with Kubeflow Pipelines v2 sample test runs.'
     )
-    conf = kfp.dsl.PipelineConf()
-    conf.set_timeout(
-        timeout_mins * _MINUTE
-    )  # add timeout to avoid pipelines stuck in running leak indefinetely
+
+    # TODO(gfrasca): No timeout functionality in v2?  https://github.com/kubeflow/pipelines/issues/9996
+    # conf = kfp.dsl.PipelineConf()
+    # conf.set_timeout(
+    #     timeout_mins * _MINUTE
+    # )  # add timeout to avoid pipelines stuck in running leak indefinetely
 
     print('Using KFP package path: {}'.format(kfp_package_path))
     run_result = client.create_run_from_pipeline_func(
@@ -142,19 +143,16 @@ def main(
             'kfp_package_path': kfp_package_path,
         },
         experiment_name=experiment,
-        pipeline_conf=conf,
+        #pipeline_conf=conf,  #TODO(gfrasca): No longer an option
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
     run_response = run_result.wait_for_run_completion(timeout_mins * _MINUTE)
-    run = run_response.run
     from pprint import pprint
-    # Hide verbose content
-    run_response.run.pipeline_spec.workflow_manifest = None
-    pprint(run_response.run)
+    pprint(run_response)
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
-    assert run.status == 'Succeeded'
+    assert run_response.state == 'Succeeded'
     # TODO(Bobgy): print debug info
 
 

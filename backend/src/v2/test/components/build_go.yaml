@@ -18,10 +18,10 @@ inputs:
   type: Folder
   description: |
     Input context, it should be a folder.
-- {name: destination, type: URI, description: destination should not contain tag}
+- {name: destination, type: String, description: destination should not contain tag}
 outputs:
-- {name: digest_launcher_v2, type: URI, description: KFP launcher v2 image digest}
-- {name: digest_driver, type: URI, description: KFP driver image digest}
+- {name: digest_launcher_v2, type: String, description: KFP launcher v2 image digest}
+- {name: digest_driver, type: String, description: KFP driver image digest}
 - {name: backend_compiler, type: Binary, description: KFP v2 backend compiler}
 metadata:
   annotations:

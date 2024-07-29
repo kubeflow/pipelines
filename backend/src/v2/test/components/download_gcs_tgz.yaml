@@ -14,7 +14,7 @@
 
 name: Download Folder from Tarball on GCS
 inputs:
-- {name: GCS Path, type: URI}
+- {name: GCS Path, type: String}
 outputs:
 - {name: Folder}
 implementation:
