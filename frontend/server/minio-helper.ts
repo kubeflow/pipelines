@@ -78,7 +78,7 @@ export async function createMinioClient(
   }
 
   // If using s3 and sourcing credentials from environment (currently only aws is supported)
-  if (providerType === 's3' && (!config.accessKey || !config.secretKey)) {
+  if (providerType === 's3' && !(config.accessKey && config.secretKey)) {
     // AWS S3 with credentials from provider chain
     if (isAWSS3Endpoint(config.endPoint)) {
       try {
@@ -168,7 +168,11 @@ async function parseS3ProviderInfo(
     config.useSSL = undefined;
   } else {
     if (providerInfo.Params.endpoint) {
-      const parseEndpoint = new URL(providerInfo.Params.endpoint);
+      const url = providerInfo.Params.endpoint;
+      // this is a bit of a hack to add support for endpoints without a protocol (required by WHATWG URL standard)
+      // example: <ip>:<port> format. In general should expect most endpoints to provide a protocol as serviced
+      // by the backend
+      const parseEndpoint = new URL(url.startsWith('http') ? url : `https://${url}`);
       const host = parseEndpoint.hostname;
       const port = parseEndpoint.port;
       config.endPoint = host;
