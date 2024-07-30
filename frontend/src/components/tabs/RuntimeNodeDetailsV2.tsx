@@ -47,7 +47,10 @@ import LogViewer from 'src/components/LogViewer';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
 import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
-import InputOutputTab, { getArtifactParamList } from 'src/components/tabs/InputOutputTab';
+import InputOutputTab, {
+  getArtifactParamList,
+  ParamList,
+} from 'src/components/tabs/InputOutputTab';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
@@ -177,7 +180,7 @@ function TaskNodeDetail({
         {selectedTab === 0 &&
           (() => {
             if (execution) {
-              return <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>;
+              return <InputOutputTab execution={execution} namespace={namespace} />;
             }
             return NODE_STATE_UNAVAILABLE;
           })()}
@@ -418,6 +421,13 @@ function ArtifactInfo({
     ['Created At', createdAt],
   ];
 
+  let artifactParamsWithSessionInfo = getArtifactParamList([linkedArtifact], artifactTypeName);
+  let artifactParams: ParamList = [];
+
+  if (artifactParamsWithSessionInfo) {
+    artifactParams = artifactParamsWithSessionInfo.params;
+  }
+
   return (
     <div>
       <ArtifactTitle artifact={linkedArtifact.artifact}></ArtifactTitle>
@@ -431,10 +441,11 @@ function ArtifactInfo({
         <DetailsTable<string>
           key={`artifact-url`}
           title='Artifact URI'
-          fields={getArtifactParamList([linkedArtifact], artifactTypeName)}
+          fields={artifactParams}
           valueComponent={ArtifactPreview}
           valueComponentProps={{
             namespace: namespace,
+            sessionMap: artifactParamsWithSessionInfo.sessionMap,
           }}
         />
       </div>

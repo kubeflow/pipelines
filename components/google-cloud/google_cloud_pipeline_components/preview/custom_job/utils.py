@@ -210,6 +210,23 @@ def create_custom_training_job_from_component(
         'defaultValue'
     ] = default_value
 
+  # check if user component has any input parameters that already exist in the
+  # custom job component
+  for param_name in user_component_spec.get('inputDefinitions', {}).get(
+      'parameters', {}
+  ):
+    if param_name in cj_component_spec['inputDefinitions']['parameters']:
+      raise ValueError(
+          f'Input parameter {param_name} already exists in the CustomJob component.'  # pylint: disable=line-too-long
+      )
+  for param_name in user_component_spec.get('outputDefinitions', {}).get(
+      'parameters', {}
+  ):
+    if param_name in cj_component_spec['outputDefinitions']['parameters']:
+      raise ValueError(
+          f'Output parameter {param_name} already exists in the CustomJob component.'  # pylint: disable=line-too-long
+      )
+
   # merge parameters from user component into the customjob component
   cj_component_spec['inputDefinitions']['parameters'].update(
       user_component_spec.get('inputDefinitions', {}).get('parameters', {})

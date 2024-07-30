@@ -1,0 +1,37 @@
+name: KFP upgrade tests
+
+on:
+  push:
+    branches: [master]
+
+  pull_request:
+    paths:
+      - '.github/workflows/upgrade-test.yml'
+      - 'backend/**'
+      - 'manifests/kustomize/**'
+
+jobs:
+  upgrade-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Prepare upgrade tests
+        working-directory: backend/test/integration
+        run: go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Prepare
+
+      - name: Prepare verification tests
+        working-directory: backend/test/integration
+        run: go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Verify
+
+      - name: Prepare upgrade tests v2
+        working-directory: backend/test/v2/integration/
+        run: go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Prepare
+
+      - name: Prepare verification tests v2
+        working-directory: backend/test/v2/integration
+        run: go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Verify

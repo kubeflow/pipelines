@@ -102,11 +102,10 @@ func InPodName() (string, error) {
 }
 
 func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, error) {
-	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
+	provider, err := objectstore.ParseProviderFromPath(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}
-	provider := strings.TrimSuffix(bucketConfig.Scheme, "://")
 	bucketProviders, err := c.getBucketProviders()
 	if err != nil {
 		return objectstore.SessionInfo{}, err

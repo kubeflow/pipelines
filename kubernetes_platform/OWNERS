@@ -1,8 +1,7 @@
 approvers:
   - chensun
-  - connor-mccarthy
-  - gkcalat
+  - hbelmiro
 reviewers:
   - chensun
-  - connor-mccarthy
-  - gkcalat
+  - hbelmiro
+  - gregsheremeta

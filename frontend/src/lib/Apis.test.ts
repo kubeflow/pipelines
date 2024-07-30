@@ -128,9 +128,7 @@ describe('Apis', () => {
     const spy = fetchSpy('file contents');
     expect(
       await Apis.readFile({
-        bucket: 'testbucket',
-        key: 'testkey',
-        source: StorageService.GCS,
+        path: { source: StorageService.GCS, key: 'testkey', bucket: 'testbucket' },
       }),
     ).toEqual('file contents');
     expect(spy).toHaveBeenCalledWith('artifacts/get?source=gcs&bucket=testbucket&key=testkey', {

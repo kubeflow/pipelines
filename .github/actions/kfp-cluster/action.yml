@@ -1,0 +1,21 @@
+name: "Set up KFP on KinD"
+description: "Step to start and configure KFP on KinD"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create k8s Kind Cluster
+      uses: container-tools/kind-action@v2
+      with:
+        cluster_name: kfp
+        kubectl_version: v1.29.2
+        version: v0.22.0
+        node_image: kindest/node:v1.29.2
+
+    - name: Build images
+      shell: bash
+      run: ./scripts/deploy/github/build-images.sh
+
+    - name: Deploy KFP
+      shell: bash
+      run: ./scripts/deploy/github/deploy-kfp.sh
