@@ -56,6 +56,10 @@ import {
   convertExperimentToResource,
   convertPipelineVersionToResource,
 } from 'src/lib/ResourceConverter';
+import AddIcon from '@material-ui/icons/Add';
+import { ToolbarActionMap } from '../components/Toolbar';
+import { NewExperimentFC } from './functional_components/NewExperimentFC';
+import { log } from '@craco/craco/dist/lib/logger';
 
 const css = stylesheet({
   nonEditableInput: {
@@ -68,6 +72,7 @@ const css = stylesheet({
     width: 'calc(100% - 120px)',
   },
 });
+
 
 const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
   return <Description description={props.value || ''} forceInline={true} />;
@@ -182,6 +187,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
+  const [openNewExperiment, setOpenNewExperiment] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(
     urlParser.get(QUERY_PARAMS.isRecurring) === '1' || cloneOrigin.isRecurring,
   );
@@ -224,6 +230,18 @@ function NewRunV2(props: NewRunV2Props) {
   const pipelineVersionRefClone = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.pipeline_version_reference
     : cloneOrigin.run?.pipeline_version_reference;
+
+  // Creat new experiment option
+  const createNewExperiment = {
+    action1: {
+      action: () => setOpenNewExperiment(true),
+      disabledTitle: 'create experiment to new run disabled title',
+      icon: AddIcon,
+      id: 'create experiment to new run id',
+      title: 'Create new experiment',
+      tooltip: 'Create new experiment',
+    },
+  };
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -531,6 +549,9 @@ function NewRunV2(props: NewRunV2Props) {
         <div>This run will be associated with the following experiment</div>
         <ExperimentSelector
           {...props}
+          isOpenNewExperiment={openNewExperiment}
+          onCancelNewExperiment={() => setOpenNewExperiment(false)}
+          toolbarActionMap={createNewExperiment}
           experimentName={experimentName}
           handleExperimentChange={experiment => {
             setExperiment(experiment);
@@ -890,6 +911,9 @@ interface ExperimentSelectorSpecificProps {
   namespace?: string;
   experimentName: string | undefined;
   handleExperimentChange: (experiment: V2beta1Experiment) => void;
+  toolbarActionMap?: ToolbarActionMap;
+  isOpenNewExperiment: boolean;
+  onCancelNewExperiment: () => void;
 }
 type ExperimentSelectorProps = PageProps & ExperimentSelectorSpecificProps;
 
@@ -930,9 +954,11 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
         onClose={() => setExperimentSelectorOpen(false)}
         PaperProps={{ id: 'experimentSelectorDialog' }}
       >
-        <DialogContent>
+        {props.isOpenNewExperiment ? <NewExperimentFC onCancel={props.onCancelNewExperiment} {...props} /> :
+          <><DialogContent>
           <ResourceSelector
             {...props}
+            toolbarActionMap={props.toolbarActionMap}
             title='Choose an experiment'
             filterLabel='Filter experiments'
             listApi={async (
@@ -998,7 +1024,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
           >
             Use this experiment
           </Button>
-        </DialogActions>
+        </DialogActions></>}
       </Dialog>
     </>
   );
