@@ -265,6 +265,9 @@ message GoogleCloudStorageValidation {
   // of the component/pipeline). If the value doesn't exist or is empty,
   // overriding won't happen.
   string override_placeholder = 4;
+
+  // Optional. List of GCS URIs.
+  repeated string gcs_uris = 5;
 }
 
 // Describes the details for Google Cloud Project Quota Validation.
