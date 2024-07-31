@@ -7,6 +7,7 @@
 * Bump image for Structured Data pipelines.
 * Add check that component in preview.custom_job.utils.create_custom_training_job_from_component doesn't have any parameters that share names with any custom job fields
 * Add dynamic machine spec support for `preview.custom_job.utils.create_custom_training_job_from_component`.
+* Add preflight validations for LLM text generation pipeline.
 
 ## Release 2.15.0
 * Add Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline`.
