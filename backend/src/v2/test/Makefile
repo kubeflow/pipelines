@@ -8,21 +8,6 @@ ENV_PATH?=.env
 include $(ENV_PATH)
 SHELL = /bin/bash
 
-.PHONY: all
-all: sample-test
-
-.PHONY: sample-test
-sample-test: upload
-# The -u flag makes python output unbuffered, so that we can see real time log.
-# Reference: https://stackoverflow.com/a/107717
-	export KF_PIPELINES_ENDPOINT=$(HOST) \
-		&& python -u sample_test.py \
-		--samples_config samples/test/config.yaml \
-		--context $(GCS_ROOT)/src/context.tar.gz \
-		--gcs_root $(GCS_ROOT)/data \
-		--gcr_root $(GCR_ROOT) \
-		--kfp_package_path "$(KFP_PACKAGE_PATH)"
-
 .PHONY: integration-test
 integration-test: upload
 	export KF_PIPELINES_ENDPOINT=$(HOST) \
