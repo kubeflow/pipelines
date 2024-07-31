@@ -32,6 +32,27 @@ def insert_system_labels_into_payload(payload):
   return json.dumps(job_spec)
 
 
+def cast_accelerator_count_to_int(payload):
+  """Casts accelerator_count from string to an int."""
+
+  job_spec = json.loads(payload)
+  # TODO(b/353577594): accelerator_count placeholder is not resolved to int.
+  # Need to typecast to int to avoid type mismatch error. Can remove when fix
+  # placeholder resolution.
+  if (
+      'accelerator_count'
+      in job_spec['job_spec']['worker_pool_specs'][0]['machine_spec']
+  ):
+    job_spec['job_spec']['worker_pool_specs'][0]['machine_spec'][
+        'accelerator_count'
+    ] = int(
+        job_spec['job_spec']['worker_pool_specs'][0]['machine_spec'][
+            'accelerator_count'
+        ]
+    )
+  return json.dumps(job_spec)
+
+
 def create_custom_job_with_client(job_client, parent, job_spec):
   create_custom_job_fn = None
   try:
@@ -86,6 +107,7 @@ def create_custom_job(
     # Create custom job if it does not exist
     job_name = remote_runner.check_if_job_exists()
     if job_name is None:
+      payload = cast_accelerator_count_to_int(payload)
       job_name = remote_runner.create_job(
           create_custom_job_with_client,
           insert_system_labels_into_payload(payload),
