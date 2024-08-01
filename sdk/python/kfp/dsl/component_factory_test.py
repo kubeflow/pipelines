@@ -174,30 +174,6 @@ class TestInvalidParameterName(unittest.TestCase):
                 pass
 
 
-class TestPythonFunctionName(unittest.TestCase):
-
-    def test_invalid_function_name(self):
-
-        with self.assertRaisesRegex(
-                ValueError,
-                r'Invalid function name "comp_2". The function name must not end in `_<int>`.'
-        ):
-
-            @component
-            def comp_2(text: str) -> str:
-                pass
-
-    def test_valid_function_name(self):
-
-        @component
-        def comp_v2(text: str) -> str:
-            pass
-
-        @component
-        def comp_(text: str) -> str:
-            pass
-
-
 class TestExtractComponentInterfaceListofArtifacts(unittest.TestCase):
 
     def test_python_component_input(self):

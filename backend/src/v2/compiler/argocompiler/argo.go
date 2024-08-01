@@ -16,12 +16,12 @@ package argocompiler
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
@@ -191,25 +191,29 @@ const (
 )
 
 func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.ComponentSpec) error {
-	baseComponentName := ExtractBaseComponentName(argumentsComponents + name)
-	return c.saveProtoToArguments(baseComponentName, spec)
+	functionName := c.extractFunctionName(name)
+
+	return c.saveProtoToArguments(argumentsComponents+functionName, spec)
 }
 
 // useComponentSpec returns a placeholder we can refer to the component spec
 // in argo workflow fields.
 func (c *workflowCompiler) useComponentSpec(name string) (string, error) {
-	baseComponentName := ExtractBaseComponentName(argumentsComponents + name)
-	return c.argumentsPlaceholder(baseComponentName)
+	functionName := c.extractFunctionName(name)
+
+	return c.argumentsPlaceholder(argumentsComponents + functionName)
 }
 
 func (c *workflowCompiler) saveComponentImpl(name string, msg proto.Message) error {
-	baseComponentName := ExtractBaseComponentName(argumentsContainers + name)
-	return c.saveProtoToArguments(baseComponentName, msg)
+	functionName := c.extractFunctionName(name)
+
+	return c.saveProtoToArguments(argumentsContainers+functionName, msg)
 }
 
 func (c *workflowCompiler) useComponentImpl(name string) (string, error) {
-	baseComponentName := ExtractBaseComponentName(argumentsContainers + name)
-	return c.argumentsPlaceholder(baseComponentName)
+	functionName := c.extractFunctionName(name)
+
+	return c.argumentsPlaceholder(argumentsContainers + functionName)
 }
 
 func (c *workflowCompiler) saveKubernetesSpec(name string, spec *structpb.Struct) error {
@@ -262,17 +266,34 @@ func (c *workflowCompiler) argumentsPlaceholder(componentName string) (string, e
 	return workflowParameter(componentName), nil
 }
 
-// ExtractBaseComponentName removes the iteration suffix that the IR compiler
-// adds to the component name.
-func ExtractBaseComponentName(componentName string) string {
-	baseComponentName := componentName
-	componentNameArray := strings.Split(componentName, "-")
+// extractFunctionName extracts the function name of a component by looking it
+// up in the pipeline spec.
+func (c *workflowCompiler) extractFunctionName(componentName string) string {
+	log.Debug("componentName: ", componentName)
+	// The root component is a DAG and therefore doesn't have a corresponding
+	// executor or function name. The final return statement in this function
+	// would cover this edge case, but this saves us some unecessary iteration.
+	if componentName == "root" {
+		return componentName
+	}
+	executorLabel := c.spec.Components[componentName].GetExecutorLabel()
+	log.Debug("executorLabel: ", executorLabel)
+	for executorName, executorValue := range c.executors {
+		log.Debug("executorName: ", executorName)
+		if executorName == executorLabel {
+			args := executorValue.GetContainer().Args
+			componentFunctionName := args[len(args)-1]
+			log.Debug("componentFunctionName: ", componentFunctionName)
 
-	if _, err := strconv.Atoi(componentNameArray[len(componentNameArray)-1]); err == nil {
-		baseComponentName = strings.Join(componentNameArray[:len(componentNameArray)-1], "-")
+			return componentFunctionName
+		}
 	}
 
-	return baseComponentName
+	log.Debug("No corresponding executor for component: ", componentName)
+	// We could theoretically return an error here, but since the only
+	// consequence of not finding a matching executor is reduced deduplication,
+	// this doesn't result in application failure and we therefore continue.
+	return componentName
 }
 
 const (
