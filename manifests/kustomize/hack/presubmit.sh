@@ -22,22 +22,33 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 TMP="$(mktemp -d)"
 
 pushd "${TMP}"
+
 # Install Kustomize
 KUSTOMIZE_VERSION=5.2.1
+# Remove existing kustomize if it exists
+if [ -f "/usr/local/bin/kustomize" ]; then
+    echo "Removing existing kustomize from /usr/local/bin"
+    sudo rm /usr/local/bin/kustomize
+fi
 # Reference: https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/
 curl -s -O "https://raw.githubusercontent.com/\
 kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 chmod +x install_kustomize.sh
 ./install_kustomize.sh "${KUSTOMIZE_VERSION}" /usr/local/bin/
 
+# Install yq
 # Reference: https://github.com/mikefarah/yq/releases/tag/3.4.1
 curl -s -LO "https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64"
 chmod +x yq_linux_amd64
 mv yq_linux_amd64 /usr/local/bin/yq
-popd
 
-# kpt and kubectl should already be installed in gcr.io/google.com/cloudsdktool/cloud-sdk:latest
-# so we do not need to install them here
+# Install kpt
+KPT_VERSION=1.0.0-beta.54
+# Reference: https://github.com/kptdev/kpt/releases/tag/v1.0.0-beta.54
+curl -s -LO "https://github.com/kptdev/kpt/releases/download/v${KPT_VERSION}/kpt_linux_amd64"
+chmod +x kpt_linux_amd64
+mv kpt_linux_amd64 /usr/local/bin/kpt
+popd
 
 # trigger real unit tests
 ${DIR}/test.sh
