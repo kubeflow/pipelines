@@ -278,14 +278,25 @@ func (c *workflowCompiler) extractFunctionName(componentName string) string {
 	}
 	executorLabel := c.spec.Components[componentName].GetExecutorLabel()
 	log.Debug("executorLabel: ", executorLabel)
-	for executorName, executorValue := range c.executors {
-		log.Debug("executorName: ", executorName)
-		if executorName == executorLabel {
-			args := executorValue.GetContainer().Args
-			componentFunctionName := args[len(args)-1]
-			log.Debug("componentFunctionName: ", componentFunctionName)
-
-			return componentFunctionName
+	// There are more nested conditionals here than we would prefer, but we
+	// don't want to make any assumptions about the presence of specific fields
+	// in the IR.
+	if c.executors != nil {
+		for executorName, executorValue := range c.executors {
+			log.Debug("executorName: ", executorName)
+			if executorName == executorLabel {
+				args := executorValue.GetContainer().GetArgs()
+				if args != nil {
+					if len(args) > 1 {
+						penultimateArg := args[len(args)-2]
+						if penultimateArg == "--function_to_execute" {
+							componentFunctionName := args[len(args)-1]
+							log.Debug("componentFunctionName: ", componentFunctionName)
+							return componentFunctionName
+						}
+					}
+				}
+			}
 		}
 	}
 
