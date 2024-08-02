@@ -18,6 +18,7 @@ def generate_op() -> str:
     import json
     return json.dumps([{'a': i, 'b': i * 10} for i in range(1, 5)])
 
+
 @dsl.pipeline(name='pipeline-with-loop-parameter')
 def my_pipeline(
         greeting: str = 'this is a test for looping through parameters'):
