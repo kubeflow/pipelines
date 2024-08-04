@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMAGE=<webapp-image>
+IMAGE=cculab509/webapp
 
 # Build base TRTIS client image
-git clone https://github.com/NVIDIA/tensorrt-inference-server.git
 base=tensorrt-inference-server
-docker build -t base-trtis-client -f $base/Dockerfile.client $base
+git clone https://github.com/triton-inference-server/server.git $base/clientrepo
+docker build -t base-trtis-client -f $base/Dockerfile.sdk $base
 rm -rf $base
 
 # Build & push webapp image

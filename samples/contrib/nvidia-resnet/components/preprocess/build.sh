@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMAGE=<preprocess-image>
+IMAGE=cculab509/preprocess
 
 docker build -t $IMAGE .
 docker push $IMAGE

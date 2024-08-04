@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 '''
 Copyright 2018 The Kubeflow Authors
 
@@ -24,10 +24,10 @@ from builtins import range
 from functools import partial
 import grpc
 
-from tensorrtserver.api import api_pb2
-from tensorrtserver.api import grpc_service_pb2
-from tensorrtserver.api import grpc_service_pb2_grpc
-import tensorrtserver.api.model_config_pb2 as model_config
+import tritonclient.grpc as grpcclient
+from tritonclient.grpc import service_pb2
+from tritonclient.grpc import service_pb2_grpc
+import tritonclient.grpc.model_config_pb2 as model_config
 
 from PIL import Image
 
@@ -188,20 +188,14 @@ def requestGenerator(input_name, output_name, c, h, w, format, dtype, model_name
                      result_filenames):
   # Prepare request for Infer gRPC
   # The meta data part can be reused across requests
-  request = grpc_service_pb2.InferRequest()
+  request = service_pb2.ModelInferRequest()
   request.model_name = model_name
   if model_version is None:
-    request.model_version = -1
+    request.model_version = ""
   else:
     request.model_version = model_version
-  # optional pass in a batch size for generate requester over a set of image files, need to refactor
-  batch_size = 1
-  request.meta_data.batch_size = batch_size
-  output_message = api_pb2.InferRequestHeader.Output()
-  output_message.name = output_name
-  # Number of class results to report. Default is 10 to match with demo.
-  output_message.cls.count = 10
-  request.meta_data.output.extend([output_message])
+  
+  request.outputs.append(service_pb2.ModelInferRequest().InferRequestedOutputTensor(name=output_name))
 
   filenames = []
   if os.path.isdir(image_filename):
@@ -220,7 +214,7 @@ def requestGenerator(input_name, output_name, c, h, w, format, dtype, model_name
     img = Image.open(filename)
     image_data.append(preprocess(img, format, dtype, c, h, w))
 
-  request.meta_data.input.add(name=input_name)
+  request.inputs.append(service_pb2.ModelInferRequest().InferInputTensor(name=input_name))
 
   # Send requests of batch_size images. If the number of
   # images isn't an exact multiple of batch_size then just
@@ -261,12 +255,14 @@ def get_prediction(image_filename, server_host='localhost', server_port=8001,
   :return 1:          the confidence scores for all classes
   """
   channel = grpc.insecure_channel(server_host + ':' + str(server_port))
-  grpc_stub = grpc_service_pb2_grpc.GRPCServiceStub(channel)
+  grpc_stub = service_pb2_grpc.GRPCInferenceServiceStub(channel)
 
   # Prepare request for Status gRPC
-  request = grpc_service_pb2.StatusRequest(model_name=model_name)
+  metadata_request = service_pb2.ModelMetadataRequest(name=model_name, version=model_version)
+  config_request = service_pb2.ModelConfigRequest(name=model_name, version=model_version)
   # Call and receive response from Status gRPC
-  response = grpc_stub.Status(request)
+  metadata_response = grpc_stub.ModelMetadata(metadata_request)
+  config_response = grpc_stub.ModelConfig(config_request) 
   # Make sure the model matches our requirements, and get some
   # properties of the model that we need for preprocessing
   batch_size = 1
@@ -286,7 +282,7 @@ def get_prediction(image_filename, server_host='localhost', server_port=8001,
 
   # Send request
   for request in filledRequestGenerator(result_filenames):
-    responses.append(grpc_stub.Infer(request))
+    responses.append(grpc_stub.ModelInfer(request))
 
   # For async, retrieve results according to the send order
   for request in requests:

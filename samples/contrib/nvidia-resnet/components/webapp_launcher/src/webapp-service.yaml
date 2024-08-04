@@ -2,9 +2,9 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: TRTSERVER_NAME
-  name: TRTSERVER_NAME
-  namespace: KUBEFLOW_NAMESPACE
+    app: None
+  name: None
+  namespace: kubeflow-user-example-com
 spec:
   ports:
   - name: grpc-trtis-serving
@@ -17,7 +17,7 @@ spec:
     port: 8002
     targetPort: 8002
   selector:
-    app: TRTSERVER_NAME
+    app: None
   type: ClusterIP
 ---
 apiVersion: apps/v1
@@ -45,11 +45,11 @@ spec:
         imagePullPolicy: Always
         env:
         - name: TRTSERVER_HOST
-          value: TRTSERVER_NAME.KUBEFLOW_NAMESPACE
+          value: None.kubeflow-user-example-com
         - name: MODEL_SERVE_NAME
-          value: MODEL_PASSIN_NAME
+          value: None
         - name: MODEL_VERSION
-          value: "MODEL_PASSIN_VERSION"
+          value: "None"
         - name: TRTSERVER_PORT
           value: "8001"
         ports:
