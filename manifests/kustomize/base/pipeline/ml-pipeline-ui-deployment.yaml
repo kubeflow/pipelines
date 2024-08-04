@@ -58,7 +58,7 @@ spec:
               - "-" # Redirect output to stdout
               - http://localhost:3000/apis/v1beta1/healthz
           initialDelaySeconds: 3
-          periodSeconds: 5
+          periodSeconds: 10
           timeoutSeconds: 2
         livenessProbe:
           exec:
@@ -70,7 +70,7 @@ spec:
               - "-" # Redirect output to stdout
               - http://localhost:3000/apis/v1beta1/healthz
           initialDelaySeconds: 3
-          periodSeconds: 5
+          periodSeconds: 10
           timeoutSeconds: 2
         resources:
           requests:
