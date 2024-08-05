@@ -557,7 +557,7 @@ widgetsnbextension==3.6.6
     # via ipywidgets
 wrapt==1.15.0
     # via tensorflow
-zipp==3.17.0
+zipp==3.19.1
     # via
     #   importlib-metadata
     #   importlib-resources
