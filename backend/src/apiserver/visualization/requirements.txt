@@ -14,6 +14,7 @@ absl-py==1.4.0
     #   tfx-bsl
 apache-beam[gcp]==2.46.0
     # via
+    #   apache-beam
     #   tensorflow-data-validation
     #   tensorflow-model-analysis
     #   tfx-bsl
@@ -75,6 +76,7 @@ gcsfs==0.2.3
     # via -r requirements.in
 google-api-core[grpc]==2.11.1
     # via
+    #   google-api-core
     #   google-cloud-bigquery
     #   google-cloud-bigquery-storage
     #   google-cloud-bigtable
@@ -300,7 +302,7 @@ objsize==0.6.1
     # via apache-beam
 opt-einsum==3.3.0
     # via tensorflow
-orjson==3.9.7
+orjson==3.9.15
     # via apache-beam
 overrides==6.5.0
     # via google-cloud-pubsublite
