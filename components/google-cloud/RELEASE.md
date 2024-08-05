@@ -1,4 +1,5 @@
 ## Upcoming release
+* Bump image for Structured Data pipelines.
 
 ## Release 2.16.0
 * Updated the Starry Net pipeline's template gallery description, and added dataprep_nan_threshold and dataprep_zero_threshold args to the Starry Net pipeline.
