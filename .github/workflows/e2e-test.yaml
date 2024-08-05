@@ -17,7 +17,7 @@ on:
       - 'test/**'
 
 jobs:
-  integration-test:
+  initialization-tests-v1:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -33,17 +33,93 @@ jobs:
         working-directory: ./backend/test/initialization
         run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
 
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-initialization-tests-v1-artifacts
+          path: /tmp/tmp.*/*
+
+  initialization-tests-v2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
       - name: Initialization tests v2
         working-directory: ./backend/test/v2/initialization
         run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-initialization-tests-v2-artifacts
+          path: /tmp/tmp.*/*
+
+  api-integration-tests-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
       - name: API integration tests v1
         working-directory: ./backend/test/integration
         run: go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true
 
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v1-artifacts
+          path: /tmp/tmp.*/*
+
+  api-integration-tests-v2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
       - name: API integration tests v2
         working-directory: ./backend/test/v2/integration
         run: go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-artifacts
+          path: /tmp/tmp.*/*
+
+  frontend-integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
       - name: Forward Frontend port
         run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
@@ -54,6 +130,25 @@ jobs:
 
       - name: Frontend integration tests
         run: docker run --net=host kfp-frontend-integration-test:local --remote-run true
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-frontend-integration-test-artifacts
+          path: /tmp/tmp.*/*
+
+  basic-sample-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
       - name: Basic sample tests - sequential
         run: pip3 install -r ./test/sample-test/requirements.txt && pip3 install kfp~=2.0 && python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
@@ -66,5 +161,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kfp-backend-artifacts
+          name: kfp-basic-sample-tests-artifacts
           path: /tmp/tmp.*/*
