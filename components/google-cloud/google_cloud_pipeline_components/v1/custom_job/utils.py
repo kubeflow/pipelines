@@ -137,7 +137,7 @@ def create_custom_training_job_from_component(
   # load_component_from_text to load the YAML).
   # After adding the appropriate description and the name, the new component
   # is returned.
-
+  print('FOO!')
   cj_pipeline_spec = json_format.MessageToDict(
       component.custom_training_job.pipeline_spec
   )
