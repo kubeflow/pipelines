@@ -17,7 +17,7 @@ kfp-pipeline-spec==0.3.0
 # Update the lower version when kfp sdk depends on new apis/fields in
 # kfp-server-api.
 kfp-server-api>=2.0.0,<2.1.0
-kubernetes>=8.0.0,<27
+kubernetes>=8.0.0,<31
 protobuf>=4.21.1,<5
 PyYAML>=5.3,<7
 requests-toolbelt>=0.8.0,<1
