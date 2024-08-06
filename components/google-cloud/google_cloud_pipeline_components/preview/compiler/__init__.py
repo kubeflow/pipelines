@@ -4,4 +4,4 @@ __all__ = [
     'Compiler',
 ]
 
-from google_cloud_pipeline_components.preview.compiler import Compiler
+from google_cloud_pipeline_components.preview.compiler.compiler import Compiler
