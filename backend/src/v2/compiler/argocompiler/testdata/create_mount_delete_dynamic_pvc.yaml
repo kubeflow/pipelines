@@ -8,9 +8,9 @@ spec:
     parameters:
     - name: kubernetes-comp-comp
       value: '{"pvcMount":[{"mountPath":"/data","taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-comp
+    - name: components-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1
       value: '{"executorLabel":"exec-comp"}'
-    - name: implementations-comp
+    - name: implementations-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -197,11 +197,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-comp}}'
+            value: '{{workflow.parameters.components-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp"},"dependentTasks":["createpvc"],"taskInfo":{"name":"comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-comp}}'
+            value: '{{workflow.parameters.implementations-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
@@ -222,11 +222,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-comp}}'
+            value: '{{workflow.parameters.components-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp-2"},"dependentTasks":["comp","createpvc"],"taskInfo":{"name":"comp-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-comp}}'
+            value: '{{workflow.parameters.implementations-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config

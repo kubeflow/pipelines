@@ -15,6 +15,8 @@
 package argocompiler
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -191,29 +193,29 @@ const (
 )
 
 func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.ComponentSpec) error {
-	functionName := c.extractFunctionName(name)
+	hashedComponent := c.hashComponentCommandAndArgs(name)
 
-	return c.saveProtoToArguments(argumentsComponents+functionName, spec)
+	return c.saveProtoToArguments(argumentsComponents+hashedComponent, spec)
 }
 
 // useComponentSpec returns a placeholder we can refer to the component spec
 // in argo workflow fields.
 func (c *workflowCompiler) useComponentSpec(name string) (string, error) {
-	functionName := c.extractFunctionName(name)
+	hashedComponent := c.hashComponentCommandAndArgs(name)
 
-	return c.argumentsPlaceholder(argumentsComponents + functionName)
+	return c.argumentsPlaceholder(argumentsComponents + hashedComponent)
 }
 
 func (c *workflowCompiler) saveComponentImpl(name string, msg proto.Message) error {
-	functionName := c.extractFunctionName(name)
+	hashedComponent := c.hashComponentCommandAndArgs(name)
 
-	return c.saveProtoToArguments(argumentsContainers+functionName, msg)
+	return c.saveProtoToArguments(argumentsContainers+hashedComponent, msg)
 }
 
 func (c *workflowCompiler) useComponentImpl(name string) (string, error) {
-	functionName := c.extractFunctionName(name)
+	hashedComponent := c.hashComponentCommandAndArgs(name)
 
-	return c.argumentsPlaceholder(argumentsContainers + functionName)
+	return c.argumentsPlaceholder(argumentsContainers + hashedComponent)
 }
 
 func (c *workflowCompiler) saveKubernetesSpec(name string, spec *structpb.Struct) error {
@@ -266,9 +268,9 @@ func (c *workflowCompiler) argumentsPlaceholder(componentName string) (string, e
 	return workflowParameter(componentName), nil
 }
 
-// extractFunctionName extracts the function name of a component by looking it
-// up in the pipeline spec.
-func (c *workflowCompiler) extractFunctionName(componentName string) string {
+// hashComponentCommandAndArgs combines and hashes command and args fields of a
+// given component.
+func (c *workflowCompiler) hashComponentCommandAndArgs(componentName string) string {
 	log.Debug("componentName: ", componentName)
 	// The root component is a DAG and therefore doesn't have a corresponding
 	// executor or function name. The final return statement in this function
@@ -278,33 +280,32 @@ func (c *workflowCompiler) extractFunctionName(componentName string) string {
 	}
 	executorLabel := c.spec.Components[componentName].GetExecutorLabel()
 	log.Debug("executorLabel: ", executorLabel)
-	// There are more nested conditionals here than we would prefer, but we
-	// don't want to make any assumptions about the presence of specific fields
-	// in the IR.
 	if c.executors != nil {
 		for executorName, executorValue := range c.executors {
 			log.Debug("executorName: ", executorName)
 			if executorName == executorLabel {
-				args := executorValue.GetContainer().GetArgs()
-				if args != nil {
-					if len(args) > 1 {
-						penultimateArg := args[len(args)-2]
-						if penultimateArg == "--function_to_execute" {
-							componentFunctionName := args[len(args)-1]
-							log.Debug("componentFunctionName: ", componentFunctionName)
-							return componentFunctionName
-						}
-					}
+				commandList := executorValue.GetContainer().GetCommand()
+				argList := executorValue.GetContainer().GetArgs()
+				if commandList == nil && argList == nil {
+					return componentName
+				}
+				stringToHash := strings.Join(commandList, " ")
+				if argList != nil {
+					stringToHash += strings.Join(argList, " ")
+					return hashString(stringToHash)
 				}
 			}
 		}
 	}
 
-	log.Debug("No corresponding executor for component: ", componentName)
-	// We could theoretically return an error here, but since the only
-	// consequence of not finding a matching executor is reduced deduplication,
-	// this doesn't result in application failure and we therefore continue.
 	return componentName
+}
+
+func hashString(s string) string {
+	h := sha256.New()
+	h.Write([]byte(s))
+
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 const (
