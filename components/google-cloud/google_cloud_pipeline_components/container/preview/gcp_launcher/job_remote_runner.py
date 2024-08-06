@@ -80,7 +80,9 @@ class JobRemoteRunner:
         user_agent='google-cloud-pipeline-components'
     )
     self.job_client = aiplatform_v1beta1.JobServiceClient(
-        client_options=self.client_options, client_info=self.client_info
+        transport='rest',
+        client_options=self.client_options,
+        client_info=self.client_info,
     )
     self.job_uri_prefix = f'https://{self.client_options.api_endpoint}/v1beta1/'
     self.poll_job_name = ''
@@ -125,13 +127,16 @@ class JobRemoteRunner:
 
   def create_job(self, create_job_fn, payload) -> str:
     """Create a job."""
+    logging.info('aloha! create_job payload: %s', payload)
     parent = f'projects/{self.project}/locations/{self.location}'
     # TODO(kevinbnaughton) remove empty fields from the spec temporarily.
     job_spec = json_util.recursive_remove_empty(
         json.loads(payload, strict=False)
     )
+    logging.info('aloha! job_spec: %s', job_spec)
     create_job_response = create_job_fn(self.job_client, parent, job_spec)
     job_name = create_job_response.name
+    logging.info('aloha! create_job_response: %s', create_job_response)
 
     # Write the job proto to output.
     job_resources = GcpResources()
@@ -168,7 +173,9 @@ class JobRemoteRunner:
             )
             # Recreate the Python API client.
             self.job_client = aiplatform_v1beta1.JobServiceClient(
-                self.client_options, self.client_info
+                client_options=self.client_options,
+                client_info=self.client_info,
+                transport='rest',
             )
             logging.info(
                 'Waiting for %s seconds for next poll.',
