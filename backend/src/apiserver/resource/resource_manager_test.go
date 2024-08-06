@@ -1489,6 +1489,18 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	assert.True(t, ok)
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	manager.CreatePipelineVersion(pv)
+
+	// Switch to a bad object store
+	manager.objectStore = &FakeBadObjectStore{}
+
+	// Delete the above pipeline_version.
+	err = manager.DeletePipelineVersion(FakeUUIDOne)
+	assert.Nil(t, err)
+
+	// Verify the version in deleting status.
+	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(FakeUUIDOne, model.PipelineVersionDeleting)
+	assert.NotNil(t, err)
+	assert.Nil(t, version)
 }
 
 // Tests DeletePipeline
