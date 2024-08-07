@@ -268,31 +268,36 @@ func (c *workflowCompiler) argumentsPlaceholder(componentName string) (string, e
 	return workflowParameter(componentName), nil
 }
 
-// hashComponentCommandAndArgs combines and hashes command and args fields of a
+// hashComponentCommandAndArgs combines and hashes the command and args fields of a
 // given component.
 func (c *workflowCompiler) hashComponentCommandAndArgs(componentName string) string {
 	log.Debug("componentName: ", componentName)
-	// The root component is a DAG and therefore doesn't have a corresponding
-	// executor or function name. The final return statement in this function
-	// would cover this edge case, but this saves us some unecessary iteration.
+	// Return early for root component since it has no command and args.
 	if componentName == "root" {
 		return componentName
 	}
-	executorLabel := c.spec.Components[componentName].GetExecutorLabel()
-	log.Debug("executorLabel: ", executorLabel)
-	if c.executors != nil {
+	if c.executors != nil { // Don't bother if there are no executors in the pipeline spec.
+		// Look up the executorLabel for the component in question.
+		executorLabel := c.spec.Components[componentName].GetExecutorLabel()
+		log.Debug("executorLabel: ", executorLabel)
+		// Iterate through the list of executors.
 		for executorName, executorValue := range c.executors {
 			log.Debug("executorName: ", executorName)
+			// If one of them matches the executorLabel we extracted earlier...
 			if executorName == executorLabel {
+				// Get the corresponding list of commands.
 				commandList := executorValue.GetContainer().GetCommand()
-				argList := executorValue.GetContainer().GetArgs()
-				if commandList == nil && argList == nil {
-					return componentName
-				}
-				stringToHash := strings.Join(commandList, " ")
-				if argList != nil {
-					stringToHash += strings.Join(argList, " ")
-					return hashString(stringToHash)
+				// And the list of args.
+				argsList := executorValue.GetContainer().GetArgs()
+				if !(commandList == nil && argsList == nil) { // Some components have neither command nor args.
+					// Convert the command list into a hash string.
+					stringToHash := strings.Join(commandList, " ")
+					if argsList != nil {
+						// Convert the args list into a hash string and append it to the command list hash string.
+						stringToHash += strings.Join(argsList, " ")
+
+						return hashString(stringToHash)
+					}
 				}
 			}
 		}
