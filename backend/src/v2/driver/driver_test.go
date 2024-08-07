@@ -49,7 +49,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - nvidia.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -88,7 +88,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - amd.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -127,7 +127,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v3",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -166,7 +166,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v2",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -205,7 +205,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - custom string",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -334,7 +334,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - with requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -370,7 +370,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - zero requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{

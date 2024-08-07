@@ -25,7 +25,7 @@ if __name__ == '__main__':
     convert_apache_parquet_to_tsv_op = create_component_from_func(
         convert_apache_parquet_to_tsv,
         output_component_file='component.yaml',
-        base_image='python:3.7',
+        base_image='python:3.12',
         packages_to_install=['pyarrow==0.17.1', 'pandas==1.0.3'],
         annotations={
             "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",

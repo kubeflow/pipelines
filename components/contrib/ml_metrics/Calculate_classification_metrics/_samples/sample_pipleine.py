@@ -24,7 +24,7 @@ def convert_values_to_int(text_path: InputPath('Text'),
 
 convert_values_to_int_op = create_component_from_func(
     func=convert_values_to_int,
-    base_image='python:3.7',
+    base_image='python:3.12',
     packages_to_install=['pandas==1.1'],
 )
 

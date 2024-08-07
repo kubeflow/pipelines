@@ -22,7 +22,7 @@ import kfp.deprecated as kfp
 InputPath = kfp.components.InputPath()
 OutputPath = kfp.components.OutputPath()
 
-BASE_IMAGE = "python:3.7"
+BASE_IMAGE = "python:3.12"
 
 
 def light_component(base_image: str = BASE_IMAGE,):
@@ -30,7 +30,7 @@ def light_component(base_image: str = BASE_IMAGE,):
 
     Usage:
     ```python
-    @light_component(base_image="python:3.7")
+    @light_component(base_image="python:3.12")
     def a_component(src: kfp.components.InputPath(), ...):
         ...
     ```

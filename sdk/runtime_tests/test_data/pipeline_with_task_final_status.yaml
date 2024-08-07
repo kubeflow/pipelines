@@ -88,7 +88,7 @@ deploymentSpec:
           \    print('Pipeline task name: ', status.pipeline_task_name)\n    print('Error\
           \ code: ', status.error_code)\n    print('Error message: ', status.error_message)\n\
           \n"
-        image: python:3.7
+        image: python:3.12
     exec-fail-op:
       container:
         args:
@@ -117,7 +117,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n\
           \    print(message)\n    sys.exit(1)\n\n"
-        image: python:3.7
+        image: python:3.12
     exec-print-op:
       container:
         args:
@@ -146,7 +146,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
           \    print(message)\n\n"
-        image: python:3.7
+        image: python:3.12
 pipelineInfo:
   name: pipeline-with-task-final-status
 root:

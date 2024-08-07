@@ -125,7 +125,7 @@ deploymentSpec:
         command:
         - python
         - -c
-        image: python:3.7
+        image: python:3.12
     exec-double:
       container:
         args:
