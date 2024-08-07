@@ -665,6 +665,33 @@ func extendPodSpecPatch(
 		podSpec.Volumes = append(podSpec.Volumes, ephemeralVolume)
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, ephemeralVolumeMount)
 	}
+
+	// EmptyDirMounts
+	for _, emptyDirVolumeSpec := range kubernetesExecutorConfig.GetEmptyDirMounts() {
+		var sizeLimitResource *k8sres.Quantity
+		if emptyDirVolumeSpec.GetSizeLimit() != "" {
+			r := k8sres.MustParse(emptyDirVolumeSpec.GetSizeLimit())
+			sizeLimitResource = &r
+		}
+
+		emptyDirVolume := k8score.Volume{
+			Name: emptyDirVolumeSpec.GetVolumeName(),
+			VolumeSource: k8score.VolumeSource{
+				EmptyDir: &k8score.EmptyDirVolumeSource{
+					Medium:    k8score.StorageMedium(emptyDirVolumeSpec.GetMedium()),
+					SizeLimit: sizeLimitResource,
+				},
+			},
+		}
+		emptyDirVolumeMount := k8score.VolumeMount{
+			Name:      emptyDirVolumeSpec.GetVolumeName(),
+			MountPath: emptyDirVolumeSpec.GetMountPath(),
+		}
+
+		podSpec.Volumes = append(podSpec.Volumes, emptyDirVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
+	}
+
 	return nil
 }
 
