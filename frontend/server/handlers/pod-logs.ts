@@ -39,21 +39,21 @@ export function getPodLogsHandler(
   },
   podLogContainerName: string,
 ): Handler {
-  const { archiveLogs, archiveArtifactory, archiveBucketName, archivePrefix = '' } = argoOptions;
+  const { archiveLogs, archiveArtifactory, archiveBucketName, keyFormat } = argoOptions;
 
-  // get pod log from the provided bucket and prefix.
+  // get pod log from the provided bucket and keyFormat.
   const getPodLogsStreamFromArchive = toGetPodLogsStream(
     createPodLogsMinioRequestConfig(
       archiveArtifactory === 'minio' ? artifactsOptions.minio : artifactsOptions.aws,
       archiveBucketName,
-      archivePrefix,
+      keyFormat,
     ),
   );
 
   // get the pod log stream (with fallbacks).
   const getPodLogsStream = composePodLogsStreamHandler(
-    (podName: string, namespace?: string) => {
-      return getPodLogsStreamFromK8s(podName, namespace, podLogContainerName);
+    (podName: string, createdAt: string, namespace?: string) => {
+      return getPodLogsStreamFromK8s(podName, createdAt, namespace, podLogContainerName);
     },
     // if archive logs flag is set, then final attempt will try to retrieve the artifacts
     // from the bucket and prefix provided in the config. Otherwise, only attempts
@@ -69,13 +69,14 @@ export function getPodLogsHandler(
       return;
     }
     const podName = decodeURIComponent(req.query.podname);
+    const createdAt = decodeURIComponent(req.query.createdat);
 
     // This is optional.
     // Note decodeURIComponent(undefined) === 'undefined', so I cannot pass the argument directly.
     const podNamespace = decodeURIComponent(req.query.podnamespace || '') || undefined;
 
     try {
-      const stream = await getPodLogsStream(podName, podNamespace);
+      const stream = await getPodLogsStream(podName, createdAt, podNamespace);
       stream.on('error', err => {
         if (
           err?.message &&
