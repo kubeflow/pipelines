@@ -151,7 +151,9 @@ def create_custom_training_job_from_component(
       'machine_spec': {
           'machine_type': "{{$.inputs.parameters['machine_type']}}",
           'accelerator_type': "{{$.inputs.parameters['accelerator_type']}}",
-          'accelerator_count': "{{$.inputs.parameters['accelerator_count']}}",
+          'accelerator_count': (
+              "{{$.inputs.parameters['accelerator_count'].json_escape[2]}}"
+          ),
       },
       'replica_count': 1,
       'container_spec': {
