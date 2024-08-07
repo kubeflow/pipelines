@@ -17,6 +17,7 @@ package argocompiler
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -193,7 +194,7 @@ const (
 )
 
 func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.ComponentSpec) error {
-	hashedComponent := c.hashComponentCommandAndArgs(name)
+	hashedComponent := c.hashComponentContainer(name)
 
 	return c.saveProtoToArguments(argumentsComponents+hashedComponent, spec)
 }
@@ -201,19 +202,19 @@ func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.Com
 // useComponentSpec returns a placeholder we can refer to the component spec
 // in argo workflow fields.
 func (c *workflowCompiler) useComponentSpec(name string) (string, error) {
-	hashedComponent := c.hashComponentCommandAndArgs(name)
+	hashedComponent := c.hashComponentContainer(name)
 
 	return c.argumentsPlaceholder(argumentsComponents + hashedComponent)
 }
 
 func (c *workflowCompiler) saveComponentImpl(name string, msg proto.Message) error {
-	hashedComponent := c.hashComponentCommandAndArgs(name)
+	hashedComponent := c.hashComponentContainer(name)
 
 	return c.saveProtoToArguments(argumentsContainers+hashedComponent, msg)
 }
 
 func (c *workflowCompiler) useComponentImpl(name string) (string, error) {
-	hashedComponent := c.hashComponentCommandAndArgs(name)
+	hashedComponent := c.hashComponentContainer(name)
 
 	return c.argumentsPlaceholder(argumentsContainers + hashedComponent)
 }
@@ -268,9 +269,9 @@ func (c *workflowCompiler) argumentsPlaceholder(componentName string) (string, e
 	return workflowParameter(componentName), nil
 }
 
-// hashComponentCommandAndArgs combines and hashes the command and args fields of a
-// given component.
-func (c *workflowCompiler) hashComponentCommandAndArgs(componentName string) string {
+// hashComponentContainer serializes and hashes the container field of a given
+// component.
+func (c *workflowCompiler) hashComponentContainer(componentName string) string {
 	log.Debug("componentName: ", componentName)
 	// Return early for root component since it has no command and args.
 	if componentName == "root" {
@@ -285,19 +286,17 @@ func (c *workflowCompiler) hashComponentCommandAndArgs(componentName string) str
 			log.Debug("executorName: ", executorName)
 			// If one of them matches the executorLabel we extracted earlier...
 			if executorName == executorLabel {
-				// Get the corresponding list of commands.
-				commandList := executorValue.GetContainer().GetCommand()
-				// And the list of args.
-				argsList := executorValue.GetContainer().GetArgs()
-				if !(commandList == nil && argsList == nil) { // Some components have neither command nor args.
-					// Convert the command list into a hash string.
-					stringToHash := strings.Join(commandList, " ")
-					if argsList != nil {
-						// Convert the args list into a hash string and append it to the command list hash string.
-						stringToHash += strings.Join(argsList, " ")
-
-						return hashString(stringToHash)
+				// Get the corresponding container.
+				container := executorValue.GetContainer()
+				if container != nil {
+					containerHash, err := hashValue(container)
+					if err != nil {
+						// Do not bubble up since this is not a breaking error
+						// and we can just return the componentName in full.
+						log.Debug("Error hashing container: ", err)
 					}
+
+					return containerHash
 				}
 			}
 		}
@@ -306,11 +305,16 @@ func (c *workflowCompiler) hashComponentCommandAndArgs(componentName string) str
 	return componentName
 }
 
-func hashString(s string) string {
+// hashValue serializes and hashes a provided value.
+func hashValue(value interface{}) (string, error) {
+	bytes, err := json.Marshal(value)
+	if err != nil {
+		return "", err
+	}
 	h := sha256.New()
-	h.Write([]byte(s))
+	h.Write([]byte(bytes))
 
-	return hex.EncodeToString(h.Sum(nil))
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 const (

@@ -8,9 +8,9 @@ spec:
     parameters:
     - name: kubernetes-comp-comp
       value: '{"pvcMount":[{"mountPath":"/data","taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1
+    - name: components-95f802401136aebf1bf728a6675d7adba5513b53673a3698e00a6d8744638080
       value: '{"executorLabel":"exec-comp"}'
-    - name: implementations-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1
+    - name: implementations-95f802401136aebf1bf728a6675d7adba5513b53673a3698e00a6d8744638080
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,13 +21,13 @@ spec:
         *\n\ndef comp():\n    pass\n\n"],"image":"python:3.7"}'
     - name: kubernetes-comp-comp-2
       value: '{"pvcMount":[{"mountPath":"/reused_data","taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-comp-createpvc
+    - name: components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
       value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"parameterType":"LIST"},"annotations":{"isOptional":true,"parameterType":"STRUCT"},"pvc_name":{"isOptional":true,"parameterType":"STRING"},"pvc_name_suffix":{"isOptional":true,"parameterType":"STRING"},"size":{"parameterType":"STRING"},"storage_class_name":{"defaultValue":"","isOptional":true,"parameterType":"STRING"},"volume_name":{"isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"name":{"parameterType":"STRING"}}}}'
-    - name: implementations-comp-createpvc
+    - name: implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
       value: '{"image":"argostub/createpvc"}'
-    - name: components-comp-deletepvc
+    - name: components-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725
       value: '{"executorLabel":"exec-deletepvc","inputDefinitions":{"parameters":{"pvc_name":{"parameterType":"STRING"}}}}'
-    - name: implementations-comp-deletepvc
+    - name: implementations-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725
       value: '{"image":"argostub/deletepvc"}'
     - name: components-root
       value: '{"dag":{"tasks":{"comp":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp"},"dependentTasks":["createpvc"],"taskInfo":{"name":"comp"}},"comp-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp-2"},"dependentTasks":["comp","createpvc"],"taskInfo":{"name":"comp-2"}},"createpvc":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Gi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}},"deletepvc":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["comp-2","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}}}}}'
@@ -197,11 +197,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1}}'
+            value: '{{workflow.parameters.components-95f802401136aebf1bf728a6675d7adba5513b53673a3698e00a6d8744638080}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp"},"dependentTasks":["createpvc"],"taskInfo":{"name":"comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1}}'
+            value: '{{workflow.parameters.implementations-95f802401136aebf1bf728a6675d7adba5513b53673a3698e00a6d8744638080}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
@@ -222,11 +222,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1}}'
+            value: '{{workflow.parameters.components-95f802401136aebf1bf728a6675d7adba5513b53673a3698e00a6d8744638080}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp-2"},"dependentTasks":["comp","createpvc"],"taskInfo":{"name":"comp-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-db3197b81c484742322b041296c85f7998bd2442d4ffa0459f23dc73c57b9ef1}}'
+            value: '{{workflow.parameters.implementations-95f802401136aebf1bf728a6675d7adba5513b53673a3698e00a6d8744638080}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
@@ -247,11 +247,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-comp-createpvc}}'
+            value: '{{workflow.parameters.components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Gi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-comp-createpvc}}'
+            value: '{{workflow.parameters.implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: createpvc
@@ -259,11 +259,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-comp-deletepvc}}'
+            value: '{{workflow.parameters.components-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["comp-2","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-comp-deletepvc}}'
+            value: '{{workflow.parameters.implementations-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: comp-2.Succeeded && createpvc.Succeeded

@@ -8,9 +8,9 @@ spec:
     parameters:
     - name: kubernetes-comp-hello-world
       value: '{"podMetadata":{"annotations":{"experiment_id":"234567","run_id":"123456"},"labels":{"kubeflow.com/common":"test","kubeflow.com/kfp":"pipeline-node"}}}'
-    - name: components-285f834445312aa2162cf75d155ac477a6149126369484809c864b8d1943533b
+    - name: components-34e222d692a0573c88000b8cb02ad24423491a53e061e9bba36d3718dd4c3390
       value: '{"executorLabel":"exec-hello-world","inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
-    - name: implementations-285f834445312aa2162cf75d155ac477a6149126369484809c864b8d1943533b
+    - name: implementations-34e222d692a0573c88000b8cb02ad24423491a53e061e9bba36d3718dd4c3390
       value: '{"args":["--text","{{$.inputs.parameters[''text'']}}"],"command":["sh","-ec","program_path=$(mktemp)\nprintf
         \"%s\" \"$0\" \u003e \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n","def
         hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser
@@ -191,11 +191,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-285f834445312aa2162cf75d155ac477a6149126369484809c864b8d1943533b}}'
+            value: '{{workflow.parameters.components-34e222d692a0573c88000b8cb02ad24423491a53e061e9bba36d3718dd4c3390}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-285f834445312aa2162cf75d155ac477a6149126369484809c864b8d1943533b}}'
+            value: '{{workflow.parameters.implementations-34e222d692a0573c88000b8cb02ad24423491a53e061e9bba36d3718dd4c3390}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
