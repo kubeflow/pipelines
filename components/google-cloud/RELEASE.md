@@ -1,5 +1,6 @@
 ## Upcoming release
 * Bump image for Structured Data pipelines.
+* Add dynamic support for boot_disk_type, boot_disk_size in `preview.custom_job.utils.create_custom_training_job_from_component`.
 
 ## Release 2.16.0
 * Updated the Starry Net pipeline's template gallery description, and added dataprep_nan_threshold and dataprep_zero_threshold args to the Starry Net pipeline.
