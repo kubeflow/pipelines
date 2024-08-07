@@ -2,7 +2,7 @@
   "description": "Frontend webserver package for Kubeflow Pipelines",
   "main": "server.js",
   "dependencies": {
-    "@aws-sdk/credential-providers": "^3.359.0",
+    "@aws-sdk/credential-providers": "^3.621.0",
     "@google-cloud/storage": "^2.5.0",
     "@kubernetes/client-node": "^0.8.2",
     "axios": ">=1.6.0",
