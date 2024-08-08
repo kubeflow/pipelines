@@ -1,20 +1,24 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  annotations:
-    pipelines.kubeflow.org/components-comp-hello-world: '{"executorLabel":"exec-hello-world","inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
-    pipelines.kubeflow.org/components-root: '{"dag":{"tasks":{"hello-world":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}}},"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
-    pipelines.kubeflow.org/implementations-comp-hello-world: '{"args":["--text","{{$.inputs.parameters[''text'']}}"],"command":["sh","-ec","program_path=$(mktemp)\nprintf
-      \"%s\" \"$0\" \u003e \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n","def
-      hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser
-      = argparse.ArgumentParser(prog=''Hello world'', description='''')\n_parser.add_argument(\"--text\",
-      dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
-      = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"image":"python:3.7"}'
-    pipelines.kubeflow.org/kubernetes-comp-hello-world: '{"podMetadata":{"annotations":{"experiment_id":"234567","run_id":"123456"},"labels":{"kubeflow.com/common":"test","kubeflow.com/kfp":"pipeline-node"}}}'
   creationTimestamp: null
   generateName: hello-world-
 spec:
-  arguments: {}
+  arguments:
+    parameters:
+    - name: kubernetes-comp-hello-world
+      value: '{"podMetadata":{"annotations":{"experiment_id":"234567","run_id":"123456"},"labels":{"kubeflow.com/common":"test","kubeflow.com/kfp":"pipeline-node"}}}'
+    - name: components-34e222d692a0573c88000b8cb02ad24423491a53e061e9bba36d3718dd4c3390
+      value: '{"executorLabel":"exec-hello-world","inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
+    - name: implementations-34e222d692a0573c88000b8cb02ad24423491a53e061e9bba36d3718dd4c3390
+      value: '{"args":["--text","{{$.inputs.parameters[''text'']}}"],"command":["sh","-ec","program_path=$(mktemp)\nprintf
+        \"%s\" \"$0\" \u003e \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n","def
+        hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser
+        = argparse.ArgumentParser(prog=''Hello world'', description='''')\n_parser.add_argument(\"--text\",
+        dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+        = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"image":"python:3.7"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"hello-world":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}}},"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -124,20 +128,20 @@ spec:
       name: ""
       resources: {}
       volumeMounts:
-        - mountPath: /kfp-launcher
-          name: kfp-launcher
-        - mountPath: /gcs
-          name: gcs-scratch
-        - mountPath: /s3
-          name: s3-scratch
-        - mountPath: /minio
-          name: minio-scratch
-        - mountPath: /.local
-          name: dot-local-scratch
-        - mountPath: /.cache
-          name: dot-cache-scratch
-        - mountPath: /.config
-          name: dot-config-scratch
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
     initContainers:
     - command:
       - launcher-v2
@@ -168,34 +172,34 @@ spec:
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     volumes:
-      - emptyDir: {}
-        name: kfp-launcher
-      - emptyDir: { }
-        name: gcs-scratch
-      - emptyDir: { }
-        name: s3-scratch
-      - emptyDir: { }
-        name: minio-scratch
-      - emptyDir: { }
-        name: dot-local-scratch
-      - emptyDir: { }
-        name: dot-cache-scratch
-      - emptyDir: { }
-        name: dot-config-scratch
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
   - dag:
       tasks:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.annotations.pipelines.kubeflow.org/components-comp-hello-world}}'
+            value: '{{workflow.parameters.components-34e222d692a0573c88000b8cb02ad24423491a53e061e9bba36d3718dd4c3390}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}'
           - name: container
-            value: '{{workflow.annotations.pipelines.kubeflow.org/implementations-comp-hello-world}}'
+            value: '{{workflow.parameters.implementations-34e222d692a0573c88000b8cb02ad24423491a53e061e9bba36d3718dd4c3390}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
-            value: '{{workflow.annotations.pipelines.kubeflow.org/kubernetes-comp-hello-world}}'
+            value: '{{workflow.parameters.kubernetes-comp-hello-world}}'
         name: hello-world-driver
         template: system-container-driver
       - arguments:
@@ -282,7 +286,7 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.annotations.pipelines.kubeflow.org/components-root}}'
+            value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
             value: '{"parameters":{"text":{"stringValue":"hi there"}}}'
           - name: driver-type
