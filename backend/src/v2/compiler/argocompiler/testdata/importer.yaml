@@ -1,14 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  annotations:
-    pipelines.kubeflow.org/components-comp-importer: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}}}'
-    pipelines.kubeflow.org/components-root: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}}},"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}}}'
-    pipelines.kubeflow.org/implementations-comp-importer: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
   creationTimestamp: null
   generateName: pipeline-with-importer-
 spec:
-  arguments: {}
+  arguments:
+    parameters:
+    - name: components-comp-importer
+      value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"type":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset"}}}}}'
+    - name: implementations-comp-importer
+      value: '{"artifactUri":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}},"typeSchema":{"schemaTitle":"system.Dataset"}}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}}},"inputDefinitions":{"parameters":{"dataset2":{"type":"STRING"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -81,9 +84,9 @@ spec:
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constantValue":{"stringValue":"gs://ml-pipeline-playground/shakespeare1.txt"}}}}},"taskInfo":{"name":"importer"}}'
           - name: component
-            value: '{{workflow.annotations.pipelines.kubeflow.org/components-comp-importer}}'
+            value: '{{workflow.parameters.components-comp-importer}}'
           - name: importer
-            value: '{{workflow.annotations.pipelines.kubeflow.org/implementations-comp-importer}}'
+            value: '{{workflow.parameters.implementations-comp-importer}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: importer
@@ -162,7 +165,7 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.annotations.pipelines.kubeflow.org/components-root}}'
+            value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
             value: '{}'
           - name: driver-type
