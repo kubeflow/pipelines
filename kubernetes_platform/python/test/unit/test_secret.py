@@ -147,6 +147,34 @@ class TestUseSecretAsVolume:
             }
         }
 
+    def test_with_secret_name_param(self):
+        @dsl.pipeline
+        def my_pipeline(secret_name: str = 'my-secret'):
+            task = comp()
+            kubernetes.use_secret_as_volume(
+                task,
+                secret_name=secret_name,
+                mount_path='secretpath',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'secretAsVolume': [{
+                                    'secretName': 'secret_name',
+                                    'mountPath': 'secretpath',
+                                    'optional': False
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     def test_preserves_secret_as_env(self):
         # checks that use_secret_as_volume respects previously set secrets as env
 
