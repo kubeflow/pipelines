@@ -35,7 +35,16 @@ export PATH="$HOME/bin:$PATH"
 {
     server_version_major_minor=$(kubectl version --output json | jq --raw-output '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '"+')
     stable_build_version=$(curl -s "https://storage.googleapis.com/kubernetes-release/release/stable-${server_version_major_minor}.txt")
-    kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/amd64/kubectl"
+    if [ "$ARCH" = "amd64" ]; then
+        kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/amd64/kubectl"
+    elif [ "$ARCH" = "s390x" ]; then #support for s390x
+        kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/s390x/kubectl"
+    elif [ "$ARCH" = "ppc64le" ]; then # support for ppc64le
+        kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/ppc64le/kubectl"
+    else
+        echo "Unsupported architecture: $ARCH"
+        exit 1
+    fi
     curl -L -o "$HOME/bin/kubectl" "$kubectl_url"
     chmod +x "$HOME/bin/kubectl"
 } || true
