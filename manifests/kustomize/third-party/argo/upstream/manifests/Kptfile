@@ -7,12 +7,12 @@ upstream:
   git:
     repo: https://github.com/argoproj/argo-workflows
     directory: /manifests
-    ref: v3.4.16
+    ref: v3.4.17
   updateStrategy: resource-merge
 upstreamLock:
   type: git
   git:
     repo: https://github.com/argoproj/argo-workflows
     directory: /manifests
-    ref: v3.4.16
-    commit: 910a9aabce5de6568b54350c181a431f8263605a
+    ref: v3.4.17
+    commit: 89cbdb53361cbe59fbe81b887ee82722cce5de54

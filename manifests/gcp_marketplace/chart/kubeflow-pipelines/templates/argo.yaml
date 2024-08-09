@@ -828,9 +828,9 @@ subjects:
 apiVersion: v1
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.4.16/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.4.16/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.4.16/docs/workflow-controller-configmap.yaml
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.17/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.17/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.17/docs/workflow-controller-configmap.yaml
 
   # Choice of an executor is deprecated in favor of emissary executor
   executor: |

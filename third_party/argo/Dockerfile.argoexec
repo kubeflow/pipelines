@@ -15,7 +15,7 @@
 ARG TAG
 FROM docker.io/argoproj/argoexec:${TAG}
 # Use the following path when we need to fork temporarily.
-# FROM gcr.io/ml-pipeline-test/argoexec:v3.4.16
+# FROM gcr.io/ml-pipeline-test/argoexec:v3.4.17
 
 # Copy notices, licenses and source code.
 COPY NOTICES/argoexec /NOTICES

@@ -4,9 +4,9 @@ metadata:
   name: workflow-controller-configmap
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.4.16/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.4.16/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.4.16/docs/workflow-controller-configmap.yaml
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.17/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.17/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.17/docs/workflow-controller-configmap.yaml
 
   # In artifactRepository.s3.endpoint, $(kfp-namespace) is needed, because in multi-user mode, pipelines may run in other namespaces.
   artifactRepository: |
