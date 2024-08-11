@@ -39,17 +39,17 @@ def cast_accelerator_count_to_int(payload):
   # TODO(b/353577594): accelerator_count placeholder is not resolved to int.
   # Need to typecast to int to avoid type mismatch error. Can remove when fix
   # placeholder resolution.
-  if (
-      'accelerator_count'
-      in job_spec['job_spec']['worker_pool_specs'][0]['machine_spec']
-  ):
-    job_spec['job_spec']['worker_pool_specs'][0]['machine_spec'][
-        'accelerator_count'
-    ] = int(
-        job_spec['job_spec']['worker_pool_specs'][0]['machine_spec'][
-            'accelerator_count'
-        ]
-    )
+  # if (
+  #     'accelerator_count'
+  #     in job_spec['job_spec']['worker_pool_specs'][0]['machine_spec']
+  # ):
+  #   job_spec['job_spec']['worker_pool_specs'][0]['machine_spec'][
+  #       'accelerator_count'
+  #   ] = int(
+  #       job_spec['job_spec']['worker_pool_specs'][0]['machine_spec'][
+  #           'accelerator_count'
+  #       ]
+  #   )
   return json.dumps(job_spec)
 
 
