@@ -16,7 +16,6 @@ package storage
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	minio "github.com/minio/minio-go/v6"
@@ -25,7 +24,6 @@ import (
 	"path"
 	"regexp"
 	"sigs.k8s.io/yaml"
-	"strings"
 	"time"
 )
 
@@ -139,15 +137,11 @@ func (m *MinioObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret
 		return "", err
 	}
 
-	prefixSplit := strings.Split(bucketConfig.Prefix, "/")
-	filename := prefixSplit[len(prefixSplit)-1]
-	reqParams := make(url.Values)
-	reqParams.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-
 	key, err := objectstore.ArtifactKeyFromURI(artifactURI)
 	if err != nil {
 		return "", err
 	}
+	reqParams := make(url.Values)
 	signedUrl, err := s3Client.Presign("GET", bucketConfig.BucketName, key, expirySeconds, reqParams)
 	if err != nil {
 		return "", util.Wrap(err, "Failed to generate signed url")
