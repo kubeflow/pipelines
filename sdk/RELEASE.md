@@ -1,6 +1,7 @@
 # Current Version (in development)
 
 ## Features
+* Support dynamic machine type parameters in pipeline task setters. [\#11097](https://github.com/kubeflow/pipelines/pull/11097)
 
 ## Breaking changes
 
