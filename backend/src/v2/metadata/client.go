@@ -18,8 +18,11 @@ package metadata
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"path"
 	"strconv"
 	"strings"
@@ -105,14 +108,21 @@ type Client struct {
 }
 
 // NewClient creates a Client given the MLMD server address and port.
-func NewClient(serverAddress, serverPort string) (*Client, error) {
+func NewClient(serverAddress, serverPort string, tlsEnabled bool) (*Client, error) {
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
 		grpc_retry.WithCodes(codes.Aborted),
 	}
+
+	creds := insecure.NewCredentials()
+	if tlsEnabled {
+		config := &tls.Config{}
+		creds = credentials.NewTLS(config)
+	}
+
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(creds),
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
 		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
 	)

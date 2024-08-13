@@ -34,6 +34,7 @@ const (
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
 	MetadataGrpcServiceServiceHost          string = "METADATA_GRPC_SERVICE_SERVICE_HOST"
 	MetadataGrpcServiceServicePort          string = "METADATA_GRPC_SERVICE_SERVICE_PORT"
+	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
 	SignedURLExpiryTimeSeconds              string = "SIGNED_URL_EXPIRY_TIME_SECONDS"
 )
 
@@ -141,4 +142,8 @@ func GetMetadataGrpcServiceServicePort() string {
 
 func GetSignedURLExpiryTimeSeconds() int {
 	return GetIntConfigWithDefault(SignedURLExpiryTimeSeconds, DefaultSignedURLExpiryTimeSeconds)
+}
+
+func GetMetadataTLSEnabled() bool {
+	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
 }
