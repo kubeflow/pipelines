@@ -2,7 +2,7 @@ from kfp import dsl
 
 
 @dsl.component
-def sum_numbers(a: int, b:int) -> int:
+def sum_numbers(a: int, b: int) -> int:
     return a + b
 
 

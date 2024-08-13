@@ -160,8 +160,7 @@ class PipelineTaskTest(parameterized.TestCase):
             'expected_cpu': '123.0m',
         },
     )
-    def test_set_valid_cpu_request_limit(self, cpu: str,
-                                         expected_cpu: str):
+    def test_set_valid_cpu_request_limit(self, cpu: str, expected_cpu: str):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
@@ -171,8 +170,7 @@ class PipelineTaskTest(parameterized.TestCase):
         self.assertEqual(expected_cpu,
                          task.container_spec.resources.cpu_request)
         task.set_cpu_limit(cpu)
-        self.assertEqual(expected_cpu,
-                         task.container_spec.resources.cpu_limit)
+        self.assertEqual(expected_cpu, task.container_spec.resources.cpu_limit)
 
     @parameterized.parameters(
         {

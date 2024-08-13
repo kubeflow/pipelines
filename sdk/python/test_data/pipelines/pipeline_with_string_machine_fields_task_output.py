@@ -22,13 +22,12 @@ def accelerator_limit() -> str:
 
 
 @dsl.component
-def sum_numbers(a: int, b:int) -> int:
+def sum_numbers(a: int, b: int) -> int:
     return a + b
 
 
 @dsl.pipeline
-def pipeline(
-):
+def pipeline():
     sum_numbers_task = sum_numbers(a=1, b=2)
     sum_numbers_task.set_cpu_limit(cpu_limit().output)
     sum_numbers_task.set_memory_limit(memory_limit().output)

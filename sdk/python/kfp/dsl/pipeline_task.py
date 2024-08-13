@@ -27,7 +27,6 @@ from kfp.dsl import pipeline_channel
 from kfp.dsl import placeholders
 from kfp.dsl import structures
 from kfp.dsl import utils
-from kfp.dsl import pipeline_channel
 from kfp.dsl.types import type_utils
 from kfp.local import pipeline_orchestrator
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -348,7 +347,10 @@ class PipelineTask:
         return cpu
 
     @block_if_final()
-    def set_cpu_request(self, cpu: Union[str, pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+    def set_cpu_request(
+            self,
+            cpu: Union[str,
+                       pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets CPU request (minimum) for the task.
 
         Args:
@@ -373,7 +375,10 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def set_cpu_limit(self, cpu: Union[str, pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+    def set_cpu_limit(
+            self,
+            cpu: Union[str,
+                       pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets CPU limit (maximum) for the task.
 
         Args:
@@ -398,7 +403,9 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def set_accelerator_limit(self, limit: Union[int, str, pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+    def set_accelerator_limit(
+        self, limit: Union[int, str,
+                           pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets accelerator limit (maximum) for the task. Only applies if
         accelerator type is also set via .set_accelerator_type().
 
@@ -414,8 +421,10 @@ class PipelineTask:
         else:
             if isinstance(limit, int):
                 limit = str(limit)
-            if isinstance(limit, str) and re.match(r'^0$|^1$|^2$|^4$|^8$|^16$', limit) is None:
-                raise ValueError(f'{"limit"!r} must be one of 0, 1, 2, 4, 8, 16.')
+            if isinstance(limit, str) and re.match(r'^0$|^1$|^2$|^4$|^8$|^16$',
+                                                   limit) is None:
+                raise ValueError(
+                    f'{"limit"!r} must be one of 0, 1, 2, 4, 8, 16.')
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_count = limit
@@ -462,7 +471,7 @@ class PipelineTask:
             memory = str(memory)
         else:
             if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
-                    memory) is None:
+                        memory) is None:
                 raise ValueError(
                     'Invalid memory string. Should be a number or a number '
                     'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
@@ -470,7 +479,10 @@ class PipelineTask:
         return memory
 
     @block_if_final()
-    def set_memory_request(self, memory: Union[str, pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+    def set_memory_request(
+            self,
+            memory: Union[str,
+                          pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets memory request (minimum) for the task.
 
         Args:
@@ -494,7 +506,10 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def set_memory_limit(self, memory: Union[str, pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+    def set_memory_limit(
+            self,
+            memory: Union[str,
+                          pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets memory limit (maximum) for the task.
 
         Args:
@@ -558,7 +573,9 @@ class PipelineTask:
         return self.set_accelerator_type(accelerator)
 
     @block_if_final()
-    def set_accelerator_type(self, accelerator: Union[str, pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+    def set_accelerator_type(
+        self, accelerator: Union[str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
         """Sets accelerator type to use when executing this task.
 
         Args:
