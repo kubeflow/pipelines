@@ -306,7 +306,7 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
   let logsBannerMessage = '';
   let logsBannerAdditionalInfo = '';
   const customPropertiesMap = execution.getCustomPropertiesMap();
-  const createdAt = new Date(execution.getCreateTimeSinceEpoch()).toISOString().split('T')[0]
+  const createdAt = new Date(execution.getCreateTimeSinceEpoch()).toISOString().split('T')[0];
 
   if (execution) {
     podName = customPropertiesMap.get(KfpExecutionProperties.POD_NAME)?.getStringValue() || '';

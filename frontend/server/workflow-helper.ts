@@ -113,7 +113,11 @@ export const getPodLogsStreamFromWorkflow = toGetPodLogsStream(
  * on the provided pod name and namespace (optional).
  */
 export function toGetPodLogsStream(
-  getMinioRequestConfig: (podName: string, createdAt: string, namespace?: string) => Promise<MinioRequestConfig>,
+  getMinioRequestConfig: (
+    podName: string,
+    createdAt: string,
+    namespace?: string,
+  ) => Promise<MinioRequestConfig>,
 ) {
   return async (podName: string, createdAt: string, namespace?: string) => {
     const request = await getMinioRequestConfig(podName, createdAt, namespace);
@@ -128,50 +132,54 @@ export function toGetPodLogsStream(
  * client).
  * @param minioOptions Minio options to create a minio client.
  * @param bucket bucket containing the pod logs artifacts.
- * @param prefix prefix for pod logs artifacts stored in the bucket.
+ * @param keyFormat the keyFormat for pod logs artifacts stored in the bucket.
  */
 export function createPodLogsMinioRequestConfig(
   minioOptions: MinioClientOptions,
   bucket: string,
   keyFormat: string,
 ) {
-  return async (podName: string, createdAt: string, namespace: string = ''): Promise<MinioRequestConfig> => {
+  return async (
+    podName: string,
+    createdAt: string,
+    namespace: string = '',
+  ): Promise<MinioRequestConfig> => {
     // create a new client each time to ensure session token has not expired
     const client = await createMinioClient(minioOptions, 's3');
-    const createdAtArray = createdAt.split("-")
+    const createdAtArray = createdAt.split('-');
 
     let key: string = keyFormat
-      .replace(/\s+/g, '')  // Remove all whitespace.
-      .replace("{{workflow.name}}", podName.replace(/-system-container-impl-.*/, ''))
-      .replace("{{workflow.creationTimestamp.Y}}", createdAtArray[0])
-      .replace("{{workflow.creationTimestamp.m}}", createdAtArray[1])
-      .replace("{{workflow.creationTimestamp.d}}", createdAtArray[2])
-      .replace("{{pod.name}}", podName)
-      .replace("{{workflow.namespace}}", namespace)
+      .replace(/\s+/g, '') // Remove all whitespace.
+      .replace('{{workflow.name}}', podName.replace(/-system-container-impl-.*/, ''))
+      .replace('{{workflow.creationTimestamp.Y}}', createdAtArray[0])
+      .replace('{{workflow.creationTimestamp.m}}', createdAtArray[1])
+      .replace('{{workflow.creationTimestamp.d}}', createdAtArray[2])
+      .replace('{{pod.name}}', podName)
+      .replace('{{workflow.namespace}}', namespace);
 
-    if (!key.endsWith("/")) {
-      key = key + "/"
+    if (!key.endsWith('/')) {
+      key = key + '/';
     }
-    key = key + "main.log"
+    key = key + 'main.log';
 
-    console.log("keyFormat: ", keyFormat)
-    console.log("key: ", key)
+    console.log('keyFormat: ', keyFormat);
+    console.log('key: ', key);
 
     // If there are unresolved template tags in the keyFormat, throw an error
     // that surfaces in the frontend's console log.
-    if (key.includes("{") || key.includes("}")) {
+    if (key.includes('{') || key.includes('}')) {
       throw new Error(
         `keyFormat, which is defined in config.ts or through the ARGO_KEYFORMAT env var, appears to include template tags that are not supported. ` +
-        `The resulting log key, ${key}, includes unresolved template tags and is therefore invalid.`
-      )
+          `The resulting log key, ${key}, includes unresolved template tags and is therefore invalid.`,
+      );
     }
 
     const regex = /^[a-zA-Z0-9\-._/]+$/; // Allow letters, numbers, -, ., _, /
     if (!regex.test(key)) {
       throw new Error(
         `The log key, ${key}, which is derived from keyFormat in config.ts or through the ARGO_KEYFORMAT env var, is an invalid path. ` +
-        `Supported characters include: letters, numbers, -, ., _, and /.`
-      )
+          `Supported characters include: letters, numbers, -, ., _, and /.`,
+      );
     }
 
     return { bucket, client, key };
