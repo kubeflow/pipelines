@@ -162,9 +162,6 @@ export function createPodLogsMinioRequestConfig(
     }
     key = key + 'main.log';
 
-    console.log('keyFormat: ', keyFormat);
-    console.log('key: ', key);
-
     // If there are unresolved template tags in the keyFormat, throw an error
     // that surfaces in the frontend's console log.
     if (key.includes('{') || key.includes('}')) {
