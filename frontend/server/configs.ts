@@ -91,7 +91,10 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ARGO_ARCHIVE_ARTIFACTORY = 'minio',
     /** Bucket to retrive logs from */
     ARGO_ARCHIVE_BUCKETNAME = 'mlpipeline',
-    /** This should match the keyFormat specified in the Argo workflow-controller-configmap */
+    /** This should match the keyFormat specified in the Argo workflow-controller-configmap.
+     * It's set here in the manifests:
+     * https://github.com/kubeflow/pipelines/blob/7b7918ebf8c30e6ceec99283ef20dbc02fdf6a42/manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml#L28
+     */
     ARGO_KEYFORMAT = 'artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}',
     /** Should use server API for log streaming? */
     STREAM_LOGS_FROM_SERVER_API = 'false',
