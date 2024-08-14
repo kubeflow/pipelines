@@ -5,7 +5,7 @@
     "@aws-sdk/credential-providers": "^3.359.0",
     "@google-cloud/storage": "^2.5.0",
     "@kubernetes/client-node": "^0.8.2",
-    "axios": ">=1.6.0",
+    "axios": ">=1.7.4",
     "crypto-js": "^3.1.8",
     "express": "^4.17.3",
     "gunzip-maybe": "^1.4.1",
