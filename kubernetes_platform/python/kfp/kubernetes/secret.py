@@ -76,13 +76,16 @@ def use_secret_as_volume(
     Returns:
         Task object with updated secret configuration.
     """
-    # Extract the actual string value if secret_name is a PipelineParameterChannel
-    if isinstance(secret_name, PipelineParameterChannel):
-        secret_name = secret_name.name
     msg = common.get_existing_kubernetes_config_as_message(task)
 
+    val = secret_name
+    # if secret_name is a PipelineParameterChannel, then we don't know what secret to mount until RUNTIME
+    # so, treat is as a map KEY instead of a secret name
+    if isinstance(secret_name, PipelineParameterChannel):
+        val = "{{" + secret_name.name + "}}"
+
     secret_as_vol = pb.SecretAsVolume(
-        secret_name=secret_name,
+        secret_name=val,
         mount_path=mount_path,
         optional=optional,
     )

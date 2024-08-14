@@ -164,7 +164,7 @@ class TestUseSecretAsVolume:
                         'executors': {
                             'exec-comp': {
                                 'secretAsVolume': [{
-                                    'secretName': 'secret_name',
+                                    'secretName': '{{secret_name}}',
                                     'mountPath': 'secretpath',
                                     'optional': False
                                 }]

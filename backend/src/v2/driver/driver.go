@@ -17,9 +17,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -536,14 +538,40 @@ func extendPodSpecPatch(
 	// Get secret mount information
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
 		optional := secretAsVolume.Optional != nil && *secretAsVolume.Optional
+
+		secretName := secretAsVolume.GetSecretName()
+
+		if strings.HasPrefix(secretName, "{{") && strings.HasSuffix(secretName, "}}") {
+			// Strip the braces
+			key := secretName[2 : len(secretName)-2]
+
+			// Check if the key exists in the parameter inputs map
+			inputParams, _, err := dag.Execution.GetParameters()
+			if err != nil {
+				return fmt.Errorf("failed to get input parameters: %v", err)
+			}
+
+			val, ok := inputParams[key]
+			if !ok {
+				return fmt.Errorf("dynamic secret name key '%s' not found in input parameters", key)
+			}
+
+			secretName = val.GetStringValue()
+			if secretName == "" {
+				return fmt.Errorf("secret name for key '%s' is empty", key)
+			}
+		} else if strings.TrimSpace(secretName) == "" {
+			return fmt.Errorf("secret name is empty or invalid")
+		}
+
 		secretVolume := k8score.Volume{
-			Name: secretAsVolume.GetSecretName(),
+			Name: secretName,
 			VolumeSource: k8score.VolumeSource{
-				Secret: &k8score.SecretVolumeSource{SecretName: secretAsVolume.GetSecretName(), Optional: &optional},
+				Secret: &k8score.SecretVolumeSource{SecretName: secretName, Optional: &optional},
 			},
 		}
 		secretVolumeMount := k8score.VolumeMount{
-			Name:      secretAsVolume.GetSecretName(),
+			Name:      secretName,
 			MountPath: secretAsVolume.GetMountPath(),
 		}
 		podSpec.Volumes = append(podSpec.Volumes, secretVolume)
