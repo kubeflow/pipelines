@@ -274,9 +274,10 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	// Set up Loop Control Template
 	loopDriverArgoName := name + "-loop-driver"
 	loopDriverInputs := dagDriverInputs{
-		component:   componentSpecPlaceholder,
-		parentDagID: parentDagID,
-		task:        taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
+		component:      componentSpecPlaceholder,
+		parentDagID:    parentDagID,
+		task:           taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
+		iterationIndex: "0",
 	}
 	loopDriver, loopDriverOutputs, err := c.dagDriverTask(loopDriverArgoName, loopDriverInputs)
 	if err != nil {
@@ -356,7 +357,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 	if err != nil {
 		return nil, err
 	}
-	driver.Depends = depends(task.GetDependentTasks())
+	//driver.Depends = depends(task.GetDependentTasks())  # TODO(gfrasca): Handled already by root task
 
 	iterationCount := intstr.FromString(driverOutputs.iterationCount)
 	iterationTasks, err := c.task(
