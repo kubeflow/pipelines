@@ -1062,7 +1062,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     try {
       const nodeName = getNodeNameFromNodeId(this.state.workflow!, selectedNodeDetails.id);
-      selectedNodeDetails.logs = await Apis.getPodLogs(runId, nodeName, namespace);
+      selectedNodeDetails.logs = await Apis.getPodLogs(runId, nodeName, namespace, '');
     } catch (err) {
       let errMsg = await errorToMessage(err);
       logsBannerMessage = 'Failed to retrieve pod logs.';
