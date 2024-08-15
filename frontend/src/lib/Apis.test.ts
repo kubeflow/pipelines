@@ -60,7 +60,9 @@ describe('Apis', () => {
 
   it('getPodLogs', async () => {
     const spy = fetchSpy('http://some/address');
-    expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).toEqual('http://some/address');
+    expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns', '')).toEqual(
+      'http://some/address',
+    );
     expect(spy).toHaveBeenCalledWith(
       'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=ns',
       {
@@ -71,11 +73,24 @@ describe('Apis', () => {
 
   it('getPodLogs in a specific namespace', async () => {
     const spy = fetchSpy('http://some/address');
-    expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name')).toEqual(
+    expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name', '')).toEqual(
       'http://some/address',
     );
     expect(spy).toHaveBeenCalledWith(
       'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=some-namespace-name',
+      {
+        credentials: 'same-origin',
+      },
+    );
+  });
+
+  it('getPodLogs with createdat specified', async () => {
+    const spy = fetchSpy('http://some/address');
+    expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns', '2024-08-13')).toEqual(
+      'http://some/address',
+    );
+    expect(spy).toHaveBeenCalledWith(
+      'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=ns&createdat=2024-08-13',
       {
         credentials: 'same-origin',
       },
