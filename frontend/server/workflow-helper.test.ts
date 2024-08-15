@@ -147,31 +147,28 @@ describe('workflow-helper', () => {
         apiVersion: 'argoproj.io/v1alpha1',
         kind: 'Workflow',
         status: {
+          artifactRepositoryRef: {
+            artifactRepository: {
+              archiveLogs: true,
+              s3: {
+                accessKeySecret: { key: 'accessKey', name: 'accessKeyName' },
+                bucket: 'bucket',
+                endpoint: 'minio-service.kubeflow',
+                insecure: true,
+                key:
+                  'prefix/workflow-name/workflow-name-system-container-impl-abc/some-artifact.csv',
+                secretKeySecret: { key: 'secretKey', name: 'secretKeyName' },
+              },
+            },
+          },
           nodes: {
             'workflow-name-abc': {
               outputs: {
                 artifacts: [
                   {
-                    name: 'some-artifact.csv',
+                    name: 'main-logs',
                     s3: {
-                      accessKeySecret: { key: 'accessKey', name: 'accessKeyName' },
-                      bucket: 'bucket',
-                      endpoint: 'minio-service.kubeflow',
-                      insecure: true,
-                      key: 'prefix/workflow-name/workflow-name-abc/some-artifact.csv',
-                      secretKeySecret: { key: 'secretKey', name: 'secretKeyName' },
-                    },
-                  },
-                  {
-                    archiveLogs: true,
-                    name: 'main.log',
-                    s3: {
-                      accessKeySecret: { key: 'accessKey', name: 'accessKeyName' },
-                      bucket: 'bucket',
-                      endpoint: 'minio-service.kubeflow',
-                      insecure: true,
-                      key: 'prefix/workflow-name/workflow-name-abc/main.log',
-                      secretKeySecret: { key: 'secretKey', name: 'secretKeyName' },
+                      key: 'prefix/workflow-name/workflow-name-system-container-impl-abc/main.log',
                     },
                   },
                 ],
@@ -193,7 +190,10 @@ describe('workflow-helper', () => {
       mockedClientGetObject.mockResolvedValueOnce(objStream);
       objStream.end('some fake logs.');
 
-      const stream = await getPodLogsStreamFromWorkflow('workflow-name-abc', '2024-07-09');
+      const stream = await getPodLogsStreamFromWorkflow(
+        'workflow-name-system-container-impl-abc',
+        '2024-07-09',
+      );
 
       expect(mockedGetArgoWorkflow).toBeCalledWith('workflow-name');
 
@@ -212,7 +212,7 @@ describe('workflow-helper', () => {
       expect(mockedClientGetObject).toBeCalledTimes(1);
       expect(mockedClientGetObject).toBeCalledWith(
         'bucket',
-        'prefix/workflow-name/workflow-name-abc/main.log',
+        'prefix/workflow-name/workflow-name-system-container-impl-abc/main.log',
       );
     });
   });
