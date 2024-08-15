@@ -306,6 +306,7 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
   let logsBannerMessage = '';
   let logsBannerAdditionalInfo = '';
   const customPropertiesMap = execution.getCustomPropertiesMap();
+  const createdAt = new Date(execution.getCreateTimeSinceEpoch()).toISOString().split('T')[0];
 
   if (execution) {
     podName = customPropertiesMap.get(KfpExecutionProperties.POD_NAME)?.getStringValue() || '';
@@ -321,7 +322,7 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
   }
 
   try {
-    logsDetails = await Apis.getPodLogs(runId!, podName, podNameSpace);
+    logsDetails = await Apis.getPodLogs(runId!, podName, podNameSpace, createdAt);
     logsInfo.set(LOGS_DETAILS, logsDetails);
   } catch (err) {
     let errMsg = await errorToMessage(err);
