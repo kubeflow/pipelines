@@ -15,12 +15,10 @@
 
 from typing import Dict, List, NamedTuple
 
-from google_cloud_pipeline_components import google_template_metadata
 from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationPreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation import LLMEvaluationTextGenerationOp
 from google_cloud_pipeline_components._implementation.model_evaluation import ModelNamePreprocessorOp
 from google_cloud_pipeline_components.preview.model_evaluation.model_evaluation_import_component import model_evaluation_import as ModelImportEvaluationOp
-from google_cloud_pipeline_components.proto import template_metadata_pb2
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from kfp import dsl
@@ -31,21 +29,6 @@ from kfp import dsl
 
 _PIPELINE_NAME = 'evaluation-llm-text-generation-pipeline'
 
-output_gcs_validation = template_metadata_pb2.GoogleCloudStorageValidation(
-    gcs_uri='{{$.parameter.batch_predict_gcs_destination_output_uri}}',
-    is_input=False,
-    default_service_account='{{$.pipeline_google_cloud_project_number}}-compute@developer.gserviceaccount.com',
-    override_placeholder='{{$.parameter.service_account}}',
-)
-
-
-@google_template_metadata.set_template_metadata(
-    template_metadata=template_metadata_pb2.TemplateMetadata(
-        preflight_validations=template_metadata_pb2.ValidationItems(
-            gcs_validations=[output_gcs_validation]
-        )
-    )
-)
 @dsl.pipeline(name=_PIPELINE_NAME)
 def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-default-value
     project: str,
