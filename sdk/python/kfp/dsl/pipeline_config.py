@@ -18,7 +18,13 @@ class PipelineConfig:
     """PipelineConfig contains pipeline-level config options."""
 
     def __init__(self):
-        pass
+        self.example_pipeline_config = "some-important-value"
 
-    # TODO add pipeline level configs
+    def set_example_pipeline_config(self, example_pipeline_config: str):
+        """Example of a pipeline-level config option.
 
+        Args:
+          example_pipeline_config: example setting to set in the PipelineConfig spec
+        """
+        self.example_pipeline_config = example_pipeline_config
+        return self

@@ -1879,7 +1879,9 @@ def create_pipeline_spec(
 
     # pipeline-level config options
     pipeline_config_spec = pipeline_spec_pb2.PipelineConfig()
-    # TODO add pipeline-level config options
+    if pipeline_config.example_pipeline_config is not None and pipeline_config.example_pipeline_config != "":
+        pipeline_config_spec.example_pipeline_config = pipeline_config.example_pipeline_config
+
 
     pipeline_spec.root.CopyFrom(
         _build_component_spec_from_component_spec_structure(component_spec))
