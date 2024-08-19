@@ -722,26 +722,63 @@ message PipelineDeploymentConfig {
     message ResourceSpec {
       // The limit of the number of vCPU cores. This container execution needs
       // at most cpu_limit vCPU to run.
-      double cpu_limit = 1;
+      // Deprecated. Use [ResourceSpec.resource_cpu_limit] instead.
+      double cpu_limit = 1 [deprecated = true];
 
       // The memory limit in GB. This container execution needs at most
       // memory_limit RAM to run.
-      double memory_limit = 2;
+      // Deprecated. Use [ResourceSpec.resource_memory_limit] instead.
+      double memory_limit = 2 [deprecated = true];
 
       // The request of the number of vCPU cores. This container execution
       // needs at least cpu_request vCPU to run.
-      double cpu_request = 5;
+      // Deprecated. Use [ResourceSpec.resource_cpu_request] instead.
+      double cpu_request = 5 [deprecated = true];
 
       // The memory request in GB. This container execution needs at least
       // memory_request RAM to run.
-      double memory_request = 6;
+      // Deprecated. Use [ResourceSpec.resource_memory_request] instead.
+      double memory_request = 6 [deprecated = true];
+
+      // The limit of the number of vCPU cores. This container execution needs
+      // at most resource_cpu_limit vCPU to run. Handles static values and
+      // placeholders.
+      string resource_cpu_limit = 7;
+
+      // The memory limit in GB. This container execution needs
+      // at most resource_memory_limit RAM to run. Handles static values and
+      // placeholders.
+      string resource_memory_limit = 8;
+
+      // The request of the number of vCPU cores. This container
+      // execution needs at least resource_cpu_request vCPU to run. Handles
+      // static values and placeholders.
+      string resource_cpu_request = 9;
+
+      // The memory request in GB. This container execution
+      // needs at least resource_memory_request RAM to run. Handles static
+      // values and placeholders.
+      string resource_memory_request = 10;
 
       // The specification on the accelerators being attached to this container.
       message AcceleratorConfig {
         // The type of accelerators.
-        string type = 1;
+        // Deprecated. Use [ResourceSpec.AcceleratorConfig.resource_type]
+        // instead.
+        string type = 1 [deprecated = true];
+
         // The number of accelerators.
-        int64 count = 2;
+        // Deprecated. Use [ResourceSpec.AcceleratorConfig.resource_count]
+        // instead.
+        int64 count = 2 [deprecated = true];
+
+        // The type of accelerators. Handles static values and
+        // placeholders.
+        string resource_type = 3;
+
+        // The number of accelerators. Handles static values and
+        // placeholders.
+        string resource_count = 4;
       }
       AcceleratorConfig accelerator = 3;
       

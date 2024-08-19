@@ -1,0 +1,19 @@
+name: KFP Manifests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - '.github/workflows/kubeflow-pipelines-manifests.yml'
+      - 'manifests/kustomize/**'     
+
+jobs:
+  kubeflow-pipelines-manifests:    
+    runs-on: ubuntu-latest    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4    
+
+      - name: Run tests
+        run: ./manifests/kustomize/hack/presubmit.sh 

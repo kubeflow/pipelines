@@ -358,9 +358,11 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 		},
 	}
 	// Update pod metadata if it defined in the Kubernetes Spec
-	if kubernetesConfigString, ok := c.wf.Annotations[annotationKubernetesSpec+refName]; ok {
+	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
+
+	if kubernetesConfigParam != nil {
 		k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := jsonpb.UnmarshalString(kubernetesConfigString, k8sExecCfg); err == nil {
+		if err := jsonpb.UnmarshalString(string(*kubernetesConfigParam.Value), k8sExecCfg); err == nil {
 			extendPodMetadata(&executor.Metadata, k8sExecCfg)
 		}
 	}

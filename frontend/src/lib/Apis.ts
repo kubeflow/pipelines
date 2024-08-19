@@ -108,12 +108,20 @@ export class Apis {
   /**
    * Get pod logs
    */
-  public static getPodLogs(runId: string, podName: string, podNamespace: string): Promise<string> {
+  public static getPodLogs(
+    runId: string,
+    podName: string,
+    podNamespace: string,
+    createdAt: string,
+  ): Promise<string> {
     let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}&runid=${encodeURIComponent(
       runId,
     )}`;
     if (podNamespace) {
       query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
+    }
+    if (createdAt) {
+      query += `&createdat=${encodeURIComponent(createdAt)}`;
     }
     return this._fetch(query);
   }

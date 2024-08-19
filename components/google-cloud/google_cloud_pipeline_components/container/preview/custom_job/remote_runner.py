@@ -32,23 +32,32 @@ def insert_system_labels_into_payload(payload):
   return json.dumps(job_spec)
 
 
-def cast_accelerator_count_to_int(payload):
-  """Casts accelerator_count from string to an int."""
+def is_json(test_string: str) -> bool:
+  try:
+    json.loads(test_string)
+  except ValueError:
+    return False
+  return True
+
+
+def parse_nested_json_strings(payload):
+  """Parse nested json strings in the payload."""
 
   job_spec = json.loads(payload)
-  # TODO(b/353577594): accelerator_count placeholder is not resolved to int.
-  # Need to typecast to int to avoid type mismatch error. Can remove when fix
-  # placeholder resolution.
-  if (
-      'accelerator_count'
-      in job_spec['job_spec']['worker_pool_specs'][0]['machine_spec']
+  # TODO(b/353577594): Nested placeholder fields inside worker_pool_specs are
+  # not parsed correctly in backend. Can remove when fix backend logic.
+  worker_pool_spec = job_spec['job_spec']['worker_pool_specs'][0]
+  if is_json(
+      worker_pool_spec.get('machine_spec', {}).get('accelerator_count', '')
   ):
-    job_spec['job_spec']['worker_pool_specs'][0]['machine_spec'][
-        'accelerator_count'
-    ] = int(
-        job_spec['job_spec']['worker_pool_specs'][0]['machine_spec'][
-            'accelerator_count'
-        ]
+    worker_pool_spec['machine_spec']['accelerator_count'] = json.loads(
+        worker_pool_spec['machine_spec']['accelerator_count']
+    )
+  if is_json(
+      worker_pool_spec.get('disk_spec', {}).get('boot_disk_size_gb', '')
+  ):
+    worker_pool_spec['disk_spec']['boot_disk_size_gb'] = json.loads(
+        worker_pool_spec['disk_spec']['boot_disk_size_gb']
     )
   return json.dumps(job_spec)
 
@@ -107,7 +116,7 @@ def create_custom_job(
     # Create custom job if it does not exist
     job_name = remote_runner.check_if_job_exists()
     if job_name is None:
-      payload = cast_accelerator_count_to_int(payload)
+      payload = parse_nested_json_strings(payload)
       job_name = remote_runner.create_job(
           create_custom_job_with_client,
           insert_system_labels_into_payload(payload),
