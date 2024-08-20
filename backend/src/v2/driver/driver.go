@@ -17,9 +17,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -553,6 +555,31 @@ func extendPodSpecPatch(
 	// Get secret env information
 	for _, secretAsEnv := range kubernetesExecutorConfig.GetSecretAsEnv() {
 		for _, keyToEnv := range secretAsEnv.GetKeyToEnv() {
+			secretName := secretAsEnv.GetSecretName()
+
+			// Check if the secret name is dynamic (wrapped in "{{}}")
+			if strings.HasPrefix(secretName, "{{") && strings.HasSuffix(secretName, "}}") {
+				// Strip the braces
+				key := secretName[2 : len(secretName)-2]
+
+				// Check if the key exists in the parameter inputs map
+				inputParams, _, err := dag.Execution.GetParameters()
+				if err != nil {
+					return fmt.Errorf("failed to get input parameters: %v", err)
+				}
+
+				val, ok := inputParams[key]
+				if !ok {
+					return fmt.Errorf("dynamic secret name key '%s' not found in input parameters", key)
+				}
+
+				secretName = val.GetStringValue()
+				if secretName == "" {
+					return fmt.Errorf("secret name for key '%s' is empty", key)
+				}
+			} else if strings.TrimSpace(secretName) == "" {
+				return fmt.Errorf("secret name is empty or invalid")
+			}
 			secretEnvVar := k8score.EnvVar{
 				Name: keyToEnv.GetEnvVar(),
 				ValueFrom: &k8score.EnvVarSource{
@@ -561,7 +588,7 @@ func extendPodSpecPatch(
 					},
 				},
 			}
-			secretEnvVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name = secretAsEnv.GetSecretName()
+			secretEnvVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name = secretName
 			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
 		}
 	}

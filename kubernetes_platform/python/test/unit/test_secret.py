@@ -319,6 +319,36 @@ class TestUseSecretAsEnv:
             }
         }
 
+    def test_with_secret_name_param_env(self):
+        @dsl.pipeline
+        def my_pipeline(secret_name: str = 'my-secret'):
+            task = comp()
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name=secret_name,
+                secret_key_to_env={'password': 'PASSWORD'}
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'secretAsEnv': [{
+                                    'secretName': '{{secret_name}}',
+                                    'keyToEnv': [{
+                                        'secretKey': 'password',
+                                        'envVar': 'PASSWORD'
+                                    }]
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     def test_preserves_secret_as_volume(self):
         # checks that use_secret_as_env respects previously set secrets as vol
 
