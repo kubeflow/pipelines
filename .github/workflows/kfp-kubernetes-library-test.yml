@@ -5,7 +5,7 @@ on:
     branches: [master]
   pull_request:
     paths:
-      - '.github/workflows/kfp-kubernetes-library-test.yaml'
+      - '.github/workflows/kfp-kubernetes-library-test.yml'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
       - 'kubernetes_platform/**'
