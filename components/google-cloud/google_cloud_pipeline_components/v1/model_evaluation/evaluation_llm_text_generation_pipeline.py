@@ -151,6 +151,7 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
   eval_task = LLMEvaluationTextGenerationOp(
       project=project,
       location=location,
+      model_name=model_name,
       evaluation_task=evaluation_task,
       target_field_name=target_field_name,
       predictions_format=batch_predict_predictions_format,
