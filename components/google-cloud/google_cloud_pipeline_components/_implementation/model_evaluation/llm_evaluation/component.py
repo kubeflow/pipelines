@@ -32,6 +32,7 @@ def model_evaluation_text_generation(
     row_based_metrics: Output[Metrics],
     project: str,
     location: str,
+    model_name: str,
     evaluation_task: str = 'text-generation',
     target_field_name: str = 'instance.output_text',
     prediction_field_name: str = 'predictions.content',
@@ -55,6 +56,7 @@ def model_evaluation_text_generation(
   Args:
     project: The GCP project that runs the pipeline component.
     location: The GCP region that runs the pipeline component.
+    model_name: The name of the model to be evaluated.
     evaluation_task: The task that the large language model will be evaluated
       on. The evaluation component computes a set of metrics relevant to that
       specific task. Currently supported tasks are: `summarization`,
@@ -124,6 +126,7 @@ def model_evaluation_text_generation(
           machine_type=machine_type,
           image_uri=version.LLM_EVAL_IMAGE_TAG,
           args=[
+              f'--model_name={model_name}',
               f'--evaluation_task={evaluation_task}',
               f'--target_field_name={target_field_name}',
               f'--prediction_field_name={prediction_field_name}',
