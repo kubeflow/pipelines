@@ -6,7 +6,7 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/e2e-test.yaml'
+      - '.github/workflows/e2e-test.yml'
       - 'scripts/deploy/github/**'
       - 'go.mod'
       - 'go.sum'
