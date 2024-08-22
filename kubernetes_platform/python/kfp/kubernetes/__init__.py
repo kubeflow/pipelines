@@ -20,6 +20,8 @@ __all__ = [
     'add_pod_annotation',
     'add_pod_label',
     'add_toleration',
+    'add_node_affinity',
+    'SelectorRequirement',
     'CreatePVC',
     'DeletePVC',
     'mount_pvc',
@@ -45,6 +47,7 @@ from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
 from kfp.kubernetes.timeout import set_timeout
 from kfp.kubernetes.toleration import add_toleration
+from kfp.kubernetes.affinity import SelectorRequirement, add_node_affinity
 from kfp.kubernetes.volume import add_ephemeral_volume
 from kfp.kubernetes.volume import CreatePVC
 from kfp.kubernetes.volume import DeletePVC
