@@ -45,7 +45,6 @@ users:
 - system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow
 - system:serviceaccount:kubeflow:ml-pipeline-ui
 - system:serviceaccount:kubeflow:ml-pipeline-viewer-crd-service-account
-- system:serviceaccount:kubeflow:ml-pipeline-visualizationserver
 - system:serviceaccount:kubeflow:mysql
 - system:serviceaccount:kubeflow:kfp-csi-s3
 - system:serviceaccount:kubeflow:kfp-csi-attacher

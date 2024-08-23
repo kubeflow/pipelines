@@ -24,7 +24,6 @@ const (
 	RbacResourceTypeRuns               = "runs"
 	RbacResourceTypeJobs               = "jobs"
 	RbacResourceTypeViewers            = "viewers"
-	RbacResourceTypeVisualizations     = "visualizations"
 	RbacResourceTypeScheduledWorkflows = "scheduledworkflows"
 	RbacResourceTypeWorkflows          = "workflows"
 

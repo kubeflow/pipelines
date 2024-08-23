@@ -134,9 +134,3 @@ rules:
   - create
   - get
   - delete
-- apiGroups:
-  - pipelines.kubeflow.org
-  resources:
-  - visualizations
-  verbs:
-  - create

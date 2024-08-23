@@ -27,12 +27,11 @@ import (
 )
 
 var rbacResourceTypeToGroup = map[string]string{
-	common.RbacResourceTypePipelines:      common.RbacPipelinesGroup,
-	common.RbacResourceTypeExperiments:    common.RbacPipelinesGroup,
-	common.RbacResourceTypeRuns:           common.RbacPipelinesGroup,
-	common.RbacResourceTypeJobs:           common.RbacPipelinesGroup,
-	common.RbacResourceTypeViewers:        common.RbacKubeflowGroup,
-	common.RbacResourceTypeVisualizations: common.RbacPipelinesGroup,
+	common.RbacResourceTypePipelines:   common.RbacPipelinesGroup,
+	common.RbacResourceTypeExperiments: common.RbacPipelinesGroup,
+	common.RbacResourceTypeRuns:        common.RbacPipelinesGroup,
+	common.RbacResourceTypeJobs:        common.RbacPipelinesGroup,
+	common.RbacResourceTypeViewers:     common.RbacKubeflowGroup,
 }
 
 type AuthServer struct {

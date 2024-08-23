@@ -25,7 +25,6 @@ import {
 } from 'src/apisv2beta1/pipeline';
 import { RunServiceApi as RunServiceApiV1 } from 'src/apis/run';
 import { RunServiceApi as RunServiceApiV2 } from 'src/apisv2beta1/run';
-import { ApiVisualization, VisualizationServiceApi } from 'src/apis/visualization';
 import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
 import { PlotType } from 'src/components/viewers/Viewer';
 import * as Utils from './Utils';
@@ -76,33 +75,6 @@ export class Apis {
       customVisualizationsAllowed = result === 'true';
     }
     return customVisualizationsAllowed;
-  }
-
-  public static async buildPythonVisualizationConfig(
-    visualizationData: ApiVisualization,
-    namespace?: string,
-  ): Promise<HTMLViewerConfig> {
-    const visualization = await Apis.visualizationServiceApi.createVisualization(
-      namespace || '',
-      visualizationData,
-    );
-    if (visualization.html) {
-      const htmlContent = visualization.html
-        // Fixes issue with TFX components (and other iframe based
-        // visualizations), where the method in which javascript interacts
-        // with embedded iframes is not allowed when embedded in an additional
-        // iframe. This is resolved by setting the srcdoc value rather that
-        // manipulating the document directly.
-        .replace('contentWindow.document.write', 'srcdoc=');
-      return {
-        htmlContent,
-        type: PlotType.WEB_APP,
-      } as HTMLViewerConfig;
-    } else {
-      // This should never be thrown as the html property of a generated
-      // visualization is always set for successful visualization generations.
-      throw new Error('Visualization was generated successfully but generated HTML was not found.');
-    }
   }
 
   /**
@@ -242,17 +214,6 @@ export class Apis {
       );
     }
     return this._runServiceApiV2;
-  }
-
-  public static get visualizationServiceApi(): VisualizationServiceApi {
-    if (!this._visualizationServiceApi) {
-      this._visualizationServiceApi = new VisualizationServiceApi(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
-      );
-    }
-    return this._visualizationServiceApi;
   }
 
   /**
@@ -511,7 +472,6 @@ export class Apis {
   private static _pipelineServiceApiV2?: PipelineServiceApiV2;
   private static _runServiceApiV1?: RunServiceApiV1;
   private static _runServiceApiV2?: RunServiceApiV2;
-  private static _visualizationServiceApi?: VisualizationServiceApi;
 
   /**
    * This function will call this._fetch() and parse the resulting JSON into an object of type T.

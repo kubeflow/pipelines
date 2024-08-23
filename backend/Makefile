@@ -9,7 +9,6 @@ IMG_TAG_PERSISTENCEAGENT  ?= persistence-agent
 IMG_TAG_CACHESERVER       ?= cache-server
 IMG_TAG_SCHEDULEDWORKFLOW ?= scheduledworkflow
 IMG_TAG_VIEWERCONTROLLER  ?= viewercontroller
-IMG_TAG_VISUALIZATION     ?= visualization
 IMG_TAG_DRIVER            ?= kfp-driver
 IMG_TAG_LAUNCHER          ?= kfp-launcher
 
@@ -62,7 +61,7 @@ license_launcher: $(BUILD)/launcher
 	cd $(MOD_ROOT) && go-licenses csv ./backend/src/v2/cmd/launcher-v2 > $(CSV_PATH)/launcher.csv
 
 .PHONY: image_all
-image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_visualization image_driver image_launcher
+image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_driver image_launcher
 
 .PHONY: image_apiserver
 image_apiserver:
@@ -79,9 +78,6 @@ image_swf:
 .PHONY: image_viewer
 image_viewer:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
-.PHONY: image_visualization
-image_visualization:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_VISUALIZATION} -f backend/Dockerfile.visualization .
 .PHONY: image_driver
 image_driver:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .
