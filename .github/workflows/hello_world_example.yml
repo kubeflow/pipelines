@@ -26,5 +26,8 @@ jobs:
       shell: bash
       run: chmod +x ./hello/hello_world.sh 
 
+    - name: Install dos2unix
+      run: sudo apt-get update && sudo apt-get install dos2unix
+
     - name: Run Samples Tests
-      run: dos2unix ./hello/hello_world.sh
+      run: dos2unix ./hello/hello_world.sh && ./hello/hello_world.sh
