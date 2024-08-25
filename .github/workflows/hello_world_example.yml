@@ -27,5 +27,4 @@ jobs:
       run: chmod +x ./hello/hello_world.sh 
 
     - name: Run Samples Tests
-      run: |
-        ./hello/hello_world.sh  
+      run: ./hello/hello_world.sh
