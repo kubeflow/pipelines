@@ -27,4 +27,4 @@ jobs:
       run: chmod +x ./hello/hello_world.sh 
 
     - name: Run Samples Tests
-      run: ./hello/hello_world.sh
+      run: dos2unix ./hello/hello_world.sh
