@@ -150,11 +150,14 @@ jobs:
       - name: Forward API port
         run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
+      - name: Install prerequisites
+        run: pip3 install -r ./test/sample-test/requirements.txt
+
       - name: Basic sample tests - sequential
-        run: pip3 install -r ./test/sample-test/requirements.txt && pip3 install kfp~=2.0 && python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
+        run:  python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
 
       - name: Basic sample tests - exit_handler
-        run: pip3 install -r ./test/sample-test/requirements.txt && pip3 install kfp~=2.0 && python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name exit_handler --results-gcs-dir output
+        run: python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name exit_handler --results-gcs-dir output
 
       - name: Collect test results
         if: always()
