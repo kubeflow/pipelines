@@ -18,6 +18,7 @@ import enum
 import functools
 import inspect
 import itertools
+import os
 import re
 from typing import Any, Dict, List, Mapping, Optional, Union
 import warnings
@@ -130,7 +131,8 @@ class PipelineTask:
             inputs=dict(args.items()),
             dependent_tasks=[],
             component_ref=component_spec.name,
-            enable_caching=True)
+            enable_caching=os.getenv('KFP_EXECUTION_CACHING_ENABLED_BY_DEFAULT',
+                                     'enabled').lower() == 'enabled')
         self._run_after: List[str] = []
 
         self.importer_spec = None

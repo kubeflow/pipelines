@@ -133,14 +133,34 @@ def parse_parameters(parameters: Optional[str]) -> Dict:
     is_flag=True,
     default=False,
     help='Whether to disable type checking.')
+@click.option(
+    '--execution-caching-enabled-by-default',
+    type=click.Choice(['enabled', 'disabled'], case_sensitive=False),
+    default=None,
+    help='Enable task-level caching. Enabled by default, set it to disabled to disable caching.'
+)
 def compile_(
     py: str,
     output: str,
     function_name: Optional[str] = None,
     pipeline_parameters: Optional[str] = None,
     disable_type_check: bool = False,
+    execution_caching_enabled_by_default: Optional[bool] = None,
 ) -> None:
     """Compiles a pipeline or component written in a .py file."""
+
+    env_enable_caching = os.getenv('KFP_EXECUTION_CACHING_ENABLED_BY_DEFAULT',
+                                   'enabled').lower() == 'enabled'
+    if execution_caching_enabled_by_default is None:
+        execution_caching_enabled_by_default = env_enable_caching
+    else:
+        execution_caching_enabled_by_default = execution_caching_enabled_by_default.lower(
+        ) == 'enabled'
+        if execution_caching_enabled_by_default:
+            os.environ['KFP_EXECUTION_CACHING_ENABLED_BY_DEFAULT'] = 'enabled'
+        else:
+            os.environ['KFP_EXECUTION_CACHING_ENABLED_BY_DEFAULT'] = 'disabled'
+
     pipeline_func = collect_pipeline_or_component_func(
         python_file=py, function_name=function_name)
     parsed_parameters = parse_parameters(parameters=pipeline_parameters)

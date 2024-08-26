@@ -17,6 +17,7 @@ import ast
 import collections
 import dataclasses
 import itertools
+import os
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import uuid
@@ -420,7 +421,8 @@ class TaskSpec:
     trigger_strategy: Optional[str] = None
     iterator_items: Optional[Any] = None
     iterator_item_input: Optional[str] = None
-    enable_caching: bool = True
+    enable_caching: bool = os.getenv('KFP_EXECUTION_CACHING_ENABLED_BY_DEFAULT',
+                                     'enabled').lower() == 'enabled'
     display_name: Optional[str] = None
     retry_policy: Optional[RetryPolicy] = None
 
