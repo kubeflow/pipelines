@@ -71,7 +71,9 @@ class SampleTest(object):
                 raise RuntimeError(
                     'Failed to get inverse proxy hostname') from err
 
-        print('KFP API host is %s' % self._host)
+        # With the healthz API in place, when the developer clicks the link,
+        # it will lead to a functional URL instead of a 404 error.
+        print(f'KFP API healthz endpoint is: {self._host}/apis/v1beta1/healthz')
 
         self._is_notebook = None
         self._work_dir = os.path.join(BASE_DIR, 'samples/core/',
@@ -88,7 +90,9 @@ class SampleTest(object):
         # Looking for the entry point of the test.
         list_of_files = os.listdir('.')
         for file in list_of_files:
-            m = re.match(self._test_name + '\.[a-zA-Z]+', file)
+            # matching by .py or .ipynb, there will be yaml ( compiled ) files in the folder.
+            # if you rerun the test suite twice, the test suite will fail
+            m = re.match(self._test_name + '\.(py|ipynb)$', file)
             if m:
                 file_name, ext_name = os.path.splitext(file)
                 if self._is_notebook is not None:
@@ -156,13 +160,16 @@ class SampleTest(object):
                 parameters=nb_params,
                 prepare_only=True)
             # Convert to python script.
-            subprocess.call([
+            return_code = subprocess.call([
                 'jupyter', 'nbconvert', '--to', 'python',
                 '%s.ipynb' % self._test_name
             ])
 
         else:
-            subprocess.call(['python3', '%s.py' % self._test_name])
+            return_code = subprocess.call(['python3', '%s.py' % self._test_name])
+
+        # Command executed successfully!
+        assert return_code == 0
 
     def _injection(self):
         """Inject images for pipeline components.
