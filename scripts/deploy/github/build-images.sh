@@ -19,6 +19,7 @@
 set -e
 
 REGISTRY="${REGISTRY:-kind-registry:5000}"
+echo "REGISTRY=$REGISTRY"
 TAG="${TAG:-latest}"
 EXIT_CODE=0
 
