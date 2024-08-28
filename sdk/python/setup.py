@@ -32,7 +32,7 @@ REQUIRES = [
     # google-api-python-client v2 doesn't work for private dicovery by default:
     # https://github.com/googleapis/google-api-python-client/issues/1225#issuecomment-791058235
     'google-api-python-client>=1.7.8,<2',
-    'google-auth>=1.6.1,<2',
+    'google-auth>=1.6.1,<3',
     'requests-toolbelt>=0.8.0,<1',
     'cloudpickle>=2.0.0,<3',
     # Update the upper version whenever a new major version of the
