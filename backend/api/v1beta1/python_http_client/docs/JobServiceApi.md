@@ -4,16 +4,16 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**create_job**](JobServiceApi.md#create_job) | **POST** /apis/v1beta1/jobs | Creates a new job.
-[**delete_job**](JobServiceApi.md#delete_job) | **DELETE** /apis/v1beta1/jobs/{id} | Deletes a job.
-[**disable_job**](JobServiceApi.md#disable_job) | **POST** /apis/v1beta1/jobs/{id}/disable | Stops a job and all its associated runs. The job is not deleted.
-[**enable_job**](JobServiceApi.md#enable_job) | **POST** /apis/v1beta1/jobs/{id}/enable | Restarts a job that was previously stopped. All runs associated with the job will continue.
-[**get_job**](JobServiceApi.md#get_job) | **GET** /apis/v1beta1/jobs/{id} | Finds a specific job by ID.
-[**list_jobs**](JobServiceApi.md#list_jobs) | **GET** /apis/v1beta1/jobs | Finds all jobs.
+[**job_service_create_job**](JobServiceApi.md#job_service_create_job) | **POST** /apis/v1beta1/jobs | Creates a new job.
+[**job_service_delete_job**](JobServiceApi.md#job_service_delete_job) | **DELETE** /apis/v1beta1/jobs/{id} | Deletes a job.
+[**job_service_disable_job**](JobServiceApi.md#job_service_disable_job) | **POST** /apis/v1beta1/jobs/{id}/disable | Stops a job and all its associated runs. The job is not deleted.
+[**job_service_enable_job**](JobServiceApi.md#job_service_enable_job) | **POST** /apis/v1beta1/jobs/{id}/enable | Restarts a job that was previously stopped. All runs associated with the job will continue.
+[**job_service_get_job**](JobServiceApi.md#job_service_get_job) | **GET** /apis/v1beta1/jobs/{id} | Finds a specific job by ID.
+[**job_service_list_jobs**](JobServiceApi.md#job_service_list_jobs) | **GET** /apis/v1beta1/jobs | Finds all jobs.
 
 
-# **create_job**
-> ApiJob create_job(body)
+# **job_service_create_job**
+> ApiJob job_service_create_job(body)
 
 Creates a new job.
 
@@ -55,10 +55,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Creates a new job.
-        api_response = api_instance.create_job(body)
+        api_response = api_instance.job_service_create_job(body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling JobServiceApi->create_job: %s\n" % e)
+        print("Exception when calling JobServiceApi->job_service_create_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -84,12 +84,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **delete_job**
-> object delete_job(id)
+# **job_service_delete_job**
+> object job_service_delete_job(id)
 
 Deletes a job.
 
@@ -131,10 +131,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Deletes a job.
-        api_response = api_instance.delete_job(id)
+        api_response = api_instance.job_service_delete_job(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling JobServiceApi->delete_job: %s\n" % e)
+        print("Exception when calling JobServiceApi->job_service_delete_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -160,12 +160,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **disable_job**
-> object disable_job(id)
+# **job_service_disable_job**
+> object job_service_disable_job(id)
 
 Stops a job and all its associated runs. The job is not deleted.
 
@@ -207,10 +207,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Stops a job and all its associated runs. The job is not deleted.
-        api_response = api_instance.disable_job(id)
+        api_response = api_instance.job_service_disable_job(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling JobServiceApi->disable_job: %s\n" % e)
+        print("Exception when calling JobServiceApi->job_service_disable_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -236,12 +236,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **enable_job**
-> object enable_job(id)
+# **job_service_enable_job**
+> object job_service_enable_job(id)
 
 Restarts a job that was previously stopped. All runs associated with the job will continue.
 
@@ -283,10 +283,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Restarts a job that was previously stopped. All runs associated with the job will continue.
-        api_response = api_instance.enable_job(id)
+        api_response = api_instance.job_service_enable_job(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling JobServiceApi->enable_job: %s\n" % e)
+        print("Exception when calling JobServiceApi->job_service_enable_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -312,12 +312,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **get_job**
-> ApiJob get_job(id)
+# **job_service_get_job**
+> ApiJob job_service_get_job(id)
 
 Finds a specific job by ID.
 
@@ -359,10 +359,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Finds a specific job by ID.
-        api_response = api_instance.get_job(id)
+        api_response = api_instance.job_service_get_job(id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling JobServiceApi->get_job: %s\n" % e)
+        print("Exception when calling JobServiceApi->job_service_get_job: %s\n" % e)
 ```
 
 ### Parameters
@@ -388,12 +388,12 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **list_jobs**
-> ApiListJobsResponse list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
+# **job_service_list_jobs**
+> ApiListJobsResponse job_service_list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
 
 Finds all jobs.
 
@@ -440,10 +440,10 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol
 
     try:
         # Finds all jobs.
-        api_response = api_instance.list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
+        api_response = api_instance.job_service_list_jobs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id, filter=filter)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling JobServiceApi->list_jobs: %s\n" % e)
+        print("Exception when calling JobServiceApi->job_service_list_jobs: %s\n" % e)
 ```
 
 ### Parameters
@@ -474,7 +474,7 @@ Name | Type | Description  | Notes
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | A successful response. |  -  |
-**0** |  |  -  |
+**0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

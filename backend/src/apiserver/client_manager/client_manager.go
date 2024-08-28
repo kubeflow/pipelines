@@ -202,7 +202,7 @@ func (c *ClientManager) init() {
 		Burst: common.GetIntConfigWithDefault(clientBurst, 10),
 	}
 
-	c.execClient = util.NewExecutionClientOrFatal(util.ArgoWorkflow, common.GetDurationConfig(initConnectionTimeout), clientParams)
+	c.execClient = util.NewExecutionClientOrFatal(util.CurrentExecutionType(), common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 

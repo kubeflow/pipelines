@@ -28,6 +28,7 @@ const renderExternalLink = (props: {}) => (
 
 const options = {
   overrides: { a: { component: renderExternalLink } },
+  disableParsingRawHTML: true,
 };
 
 const optionsForceInline = {

@@ -28,43 +28,43 @@ class TestExperimentServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_archive_experiment_v1(self):
-        """Test case for archive_experiment_v1
+    def test_experiment_service_archive_experiment_v1(self):
+        """Test case for experiment_service_archive_experiment_v1
 
         Archives an experiment and the experiment's runs and jobs.  # noqa: E501
         """
         pass
 
-    def test_create_experiment_v1(self):
-        """Test case for create_experiment_v1
+    def test_experiment_service_create_experiment_v1(self):
+        """Test case for experiment_service_create_experiment_v1
 
         Creates a new experiment.  # noqa: E501
         """
         pass
 
-    def test_delete_experiment_v1(self):
-        """Test case for delete_experiment_v1
+    def test_experiment_service_delete_experiment_v1(self):
+        """Test case for experiment_service_delete_experiment_v1
 
         Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.  # noqa: E501
         """
         pass
 
-    def test_get_experiment_v1(self):
-        """Test case for get_experiment_v1
+    def test_experiment_service_get_experiment_v1(self):
+        """Test case for experiment_service_get_experiment_v1
 
         Finds a specific experiment by ID.  # noqa: E501
         """
         pass
 
-    def test_list_experiments_v1(self):
-        """Test case for list_experiments_v1
+    def test_experiment_service_list_experiments_v1(self):
+        """Test case for experiment_service_list_experiments_v1
 
         Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
         """
         pass
 
-    def test_unarchive_experiment_v1(self):
-        """Test case for unarchive_experiment_v1
+    def test_experiment_service_unarchive_experiment_v1(self):
+        """Test case for experiment_service_unarchive_experiment_v1
 
         Restores an archived experiment. The experiment's archived runs and jobs will stay archived.  # noqa: E501
         """

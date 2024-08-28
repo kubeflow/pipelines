@@ -77,7 +77,7 @@ func NewPipelineClientFake() *PipelineClientFake {
 	return &PipelineClientFake{}
 }
 
-func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineV1Params) (
+func (c *PipelineClientFake) Create(params *pipelineparams.PipelineServiceCreatePipelineV1Params) (
 	*pipelinemodel.APIPipeline, error) {
 	switch params.Body.URL.PipelineURL {
 	case PipelineInvalidURL:
@@ -87,7 +87,7 @@ func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineV1Param
 	}
 }
 
-func (c *PipelineClientFake) Get(params *pipelineparams.GetPipelineV1Params) (
+func (c *PipelineClientFake) Get(params *pipelineparams.PipelineServiceGetPipelineV1Params) (
 	*pipelinemodel.APIPipeline, error) {
 	switch params.ID {
 	case PipelineForClientErrorTest:
@@ -97,7 +97,7 @@ func (c *PipelineClientFake) Get(params *pipelineparams.GetPipelineV1Params) (
 	}
 }
 
-func (c *PipelineClientFake) Delete(params *pipelineparams.DeletePipelineV1Params) error {
+func (c *PipelineClientFake) Delete(params *pipelineparams.PipelineServiceDeletePipelineV1Params) error {
 	switch params.ID {
 	case PipelineForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)
@@ -106,7 +106,7 @@ func (c *PipelineClientFake) Delete(params *pipelineparams.DeletePipelineV1Param
 	}
 }
 
-func (c *PipelineClientFake) GetTemplate(params *pipelineparams.GetTemplateParams) (
+func (c *PipelineClientFake) GetTemplate(params *pipelineparams.PipelineServiceGetTemplateParams) (
 	template.Template, error) {
 	switch params.ID {
 	case PipelineForClientErrorTest:
@@ -116,7 +116,7 @@ func (c *PipelineClientFake) GetTemplate(params *pipelineparams.GetTemplateParam
 	}
 }
 
-func (c *PipelineClientFake) List(params *pipelineparams.ListPipelinesV1Params) (
+func (c *PipelineClientFake) List(params *pipelineparams.PipelineServiceListPipelinesV1Params) (
 	[]*pipelinemodel.APIPipeline, int, string, error) {
 
 	const (
@@ -145,12 +145,12 @@ func (c *PipelineClientFake) List(params *pipelineparams.ListPipelinesV1Params) 
 	}
 }
 
-func (c *PipelineClientFake) ListAll(params *pipelineparams.ListPipelinesV1Params,
+func (c *PipelineClientFake) ListAll(params *pipelineparams.PipelineServiceListPipelinesV1Params,
 	maxResultSize int) ([]*pipelinemodel.APIPipeline, error) {
 	return listAllForPipeline(c, params, maxResultSize)
 }
 
-func (c *PipelineClientFake) UpdateDefaultVersion(params *params.UpdatePipelineDefaultVersionV1Params) error {
+func (c *PipelineClientFake) UpdateDefaultVersion(params *params.PipelineServiceUpdatePipelineDefaultVersionV1Params) error {
 	switch params.PipelineID {
 	case PipelineForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)

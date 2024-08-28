@@ -16,6 +16,12 @@ from kfp import dsl
 from kfp import kubernetes
 from kfp import compiler
 
+# Note: this sample will only work if this secret is pre-created before running this pipeline.
+# Is is pre-created by default only in the Google Cloud distribution listed here:
+# https://www.kubeflow.org/docs/started/installing-kubeflow/#packaged-distributions-of-kubeflow
+# If you are using a different distribution, you'll need to pre-create the secret yourself, or
+# use a different secret that you know will exist.
+SECRET_NAME = "user-gcp-sa"
 
 @dsl.component
 def comp():
@@ -49,7 +55,7 @@ def comp():
 def pipeline_secret_volume():
     task = comp()
     kubernetes.use_secret_as_volume(
-        task, secret_name='user-gcp-sa', mount_path='/mnt/my_vol')
+        task, secret_name=SECRET_NAME, mount_path='/mnt/my_vol')
 
 
 if __name__ == '__main__':

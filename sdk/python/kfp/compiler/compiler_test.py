@@ -749,6 +749,41 @@ implementation:
             pipeline_spec['root']['dag']['tasks']['for-loop-2']
             ['iteratorPolicy']['parallelismLimit'], 2)
 
+    def test_compile_parallel_for_with_incompatible_input_type(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.component
+        def list_dict_maker() -> List[Dict[str, int]]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        with self.assertRaisesRegex(
+                type_utils.InconsistentTypeException,
+                "Incompatible argument passed to the input 'item' of component 'producer-op': Argument type 'NUMBER_INTEGER' is incompatible with the input type 'STRING'"
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(text: bool):
+                with dsl.ParallelFor(items=list_dict_maker().output) as item:
+                    producer_task = producer_op(item=item.a)
+
+    def test_compile_parallel_for_with_relaxed_type_checking(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.component
+        def list_dict_maker() -> List[Dict]:
+            return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
+
+        @dsl.pipeline
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(items=list_dict_maker().output) as item:
+                producer_task = producer_op(item=item.a)
+
     def test_compile_parallel_for_with_invalid_parallelism(self):
 
         @dsl.component
@@ -789,6 +824,33 @@ implementation:
             for_loop_2['iteratorPolicy']
         with self.assertRaises(KeyError):
             for_loop_4['iteratorPolicy']
+
+    def test_cannot_compile_parallel_for_with_single_param(self):
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Cannot iterate over a single parameter using `dsl\.ParallelFor`\. Expected a list of parameters as argument to `items`\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                single_param_task = print_and_return(text='string')
+                with dsl.ParallelFor(items=single_param_task.output) as item:
+                    print_and_return(text=item)
+
+    def test_cannot_compile_parallel_for_with_single_artifact(self):
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Cannot iterate over a single artifact using `dsl\.ParallelFor`\. Expected a list of artifacts as argument to `items`\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                single_artifact_task = print_and_return_as_artifact(
+                    text='string')
+                with dsl.ParallelFor(items=single_artifact_task.output) as item:
+                    print_artifact(a=item)
 
     def test_pipeline_in_pipeline(self):
 
@@ -4786,6 +4848,12 @@ class TestDslOneOf(unittest.TestCase):
                 x = dsl.OneOf(print_task_1.outputs['a'],
                               print_task_2.outputs['a'])
                 print_artifact(a=x)
+                # test can be consumed multiple times from same oneof object
+                print_artifact(a=x)
+                y = dsl.OneOf(print_task_1.outputs['a'],
+                              print_task_2.outputs['a'])
+                # test can be consumed multiple times from different equivalent oneof objects
+                print_artifact(a=y)
 
         # hole punched through if
         self.assertEqual(

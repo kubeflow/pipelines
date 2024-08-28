@@ -36,13 +36,13 @@ class RunServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def archive_run(self, run_id, **kwargs):  # noqa: E501
+    def run_service_archive_run(self, run_id, **kwargs):  # noqa: E501
         """Archives a run in an experiment given by run ID and experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.archive_run(run_id, async_req=True)
+        >>> thread = api.run_service_archive_run(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be archived. (required)
@@ -62,15 +62,15 @@ class RunServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.archive_run_with_http_info(run_id, **kwargs)  # noqa: E501
+        return self.run_service_archive_run_with_http_info(run_id, **kwargs)  # noqa: E501
 
-    def archive_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
+    def run_service_archive_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
         """Archives a run in an experiment given by run ID and experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.archive_run_with_http_info(run_id, async_req=True)
+        >>> thread = api.run_service_archive_run_with_http_info(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be archived. (required)
@@ -112,14 +112,14 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method archive_run" % key
+                    " to method run_service_archive_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'run_id' is set
         if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `run_id` when calling `archive_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `run_service_archive_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -158,17 +158,19 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def create_run(self, body, **kwargs):  # noqa: E501
+    def run_service_create_run(self, body, **kwargs):  # noqa: E501
         """Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_run(body, async_req=True)
+        >>> thread = api.run_service_create_run(body, async_req=True)
         >>> result = thread.get()
 
         :param body: Run to be created. (required)
         :type body: V2beta1Run
+        :param experiment_id: The ID of the parent experiment.
+        :type experiment_id: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -184,19 +186,21 @@ class RunServiceApi(object):
         :rtype: V2beta1Run
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_run_with_http_info(body, **kwargs)  # noqa: E501
+        return self.run_service_create_run_with_http_info(body, **kwargs)  # noqa: E501
 
-    def create_run_with_http_info(self, body, **kwargs):  # noqa: E501
+    def run_service_create_run_with_http_info(self, body, **kwargs):  # noqa: E501
         """Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_run_with_http_info(body, async_req=True)
+        >>> thread = api.run_service_create_run_with_http_info(body, async_req=True)
         >>> result = thread.get()
 
         :param body: Run to be created. (required)
         :type body: V2beta1Run
+        :param experiment_id: The ID of the parent experiment.
+        :type experiment_id: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -219,7 +223,8 @@ class RunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'body'
+            'body',
+            'experiment_id'
         ]
         all_params.extend(
             [
@@ -234,20 +239,22 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method create_run" % key
+                    " to method run_service_create_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'body' is set
         if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
                                                         local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `create_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `body` when calling `run_service_create_run`")  # noqa: E501
 
         collection_formats = {}
 
         path_params = {}
 
         query_params = []
+        if 'experiment_id' in local_var_params and local_var_params['experiment_id'] is not None:  # noqa: E501
+            query_params.append(('experiment_id', local_var_params['experiment_id']))  # noqa: E501
 
         header_params = {}
 
@@ -284,13 +291,13 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def delete_run(self, run_id, **kwargs):  # noqa: E501
+    def run_service_delete_run(self, run_id, **kwargs):  # noqa: E501
         """Deletes a run in an experiment given by run ID and experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_run(run_id, async_req=True)
+        >>> thread = api.run_service_delete_run(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be deleted. (required)
@@ -312,15 +319,15 @@ class RunServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.delete_run_with_http_info(run_id, **kwargs)  # noqa: E501
+        return self.run_service_delete_run_with_http_info(run_id, **kwargs)  # noqa: E501
 
-    def delete_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
+    def run_service_delete_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
         """Deletes a run in an experiment given by run ID and experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_run_with_http_info(run_id, async_req=True)
+        >>> thread = api.run_service_delete_run_with_http_info(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be deleted. (required)
@@ -365,14 +372,14 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method delete_run" % key
+                    " to method run_service_delete_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'run_id' is set
         if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `run_id` when calling `delete_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `run_service_delete_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -413,13 +420,13 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def get_run(self, run_id, **kwargs):  # noqa: E501
+    def run_service_get_run(self, run_id, **kwargs):  # noqa: E501
         """Finds a specific run by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_run(run_id, async_req=True)
+        >>> thread = api.run_service_get_run(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be retrieved. (required)
@@ -441,15 +448,15 @@ class RunServiceApi(object):
         :rtype: V2beta1Run
         """
         kwargs['_return_http_data_only'] = True
-        return self.get_run_with_http_info(run_id, **kwargs)  # noqa: E501
+        return self.run_service_get_run_with_http_info(run_id, **kwargs)  # noqa: E501
 
-    def get_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
+    def run_service_get_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
         """Finds a specific run by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_run_with_http_info(run_id, async_req=True)
+        >>> thread = api.run_service_get_run_with_http_info(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be retrieved. (required)
@@ -494,14 +501,14 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method get_run" % key
+                    " to method run_service_get_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'run_id' is set
         if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `run_id` when calling `get_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `run_service_get_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -542,13 +549,13 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def list_runs(self, **kwargs):  # noqa: E501
+    def run_service_list_runs(self, **kwargs):  # noqa: E501
         """Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_runs(async_req=True)
+        >>> thread = api.run_service_list_runs(async_req=True)
         >>> result = thread.get()
 
         :param namespace: Optional input field. Filters based on the namespace.
@@ -578,15 +585,15 @@ class RunServiceApi(object):
         :rtype: V2beta1ListRunsResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.list_runs_with_http_info(**kwargs)  # noqa: E501
+        return self.run_service_list_runs_with_http_info(**kwargs)  # noqa: E501
 
-    def list_runs_with_http_info(self, **kwargs):  # noqa: E501
+    def run_service_list_runs_with_http_info(self, **kwargs):  # noqa: E501
         """Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_runs_with_http_info(async_req=True)
+        >>> thread = api.run_service_list_runs_with_http_info(async_req=True)
         >>> result = thread.get()
 
         :param namespace: Optional input field. Filters based on the namespace.
@@ -643,7 +650,7 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method list_runs" % key
+                    " to method run_service_list_runs" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
@@ -695,13 +702,13 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def read_artifact(self, run_id, node_id, artifact_name, **kwargs):  # noqa: E501
+    def run_service_read_artifact(self, run_id, node_id, artifact_name, **kwargs):  # noqa: E501
         """Finds artifact data in a run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.read_artifact(run_id, node_id, artifact_name, async_req=True)
+        >>> thread = api.run_service_read_artifact(run_id, node_id, artifact_name, async_req=True)
         >>> result = thread.get()
 
         :param run_id: ID of the run. (required)
@@ -727,15 +734,15 @@ class RunServiceApi(object):
         :rtype: V2beta1ReadArtifactResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.read_artifact_with_http_info(run_id, node_id, artifact_name, **kwargs)  # noqa: E501
+        return self.run_service_read_artifact_with_http_info(run_id, node_id, artifact_name, **kwargs)  # noqa: E501
 
-    def read_artifact_with_http_info(self, run_id, node_id, artifact_name, **kwargs):  # noqa: E501
+    def run_service_read_artifact_with_http_info(self, run_id, node_id, artifact_name, **kwargs):  # noqa: E501
         """Finds artifact data in a run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.read_artifact_with_http_info(run_id, node_id, artifact_name, async_req=True)
+        >>> thread = api.run_service_read_artifact_with_http_info(run_id, node_id, artifact_name, async_req=True)
         >>> result = thread.get()
 
         :param run_id: ID of the run. (required)
@@ -786,22 +793,22 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method read_artifact" % key
+                    " to method run_service_read_artifact" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'run_id' is set
         if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `run_id` when calling `read_artifact`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `run_service_read_artifact`")  # noqa: E501
         # verify the required parameter 'node_id' is set
         if self.api_client.client_side_validation and ('node_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['node_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `node_id` when calling `read_artifact`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `node_id` when calling `run_service_read_artifact`")  # noqa: E501
         # verify the required parameter 'artifact_name' is set
         if self.api_client.client_side_validation and ('artifact_name' not in local_var_params or  # noqa: E501
                                                         local_var_params['artifact_name'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `artifact_name` when calling `read_artifact`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `artifact_name` when calling `run_service_read_artifact`")  # noqa: E501
 
         collection_formats = {}
 
@@ -846,13 +853,13 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def retry_run(self, run_id, **kwargs):  # noqa: E501
+    def run_service_retry_run(self, run_id, **kwargs):  # noqa: E501
         """Re-initiates a failed or terminated run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.retry_run(run_id, async_req=True)
+        >>> thread = api.run_service_retry_run(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be retried. (required)
@@ -872,15 +879,15 @@ class RunServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.retry_run_with_http_info(run_id, **kwargs)  # noqa: E501
+        return self.run_service_retry_run_with_http_info(run_id, **kwargs)  # noqa: E501
 
-    def retry_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
+    def run_service_retry_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
         """Re-initiates a failed or terminated run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.retry_run_with_http_info(run_id, async_req=True)
+        >>> thread = api.run_service_retry_run_with_http_info(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be retried. (required)
@@ -922,14 +929,14 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method retry_run" % key
+                    " to method run_service_retry_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'run_id' is set
         if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `run_id` when calling `retry_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `run_service_retry_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -968,13 +975,13 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def terminate_run(self, run_id, **kwargs):  # noqa: E501
+    def run_service_terminate_run(self, run_id, **kwargs):  # noqa: E501
         """Terminates an active run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.terminate_run(run_id, async_req=True)
+        >>> thread = api.run_service_terminate_run(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be terminated. (required)
@@ -994,15 +1001,15 @@ class RunServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.terminate_run_with_http_info(run_id, **kwargs)  # noqa: E501
+        return self.run_service_terminate_run_with_http_info(run_id, **kwargs)  # noqa: E501
 
-    def terminate_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
+    def run_service_terminate_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
         """Terminates an active run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.terminate_run_with_http_info(run_id, async_req=True)
+        >>> thread = api.run_service_terminate_run_with_http_info(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be terminated. (required)
@@ -1044,14 +1051,14 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method terminate_run" % key
+                    " to method run_service_terminate_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'run_id' is set
         if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `run_id` when calling `terminate_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `run_service_terminate_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -1090,13 +1097,13 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def unarchive_run(self, run_id, **kwargs):  # noqa: E501
+    def run_service_unarchive_run(self, run_id, **kwargs):  # noqa: E501
         """Restores an archived run in an experiment given by run ID and experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.unarchive_run(run_id, async_req=True)
+        >>> thread = api.run_service_unarchive_run(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be restored. (required)
@@ -1116,15 +1123,15 @@ class RunServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.unarchive_run_with_http_info(run_id, **kwargs)  # noqa: E501
+        return self.run_service_unarchive_run_with_http_info(run_id, **kwargs)  # noqa: E501
 
-    def unarchive_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
+    def run_service_unarchive_run_with_http_info(self, run_id, **kwargs):  # noqa: E501
         """Restores an archived run in an experiment given by run ID and experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.unarchive_run_with_http_info(run_id, async_req=True)
+        >>> thread = api.run_service_unarchive_run_with_http_info(run_id, async_req=True)
         >>> result = thread.get()
 
         :param run_id: The ID of the run to be restored. (required)
@@ -1166,14 +1173,14 @@ class RunServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method unarchive_run" % key
+                    " to method run_service_unarchive_run" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'run_id' is set
         if self.api_client.client_side_validation and ('run_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['run_id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `run_id` when calling `unarchive_run`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run_id` when calling `run_service_unarchive_run`")  # noqa: E501
 
         collection_formats = {}
 

@@ -18,6 +18,7 @@ package metadata
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
@@ -27,6 +28,7 @@ import (
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"github.com/golang/glog"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -92,7 +94,7 @@ type ClientInterface interface {
 	GetContexts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*pb.Context, *string, error)
 	GetArtifactsByID(ctx context.Context, ids []int64) ([]*pb.Artifact, error)
 	GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string]*OutputArtifact, error)
-	RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error)
+	RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error)
 	GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error)
 	FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error)
 	GetContextByArtifactID(ctx context.Context, id int64) (*pb.Context, error)
@@ -273,6 +275,26 @@ func (e *Execution) FingerPrint() string {
 		return ""
 	}
 	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
+}
+
+// GenerateOutputURI appends the specified paths to the pipeline root.
+// It may be configured to preserve the query part of the pipeline root
+// by splitting it off and appending it back to the full URI.
+func GenerateOutputURI(pipelineRoot string, paths []string, preserveQueryString bool) string {
+	querySplit := strings.Split(pipelineRoot, "?")
+	query := ""
+	if len(querySplit) == 2 {
+		pipelineRoot = querySplit[0]
+		if preserveQueryString {
+			query = "?" + querySplit[1]
+		}
+	} else if len(querySplit) > 2 {
+		// this should never happen, but just in case.
+		glog.Warningf("Unexpected pipeline root: %v", pipelineRoot)
+	}
+	// we cannot path.Join(root, taskName, artifactName), because root
+	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
+	return fmt.Sprintf("%s/%s%s", strings.TrimRight(pipelineRoot, "/"), path.Join(paths...), query)
 }
 
 // GetPipeline returns the current pipeline represented by the specified
@@ -697,29 +719,43 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	// Note, because MLMD does not have index on custom properties right now, we
 	// take a pipeline run context to limit the number of executions the DB needs to
 	// iterate through to find sub-executions.
+
+	nextPageToken := ""
+
 	res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
 		ContextId: pipeline.pipelineRunCtx.Id,
 		Options: &pb.ListOperationOptions{
-			FilterQuery: &parentDAGFilter,
+			FilterQuery:   &parentDAGFilter,
+			NextPageToken: &nextPageToken,
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
-	execs := res.GetExecutions()
-	for _, e := range execs {
-		execution := &Execution{execution: e}
-		taskName := execution.TaskName()
-		if taskName == "" {
-			return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+
+	for {
+		execs := res.GetExecutions()
+		for _, e := range execs {
+			execution := &Execution{execution: e}
+			taskName := execution.TaskName()
+			if taskName == "" {
+				return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+			}
+			existing, ok := executionsMap[taskName]
+			if ok {
+				// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
+				return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+			}
+			executionsMap[taskName] = execution
 		}
-		existing, ok := executionsMap[taskName]
-		if ok {
-			// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
-			return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+
+		nextPageToken = res.GetNextPageToken()
+
+		if nextPageToken == "" {
+			break
 		}
-		executionsMap[taskName] = execution
 	}
+
 	return executionsMap, nil
 }
 
@@ -870,7 +906,7 @@ func SchemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 }
 
 // RecordArtifact ...
-func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error) {
+func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error) {
 	artifact, err := toMLMDArtifact(runtimeArtifact)
 	if err != nil {
 		return nil, err
@@ -893,6 +929,19 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	if _, ok := artifact.CustomProperties["display_name"]; !ok {
 		// display name default value
 		artifact.CustomProperties["display_name"] = stringValue(outputName)
+	}
+
+	// An artifact can belong to an external store specified via kfp-launcher
+	// or via executor environment (e.g. IRSA)
+	// This allows us to easily identify where to locate the artifact both
+	// in user executor environment as well as in kfp ui
+	if _, ok := artifact.CustomProperties["store_session_info"]; !ok {
+		storeSessionInfoJSON, err1 := json.Marshal(bucketConfig.SessionInfo)
+		if err1 != nil {
+			return nil, err1
+		}
+		storeSessionInfoStr := string(storeSessionInfoJSON)
+		artifact.CustomProperties["store_session_info"] = stringValue(storeSessionInfoStr)
 	}
 
 	res, err := c.svc.PutArtifacts(ctx, &pb.PutArtifactsRequest{

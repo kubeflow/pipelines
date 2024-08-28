@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/auth": {
       "get": {
-        "operationId": "AuthorizeV1",
+        "operationId": "AuthService_AuthorizeV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -26,9 +26,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -91,7 +91,7 @@
       "default": "UNASSIGNED_VERB",
       "description": "Type of verbs that act on the resources."
     },
-    "apiStatus": {
+    "gatewayruntimeError": {
       "type": "object",
       "properties": {
         "error": {
@@ -100,6 +100,9 @@
         "code": {
           "type": "integer",
           "format": "int32"
+        },
+        "message": {
+          "type": "string"
         },
         "details": {
           "type": "array",

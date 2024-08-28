@@ -31,10 +31,12 @@ if ! which kustomize; then
   # Download kustomize cli tool
   TOOL_DIR=${DIR}/bin
   mkdir -p ${TOOL_DIR}
-  # Use 2.0.3 because we want it to be compatible with kubectl apply -k.
-  # The change in https://github.com/kubernetes-sigs/kustomize/blob/master/docs/v2.1.0.md#envs-field broke backward compatibility.
-  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v2.0.3/kustomize_2.0.3_linux_amd64 \
-    -O ${TOOL_DIR}/kustomize --no-verbose
+  # Use 5.2.1 because we want it to be compatible with latest kustomize syntax changes
+  # See discussions tracked in https://github.com/kubeflow/manifests/issues/2388 and https://github.com/kubeflow/manifests/pull/2653.
+  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.2.1/kustomize_v5.2.1_linux_amd64.tar.gz \
+    -O kustomize_linux_amd64.tar.gz  
+  tar -xzvf kustomize_linux_amd64.tar.gz kustomize  
+  mv kustomize ${TOOL_DIR}/kustomize 
   chmod +x ${TOOL_DIR}/kustomize
   PATH=${PATH}:${TOOL_DIR}
 fi
@@ -44,7 +46,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   KFP_MANIFEST_DIR=${DIR}/manifests
 
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
-  kubectl apply -k .
+  kustomize build | kubectl apply -f -
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
@@ -64,7 +66,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   kustomize edit set image gcr.io/ml-pipeline/metadata-envoy=${GCR_IMAGE_BASE_DIR}/metadata-envoy:${GCR_IMAGE_TAG}
   cat kustomization.yaml
 
-  kubectl apply -k .
+  kustomize build | kubectl apply -f -
   popd
 else
   # exclude SDK release tags
@@ -75,13 +77,13 @@ else
   git checkout $KFP_LATEST_RELEASE
 
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
-  kubectl apply -k .
+  kustomize build | kubectl apply -f -
 
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
-  kubectl apply -k .
+  kustomize build | kubectl apply -f -
   popd
 
   # go back to previous commit

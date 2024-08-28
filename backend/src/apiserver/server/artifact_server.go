@@ -17,6 +17,10 @@ package server
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -27,9 +31,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	authorizationv1 "k8s.io/api/authorization/v1"
-	"strconv"
-	"strings"
-	"time"
 )
 
 var (
@@ -212,7 +213,12 @@ func (s *ArtifactServer) generateResponseArtifact(
 	namespace string,
 	includeShareUrl bool,
 ) (*apiv2beta1.Artifact, error) {
-	secret, err := s.resourceManager.GetSecret(ctx, namespace, bucketConfig.Session.SecretName)
+	params, err := objectstore.StructuredS3Params(bucketConfig.SessionInfo.Params)
+	if err != nil {
+		return nil, err
+	}
+
+	secret, err := s.resourceManager.GetSecret(ctx, namespace, params.SecretName)
 	if err != nil {
 		return nil, err
 	}

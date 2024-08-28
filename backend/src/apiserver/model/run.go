@@ -367,7 +367,7 @@ var runAPIToModelFieldMap = map[string]string{
 	"state":               "State",                   // v2beta1 API
 	"state_history":       "StateHistory",            // v2beta1 API
 	"runtime_details":     "PipelineRuntimeManifest", // v2beta1 API
-	"recurring_run_id":    "RecurringRunId",          // v2beta1 API
+	"recurring_run_id":    "JobUUID",                 // v2beta1 API
 	"pipeline_name":       "PipelineName",            // v2beta1 API
 	"pipeline_version_id": "PipelineVersionId",       // v2beta1 API
 	"pipeline_id":         "PipelineId",              // v2beta1 API

@@ -233,7 +233,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				podSpecPatch:   driverOutputs.podSpecPatch,
 				cachedDecision: driverOutputs.cached,
 				condition:      driverOutputs.condition,
-			})
+			}, task.GetComponentRef().GetName())
 			executor.Depends = depends([]string{driverTaskName})
 			return []wfapi.DAGTask{*driver, *executor}, nil
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Importer:

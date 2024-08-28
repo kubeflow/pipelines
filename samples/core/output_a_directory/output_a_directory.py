@@ -1,4 +1,4 @@
-# Copyright 2020-2021 The Kubeflow Authors
+# Copyright 2020-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,11 +19,8 @@
 # To output a directory, create a new directory at the output path location.
 import os
 
-import kfp.deprecated as kfp
-from kfp.deprecated.components import create_component_from_func, load_component_from_text, InputPath, OutputPath
-import kfp as v2
+from kfp import client, dsl
 from kfp.dsl import Input, Output, Artifact
-
 # Outputting directories from Python-based components:
 
 # In tests, we install a KFP package from the PR under test. Users should not
@@ -31,74 +28,8 @@ from kfp.dsl import Input, Output, Artifact
 _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 
-@create_component_from_func
-def produce_dir_with_files_python_op(
-        output_dir_path: OutputPath(), num_files: int = 10):
-    import os
-    os.makedirs(output_dir_path, exist_ok=True)
-    for i in range(num_files):
-        file_path = os.path.join(output_dir_path, str(i) + '.txt')
-        with open(file_path, 'w') as f:
-            f.write(str(i))
-
-
-@create_component_from_func
-def list_dir_files_python_op(input_dir_path: InputPath()):
-    import os
-    dir_items = os.listdir(input_dir_path)
-    for dir_item in dir_items:
-        print(dir_item)
-
-
-# Outputting directories from general command-line based components:
-
-produce_dir_with_files_general_op = load_component_from_text('''
-name: Produce directory
-inputs:
-- {name: num_files, type: Integer}
-outputs:
-- {name: output_dir}
-implementation:
-  container:
-    image: alpine
-    command:
-    - sh
-    - -ecx
-    - |
-      num_files="$0"
-      output_path="$1"
-      mkdir -p "$output_path"
-      for i in $(seq "$num_files"); do
-        echo "$i" > "$output_path/${i}.txt"
-      done
-    - {inputValue: num_files}
-    - {outputPath: output_dir}
-''')
-
-list_dir_files_general_op = load_component_from_text('''
-name: List dir files
-inputs:
-- {name: input_dir}
-implementation:
-  container:
-    image: alpine
-    command:
-    - ls
-    - {inputPath: input_dir}
-''')
-
-
-@kfp.dsl.pipeline(name='dir-pipeline')
-def dir_pipeline():
-    produce_dir_python_task = produce_dir_with_files_python_op(num_files=15)
-    list_dir_files_python_op(input_dir=produce_dir_python_task.output)
-
-    produce_dir_general_task = produce_dir_with_files_general_op(num_files=15)
-    list_dir_files_general_op(input_dir=produce_dir_general_task.output)
-
-
-@v2.dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
-def list_dir_files_v2_python_op(input_dir: Input[Artifact],
+@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+ddef list_dir_files_python(input_dir: Input[Artifact],
                                 subdir: str = 'texts'):
     import os
     dir_items = os.listdir(os.path.join(input_dir.path, subdir))
@@ -106,8 +37,8 @@ def list_dir_files_v2_python_op(input_dir: Input[Artifact],
         print(dir_item)
 
 
-@v2.dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
-def produce_dir_with_files_v2_python_op(output_dir: Output[Artifact],
+@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+def produce_dir_with_files_python_op(output_dir: Output[Artifact],
                                         num_files: int = 10,
                                         subdir: str = 'texts'):
     import os
@@ -118,20 +49,25 @@ def produce_dir_with_files_v2_python_op(output_dir: Output[Artifact],
         with open(file_path, 'w') as f:
             f.write(str(i))
 
-
-@kfp.dsl.pipeline(name='dir-pipeline-v2')
-def dir_pipeline_v2(subdir: str = 'texts'):
-    produce_dir_python_v2_task = produce_dir_with_files_v2_python_op(
+@kfp.dsl.pipeline(name='dir-pipeline')
+def dir_pipeline(subdir: str = 'texts'):
+    produce_dir_python_task = produce_dir_with_files_python_op(
         num_files=15,
         subdir=subdir,
     )
-    list_dir_files_v2_python_op(
-        input_dir=produce_dir_python_v2_task.output,
+    list_dir_files_python(
+        input_dir=produce_dir_python_task.output,
         subdir=subdir,
     )
 
 
 if __name__ == '__main__':
     kfp_endpoint = None
-    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
-        dir_pipeline, arguments={})
+    kfp_client = client.Client(host=kfp_endpoint)
+    run = kfp_client.create_run_from_pipeline_func(
+            dir_pipeline,
+            arguments={
+            },
+         )
+
+   

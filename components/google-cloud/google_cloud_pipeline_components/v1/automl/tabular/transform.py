@@ -62,8 +62,7 @@ def automl_tabular_transform(
       dataflow_machine_type: The machine type used for dataflow jobs. If not set, default to n1-standard-16.
       dataflow_max_num_workers: The number of workers to run the dataflow job. If not set, default to 25.
       dataflow_disk_size_gb: The disk size, in gigabytes, to use on each Dataflow worker instance. If not set, default to 40.
-      dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. More
-        details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
       dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
       dataflow_service_account: Custom service account to run dataflow jobs.
       encryption_spec_key_name: Customer-managed encryption key.
@@ -109,7 +108,7 @@ def automl_tabular_transform(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240419_0625',
                   (
                       '", "args": ["transform", "--is_mp=true",'
                       ' "--transform_output_artifact_path='
@@ -168,7 +167,7 @@ def automl_tabular_transform(
                   '", "--dataflow_machine_type=',
                   dataflow_machine_type,
                   '", "--dataflow_worker_container_image=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240419_0625',
                   '", "--dataflow_disk_size_gb=',
                   dataflow_disk_size_gb,
                   '", "--dataflow_subnetwork_fully_qualified=',

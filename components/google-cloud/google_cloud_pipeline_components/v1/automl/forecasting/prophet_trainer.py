@@ -108,17 +108,17 @@ def prophet_trainer(
                   '"machine_spec": {"machine_type": "n1-standard-4"}, ',
                   (
                       '"container_spec":'
-                      ' {"image_uri":"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", '
+                      ' {"image_uri":"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240419_0625", '
                   ),
                   '"args": ["prophet_trainer", "',
                   (
                       f'--job_name=dataflow-{dsl.PIPELINE_JOB_NAME_PLACEHOLDER}", "'
                   ),
                   (
-                      '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125", "'
+                      '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240419_0625", "'
                   ),
                   (
-                      '--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20231029_0125", "'
+                      '--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20240419_0625", "'
                   ),
                   '--artifacts_dir=',
                   root_dir,

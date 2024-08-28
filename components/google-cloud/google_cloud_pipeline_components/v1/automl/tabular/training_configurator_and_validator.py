@@ -65,16 +65,14 @@ def training_configurator_and_validator(
       target_column: Target column of input data.
       weight_column: Weight column of input data.
       prediction_type: Model prediction type. One of "classification", "regression", "time_series".
-      optimization_objective: Objective function the model is optimizing towards. The training process creates a model that maximizes/minimizes the value of the objective function over the validation set. The supported optimization objectives depend on the prediction type. If the field is not set, a default objective function is used.
-          classification: "maximize-au-roc" (default) - Maximize the area under the receiver operating characteristic (ROC) curve. "minimize-log-loss" - Minimize log loss. "maximize-au-prc" - Maximize the area under the precision-recall curve. "maximize-precision-at-recall" - Maximize precision for a specified recall value. "maximize-recall-at-precision" - Maximize recall for a specified precision value. classification (multi-class): "minimize-log-loss" (default) - Minimize log loss.
-          regression: "minimize-rmse" (default) - Minimize root-mean-squared error (RMSE). "minimize-mae" - Minimize mean-absolute error (MAE). "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
+      optimization_objective: Objective function the model is optimizing towards. The training process creates a model that maximizes/minimizes the value of the objective function over the validation set. The supported optimization objectives depend on the prediction type. If the field is not set, a default objective function is used.  classification: "maximize-au-roc" (default) - Maximize the area under the receiver operating characteristic (ROC) curve.  "minimize-log-loss" - Minimize log loss. "maximize-au-prc" - Maximize the area under the precision-recall curve.  "maximize-precision-at-recall" - Maximize precision for a specified recall value. "maximize-recall-at-precision" - Maximize recall for a specified precision value.  classification (multi-class): "minimize-log-loss" (default) - Minimize log loss.  regression: "minimize-rmse" (default) - Minimize root-mean-squared error (RMSE). "minimize-mae" - Minimize mean-absolute error (MAE).  "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
       optimization_objective_recall_value: Required when optimization_objective is "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
       optimization_objective_precision_value: Required when optimization_objective is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
       run_evaluation: Whether we are running evaluation in the training pipeline.
       run_distill: Whether the distillation should be applied to the training.
-      enable_probabilistic_inference: If probabilistic inference is enabled, the model will fit a distribution that captures the uncertainty of a prediction. At inference time, the predictive distribution is used to make a point prediction that minimizes the optimization objective. For example, the mean of a predictive distribution is the point prediction that minimizes RMSE loss. If quantiles are specified, then the quantiles of the distribution are also returned.
+      enable_probabilistic_inference: If probabilistic inference is enabled, the model will fit a distribution that captures the uncertainty of a prediction. At inference time, the predictive distribution is used to make a point prediction that minimizes the optimization objective.  For example, the mean of a predictive distribution is the point prediction that minimizes RMSE loss. If quantiles are specified, then the quantiles of the distribution are also returned.
       time_series_identifier_column: [Deprecated] The time series identifier column. Used by forecasting only. Raises exception if used - use the "time_series_identifier_column" field instead.
-      time_series_identifier_columns: The list of time series identifier columns. Used by forecasting only.
+      time_series_identifier_columns: The list of time series identifier columns.  Used by forecasting only.
       time_column: The column that indicates the time. Used by forecasting only.
       time_series_attribute_columns: The column names of the time series attributes.
       available_at_forecast_columns: The names of the columns that are available at forecast time.
@@ -97,7 +95,7 @@ def training_configurator_and_validator(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240419_0625',
       command=[],
       args=[
           'training_configurator_and_validator',

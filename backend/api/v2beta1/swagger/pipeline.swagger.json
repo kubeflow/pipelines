@@ -18,7 +18,7 @@
     "/apis/v2beta1/pipelines": {
       "get": {
         "summary": "Finds all pipelines within a namespace.",
-        "operationId": "ListPipelines",
+        "operationId": "PipelineService_ListPipelines",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -27,9 +27,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -77,7 +77,7 @@
       },
       "post": {
         "summary": "Creates a pipeline.",
-        "operationId": "CreatePipeline",
+        "operationId": "PipelineService_CreatePipeline",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -86,9 +86,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -111,7 +111,7 @@
     "/apis/v2beta1/pipelines/create": {
       "post": {
         "summary": "Creates a new pipeline and a new pipeline version in a single transaction.",
-        "operationId": "CreatePipelineAndVersion",
+        "operationId": "PipelineService_CreatePipelineAndVersion",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -120,9 +120,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -144,7 +144,7 @@
     "/apis/v2beta1/pipelines/names/{name}": {
       "get": {
         "summary": "Finds a specific pipeline by name and namespace.",
-        "operationId": "GetPipelineByName",
+        "operationId": "PipelineService_GetPipelineByName",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -153,9 +153,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -183,7 +183,7 @@
     "/apis/v2beta1/pipelines/{pipeline_id}": {
       "get": {
         "summary": "Finds a specific pipeline by ID.",
-        "operationId": "GetPipeline",
+        "operationId": "PipelineService_GetPipeline",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -192,9 +192,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -213,7 +213,7 @@
       },
       "delete": {
         "summary": "Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.",
-        "operationId": "DeletePipeline",
+        "operationId": "PipelineService_DeletePipeline",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -222,9 +222,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -245,7 +245,7 @@
     "/apis/v2beta1/pipelines/{pipeline_id}/versions": {
       "get": {
         "summary": "Lists all pipeline versions of a given pipeline ID.",
-        "operationId": "ListPipelineVersions",
+        "operationId": "PipelineService_ListPipelineVersions",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -254,9 +254,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -304,7 +304,7 @@
       },
       "post": {
         "summary": "Adds a pipeline version to the specified pipeline ID.",
-        "operationId": "CreatePipelineVersion",
+        "operationId": "PipelineService_CreatePipelineVersion",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -313,9 +313,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -345,7 +345,7 @@
     "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}": {
       "get": {
         "summary": "Gets a pipeline version by pipeline version ID and pipeline ID.",
-        "operationId": "GetPipelineVersion",
+        "operationId": "PipelineService_GetPipelineVersion",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -354,9 +354,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -382,7 +382,7 @@
       },
       "delete": {
         "summary": "Deletes a specific pipeline version by pipeline version ID and pipeline ID.",
-        "operationId": "DeletePipelineVersion",
+        "operationId": "PipelineService_DeletePipelineVersion",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -391,9 +391,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -464,6 +464,27 @@
       ],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
     },
     "v2beta1CreatePipelineAndVersionRequest": {
       "type": "object",

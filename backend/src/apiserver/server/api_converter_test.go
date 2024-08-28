@@ -3122,7 +3122,7 @@ func Test_toModelTasks_v2(t *testing.T) {
 func Test_toModelTasks_wf(t *testing.T) {
 	expectedWf := []*model.Task{
 		{
-			PodName:           "boudary_exec_id-node0",
+			PodName:           "run1-file-passing-pipelines-node0",
 			Namespace:         "kubeflow",
 			RunId:             "run1_uid_true",
 			CreatedTimestamp:  -62135596800,
@@ -3133,7 +3133,7 @@ func Test_toModelTasks_wf(t *testing.T) {
 			ChildrenPods:      []string{"boudary_exec_id-node1"},
 		},
 		{
-			PodName:           "boudary_exec_id-node1",
+			PodName:           "run1-print-text-node1",
 			Namespace:         "kubeflow",
 			RunId:             "run1_uid_true",
 			CreatedTimestamp:  -62135596800,

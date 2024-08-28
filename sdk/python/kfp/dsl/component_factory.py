@@ -448,6 +448,14 @@ def extract_component_interface(
     )
 
 
+EXECUTOR_MODULE = 'kfp.dsl.executor_main'
+CONTAINERIZED_PYTHON_COMPONENT_COMMAND = [
+    'python3',
+    '-m',
+    EXECUTOR_MODULE,
+]
+
+
 def _get_command_and_args_for_lightweight_component(
         func: Callable) -> Tuple[List[str], List[str]]:
     imports_source = [
@@ -466,11 +474,11 @@ def _get_command_and_args_for_lightweight_component(
     command = [
         'sh',
         '-ec',
-        textwrap.dedent('''\
+        textwrap.dedent(f'''\
                     program_path=$(mktemp -d)
 
                     printf "%s" "$0" > "$program_path/ephemeral_component.py"
-                    _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main \
+                    _KFP_RUNTIME=true python3 -m {EXECUTOR_MODULE} \
                         --component_module_path \
                         "$program_path/ephemeral_component.py" \
                         "$@"
@@ -490,11 +498,6 @@ def _get_command_and_args_for_lightweight_component(
 
 def _get_command_and_args_for_containerized_component(
         function_name: str) -> Tuple[List[str], List[str]]:
-    command = [
-        'python3',
-        '-m',
-        'kfp.dsl.executor_main',
-    ]
 
     args = [
         '--executor_input',
@@ -502,7 +505,7 @@ def _get_command_and_args_for_containerized_component(
         '--function_to_execute',
         function_name,
     ]
-    return command, args
+    return CONTAINERIZED_PYTHON_COMPONENT_COMMAND, args
 
 
 def create_component_from_func(

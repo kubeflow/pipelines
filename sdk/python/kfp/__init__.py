@@ -16,7 +16,7 @@
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
-__version__ = '2.4.0'
+__version__ = '2.7.0'
 
 import sys
 import warnings

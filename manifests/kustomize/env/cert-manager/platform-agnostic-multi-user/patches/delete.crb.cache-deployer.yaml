@@ -1,0 +1,6 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-clusterrolebinding
+$patch: delete

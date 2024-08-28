@@ -1,0 +1,35 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tekton-pipelineloop-controller
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pipeline-loops
+subjects:
+  - kind: ServiceAccount
+    name: tekton-pipelineloop-controller
+    namespace: tekton-pipelines
+roleRef:
+  kind: Role
+  name: tekton-pipelineloop-controller
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tekton-pipelineloop-webhook
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pipeline-loops
+subjects:
+  - kind: ServiceAccount
+    name: tekton-pipelineloop-webhook
+    namespace: tekton-pipelines
+roleRef:
+  kind: Role
+  name: tekton-pipelineloop-webhook
+  apiGroup: rbac.authorization.k8s.io

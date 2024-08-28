@@ -145,7 +145,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	defer func() {
 		if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
 			if err != nil {
-				err = fmt.Errorf("failed to publish execution with error %w after execution failed: %w", perr, err)
+				err = fmt.Errorf("failed to publish execution with error %s after execution failed: %s", perr.Error(), err.Error())
 			} else {
 				err = perr
 			}
@@ -461,7 +461,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 		if err != nil {
 			return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
-		mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE)
+		mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE, opts.bucketConfig)
 		if err != nil {
 			return nil, metadataErr(err)
 		}
@@ -548,14 +548,14 @@ func fetchNonDefaultBuckets(
 		// a. If imported, artifact bucket can still be specified in kfp-launcher config (not implemented)
 		// b. If imported, artifact bucket can not be in kfp-launcher config, in this case, return no session and rely on env for aws config
 		if !strings.HasPrefix(artifact.Uri, defaultBucketConfig.PrefixedBucket()) {
-			nonDefaultBucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(artifact.Uri)
-			if err != nil {
-				return nonDefaultBuckets, fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, artifact.GetUri(), err)
+			nonDefaultBucketConfig, parseErr := objectstore.ParseBucketConfigForArtifactURI(artifact.Uri)
+			if parseErr != nil {
+				return nonDefaultBuckets, fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, artifact.GetUri(), parseErr)
 			}
 			// If the run is cached, it will be in the same bucket but under a different path, re-use the default bucket
 			// session in this case.
 			if (nonDefaultBucketConfig.Scheme == defaultBucketConfig.Scheme) && (nonDefaultBucketConfig.BucketName == defaultBucketConfig.BucketName) {
-				nonDefaultBucketConfig.Session = defaultBucketConfig.Session
+				nonDefaultBucketConfig.SessionInfo = defaultBucketConfig.SessionInfo
 			}
 			nonDefaultBucket, err := objectstore.OpenBucket(ctx, k8sClient, namespace, nonDefaultBucketConfig)
 			if err != nil {

@@ -75,16 +75,13 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'The instance baseline
-
-            used to calculate explanations.'
+          description: The instance baseline used to calculate explanations.
         instance_schema_path:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'The path to the instance schema,
-
-            describing the input data for the tf_model at serving time.'
+          description: The path to the instance schema, describing the input data
+            for the tf_model at serving time.
         metadata:
           artifactType:
             schemaTitle: system.Artifact
@@ -99,9 +96,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'AutoML Tabular tuning
-
-            result.'
+          description: AutoML Tabular tuning result.
       parameters:
         encryption_spec_key_name:
           defaultValue: ''
@@ -112,11 +107,9 @@ components:
           description: Region to run the job in.
           parameterType: STRING
         prediction_image_uri:
-          description: 'URI of the Docker image to be used as the
-
-            container for serving predictions. This URI must identify an image in
-
-            Artifact Registry or Container Registry.'
+          description: URI of the Docker image to be used as the container for serving
+            predictions. This URI must identify an image in Artifact Registry or Container
+            Registry.
           parameterType: STRING
         project:
           description: Project to run the job in.
@@ -156,10 +149,8 @@ components:
             explanations.
           parameterType: STRUCT
         gcp_resources:
-          description: 'GCP resources created by this component. For more details,
-            see
-
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          description: GCP resources created by this component. For more details,
+            see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
   comp-automl-forecasting-ensemble-2:
     executorLabel: exec-automl-forecasting-ensemble-2
@@ -169,16 +160,13 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'The instance baseline
-
-            used to calculate explanations.'
+          description: The instance baseline used to calculate explanations.
         instance_schema_path:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'The path to the instance schema,
-
-            describing the input data for the tf_model at serving time.'
+          description: The path to the instance schema, describing the input data
+            for the tf_model at serving time.
         metadata:
           artifactType:
             schemaTitle: system.Artifact
@@ -193,9 +181,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'AutoML Tabular tuning
-
-            result.'
+          description: AutoML Tabular tuning result.
       parameters:
         encryption_spec_key_name:
           defaultValue: ''
@@ -206,11 +192,9 @@ components:
           description: Region to run the job in.
           parameterType: STRING
         prediction_image_uri:
-          description: 'URI of the Docker image to be used as the
-
-            container for serving predictions. This URI must identify an image in
-
-            Artifact Registry or Container Registry.'
+          description: URI of the Docker image to be used as the container for serving
+            predictions. This URI must identify an image in Artifact Registry or Container
+            Registry.
           parameterType: STRING
         project:
           description: Project to run the job in.
@@ -250,10 +234,8 @@ components:
             explanations.
           parameterType: STRUCT
         gcp_resources:
-          description: 'GCP resources created by this component. For more details,
-            see
-
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          description: GCP resources created by this component. For more details,
+            see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
   comp-automl-forecasting-stage-1-tuner:
     executorLabel: exec-automl-forecasting-stage-1-tuner
@@ -268,9 +250,7 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'The materialized train
-
-            split.'
+          description: The materialized train split.
         metadata:
           artifactType:
             schemaTitle: system.Artifact
@@ -283,9 +263,7 @@ components:
           description: The transform output artifact.
       parameters:
         deadline_hours:
-          description: 'Number of hours the hyperparameter tuning should
-
-            run.'
+          description: Number of hours the hyperparameter tuning should run.
           parameterType: NUMBER_DOUBLE
         encryption_spec_key_name:
           defaultValue: ''
@@ -299,18 +277,16 @@ components:
           description: Number of parallel training trials.
           parameterType: NUMBER_INTEGER
         num_selected_trials:
-          description: 'Number of selected trials. The number of weak
-
-            learners in the final model is 5 * num_selected_trials.'
+          description: Number of selected trials. The number of weak learners in the
+            final model is 5 * num_selected_trials.
           parameterType: NUMBER_INTEGER
         project:
           description: Project to run hyperparameter tuning.
           parameterType: STRING
         reduce_search_space_mode:
           defaultValue: regular
-          description: 'The reduce search space mode. Possible
-
-            values: "regular" (default), "minimal", "full".'
+          description: 'The reduce search space mode. Possible values: "regular" (default),
+            "minimal", "full".'
           isOptional: true
           parameterType: STRING
         root_dir:
@@ -321,22 +297,14 @@ components:
           parameterType: NUMBER_INTEGER
         study_spec_parameters_override:
           defaultValue: []
-          description: 'JSON study spec. E.g.,
-
-            [{"parameter_id": "activation","categorical_value_spec": {"values":
-
-            ["tanh"]}}]'
+          description: 'JSON study spec. E.g., [{"parameter_id": "activation","categorical_value_spec":
+            {"values": ["tanh"]}}]'
           isOptional: true
           parameterType: LIST
         worker_pool_specs_override_json:
           defaultValue: []
-          description: 'JSON worker pool specs. E.g.,
-
-            [{"machine_spec": {"machine_type":
-
-            "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
-
-            "n1-standard-16"}}]'
+          description: 'JSON worker pool specs. E.g., [{"machine_spec": {"machine_type":
+            "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]'
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -348,11 +316,8 @@ components:
           description: The trained model and architectures.
       parameters:
         gcp_resources:
-          description: 'GCP resources created by this component.
-
-            For more details, see
-
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          description: GCP resources created by this component. For more details,
+            see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
   comp-automl-forecasting-stage-2-tuner:
     executorLabel: exec-automl-forecasting-stage-2-tuner
@@ -367,16 +332,12 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'The materialized train
-
-            split.'
+          description: The materialized train split.
         metadata:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'The forecasting example gen
-
-            metadata.'
+          description: The forecasting example gen metadata.
         transform_output:
           artifactType:
             schemaTitle: system.Artifact
@@ -386,14 +347,11 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'Path to the json of hyperparameter
-
-            tuning results to use when evaluating models.'
+          description: Path to the json of hyperparameter tuning results to use when
+            evaluating models.
       parameters:
         deadline_hours:
-          description: 'Number of hours the cross-validation trainer
-
-            should run.'
+          description: Number of hours the cross-validation trainer should run.
           parameterType: NUMBER_DOUBLE
         encryption_spec_key_name:
           defaultValue: ''
@@ -407,9 +365,8 @@ components:
           description: Number of parallel training trials.
           parameterType: NUMBER_INTEGER
         num_selected_trials:
-          description: 'Number of selected trials. The number of weak
-
-            learners in the final model.'
+          description: Number of selected trials. The number of weak learners in the
+            final model.
           parameterType: NUMBER_INTEGER
         project:
           description: Project to run stage 2 tuner.
@@ -422,13 +379,8 @@ components:
           parameterType: NUMBER_INTEGER
         worker_pool_specs_override_json:
           defaultValue: []
-          description: 'JSON worker pool specs. E.g.,
-
-            [{"machine_spec": {"machine_type":
-
-            "n1-standard-16"}},{},{},{"machine_spec": {"machine_type":
-
-            "n1-standard-16"}}]'
+          description: 'JSON worker pool specs. E.g., [{"machine_spec": {"machine_type":
+            "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]'
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -440,11 +392,8 @@ components:
           description: The trained (private) model artifact paths and their hyperparameters.
       parameters:
         gcp_resources:
-          description: 'GCP resources created by this component.
-
-            For more details, see
-
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          description: GCP resources created by this component. For more details,
+            see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
   comp-automl-tabular-finalizer:
     executorLabel: exec-automl-tabular-finalizer
@@ -467,10 +416,8 @@ components:
     outputDefinitions:
       parameters:
         gcp_resources:
-          description: 'GCP resources created by this component. For more details,
-            see
-
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          description: GCP resources created by this component. For more details,
+            see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
   comp-calculate-training-parameters:
     executorLabel: exec-calculate-training-parameters
@@ -964,6 +911,9 @@ components:
                 componentInputParameter: pipelinechannel--evaluation_dataflow_starting_num_workers
               encryption_spec_key_name:
                 componentInputParameter: pipelinechannel--encryption_spec_key_name
+              force_runner_mode:
+                runtimeValue:
+                  constant: Dataflow
               location:
                 componentInputParameter: pipelinechannel--location
               predictions_format:
@@ -1677,6 +1627,9 @@ components:
                 componentInputParameter: pipelinechannel--evaluation_dataflow_starting_num_workers
               encryption_spec_key_name:
                 componentInputParameter: pipelinechannel--encryption_spec_key_name
+              force_runner_mode:
+                runtimeValue:
+                  constant: Dataflow
               location:
                 componentInputParameter: pipelinechannel--location
               predictions_format:
@@ -2720,159 +2673,125 @@ components:
           parameterType: BOOLEAN
         bigquery_staging_full_dataset_id:
           defaultValue: ''
-          description: 'Dataset in
-
-            "projectId.datasetId" format for storing intermediate-FTE BigQuery
-
-            tables.  If the specified dataset does not exist in BigQuery, FTE will
-
-            create the dataset. If no bigquery_staging_full_dataset_id is specified,
-
-            all intermediate tables will be stored in a dataset created under the
-
-            provided project in the input data source''s location during FTE
-
-            execution called
-
-            "vertex_feature_transform_engine_staging_{location.replace(''-'', ''_'')}".
-
-            All tables generated by FTE will have a 30 day TTL.'
+          description: Dataset in "projectId.datasetId" format for storing intermediate-FTE
+            BigQuery tables.  If the specified dataset does not exist in BigQuery,
+            FTE will create the dataset. If no bigquery_staging_full_dataset_id is
+            specified, all intermediate tables will be stored in a dataset created
+            under the provided project in the input data source's location during
+            FTE execution called "vertex_feature_transform_engine_staging_{location.replace('-',
+            '_')}". All tables generated by FTE will have a 30 day TTL.
           isOptional: true
           parameterType: STRING
         data_source_bigquery_table_path:
           defaultValue: ''
-          description: 'BigQuery input data
-
-            source to run feature transform on.'
+          description: BigQuery input data source to run feature transform on.
           isOptional: true
           parameterType: STRING
         data_source_csv_filenames:
           defaultValue: ''
-          description: 'CSV input data source to run
-
-            feature transform on.'
+          description: CSV input data source to run feature transform on.
           isOptional: true
           parameterType: STRING
         dataflow_disk_size_gb:
           defaultValue: 40.0
-          description: 'The disk size, in gigabytes, to use
-
-            on each Dataflow worker instance. If not set, default to 40.'
+          description: The disk size, in gigabytes, to use on each Dataflow worker
+            instance. If not set, default to 40.
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-16
-          description: 'The machine type used for dataflow
-
-            jobs. If not set, default to n1-standard-16.'
+          description: The machine type used for dataflow jobs. If not set, default
+            to n1-standard-16.
           isOptional: true
           parameterType: STRING
         dataflow_max_num_workers:
           defaultValue: 25.0
-          description: 'The number of workers to run the
-
-            dataflow job. If not set, default to 25.'
+          description: The number of workers to run the dataflow job. If not set,
+            default to 25.
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
           defaultValue: ''
-          description: 'Custom service account to run
-
-            Dataflow jobs.'
+          description: Custom service account to run Dataflow jobs.
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
           defaultValue: ''
-          description: 'Dataflow''s fully qualified subnetwork
-
-            name, when empty the default subnetwork will be used. More details:
-
-            https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications'
+          description: 'Dataflow''s fully qualified subnetwork name, when empty the
+            default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications'
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
           defaultValue: true
-          description: 'Specifies whether Dataflow
-
-            workers use public IP addresses.'
+          description: Specifies whether Dataflow workers use public IP addresses.
           isOptional: true
           parameterType: BOOLEAN
         dataset_level_custom_transformation_definitions:
           defaultValue: []
-          description: "List of dataset-level custom transformation definitions. \
-            \ Custom,\nbring-your-own dataset-level transform functions, where users\
-            \ can define\nand import their own transform function and use it with\
-            \ FTE's built-in\ntransformations. Using custom transformations is an\
-            \ experimental feature\nand it is currently not supported during batch\
-            \ prediction.\n  Example:  .. code-block:: python  [ { \"transformation\"\
-            : \"ConcatCols\",\n    \"module_path\": \"/path/to/custom_transform_fn_dlt.py\"\
-            ,\n    \"function_name\": \"concat_cols\" } ]  Using custom transform\
-            \ function\n    together with FTE's built-in transformations:  .. code-block::\n\
-            \    python  [ { \"transformation\": \"Join\", \"right_table_uri\":\n\
-            \    \"bq://test-project.dataset_test.table\", \"join_keys\":\n    [[\"\
-            join_key_col\", \"join_key_col\"]] },{ \"transformation\":\n    \"ConcatCols\"\
-            , \"cols\": [\"feature_1\", \"feature_2\"], \"output_col\":\n    \"feature_1_2\"\
-            \ } ]"
+          description: 'List of dataset-level custom transformation definitions.  Custom,
+            bring-your-own dataset-level transform functions, where users can define
+            and import their own transform function and use it with FTE''s built-in
+            transformations. Using custom transformations is an experimental feature
+            and it is currently not supported during batch prediction.
+
+            [ { "transformation": "ConcatCols", "module_path": "/path/to/custom_transform_fn_dlt.py",
+            "function_name": "concat_cols" } ]  Using custom transform function together
+            with FTE''s built-in transformations:  .. code-block:: python  [ { "transformation":
+            "Join", "right_table_uri": "bq://test-project.dataset_test.table", "join_keys":
+            [["join_key_col", "join_key_col"]] },{ "transformation": "ConcatCols",
+            "cols": ["feature_1", "feature_2"], "output_col": "feature_1_2" } ]'
           isOptional: true
           parameterType: LIST
         dataset_level_transformations:
           defaultValue: []
-          description: "List of dataset-level\ntransformations.\nExample:  .. code-block::\
-            \ python  [ { \"transformation\": \"Join\",\n  \"right_table_uri\": \"\
-            bq://test-project.dataset_test.table\",\n  \"join_keys\": [[\"join_key_col\"\
-            , \"join_key_col\"]] }, ... ]  Additional\n  information about FTE's currently\
-            \ supported built-in\n  transformations:\n    Join: Joins features from\
-            \ right_table_uri. For each join key, the\n      left table keys will\
-            \ be included and the right table keys will\n      be dropped.\n     \
-            \   Example:  .. code-block:: python  { \"transformation\": \"Join\",\n\
-            \          \"right_table_uri\": \"bq://test-project.dataset_test.table\"\
-            ,\n          \"join_keys\": [[\"join_key_col\", \"join_key_col\"]] }\n\
-            \        Arguments:\n            right_table_uri: Right table BigQuery\
-            \ uri to join\n              with input_full_table_id.\n            join_keys:\
-            \ Features to join on. For each\n              nested list, the first\
-            \ element is a left table column\n              and the second is its\
-            \ corresponding right table column.\n    TimeAggregate: Creates a new\
-            \ feature composed of values of an\n      existing feature from a fixed\
-            \ time period ago or in the future.\n      Ex: A feature for sales by\
-            \ store 1 year ago.\n        Example:  .. code-block:: python  { \"transformation\"\
-            :\n          \"TimeAggregate\", \"time_difference\": 40,\n          \"\
-            time_difference_units\": \"DAY\",\n          \"time_series_identifier_columns\"\
-            : [\"store_id\"],\n          \"time_column\": \"time_col\", \"time_difference_target_column\"\
-            :\n          \"target_col\", \"output_column\": \"output_col\" }\n   \
-            \     Arguments:\n            time_difference: Number of time_difference_units\
-            \ to\n              look back or into the future on our\n            \
-            \  time_difference_target_column.\n            time_difference_units:\
-            \ Units of time_difference to\n              look back or into the future\
-            \ on our\n              time_difference_target_column. Must be one of\
-            \ * 'DAY' *\n              'WEEK' (Equivalent to 7 DAYs) * 'MONTH' * 'QUARTER'\
-            \ *\n              'YEAR'\n            time_series_identifier_columns:\
-            \ Names of the\n              time series identifier columns.\n      \
-            \      time_column: Name of the time column.\n            time_difference_target_column:\
-            \ Column we wish to get\n              the value of time_difference time_difference_units\
-            \ in\n              the past or future.\n            output_column: Name\
-            \ of our new time aggregate\n              feature.\n            is_future:\
-            \ Whether we wish to look\n              forward in time. Defaults to\
-            \ False.\n              PartitionByMax/PartitionByMin/PartitionByAvg/PartitionBySum:\n\
-            \              Performs a partition by reduce operation (one of max,\n\
-            \              min, avg, or sum) with a fixed historic time period. Ex:\n\
-            \              Getting avg sales (the reduce column) for each store\n\
-            \              (partition_by_column) over the previous 5 days\n      \
-            \        (time_column, time_ago_units, and time_ago).\n        Example:\
-            \  .. code-block:: python  { \"transformation\":\n          \"PartitionByMax\"\
-            , \"reduce_column\": \"sell_price\",\n          \"partition_by_columns\"\
-            : [\"store_id\", \"state_id\"],\n          \"time_column\": \"date\",\
-            \ \"time_ago\": 1, \"time_ago_units\":\n          \"WEEK\", \"output_column\"\
-            : \"partition_by_reduce_max_output\" }\n        Arguments:\n         \
-            \   reduce_column: Column to apply the reduce operation\n            \
-            \  on. Reduce operations include the\n                following: Max,\
-            \ Min, Avg, Sum.\n            partition_by_columns: List of columns to\n\
-            \              partition by.\n            time_column: Time column for\
-            \ the partition by\n              operation's window function.\n     \
-            \       time_ago: Number of time_ago_units to look back on\n         \
-            \     our target_column, starting from time_column\n              (inclusive).\n\
-            \            time_ago_units: Units of time_ago to look back on\n     \
-            \         our target_column. Must be one of * 'DAY' * 'WEEK'\n       \
-            \     output_column: Name of our output feature."
+          description: "List of dataset-level transformations.\n[ { \"transformation\"\
+            : \"Join\", \"right_table_uri\": \"bq://test-project.dataset_test.table\"\
+            , \"join_keys\": [[\"join_key_col\", \"join_key_col\"]] }, ... ]  Additional\
+            \ information about FTE's currently supported built-in\n    transformations:\n\
+            \    Join: Joins features from right_table_uri. For each join key, the\
+            \ left table keys will be included and the right table keys will be dropped.\n\
+            \        Example:  .. code-block:: python  { \"transformation\": \"Join\"\
+            , \"right_table_uri\": \"bq://test-project.dataset_test.table\", \"join_keys\"\
+            : [[\"join_key_col\", \"join_key_col\"]] }\n        Arguments:\n     \
+            \       right_table_uri: Right table BigQuery uri to join with input_full_table_id.\n\
+            \            join_keys: Features to join on. For each nested list, the\
+            \ first element is a left table column and the second is its corresponding\
+            \ right table column.\n    TimeAggregate: Creates a new feature composed\
+            \ of values of an existing feature from a fixed time period ago or in\
+            \ the future.\n      Ex: A feature for sales by store 1 year ago.\n  \
+            \      Example:  .. code-block:: python  { \"transformation\": \"TimeAggregate\"\
+            , \"time_difference\": 40, \"time_difference_units\": \"DAY\", \"time_series_identifier_columns\"\
+            : [\"store_id\"], \"time_column\": \"time_col\", \"time_difference_target_column\"\
+            : \"target_col\", \"output_column\": \"output_col\" }\n        Arguments:\n\
+            \            time_difference: Number of time_difference_units to look\
+            \ back or into the future on our time_difference_target_column.\n    \
+            \        time_difference_units: Units of time_difference to look back\
+            \ or into the future on our time_difference_target_column. Must be one\
+            \ of * 'DAY' * 'WEEK' (Equivalent to 7 DAYs) * 'MONTH' * 'QUARTER' * 'YEAR'\n\
+            \            time_series_identifier_columns: Names of the time series\
+            \ identifier columns.\n            time_column: Name of the time column.\n\
+            \            time_difference_target_column: Column we wish to get the\
+            \ value of time_difference time_difference_units in the past or future.\n\
+            \            output_column: Name of our new time aggregate feature.\n\
+            \            is_future: Whether we wish to look forward in time. Defaults\
+            \ to False. PartitionByMax/PartitionByMin/PartitionByAvg/PartitionBySum:\
+            \ Performs a partition by reduce operation (one of max, min, avg, or sum)\
+            \ with a fixed historic time period. Ex: Getting avg sales (the reduce\
+            \ column) for each store (partition_by_column) over the previous 5 days\
+            \ (time_column, time_ago_units, and time_ago).\n        Example:  .. code-block::\
+            \ python  { \"transformation\": \"PartitionByMax\", \"reduce_column\"\
+            : \"sell_price\", \"partition_by_columns\": [\"store_id\", \"state_id\"\
+            ], \"time_column\": \"date\", \"time_ago\": 1, \"time_ago_units\": \"\
+            WEEK\", \"output_column\": \"partition_by_reduce_max_output\" }\n    \
+            \    Arguments:\n            reduce_column: Column to apply the reduce\
+            \ operation on. Reduce operations include the\n                following:\
+            \ Max, Min, Avg, Sum.\n            partition_by_columns: List of columns\
+            \ to partition by.\n            time_column: Time column for the partition\
+            \ by operation's window function.\n            time_ago: Number of time_ago_units\
+            \ to look back on our target_column, starting from time_column (inclusive).\n\
+            \            time_ago_units: Units of time_ago to look back on our target_column.\
+            \ Must be one of * 'DAY' * 'WEEK'\n            output_column: Name of\
+            \ our output feature."
           isOptional: true
           parameterType: LIST
         encryption_spec_key_name:
@@ -2882,24 +2801,22 @@ components:
           parameterType: STRING
         feature_selection_algorithm:
           defaultValue: AMI
-          description: "The algorithm of feature\nselection. One of \"AMI\", \"CMIM\"\
-            , \"JMIM\", \"MRMR\", default to be \"AMI\".\nThe algorithms available\
-            \ are: AMI(Adjusted Mutual Information):\n   Reference:\n     https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_mutual_info_score.html\n\
-            \       Arrays are not yet supported in this algorithm.  CMIM(Conditional\n\
-            \       Mutual Information Maximization): Reference paper: Mohamed\n \
-            \      Bennasar, Yulia Hicks, Rossitza Setchi, \u201CFeature selection\
-            \ using\n       Joint Mutual Information Maximisation,\u201D Expert Systems\
-            \ with\n       Applications, vol. 42, issue 22, 1 December 2015, Pages\n\
-            \       8520-8532. JMIM(Joint Mutual Information Maximization): Reference\n\
-            \       paper: Mohamed Bennasar, Yulia Hicks, Rossitza Setchi, \u201C\
-            Feature\n         selection using Joint Mutual Information Maximisation,\u201D\
-            \ Expert\n         Systems with Applications, vol. 42, issue 22, 1 December\
-            \ 2015,\n         Pages 8520-8532. MRMR(MIQ Minimum-redundancy\n     \
-            \    Maximum-relevance): Reference paper: Hanchuan Peng, Fuhui Long,\n\
-            \         and Chris Ding. \"Feature selection based on mutual information\n\
-            \         criteria of max-dependency, max-relevance, and min-redundancy.\"\
-            \n         IEEE Transactions on pattern analysis and machine intelligence\n\
-            \         27, no.\n       8: 1226-1238."
+          description: "The algorithm of feature selection. One of \"AMI\", \"CMIM\"\
+            , \"JMIM\", \"MRMR\", default to be \"AMI\". The algorithms available\
+            \ are: AMI(Adjusted Mutual Information):\nReference: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_mutual_info_score.html\
+            \ Arrays are not yet supported in this algorithm.  CMIM(Conditional Mutual\
+            \ Information Maximization): Reference paper: Mohamed Bennasar, Yulia\
+            \ Hicks, Rossitza Setchi, \u201CFeature selection using Joint Mutual Information\
+            \ Maximisation,\u201D Expert Systems with Applications, vol. 42, issue\
+            \ 22, 1 December 2015, Pages 8520-8532. JMIM(Joint Mutual Information\
+            \ Maximization\nReference:\n   paper: Mohamed Bennasar, Yulia Hicks, Rossitza\
+            \ Setchi, \u201CFeature selection using Joint Mutual Information Maximisation,\u201D\
+            \ Expert Systems with Applications, vol. 42, issue 22, 1 December 2015,\
+            \ Pages 8520-8532. MRMR(MIQ Minimum-redundancy Maximum-relevance): Reference\
+            \ paper: Hanchuan Peng, Fuhui Long, and Chris Ding. \"Feature selection\
+            \ based on mutual information criteria of max-dependency, max-relevance,\
+            \ and min-redundancy.\" IEEE Transactions on pattern analysis and machine\
+            \ intelligence 27, no.\n   8: 1226-1238."
           isOptional: true
           parameterType: STRING
         feature_selection_execution_engine:
@@ -2915,9 +2832,7 @@ components:
           parameterType: BOOLEAN
         forecasting_available_at_forecast_columns:
           defaultValue: []
-          description: 'Forecasting
-
-            available at forecast columns.'
+          description: Forecasting available at forecast columns.
           isOptional: true
           parameterType: LIST
         forecasting_context_window:
@@ -2932,17 +2847,11 @@ components:
           parameterType: NUMBER_INTEGER
         forecasting_holiday_regions:
           defaultValue: []
-          description: 'The geographical region based on which the
-
-            holiday effect is applied in modeling by adding holiday categorical
-
-            array feature that include all holidays matching the date. This option
-
-            only allowed when data granularity is day. By default, holiday effect
-
-            modeling is disabled. To turn it on, specify the holiday region using
-
-            this option.
+          description: 'The geographical region based on which the holiday effect
+            is applied in modeling by adding holiday categorical array feature that
+            include all holidays matching the date. This option only allowed when
+            data granularity is day. By default, holiday effect modeling is disabled.
+            To turn it on, specify the holiday region using this option.
 
             Top level: * ''GLOBAL''
 
@@ -2992,18 +2901,13 @@ components:
           parameterType: STRING
         forecasting_time_series_attribute_columns:
           defaultValue: []
-          description: 'Forecasting
-
-            time series attribute columns.'
+          description: Forecasting time series attribute columns.
           isOptional: true
           parameterType: LIST
         forecasting_time_series_identifier_column:
           description: '[Deprecated] A forecasting time series identifier column.
-            Raises an
-
-            exception if used - use the "time_series_identifier_column" field
-
-            instead.'
+            Raises an exception if used - use the "time_series_identifier_column"
+            field instead.'
           isOptional: true
           parameterType: STRING
         forecasting_time_series_identifier_columns:
@@ -3013,9 +2917,7 @@ components:
           parameterType: LIST
         forecasting_unavailable_at_forecast_columns:
           defaultValue: []
-          description: 'Forecasting
-
-            unavailable at forecast columns.'
+          description: Forecasting unavailable at forecast columns.
           isOptional: true
           parameterType: LIST
         forecasting_window_max_count:
@@ -3048,67 +2950,46 @@ components:
           parameterType: STRING
         materialized_examples_format:
           defaultValue: tfrecords_gzip
-          description: 'The format to use for the
-
-            materialized examples. Should be either ''tfrecords_gzip'' (default) or
-
-            ''parquet''.'
+          description: The format to use for the materialized examples. Should be
+            either 'tfrecords_gzip' (default) or 'parquet'.
           isOptional: true
           parameterType: STRING
         max_selected_features:
           defaultValue: 1000.0
-          description: 'Maximum number of features to
-
-            select.  If specified, the transform config will be purged by only using
-
-            the selected features that ranked top in the feature ranking, which has
-
-            the ranking value for all supported features. If the number of input
-
-            features is smaller than max_selected_features specified, we will still
-
-            run the feature selection process and generate the feature ranking, no
-
-            features will be excluded.  The value will be set to 1000 by default if
-
-            run_feature_selection is enabled.'
+          description: Maximum number of features to select.  If specified, the transform
+            config will be purged by only using the selected features that ranked
+            top in the feature ranking, which has the ranking value for all supported
+            features. If the number of input features is smaller than max_selected_features
+            specified, we will still run the feature selection process and generate
+            the feature ranking, no features will be excluded.  The value will be
+            set to 1000 by default if run_feature_selection is enabled.
           isOptional: true
           parameterType: NUMBER_INTEGER
         model_type:
-          description: 'Model type, which we wish to engineer features
-
-            for. Can be one of: neural_network, boosted_trees, l2l, seq2seq, tft,
-            or
-
-            tide. Defaults to the empty value, `None`.'
+          description: 'Model type, which we wish to engineer features for. Can be
+            one of: neural_network, boosted_trees, l2l, seq2seq, tft, or tide. Defaults
+            to the empty value, `None`.'
           isOptional: true
           parameterType: STRING
         multimodal_image_columns:
           defaultValue: []
-          description: 'List of multimodal image
-
-            columns. Defaults to an empty list.'
+          description: List of multimodal image columns. Defaults to an empty list.
           isOptional: true
           parameterType: LIST
         multimodal_tabular_columns:
           defaultValue: []
-          description: 'List of multimodal tabular
-
-            columns. Defaults to an empty list'
+          description: List of multimodal tabular columns. Defaults to an empty list
           isOptional: true
           parameterType: LIST
         multimodal_text_columns:
           defaultValue: []
-          description: 'List of multimodal text
-
-            columns. Defaults to an empty list'
+          description: List of multimodal text columns. Defaults to an empty list
           isOptional: true
           parameterType: LIST
         multimodal_timeseries_columns:
           defaultValue: []
-          description: 'List of multimodal timeseries
-
-            columns. Defaults to an empty list'
+          description: List of multimodal timeseries columns. Defaults to an empty
+            list
           isOptional: true
           parameterType: LIST
         predefined_split_key:
@@ -3118,9 +2999,8 @@ components:
           parameterType: STRING
         prediction_type:
           defaultValue: ''
-          description: 'Model prediction type. One of
-
-            "classification", "regression", "time_series".'
+          description: Model prediction type. One of "classification", "regression",
+            "time_series".
           isOptional: true
           parameterType: STRING
         project:
@@ -3131,25 +3011,20 @@ components:
           parameterType: STRING
         run_distill:
           defaultValue: false
-          description: '(deprecated) Whether the distillation should be applied
-
-            to the training.'
+          description: (deprecated) Whether the distillation should be applied to
+            the training.
           isOptional: true
           parameterType: BOOLEAN
         run_feature_selection:
           defaultValue: false
-          description: 'Whether the feature selection
-
-            should be applied to the dataset.'
+          description: Whether the feature selection should be applied to the dataset.
           isOptional: true
           parameterType: BOOLEAN
         stats_gen_execution_engine:
           defaultValue: dataflow
-          description: 'Execution engine to perform
-
-            statistics generation. Can be one of: "dataflow" (by default) or
-
-            "bigquery". Using "bigquery" as the execution engine is experimental.'
+          description: 'Execution engine to perform statistics generation. Can be
+            one of: "dataflow" (by default) or "bigquery". Using "bigquery" as the
+            execution engine is experimental.'
           isOptional: true
           parameterType: STRING
         stratified_split_key:
@@ -3173,264 +3048,212 @@ components:
           parameterType: NUMBER_DOUBLE
         tf_auto_transform_features:
           defaultValue: {}
-          description: "Dict mapping auto and/or type-resolutions to\nTF transform\
-            \ features. FTE will automatically configure a set of\nbuilt-in transformations\
-            \ for each feature based on its data statistics.\nIf users do not want\
-            \ auto type resolution, but want the set of\ntransformations for a given\
-            \ type to be automatically generated, they\nmay specify pre-resolved transformations\
-            \ types. The following type hint\ndict keys are supported: * 'auto' *\
-            \ 'categorical' * 'numeric' * 'text'\n* 'timestamp'\n  Example:  .. code-block::\
-            \ python { \"auto\": [\"feature1\"],\n    \"categorical\": [\"feature2\"\
-            , \"feature3\"], }  Note that the target and\n    weight column may not\
-            \ be included as an auto transformation unless\n    users are running\
-            \ forecasting."
+          description: 'Dict mapping auto and/or type-resolutions to TF transform
+            features. FTE will automatically configure a set of built-in transformations
+            for each feature based on its data statistics. If users do not want auto
+            type resolution, but want the set of transformations for a given type
+            to be automatically generated, they may specify pre-resolved transformations
+            types. The following type hint dict keys are supported: * ''auto'' * ''categorical''
+            * ''numeric'' * ''text'' * ''timestamp'' Example: `{ "auto": ["feature1"],
+            "categorical": ["feature2", "feature3"], }`. Note that the target and
+            weight column may not be included as an auto transformation unless users
+            are running forecasting.'
           isOptional: true
           parameterType: STRUCT
         tf_custom_transformation_definitions:
           defaultValue: []
-          description: "List of\nTensorFlow-based custom transformation definitions.\
-            \  Custom,\nbring-your-own transform functions, where users can define\
-            \ and import\ntheir own transform function and use it with FTE's built-in\n\
-            transformations.\n  Example:  .. code-block:: python  [ { \"transformation\"\
-            : \"PlusOne\",\n    \"module_path\": \"gs://bucket/custom_transform_fn.py\"\
-            ,\n    \"function_name\": \"plus_one_transform\" }, { \"transformation\"\
-            :\n    \"MultiplyTwo\", \"module_path\": \"gs://bucket/custom_transform_fn.py\"\
-            ,\n    \"function_name\": \"multiply_two_transform\" } ]  Using custom\n\
-            \    transform function together with FTE's built-in transformations:\
-            \  ..\n    code-block:: python  [ { \"transformation\": \"CastToFloat\"\
-            ,\n    \"input_columns\": [\"feature_1\"], \"output_columns\": [\"feature_1\"\
-            ] },{\n    \"transformation\": \"PlusOne\", \"input_columns\": [\"feature_1\"\
-            ]\n    \"output_columns\": [\"feature_1_plused_one\"] },{ \"transformation\"\
-            :\n    \"MultiplyTwo\", \"input_columns\": [\"feature_1\"] \"output_columns\"\
-            :\n    [\"feature_1_multiplied_two\"] } ]"
+          description: 'List of TensorFlow-based custom transformation definitions.  Custom,
+            bring-your-own transform functions, where users can define and import
+            their own transform function and use it with FTE''s built-in transformations.
+            `[ { "transformation": "PlusOne", "module_path": "gs://bucket/custom_transform_fn.py",
+            "function_name": "plus_one_transform" }, { "transformation": "MultiplyTwo",
+            "module_path": "gs://bucket/custom_transform_fn.py", "function_name":
+            "multiply_two_transform" } ]  Using custom transform function together
+            with FTE''s built-in transformations:  .. code-block:: python  [ { "transformation":
+            "CastToFloat", "input_columns": ["feature_1"], "output_columns": ["feature_1"]
+            },{ "transformation": "PlusOne", "input_columns": ["feature_1"] "output_columns":
+            ["feature_1_plused_one"] },{ "transformation": "MultiplyTwo", "input_columns":
+            ["feature_1"] "output_columns": ["feature_1_multiplied_two"] } ]'
           isOptional: true
           parameterType: LIST
         tf_transform_execution_engine:
           defaultValue: dataflow
-          description: 'Execution engine to perform
-
-            row-level TF transformations. Can be one of: "dataflow" (by default) or
-
-            "bigquery". Using "bigquery" as the execution engine is experimental and
-
-            is for allowlisted customers only. In addition, executing on "bigquery"
-
-            only supports auto transformations (i.e., specified by
-
-            tf_auto_transform_features) and will raise an error when
-
-            tf_custom_transformation_definitions or tf_transformations_path is set.'
+          description: 'Execution engine to perform row-level TF transformations.
+            Can be one of: "dataflow" (by default) or "bigquery". Using "bigquery"
+            as the execution engine is experimental and is for allowlisted customers
+            only. In addition, executing on "bigquery" only supports auto transformations
+            (i.e., specified by tf_auto_transform_features) and will raise an error
+            when tf_custom_transformation_definitions or tf_transformations_path is
+            set.'
           isOptional: true
           parameterType: STRING
         tf_transformations_path:
           defaultValue: ''
-          description: "Path to TensorFlow-based\ntransformation configuration.  Path\
-            \ to a JSON file used to specified\nFTE's TF transformation configurations.\
-            \  In the following, we provide\nsome sample transform configurations\
-            \ to demonstrate FTE's capabilities.\nAll transformations on input columns\
-            \ are explicitly specified with FTE's\nbuilt-in transformations. Chaining\
-            \ of multiple transformations on a\nsingle column is also supported. For\
-            \ example:  .. code-block:: python  [\n{ \"transformation\": \"ZScale\"\
-            , \"input_columns\": [\"feature_1\"] }, {\n\"transformation\": \"ZScale\"\
-            , \"input_columns\": [\"feature_2\"] } ]\nAdditional information about\
-            \ FTE's currently supported built-in\ntransformations:\n      Datetime:\
-            \ Extracts datetime featues from a column containing\n        timestamp\
-            \ strings.\n          Example:  .. code-block:: python  { \"transformation\"\
-            :\n            \"Datetime\", \"input_columns\": [\"feature_1\"], \"time_format\"\
-            :\n            \"%Y-%m-%d\" }\n          Arguments:\n              input_columns:\
-            \ A list with a single column to\n                perform the datetime\
-            \ transformation on.\n              output_columns: Names of output\n\
-            \                columns, one for each datetime_features element.\n  \
-            \            time_format: Datetime format string. Time format is\n   \
-            \             a combination of Date + Time Delimiter (optional) + Time\n\
-            \                (optional) directives. Valid date directives are as\n\
-            \                follows * '%Y-%m-%d'  # 2018-11-30 * '%Y/%m/%d'  #\n\
-            \                2018/11/30 * '%y-%m-%d'  # 18-11-30 * '%y/%m/%d'  #\n\
-            \                18/11/30 * '%m-%d-%Y'  # 11-30-2018 * '%m/%d/%Y'  #\n\
-            \                11/30/2018 * '%m-%d-%y'  # 11-30-18 * '%m/%d/%y'  #\n\
-            \                11/30/18 * '%d-%m-%Y'  # 30-11-2018 * '%d/%m/%Y'  #\n\
-            \                30/11/2018 * '%d-%B-%Y'  # 30-November-2018 * '%d-%m-%y'\n\
-            \                # 30-11-18 * '%d/%m/%y'  # 30/11/18 * '%d-%B-%y'  #\n\
-            \                30-November-18 * '%d%m%Y'    # 30112018 * '%m%d%Y'  \
-            \  #\n                11302018 * '%Y%m%d'    # 20181130 Valid time delimiters\n\
-            \                are as follows * 'T' * ' ' Valid time directives are\
-            \ as\n                follows * '%H:%M'          # 23:59 * '%H:%M:%S'\
-            \       #\n                23:59:58 * '%H:%M:%S.%f'    # 23:59:58[.123456]\
-            \ *\n                  '%H:%M:%S.%f%z'  # 23:59:58[.123456]+0000 *\n \
-            \                 '%H:%M:%S%z',    # 23:59:58+0000\n              datetime_features:\
-            \ List of datetime\n                features to be extract. Each entry\
-            \ must be one of *\n                'YEAR' * 'MONTH' * 'DAY' * 'DAY_OF_WEEK'\
-            \ * 'DAY_OF_YEAR'\n                * 'WEEK_OF_YEAR' * 'QUARTER' * 'HOUR'\
-            \ * 'MINUTE' *\n                'SECOND' Defaults to ['YEAR', 'MONTH',\
-            \ 'DAY',\n                'DAY_OF_WEEK', 'DAY_OF_YEAR', 'WEEK_OF_YEAR']\n\
-            \      Log: Performs the natural log on a numeric column.\n          Example:\
-            \  .. code-block:: python  { \"transformation\": \"Log\",\n          \
-            \  \"input_columns\": [\"feature_1\"] }\n          Arguments:\n      \
-            \        input_columns: A list with a single column to\n             \
-            \   perform the log transformation on.\n              output_columns:\
-            \ A list with a single\n                output column name, corresponding\
-            \ to the output of our\n                transformation.\n      ZScale:\
-            \ Performs Z-scale normalization on a numeric column.\n          Example:\
-            \  .. code-block:: python  { \"transformation\":\n            \"ZScale\"\
-            , \"input_columns\": [\"feature_1\"] }\n          Arguments:\n       \
-            \       input_columns: A list with a single column to\n              \
-            \  perform the z-scale transformation on.\n              output_columns:\
-            \ A list with a single\n                output column name, corresponding\
-            \ to the output of our\n                transformation.\n      Vocabulary:\
-            \ Converts strings to integers, where each unique string\n        gets\
-            \ a unique integer representation.\n          Example:  .. code-block::\
-            \ python  { \"transformation\":\n            \"Vocabulary\", \"input_columns\"\
-            : [\"feature_1\"] }\n          Arguments:\n              input_columns:\
-            \ A list with a single column to\n                perform the vocabulary\
-            \ transformation on.\n              output_columns: A list with a single\n\
-            \                output column name, corresponding to the output of our\n\
-            \                transformation.\n              top_k: Number of the most\
-            \ frequent words\n                in the vocabulary to use for generating\
-            \ dictionary\n                lookup indices. If not specified, all words\
-            \ in the\n                vocabulary will be used. Defaults to None.\n\
-            \              frequency_threshold: Limit the vocabulary\n           \
-            \     only to words whose number of occurrences in the input\n       \
-            \         exceeds frequency_threshold. If not specified, all words\n \
-            \               in the vocabulary will be included. If both top_k and\n\
-            \                frequency_threshold are specified, a word must satisfy\n\
-            \                both conditions to be included. Defaults to None.\n \
-            \     Categorical: Transforms categorical columns to integer columns.\n\
-            \          Example:  .. code-block:: python  { \"transformation\":\n \
-            \           \"Categorical\", \"input_columns\": [\"feature_1\"], \"top_k\"\
-            : 10 }\n          Arguments:\n              input_columns: A list with\
-            \ a single column to\n                perform the categorical transformation\
-            \ on.\n              output_columns: A list with a single\n          \
-            \      output column name, corresponding to the output of our\n      \
-            \          transformation.\n              top_k: Number of the most frequent\
-            \ words\n                in the vocabulary to use for generating dictionary\n\
-            \                lookup indices. If not specified, all words in the\n\
-            \                vocabulary will be used.\n              frequency_threshold:\
-            \ Limit the vocabulary\n                only to words whose number of\
-            \ occurrences in the input\n                exceeds frequency_threshold.\
-            \ If not specified, all words\n                in the vocabulary will\
-            \ be included. If both top_k and\n                frequency_threshold\
-            \ are specified, a word must satisfy\n                both conditions\
-            \ to be included.\n      Reduce: Given a column where each entry is a\
-            \ numeric array,\n        reduces arrays according to our reduce_mode.\n\
-            \          Example:  .. code-block:: python  { \"transformation\":\n \
-            \           \"Reduce\", \"input_columns\": [\"feature_1\"], \"reduce_mode\"\
-            :\n            \"MEAN\", \"output_columns\": [\"feature_1_mean\"] }\n\
-            \          Arguments:\n              input_columns: A list with a single\
-            \ column to\n                perform the reduce transformation on.\n \
-            \             output_columns: A list with a single\n                output\
-            \ column name, corresponding to the output of our\n                transformation.\n\
-            \              reduce_mode: One of * 'MAX' * 'MIN' *\n               \
-            \ 'MEAN' * 'LAST_K' Defaults to 'MEAN'.\n              last_k: The number\
-            \ of last k elements when\n                'LAST_K' reduce mode is used.\
-            \ Defaults to 1.\n      SplitString: Given a column of strings, splits\
-            \ strings into token\n        arrays.\n          Example:  .. code-block::\
-            \ python  { \"transformation\":\n            \"SplitString\", \"input_columns\"\
-            : [\"feature_1\"], \"separator\":\n            \"$\" }\n          Arguments:\n\
-            \              input_columns: A list with a single column to\n       \
-            \         perform the split string transformation on.\n              output_columns:\
-            \ A list with a single\n                output column name, corresponding\
-            \ to the output of our\n                transformation.\n            \
-            \  separator: Separator to split input string\n                into tokens.\
-            \ Defaults to ' '.\n              missing_token: Missing token to use\
-            \ when\n                no string is included. Defaults to ' _MISSING_\
-            \ '.\n      NGram: Given a column of strings, splits strings into token\
-            \ arrays\n        where each token is an integer.\n          Example:\
-            \  .. code-block:: python  { \"transformation\": \"NGram\",\n        \
-            \    \"input_columns\": [\"feature_1\"], \"min_ngram_size\": 1,\n    \
-            \        \"max_ngram_size\": 2, \"separator\": \" \" }\n          Arguments:\n\
-            \              input_columns: A list with a single column to\n       \
-            \         perform the n-gram transformation on.\n              output_columns:\
-            \ A list with a single\n                output column name, corresponding\
-            \ to the output of our\n                transformation.\n            \
-            \  min_ngram_size: Minimum n-gram size. Must\n                be a positive\
-            \ number and <= max_ngram_size. Defaults to\n                1.\n    \
-            \          max_ngram_size: Maximum n-gram size. Must\n               \
-            \ be a positive number and >= min_ngram_size. Defaults to\n          \
-            \      2.\n              top_k: Number of the most frequent words\n  \
-            \              in the vocabulary to use for generating dictionary\n  \
-            \              lookup indices. If not specified, all words in the\n  \
-            \              vocabulary will be used. Defaults to None.\n          \
-            \    frequency_threshold: Limit the\n                dictionary's vocabulary\
-            \ only to words whose number of\n                occurrences in the input\
-            \ exceeds frequency_threshold. If\n                not specified, all\
-            \ words in the vocabulary will be\n                included. If both top_k\
-            \ and frequency_threshold are\n                specified, a word must\
-            \ satisfy both conditions to be\n                included. Defaults to\
-            \ None.\n              separator: Separator to split input string\n  \
-            \              into tokens. Defaults to ' '.\n              missing_token:\
-            \ Missing token to use when\n                no string is included. Defaults\
-            \ to ' _MISSING_ '.\n      Clip: Given a numeric column, clips elements\
-            \ such that elements <\n        min_value are assigned min_value, and\
-            \ elements > max_value are\n        assigned max_value.\n          Example:\
-            \  .. code-block:: python  { \"transformation\": \"Clip\",\n         \
-            \   \"input_columns\": [\"col1\"], \"output_columns\":\n            [\"\
-            col1_clipped\"], \"min_value\": 1., \"max_value\": 10., }\n          Arguments:\n\
-            \              input_columns: A list with a single column to\n       \
-            \         perform the n-gram transformation on.\n              output_columns:\
-            \ A list with a single\n                output column name, corresponding\
-            \ to the output of our\n                transformation.\n            \
-            \  min_value: Number where all values below\n                min_value\
-            \ are set to min_value. If no min_value is\n                provided,\
-            \ min clipping will not occur. Defaults to None.\n              max_value:\
-            \ Number where all values above\n                max_value are set to\
-            \ max_value If no max_value is\n                provided, max clipping\
-            \ will not occur. Defaults to None.\n      MultiHotEncoding: Performs\
-            \ multi-hot encoding on a categorical\n        array column.\n       \
-            \   Example:  .. code-block:: python  { \"transformation\":\n        \
-            \    \"MultiHotEncoding\", \"input_columns\": [\"col1\"], }  The number\n\
-            \            of classes is determened by the largest number included in\n\
-            \            the input if it is numeric or the total number of unique\n\
-            \            values of the input if it is type str.  If the input is has\n\
-            \            type str and an element contians separator tokens, the input\n\
-            \            will be split at separator indices, and the each element\
-            \ of\n            the split list will be considered a seperate class.\
-            \ For\n            example,\n          Input:  .. code-block:: python\
-            \  [ [\"foo bar\"],      # Example\n            0 [\"foo\", \"bar\"],\
-            \   # Example 1 [\"foo\"],          # Example\n            2 [\"bar\"\
-            ],          # Example 3 ]\n          Output (with default separator=\"\
-            \ \"):  .. code-block:: python [\n            [1, 1],          # Example\
-            \ 0 [1, 1],          # Example 1\n            [1, 0],          # Example\
-            \ 2 [0, 1],          # Example 3 ]\n          Arguments:\n           \
-            \   input_columns: A list with a single column to\n                perform\
-            \ the multi-hot-encoding on.\n              output_columns: A list with\
-            \ a single\n                output column name, corresponding to the output\
-            \ of our\n                transformation.\n              top_k: Number\
-            \ of the most frequent words\n                in the vocabulary to use\
-            \ for generating dictionary\n                lookup indices. If not specified,\
-            \ all words in the\n                vocabulary will be used. Defaults\
-            \ to None.\n              frequency_threshold: Limit the\n           \
-            \     dictionary's vocabulary only to words whose number of\n        \
-            \        occurrences in the input exceeds frequency_threshold. If\n  \
-            \              not specified, all words in the vocabulary will be\n  \
-            \              included. If both top_k and frequency_threshold are\n \
-            \               specified, a word must satisfy both conditions to be\n\
-            \                included. Defaults to None.\n              separator:\
-            \ Separator to split input string\n                into tokens. Defaults\
-            \ to ' '.\n      MaxAbsScale: Performs maximum absolute scaling on a numeric\n\
-            \        column.\n          Example:  .. code-block:: python  { \"transformation\"\
-            :\n            \"MaxAbsScale\", \"input_columns\": [\"col1\"], \"output_columns\"\
-            :\n            [\"col1_max_abs_scaled\"] }\n          Arguments:\n   \
-            \           input_columns: A list with a single column to\n          \
-            \      perform max-abs-scale on.\n              output_columns: A list\
-            \ with a single\n                output column name, corresponding to\
-            \ the output of our\n                transformation.\n      Custom: Transformations\
-            \ defined in\n        tf_custom_transformation_definitions are included\
-            \ here in the\n        TensorFlow-based transformation configuration.\
-            \  For example,\n        given the following tf_custom_transformation_definitions:\
-            \  ..\n        code-block:: python  [ { \"transformation\": \"PlusX\"\
-            ,\n        \"module_path\": \"gs://bucket/custom_transform_fn.py\",\n\
-            \        \"function_name\": \"plus_one_transform\" } ]  We can include\
-            \ the\n        following transformation:  .. code-block:: python  {\n\
-            \        \"transformation\": \"PlusX\", \"input_columns\": [\"col1\"],\n\
-            \        \"output_columns\": [\"col1_max_abs_scaled\"] \"x\": 5 }  Note\
-            \ that\n        input_columns must still be included in our arguments\
-            \ and\n        output_columns is optional. All other arguments are those\n\
-            \        defined in custom_transform_fn.py, which includes `\"x\"` in\
-            \ this\n        case. See tf_custom_transformation_definitions above.\n\
-            \        legacy_transformations_path (Optional[str]) Deprecated. Prefer\n\
-            \        tf_auto_transform_features.  Path to a GCS file containing JSON\n\
-            \        string for legacy style transformations. Note that\n        legacy_transformations_path\
-            \ and tf_auto_transform_features\n        cannot both be specified."
+          description: "Path to TensorFlow-based transformation configuration.  Path\
+            \ to a JSON file used to specified FTE's TF transformation configurations.\
+            \  In the following, we provide some sample transform configurations to\
+            \ demonstrate FTE's capabilities. All transformations on input columns\
+            \ are explicitly specified with FTE's built-in transformations. Chaining\
+            \ of multiple transformations on a single column is also supported. For\
+            \ example:  .. code-block:: python  [ { \"transformation\": \"ZScale\"\
+            , \"input_columns\": [\"feature_1\"] }, { \"transformation\": \"ZScale\"\
+            , \"input_columns\": [\"feature_2\"] } ]`. Additional information about\
+            \ FTE's currently supported built-in\ntransformations:\nDatetime: Extracts\
+            \ datetime featues from a column containing timestamp strings.\n    Example:\
+            \  .. code-block:: python  { \"transformation\": \"Datetime\", \"input_columns\"\
+            : [\"feature_1\"], \"time_format\": \"%Y-%m-%d\" }\n    Arguments:\n \
+            \       input_columns: A list with a single column to perform the datetime\
+            \ transformation on.\n        output_columns: Names of output columns,\
+            \ one for each datetime_features element.\n        time_format: Datetime\
+            \ format string. Time format is a combination of Date + Time Delimiter\
+            \ (optional) + Time (optional) directives. Valid date directives are as\
+            \ follows * '%Y-%m-%d'  # 2018-11-30 * '%Y/%m/%d'  # 2018/11/30 * '%y-%m-%d'\
+            \  # 18-11-30 * '%y/%m/%d'  # 18/11/30 * '%m-%d-%Y'  # 11-30-2018 * '%m/%d/%Y'\
+            \  # 11/30/2018 * '%m-%d-%y'  # 11-30-18 * '%m/%d/%y'  # 11/30/18 * '%d-%m-%Y'\
+            \  # 30-11-2018 * '%d/%m/%Y'  # 30/11/2018 * '%d-%B-%Y'  # 30-November-2018\
+            \ * '%d-%m-%y' # 30-11-18 * '%d/%m/%y'  # 30/11/18 * '%d-%B-%y'  # 30-November-18\
+            \ * '%d%m%Y'    # 30112018 * '%m%d%Y'    # 11302018 * '%Y%m%d'    # 20181130\
+            \ Valid time delimiters are as follows * 'T' * ' ' Valid time directives\
+            \ are as follows * '%H:%M'          # 23:59 * '%H:%M:%S'       #\n   \
+            \       23:59:58 * '%H:%M:%S.%f'    # 23:59:58[.123456] * '%H:%M:%S.%f%z'\
+            \  # 23:59:58[.123456]+0000 * '%H:%M:%S%z',    # 23:59:58+0000\n     \
+            \   datetime_features: List of datetime features to be extract. Each entry\
+            \ must be one of * 'YEAR' * 'MONTH' * 'DAY' * 'DAY_OF_WEEK' * 'DAY_OF_YEAR'\
+            \ * 'WEEK_OF_YEAR' * 'QUARTER' * 'HOUR' * 'MINUTE' * 'SECOND' Defaults\
+            \ to ['YEAR', 'MONTH', 'DAY', 'DAY_OF_WEEK', 'DAY_OF_YEAR', 'WEEK_OF_YEAR']\n\
+            Log: Performs the natural log on a numeric column.\n    Example:  .. code-block::\
+            \ python  { \"transformation\": \"Log\", \"input_columns\": [\"feature_1\"\
+            ] }\n    Arguments:\n        input_columns: A list with a single column\
+            \ to perform the log transformation on.\n        output_columns: A list\
+            \ with a single output column name, corresponding to the output of our\
+            \ transformation.\nZScale: Performs Z-scale normalization on a numeric\
+            \ column.\n    Example:  .. code-block:: python  { \"transformation\"\
+            : \"ZScale\", \"input_columns\": [\"feature_1\"] }\n    Arguments:\n \
+            \       input_columns: A list with a single column to perform the z-scale\
+            \ transformation on.\n        output_columns: A list with a single output\
+            \ column name, corresponding to the output of our transformation.\nVocabulary:\
+            \ Converts strings to integers, where each unique string gets a unique\
+            \ integer representation.\n    Example:  .. code-block:: python  { \"\
+            transformation\": \"Vocabulary\", \"input_columns\": [\"feature_1\"] }\n\
+            \    Arguments:\n        input_columns: A list with a single column to\
+            \ perform the vocabulary transformation on.\n        output_columns: A\
+            \ list with a single output column name, corresponding to the output of\
+            \ our transformation.\n        top_k: Number of the most frequent words\
+            \ in the vocabulary to use for generating dictionary lookup indices. If\
+            \ not specified, all words in the vocabulary will be used. Defaults to\
+            \ None.\n        frequency_threshold: Limit the vocabulary only to words\
+            \ whose number of occurrences in the input exceeds frequency_threshold.\
+            \ If not specified, all words in the vocabulary will be included. If both\
+            \ top_k and frequency_threshold are specified, a word must satisfy both\
+            \ conditions to be included. Defaults to None.\nCategorical: Transforms\
+            \ categorical columns to integer columns.\n    Example:  .. code-block::\
+            \ python  { \"transformation\": \"Categorical\", \"input_columns\": [\"\
+            feature_1\"], \"top_k\": 10 }\n    Arguments:\n        input_columns:\
+            \ A list with a single column to perform the categorical transformation\
+            \ on.\n        output_columns: A list with a single output column name,\
+            \ corresponding to the output of our transformation.\n        top_k: Number\
+            \ of the most frequent words in the vocabulary to use for generating dictionary\
+            \ lookup indices. If not specified, all words in the vocabulary will be\
+            \ used.\n        frequency_threshold: Limit the vocabulary only to words\
+            \ whose number of occurrences in the input exceeds frequency_threshold.\
+            \ If not specified, all words in the vocabulary will be included. If both\
+            \ top_k and frequency_threshold are specified, a word must satisfy both\
+            \ conditions to be included.\nReduce: Given a column where each entry\
+            \ is a numeric array, reduces arrays according to our reduce_mode.\n \
+            \   Example:  .. code-block:: python  { \"transformation\": \"Reduce\"\
+            , \"input_columns\": [\"feature_1\"], \"reduce_mode\": \"MEAN\", \"output_columns\"\
+            : [\"feature_1_mean\"] }\n    Arguments:\n        input_columns: A list\
+            \ with a single column to perform the reduce transformation on.\n    \
+            \    output_columns: A list with a single output column name, corresponding\
+            \ to the output of our transformation.\n        reduce_mode: One of *\
+            \ 'MAX' * 'MIN' * 'MEAN' * 'LAST_K' Defaults to 'MEAN'.\n        last_k:\
+            \ The number of last k elements when 'LAST_K' reduce mode is used. Defaults\
+            \ to 1.\nSplitString: Given a column of strings, splits strings into token\
+            \ arrays.\n    Example:  .. code-block:: python  { \"transformation\"\
+            : \"SplitString\", \"input_columns\": [\"feature_1\"], \"separator\":\
+            \ \"$\" }\n    Arguments:\n        input_columns: A list with a single\
+            \ column to perform the split string transformation on.\n        output_columns:\
+            \ A list with a single output column name, corresponding to the output\
+            \ of our transformation.\n        separator: Separator to split input\
+            \ string into tokens. Defaults to ' '.\n        missing_token: Missing\
+            \ token to use when no string is included. Defaults to ' _MISSING_ '.\n\
+            NGram: Given a column of strings, splits strings into token arrays where\
+            \ each token is an integer.\n    Example:  .. code-block:: python  { \"\
+            transformation\": \"NGram\", \"input_columns\": [\"feature_1\"], \"min_ngram_size\"\
+            : 1, \"max_ngram_size\": 2, \"separator\": \" \" }\n    Arguments:\n \
+            \       input_columns: A list with a single column to perform the n-gram\
+            \ transformation on.\n        output_columns: A list with a single output\
+            \ column name, corresponding to the output of our transformation.\n  \
+            \      min_ngram_size: Minimum n-gram size. Must be a positive number\
+            \ and <= max_ngram_size. Defaults to 1.\n        max_ngram_size: Maximum\
+            \ n-gram size. Must be a positive number and >= min_ngram_size. Defaults\
+            \ to 2.\n        top_k: Number of the most frequent words in the vocabulary\
+            \ to use for generating dictionary lookup indices. If not specified, all\
+            \ words in the vocabulary will be used. Defaults to None.\n        frequency_threshold:\
+            \ Limit the dictionary's vocabulary only to words whose number of occurrences\
+            \ in the input exceeds frequency_threshold. If not specified, all words\
+            \ in the vocabulary will be included. If both top_k and frequency_threshold\
+            \ are specified, a word must satisfy both conditions to be included. Defaults\
+            \ to None.\n        separator: Separator to split input string into tokens.\
+            \ Defaults to ' '.\n        missing_token: Missing token to use when no\
+            \ string is included. Defaults to ' _MISSING_ '.\nClip: Given a numeric\
+            \ column, clips elements such that elements < min_value are assigned min_value,\
+            \ and elements > max_value are assigned max_value.\n    Example:  .. code-block::\
+            \ python  { \"transformation\": \"Clip\", \"input_columns\": [\"col1\"\
+            ], \"output_columns\": [\"col1_clipped\"], \"min_value\": 1., \"max_value\"\
+            : 10., }\n    Arguments:\n        input_columns: A list with a single\
+            \ column to perform the n-gram transformation on.\n        output_columns:\
+            \ A list with a single output column name, corresponding to the output\
+            \ of our transformation.\n        min_value: Number where all values below\
+            \ min_value are set to min_value. If no min_value is provided, min clipping\
+            \ will not occur. Defaults to None.\n        max_value: Number where all\
+            \ values above max_value are set to max_value If no max_value is provided,\
+            \ max clipping will not occur. Defaults to None.\nMultiHotEncoding: Performs\
+            \ multi-hot encoding on a categorical array column.\n    Example:  ..\
+            \ code-block:: python  { \"transformation\": \"MultiHotEncoding\", \"\
+            input_columns\": [\"col1\"], }  The number of classes is determened by\
+            \ the largest number included in the input if it is numeric or the total\
+            \ number of unique values of the input if it is type str.  If the input\
+            \ is has type str and an element contians separator tokens, the input\
+            \ will be split at separator indices, and the each element of the split\
+            \ list will be considered a seperate class. For example,\n    Input: \
+            \ .. code-block:: python  [ [\"foo bar\"],      # Example 0 [\"foo\",\
+            \ \"bar\"],   # Example 1 [\"foo\"],          # Example 2 [\"bar\"], \
+            \         # Example 3 ] Output (with default separator=\" \"):  .. code-block::\
+            \ python [ [1, 1],          # Example 0 [1, 1],          # Example 1 [1,\
+            \ 0],          # Example 2 [0, 1],          # Example 3 ]\n    Arguments:\n\
+            \        input_columns: A list with a single column to perform the multi-hot-encoding\
+            \ on.\n        output_columns: A list with a single output column name,\
+            \ corresponding to the output of our transformation.\n        top_k: Number\
+            \ of the most frequent words in the vocabulary to use for generating dictionary\
+            \ lookup indices. If not specified, all words in the vocabulary will be\
+            \ used. Defaults to None.\n        frequency_threshold: Limit the dictionary's\
+            \ vocabulary only to words whose number of occurrences in the input exceeds\
+            \ frequency_threshold. If not specified, all words in the vocabulary will\
+            \ be included. If both top_k and frequency_threshold are specified, a\
+            \ word must satisfy both conditions to be included. Defaults to None.\n\
+            \        separator: Separator to split input string into tokens. Defaults\
+            \ to ' '.\nMaxAbsScale: Performs maximum absolute scaling on a numeric\
+            \ column.\n    Example:  .. code-block:: python  { \"transformation\"\
+            : \"MaxAbsScale\", \"input_columns\": [\"col1\"], \"output_columns\":\
+            \ [\"col1_max_abs_scaled\"] }\n    Arguments:\n        input_columns:\
+            \ A list with a single column to perform max-abs-scale on.\n        output_columns:\
+            \ A list with a single output column name, corresponding to the output\
+            \ of our transformation.\nCustom: Transformations defined in tf_custom_transformation_definitions\
+            \ are included here in the TensorFlow-based transformation configuration.\
+            \  For example, given the following tf_custom_transformation_definitions:\
+            \  .. code-block:: python  [ { \"transformation\": \"PlusX\", \"module_path\"\
+            : \"gs://bucket/custom_transform_fn.py\", \"function_name\": \"plus_one_transform\"\
+            \ } ]  We can include the following transformation:  .. code-block:: python\
+            \  { \"transformation\": \"PlusX\", \"input_columns\": [\"col1\"], \"\
+            output_columns\": [\"col1_max_abs_scaled\"] \"x\": 5 }  Note that input_columns\
+            \ must still be included in our arguments and output_columns is optional.\
+            \ All other arguments are those defined in custom_transform_fn.py, which\
+            \ includes `\"x\"` in this case. See tf_custom_transformation_definitions\
+            \ above. legacy_transformations_path (Optional[str]) Deprecated. Prefer\
+            \ tf_auto_transform_features.  Path to a GCS file containing JSON string\
+            \ for legacy style transformations. Note that legacy_transformations_path\
+            \ and tf_auto_transform_features cannot both be specified."
           isOptional: true
           parameterType: STRING
         timestamp_split_key:
@@ -3464,11 +3287,9 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'The ranking of features, all features supported in the
-
-            dataset will be included. For "AMI" algorithm, array features won''t be
-
-            available in the ranking as arrays are not supported yet.'
+          description: The ranking of features, all features supported in the dataset
+            will be included. For "AMI" algorithm, array features won't be available
+            in the ranking as arrays are not supported yet.
         instance_schema:
           artifactType:
             schemaTitle: system.Artifact
@@ -3489,36 +3310,28 @@ components:
           description: The transform output artifact.
       parameters:
         bigquery_downsampled_test_split_uri:
-          description: 'BigQuery URI for the downsampled test
-
-            split to pass to the batch prediction component during batch explain.'
+          description: BigQuery URI for the downsampled test split to pass to the
+            batch prediction component during batch explain.
           parameterType: STRING
         bigquery_test_split_uri:
-          description: 'BigQuery URI for the test split to pass to the
-
-            batch prediction component during evaluation.'
+          description: BigQuery URI for the test split to pass to the batch prediction
+            component during evaluation.
           parameterType: STRING
         bigquery_train_split_uri:
-          description: 'BigQuery URI for the train split to pass to the
-
-            batch prediction component during distillation.'
+          description: BigQuery URI for the train split to pass to the batch prediction
+            component during distillation.
           parameterType: STRING
         bigquery_validation_split_uri:
-          description: 'BigQuery URI for the validation split to
-
-            pass to the batch prediction component during distillation.'
+          description: BigQuery URI for the validation split to pass to the batch
+            prediction component during distillation.
           parameterType: STRING
         gcp_resources:
-          description: 'GCP resources created by this component. For more details,
-
-            see
-
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+          description: GCP resources created by this component. For more details,
+            see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
         split_example_counts:
-          description: 'JSON string of data split example counts for train,
-
-            validate, and test splits.'
+          description: JSON string of data split example counts for train, validate,
+            and test splits.
           parameterType: STRING
   comp-finalize-eval-quantile-parameters:
     executorLabel: exec-finalize-eval-quantile-parameters
@@ -5536,16 +5349,12 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'Dataset stats generated by
-
-            feature transform engine.'
+          description: Dataset stats generated by feature transform engine.
         instance_schema:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'Schema of input data to the tf_model at
-
-            serving time.'
+          description: Schema of input data to the tf_model at serving time.
         training_schema:
           artifactType:
             schemaTitle: system.Artifact
@@ -5553,9 +5362,7 @@ components:
       parameters:
         available_at_forecast_columns:
           defaultValue: []
-          description: 'The names of the columns that are
-
-            available at forecast time.'
+          description: The names of the columns that are available at forecast time.
           isOptional: true
           parameterType: LIST
         context_window:
@@ -5565,19 +5372,12 @@ components:
           parameterType: NUMBER_INTEGER
         enable_probabilistic_inference:
           defaultValue: false
-          description: 'If probabilistic inference is
-
-            enabled, the model will fit a distribution that captures the uncertainty
-
-            of a prediction. At inference time, the predictive distribution is used
-
-            to make a point prediction that minimizes the optimization objective.
-
-            For example, the mean of a predictive distribution is the point
-
-            prediction that minimizes RMSE loss. If quantiles are specified, then
-
-            the quantiles of the distribution are also returned.'
+          description: If probabilistic inference is enabled, the model will fit a
+            distribution that captures the uncertainty of a prediction. At inference
+            time, the predictive distribution is used to make a point prediction that
+            minimizes the optimization objective.  For example, the mean of a predictive
+            distribution is the point prediction that minimizes RMSE loss. If quantiles
+            are specified, then the quantiles of the distribution are also returned.
           isOptional: true
           parameterType: BOOLEAN
         forecast_horizon:
@@ -5592,76 +5392,61 @@ components:
           parameterType: STRING
         forecasting_transformations:
           defaultValue: {}
-          description: 'Dict mapping auto and/or type-resolutions to
-
-            feature columns. The supported types are auto, categorical, numeric,
-
-            text, and timestamp.'
+          description: Dict mapping auto and/or type-resolutions to feature columns.
+            The supported types are auto, categorical, numeric, text, and timestamp.
           isOptional: true
           parameterType: STRUCT
         group_columns:
-          description: 'A list of time series attribute column
-
-            names that define the time series hierarchy.'
+          description: A list of time series attribute column names that define the
+            time series hierarchy.
           isOptional: true
           parameterType: LIST
         group_temporal_total_weight:
           defaultValue: 0.0
-          description: 'The weight of the loss for
-
-            predictions aggregated over both the horizon and time series in the same
-
-            hierarchy group.'
+          description: The weight of the loss for predictions aggregated over both
+            the horizon and time series in the same hierarchy group.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         group_total_weight:
           defaultValue: 0.0
-          description: 'The weight of the loss for
-
-            predictions aggregated over time series in the same group.'
+          description: The weight of the loss for predictions aggregated over time
+            series in the same group.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         optimization_objective:
           defaultValue: ''
-          description: "Objective function the model is optimizing\ntowards. The training\
-            \ process creates a model that maximizes/minimizes\nthe value of the objective\
-            \ function over the validation set. The\nsupported optimization objectives\
-            \ depend on the prediction type. If the\nfield is not set, a default objective\
-            \ function is used.\n  classification: \"maximize-au-roc\" (default) -\
-            \ Maximize the\n    area under the receiver operating characteristic (ROC)\
-            \ curve.\n    \"minimize-log-loss\" - Minimize log loss. \"maximize-au-prc\"\
-            \ -\n    Maximize the area under the precision-recall curve.\n    \"maximize-precision-at-recall\"\
-            \ - Maximize precision for a specified\n    recall value. \"maximize-recall-at-precision\"\
-            \ - Maximize recall for a\n    specified precision value.\n  classification\
-            \ (multi-class): \"minimize-log-loss\" (default) - Minimize\n    log loss.\n\
-            \  regression: \"minimize-rmse\" (default) - Minimize root-mean-squared\n\
-            \    error (RMSE). \"minimize-mae\" - Minimize mean-absolute error (MAE).\n\
-            \    \"minimize-rmsle\" - Minimize root-mean-squared log error (RMSLE)."
+          description: 'Objective function the model is optimizing towards. The training
+            process creates a model that maximizes/minimizes the value of the objective
+            function over the validation set. The supported optimization objectives
+            depend on the prediction type. If the field is not set, a default objective
+            function is used.  classification: "maximize-au-roc" (default) - Maximize
+            the area under the receiver operating characteristic (ROC) curve.  "minimize-log-loss"
+            - Minimize log loss. "maximize-au-prc" - Maximize the area under the precision-recall
+            curve.  "maximize-precision-at-recall" - Maximize precision for a specified
+            recall value. "maximize-recall-at-precision" - Maximize recall for a specified
+            precision value.  classification (multi-class): "minimize-log-loss" (default)
+            - Minimize log loss.  regression: "minimize-rmse" (default) - Minimize
+            root-mean-squared error (RMSE). "minimize-mae" - Minimize mean-absolute
+            error (MAE).  "minimize-rmsle" - Minimize root-mean-squared log error
+            (RMSLE).'
           isOptional: true
           parameterType: STRING
         optimization_objective_precision_value:
           defaultValue: -1.0
-          description: 'Required when
-
-            optimization_objective is "maximize-recall-at-precision". Must be
-
-            between 0 and 1, inclusive.'
+          description: Required when optimization_objective is "maximize-recall-at-precision".
+            Must be between 0 and 1, inclusive.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         optimization_objective_recall_value:
           defaultValue: -1.0
-          description: 'Required when
-
-            optimization_objective is "maximize-precision-at-recall". Must be
-
-            between 0 and 1, inclusive.'
+          description: Required when optimization_objective is "maximize-precision-at-recall".
+            Must be between 0 and 1, inclusive.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         prediction_type:
           defaultValue: ''
-          description: 'Model prediction type. One of "classification",
-
-            "regression", "time_series".'
+          description: Model prediction type. One of "classification", "regression",
+            "time_series".
           isOptional: true
           parameterType: STRING
         quantiles:
@@ -5671,33 +5456,24 @@ components:
           parameterType: LIST
         run_distill:
           defaultValue: false
-          description: 'Whether the distillation should be applied to the
-
-            training.'
+          description: Whether the distillation should be applied to the training.
           isOptional: true
           parameterType: BOOLEAN
         run_evaluation:
           defaultValue: false
-          description: 'Whether we are running evaluation in the training
-
-            pipeline.'
+          description: Whether we are running evaluation in the training pipeline.
           isOptional: true
           parameterType: BOOLEAN
         split_example_counts:
-          description: 'JSON string of data split example counts for
-
-            train, validate, and test splits.'
+          description: JSON string of data split example counts for train, validate,
+            and test splits.
           parameterType: STRING
         stage_1_deadline_hours:
-          description: 'Stage 1 training budget in
-
-            hours.'
+          description: Stage 1 training budget in hours.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         stage_2_deadline_hours:
-          description: 'Stage 2 training budget in
-
-            hours.'
+          description: Stage 2 training budget in hours.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         target_column:
@@ -5707,45 +5483,36 @@ components:
           parameterType: STRING
         temporal_total_weight:
           defaultValue: 0.0
-          description: 'The weight of the loss for
-
-            predictions aggregated over the horizon for a single time series.'
+          description: The weight of the loss for predictions aggregated over the
+            horizon for a single time series.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         time_column:
           defaultValue: ''
-          description: 'The column that indicates the time. Used by forecasting
-
-            only.'
+          description: The column that indicates the time. Used by forecasting only.
           isOptional: true
           parameterType: STRING
         time_series_attribute_columns:
           defaultValue: []
-          description: 'The column names of the time series
-
-            attributes.'
+          description: The column names of the time series attributes.
           isOptional: true
           parameterType: LIST
         time_series_identifier_column:
-          description: '[Deprecated] The time series identifier
-
-            column. Used by forecasting only. Raises exception if used -
-
-            use the "time_series_identifier_column" field instead.'
+          description: '[Deprecated] The time series identifier column. Used by forecasting
+            only. Raises exception if used - use the "time_series_identifier_column"
+            field instead.'
           isOptional: true
           parameterType: STRING
         time_series_identifier_columns:
           defaultValue: []
-          description: 'The list of time series identifier columns.
-
-            Used by forecasting only.'
+          description: The list of time series identifier columns.  Used by forecasting
+            only.
           isOptional: true
           parameterType: LIST
         unavailable_at_forecast_columns:
           defaultValue: []
-          description: 'The names of the columns that are
-
-            not available at forecast time.'
+          description: The names of the columns that are not available at forecast
+            time.
           isOptional: true
           parameterType: LIST
         weight_column:
@@ -5781,7 +5548,7 @@ deploymentSpec:
         - '{"display_name": "automl-forecasting-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
           "encryption_spec": {"kms_key_name": "{{$.inputs.parameters[''encryption_spec_key_name'']}}"},
           "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec":
-          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
+          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20240419_0625",
           "args": ["forecasting_mp_ensemble", "--transform_output_path={{$.inputs.artifacts[''transform_output''].uri}}",
           "--error_file_path={{$.inputs.parameters[''root_dir'']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
           "--metadata_path={{$.inputs.artifacts[''metadata''].uri}}", "--tuning_result_input_path={{$.inputs.artifacts[''tuning_result_input''].uri}}",
@@ -5815,7 +5582,7 @@ deploymentSpec:
         - '{"display_name": "automl-forecasting-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
           "encryption_spec": {"kms_key_name": "{{$.inputs.parameters[''encryption_spec_key_name'']}}"},
           "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec":
-          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
+          {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20240419_0625",
           "args": ["forecasting_mp_ensemble", "--transform_output_path={{$.inputs.artifacts[''transform_output''].uri}}",
           "--error_file_path={{$.inputs.parameters[''root_dir'']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb",
           "--metadata_path={{$.inputs.artifacts[''metadata''].uri}}", "--tuning_result_input_path={{$.inputs.artifacts[''tuning_result_input''].uri}}",
@@ -5850,11 +5617,11 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20240419_0625",
           "\", \"args\": [\"forecasting_mp_l2l_stage_1_tuner", "\", \"--region=",
           "{{$.inputs.parameters[''location'']}}", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--training_docker_uri=",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20240419_0625",
           "\", \"--reduce_search_space_mode=", "{{$.inputs.parameters[''reduce_search_space_mode'']}}",
           "\", \"--component_id={{$.pipeline_task_uuid}}", "\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train",
@@ -5893,11 +5660,11 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20240419_0625",
           "\", \"args\": [\"forecasting_mp_l2l_stage_2_tuner", "\", \"--region=",
           "{{$.inputs.parameters[''location'']}}", "\", \"--transform_output_path=",
           "{{$.inputs.artifacts[''transform_output''].uri}}", "\", \"--training_docker_uri=",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20231029_0125",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20240419_0625",
           "\", \"--component_id={{$.pipeline_task_uuid}}", "\", \"--training_base_dir=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train",
           "\", \"--num_parallel_trial=", "{{$.inputs.parameters[''num_parallel_trials'']}}",
@@ -5936,7 +5703,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240419_0625", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -5955,12 +5722,6 @@ deploymentSpec:
         - _calculate_training_parameters
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6007,7 +5768,7 @@ deploymentSpec:
           \          'stage_2_single_run_max_secs',\n      ],\n  )(\n      stage_1_deadline_hours,\n\
           \      stage_1_single_run_max_secs,\n      stage_2_deadline_hours,\n   \
           \   stage_2_single_run_max_secs,\n  )\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-calculate-training-parameters-2:
       container:
         args:
@@ -6017,12 +5778,6 @@ deploymentSpec:
         - _calculate_training_parameters
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6069,7 +5824,7 @@ deploymentSpec:
           \          'stage_2_single_run_max_secs',\n      ],\n  )(\n      stage_1_deadline_hours,\n\
           \      stage_1_single_run_max_secs,\n      stage_2_deadline_hours,\n   \
           \   stage_2_single_run_max_secs,\n  )\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-feature-attribution:
       container:
         args:
@@ -6260,8 +6015,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240419_0625
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240419_0625
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -6278,7 +6033,7 @@ deploymentSpec:
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240419_0625
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -6291,12 +6046,6 @@ deploymentSpec:
         - finalize_eval_quantile_parameters
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6315,7 +6064,7 @@ deploymentSpec:
           \ = 'point'\n  else:\n    forecasting_type = 'quantile'\n\n  return collections.namedtuple(\n\
           \      'Outputs',\n      (\n          'forecasting_type',\n          'quantiles',\n\
           \      ),\n  )(forecasting_type, quantiles)\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-finalize-eval-quantile-parameters-2:
       container:
         args:
@@ -6325,12 +6074,6 @@ deploymentSpec:
         - finalize_eval_quantile_parameters
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6349,7 +6092,7 @@ deploymentSpec:
           \ = 'point'\n  else:\n    forecasting_type = 'quantile'\n\n  return collections.namedtuple(\n\
           \      'Outputs',\n      (\n          'forecasting_type',\n          'quantiles',\n\
           \      ),\n  )(forecasting_type, quantiles)\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-get-or-create-model-description:
       container:
         args:
@@ -6359,12 +6102,6 @@ deploymentSpec:
         - get_or_create_model_description
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6384,7 +6121,7 @@ deploymentSpec:
           \    return f'{original_description} From: {pipeline_url}'\n\n  # The pipeline\
           \ url contains KFP placeholders injected at runtime.\n  return f'Vertex\
           \ forecasting model trained in the pipeline: {pipeline_url}'\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-get-or-create-model-description-2:
       container:
         args:
@@ -6394,12 +6131,6 @@ deploymentSpec:
         - get_or_create_model_description
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6419,7 +6150,7 @@ deploymentSpec:
           \    return f'{original_description} From: {pipeline_url}'\n\n  # The pipeline\
           \ url contains KFP placeholders injected at runtime.\n  return f'Vertex\
           \ forecasting model trained in the pipeline: {pipeline_url}'\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-get-prediction-image-uri:
       container:
         args:
@@ -6429,12 +6160,6 @@ deploymentSpec:
         - _get_prediction_image_uri
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6448,14 +6173,14 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20231029_0125',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20231029_0125',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20231029_0125',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20231029_0125',\n\
+          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20240419_0625',\n\
+          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20240419_0625',\n\
+          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20240419_0625',\n\
+          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20240419_0625',\n\
           \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
           \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
           \    )\n  return images[model_type]\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-get-prediction-image-uri-2:
       container:
         args:
@@ -6465,12 +6190,6 @@ deploymentSpec:
         - _get_prediction_image_uri
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6484,14 +6203,14 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20231029_0125',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20231029_0125',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20231029_0125',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20231029_0125',\n\
+          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20240419_0625',\n\
+          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20240419_0625',\n\
+          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20240419_0625',\n\
+          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20240419_0625',\n\
           \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
           \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
           \    )\n  return images[model_type]\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-get-predictions-column:
       container:
         args:
@@ -6501,12 +6220,6 @@ deploymentSpec:
         - get_predictions_column
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6520,7 +6233,7 @@ deploymentSpec:
           \ str) -> str:\n  \"\"\"Generates the BP output's target column name.\"\"\
           \"\n  if forecasting_type == 'quantile':\n    return f'predicted_{target_column}.quantile_predictions'\n\
           \  return f'predicted_{target_column}.value'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-get-predictions-column-2:
       container:
         args:
@@ -6530,12 +6243,6 @@ deploymentSpec:
         - get_predictions_column
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -6549,7 +6256,7 @@ deploymentSpec:
           \ str) -> str:\n  \"\"\"Generates the BP output's target column name.\"\"\
           \"\n  if forecasting_type == 'quantile':\n    return f'predicted_{target_column}.quantile_predictions'\n\
           \  return f'predicted_{target_column}.value'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-importer:
       importer:
         artifactUri:
@@ -6995,7 +6702,7 @@ deploymentSpec:
         - -u
         - -m
         - launcher
-        image: gcr.io/ml-pipeline/automl-tables-private:1.0.15
+        image: gcr.io/ml-pipeline/automl-tables-private:1.0.17
     exec-model-upload-2:
       container:
         args:
@@ -7024,7 +6731,7 @@ deploymentSpec:
         - -u
         - -m
         - launcher
-        image: gcr.io/ml-pipeline/automl-tables-private:1.0.15
+        image: gcr.io/ml-pipeline/automl-tables-private:1.0.17
     exec-set-optional-inputs:
       container:
         args:
@@ -7033,12 +6740,6 @@ deploymentSpec:
         - --function_to_execute
         - _set_optional_inputs
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -7087,7 +6788,7 @@ deploymentSpec:
           \          'model_display_name',\n          'transformations',\n      ],\n\
           \  )(\n      data_source_csv_filenames,\n      data_source_bigquery_table_path,\n\
           \      model_display_name,\n      transformations,\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-split-materialized-data:
       container:
         args:
@@ -7133,7 +6834,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240419_0625
     exec-string-not-empty:
       container:
         args:
@@ -7142,12 +6843,6 @@ deploymentSpec:
         - --function_to_execute
         - _string_not_empty
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -7163,7 +6858,7 @@ deploymentSpec:
           \n  Returns:\n    Boolean value. -> 'true' if empty, 'false' if not empty.\
           \ We need to use str\n    instead of bool due to a limitation in KFP compiler.\n\
           \  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: python:3.7
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-table-to-uri:
       container:
         args:
@@ -7173,12 +6868,6 @@ deploymentSpec:
         - table_to_uri
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -7199,7 +6888,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-table-to-uri-2:
       container:
         args:
@@ -7209,12 +6898,6 @@ deploymentSpec:
         - table_to_uri
         command:
         - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
         - -ec
         - 'program_path=$(mktemp -d)
 
@@ -7235,7 +6918,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-training-configurator-and-validator:
       container:
         args:
@@ -7280,7 +6963,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240419_0625
 pipelineInfo:
   description: The Temporal Fusion Transformer (TFT) Forecasting pipeline.
   name: temporal-fusion-transformer-forecasting

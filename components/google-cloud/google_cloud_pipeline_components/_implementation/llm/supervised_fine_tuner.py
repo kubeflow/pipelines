@@ -19,7 +19,7 @@ import kfp
 
 
 @kfp.dsl.container_component
-def SupervisedFineTuner(  # pylint: disable=invalid-name
+def supervised_fine_tuner(
     project: str,
     location: str,
     train_steps: int,
@@ -86,6 +86,7 @@ def SupervisedFineTuner(  # pylint: disable=invalid-name
           machine_type=machine_type,
           image_uri=image_uri,
           args=[
+              '--app_name=supervised_fine_tuner',
               f'--input_model_path={input_model_path}',
               f'--train_steps={train_steps}',
               f'--inputs_sequence_length={inputs_sequence_length}',
