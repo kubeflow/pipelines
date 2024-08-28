@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"path"
 	"strconv"
@@ -1073,7 +1074,7 @@ func (c *Client) getOrInsertContext(ctx context.Context, name string, contextTyp
 	getCtxRes, err := c.svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed GetContextByTypeAndName(type=%q, name=%q)", contextType.GetName(), name)
+		return nil, util.Wrap(err, fmt.Sprintf("Failed GetContextByTypeAndName(type=%q, name=%q)", contextType.GetName(), name))
 	}
 	// Bug in MLMD GetContextsByTypeAndName? It doesn't return error even when no
 	// context was found.
