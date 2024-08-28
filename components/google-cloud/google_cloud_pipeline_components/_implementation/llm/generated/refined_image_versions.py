@@ -17,4 +17,4 @@
 DO NOT EDIT - This file is generated, manual changes will be overridden.
 """
 
-IMAGE_TAG = '20240623_1707'
+IMAGE_TAG = '20240818_1707'
