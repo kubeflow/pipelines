@@ -1,4 +1,6 @@
 ## Upcoming release
+* Fix Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline` after output schema change.
+
 ## Release 2.16.1
 * Fix to model batch explanation component for Structured Data pipelines; image bump.
 * Add dynamic support for boot_disk_type, boot_disk_size in `preview.custom_job.utils.create_custom_training_job_from_component`.

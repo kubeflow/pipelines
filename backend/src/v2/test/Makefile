@@ -9,19 +9,9 @@ include $(ENV_PATH)
 SHELL = /bin/bash
 
 .PHONY: integration-test
-integration-test: upload
+integration-test:
 	export KF_PIPELINES_ENDPOINT=$(HOST) \
-		&& python -u sample_test.py \
-		--samples_config samples/test/config-integration.yaml \
-		--timeout_mins 60 \
-		--context $(GCS_ROOT)/src/context.tar.gz \
-		--gcs_root $(GCS_ROOT)/data \
-		--gcr_root $(GCR_ROOT) \
-		--kfp_package_path "$(KFP_PACKAGE_PATH)"
-
-.PHONY: upload
-upload: context
-	python -u scripts/upload_gcs_blob.py tmp/context.tar.gz $(GCS_ROOT)/src/context.tar.gz
+		&& python -u ../../../../samples/v2/sample_test.py
 
 .PHONY: context
 context:
