@@ -24,7 +24,7 @@ NAME = 'zillow-kfp'  # 'kfp'
 # accordingly.
 REQUIRES = [
     'absl-py>=0.9,<=0.11',
-    'PyYAML>=5.3,<6',
+    'PyYAML>=5.3,<7',
     # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
     # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
     'google-cloud-storage>=1.20.0,<2',
@@ -41,7 +41,7 @@ REQUIRES = [
     # kfp-server-api.
     # Note, please also update ./requirements.in
     'kfp-server-api>=1.1.2,<2.0.0',
-    'jsonschema>=3.0.1,<4',
+    'jsonschema>=3.0.1,<5',
     'tabulate>=0.8.6,<1',
     'click>=7.1.2,<9',
     'Deprecated>=1.2.7,<2',
