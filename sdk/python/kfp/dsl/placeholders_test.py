@@ -299,7 +299,7 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
     def test_only_single_element_ifpresent_inside_concat_outer(self):
         with self.assertRaisesRegex(
                 ValueError,
-                f'Please use a single element for `then` and `else_` only\.'):
+                r'Please use a single element for `then` and `else_` only\.'):
             placeholders.ConcatPlaceholder([
                 'b',
                 placeholders.IfPresentPlaceholder(
@@ -309,7 +309,7 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
     def test_only_single_element_ifpresent_inside_concat_recursive(self):
         with self.assertRaisesRegex(
                 ValueError,
-                f'Please use a single element for `then` and `else_` only\.'):
+                r'Please use a single element for `then` and `else_` only\.'):
             placeholders.ConcatPlaceholder([
                 'a',
                 placeholders.ConcatPlaceholder([
@@ -323,7 +323,7 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                f'Please use a single element for `then` and `else_` only\.'):
+                r'Please use a single element for `then` and `else_` only\.'):
             placeholders.ConcatPlaceholder([
                 'a',
                 placeholders.ConcatPlaceholder([
@@ -341,7 +341,7 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
     def test_only_single_element_in_nested_ifpresent_inside_concat(self):
         with self.assertRaisesRegex(
                 ValueError,
-                f'Please use a single element for `then` and `else_` only\.'):
+                r'Please use a single element for `then` and `else_` only\.'):
             dsl.ConcatPlaceholder([
                 'my-prefix-',
                 dsl.IfPresentPlaceholder(
@@ -357,7 +357,7 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
             self):
         with self.assertRaisesRegex(
                 ValueError,
-                f'Please use a single element for `then` and `else_` only\.'):
+                r'Please use a single element for `then` and `else_` only\.'):
             dsl.ConcatPlaceholder([
                 'my-prefix-',
                 dsl.IfPresentPlaceholder(
@@ -371,7 +371,7 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
             self):
         with self.assertRaisesRegex(
                 ValueError,
-                f'Please use a single element for `then` and `else_` only\.'):
+                r'Please use a single element for `then` and `else_` only\.'):
             dsl.IfPresentPlaceholder(
                 input_name='input_1',
                 then=dsl.ConcatPlaceholder([
@@ -386,7 +386,7 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
     def test_valid_then_but_invalid_else(self):
         with self.assertRaisesRegex(
                 ValueError,
-                f'Please use a single element for `then` and `else_` only\.'):
+                r'Please use a single element for `then` and `else_` only\.'):
             dsl.ConcatPlaceholder([
                 'my-prefix-',
                 dsl.IfPresentPlaceholder(

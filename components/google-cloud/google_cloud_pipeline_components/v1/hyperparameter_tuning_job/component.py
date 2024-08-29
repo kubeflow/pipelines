@@ -42,7 +42,7 @@ def hyperparameter_tuning_job(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
-  """Creates a Vertex AI hyperparameter tuning job and waits for it to
+  r"""Creates a Vertex AI hyperparameter tuning job and waits for it to
   complete.
 
   See [more information](https://cloud.google.com/vertex-ai/docs/training/using-hyperparameter-tuning).

@@ -88,7 +88,7 @@ def write_to_artifact(executor_input, text):
       # Add URI Prefix
       # "https://[location]-aiplatform.googleapis.com/API_VERSION/": For AI Platform resource names, current version is defined in AIPLATFORM_API_VERSION.
       if RESOURCE_NAME_PATTERN.match(text):
-        location = re.findall('locations/([\w\-]+)', text)[0]
+        location = re.findall(r'locations/([\w\-]+)', text)[0]
         uri_with_prefix = f'https://{location}-aiplatform.googleapis.com/{AIPLATFORM_API_VERSION}/{text}'
         metadata.update({'resourceName': text})
 
