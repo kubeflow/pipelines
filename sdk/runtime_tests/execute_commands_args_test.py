@@ -96,8 +96,6 @@ TEST_CONFIGS = [
     )
 ]
 
-PULL_NUMBER = None
-
 
 def run_commands_and_args(
     config: RuntimeTestConfig,
@@ -116,16 +114,8 @@ def run_commands_and_args(
         # so much that it renders the test less valuable, since the
         # commands/args resemble the true runtime commands/args less well
         # prefer the less invasive approach of installing from a PR
-        global PULL_NUMBER
-        if PULL_NUMBER is None:
-            if 'PULL_NUMBER' in os.environ:
-                PULL_NUMBER = os.environ['PULL_NUMBER']
-            else:
-                PULL_NUMBER = input(
-                    "Please provide the PR number for the kubeflow/pipelines PR that contains the changes you'd like to test:"
-                )
 
-        kfp_package_path = f'git+https://github.com/kubeflow/pipelines.git@refs/pull/{PULL_NUMBER}/merge#subdirectory=sdk/python'
+        kfp_package_path = 'sdk/python'
         command_and_args = [
             re.sub(r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", kfp_package_path,
                    cmd) for cmd in command_and_args
