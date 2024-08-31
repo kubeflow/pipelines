@@ -6,7 +6,7 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/run-all-gcpc-modules.yml'
+      - '.github/workflows/gcpc-modules-tests.yml'
       - 'sdk/python/**'
 
 jobs:
