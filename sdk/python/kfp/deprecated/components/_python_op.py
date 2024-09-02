@@ -152,7 +152,7 @@ def _parent_dirs_maker_that_returns_open_file(mode: str, encoding: str = None):
     return make_parent_dirs_and_return_path
 
 
-default_base_image_or_builder = 'python:3.7'
+default_base_image_or_builder = 'python:3.9'
 
 
 def _python_function_name_to_component_name(name):
@@ -1026,7 +1026,7 @@ def create_component_from_func(
             # add_op is a task factory function that creates a task object when given arguments
             add_op = create_component_from_func(
                 func=add,
-                base_image='python:3.7', # Optional
+                base_image='python:3.9', # Optional
                 output_component_file='add.component.yaml', # Optional
                 packages_to_install=['pandas==0.24'], # Optional
             )

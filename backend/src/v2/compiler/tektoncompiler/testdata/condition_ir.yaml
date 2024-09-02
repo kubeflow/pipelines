@@ -114,7 +114,7 @@ pipelineSpec:
             \ a coin and output heads or tails randomly.\"\"\"\n    if force_flip_result:\n\
             \        return force_flip_result\n    import random\n    result = 'heads'\
             \ if random.randint(0, 1) == 0 else 'tails'\n    return result\n\n"
-          image: python:3.7
+          image: python:3.9
       exec-flip-coin-2:
         container:
           args:
@@ -143,7 +143,7 @@ pipelineSpec:
             \ a coin and output heads or tails randomly.\"\"\"\n    if force_flip_result:\n\
             \        return force_flip_result\n    import random\n    result = 'heads'\
             \ if random.randint(0, 1) == 0 else 'tails'\n    return result\n\n"
-          image: python:3.7
+          image: python:3.9
       exec-print-msg:
         container:
           args:
@@ -170,7 +170,7 @@ pipelineSpec:
           - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
             \ *\n\ndef print_msg(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
             \n"
-          image: python:3.7
+          image: python:3.9
       exec-print-msg-2:
         container:
           args:
@@ -197,7 +197,7 @@ pipelineSpec:
           - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
             \ *\n\ndef print_msg(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
             \n"
-          image: python:3.7
+          image: python:3.9
       exec-print-msg-3:
         container:
           args:
@@ -224,7 +224,7 @@ pipelineSpec:
           - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
             \ *\n\ndef print_msg(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
             \n"
-          image: python:3.7
+          image: python:3.9
   pipelineInfo:
     name: condition-v2
   root:

@@ -87,7 +87,6 @@ setuptools.setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
@@ -98,7 +97,7 @@ setuptools.setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.8.0,<3.13.0',
+    python_requires='>=3.9.0,<3.13.0',
     include_package_data=True,
     entry_points={
         'console_scripts': [

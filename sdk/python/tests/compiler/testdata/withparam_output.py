@@ -19,7 +19,7 @@ import kfp.deprecated.dsl as dsl
 def pipeline():
     op0 = dsl.ContainerOp(
         name="my-out-cop0",
-        image='python:alpine3.6',
+        image='python:alpine3.9',
         command=["sh", "-c"],
         arguments=[
             'python -c "import json; import sys; json.dump([i for i in range(20, 31)], open(\'/tmp/out.json\', \'w\'))"'

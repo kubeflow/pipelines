@@ -111,7 +111,7 @@ class LoadYamlTests(unittest.TestCase):
             component.component_spec.implementation.container.image, 'alpine')
 
     def test_load_component_from_url(self):
-        component_url = 'https://raw.githubusercontent.com/kubeflow/pipelines/7b49eadf621a9054e1f1315c86f95fb8cf8c17c3/sdk/python/kfp/compiler/test_data/components/identity.yaml'
+        component_url = 'https://raw.githubusercontent.com/kubeflow/pipelines/5d0ace427d55ee04da028cb19613018aed0b2042/sdk/python/test_data/components/identity.yaml'
         component = components.load_component_from_url(component_url)
 
         self.assertEqual(component.component_spec.name, 'identity')
@@ -121,7 +121,7 @@ class LoadYamlTests(unittest.TestCase):
         self.assertEqual(component.name, 'identity')
         self.assertEqual(
             component.component_spec.implementation.container.image,
-            'python:3.7')
+            'python:3.9')
 
 
 if __name__ == '__main__':

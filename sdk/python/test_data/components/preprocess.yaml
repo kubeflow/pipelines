@@ -97,7 +97,7 @@ deploymentSpec:
           \ 'w') as f:\n        f.write(json.dumps(input_dict_parameter))\n\n    with\
           \ open(output_list_parameter_path, 'w') as f:\n        f.write(json.dumps(input_list_parameter))\n\
           \n"
-        image: python:3.8
+        image: python:3.9
 pipelineInfo:
   name: preprocess
 root:

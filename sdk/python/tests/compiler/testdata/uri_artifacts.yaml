@@ -70,7 +70,7 @@ spec:
           "outputArtifacts": {}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
-      image: python:alpine3.6
+      image: python:alpine3.9
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
     inputs:
