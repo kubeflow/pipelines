@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/upgrade-test.yml'
+      - 'scripts/deploy/github/**'
       - 'backend/**'
       - 'manifests/kustomize/**'
 
@@ -16,6 +17,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
