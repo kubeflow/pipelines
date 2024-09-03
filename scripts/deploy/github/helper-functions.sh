@@ -56,57 +56,9 @@ wait_for_namespace () {
 }
 
 wait_for_pods () {
-    if [[ $# -ne 3 ]]
-    then
-        echo "Usage: wait_for_pods namespace max_retries sleep_time"
-        return 1
-    fi 
-
-    local namespace=$1
-    local max_retries=$2
-    local sleep_time=$3
-
-    local i=0
-
-    while [[ $i -lt $max_retries ]]
-    do
-        local pods
-        local statuses
-        local num_pods
-        local num_running
-        pods=$(kubectl get pod -n "$namespace")
-        # echo "$pods"
-        # kubectl get pvc -n "$namespace"
-
-        if [[ -z $pods ]]
-        then
-            echo "no pod is up yet"
-        else
-            # Using quotations around variables to keep column format in echo
-            # Remove 1st line (header line) -> trim whitespace -> cut statuses column (3rd column)
-            # Might be overkill to parse down to specific columns :).
-            statuses=$(echo "$pods" | tail -n +2 | tr -s ' '  | cut -d ' ' -f 3)
-            num_pods=$(echo "$statuses" | wc -l | xargs)
-            num_running=$(echo "$statuses" | grep -ow "Running\|Completed" | wc -l | xargs)
-
-            local msg="${num_running}/${num_pods} pods running in \"${namespace}\"."
-
-            if [[ $num_running -ne $num_pods ]]
-            then
-                # for debugging
-                # kubectl get pod -n "$namespace" | grep '0/1' | awk '{print $1}' | xargs kubectl describe pod -n "$namespace"
-                echo "$msg Checking again in ${sleep_time}s."
-            else
-                echo "$msg"
-                return 0
-            fi
-        fi
-
-        sleep "$sleep_time"
-        i=$((i+1))
-    done
-
-    return 1
+    C_DIR="${BASH_SOURCE%/*}"
+    pip install -r "${C_DIR}"/../../../sdk/python/requirements.txt
+    python "${C_DIR}"/kfp-readiness/wait_for_pods.py
 }
 
 deploy_with_retries () {

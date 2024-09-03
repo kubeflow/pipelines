@@ -6,6 +6,7 @@ on:
       - master
   pull_request:
     paths:
+      - 'scripts/deploy/github/**'
       - 'samples/**'
       - 'backend/src/v2/**'
       - '.github/workflows/kfp-samples.yml'
@@ -21,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.9
 
     - name: Create KFP cluster
       uses: ./.github/actions/kfp-cluster

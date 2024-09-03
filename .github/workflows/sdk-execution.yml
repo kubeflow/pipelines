@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/sdk-execution.yml'
+      - 'scripts/deploy/github/**'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
 
@@ -17,16 +18,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
 
       - name: Forward API port
         run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.8
 
       - name: apt-get update
         run: sudo apt-get update

@@ -23,6 +23,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
 
@@ -45,6 +50,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
@@ -69,6 +79,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
 
@@ -92,6 +107,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
 
@@ -114,6 +134,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
@@ -143,6 +168,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
