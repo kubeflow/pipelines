@@ -78,7 +78,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
         {title && <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />}
 
         <CustomTable
-          isCalledByV1={true}
+          isCalledByV1={false}
           columns={columns}
           rows={rows}
           selectedIds={selectedIds}
