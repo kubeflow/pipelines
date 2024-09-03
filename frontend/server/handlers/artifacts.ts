@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import fetch from 'node-fetch';
-import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
+import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs';
 import { Client as MinioClient } from 'minio';
 import { PreviewStream, findFileOnPodVolume, parseJSONString } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
@@ -80,6 +80,7 @@ export function getArtifactsHandler({
   artifactsConfigs,
   useParameter,
   tryExtract,
+  options,
 }: {
   artifactsConfigs: {
     aws: AWSConfigs;
@@ -89,15 +90,18 @@ export function getArtifactsHandler({
   };
   tryExtract: boolean;
   useParameter: boolean;
+  options: UIConfigs;
 }): Handler {
   const { aws, http, minio, allowedDomain } = artifactsConfigs;
   return async (req, res) => {
     const source = useParameter ? req.params.source : req.query.source;
     const bucket = useParameter ? req.params.bucket : req.query.bucket;
     const key = useParameter ? req.params[0] : req.query.key;
-    const { peek = 0, providerInfo = '', namespace = '' } = req.query as Partial<
-      ArtifactsQueryStrings
-    >;
+    const {
+      peek = 0,
+      providerInfo = '',
+      namespace = options.server.serverNamespace,
+    } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
       return;
