@@ -72,7 +72,6 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		if err != nil {
 			return err
 		}
-
 		dag.DAG.Tasks = append(dag.DAG.Tasks, tasks...)
 	}
 	_, err = c.addTemplate(dag, name)
@@ -274,10 +273,9 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	// Set up Loop Control Template
 	loopDriverArgoName := name + "-loop-driver"
 	loopDriverInputs := dagDriverInputs{
-		component:      componentSpecPlaceholder,
-		parentDagID:    parentDagID,
-		task:           taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
-		iterationIndex: "0",
+		component:   componentSpecPlaceholder,
+		parentDagID: parentDagID,
+		task:        taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
 	}
 	loopDriver, loopDriverOutputs, err := c.dagDriverTask(loopDriverArgoName, loopDriverInputs)
 	if err != nil {
@@ -300,12 +298,12 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 			Tasks: iteratorTasks,
 		},
 	}
-	parallellism_limit := int64(task.GetIteratorPolicy().GetParallelismLimit())
-	if parallellism_limit > 0 {
-		loopTmpl.Parallelism = &parallellism_limit
+	parallelismLimit := int64(task.GetIteratorPolicy().GetParallelismLimit())
+	if parallelismLimit > 0 {
+		loopTmpl.Parallelism = &parallelismLimit
 	}
 
-	loopTmplName, err := c.addTemplate(loopTmpl, componentName+"-loop-"+name)
+	loopTmplName, err := c.addTemplate(loopTmpl, fmt.Sprintf("%s-loop-iterator", componentName))
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +323,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 				Parameters: []wfapi.Parameter{
 					{
 						Name:  paramParentDagID,
-						Value: wfapi.AnyStringPtr(loopDriverOutputs.executionID),
+						Value: wfapi.AnyStringPtr(parentDagID),
 					},
 				},
 			},
@@ -357,7 +355,6 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 	if err != nil {
 		return nil, err
 	}
-	//driver.Depends = depends(task.GetDependentTasks())  # TODO(gfrasca): Handled already by root task
 
 	iterationCount := intstr.FromString(driverOutputs.iterationCount)
 	iterationTasks, err := c.task(
@@ -382,7 +379,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 			Tasks: iterationTasks,
 		},
 	}
-	iterationsTmplName, err := c.addTemplate(iterationsTmpl, componentName+"-"+name)
+	iterationsTmplName, err := c.addTemplate(iterationsTmpl, componentName+"-iteration")
 	if err != nil {
 		return nil, err
 	}
