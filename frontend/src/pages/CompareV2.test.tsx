@@ -420,8 +420,8 @@ describe('CompareV2', () => {
       </CommonTestWrapper>,
     );
     expect(screen.queryAllByRole('circularprogress')).toHaveLength(2);
-    await TestUtils.flushPromises();
 
+    await TestUtils.flushPromises();
     await waitFor(() => {
       screen.getByText('There are no Parameters available on the selected runs.');
       screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
