@@ -248,7 +248,7 @@
               }
             },
             "taskInfo": {
-              "name": "chicken"
+              "name": "foo"
             }
           },
           "for-loop-4": {
@@ -265,7 +265,7 @@
               }
             },
             "taskInfo": {
-              "name": "muffin"
+              "name": "bar"
             }
           }
         }
@@ -277,7 +277,7 @@
   "runtimeConfig": {
     "parameters": {
       "text": {
-        "stringValue": "hi there"
+        "stringValue": "hello world"
       }
     }
   }
