@@ -387,9 +387,6 @@ func initPodSpecPatch(
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
-		// TODO(Bobgy): workaround argo emissary executor bug, after we upgrade to an argo version with the bug fix, we can remove the following line.
-		// Reference: https://github.com/argoproj/argo-workflows/issues/7406
-		"/var/run/argo/argoexec", "emissary", "--",
 		component.KFPLauncherPath,
 		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
 		"--pipeline_name", pipelineName,
