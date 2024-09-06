@@ -52,10 +52,6 @@ x-google-marketplace:
       properties:
         images.viewercrd:
           type: FULL
-    visualizationserver:
-      properties:
-        images.visualizationserver:
-          type: FULL
     metadataserver:
       properties:
         images.metadataserver:

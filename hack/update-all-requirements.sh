@@ -18,7 +18,6 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="${DIR}/.."
 
-cd "${REPO_ROOT}/backend/src/apiserver/visualization" && bash update_requirements.sh
 cd "${REPO_ROOT}/test/sample-test/hack" && bash update_requirements.sh
 cd "${REPO_ROOT}/backend/metadata_writer" && bash update_requirements.sh
 cd "${REPO_ROOT}/backend" && bash update_requirements.sh

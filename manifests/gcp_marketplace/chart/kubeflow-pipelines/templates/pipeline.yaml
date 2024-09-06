@@ -108,13 +108,6 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ml-pipeline-visualizationserver
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
   name: ml-pipeline
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
@@ -511,20 +504,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ml-pipeline-visualizationserver
-spec:
-  ports:
-    - name: http
-      port: 8888
-      protocol: TCP
-      targetPort: 8888
-  selector:
-    app: ml-pipeline-visualizationserver
-    app.kubernetes.io/name: {{ .Release.Name }}
----
-apiVersion: v1
-kind: Service
-metadata:
   name: ml-pipeline
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
@@ -702,61 +681,6 @@ spec:
           imagePullPolicy: Always
           name: ml-pipeline-viewer-crd
       serviceAccountName: ml-pipeline-viewer-crd-service-account
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app: ml-pipeline-visualizationserver
-    app.kubernetes.io/name: {{ .Release.Name }}
-  name: ml-pipeline-visualizationserver
-spec:
-  selector:
-    matchLabels:
-      app: ml-pipeline-visualizationserver
-      app.kubernetes.io/name: {{ .Release.Name }}
-  template:
-    metadata:
-      labels:
-        app: ml-pipeline-visualizationserver
-        app.kubernetes.io/name: {{ .Release.Name }}
-    spec:
-      containers:
-        - image: {{ .Values.images.visualizationserver }}
-          imagePullPolicy: IfNotPresent
-          name: ml-pipeline-visualizationserver
-          ports:
-            - name: http
-              containerPort: 8888
-          readinessProbe:
-            exec:
-              command:
-                - wget
-                - -q # quiet
-                - -S # show server response
-                - -O
-                - "-" # Redirect output to stdout
-                - http://localhost:8888/
-            initialDelaySeconds: 3
-            periodSeconds: 5
-            timeoutSeconds: 2
-          livenessProbe:
-            exec:
-              command:
-                - wget
-                - -q # quiet
-                - -S # show server response
-                - -O
-                - "-" # Redirect output to stdout
-                - http://localhost:8888/
-            initialDelaySeconds: 3
-            periodSeconds: 5
-            timeoutSeconds: 2
-          resources:
-            requests:
-              cpu: 30m
-              memory: 500Mi
-      serviceAccountName: ml-pipeline-visualizationserver
 ---
 apiVersion: apps/v1
 kind: Deployment
