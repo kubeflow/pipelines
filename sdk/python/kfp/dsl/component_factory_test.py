@@ -152,6 +152,42 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
                 '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'package1\' \'package2\' && "$0" "$@"\n'
             ]))
 
+    def test_with_packages_to_install_with_pip_index_url_and_trusted_host(self):
+        packages_to_install = ['package1', 'package2']
+        pip_index_urls = ['https://myurl.org/simple']
+        pip_trusted_hosts = ['myurl.org']
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=packages_to_install,
+            pip_index_urls=pip_index_urls,
+            pip_trusted_hosts=pip_trusted_hosts,
+        )
+
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host myurl.org \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host myurl.org \'package1\' \'package2\' && "$0" "$@"\n'
+            ]))
+
+    def test_with_packages_to_install_with_pip_index_url_and_empty_trusted_host(
+            self):
+        packages_to_install = ['package1', 'package2']
+        pip_index_urls = ['https://myurl.org/simple']
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=packages_to_install,
+            pip_index_urls=pip_index_urls,
+            pip_trusted_hosts=[],
+        )
+
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c',
+                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple \'package1\' \'package2\' && "$0" "$@"\n'
+            ]))
+
 
 class TestInvalidParameterName(unittest.TestCase):
 
