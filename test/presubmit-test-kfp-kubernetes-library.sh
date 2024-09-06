@@ -16,7 +16,7 @@
 source_root=$(pwd)
 
 pip install --upgrade pip
-pip install wheel
+pip install wheel setuptools
 
 pip install sdk/python
 sudo apt-get update && sudo apt-get install -y protobuf-compiler
