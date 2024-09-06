@@ -30,9 +30,9 @@ import (
 const (
 	volumeNameKFPLauncher    = "kfp-launcher"
 	volumeNameCABundle       = "ca-bundle"
-	DefaultLauncherImage     = "gcr.io/ml-pipeline/kfp-launcher@sha256:5a4093fb60ae3c12e45224ae81b6ed626699547bd58b3b89c4f01125202140d0"
+	DefaultLauncherImage     = "gcr.io/ml-pipeline/kfp-launcher@sha256:bef55a344574a25c557256d7c66cb19edacfd2008d694e5b6bb5b612d59feae0"
 	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
-	DefaultDriverImage       = "gcr.io/ml-pipeline/kfp-driver@sha256:c783fc4609d01215c4e59dcb08d664ed562b3ee15ffbecf5760687d0b95f7733"
+	DefaultDriverImage       = "gcr.io/ml-pipeline/kfp-driver@sha256:dc8b56a2eb071f30409828a8884d621092e68385af11a6c06aa9e9fbcfbb19de"
 	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
