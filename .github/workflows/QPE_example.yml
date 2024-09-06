@@ -24,10 +24,10 @@ jobs:
 
     - name: Grant execute permissions to scripts
       shell: bash
-      run: chmod +x .samples/contrib/QPE_pipeline_example/QPE.sh 
+      run: chmod +x ./samples/contrib/QPE_pipeline_example/QPE.sh 
 
     - name: Install dos2unix
       run: sudo apt-get update && sudo apt-get install dos2unix
 
     - name: Run Samples Tests
-      run: dos2unix .samples/contrib/QPE_pipeline_example/QPE.sh && .samples/contrib/QPE_pipeline_example/QPE.sh
+      run: dos2unix ./samples/contrib/QPE_pipeline_example/QPE.sh && ./samples/contrib/QPE_pipeline_example/QPE.sh
