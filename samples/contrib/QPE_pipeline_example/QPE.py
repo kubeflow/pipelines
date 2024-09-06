@@ -1,6 +1,7 @@
 from kfp import dsl
-
-@dsl.component(base_image="python:3.11.7", packages_to_install=['qiskit-aer', 'qiskit', 'pylatexenc', 'ipywidgets', 'matplotlib'])
+import os
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
+@dsl.component(base_image="python:3.11.7", packages_to_install=['qiskit-aer', 'qiskit', 'pylatexenc', 'ipywidgets', 'matplotlib'],kfp_package_path=_KFP_PACKAGE_PATH)
 def qpe(n: int):
     from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister, transpile
     from qiskit_aer import AerSimulator
