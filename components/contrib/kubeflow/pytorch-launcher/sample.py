@@ -1,11 +1,8 @@
-import json
 from typing import NamedTuple
 from collections import namedtuple
 import kfp
-import kfp.dsl as dsl
+from kfp import dsl
 from kfp import components
-from kfp.dsl.types import Integer
-
 
 def get_current_namespace():
     """Returns current namespace if available, else kubeflow"""
@@ -17,12 +14,12 @@ def get_current_namespace():
         current_namespace = "kubeflow"
     return current_namespace
 
-
+@dsl.component(base_image="python:slim")
 def create_worker_spec(
     worker_num: int = 0
 ) -> NamedTuple(
     "CreatWorkerSpec", [("worker_spec", dict)]
-):
+): # type: ignore
     """
     Creates pytorch-job worker spec
     """
@@ -71,17 +68,56 @@ def create_worker_spec(
     )
     return worker_spec_output(worker)
 
-
-worker_spec_op = components.func_to_container_op(
-    create_worker_spec,
-    base_image="python:slim",
-)
-
+# container component description setting inputs and implementation
+@dsl.container_component
+def pytorch_job_launcher(
+    name: str,
+    namespace: str = 'kubeflow',
+    version: str = 'v1',
+    master_spec: dict = {},
+    worker_spec: dict = {},
+    job_timeout_minutes: int = 1440,
+    delete_after_done: bool = True,
+    clean_pod_policy: str = 'Running',
+    active_deadline_seconds: int = None,
+    backoff_limit: int = None,
+    ttl_seconds_after_finished: int = None,
+):
+    return dsl.ContainerSpec(
+        image='quay.io/rh_ee_fwaters/kubeflow-pytorchjob-launcher:v2',
+        command=['python', '/ml/launch_pytorchjob.py'],
+        args=[
+            '--name', name,
+            '--namespace', namespace,
+            '--version', version,
+            '--masterSpec', master_spec,
+            '--workerSpec', worker_spec,
+            '--jobTimeoutMinutes', job_timeout_minutes,
+            '--deleteAfterDone', delete_after_done,
+            '--cleanPodPolicy', clean_pod_policy,
+            dsl.IfPresentPlaceholder(input_name='active_deadline_seconds', then=['--activeDeadlineSeconds', active_deadline_seconds]),
+            dsl.IfPresentPlaceholder(input_name='backoff_limit', then=['--backoffLimit', backoff_limit]),
+            dsl.IfPresentPlaceholder(input_name='ttl_seconds_after_finished', then=['--ttlSecondsAfterFinished', ttl_seconds_after_finished])
+        ]
+    )
 
 @dsl.pipeline(
     name="launch-kubeflow-pytorchjob",
     description="An example to launch pytorch.",
 )
+def pytorch_job_pipeline():
+    pytorch_job = pytorch_job_launcher(
+        name="sample-pytorch-job",
+        namespace="kubeflow",
+        version="v1",
+        master_spec={},
+        worker_spec={},
+        job_timeout_minutes=1440,
+        delete_after_done=True,
+        clean_pod_policy="Running"
+    )
+
+@dsl.component()
 def mnist_train(
     namespace: str = get_current_namespace(),
     worker_replicas: int = 1,
@@ -89,9 +125,7 @@ def mnist_train(
     job_timeout_minutes: int = 600,
     delete_after_done: bool = False,
 ):
-    pytorchjob_launcher_op = components.load_component_from_file(
-        "./component.yaml"
-    )
+    pytorchjob_launcher_op = pytorch_job_pipeline
 
     master = {
         "replicas": 1,
@@ -142,10 +176,7 @@ def mnist_train(
             },
         },
     }
-
-    worker_spec_create = worker_spec_op(
-        worker_replicas
-    )
+    create_worker_spec(worker_replicas)
 
     # Launch and monitor the job with the launcher
     pytorchjob_launcher_op(
@@ -159,7 +190,7 @@ def mnist_train(
         # a quoted variable (eg a string) instead of an unquoted variable
         # (number).  If worker_replicas is quoted in the spec, it will break in
         # k8s.  See https://github.com/kubeflow/pipelines/issues/4776
-        worker_spec=worker_spec_create.outputs[
+        worker_spec=create_worker_spec.outputs[
             "worker_spec"
         ],
         ttl_seconds_after_finished=ttl_seconds_after_finished,

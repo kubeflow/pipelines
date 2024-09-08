@@ -99,10 +99,12 @@ def main(args):
             'Master': args.masterSpec,
             'Worker': args.workerSpec,
         },
-        active_deadline_seconds=args.activeDeadlineSeconds,
-        backoff_limit=args.backoffLimit,
-        clean_pod_policy=args.cleanPodPolicy,
-        ttl_seconds_after_finished=args.ttlSecondsAfterFinished,
+        run_policy=k8s_client.V1RunPolicy(
+            active_deadline_seconds=args.activeDeadlineSeconds,
+            backoff_limit=args.backoffLimit,
+            clean_pod_policy=args.cleanPodPolicy,
+            ttl_seconds_after_finished=args.ttlSecondsAfterFinished,
+        )
     )
 
     api_version = f"{args.jobGroup}/{args.version}"
