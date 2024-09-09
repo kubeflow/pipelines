@@ -1,6 +1,10 @@
 name: rag_pipeline
 
 on:
+  push:
+    branches:
+      - master
+      - RAG_example
   workflow_dispatch: 
 
 jobs:
