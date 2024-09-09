@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
 __all__ = [
     'add_ephemeral_volume',
@@ -36,6 +36,7 @@ __all__ = [
 
 from kfp.kubernetes.config_map import use_config_map_as_env
 from kfp.kubernetes.config_map import use_config_map_as_volume
+from kfp.kubernetes.empty_dir import empty_dir_mount
 from kfp.kubernetes.field import use_field_path_as_env
 from kfp.kubernetes.image import set_image_pull_policy
 from kfp.kubernetes.image import set_image_pull_secrets
@@ -50,4 +51,3 @@ from kfp.kubernetes.volume import add_ephemeral_volume
 from kfp.kubernetes.volume import CreatePVC
 from kfp.kubernetes.volume import DeletePVC
 from kfp.kubernetes.volume import mount_pvc
-from kfp.kubernetes.empty_dir import empty_dir_mount
