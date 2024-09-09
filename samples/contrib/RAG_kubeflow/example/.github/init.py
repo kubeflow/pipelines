@@ -6,7 +6,7 @@ from typing import List
 
 import kfp
 from kfp.dsl.graph_component import GraphComponent
-import RAG_kubeflow
+import rag
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 5 * _MINUTE
