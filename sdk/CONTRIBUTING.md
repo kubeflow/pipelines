@@ -1,12 +1,69 @@
 ## Contributing to the `kfp` SDK
-KFP v2 for SDK is under development on the `master` branch.
 
-To contribute to v1, please go to [sdk/release-1.8 branch](https://github.com/kubeflow/pipelines/tree/sdk/release-1.8) to submit your change.
+For developing KFP v2 SDK, use the `master` branch.
+
+For developing KFP v1 SDK, use the [sdk/release-1.8 branch](https://github.com/kubeflow/pipelines/tree/sdk/release-1.8).
 
 For general contribution guidelines including pull request conventions, see [pipelines/CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md).
 
-### Requirements
-All development requirement versions are pinned in [requirements-dev.txt](https://github.com/kubeflow/pipelines/blob/master/sdk/python/requirements-dev.txt).
+### Pre-requisites 
+
+Clone the repo: 
+
+```bash
+git clone https://github.com/kubeflow/pipelines.git && cd pipelines
+```
+
+We suggest using a tool like [virtual env](https://docs.python.org/3/library/venv.html) or something similar for isolating 
+your environment and/or packages for you development environment. For this setup we'll stick with virtual env. 
+
+For supported python versions, see the sdk [setup.py](https://github.com/kubeflow/pipelines/blob/master/sdk/python/setup.py). 
+
+```bash
+# optional, replace with your tool of choice
+python -m venv env && source ./env/bin/activate
+```
+
+As with any Python package development, first ensure [wheels and setuptools](https://realpython.com/python-wheels/) are installed:
+
+```bash
+python -m pip install -U pip wheel setuptools
+```
+
+All sdk development requirement versions are pinned in [requirements-dev.txt](https://github.com/kubeflow/pipelines/blob/master/sdk/python/requirements-dev.txt).
+
+```bash
+pip install -r sdk/python/requirements-dev.txt
+```
+
+Install the SDK in development mode using the `--editable` or `-e` flag. This will allow you to implement and test changes iteratively.
+Read more about it [here](https://setuptools.pypa.io/en/latest/userguide/development_mode.html).
+
+```bash
+pip install -e sdk/python
+```
+
+The SDK also relies on a couple other python packages also found within KFP.
+These consists of the [api proto package](https://github.com/kubeflow/pipelines/tree/master/api) and the kfp [kubernetes_platform](https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform) package.
+
+For the proto code, we need protobuf-compiler to generate the python code. Read [here](../kubernetes_platform#dependencies) more about how to install this
+dependency. 
+
+You can install both packages either in development mode if you are planning to do active development on these, or simply do a regular install.
+
+To install the proto package:
+```bash
+pushd api
+make generate python-dev # omit -dev for regular install
+popd
+```
+
+To install the kubernetes_platform package:
+```bash
+pushd kubernetes_platform
+make python-dev # omit -dev for regular install
+popd
+```
 
 ### Testing
 We suggest running unit tests using [`pytest`](https://docs.pytest.org/en/7.1.x/). From the project root, the following runs all KFP SDK unit tests:

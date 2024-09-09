@@ -91,8 +91,11 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ARGO_ARCHIVE_ARTIFACTORY = 'minio',
     /** Bucket to retrive logs from */
     ARGO_ARCHIVE_BUCKETNAME = 'mlpipeline',
-    /** Prefix to logs. */
-    ARGO_ARCHIVE_PREFIX = 'logs',
+    /** This should match the keyFormat specified in the Argo workflow-controller-configmap.
+     * It's set here in the manifests:
+     * https://github.com/kubeflow/pipelines/blob/7b7918ebf8c30e6ceec99283ef20dbc02fdf6a42/manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml#L28
+     */
+    ARGO_KEYFORMAT = 'artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}',
     /** Should use server API for log streaming? */
     STREAM_LOGS_FROM_SERVER_API = 'false',
     /** The main container name of a pod where logs are retrieved */
@@ -120,6 +123,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
      * e.g. a valid header value for default values can be like `accounts.google.com:user@gmail.com`.
      */
     KUBEFLOW_USERID_PREFIX = 'accounts.google.com:',
+    FRONTEND_SERVER_NAMESPACE = 'kubeflow',
   } = env;
 
   return {
@@ -127,7 +131,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       archiveArtifactory: ARGO_ARCHIVE_ARTIFACTORY,
       archiveBucketName: ARGO_ARCHIVE_BUCKETNAME,
       archiveLogs: asBool(ARGO_ARCHIVE_LOGS),
-      archivePrefix: ARGO_ARCHIVE_PREFIX,
+      keyFormat: ARGO_KEYFORMAT,
     },
     pod: {
       logContainerName: POD_LOG_CONTAINER_NAME,
@@ -187,6 +191,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
           : asBool(HIDE_SIDENAV),
       port,
       staticDir,
+      serverNamespace: FRONTEND_SERVER_NAMESPACE,
     },
     viewer: {
       tensorboard: {
@@ -253,7 +258,7 @@ export interface ArgoConfigs {
   archiveLogs: boolean;
   archiveArtifactory: string;
   archiveBucketName: string;
-  archivePrefix: string;
+  keyFormat: string;
 }
 export interface ServerConfigs {
   basePath: string;
@@ -263,6 +268,8 @@ export interface ServerConfigs {
   apiVersion2Prefix: string;
   deployment: Deployments;
   hideSideNav: boolean;
+  // Namespace where the server is deployed
+  serverNamespace: string;
 }
 export interface GkeMetadataConfigs {
   disabled: boolean;

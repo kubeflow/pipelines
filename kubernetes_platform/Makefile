@@ -35,10 +35,15 @@ clean-go:
 	rm -rf kubernetes_platform/go
 
 
-# Generate Python package.
+# Build and locally install Python package.
 .PHONY: python
 python: proto/kubernetes_executor_config.proto
 	python3 python/generate_proto.py && cd python && python3 setup.py bdist_wheel
+
+# Build and locally install Python package using editable mode for development.
+.PHONY: python-dev
+python-dev: proto/kubernetes_executor_config.proto
+	python3 python/generate_proto.py && cd python && pip install -e .[dev]
 
 # Delete all generated Python packages
 .PHONY: clean-python

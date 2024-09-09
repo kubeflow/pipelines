@@ -54,7 +54,7 @@ def create_custom_training_job_from_component(
     display_name: str = '',
     replica_count: int = 1,
     machine_type: str = 'n1-standard-4',
-    accelerator_type: str = '',
+    accelerator_type: str = 'ACCELERATOR_TYPE_UNSPECIFIED',
     accelerator_count: int = 1,
     boot_disk_type: str = 'pd-ssd',
     boot_disk_size_gb: int = 100,
@@ -83,9 +83,9 @@ def create_custom_training_job_from_component(
       replica_count: The count of instances in the cluster. One replica always counts towards the master in worker_pool_spec[0] and the remaining replicas will be allocated in worker_pool_spec[1]. See [more information.](https://cloud.google.com/vertex-ai/docs/training/distributed-training#configure_a_distributed_training_job)
       machine_type: The type of the machine to run the CustomJob. The default value is "n1-standard-4". See [more information](https://cloud.google.com/vertex-ai/docs/training/configure-compute#machine-types).
       accelerator_type: The type of accelerator(s) that may be attached to the machine per `accelerator_count`. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype).
-      accelerator_count: The number of accelerators to attach to the machine. Defaults to 1 if `accelerator_type` is set.
-      boot_disk_type: Type of the boot disk (default is "pd-ssd"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive). boot_disk_type is set as a static value and cannot be changed as a pipeline parameter.
-      boot_disk_size_gb: Size in GB of the boot disk (default is 100GB). `boot_disk_size_gb` is set as a static value and cannot be changed as a pipeline parameter.
+      accelerator_count: The number of accelerators to attach to the machine. Defaults to 1 if `accelerator_type` is set statically.
+      boot_disk_type: Type of the boot disk (default is "pd-ssd"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
+      boot_disk_size_gb: Size in GB of the boot disk (default is 100GB).
       timeout: The maximum job running time. The default is 7 days. A duration in seconds with up to nine fractional digits, terminated by 's', for example: "3.5s".
       restart_job_on_worker_restart: Restarts the entire CustomJob if a worker gets restarted. This feature can be used by distributed training jobs that are not resilient to workers leaving and joining a job.
       service_account: Sets the default service account for workload run-as account. The [service account](https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account) running the pipeline submitting jobs must have act-as permission on this run-as account. If unspecified, the Vertex AI Custom Code [Service Agent](https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents) for the CustomJob's project.
@@ -94,11 +94,11 @@ def create_custom_training_job_from_component(
       tensorboard: The name of a Vertex AI TensorBoard resource to which this CustomJob will upload TensorBoard logs.
       enable_web_access: Whether you want Vertex AI to enable [interactive shell access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell) to training containers. If `True`, you can access interactive shells at the URIs given by [CustomJob.web_access_uris][].
       reserved_ip_ranges: A list of names for the reserved IP ranges under the VPC network that can be used for this job. If set, we will deploy the job within the provided IP ranges. Otherwise, the job will be deployed to any IP ranges under the provided VPC network.
-      nfs_mounts: A list of [NfsMount](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount) resource specs in Json dict format. For more details about mounting NFS for CustomJob, see [Mount an NFS share for custom training](https://cloud.google.com/vertex-ai/docs/training/train-nfs-share).
+      nfs_mounts: A list of [NfsMount](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount) resource specs in Json dict format. For more details about mounting NFS for CustomJob, see [Mount an NFS share for custom training](https://cloud.google.com/vertex-ai/docs/training/train-nfs-share). `nfs_mounts` is set as a static value and cannot be changed as a pipeline parameter.
       base_output_directory: The Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).
       labels: The labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).
       persistent_resource_id: The ID of the PersistentResource in the same Project and Location which to run. The default value is a placeholder that will be resolved to the PipelineJob [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)'s persistent resource id at runtime. However, if the PipelineJob doesn't set Persistent Resource as the job level runtime, the placedholder will be resolved to an empty string and the custom job will be run on demand. If the value is set explicitly, the custom job will runs in the specified persistent resource, in this case, please note the network and CMEK configs on the job should be consistent with those on the PersistentResource, otherwise, the job will be rejected. (This is a Preview feature not yet recommended for production workloads.)
-      env: Environment variables to be passed to the container. Takes the form `[{'name': '...', 'value': '...'}]`. Maximum limit is 100.
+      env: Environment variables to be passed to the container. Takes the form `[{'name': '...', 'value': '...'}]`. Maximum limit is 100. `env` is set as a static value and cannot be changed as a pipeline parameter.
 
   Returns:
       A KFP component with CustomJob specification applied.
@@ -148,7 +148,11 @@ def create_custom_training_job_from_component(
   )[0]['container']
 
   worker_pool_spec = {
-      'machine_spec': {'machine_type': machine_type},
+      'machine_spec': {
+          'machine_type': "{{$.inputs.parameters['machine_type']}}",
+          'accelerator_type': "{{$.inputs.parameters['accelerator_type']}}",
+          'accelerator_count': "{{$.inputs.parameters['accelerator_count']}}",
+      },
       'replica_count': 1,
       'container_spec': {
           'image_uri': user_component_container['image'],
@@ -160,15 +164,11 @@ def create_custom_training_job_from_component(
           ),
           'env': env or [],
       },
+      'disk_spec': {
+          'boot_disk_type': "{{$.inputs.parameters['boot_disk_type']}}",
+          'boot_disk_size_gb': "{{$.inputs.parameters['boot_disk_size_gb']}}",
+      },
   }
-  if accelerator_type:
-    worker_pool_spec['machine_spec']['accelerator_type'] = accelerator_type
-    worker_pool_spec['machine_spec']['accelerator_count'] = accelerator_count
-  if boot_disk_type:
-    worker_pool_spec['disk_spec'] = {
-        'boot_disk_type': boot_disk_type,
-        'boot_disk_size_gb': boot_disk_size_gb,
-    }
   if nfs_mounts:
     worker_pool_spec['nfs_mounts'] = nfs_mounts
 
@@ -210,6 +210,54 @@ def create_custom_training_job_from_component(
         'defaultValue'
     ] = default_value
 
+  # add workerPoolSpec parameters into the customjob component
+  cj_component_spec['inputDefinitions']['parameters']['machine_type'] = {
+      'parameterType': 'STRING',
+      'defaultValue': machine_type,
+      'isOptional': True,
+  }
+  cj_component_spec['inputDefinitions']['parameters']['accelerator_type'] = {
+      'parameterType': 'STRING',
+      'defaultValue': accelerator_type,
+      'isOptional': True,
+  }
+  cj_component_spec['inputDefinitions']['parameters']['accelerator_count'] = {
+      'parameterType': 'NUMBER_INTEGER',
+      'defaultValue': (
+          accelerator_count
+          if accelerator_type != 'ACCELERATOR_TYPE_UNSPECIFIED'
+          else 0
+      ),
+      'isOptional': True,
+  }
+  cj_component_spec['inputDefinitions']['parameters']['boot_disk_type'] = {
+      'parameterType': 'STRING',
+      'defaultValue': boot_disk_type,
+      'isOptional': True,
+  }
+  cj_component_spec['inputDefinitions']['parameters']['boot_disk_size_gb'] = {
+      'parameterType': 'NUMBER_INTEGER',
+      'defaultValue': boot_disk_size_gb,
+      'isOptional': True,
+  }
+
+  # check if user component has any input parameters that already exist in the
+  # custom job component
+  for param_name in user_component_spec.get('inputDefinitions', {}).get(
+      'parameters', {}
+  ):
+    if param_name in cj_component_spec['inputDefinitions']['parameters']:
+      raise ValueError(
+          f'Input parameter {param_name} already exists in the CustomJob component.'  # pylint: disable=line-too-long
+      )
+  for param_name in user_component_spec.get('outputDefinitions', {}).get(
+      'parameters', {}
+  ):
+    if param_name in cj_component_spec['outputDefinitions']['parameters']:
+      raise ValueError(
+          f'Output parameter {param_name} already exists in the CustomJob component.'  # pylint: disable=line-too-long
+      )
+
   # merge parameters from user component into the customjob component
   cj_component_spec['inputDefinitions']['parameters'].update(
       user_component_spec.get('inputDefinitions', {}).get('parameters', {})
@@ -217,6 +265,7 @@ def create_custom_training_job_from_component(
   cj_component_spec['outputDefinitions']['parameters'].update(
       user_component_spec.get('outputDefinitions', {}).get('parameters', {})
   )
+
   # use artifacts from user component
   ## assign artifacts, not update, since customjob has no artifact outputs
   cj_component_spec['inputDefinitions']['artifacts'] = user_component_spec.get(

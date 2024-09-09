@@ -1,6 +1,28 @@
 ## Upcoming release
+* Fix Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline` after output schema change.
+
+## Release 2.16.1
+* Fix to model batch explanation component for Structured Data pipelines; image bump.
+* Add dynamic support for boot_disk_type, boot_disk_size in `preview.custom_job.utils.create_custom_training_job_from_component`.
+* Remove preflight validations temporarily.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.16.0
+* Updated the Starry Net pipeline's template gallery description, and added dataprep_nan_threshold and dataprep_zero_threshold args to the Starry Net pipeline.
+* Fix bug in Starry Net's upload decomposition plot step due to protobuf upgrade, by pinning protobuf library to 3.20.*.
+* Bump Starry Net image tags.
+* In the Starry-Net pipeline, enforce that TF Record generation always runs before test set generation to speed up pipelines runs.
+* Add support for running tasks on a `PersistentResource` (see [CustomJobSpec](https://cloud.google.com/vertex-ai/docs/reference/rest/v1beta1/CustomJobSpec)) via `persistent_resource_id` parameter on `v1.custom_job.CustomTrainingJobOp` and `v1.custom_job.create_custom_training_job_from_component`
+* Bump image for Structured Data pipelines.
+* Add check that component in preview.custom_job.utils.create_custom_training_job_from_component doesn't have any parameters that share names with any custom job fields
+* Add dynamic machine spec support for `preview.custom_job.utils.create_custom_training_job_from_component`.
+* Add preflight validations for LLM text generation pipeline.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.15.0
 * Add Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline`.
 * Add Starry Net forecasting pipeline to `preview.starry_net.starry_net_pipeline`
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.14.1
 * Add staging and temp location parameters to prophet trainer component.

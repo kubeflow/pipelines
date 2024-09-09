@@ -1,0 +1,197 @@
+name: KFP e2e tests
+
+on:
+  push:
+    branches: [master]
+
+  pull_request:
+    paths:
+      - '.github/workflows/e2e-test.yml'
+      - 'scripts/deploy/github/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'backend/**'
+      - 'frontend/**'
+      - 'proxy/**'
+      - 'manifests/kustomize/**'
+      - 'test/**'
+
+jobs:
+  initialization-tests-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: Initialization tests v1
+        working-directory: ./backend/test/initialization
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-initialization-tests-v1-artifacts
+          path: /tmp/tmp.*/*
+
+  initialization-tests-v2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: Initialization tests v2
+        working-directory: ./backend/test/v2/initialization
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-initialization-tests-v2-artifacts
+          path: /tmp/tmp.*/*
+
+  api-integration-tests-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: API integration tests v1
+        working-directory: ./backend/test/integration
+        run: go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v1-artifacts
+          path: /tmp/tmp.*/*
+
+  api-integration-tests-v2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: API integration tests v2
+        working-directory: ./backend/test/v2/integration
+        run: go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-artifacts
+          path: /tmp/tmp.*/*
+
+  frontend-integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: Forward Frontend port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
+
+      - name: Build frontend integration tests image
+        working-directory: ./test/frontend-integration-test
+        run: docker build . -t kfp-frontend-integration-test:local
+
+      - name: Frontend integration tests
+        run: docker run --net=host kfp-frontend-integration-test:local --remote-run true
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-frontend-integration-test-artifacts
+          path: /tmp/tmp.*/*
+
+  basic-sample-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+
+      - name: Forward API port
+        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: Install prerequisites
+        run: pip3 install -r ./test/sample-test/requirements.txt
+
+      - name: Basic sample tests - sequential
+        run:  python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
+
+      - name: Basic sample tests - exit_handler
+        run: python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name exit_handler --results-gcs-dir output
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-basic-sample-tests-artifacts
+          path: /tmp/tmp.*/*

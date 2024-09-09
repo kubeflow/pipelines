@@ -13,6 +13,20 @@ _RETAIL_MODEL_DISABLED_OPTIONS = frozenset([
 ])
 
 
+def _validate_start_max_parameters(
+    starting_worker_count: int,
+    max_worker_count: int,
+    starting_count_name: str,
+    max_count_name: str,
+):
+  if starting_worker_count > max_worker_count:
+    raise ValueError(
+        'Starting count must be less than or equal to max count.'
+        f' {starting_count_name}: {starting_worker_count}, {max_count_name}:'
+        f' {max_worker_count}'
+    )
+
+
 def _get_base_forecasting_parameters(
     *,
     project: str,
@@ -59,6 +73,7 @@ def _get_base_forecasting_parameters(
     evaluation_batch_predict_max_replica_count: int = 25,
     evaluation_dataflow_machine_type: str = 'n1-standard-16',
     evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_starting_num_workers: int = 22,
     evaluation_dataflow_disk_size_gb: int = 50,
     study_spec_parameters_override: Optional[List[Dict[str, Any]]] = None,
     stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
@@ -90,6 +105,20 @@ def _get_base_forecasting_parameters(
         ' migrate workloads to use the new field.'
     )
     time_series_identifier_columns = [time_series_identifier_column]
+
+  _validate_start_max_parameters(
+      starting_worker_count=evaluation_batch_predict_starting_replica_count,
+      max_worker_count=evaluation_batch_predict_max_replica_count,
+      starting_count_name='evaluation_batch_predict_starting_replica_count',
+      max_count_name='evaluation_batch_predict_max_replica_count',
+  )
+
+  _validate_start_max_parameters(
+      starting_worker_count=evaluation_dataflow_starting_num_workers,
+      max_worker_count=evaluation_dataflow_max_num_workers,
+      starting_count_name='evaluation_dataflow_starting_num_workers',
+      max_count_name='evaluation_dataflow_max_num_workers',
+  )
 
   parameter_values = {}
   parameters = {
@@ -152,6 +181,9 @@ def _get_base_forecasting_parameters(
       'evaluation_dataflow_max_num_workers': (
           evaluation_dataflow_max_num_workers
       ),
+      'evaluation_dataflow_starting_num_workers': (
+          evaluation_dataflow_starting_num_workers
+      ),
       'evaluation_dataflow_disk_size_gb': evaluation_dataflow_disk_size_gb,
       'study_spec_parameters_override': study_spec_parameters_override,
       'stage_1_tuner_worker_pool_specs_override': (
@@ -174,13 +206,11 @@ def _get_base_forecasting_parameters(
 
   # Filter out empty values and those excluded from the particular pipeline.
   # (example: TFT and Seq2Seq don't support `quantiles`.)
-  parameter_values.update(
-      {
-          param: value
-          for param, value in parameters.items()
-          if value is not None and param not in fields_to_exclude
-      }
-  )
+  parameter_values.update({
+      param: value
+      for param, value in parameters.items()
+      if value is not None and param not in fields_to_exclude
+  })
   return parameter_values
 
 
@@ -229,6 +259,7 @@ def get_learn_to_learn_forecasting_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count: int = 25,
     evaluation_dataflow_machine_type: str = 'n1-standard-16',
     evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_starting_num_workers: int = 22,
     evaluation_dataflow_disk_size_gb: int = 50,
     study_spec_parameters_override: Optional[List[Dict[str, Any]]] = None,
     stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
@@ -291,6 +322,7 @@ def get_learn_to_learn_forecasting_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count: The maximum count of replicas the batch prediction job can scale to.
     evaluation_dataflow_machine_type: Machine type for the dataflow job in evaluation, such as 'n1-standard-16'.
     evaluation_dataflow_max_num_workers: Maximum number of dataflow workers.
+    evaluation_dataflow_starting_num_workers: Starting number of dataflow workers.
     evaluation_dataflow_disk_size_gb: The disk space in GB for dataflow.
     study_spec_parameters_override: The list for overriding study spec.
     stage_1_tuner_worker_pool_specs_override: The dictionary for overriding stage 1 tuner worker pool spec.
@@ -354,6 +386,7 @@ def get_learn_to_learn_forecasting_pipeline_and_parameters(
       evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
       evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
       evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
+      evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
       evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
       study_spec_parameters_override=study_spec_parameters_override,
       stage_1_tuner_worker_pool_specs_override=stage_1_tuner_worker_pool_specs_override,
@@ -423,6 +456,7 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count: int = 25,
     evaluation_dataflow_machine_type: str = 'n1-standard-16',
     evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_starting_num_workers: int = 22,
     evaluation_dataflow_disk_size_gb: int = 50,
     study_spec_parameters_override: Optional[List[Dict[str, Any]]] = None,
     stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
@@ -485,6 +519,7 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count: The maximum count of replicas the batch prediction job can scale to.
     evaluation_dataflow_machine_type: Machine type for the dataflow job in evaluation, such as 'n1-standard-16'.
     evaluation_dataflow_max_num_workers: Maximum number of dataflow workers.
+    evaluation_dataflow_starting_num_workers: Starting number of dataflow workers.
     evaluation_dataflow_disk_size_gb: The disk space in GB for dataflow.
     study_spec_parameters_override: The list for overriding study spec.
     stage_1_tuner_worker_pool_specs_override: The dictionary for overriding stage 1 tuner worker pool spec.
@@ -548,6 +583,7 @@ def get_time_series_dense_encoder_forecasting_pipeline_and_parameters(
       evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
       evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
       evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
+      evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
       evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
       study_spec_parameters_override=study_spec_parameters_override,
       stage_1_tuner_worker_pool_specs_override=stage_1_tuner_worker_pool_specs_override,
@@ -616,6 +652,7 @@ def get_temporal_fusion_transformer_forecasting_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count: int = 25,
     evaluation_dataflow_machine_type: str = 'n1-standard-16',
     evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_starting_num_workers: int = 22,
     evaluation_dataflow_disk_size_gb: int = 50,
     study_spec_parameters_override: Optional[List[Dict[str, Any]]] = None,
     stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
@@ -671,6 +708,7 @@ def get_temporal_fusion_transformer_forecasting_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count: The maximum count of replicas the batch prediction job can scale to.
     evaluation_dataflow_machine_type: Machine type for the dataflow job in evaluation, such as 'n1-standard-16'.
     evaluation_dataflow_max_num_workers: Maximum number of dataflow workers.
+    evaluation_dataflow_starting_num_workers: Starting number of dataflow workers.
     evaluation_dataflow_disk_size_gb: The disk space in GB for dataflow.
     study_spec_parameters_override: The list for overriding study spec.
     stage_1_tuner_worker_pool_specs_override: The dictionary for overriding stage 1 tuner worker pool spec.
@@ -731,6 +769,7 @@ def get_temporal_fusion_transformer_forecasting_pipeline_and_parameters(
       evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
       evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
       evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
+      evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
       evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
       study_spec_parameters_override=study_spec_parameters_override,
       stage_1_tuner_worker_pool_specs_override=stage_1_tuner_worker_pool_specs_override,
@@ -795,6 +834,7 @@ def get_sequence_to_sequence_forecasting_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count: int = 25,
     evaluation_dataflow_machine_type: str = 'n1-standard-16',
     evaluation_dataflow_max_num_workers: int = 25,
+    evaluation_dataflow_starting_num_workers: int = 22,
     evaluation_dataflow_disk_size_gb: int = 50,
     study_spec_parameters_override: Optional[List[Dict[str, Any]]] = None,
     stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
@@ -851,6 +891,7 @@ def get_sequence_to_sequence_forecasting_pipeline_and_parameters(
     evaluation_batch_predict_max_replica_count: The maximum count of replicas the batch prediction job can scale to.
     evaluation_dataflow_machine_type: Machine type for the dataflow job in evaluation, such as 'n1-standard-16'.
     evaluation_dataflow_max_num_workers: Maximum number of dataflow workers.
+    evaluation_dataflow_starting_num_workers: Starting number of dataflow workers.
     evaluation_dataflow_disk_size_gb: The disk space in GB for dataflow.
     study_spec_parameters_override: The list for overriding study spec.
     stage_1_tuner_worker_pool_specs_override: The dictionary for overriding stage 1 tuner worker pool spec.
@@ -908,6 +949,7 @@ def get_sequence_to_sequence_forecasting_pipeline_and_parameters(
       evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
       evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
       evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
+      evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
       evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
       study_spec_parameters_override=study_spec_parameters_override,
       stage_1_tuner_worker_pool_specs_override=stage_1_tuner_worker_pool_specs_override,

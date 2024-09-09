@@ -1,0 +1,35 @@
+name: KFP Samples
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths:
+      - 'scripts/deploy/github/**'
+      - 'samples/**'
+      - 'backend/src/v2/**'
+      - '.github/workflows/kfp-samples.yml'
+
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Create KFP cluster
+      uses: ./.github/actions/kfp-cluster
+
+    - name: Forward API port
+      run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+    - name: Run Samples Tests
+      run: |
+        ./backend/src/v2/test/sample-test.sh

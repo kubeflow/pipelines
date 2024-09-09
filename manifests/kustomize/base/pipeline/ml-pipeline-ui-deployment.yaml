@@ -48,6 +48,10 @@ spec:
                 key: secretkey
           - name: ALLOW_CUSTOM_VISUALIZATIONS
             value: "true"
+          - name: FRONTEND_SERVER_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
         readinessProbe:
           exec:
             command:

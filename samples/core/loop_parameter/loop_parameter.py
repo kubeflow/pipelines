@@ -14,10 +14,8 @@ def concat_op(a: str, b: str) -> str:
 
 
 @dsl.component
-def generate_op() -> str:
-    import json
-    return json.dumps([{'a': i, 'b': i * 10} for i in range(1, 5)])
-
+def generate_op() -> list:
+    return [{'a': i, 'b': i * 10} for i in range(1, 5)]
 
 @dsl.pipeline(name='pipeline-with-loop-parameter')
 def my_pipeline(

@@ -87,7 +87,6 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal executor input: %w", err)
 	}
-	glog.Infof("input ComponentSpec:%s\n", prettyPrint(componentSpecJSON))
 	component := &pipelinespec.ComponentSpec{}
 	err = protojson.Unmarshal([]byte(componentSpecJSON), component)
 	if err != nil {
@@ -459,7 +458,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 		if err != nil {
 			return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
-		mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE)
+		mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE, opts.bucketConfig)
 		if err != nil {
 			return nil, metadataErr(err)
 		}

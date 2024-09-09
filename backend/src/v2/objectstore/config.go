@@ -151,6 +151,16 @@ func ParseBucketConfigForArtifactURI(uri string) (*Config, error) {
 	}, nil
 }
 
+// ParseProviderFromPath prases the uri and returns the scheme, which is
+// used as the Provider string
+func ParseProviderFromPath(uri string) (string, error) {
+	bucketConfig, err := ParseBucketPathToConfig(uri)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(bucketConfig.Scheme, "://"), nil
+}
+
 func MinioDefaultEndpoint() string {
 	// Discover minio-service in the same namespace by env var.
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables

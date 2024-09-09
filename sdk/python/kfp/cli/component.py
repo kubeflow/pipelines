@@ -155,6 +155,7 @@ class ComponentBuilder():
         self._base_image = None
         self._target_image = None
         self._pip_index_urls = None
+        self._pip_trusted_hosts = None
         self._load_components()
 
     def _load_components(self):
@@ -214,11 +215,16 @@ class ComponentBuilder():
         logging.info(f'Using target image: {self._target_image}')
 
         pip_index_urls = []
+        pip_trusted_hosts = []
         for comp in self._components:
             if comp.pip_index_urls is not None:
                 pip_index_urls.extend(comp.pip_index_urls)
+            if comp.pip_trusted_hosts is not None:
+                pip_trusted_hosts.extend(comp.pip_trusted_hosts)
         if pip_index_urls:
             self._pip_index_urls = list(dict.fromkeys(pip_index_urls))
+        if pip_trusted_hosts:
+            self._pip_trusted_hosts = list(dict.fromkeys(pip_trusted_hosts))
 
     def _maybe_write_file(self,
                           filename: str,
@@ -277,7 +283,7 @@ class ComponentBuilder():
 
     def maybe_generate_dockerfile(self, overwrite_dockerfile: bool = False):
         index_urls_options = component_factory.make_index_url_options(
-            self._pip_index_urls)
+            self._pip_index_urls, self._pip_trusted_hosts)
         dockerfile_contents = _DOCKERFILE_TEMPLATE.format(
             base_image=self._base_image,
             maybe_copy_kfp_package=self._maybe_copy_kfp_package,
