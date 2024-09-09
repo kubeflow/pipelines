@@ -1,0 +1,33 @@
+name: rag_pipeline
+
+on:
+  workflow_dispatch: 
+
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Create KFP cluster
+      uses: ./.github/actions/kfp-cluster
+
+    - name: Forward API port
+      run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+    - name: Grant execute permissions to scripts
+      shell: bash
+      run: chmod +x ./sample/contrib/RAG_kubeflow/example/.github/rag_action.sh 
+
+    - name: Install dos2unix
+      run: sudo apt-get update && sudo apt-get install dos2unix
+
+    - name: Run Samples Tests
+      run: dos2unix ./sample/contrib/RAG_kubeflow/example/.github/rag_action.sh  && ./sample/contrib/RAG_kubeflow/example/.github/rag_action.sh 
