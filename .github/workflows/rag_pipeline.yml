@@ -34,4 +34,4 @@ jobs:
       run: sudo apt-get update && sudo apt-get install dos2unix
 
     - name: Run Samples Tests
-      run: dos2unix ./samples/contrib/RAG_kubeflow/example/.github/rag_action.shh  && ././samples/contrib/RAG_kubeflow/example/.github/rag_action.sh
+      run: dos2unix ./samples/contrib/RAG_kubeflow/example/.github/rag_action.sh && ./samples/contrib/RAG_kubeflow/example/.github/rag_action.sh
