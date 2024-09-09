@@ -28,10 +28,10 @@ jobs:
 
     - name: Grant execute permissions to scripts
       shell: bash
-      run: chmod +x ./sample/contrib/RAG_kubeflow/example/.github/rag_action.sh 
+      run: chmod +x ./samples/contrib/RAG_kubeflow/example/.github/rag_action.sh
 
     - name: Install dos2unix
       run: sudo apt-get update && sudo apt-get install dos2unix
 
     - name: Run Samples Tests
-      run: dos2unix ./sample/contrib/RAG_kubeflow/example/.github/rag_action.sh  && ./sample/contrib/RAG_kubeflow/example/.github/rag_action.sh 
+      run: dos2unix ./samples/contrib/RAG_kubeflow/example/.github/rag_action.shh  && ././samples/contrib/RAG_kubeflow/example/.github/rag_action.sh
