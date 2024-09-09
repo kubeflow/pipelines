@@ -25,7 +25,7 @@ class SampleTest(unittest.TestCase):
 
     def test(self):
         # 只測試 hello_world 範例
-        test_case = TestCase(pipeline_func=RAG_kubeflow.rag_pipeline)
+        test_case = TestCase(pipeline_func=rag.rag_pipeline)
 
         # 直接執行測試案例
         self.run_test_case(test_case.pipeline_func, test_case.timeout)
