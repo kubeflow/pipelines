@@ -21,13 +21,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 
@@ -134,6 +135,7 @@ type ExecutionConfig struct {
 	NotTriggered     bool  // optional, not triggered executions will have CANCELED state.
 	ParentDagID      int64 // parent DAG execution ID. Only the root DAG does not have a parent DAG.
 	InputParameters  map[string]*structpb.Value
+	OutputParameters map[string]*structpb.Value
 	InputArtifactIDs map[string][]int64
 	IterationIndex   *int // Index of the iteration.
 
@@ -448,6 +450,8 @@ func getArtifactName(eventPath *pb.Event_Path) (string, error) {
 func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
 	e := execution.execution
 	e.LastKnownState = state.Enum()
+	glog.V(4).Infof("outputParameters: %v", outputParameters)
+	glog.V(4).Infof("outputArtifacts: %v", outputArtifacts)
 
 	if outputParameters != nil {
 		// Record output parameters.
@@ -576,7 +580,13 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 			},
 		}}
 	}
-
+	if config.OutputParameters != nil {
+		e.CustomProperties[keyOutputs] = &pb.Value{Value: &pb.Value_StructValue{
+			StructValue: &structpb.Struct{
+				Fields: config.OutputParameters,
+			},
+		}}
+	}
 	req := &pb.PutExecutionRequest{
 		Execution: e,
 		Contexts:  []*pb.Context{pipeline.pipelineCtx, pipeline.pipelineRunCtx},
