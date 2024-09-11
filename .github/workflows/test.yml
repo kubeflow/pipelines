@@ -30,4 +30,4 @@ jobs:
       run: sudo apt-get update && sudo apt-get install dos2unix
 
     - name: Run Samples Tests
-      run: dos2unix ./hello/hello_world.sh && ./hello/hello_world.sh
+      run: dos2unix ./pipeline/Kubeflow_Pipelines/hello_world.sh && ./pipeline/Kubeflow_Pipelines/hello_world.sh
