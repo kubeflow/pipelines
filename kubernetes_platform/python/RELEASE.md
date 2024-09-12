@@ -21,8 +21,7 @@ Some steps require elevated permissions to push branches, publish the package, a
     Follow the instructions printed out by the script in Step 2, which explain how to push the branch to upstream.
 
     By the end, you
-    should have pushed a modified `__init__.py`, `conf.py`, `.gitignore`, and
-    two modified `.readthedocs.yml` files to the release branch.
+    should have pushed a modified `__init__.py`, `conf.py` (from Step 1), and `.gitignore`, `kubernetes_executor_config_pb2.py` and two modified `.readthedocs.yml` files (from Step 2) to the release branch.
 
 4.  [Requires credentials] Go to
     [readthedocs.org/projects/kfp-kubernetes/](https://readthedocs.org/projects/kfp-kubernetes/),

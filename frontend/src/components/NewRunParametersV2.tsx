@@ -70,8 +70,7 @@ const protoMap = new Map<string, string>([
 ]);
 
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
-  // TBD (jlyaoyuli): Currently, empty string is not allowed.
-  if (paramStr === '') {
+  if (paramStr === '' && paramType !== ParameterType_ParameterTypeEnum.STRING) {
     return undefined;
   }
   switch (paramType) {

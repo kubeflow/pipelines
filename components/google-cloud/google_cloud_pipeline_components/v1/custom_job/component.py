@@ -36,6 +36,7 @@ def custom_training_job(
     base_output_directory: str = '',
     labels: Dict[str, str] = {},
     encryption_spec_key_name: str = '',
+    persistent_resource_id: str = _placeholders.PERSISTENT_RESOURCE_ID_PLACEHOLDER,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
@@ -55,6 +56,7 @@ def custom_training_job(
     base_output_directory: The Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob. See [more information ](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).
     labels: The labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).
     encryption_spec_key_name: Customer-managed encryption key options for the CustomJob. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key.
+    persistent_resource_id: The ID of the PersistentResource in the same Project and Location which to run. The default value is a placeholder that will be resolved to the PipelineJob [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)'s persistent resource id at runtime. However, if the PipelineJob doesn't set Persistent Resource as the job level runtime, the placedholder will be resolved to an empty string and the custom job will be run on demand. If the value is set explicitly, the custom job will runs in the specified persistent resource, in this case, please note the network and CMEK configs on the job should be consistent with those on the PersistentResource, otherwise, the job will be rejected.
     project: Project to create the custom training job in. Defaults to the project in which the PipelineJob is run.
 
   Returns:
@@ -82,6 +84,7 @@ def custom_training_job(
               'base_output_directory': {
                   'output_uri_prefix': base_output_directory
               },
+              'persistent_resource_id': persistent_resource_id,
           },
           'labels': labels,
           'encryption_spec': {'kms_key_name': encryption_spec_key_name},

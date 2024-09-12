@@ -19,15 +19,33 @@
 set -e
 
 REGISTRY="${REGISTRY:-kind-registry:5000}"
+echo "REGISTRY=$REGISTRY"
 TAG="${TAG:-latest}"
+EXIT_CODE=0
 
 docker system prune -a -f
 
-docker build -q -t "${REGISTRY}/apiserver:${TAG}" -f backend/Dockerfile . && docker push "${REGISTRY}/apiserver:${TAG}" &
-docker build -q -t "${REGISTRY}/persistenceagent:${TAG}" -f backend/Dockerfile.persistenceagent . && docker push "${REGISTRY}/persistenceagent:${TAG}" &
-docker build -q -t "${REGISTRY}/scheduledworkflow:${TAG}" -f backend/Dockerfile.scheduledworkflow . && docker push "${REGISTRY}/scheduledworkflow:${TAG}" &
+docker build -q -t "${REGISTRY}/apiserver:${TAG}" -f backend/Dockerfile . && docker push "${REGISTRY}/apiserver:${TAG}" || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Failed to build apiserver image."
+  exit $EXIT_CODE
+fi
 
-wait
+docker build -q -t "${REGISTRY}/persistenceagent:${TAG}" -f backend/Dockerfile.persistenceagent . && docker push "${REGISTRY}/persistenceagent:${TAG}" || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Failed to build persistenceagent image."
+  exit $EXIT_CODE
+fi
+
+docker build -q -t "${REGISTRY}/scheduledworkflow:${TAG}" -f backend/Dockerfile.scheduledworkflow . && docker push "${REGISTRY}/scheduledworkflow:${TAG}" || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Failed to build scheduledworkflow image."
+  exit $EXIT_CODE
+fi
+
 
 # clean up intermittent build caches to free up disk space
 docker system prune -a -f

@@ -111,7 +111,7 @@ describe('RunList', () => {
   }
 
   beforeEach(() => {
-    formatDateStringSpy.mockImplementation((date?: Date) => {
+    formatDateStringSpy.mockImplementation((date?: Date | string) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
     onErrorSpy.mockClear();
@@ -324,7 +324,7 @@ describe('RunList', () => {
       'bad stuff happened',
     );
     const props = generateProps();
-    props.runIdListMask = ['testrun1', 'testrun2'];
+    props.runIdListMask = ['testrun1'];
     render(
       <CommonTestWrapper>
         <RunList {...props} />
@@ -333,7 +333,7 @@ describe('RunList', () => {
     await waitFor(() => {
       // won't call listRuns if specific run id is provided
       expect(listRunsSpy).toHaveBeenCalledTimes(0);
-      expect(getRunSpy).toHaveBeenCalledTimes(2);
+      expect(getRunSpy).toHaveBeenCalledTimes(1);
     });
 
     screen.findByText('Failed to get associated experiment: bad stuff happened');

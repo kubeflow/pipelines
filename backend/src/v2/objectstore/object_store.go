@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -261,12 +262,13 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 
 	// AWS Specific:
 	// Path-style S3 endpoints, which are commonly used, may fall into either of two subdomains:
-	// 1) s3.amazonaws.com
+	// 1) [https://]s3.amazonaws.com
 	// 2) s3.<AWS Region>.amazonaws.com
 	// for (1) the endpoint is not required, thus we skip it, otherwise the writer will fail to close due to region mismatch.
 	// https://aws.amazon.com/blogs/infrastructure-and-automation/best-practices-for-using-amazon-s3-endpoints-in-aws-cloudformation-templates/
 	// https://docs.aws.amazon.com/sdk-for-go/api/aws/session/
-	if strings.ToLower(params.Endpoint) != "s3.amazonaws.com" {
+	awsEndpoint, _ := regexp.MatchString(`^(https://)?s3.amazonaws.com`, strings.ToLower(params.Endpoint))
+	if !awsEndpoint {
 		config.Endpoint = aws.String(params.Endpoint)
 	}
 

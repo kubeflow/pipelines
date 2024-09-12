@@ -1,0 +1,31 @@
+name: KFP Runtime Code Tests
+
+on:
+  push:
+    branches: [master]
+
+  pull_request:
+    paths:
+      - '.github/workflows/kfp-sdk-runtime-tests.yml'
+      - 'sdk/python/**'
+      - 'test/presubmit-test-kfp-runtime-code.sh'
+
+jobs:
+  kfp-runtime-tests:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: ['3.8', '3.9', '3.10', '3.11', '3.12']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Run KFP Runtime Code Tests
+        run: |
+          export PULL_NUMBER="${{ github.event.inputs.pull_number || github.event.pull_request.number }}"
+          ./test/presubmit-test-kfp-runtime-code.sh

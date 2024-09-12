@@ -38,6 +38,8 @@ def train(
     n_val_windows: int,
     n_test_windows: int,
     test_set_stride: int,
+    nan_threshold: float,
+    zero_threshold: float,
     cleaning_activation_regularizer_coeff: float,
     change_point_activation_regularizer_coeff: float,
     change_point_output_regularizer_coeff: float,
@@ -88,6 +90,13 @@ def train(
     n_test_windows: The number of windows to use for the test set. Must be >= 1.
     test_set_stride: The number of timestamps to roll forward when
       constructing the val and test sets.
+    nan_threshold: Series having more nan / missing values than
+      nan_threshold (inclusive) in percentage for either backtest or forecast
+      will not be sampled in the training set (including missing due to
+      train_start and train_end). All existing nans are replaced by zeros.
+    zero_threshold: Series having more 0.0 values than zero_threshold
+      (inclusive) in percentage for either backtest or forecast will not be
+      sampled in the training set.
     cleaning_activation_regularizer_coeff: The regularization coefficient for
       the cleaning param estimator's final layer's activation in the cleaning
       block.
@@ -182,6 +191,8 @@ def train(
                       f'--config.datasets.val_rolling_window_size={test_set_stride}',
                       f'--config.datasets.n_test_windows={n_test_windows}',
                       f'--config.datasets.test_rolling_window_size={test_set_stride}',
+                      f'--config.datasets.nan_threshold={nan_threshold}',
+                      f'--config.datasets.zero_threshold={zero_threshold}',
                       f'--config.model.regularizer_coeff={cleaning_activation_regularizer_coeff}',
                       f'--config.model.activation_regularizer_coeff={change_point_activation_regularizer_coeff}',
                       f'--config.model.output_regularizer_coeff={change_point_output_regularizer_coeff}',

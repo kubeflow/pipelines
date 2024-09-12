@@ -1,5 +1,83 @@
 # Changelog
 
+## [2.3.0](https://github.com/kubeflow/pipelines/compare/2.2.0...2.3.0) (2024-09-06)
+
+
+### Features
+
+* **api:** Add new ResourceSpec proto fields to support dynamic values. ([\#11075](https://github.com/kubeflow/pipelines/issues/11075)) ([83dcf1a](https://github.com/kubeflow/pipelines/commit/83dcf1a60919f5bcc0c644c8fdff94ad686cad07))
+* **backend:** mount EmptyDir volumes for launcher write locations ([\#10857](https://github.com/kubeflow/pipelines/issues/10857)) ([65839ce](https://github.com/kubeflow/pipelines/commit/65839ced31969affe23ecc483c95872684e7dd0b))
+* **backend:** move comp logic to workflow params ([\#10979](https://github.com/kubeflow/pipelines/issues/10979)) ([0e37fd6](https://github.com/kubeflow/pipelines/commit/0e37fd66a4f15bb7ce31ecceec7421ba1bd65fd6))
+* **Backend + SDK:** Update kfp backend and kubernetes sdk to support EmptyDir ([\#10913](https://github.com/kubeflow/pipelines/issues/10913)) ([7506a8e](https://github.com/kubeflow/pipelines/commit/7506a8eafae9876a4f1e1a0e86024f5231369e8d))
+* **component:** internal ([383cbcd](https://github.com/kubeflow/pipelines/commit/383cbcd0655395582b11f79f29e4816f84d6d91b))
+* **component:** internal ([8041ea8](https://github.com/kubeflow/pipelines/commit/8041ea8740371925d76c698c8a94a4859fc2bda7))
+* **component:** internal ([c06d9ae](https://github.com/kubeflow/pipelines/commit/c06d9aee96726bbae73e5f7562edfc8330fac61e))
+* **component:** internal ([ad03bb6](https://github.com/kubeflow/pipelines/commit/ad03bb6daa03442a7fda19904a97db3745d5044f))
+* **components:** Add role_field_name and model_name as input parameters to llm_evaluation_preprocessor component to support gemini model's input and output schema ([de346d5](https://github.com/kubeflow/pipelines/commit/de346d5590b1df94cee528f949a067fb3aae578f))
+* **components:** Add Starry Net forecasting pipeline to public preview ([3a0566e](https://github.com/kubeflow/pipelines/commit/3a0566e8dc27d8fbd13174d6a6aed4daddb2405b))
+* **components:** create infer preprocessor component ([e9d6876](https://github.com/kubeflow/pipelines/commit/e9d687690bea2d88263ca331d049cb6c68495f02))
+* **components:** Create the write_user_defined_error function ([454a654](https://github.com/kubeflow/pipelines/commit/454a65428977a4e470c0d72525a96c3f4a0344f3))
+* **components:** create utility class for preprocessors and use it in rlhf preprocessor and infer preprocessor ([cd16a33](https://github.com/kubeflow/pipelines/commit/cd16a33e735b30a85b2e736039f72c2ed6d26507))
+* **components:** internal ([e8f0208](https://github.com/kubeflow/pipelines/commit/e8f0208777ad4e9260ff630a37b0d90cda8c4f76))
+* **components:** internal ([6f62203](https://github.com/kubeflow/pipelines/commit/6f62203ccfadeaf60d16ce1f65ed25ac4408c649))
+* **components:** internal ([2eb9bec](https://github.com/kubeflow/pipelines/commit/2eb9bec1ae8debca6698daa65dd69da91ec3461f))
+* **components:** internal ([c6f658b](https://github.com/kubeflow/pipelines/commit/c6f658b0e70d353a1ef0aae4ae05307ef3223eb4))
+* **components:** internal ([e128bdb](https://github.com/kubeflow/pipelines/commit/e128bdbaf3b2071926e8a5c23041cc692329bb39))
+* **components:** internal ([abe5257](https://github.com/kubeflow/pipelines/commit/abe525737f713e752560ee039553b5cc6d5af89d))
+* **components:** internal ([522b593](https://github.com/kubeflow/pipelines/commit/522b5933b00439f4981498ecea3f800fde3a6506))
+* **components:** internal ([461d892](https://github.com/kubeflow/pipelines/commit/461d892db80987f5d9a1f5bf9575f667bfb66a76))
+* **components:** release LLM Model Evaluation image version v0.7 ([4f36fe3](https://github.com/kubeflow/pipelines/commit/4f36fe3637eb52980e559615595dfab7aa539a87))
+* **components:** Retry on batch prediction internal errors in AutoSxS ([5d9f4ab](https://github.com/kubeflow/pipelines/commit/5d9f4ab929747748e4a616c89fac9de37fc81485))
+* **components:** Support dynamic machine parameters in preview.custom_job.utils.create_custom_training_job_from_component ([e44dfa7](https://github.com/kubeflow/pipelines/commit/e44dfa7e898a1f4e8c315502719d9c7c709f1b01))
+* **components:** Support dynamic machine type paramters in CustomTrainingJobOp ([\#10883](https://github.com/kubeflow/pipelines/issues/10883)) ([b57f9e8](https://github.com/kubeflow/pipelines/commit/b57f9e858880afcbeac51a5d4e978133be6c0d50))
+* **components:** Support dynamic values for boot_disk_type, boot_disk_size in preview.custom_job.utils.create_custom_training_job_from_component ([7b7918e](https://github.com/kubeflow/pipelines/commit/7b7918ebf8c30e6ceec99283ef20dbc02fdf6a42))
+* **components:** Support parsing Gemini BP outputs in AutoSxS pipeline ([b4f91a3](https://github.com/kubeflow/pipelines/commit/b4f91a3f2cf1d2d8925e698bebd3cb5b9baaaaac))
+* **components:** Update Starry Net image tags ([bf5104f](https://github.com/kubeflow/pipelines/commit/bf5104fcff6a6c2db8d8e39522c04eca1bb3fc93))
+* **components:** Use GetModel integration test to manually test write_user_defined_error function ([609c637](https://github.com/kubeflow/pipelines/commit/609c637811e46eab2d5c9a915913a1520c979a88))
+* **components:** use preprocessor utility methods for the upload model graph ([7908ed6](https://github.com/kubeflow/pipelines/commit/7908ed664653143d335ba3e9227484347e64577d))
+* **frontend&backend:** Add UI support for object store customization and prefixes ([\#10787](https://github.com/kubeflow/pipelines/issues/10787)) ([6723d3d](https://github.com/kubeflow/pipelines/commit/6723d3d5a92181b7ee75304671256bbe5ac18582))
+* **GH workflow:** migrate periodic functional tests to GH actions ([\#10751](https://github.com/kubeflow/pipelines/issues/10751)) ([c4d7ec3](https://github.com/kubeflow/pipelines/commit/c4d7ec33b409eda9c4076915f4ed1c2db0ee8ef6))
+* **internal:** Adding proto field to support regional quota ([c8f08ba](https://github.com/kubeflow/pipelines/commit/c8f08ba49f92f53269d71425666c0bc3a687615d))
+* **kubernetes_platform:** Add empty dir mount ([\#10892](https://github.com/kubeflow/pipelines/issues/10892)) ([10aaf43](https://github.com/kubeflow/pipelines/commit/10aaf431367e974bf6c73306acf6a7fd40e36942))
+* **kubernetes_platform:** Update kubernetes_platform go package to include EnabledSharedMemory ([\#10703](https://github.com/kubeflow/pipelines/issues/10703)) ([7c63599](https://github.com/kubeflow/pipelines/commit/7c6359984314472bf801ea1ba8b0e8c5d9e2be2c))
+
+
+### Bug Fixes
+
+* **components:** add check and add log to call out the fallback to the default model checkpoint and remove the model checkpoint check condition in RLHF GCPC ([92c3178](https://github.com/kubeflow/pipelines/commit/92c317824a3697d955cb78cc9a85ecac58a3366c))
+* **components:** Add input param `autorater_prompt_parameters` to `online_evaluation_pairwise` component ([cf7450b](https://github.com/kubeflow/pipelines/commit/cf7450b109ba349b50aef2413517c0ec3961adf8))
+* **components:** Add staging and temp locations to prophet trainer component ([00440f7](https://github.com/kubeflow/pipelines/commit/00440f7df4abae08823df9ab5b48de703a8a773c))
+* **components:** Fix to model batch explanation component for Structured Data pipelines ([289f64f](https://github.com/kubeflow/pipelines/commit/289f64fe948c1aede1886789045aaf1e2ac8f699))
+* **components:** Pass moddel name to eval_runner to process batch prediction's output as per the output schema of model used ([0d3e79a](https://github.com/kubeflow/pipelines/commit/0d3e79adc7bade905c112160781fed0feef3f595))
+* **components:** Remove unused import function_based from infer pipeline ([e369bd3](https://github.com/kubeflow/pipelines/commit/e369bd3ebd91831465ba346ab271549c549c6745))
+* **components:** Use instance.target_field_name format for text-bison models only, use target_field_name for gemini models ([1a07ffa](https://github.com/kubeflow/pipelines/commit/1a07ffa9111ac5ccea6ad527e8950b084aa4fc79))
+* **docs:** add note about protoc dependency and version ([\#10895](https://github.com/kubeflow/pipelines/issues/10895)) ([d911c8b](https://github.com/kubeflow/pipelines/commit/d911c8b73b49cd0a4ffda132f494f31d0d48095a))
+* **docs:** IR -> Pipeline Spec ([\#11031](https://github.com/kubeflow/pipelines/issues/11031)) ([1e95eb6](https://github.com/kubeflow/pipelines/commit/1e95eb628545baaf691270c4ddb45034ecef8fa4))
+* **frontend:** fixes filter pipeline text box shows error when typing anything in it. Fixes [\#10241](https://github.com/kubeflow/pipelines/issues/10241) ([\#11096](https://github.com/kubeflow/pipelines/issues/11096)) ([51d2c92](https://github.com/kubeflow/pipelines/commit/51d2c92b551751b758f544ca32a7ec0f67d09558))
+* **frontend:** reduce list run latency ([\#10797](https://github.com/kubeflow/pipelines/issues/10797)) ([768ece4](https://github.com/kubeflow/pipelines/commit/768ece44e69e328400ca437c9ebe2c959b26d8a8))
+* **frontend:** retrieve archived logs from correct location ([\#11010](https://github.com/kubeflow/pipelines/issues/11010)) ([2e6e634](https://github.com/kubeflow/pipelines/commit/2e6e634de43c42fee88dfe2abfdb0e4155dc4f95))
+* **sdk:** Add required auth scopes to RegistryClient for GCP service accounts credentials ([\#10819](https://github.com/kubeflow/pipelines/issues/10819)) ([04b4cad](https://github.com/kubeflow/pipelines/commit/04b4cad8cdc88810628f5e683cada57a7f42be47))
+* **sdk:** Kfp support for pip trusted host ([\#11151](https://github.com/kubeflow/pipelines/issues/11151)) ([3efa029](https://github.com/kubeflow/pipelines/commit/3efa02984c44190ee6ea98af1a6905d67a986af0))
+* **ui:** fixes empty string value in pipeline parameters ([\#11175](https://github.com/kubeflow/pipelines/issues/11175)) ([e9c77ec](https://github.com/kubeflow/pipelines/commit/e9c77ec6d5c900be6ca77f513610a603c41ed2ce))
+* Basic sample tests - sequential is flaky ([\#11138](https://github.com/kubeflow/pipelines/issues/11138)) ([e1d172b](https://github.com/kubeflow/pipelines/commit/e1d172bb5740f743be45e43f602085baed1c5495))
+* Incorrect typing in samples/cores/loop_parallism and fixing loop_parameter examples ([\#11062](https://github.com/kubeflow/pipelines/issues/11062)) ([1612dac](https://github.com/kubeflow/pipelines/commit/1612dac4adacbe1f2a041eb4eacb94663c2ba286))
+* re-enable exit hanler test. ([\#11100](https://github.com/kubeflow/pipelines/issues/11100)) ([000ef60](https://github.com/kubeflow/pipelines/commit/000ef60080b6ece6274910057898f9a0f33a9a7a))
+* **kubernetes_platform:** fix api-generator docker mount for SELinux ([\#10890](https://github.com/kubeflow/pipelines/issues/10890)) ([e69078b](https://github.com/kubeflow/pipelines/commit/e69078b2b65c0e34fd56499bbe34da882dc6e009))
+* **manifests:** Move metacontroller to the top in kustmization.yaml ([\#10669](https://github.com/kubeflow/pipelines/issues/10669)) ([4e9fe75](https://github.com/kubeflow/pipelines/commit/4e9fe75d4564bbcdde7cd358298361e94d4a20be))
+* **sdk:** Throw 'exit_task cannot depend on any other tasks.' error when an ExitHandler has a parameter dependent on other task ([\#11005](https://github.com/kubeflow/pipelines/issues/11005)) ([08185e7](https://github.com/kubeflow/pipelines/commit/08185e71717ef628be3cbe2cdeb1fd55b25581d4))
+
+
+### Other Pull Requests
+
+* **fix:** reduce executor logs ([\#11169](https://github.com/kubeflow/pipelines/issues/11169)) ([d64554b](https://github.com/kubeflow/pipelines/commit/d64554b1a8880c69186776f92a3af75fafd0135d))
+* correct artifact preview behavior in UI ([\#11059](https://github.com/kubeflow/pipelines/issues/11059)) ([2c91fb7](https://github.com/kubeflow/pipelines/commit/2c91fb797ed5e95bb51ae80c4daa2c6b9334b51b))
+* docs:fixing broken links in readme ([\#11108](https://github.com/kubeflow/pipelines/issues/11108)) ([a3adf94](https://github.com/kubeflow/pipelines/commit/a3adf9471c49f8a529f4389853210212880f9d16))
+* Fix view edit cluster roles ([\#11067](https://github.com/kubeflow/pipelines/issues/11067)) ([43cdc20](https://github.com/kubeflow/pipelines/commit/43cdc2081dcb1f0cac87c58188e88a23370fb67e))
+* add dev docs for kfp/sdk ([\#11046](https://github.com/kubeflow/pipelines/issues/11046)) ([eea7d48](https://github.com/kubeflow/pipelines/commit/eea7d483793c2b4f8c3aa20b1500535f7fbf50d4))
+* No public description ([e3a4980](https://github.com/kubeflow/pipelines/commit/e3a498020a28788b3df71db310dd266a537ef243))
+* Upgrade go version to 1.21 ([\#10911](https://github.com/kubeflow/pipelines/issues/10911)) ([bdc3bb1](https://github.com/kubeflow/pipelines/commit/bdc3bb1f0d5850332d4fc0851a2d1730ead62427))
+* Expose starry_net yaml to GitHub ([\#10943](https://github.com/kubeflow/pipelines/issues/10943)) ([f1e2314](https://github.com/kubeflow/pipelines/commit/f1e23142b1eabc977d85736dfd4bdbdc019cfcb2))
+
 ## [2.2.0](https://github.com/kubeflow/pipelines/compare/2.1.0...2.2.0) (2024-04-30)
 
 

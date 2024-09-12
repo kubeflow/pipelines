@@ -1,0 +1,36 @@
+name: kfp-kubernetes library tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - '.github/workflows/kfp-kubernetes-library-test.yml'
+      - 'sdk/python/**'
+      - 'api/v2alpha1/**'
+      - 'kubernetes_platform/**'
+      - 'test/presubmit-test-kfp-kubernetes-library.sh'
+
+jobs:
+  kfp-kubernetes-library-test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: [
+          { 'version': '3.8' },
+          { 'version': '3.9' },
+          { 'version': '3.10' },
+          { 'version': '3.11' },
+          { 'version': '3.12' }
+        ]    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{matrix.python.version}}
+
+      - name: Run tests
+        run: ./test/presubmit-test-kfp-kubernetes-library.sh
