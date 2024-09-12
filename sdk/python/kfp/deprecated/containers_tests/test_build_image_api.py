@@ -52,7 +52,7 @@ class BuildImageApiTests(unittest.TestCase):
 
     def test_build_image_from_working_dir(self):
         expected_dockerfile_text_re = '''
-FROM python:3.6.5
+FROM python:3.9
 WORKDIR /.*
 COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt
@@ -96,7 +96,7 @@ COPY . .
                                        file_paths_check)
             result = build_image_from_working_dir(
                 working_dir=context_dir,
-                base_image='python:3.6.5',
+                base_image='python:3.9',
                 builder=builder)
 
     def test_image_cache(self):
@@ -110,7 +110,7 @@ COPY . .
                 py_content='py1', sh_content='sh1') as context_dir:
             build_image_from_working_dir(
                 working_dir=context_dir,
-                base_image='python:3.6.5',
+                base_image='python:3.9',
                 builder=builder)
         self.assertEqual(builder.invocations_count, 1)
 
@@ -119,7 +119,7 @@ COPY . .
                 py_content='py1', sh_content='sh2') as context_dir:
             build_image_from_working_dir(
                 working_dir=context_dir,
-                base_image='python:3.6.5',
+                base_image='python:3.9',
                 builder=builder)
         self.assertEqual(builder.invocations_count, 1)
 
@@ -128,7 +128,7 @@ COPY . .
                 py_content='py2', sh_content='sh1') as context_dir:
             build_image_from_working_dir(
                 working_dir=context_dir,
-                base_image='python:3.6.5',
+                base_image='python:3.9',
                 builder=builder)
         self.assertEqual(builder.invocations_count, 2)
 

@@ -40,7 +40,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef exit_comp(status: dsl.PipelineTaskFinalStatus):\n    print(status)\n\
           \n"
-        image: python:3.8
+        image: python:3.9
 pipelineInfo:
   name: exit-comp
 root:

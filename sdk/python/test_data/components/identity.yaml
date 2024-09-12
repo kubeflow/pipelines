@@ -44,7 +44,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef identity(value: str) -> str:\n    return value\n\n"
-        image: python:3.8
+        image: python:3.9
 pipelineInfo:
   name: identity
 root:
