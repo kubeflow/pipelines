@@ -34,7 +34,7 @@ RUN chmod +x /test/integration/run.sh
 RUN tar -czvf /test.tar.gz /test
 
 
-FROM alpine:3.8
+FROM alpine:3.9
 
 COPY --from=builder /test.tar.gz /
 RUN tar -xzvf /test.tar.gz

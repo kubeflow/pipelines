@@ -22,7 +22,7 @@ spec:
   templates:
   - name: tensorboard-example
     script:
-      image: python:alpine3.6
+      image: python:alpine3.9
       command: [python]
       source: |
         import json

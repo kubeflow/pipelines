@@ -22,7 +22,7 @@ class RandomFailure1Op(dsl.ContainerOp):
     def __init__(self, exit_codes):
         super(RandomFailure1Op, self).__init__(
             name='random_failure',
-            image='python:alpine3.6',
+            image='python:alpine3.9',
             command=['python', '-c'],
             arguments=[
                 "import random; import sys; exit_code = random.choice([%s]); print(exit_code); sys.exit(exit_code)"

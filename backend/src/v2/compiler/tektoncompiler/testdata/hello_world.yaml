@@ -31,7 +31,7 @@ spec:
           hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser
           = argparse.ArgumentParser(prog=''Hello world'', description='''')\n_parser.add_argument(\"--text\",
           dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
-          = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"image":"python:3.7"}'
+          = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"image":"python:3.9"}'
       - name: iteration-index
         value: ""
       - name: kubernetes-config
@@ -137,7 +137,7 @@ spec:
               - configMapRef:
                   name: metadata-grpc-configmap
                   optional: true
-              image: python:3.7
+              image: python:3.9
               name: user-main
     - name: root-system-dag-driver
       params:

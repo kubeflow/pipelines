@@ -10,7 +10,7 @@ deploymentSpec:
         command:
         - echo
         - hello world
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: v2-container-component-no-input
 root:
