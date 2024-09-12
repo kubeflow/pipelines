@@ -86,6 +86,7 @@ def build_task_spec_for_task(
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
     tasks_in_current_dag: List[str],
+    execution_caching_default: bool = True,
 ) -> pipeline_spec_pb2.PipelineTaskSpec:
     """Builds PipelineTaskSpec for a pipeline task.
 
@@ -106,6 +107,7 @@ def build_task_spec_for_task(
     producer task.
 
     Args:
+        execution_caching_default:
         task: The task to build a PipelineTaskSpec for.
         parent_component_inputs: The task's parent component's input specs.
         tasks_in_current_dag: The list of tasks names for tasks in the same dag.
@@ -121,8 +123,13 @@ def build_task_spec_for_task(
     # support in IR.
     pipeline_task_spec.component_ref.name = (
         utils.sanitize_component_name(task.name))
+    # pipeline_task_spec.caching_options.enable_cache = (
+    #     task._task_spec.enable_caching)
     pipeline_task_spec.caching_options.enable_cache = (
-        task._task_spec.enable_caching)
+        task._task_spec.enable_caching if task._task_spec.enable_caching is not None
+        else execution_caching_default
+    )
+    print("In builder, execution_caching_default value is: ", execution_caching_default)
 
     if task._task_spec.retry_policy is not None:
         pipeline_task_spec.retry_policy.CopyFrom(
@@ -1166,11 +1173,13 @@ def modify_pipeline_spec_with_override(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     pipeline_name: Optional[str],
     pipeline_parameters: Optional[Mapping[str, Any]],
+    execution_caching_default: bool = True,
 ) -> pipeline_spec_pb2.PipelineSpec:
     """Modifies the PipelineSpec using arguments passed to the Compiler.compile
     method.
 
     Args:
+        execution_caching_default: Sets caching default to True
         pipeline_spec (pipeline_spec_pb2.PipelineSpec): PipelineSpec to modify.
         pipeline_name (Optional[str]): Name of the pipeline. Overrides component name.
         pipeline_parameters (Optional[Mapping[str, Any]]): Pipeline parameters. Overrides component input default values.
@@ -1183,7 +1192,7 @@ def modify_pipeline_spec_with_override(
     pipeline_spec_new = pipeline_spec_pb2.PipelineSpec()
     pipeline_spec_new.CopyFrom(pipeline_spec)
     pipeline_spec = pipeline_spec_new
-
+    print("pipeline_spec var: " pipeline_spec)
     if pipeline_name is not None:
         pipeline_spec.pipeline_info.name = pipeline_name
 

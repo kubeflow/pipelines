@@ -424,7 +424,6 @@ class TaskSpec:
     display_name: Optional[str] = None
     retry_policy: Optional[RetryPolicy] = None
 
-
 @dataclasses.dataclass
 class ImporterSpec:
     """ImporterSpec definition.

@@ -53,10 +53,12 @@ class Compiler:
         pipeline_name: Optional[str] = None,
         pipeline_parameters: Optional[Dict[str, Any]] = None,
         type_check: bool = True,
+        execution_caching_default: bool = True,
     ) -> None:
         """Compiles the pipeline or component function into IR YAML.
 
         Args:
+            execution_caching_default: Whether to enable cache or not, default: True.
             pipeline_func: Pipeline function constructed with the ``@dsl.pipeline`` or component constructed with the ``@dsl.component`` decorator.
             package_path: Output YAML file path. For example, ``'~/my_pipeline.yaml'`` or ``'~/my_component.yaml'``.
             pipeline_name: Name of the pipeline.
@@ -76,6 +78,11 @@ class Compiler:
                 pipeline_spec=pipeline_func.pipeline_spec,
                 pipeline_name=pipeline_name,
                 pipeline_parameters=pipeline_parameters,
+                execution_caching_default=execution_caching_default,
+            )
+
+            builder.build_task_spec_for_task(
+                execution_caching_default=execution_caching_default,
             )
 
             builder.write_pipeline_spec_to_file(
