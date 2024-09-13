@@ -22,6 +22,7 @@ from typing import Callable, Dict, Optional
 
 import click
 from kfp import compiler
+from kfp.cli.utils import parsing
 from kfp.dsl import base_component
 from kfp.dsl import graph_component
 
@@ -133,12 +134,19 @@ def parse_parameters(parameters: Optional[str]) -> Dict:
     is_flag=True,
     default=False,
     help='Whether to disable type checking.')
+@click.option(
+    '--enable-caching/--disable-caching',
+    type=bool,
+    default=None,
+    help=parsing.get_param_descr(compiler.Compiler.compile, 'enable_caching'),
+)
 def compile_(
     py: str,
     output: str,
     function_name: Optional[str] = None,
     pipeline_parameters: Optional[str] = None,
     disable_type_check: bool = False,
+    enable_caching: Optional[bool] = None,
 ) -> None:
     """Compiles a pipeline or component written in a .py file."""
     pipeline_func = collect_pipeline_or_component_func(
@@ -149,7 +157,8 @@ def compile_(
         pipeline_func=pipeline_func,
         pipeline_parameters=parsed_parameters,
         package_path=package_path,
-        type_check=not disable_type_check)
+        type_check=not disable_type_check,
+        enable_caching=enable_caching)
 
     click.echo(package_path)
 

@@ -33,6 +33,7 @@ from kfp import compiler
 from kfp.client import auth
 from kfp.client import set_volume_credentials
 from kfp.client.token_credentials_base import TokenCredentialsBase
+from kfp.compiler.compiler import override_caching_options
 from kfp.dsl import base_component
 from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
@@ -955,8 +956,8 @@ class Client:
             # Caching option set at submission time overrides the compile time
             # settings.
             if enable_caching is not None:
-                _override_caching_options(pipeline_doc.pipeline_spec,
-                                          enable_caching)
+                override_caching_options(pipeline_doc.pipeline_spec,
+                                         enable_caching)
             pipeline_spec = pipeline_doc.to_dict()
 
         pipeline_version_reference = None
@@ -1676,17 +1677,3 @@ def _extract_pipeline_yaml(package_file: str) -> _PipelineDoc:
         raise ValueError(
             f'The package_file {package_file} should end with one of the '
             'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].')
-
-
-def _override_caching_options(
-    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-    enable_caching: bool,
-) -> None:
-    """Overrides caching options.
-
-    Args:
-        pipeline_spec: The PipelineSpec object to update in-place.
-        enable_caching: Overrides options, one of True, False.
-    """
-    for _, task_spec in pipeline_spec.root.dag.tasks.items():
-        task_spec.caching_options.enable_cache = enable_caching
