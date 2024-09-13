@@ -136,8 +136,6 @@ type ExecutionConfig struct {
 	ParentDagID      int64 // parent DAG execution ID. Only the root DAG does not have a parent DAG.
 	InputParameters  map[string]*structpb.Value
 	OutputParameters map[string]*structpb.Value
-	// OutputArtifacts  map[string]*structpb.Value
-	// OutputArtifacts  []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec
 	OutputArtifacts  map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
 	InputArtifactIDs map[string][]int64
 	IterationIndex   *int // Index of the iteration.
