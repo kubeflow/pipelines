@@ -1,6 +1,10 @@
 name: hello_world_example
 
 on:
+  push:
+    branches:
+      - master
+      - pr
   workflow_dispatch: 
 
 jobs:
