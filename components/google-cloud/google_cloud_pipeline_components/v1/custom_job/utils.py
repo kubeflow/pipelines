@@ -71,6 +71,8 @@ def create_custom_training_job_from_component(
     labels: Optional[Dict[str, str]] = None,
     persistent_resource_id: str = _placeholders.PERSISTENT_RESOURCE_ID_PLACEHOLDER,
     env: Optional[List[Dict[str, str]]] = None,
+    project: Optional[str] = None,
+    location: Optional[str] = None,
 ) -> Callable:
   # fmt: off
   """Convert a KFP component into Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
@@ -203,6 +205,8 @@ def create_custom_training_job_from_component(
       'labels': labels or {},
       'encryption_spec_key_name': encryption_spec_key_name,
       'persistent_resource_id': persistent_resource_id,
+      'project': project,
+      'location': location
   }
 
   for param_name, default_value in custom_job_param_defaults.items():
