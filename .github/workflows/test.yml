@@ -24,7 +24,7 @@ jobs:
 
     - name: Grant execute permissions to scripts
       shell: bash
-      run: chmod +x ./hello/hello_world.sh 
+      run: chmod +x ./pipeline/Kubeflow_Pipelines/hello_world.sh 
 
     - name: Install dos2unix
       run: sudo apt-get update && sudo apt-get install dos2unix
