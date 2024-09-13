@@ -206,7 +206,7 @@ def create_custom_training_job_from_component(
       'encryption_spec_key_name': encryption_spec_key_name,
       'persistent_resource_id': persistent_resource_id,
       'project': project,
-      'location': location
+      'location': location,
   }
 
   for param_name, default_value in custom_job_param_defaults.items():
