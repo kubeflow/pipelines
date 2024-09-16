@@ -169,7 +169,7 @@ Do the following things before a release:
 
 1. Verify cloudbuild and postsubmit tests are passing: visit <https://github.com/kubeflow/pipelines/commits/master> for master branch.
 
-![How to very cloudbuild and postsubmit status](release-status-check.png)
+![How to very cloudbuild and postsubmit status](images/release-status-check.png)
 
 If not, contact the KFP team to determine if the failure(s) would block the release. You can also retry the failed job by opening the detail page of prow job, and click the refresh button next ot the job title.
 
@@ -235,7 +235,7 @@ in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more detai
 on Google Cloud Build" and then "Retry".
 
     NOTE: you can find your latest release commit in <https://github.com/kubeflow/pipelines/commits/master> and select your release branch.
-    ![How to very cloudbuild and postsubmit status](release-status-check.png)
+    ![How to very cloudbuild and postsubmit status](images/release-status-check.png)
 
 1. Select the `release-on-tag` cloudbuild job that copies built images and artifacts to
 public image registry and gcs bucket. This job should have already failed because
@@ -246,9 +246,9 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     It will create a build with "Branch: $BRANCH" instead of "TAG: $VERSION".
     Open "View more details on Google Cloud Build", and rerun from there.
 
-    ![Retry release-on-tag from the Google Cloud Build details page](retry-release-on-tag.png)
+    ![Retry release-on-tag from the Google Cloud Build details page](images/retry-release-on-tag.png)
 
-    ![Verify that you're retrying the right build](verify-retry-the-right-build.png)
+    ![Verify that you're retrying the right build](images/verify-retry-the-right-build.png)
 
     TODO: we should have an automation KFP cluster, and the waiting and submiting
     `release-on-tag` cloudbuild task should happen automatically.
