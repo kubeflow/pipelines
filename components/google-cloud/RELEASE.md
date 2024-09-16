@@ -1,5 +1,13 @@
 ## Upcoming release
+
+## Release 2.17.0
 * Fix Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline` after output schema change.
+* Modify the code to support latest bp result format
+* Update the StarryNet package metadata.
+* Use instance.target_field_name format for text-bison models only, use target_field_name for gemini models.
+* Pass model name to eval_runner to process batch prediction's output as per the output schema of model used.
+* Use LLM Model Evaluation image version v0.7
+* Update AutoSxS and RLHF image tags
 
 ## Release 2.16.1
 * Fix to model batch explanation component for Structured Data pipelines; image bump.
