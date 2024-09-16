@@ -21,7 +21,7 @@ COPY . .
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc musl-dev
 
-RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
+RUN GO111MODULE=on GOOS=linux GOARCH=amd64 go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.

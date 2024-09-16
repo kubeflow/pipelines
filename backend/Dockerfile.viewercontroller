@@ -20,7 +20,7 @@ RUN apk add --no-cache git gcc musl-dev
 WORKDIR /src/github.com/kubeflow/pipelines
 COPY . .
 
-RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/viewer/*.go
+RUN GO111MODULE=on GOOS=linux GOARCH=amd64 go build -o /bin/controller backend/src/crd/controller/viewer/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
