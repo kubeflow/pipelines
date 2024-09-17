@@ -24,3 +24,4 @@ jobs:
 
       - name: Run tests
         run: ./test/presubmit-backend-visualization.sh
+# FORCE RUN

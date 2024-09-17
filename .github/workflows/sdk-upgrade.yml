@@ -24,3 +24,4 @@ jobs:
 
       - name: Run SDK upgrade tests
         run: ./test/presubmit-test-sdk-upgrade.sh
+# FORCE RUN
