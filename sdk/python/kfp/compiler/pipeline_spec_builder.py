@@ -82,6 +82,204 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
                          f'"{value}" of type "{type(value)}".')
 
 
+def check_task_input_types(input_value, input_name, pipeline_task_spec, task,
+                           parent_component_inputs, tasks_in_current_dag):
+    # Since LoopParameterArgument and LoopArtifactArgument and LoopArgumentVariable are narrower
+    # types than PipelineParameterChannel, start with them.
+    if isinstance(input_value, for_loop.LoopParameterArgument):
+
+        component_input_parameter = (
+            compiler_utils.additional_input_name_for_pipeline_channel(
+                input_value))
+        assert component_input_parameter in parent_component_inputs.parameters, \
+            f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+        pipeline_task_spec.inputs.parameters[
+            input_name].component_input_parameter = (
+                component_input_parameter)
+
+    elif isinstance(input_value, for_loop.LoopArtifactArgument):
+
+        component_input_artifact = (
+            compiler_utils.additional_input_name_for_pipeline_channel(
+                input_value))
+        assert component_input_artifact in parent_component_inputs.artifacts, \
+            f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
+        pipeline_task_spec.inputs.artifacts[
+            input_name].component_input_artifact = (
+                component_input_artifact)
+
+    elif isinstance(input_value, for_loop.LoopArgumentVariable):
+
+        component_input_parameter = (
+            compiler_utils.additional_input_name_for_pipeline_channel(
+                input_value.loop_argument))
+        assert component_input_parameter in parent_component_inputs.parameters, \
+            f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+        pipeline_task_spec.inputs.parameters[
+            input_name].component_input_parameter = (
+                component_input_parameter)
+        pipeline_task_spec.inputs.parameters[
+            input_name].parameter_expression_selector = (
+                f'parseJson(string_value)["{input_value.subvar_name}"]')
+
+    elif isinstance(input_value, pipeline_channel.PipelineArtifactChannel) or (
+            isinstance(input_value, dsl.Collected) and
+            input_value.is_artifact_channel):
+
+        if input_value.task_name:
+            # Value is produced by an upstream task.
+            if input_value.task_name in tasks_in_current_dag:
+                # Dependent task within the same DAG.
+                pipeline_task_spec.inputs.artifacts[
+                    input_name].task_output_artifact.producer_task = (
+                        utils.sanitize_task_name(input_value.task_name))
+                pipeline_task_spec.inputs.artifacts[
+                    input_name].task_output_artifact.output_artifact_key = (
+                        input_value.name)
+            else:
+                # Dependent task not from the same DAG.
+                component_input_artifact = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value))
+                assert component_input_artifact in parent_component_inputs.artifacts, \
+                    f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
+                pipeline_task_spec.inputs.artifacts[
+                    input_name].component_input_artifact = (
+                        component_input_artifact)
+        else:
+            component_input_artifact = input_value.full_name
+            if component_input_artifact not in parent_component_inputs.artifacts:
+                component_input_artifact = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value))
+            pipeline_task_spec.inputs.artifacts[
+                input_name].component_input_artifact = (
+                    component_input_artifact)
+
+    elif isinstance(input_value, pipeline_channel.PipelineParameterChannel) or (
+            isinstance(input_value, dsl.Collected) and
+            not input_value.is_artifact_channel):
+        if input_value.task_name:
+
+            # Value is produced by an upstream task.
+            if input_value.task_name in tasks_in_current_dag:
+                # Dependent task within the same DAG.
+                pipeline_task_spec.inputs.parameters[
+                    input_name].task_output_parameter.producer_task = (
+                        utils.sanitize_task_name(input_value.task_name))
+                pipeline_task_spec.inputs.parameters[
+                    input_name].task_output_parameter.output_parameter_key = (
+                        input_value.name)
+            else:
+                # Dependent task not from the same DAG.
+                component_input_parameter = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value))
+                assert component_input_parameter in parent_component_inputs.parameters, \
+                    f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                pipeline_task_spec.inputs.parameters[
+                    input_name].component_input_parameter = (
+                        component_input_parameter)
+        else:
+            # Value is from pipeline input.
+            component_input_parameter = input_value.full_name
+            if component_input_parameter not in parent_component_inputs.parameters:
+                component_input_parameter = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value))
+            pipeline_task_spec.inputs.parameters[
+                input_name].component_input_parameter = (
+                    component_input_parameter)
+
+    elif isinstance(input_value, list):
+        for item in input_value:
+            check_task_input_types(item, input_name, pipeline_task_spec, task,
+                                   parent_component_inputs,
+                                   tasks_in_current_dag)
+
+    elif isinstance(input_value, dict):
+        for _, value in input_value.items():
+            check_task_input_types(value, input_name, pipeline_task_spec, task,
+                                   parent_component_inputs,
+                                   tasks_in_current_dag)
+
+    elif isinstance(input_value, (str, int, float, bool)):
+        pipeline_channels = (
+            pipeline_channel.extract_pipeline_channels_from_any(input_value))
+        for channel in pipeline_channels:
+            # NOTE: case like this   p3 = print_and_return_str(s='Project = {}'.format(project))
+            # triggers this code
+
+            # value contains PipelineChannel placeholders which needs to be
+            # replaced. And the input needs to be added to the task spec.
+
+            # Form the name for the compiler injected input, and make sure it
+            # doesn't collide with any existing input names.
+            additional_input_name = (
+                compiler_utils.additional_input_name_for_pipeline_channel(
+                    channel))
+
+            # We don't expect collision to happen because we prefix the name
+            # of additional input with 'pipelinechannel--'. But just in case
+            # collision did happend, throw a RuntimeError so that we don't
+            # get surprise at runtime.
+            for existing_input_name, _ in task.inputs.items():
+                if existing_input_name == additional_input_name:
+                    raise RuntimeError(
+                        f'Name collision between existing input name {existing_input_name} and compiler injected input name {additional_input_name}'
+                    )
+
+            additional_input_placeholder = placeholders.InputValuePlaceholder(
+                additional_input_name)._to_string()
+
+            if isinstance(input_value, str):
+                input_value = input_value.replace(channel.pattern,
+                                                  additional_input_placeholder)
+            else:
+                input_value = compiler_utils.recursive_replace_placeholders(
+                    input_value, channel.pattern, additional_input_placeholder)
+
+            if channel.task_name:
+                # Value is produced by an upstream task.
+                if channel.task_name in tasks_in_current_dag:
+                    # Dependent task within the same DAG.
+                    pipeline_task_spec.inputs.parameters[
+                        additional_input_name].task_output_parameter.producer_task = (
+                            utils.sanitize_task_name(channel.task_name))
+                    pipeline_task_spec.inputs.parameters[
+                        additional_input_name].task_output_parameter.output_parameter_key = (
+                            channel.name)
+                else:
+                    # Dependent task not from the same DAG.
+                    component_input_parameter = (
+                        compiler_utils
+                        .additional_input_name_for_pipeline_channel(channel))
+                    assert component_input_parameter in parent_component_inputs.parameters, \
+                        f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                    pipeline_task_spec.inputs.parameters[
+                        additional_input_name].component_input_parameter = (
+                            component_input_parameter)
+            else:
+                # Value is from pipeline input. (or loop?)
+                component_input_parameter = channel.full_name
+                if component_input_parameter not in parent_component_inputs.parameters:
+                    component_input_parameter = (
+                        compiler_utils
+                        .additional_input_name_for_pipeline_channel(channel))
+                pipeline_task_spec.inputs.parameters[
+                    additional_input_name].component_input_parameter = (
+                        component_input_parameter)
+
+        pipeline_task_spec.inputs.parameters[
+            input_name].runtime_value.constant.CopyFrom(
+                to_protobuf_value(input_value))
+
+    else:
+        raise ValueError('Input argument supports only the following types: '
+                         'str, int, float, bool, dict, and list.'
+                         f'Got {input_value} of type {type(input_value)}.')
+
+
 def build_task_spec_for_task(
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
@@ -135,193 +333,9 @@ def build_task_spec_for_task(
                 task.inputs[key] = val
 
     for input_name, input_value in task.inputs.items():
-        # Since LoopParameterArgument and LoopArtifactArgument and LoopArgumentVariable are narrower
-        # types than PipelineParameterChannel, start with them.
-
-        if isinstance(input_value, for_loop.LoopParameterArgument):
-
-            component_input_parameter = (
-                compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value))
-            assert component_input_parameter in parent_component_inputs.parameters, \
-                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-            pipeline_task_spec.inputs.parameters[
-                input_name].component_input_parameter = (
-                    component_input_parameter)
-
-        elif isinstance(input_value, for_loop.LoopArtifactArgument):
-
-            component_input_artifact = (
-                compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value))
-            assert component_input_artifact in parent_component_inputs.artifacts, \
-                f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
-            pipeline_task_spec.inputs.artifacts[
-                input_name].component_input_artifact = (
-                    component_input_artifact)
-
-        elif isinstance(input_value, for_loop.LoopArgumentVariable):
-
-            component_input_parameter = (
-                compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value.loop_argument))
-            assert component_input_parameter in parent_component_inputs.parameters, \
-                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-            pipeline_task_spec.inputs.parameters[
-                input_name].component_input_parameter = (
-                    component_input_parameter)
-            pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{input_value.subvar_name}"]')
-        elif isinstance(input_value,
-                        pipeline_channel.PipelineArtifactChannel) or (
-                            isinstance(input_value, dsl.Collected) and
-                            input_value.is_artifact_channel):
-
-            if input_value.task_name:
-                # Value is produced by an upstream task.
-                if input_value.task_name in tasks_in_current_dag:
-                    # Dependent task within the same DAG.
-                    pipeline_task_spec.inputs.artifacts[
-                        input_name].task_output_artifact.producer_task = (
-                            utils.sanitize_task_name(input_value.task_name))
-                    pipeline_task_spec.inputs.artifacts[
-                        input_name].task_output_artifact.output_artifact_key = (
-                            input_value.name)
-                else:
-                    # Dependent task not from the same DAG.
-                    component_input_artifact = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
-                    assert component_input_artifact in parent_component_inputs.artifacts, \
-                        f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
-                    pipeline_task_spec.inputs.artifacts[
-                        input_name].component_input_artifact = (
-                            component_input_artifact)
-            else:
-                component_input_artifact = input_value.full_name
-                if component_input_artifact not in parent_component_inputs.artifacts:
-                    component_input_artifact = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
-                pipeline_task_spec.inputs.artifacts[
-                    input_name].component_input_artifact = (
-                        component_input_artifact)
-
-        elif isinstance(input_value,
-                        pipeline_channel.PipelineParameterChannel) or (
-                            isinstance(input_value, dsl.Collected) and
-                            not input_value.is_artifact_channel):
-            if input_value.task_name:
-
-                # Value is produced by an upstream task.
-                if input_value.task_name in tasks_in_current_dag:
-                    # Dependent task within the same DAG.
-                    pipeline_task_spec.inputs.parameters[
-                        input_name].task_output_parameter.producer_task = (
-                            utils.sanitize_task_name(input_value.task_name))
-                    pipeline_task_spec.inputs.parameters[
-                        input_name].task_output_parameter.output_parameter_key = (
-                            input_value.name)
-                else:
-                    # Dependent task not from the same DAG.
-                    component_input_parameter = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
-                    assert component_input_parameter in parent_component_inputs.parameters, \
-                        f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-                    pipeline_task_spec.inputs.parameters[
-                        input_name].component_input_parameter = (
-                            component_input_parameter)
-            else:
-                # Value is from pipeline input.
-                component_input_parameter = input_value.full_name
-                if component_input_parameter not in parent_component_inputs.parameters:
-                    component_input_parameter = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
-                pipeline_task_spec.inputs.parameters[
-                    input_name].component_input_parameter = (
-                        component_input_parameter)
-
-        elif isinstance(input_value, (str, int, float, bool, dict, list)):
-            pipeline_channels = (
-                pipeline_channel.extract_pipeline_channels_from_any(input_value)
-            )
-            for channel in pipeline_channels:
-                # NOTE: case like this   p3 = print_and_return_str(s='Project = {}'.format(project))
-                # triggers this code
-
-                # value contains PipelineChannel placeholders which needs to be
-                # replaced. And the input needs to be added to the task spec.
-
-                # Form the name for the compiler injected input, and make sure it
-                # doesn't collide with any existing input names.
-                additional_input_name = (
-                    compiler_utils.additional_input_name_for_pipeline_channel(
-                        channel))
-
-                # We don't expect collision to happen because we prefix the name
-                # of additional input with 'pipelinechannel--'. But just in case
-                # collision did happend, throw a RuntimeError so that we don't
-                # get surprise at runtime.
-                for existing_input_name, _ in task.inputs.items():
-                    if existing_input_name == additional_input_name:
-                        raise RuntimeError(
-                            f'Name collision between existing input name {existing_input_name} and compiler injected input name {additional_input_name}'
-                        )
-
-                additional_input_placeholder = placeholders.InputValuePlaceholder(
-                    additional_input_name)._to_string()
-
-                if isinstance(input_value, str):
-                    input_value = input_value.replace(
-                        channel.pattern, additional_input_placeholder)
-                else:
-                    input_value = compiler_utils.recursive_replace_placeholders(
-                        input_value, channel.pattern,
-                        additional_input_placeholder)
-
-                if channel.task_name:
-                    # Value is produced by an upstream task.
-                    if channel.task_name in tasks_in_current_dag:
-                        # Dependent task within the same DAG.
-                        pipeline_task_spec.inputs.parameters[
-                            additional_input_name].task_output_parameter.producer_task = (
-                                utils.sanitize_task_name(channel.task_name))
-                        pipeline_task_spec.inputs.parameters[
-                            additional_input_name].task_output_parameter.output_parameter_key = (
-                                channel.name)
-                    else:
-                        # Dependent task not from the same DAG.
-                        component_input_parameter = (
-                            compiler_utils.
-                            additional_input_name_for_pipeline_channel(channel))
-                        assert component_input_parameter in parent_component_inputs.parameters, \
-                            f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-                        pipeline_task_spec.inputs.parameters[
-                            additional_input_name].component_input_parameter = (
-                                component_input_parameter)
-                else:
-                    # Value is from pipeline input. (or loop?)
-                    component_input_parameter = channel.full_name
-                    if component_input_parameter not in parent_component_inputs.parameters:
-                        component_input_parameter = (
-                            compiler_utils.
-                            additional_input_name_for_pipeline_channel(channel))
-                    pipeline_task_spec.inputs.parameters[
-                        additional_input_name].component_input_parameter = (
-                            component_input_parameter)
-
-            pipeline_task_spec.inputs.parameters[
-                input_name].runtime_value.constant.CopyFrom(
-                    to_protobuf_value(input_value))
-
-        else:
-            raise ValueError(
-                'Input argument supports only the following types: '
-                'str, int, float, bool, dict, and list.'
-                f'Got {input_value} of type {type(input_value)}.')
+        check_task_input_types(input_value, input_name, pipeline_task_spec,
+                               task, parent_component_inputs,
+                               tasks_in_current_dag)
 
     return pipeline_task_spec
 
