@@ -1267,6 +1267,7 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 				} else {
 					// The producer subtask is not a DAG, so we exit the loop.
 					producerSubTaskMaybeDAG = false
+					inputs.ParameterValues[name] = producerOutputs[taskOutput.GetOutputParameterKey()]
 				}
 			}
 
