@@ -27,7 +27,7 @@ spec:
         command:
           - sh
           - -c
-        image: python:alpine3.6
+        image: python:alpine3.9
         resources:
           limits:
             nvidia.com/gpu: 1

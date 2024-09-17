@@ -40,7 +40,7 @@ spec:
       command:
       - sh
       - -c
-      image: python:alpine3.6
+      image: python:alpine3.9
     name: my-out-cop0
     outputs:
       artifacts:

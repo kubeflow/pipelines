@@ -73,7 +73,7 @@ outputs:
 - {name: output, type: String}
 implementation:
   container:
-    image: python:alpine3.6
+    image: python:alpine3.9
     command:
     - sh
     - -c

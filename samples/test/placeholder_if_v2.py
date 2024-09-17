@@ -22,7 +22,7 @@ inputs:
 - {name: optional_input_2, type: String, optional: true}
 implementation:
   container:
-    image: gcr.io/google-containers/busybox
+    image: registry.k8s.io/busybox
     command:
     - echo
     args:

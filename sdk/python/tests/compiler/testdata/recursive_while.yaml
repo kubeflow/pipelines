@@ -44,7 +44,7 @@ spec:
       command:
       - sh
       - -c
-      image: python:alpine3.6
+      image: python:alpine3.9
     name: flip
     outputs:
       artifacts:
@@ -61,7 +61,7 @@ spec:
       command:
       - sh
       - -c
-      image: python:alpine3.6
+      image: python:alpine3.9
     name: flip-2
     outputs:
       artifacts:
@@ -74,7 +74,7 @@ spec:
       command:
       - sh
       - -c
-      image: python:alpine3.6
+      image: python:alpine3.9
     name: flip-3
     outputs:
       artifacts:
@@ -126,7 +126,7 @@ spec:
       command:
       - echo
       - '{{inputs.parameters.flip-output}}'
-      image: alpine:3.6
+      image: alpine:3.9
     inputs:
       parameters:
       - name: flip-output
@@ -135,7 +135,7 @@ spec:
       command:
       - echo
       - cool, it is over. {{inputs.parameters.flip-output}}
-      image: alpine:3.6
+      image: alpine:3.9
     inputs:
       parameters:
       - name: flip-output

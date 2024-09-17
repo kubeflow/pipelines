@@ -329,7 +329,7 @@ class TestPythonEOLWarning(unittest.TestCase):
 
         with self.assertWarnsRegex(
                 FutureWarning,
-                r"The default base_image used by the @dsl\.component decorator will switch from 'python:3\.8' to 'python:3\.9' on Oct 1, 2024\. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3\.9\."
+                r"The default base_image used by the @dsl\.component decorator will switch from 'python:3\.9' to 'python:3\.10' on Oct 1, 2025\. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3\.10\."
         ):
 
             @dsl.component
