@@ -103,6 +103,7 @@ class BaseComponent(abc.ABC):
             args=task_inputs,
             execute_locally=pipeline_context.Pipeline.get_default_pipeline() is
             None,
+            execution_caching_default=pipeline_context.Pipeline.get_execution_caching_default(),
         )
 
     @property
