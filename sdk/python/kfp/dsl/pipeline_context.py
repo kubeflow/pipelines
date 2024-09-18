@@ -14,14 +14,13 @@
 """Definition for Pipeline."""
 
 import functools
+import os
 from typing import Callable, Optional
 
 from kfp.dsl import component_factory
 from kfp.dsl import pipeline_task
 from kfp.dsl import tasks_group
 from kfp.dsl import utils
-
-import os
 
 
 def pipeline(func: Optional[Callable] = None,
@@ -107,7 +106,9 @@ class Pipeline:
     # or the env var KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT.
     # align with click's treatment of env vars for boolean flags.
     # per click doc, "1", "true", "t", "yes", "y", and "on" are all converted to True
-    _execution_caching_default = not str(os.getenv('KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT')).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+    _execution_caching_default = not str(
+        os.getenv('KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT')).strip().lower(
+        ) in {'1', 'true', 't', 'yes', 'y', 'on'}
 
     @staticmethod
     def get_execution_caching_default():

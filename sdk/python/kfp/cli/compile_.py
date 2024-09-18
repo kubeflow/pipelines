@@ -26,6 +26,7 @@ from kfp.dsl import base_component
 from kfp.dsl import graph_component
 from kfp.dsl.pipeline_context import Pipeline
 
+
 def is_pipeline_func(func: Callable) -> bool:
     """Checks if a function is a pipeline function.
 
