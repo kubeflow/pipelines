@@ -1,0 +1,21 @@
+name: bagging classifier
+description: Train a bagging classifier
+
+inputs:
+- {name: Data, type: LocalPath, description: 'Path where data is stored.'}
+outputs:
+- {name: Accuracy, type: Float, description: 'Accuracy metric'}
+
+implementation:
+  container:
+    image: lance410247/kubeflow:bagging_v3
+    command: [
+      python, bagging.py,
+
+      --data,
+      {inputPath: Data},
+
+      --accuracy,
+      {outputPath: Accuracy},
+
+    ]

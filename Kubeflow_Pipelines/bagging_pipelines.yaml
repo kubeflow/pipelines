@@ -1,0 +1,133 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: three-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.20, pipelines.kubeflow.org/pipeline_compilation_time: '2023-06-05T01:22:44.685726',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "bagging", "name": "Three
+      Pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.20}
+spec:
+  entrypoint: three-pipeline
+  templates:
+  - name: bagging-classifier
+    container:
+      args: []
+      command: [python, randomforest.py, --data, /tmp/inputs/Data/data, --accuracy,
+        /tmp/outputs/Accuracy/data]
+      image: lance410247/kubeflow:bagging_v2
+      resources:
+        limits: {cpu: '2'}
+        requests: {cpu: '1'}
+    inputs:
+      artifacts:
+      - {name: download-data-function-Data, path: /tmp/inputs/Data/data}
+    outputs:
+      parameters:
+      - name: bagging-classifier-Accuracy
+        valueFrom: {path: /tmp/outputs/Accuracy/data}
+      artifacts:
+      - {name: bagging-classifier-Accuracy, path: /tmp/outputs/Accuracy/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.20
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Train
+          a bagging classifier", "implementation": {"container": {"command": ["python",
+          "randomforest.py", "--data", {"inputPath": "Data"}, "--accuracy", {"outputPath":
+          "Accuracy"}], "image": "lance410247/kubeflow:bagging_v2"}}, "inputs": [{"description":
+          "Path where data is stored.", "name": "Data", "type": "LocalPath"}], "name":
+          "bagging classifier", "outputs": [{"description": "Accuracy metric", "name":
+          "Accuracy", "type": "Float"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "64eed0922f1425dcfee219a3a1b9e5cca51bce0078f380f2a66396077ef7f00e", "url":
+          "randomForest/ramdom_forest.yaml"}'}
+  - name: download-data-function
+    container:
+      args: []
+      command: [python, download_data.py, --data, /tmp/outputs/Data/data]
+      image: fernandolpz/only-tests:download_data_v3
+      resources:
+        limits: {cpu: '2'}
+        requests: {cpu: '1'}
+    outputs:
+      artifacts:
+      - {name: download-data-function-Data, path: /tmp/outputs/Data/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.20
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Download
+          toy data from sklearn datasets", "implementation": {"container": {"command":
+          ["python", "download_data.py", "--data", {"outputPath": "Data"}], "image":
+          "fernandolpz/only-tests:download_data_v3"}}, "name": "Download Data Function",
+          "outputs": [{"description": "Path where data will be stored.", "name": "Data",
+          "type": "LocalPath"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "8db794668b4fd3b82638d89a42251f4038ab56623ee9f34721c356c5479155d2", "url":
+          "download_data/download_data.yaml"}'}
+  - name: show-results
+    container:
+      args: [--random-forest, '{{inputs.parameters.bagging-classifier-Accuracy}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def show_results( random_forest):
+            # Given the outputs from decision_tree and logistic regression components
+            # the results are shown.
+
+            print(f"Random forest (accuracy): {random_forest}")
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Show results', description='')
+        _parser.add_argument("--random-forest", dest="random_forest", type=float, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = show_results(**_parsed_args)
+      image: python:3.7
+      resources:
+        limits: {cpu: '2'}
+        requests: {cpu: '1'}
+    inputs:
+      parameters:
+      - {name: bagging-classifier-Accuracy}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.20
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--random-forest", {"inputValue": "random_forest"}], "command":
+          ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def show_results( random_forest):\n    #
+          Given the outputs from decision_tree and logistic regression components\n    #
+          the results are shown.\n\n    print(f\"Random forest (accuracy): {random_forest}\")\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Show results'', description='''')\n_parser.add_argument(\"--random-forest\",
+          dest=\"random_forest\", type=float, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = show_results(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "random_forest", "type": "Float"}],
+          "name": "Show results"}', pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"random_forest":
+          "{{inputs.parameters.bagging-classifier-Accuracy}}"}'}
+  - name: three-pipeline
+    dag:
+      tasks:
+      - name: bagging-classifier
+        template: bagging-classifier
+        dependencies: [download-data-function]
+        arguments:
+          artifacts:
+          - {name: download-data-function-Data, from: '{{tasks.download-data-function.outputs.artifacts.download-data-function-Data}}'}
+      - {name: download-data-function, template: download-data-function}
+      - name: show-results
+        template: show-results
+        dependencies: [bagging-classifier]
+        arguments:
+          parameters:
+          - {name: bagging-classifier-Accuracy, value: '{{tasks.bagging-classifier.outputs.parameters.bagging-classifier-Accuracy}}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
