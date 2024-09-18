@@ -1,10 +1,6 @@
 name: destiny
 
 on:
-  push:
-    branches:
-      - master
-      - pr
   workflow_dispatch: 
 
 jobs:
