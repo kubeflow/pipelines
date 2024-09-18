@@ -25,4 +25,4 @@ popd
 
 # The -u flag makes python output unbuffered, so that we can see real time log.
 # Reference: https://stackoverflow.com/a/107717
-python3 -u ./sample.py
+python3 -u ./Kubeflow_Pipelines/sample.py
