@@ -71,8 +71,8 @@ def create_custom_training_job_from_component(
     labels: Optional[Dict[str, str]] = None,
     persistent_resource_id: str = _placeholders.PERSISTENT_RESOURCE_ID_PLACEHOLDER,
     env: Optional[List[Dict[str, str]]] = None,
-    project: Optional[str] = None,
-    location: Optional[str] = None,
+    project: Optional[str] = _placeholders.PROJECT_ID_PLACEHOLDER,
+    location: Optional[str] = "us-central1",
 ) -> Callable:
   # fmt: off
   """Convert a KFP component into Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
@@ -101,6 +101,8 @@ def create_custom_training_job_from_component(
     labels: The labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).
     persistent_resource_id: The ID of the PersistentResource in the same Project and Location which to run. The default value is a placeholder that will be resolved to the PipelineJob [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)'s persistent resource id at runtime. However, if the PipelineJob doesn't set Persistent Resource as the job level runtime, the placedholder will be resolved to an empty string and the custom job will be run on demand. If the value is set explicitly, the custom job will runs in the specified persistent resource, in this case, please note the network and CMEK configs on the job should be consistent with those on the PersistentResource, otherwise, the job will be rejected.
     env: Environment variables to be passed to the container. Takes the form `[{'name': '...', 'value': '...'}]`. Maximum limit is 100.
+    project: Project to run the CustomJob. Defaults to the project in which the PipelineJob is run, but may need specified depending on VPC.
+    location: Location to run the HyperparameterTuningJob in, defaults to `'us-central1'`.
 
    Returns:
     A KFP component with CustomJob specification applied.
