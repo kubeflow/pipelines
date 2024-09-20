@@ -4,6 +4,7 @@ CSV_PATH=backend/third_party_licenses
 
 # Container Build Params
 CONTAINER_ENGINE ?= docker
+PLATFORMS ?= linux/amd64,linux/s390x,linux/ppc64le
 IMG_TAG_APISERVER         ?= apiserver
 IMG_TAG_PERSISTENCEAGENT  ?= persistence-agent
 IMG_TAG_CACHESERVER       ?= cache-server
@@ -66,25 +67,25 @@ image_all: image_apiserver image_persistence_agent image_cache image_swf image_v
 
 .PHONY: image_apiserver
 image_apiserver:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_APISERVER} -f backend/Dockerfile .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_APISERVER} -f backend/Dockerfile --push .
 .PHONY: image_persistence_agent
 image_persistence_agent:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent --push .
 .PHONY: image_cache
 image_cache:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_CACHESERVER} -f backend/Dockerfile.cacheserver .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_CACHESERVER} -f backend/Dockerfile.cacheserverbuildx build --platform $(PLATFORMS)
 .PHONY: image_swf
 image_swf:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow --push .
 .PHONY: image_viewer
 image_viewer:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller --push .
 .PHONY: image_visualization
 image_visualization:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_VISUALIZATION} -f backend/Dockerfile.visualization .
 .PHONY: image_driver
 image_driver:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_DRIVER} -f backend/Dockerfile.driver --push .
 .PHONY: image_launcher
 image_launcher:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_LAUNCHER} -f backend/Dockerfile.launcher .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS)-t ${IMG_TAG_LAUNCHER} -f backend/Dockerfile.launcher --push .
