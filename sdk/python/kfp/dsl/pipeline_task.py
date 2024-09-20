@@ -321,9 +321,9 @@ class PipelineTask:
                 f'{caller_method_name} can only be used on single-step components, not pipelines used as components, or special components like importers.'
             )
 
-    def _validate_cpu_request_limit(self, cpu: str) -> float:
+    def _validate_cpu_request_limit(self, cpu: str) -> str:
         """Validates cpu request/limit string and converts to its numeric
-        value.
+        string value.
 
         Args:
             cpu: CPU requests or limits. This string should be a number or a
@@ -335,17 +335,22 @@ class PipelineTask:
             ValueError if the cpu request/limit string value is invalid.
 
         Returns:
-            The numeric value (float) of the cpu request/limit.
+            The numeric string of the cpu request/limit.
         """
-        if re.match(r'([0-9]*[.])?[0-9]+m?$', cpu) is None:
-            raise ValueError(
-                'Invalid cpu string. Should be float or integer, or integer'
-                ' followed by "m".')
-
-        return float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
+        if isinstance(cpu, pipeline_channel.PipelineChannel):
+            cpu = str(cpu)
+        else:
+            if re.match(r'([0-9]*[.])?[0-9]+m?$', cpu) is None:
+                raise ValueError(
+                    'Invalid cpu string. Should be float or integer, or integer'
+                    ' followed by "m".')
+        return cpu
 
     @block_if_final()
-    def set_cpu_request(self, cpu: str) -> 'PipelineTask':
+    def set_cpu_request(
+            self,
+            cpu: Union[str,
+                       pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets CPU request (minimum) for the task.
 
         Args:
@@ -370,7 +375,10 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def set_cpu_limit(self, cpu: str) -> 'PipelineTask':
+    def set_cpu_limit(
+            self,
+            cpu: Union[str,
+                       pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets CPU limit (maximum) for the task.
 
         Args:
@@ -395,7 +403,9 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def set_accelerator_limit(self, limit: int) -> 'PipelineTask':
+    def set_accelerator_limit(
+        self, limit: Union[int, str,
+                           pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets accelerator limit (maximum) for the task. Only applies if
         accelerator type is also set via .set_accelerator_type().
 
@@ -406,11 +416,15 @@ class PipelineTask:
             Self return to allow chained setting calls.
         """
         self._ensure_container_spec_exists()
-
-        if isinstance(limit, str):
-            if re.match(r'[1-9]\d*$', limit) is None:
-                raise ValueError(f'{"limit"!r} must be positive integer.')
-            limit = int(limit)
+        if isinstance(limit, pipeline_channel.PipelineChannel):
+            limit = str(limit)
+        else:
+            if isinstance(limit, int):
+                limit = str(limit)
+            if isinstance(limit, str) and re.match(r'^0$|^1$|^2$|^4$|^8$|^16$',
+                                                   limit) is None:
+                raise ValueError(
+                    f'{"limit"!r} must be one of 0, 1, 2, 4, 8, 16.')
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_count = limit
@@ -438,9 +452,9 @@ class PipelineTask:
             category=DeprecationWarning)
         return self.set_accelerator_limit(gpu)
 
-    def _validate_memory_request_limit(self, memory: str) -> float:
+    def _validate_memory_request_limit(self, memory: str) -> str:
         """Validates memory request/limit string and converts to its numeric
-        value.
+        string value.
 
         Args:
             memory: Memory requests or limits. This string should be a number or
@@ -451,47 +465,24 @@ class PipelineTask:
             ValueError if the memory request/limit string value is invalid.
 
         Returns:
-            The numeric value (float) of the memory request/limit.
+            The numeric string value of the memory request/limit.
         """
-        if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
-                    memory) is None:
-            raise ValueError(
-                'Invalid memory string. Should be a number or a number '
-                'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
-                '"Gi", "M", "Mi", "K", "Ki".')
-
-        if memory.endswith('E'):
-            memory = float(memory[:-1]) * constants._E / constants._G
-        elif memory.endswith('Ei'):
-            memory = float(memory[:-2]) * constants._EI / constants._G
-        elif memory.endswith('P'):
-            memory = float(memory[:-1]) * constants._P / constants._G
-        elif memory.endswith('Pi'):
-            memory = float(memory[:-2]) * constants._PI / constants._G
-        elif memory.endswith('T'):
-            memory = float(memory[:-1]) * constants._T / constants._G
-        elif memory.endswith('Ti'):
-            memory = float(memory[:-2]) * constants._TI / constants._G
-        elif memory.endswith('G'):
-            memory = float(memory[:-1])
-        elif memory.endswith('Gi'):
-            memory = float(memory[:-2]) * constants._GI / constants._G
-        elif memory.endswith('M'):
-            memory = float(memory[:-1]) * constants._M / constants._G
-        elif memory.endswith('Mi'):
-            memory = float(memory[:-2]) * constants._MI / constants._G
-        elif memory.endswith('K'):
-            memory = float(memory[:-1]) * constants._K / constants._G
-        elif memory.endswith('Ki'):
-            memory = float(memory[:-2]) * constants._KI / constants._G
+        if isinstance(memory, pipeline_channel.PipelineChannel):
+            memory = str(memory)
         else:
-            # By default interpret as a plain integer, in the unit of Bytes.
-            memory = float(memory) / constants._G
-
+            if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
+                        memory) is None:
+                raise ValueError(
+                    'Invalid memory string. Should be a number or a number '
+                    'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
+                    '"Gi", "M", "Mi", "K", "Ki".')
         return memory
 
     @block_if_final()
-    def set_memory_request(self, memory: str) -> 'PipelineTask':
+    def set_memory_request(
+            self,
+            memory: Union[str,
+                          pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets memory request (minimum) for the task.
 
         Args:
@@ -515,7 +506,10 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def set_memory_limit(self, memory: str) -> 'PipelineTask':
+    def set_memory_limit(
+            self,
+            memory: Union[str,
+                          pipeline_channel.PipelineChannel]) -> 'PipelineTask':
         """Sets memory limit (maximum) for the task.
 
         Args:
@@ -579,7 +573,9 @@ class PipelineTask:
         return self.set_accelerator_type(accelerator)
 
     @block_if_final()
-    def set_accelerator_type(self, accelerator: str) -> 'PipelineTask':
+    def set_accelerator_type(
+        self, accelerator: Union[str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
         """Sets accelerator type to use when executing this task.
 
         Args:
@@ -589,14 +585,16 @@ class PipelineTask:
             Self return to allow chained setting calls.
         """
         self._ensure_container_spec_exists()
+        if isinstance(accelerator, pipeline_channel.PipelineChannel):
+            accelerator = str(accelerator)
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_type = accelerator
             if self.container_spec.resources.accelerator_count is None:
-                self.container_spec.resources.accelerator_count = 1
+                self.container_spec.resources.accelerator_count = '1'
         else:
             self.container_spec.resources = structures.ResourceSpec(
-                accelerator_count=1, accelerator_type=accelerator)
+                accelerator_count='1', accelerator_type=accelerator)
 
         return self
 
