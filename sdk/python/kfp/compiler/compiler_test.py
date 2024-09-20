@@ -4445,7 +4445,7 @@ class TestConditionLogic(unittest.TestCase):
             self):
         with self.assertRaisesRegex(
                 tasks_group.InvalidControlFlowException,
-                'dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.'
+                r'dsl\.Else can only be used following an upstream dsl\.If or dsl\.Elif\.'
         ):
 
             @dsl.pipeline
@@ -4908,7 +4908,7 @@ class TestDslOneOf(unittest.TestCase):
     def test_nested_under_condition_returned_raises(self):
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                f'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.'
+                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.'
         ):
 
             @dsl.pipeline
@@ -4961,7 +4961,7 @@ class TestDslOneOf(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                f'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.ParallelFor\.'
+                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.ParallelFor\.'
         ):
 
             @dsl.pipeline
@@ -4983,7 +4983,7 @@ class TestDslOneOf(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                f'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.If context unless the downstream is within that context too\. Found task print-artifact which depends on upstream task condition-branches-5 within an uncommon dsl\.If context\.'
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.If context unless the downstream is within that context too\. Found task print-artifact which depends on upstream task condition-branches-5 within an uncommon dsl\.If context\.'
         ):
 
             @dsl.pipeline
@@ -5006,7 +5006,7 @@ class TestDslOneOf(unittest.TestCase):
     def test_return_at_wrong_level(self):
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                f'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.'
+                r'Pipeline outputs may only be returned from the top level of the pipeline function scope\. Got pipeline output dsl\.OneOf from within the control flow group dsl\.If\.'
         ):
 
             @dsl.pipeline
@@ -5143,7 +5143,7 @@ class TestDslOneOf(unittest.TestCase):
     def test_oneof_in_fstring(self):
         with self.assertRaisesRegex(
                 NotImplementedError,
-                f'dsl\.OneOf does not support string interpolation\.'):
+                r'dsl\.OneOf does not support string interpolation\.'):
 
             @dsl.pipeline
             def roll_die_pipeline():
