@@ -1224,7 +1224,7 @@ class PythonOpTestCase(unittest.TestCase):
         task_factory = comp.create_component_from_func(my_func)
         with self.assertRaisesRegex(
                 TypeError,
-                'There are no registered serializers for type "(typing.)?Sequence(\[int\])?"'
+                r'There are no registered serializers for type "(typing.)?Sequence(\[int\])?"'
         ):
             self.helper_test_component_using_local_call(
                 task_factory, arguments={'args': [1, 2, 3]})

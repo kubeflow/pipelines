@@ -92,7 +92,7 @@ class SampleTest(object):
         for file in list_of_files:
             # matching by .py or .ipynb, there will be yaml ( compiled ) files in the folder.
             # if you rerun the test suite twice, the test suite will fail
-            m = re.match(self._test_name + '\.(py|ipynb)$', file)
+            m = re.match(self._test_name + r'\.(py|ipynb)$', file)
             if m:
                 file_name, ext_name = os.path.splitext(file)
                 if self._is_notebook is not None:
@@ -242,14 +242,14 @@ class ComponentTest(SampleTest):
     def _injection(self):
         """Sample-specific image injection into yaml file."""
         subs = {  # Tag can look like 1.0.0-rc.3, so we need both "-" and "." in the regex.
-            'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:(\w+|[.-])+':
+            r'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:(\w+|[.-])+':
                 self._local_confusionmatrix_image,
-            'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:(\w+|[.-])+':
+            r'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:(\w+|[.-])+':
                 self._local_roc_image
         }
         if self._test_name == 'xgboost_training_cm':
             subs.update({
-                'gcr\.io/ml-pipeline/ml-pipeline-gcp:(\w|[.-])+':
+                r'gcr\.io/ml-pipeline/ml-pipeline-gcp:(\w|[.-])+':
                     self._dataproc_gcp_image
             })
 

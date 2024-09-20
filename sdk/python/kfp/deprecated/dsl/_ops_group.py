@@ -68,7 +68,7 @@ class OpsGroup(object):
         if name is None:
             return None
         name_pattern = '^' + (group_type + '-' + name + '-').replace(
-            '_', '-') + '[\d]+$'
+            '_', '-') + r'[\d]+$'
         for ops_group_already_in_pipeline in _pipeline.Pipeline.get_default_pipeline(
         ).groups:
             import re

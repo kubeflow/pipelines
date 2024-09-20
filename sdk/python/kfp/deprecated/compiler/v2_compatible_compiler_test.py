@@ -88,7 +88,7 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
 
                 if 'container' in template:
                     template['container'] = json.loads(
-                        re.sub("'kfp==(\d+).(\d+).(\d+)'", 'kfp',
+                        re.sub(r"'kfp==(\d+).(\d+).(\d+)'", 'kfp',
                                json.dumps(template['container'])))
 
             return workflow
@@ -154,8 +154,8 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
         with self.assertRaisesRegex(
                 RuntimeError,
                 'Constructing ContainerOp instances directly is deprecated and not '
-                'supported when compiling to v2 \(using v2 compiler or v1 compiler '
-                'with V2_COMPATIBLE or V2_ENGINE mode\).'):
+                r'supported when compiling to v2 \(using v2 compiler or v1 compiler '
+                r'with V2_COMPATIBLE or V2_ENGINE mode\)\.'):
             compiler.Compiler(
                 mode=v1dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
                     pipeline_func=my_pipeline, package_path='result.json')

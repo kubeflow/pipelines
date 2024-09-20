@@ -72,7 +72,7 @@ def get_statistics_html(
   # facets element and then remove it once we have appended the serialized proto
   # string to the element. We do this to avoid any collision of ids when
   # displaying multiple facets output in the notebook.
-  html_template = """<iframe id='facets-iframe' width="100%" height="500px"></iframe>
+  html_template = r"""<iframe id='facets-iframe' width="100%" height="500px"></iframe>
         <script>
         facets_iframe = document.getElementById('facets-iframe');
         facets_html = '<script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/1.3.3/webcomponents-lite.js"><\/script><link rel="import" href="https://raw.githubusercontent.com/PAIR-code/facets/master/facets-dist/facets-jupyter.html"><facets-overview proto-input="protostr"></facets-overview>';
