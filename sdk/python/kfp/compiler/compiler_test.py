@@ -3382,31 +3382,31 @@ class TestResourceConfig(unittest.TestCase):
             ['exec-return-1']['container'])
 
         self.assertEqual(
-            5, dict_format['deploymentSpec']['executors']['exec-return-1-2']
-            ['container']['resources']['cpuLimit'])
+            '5', dict_format['deploymentSpec']['executors']['exec-return-1-2']
+            ['container']['resources']['resourceCpuLimit'])
         self.assertNotIn(
             'memoryLimit', dict_format['deploymentSpec']['executors']
             ['exec-return-1-2']['container']['resources'])
 
         self.assertEqual(
-            50, dict_format['deploymentSpec']['executors']['exec-return-1-3']
-            ['container']['resources']['memoryLimit'])
+            '50G', dict_format['deploymentSpec']['executors']['exec-return-1-3']
+            ['container']['resources']['resourceMemoryLimit'])
         self.assertNotIn(
             'cpuLimit', dict_format['deploymentSpec']['executors']
             ['exec-return-1-3']['container']['resources'])
 
         self.assertEqual(
-            2, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['cpuRequest'])
+            '2', dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            ['container']['resources']['resourceCpuRequest'])
         self.assertEqual(
-            5, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['cpuLimit'])
+            '5', dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            ['container']['resources']['resourceCpuLimit'])
         self.assertEqual(
-            4, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['memoryRequest'])
+            '4G', dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            ['container']['resources']['resourceMemoryRequest'])
         self.assertEqual(
-            50, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['memoryLimit'])
+            '50G', dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            ['container']['resources']['resourceMemoryLimit'])
 
 
 class TestPlatformConfig(unittest.TestCase):

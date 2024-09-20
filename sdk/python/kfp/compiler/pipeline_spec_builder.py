@@ -128,6 +128,12 @@ def build_task_spec_for_task(
         pipeline_task_spec.retry_policy.CopyFrom(
             task._task_spec.retry_policy.to_proto())
 
+    # Inject resource fields into inputs
+    if task.container_spec and task.container_spec.resources:
+        for key, val in task.container_spec.resources.__dict__.items():
+            if val and pipeline_channel.extract_pipeline_channels_from_any(val):
+                task.inputs[key] = val
+
     for input_name, input_value in task.inputs.items():
         # Since LoopParameterArgument and LoopArtifactArgument and LoopArgumentVariable are narrower
         # types than PipelineParameterChannel, start with them.
@@ -607,6 +613,24 @@ def build_container_spec_for_task(
     Returns:
         A PipelineContainerSpec object for the task.
     """
+
+    def convert_to_placeholder(input_value: str) -> str:
+        """Checks if input is a pipeline channel and if so, converts to
+        compiler injected input name."""
+        pipeline_channels = (
+            pipeline_channel.extract_pipeline_channels_from_any(input_value))
+        if pipeline_channels:
+            assert len(pipeline_channels) == 1
+            channel = pipeline_channels[0]
+            additional_input_name = (
+                compiler_utils.additional_input_name_for_pipeline_channel(
+                    channel))
+            additional_input_placeholder = placeholders.InputValuePlaceholder(
+                additional_input_name)._to_string()
+            input_value = input_value.replace(channel.pattern,
+                                              additional_input_placeholder)
+        return input_value
+
     container_spec = (
         pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
             image=task.container_spec.image,
@@ -620,23 +644,28 @@ def build_container_spec_for_task(
 
     if task.container_spec.resources is not None:
         if task.container_spec.resources.cpu_request is not None:
-            container_spec.resources.cpu_request = (
-                task.container_spec.resources.cpu_request)
+            container_spec.resources.resource_cpu_request = (
+                convert_to_placeholder(
+                    task.container_spec.resources.cpu_request))
         if task.container_spec.resources.cpu_limit is not None:
-            container_spec.resources.cpu_limit = (
-                task.container_spec.resources.cpu_limit)
+            container_spec.resources.resource_cpu_limit = (
+                convert_to_placeholder(task.container_spec.resources.cpu_limit))
         if task.container_spec.resources.memory_request is not None:
-            container_spec.resources.memory_request = (
-                task.container_spec.resources.memory_request)
+            container_spec.resources.resource_memory_request = (
+                convert_to_placeholder(
+                    task.container_spec.resources.memory_request))
         if task.container_spec.resources.memory_limit is not None:
-            container_spec.resources.memory_limit = (
-                task.container_spec.resources.memory_limit)
+            container_spec.resources.resource_memory_limit = (
+                convert_to_placeholder(
+                    task.container_spec.resources.memory_limit))
         if task.container_spec.resources.accelerator_count is not None:
             container_spec.resources.accelerator.CopyFrom(
                 pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
                 .ResourceSpec.AcceleratorConfig(
-                    type=task.container_spec.resources.accelerator_type,
-                    count=task.container_spec.resources.accelerator_count,
+                    resource_type=convert_to_placeholder(
+                        task.container_spec.resources.accelerator_type),
+                    resource_count=convert_to_placeholder(
+                        task.container_spec.resources.accelerator_count),
                 ))
 
     return container_spec
