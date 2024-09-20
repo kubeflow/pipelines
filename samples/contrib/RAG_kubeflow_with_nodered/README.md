@@ -1,43 +1,48 @@
-# RAG Component
+# RAG-on-kubeflow-with-nodered
+A simple example of RAG on kubeflow with node-red
 
-This is a Kubeflow pipeline component that retrieves answers from a provided document using a Retrieval-Augmented Generation (RAG) approach. The component utilizes various libraries such as `langchain`, `pinecone`, and `transformers` to process a PDF document, create embeddings, and generate answers based on the retrieved content.
-
-## Prework
-
-### Installation
+## Implementation
 
 ```
-!pip install kfp
+git clone https://github.com/sefgsefg/RAG-pipeline-with-nodered.git
 ```
 
-### Pinecone 
+```
+cd RAG_with_node-red/example
+```
 
-In this example, we use pinecone to create a vector database. Create an account and create an index, enter the index name, dimensions, enter 384 and then create the index
+```
+./run.sh main
+```
 
-![](https://github.com/sefgsefg/RAG_kubeflow/blob/main/Pinecone_create_index.png)
+Problem solve: -bash: ./run.sh: Permission denied
+```
+chmod +x run.sh
+```
 
-Then create an API key(token)
+```
+cd scripts
+```
 
-![](https://github.com/sefgsefg/RAG_kubeflow/blob/main/Pinecone_create_APIkey.png)
----
+```
+chmod +x entrypoint.sh
+```
 
-### Huggingface
+```
+cd ..
+```
+Run ./run.sh main again
+```
+./run.sh main
+```
+1.Insstall dependency and build the RAG flow on node-red.
 
-If the model you use have to sigh the agreement(like meta LLAMA models), you will have to create a huggingface API key.
-Go to huggingface setting and find Access Tokens, then click "New token" to create a key for `READ`
+![](https://github.com/sefgsefg/RAG-pipeline-with-nodered/blob/main/node-red_1.png)
 
-![](https://github.com/sefgsefg/RAG_kubeflow/blob/main/huggingface_token.png)
----
+2.Double click the RAG node and edit the infos.
 
-### Adjust the parameters of the code
+![](https://github.com/sefgsefg/RAG-pipeline-with-nodered/blob/main/node-red_2.png)
 
-Now go to input your parameters in code.
-Type these parameters. For PDF or model you can use "EX" as suggested
+3.Deploy and run the flow. It will run on the kubeflow pipeline.
 
-![](https://github.com/sefgsefg/RAG_kubeflow/blob/main/Code_para.png)
-
-And there is a parameter call `load_in_8bit` in function `AutoModelForCausalLM.from_pretrained`, if your platform doesn't use GPU, just comment it.
-
-Reference
----
-https://github.com/MuhammadMoinFaisal/LargeLanguageModelsProjects/tree/main/Chat_with_Multiple_PDF_llama2_Pinecone
+![](https://github.com/sefgsefg/RAG-pipeline-with-nodered/blob/main/pipeline.png)
