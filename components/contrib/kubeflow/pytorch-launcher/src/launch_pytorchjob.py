@@ -10,6 +10,7 @@ from kubernetes import config
 import launch_crd
 from kubeflow.pytorchjob import V1PyTorchJob as V1PyTorchJob_original
 from kubeflow.pytorchjob import V1PyTorchJobSpec as V1PyTorchJobSpec_original
+from kubeflow.training import TrainingClient
 
 
 def yamlOrJsonStr(string):
@@ -121,30 +122,27 @@ def main(args):
 
     serialized_job = k8s_client.ApiClient().sanitize_for_serialization(job)
 
-    logging.info('Creating launcher client.')
+    logging.info('Creating TrainingClient.')
 
     config.load_incluster_config()
-    api_client = k8s_client.ApiClient()
-    launcher_client = launch_crd.K8sCR(
-        group=args.jobGroup,
-        plural=args.jobPlural,
-        version=args.version,
-        client=api_client
-    )
+    training_client = TrainingClient()
 
-    logging.info('Submitting CR.')
-    create_response = launcher_client.create(serialized_job)
+    logging.info('Submitting PyTorchJob.')
+    training_client.create_job(serialized_job)
 
     expected_conditions = ["Succeeded", "Failed"]
     logging.info(
         f'Monitoring job until status is any of {expected_conditions}.'
     )
-    launcher_client.wait_for_condition(
-        args.namespace, args.name, expected_conditions,
-        timeout=datetime.timedelta(minutes=args.jobTimeoutMinutes))
+    training_client.wait_for_job_conditions(
+        name=args.name,
+        namespace=args.namespace,
+        expected_conditions=expected_conditions,
+        timeout=datetime.timedelta(minutes=args.jobTimeoutMinutes)
+    )
     if args.deleteAfterDone:
-        logging.info('Deleting job.')
-        launcher_client.delete(args.name, args.namespace)
+        logging.info('Deleting job after completion.')
+        training_client.delete_job(args.name, args.namespace)
 
 
 if __name__ == "__main__":
