@@ -233,6 +233,42 @@ class PipelineTaskTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
+            'memory': '2M',
+            'limit': '1M',
+        },
+    )
+    def test_set_memory_request_greater_than_limit_should_raise(self, memory: str, limit: str):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Requested memory: 2M cannot be greater than memory limit: 1M. '
+                'Check the set_memory_request and set_memory_limit parameters.'):
+            task.set_memory_request(memory).set_memory_limit(limit)
+
+    @parameterized.parameters(
+        {
+            'memory': '2',
+            'limit': '1',
+        },
+    )
+    def test_set_cpu_request_greater_than_limit_should_raise(self, memory: str, limit: str):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Requested cpu: 2 cannot be greater than cpu limit: 1. '
+                'Check the set_cpu_request and set_cpu_limit parameters.'):
+            task.set_cpu_request(memory).set_cpu_limit(limit)
+
+    @parameterized.parameters(
+        {
             'memory': '1E',
             'expected_memory': '1E',
         },
