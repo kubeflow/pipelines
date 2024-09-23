@@ -313,6 +313,16 @@ class PipelineTask:
         self._task_spec.enable_caching = enable_caching
         return self
 
+    def _ensure_resource_requests_meet_limits(self) -> None:
+        resources = self.container_spec.resources
+        if (resources.memory_request is not None and
+                resources.memory_limit is not None and
+                self._parse_memory_str_request(resources.memory_request) >
+                self._parse_memory_str_request(resources.memory_limit)):
+            raise ValueError(
+                f'Requested memory: {resources.memory_request} cannot be greater than memory limit: {resources.memory_limit}. '
+                'Check the set_memory_request and set_memory_limit parameters.')
+
     def _ensure_container_spec_exists(self) -> None:
         """Ensures that the task has a container spec."""
         caller_method_name = inspect.stack()[1][3]
@@ -453,6 +463,48 @@ class PipelineTask:
             category=DeprecationWarning)
         return self.set_accelerator_limit(gpu)
 
+    def _parse_memory_str_request(self, memory_str: str) -> float:
+        memory_request = float(0)
+        if memory_str.endswith('E'):
+            memory_request = float(
+                memory_str[:-1]) * constants._E / constants._G
+        elif memory_str.endswith('Ei'):
+            memory_request = float(
+                memory_str[:-2]) * constants._EI / constants._G
+        elif memory_str.endswith('P'):
+            memory_request = float(
+                memory_str[:-1]) * constants._P / constants._G
+        elif memory_str.endswith('Pi'):
+            memory_request = float(
+                memory_str[:-2]) * constants._PI / constants._G
+        elif memory_str.endswith('T'):
+            memory_request = float(
+                memory_str[:-1]) * constants._T / constants._G
+        elif memory_str.endswith('Ti'):
+            memory_request = float(
+                memory_str[:-2]) * constants._TI / constants._G
+        elif memory_str.endswith('G'):
+            memory_request = float(memory_str[:-1])
+        elif memory_str.endswith('Gi'):
+            memory_request = float(
+                memory_str[:-2]) * constants._GI / constants._G
+        elif memory_str.endswith('M'):
+            memory_request = float(
+                memory_str[:-1]) * constants._M / constants._G
+        elif memory_str.endswith('Mi'):
+            memory_request = float(
+                memory_str[:-2]) * constants._MI / constants._G
+        elif memory_str.endswith('K'):
+            memory_request = float(
+                memory_str[:-1]) * constants._K / constants._G
+        elif memory_str.endswith('Ki'):
+            memory_request = float(
+                memory_str[:-2]) * constants._KI / constants._G
+        else:
+            # By default interpret as a plain integer, in the unit of Bytes.
+            memory_request = float(memory_str) / constants._G
+        return memory_request
+
     def _validate_memory_request_limit(self, memory: str) -> str:
         """Validates memory request/limit string and converts to its numeric
         string value.
@@ -504,6 +556,8 @@ class PipelineTask:
             self.container_spec.resources = structures.ResourceSpec(
                 memory_request=memory)
 
+        self._ensure_resource_requests_meet_limits()
+
         return self
 
     @block_if_final()
@@ -530,6 +584,8 @@ class PipelineTask:
         else:
             self.container_spec.resources = structures.ResourceSpec(
                 memory_limit=memory)
+
+        self._ensure_resource_requests_meet_limits()
 
         return self
 
