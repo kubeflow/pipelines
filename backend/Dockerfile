@@ -43,7 +43,6 @@ RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 # Downloading Argo CLI so that the samples are validated
 ENV ARGO_VERSION v3.4.17
-RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
 #Support s390x and ppc64le
 RUN ARCH=$(uname -m); \
     if [ "$ARCH" = "x86_64" ]; then \
