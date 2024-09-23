@@ -88,9 +88,9 @@ jobs:
           - image: kfp-visualization-server
             dockerfile: backend/Dockerfile.visualization
           - image: kfp-launcher
-            dockerfile: backend/Dockerfile.driver
-          - image: kfp-driver
             dockerfile: backend/Dockerfile.launcher
+          - image: kfp-driver
+            dockerfile: backend/Dockerfile.driver
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
