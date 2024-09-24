@@ -68,18 +68,19 @@ image_all: image_apiserver image_persistence_agent image_cache image_swf image_v
 
 .PHONY: image_apiserver
 image_apiserver:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_APISERVER} -f backend/Dockerfile  .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_APISERVER} -f backend/Dockerfile .
 .PHONY: image_persistence_agent
 image_persistence_agent:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent  .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent .
 .PHONY: image_cache
 image_cache:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_CACHESERVER} -f backend/Dockerfile.cacheserver .
-.PHONY: image_swf
+.PHONY: image_swf 
 image_swf:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow  .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow .
 .PHONY: image_viewer
 image_viewer:
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} buildx build --platform $(PLATFORMS) -t ${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
 .PHONY: image_visualization
 image_visualization:
