@@ -8,9 +8,9 @@ on:
     paths:
       - '.github/workflows/kubeflow-pipelines-integration-v2.yml'
       - 'scripts/deploy/github/**'
-      - 'samples'
-      - 'core'
-      - 'backend'
+      - 'samples/core/parameterized_tfx_oss/**'
+      - 'samples/core/dataflow/**'
+      - 'backend/**'
 
 jobs:
   integration-tests:
