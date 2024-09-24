@@ -27,7 +27,7 @@ jobs:
           echo ${{ github.event.pull_request.state }} >> ./pr/pr_state
           echo ${{ github.event.pull_request.head.sha }} >> ./pr/head_sha
           echo ${{ github.event.action }} >> ./pr/event_action
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: pr
           path: pr/
