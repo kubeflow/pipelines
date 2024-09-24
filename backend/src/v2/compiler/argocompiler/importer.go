@@ -16,6 +16,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -76,10 +77,8 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
-		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
 	}
 	importerTemplate := &wfapi.Template{
 		Name: name,

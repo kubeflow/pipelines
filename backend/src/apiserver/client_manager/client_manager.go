@@ -208,7 +208,8 @@ func (c *ClientManager) init() {
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
-	newClient, err := metadata.NewClient(common.GetMetadataGrpcServiceServiceHost(), common.GetMetadataGrpcServiceServicePort())
+	newClient, err := metadata.NewClient(common.GetMetadataGrpcServiceServiceHost(), common.GetMetadataGrpcServiceServicePort(), common.GetMetadataTLSEnabled())
+
 	if err != nil {
 		glog.Fatalf("Failed to create metadata client. Error: %v", err)
 	}
