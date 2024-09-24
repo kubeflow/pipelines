@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #
 # Copyright 2020 The Kubeflow Authors
@@ -49,7 +48,6 @@ export PATH="$HOME/bin:$PATH"
     curl -L -o "$HOME/bin/kubectl" "$kubectl_url"
     chmod +x "$HOME/bin/kubectl"
 } || true
-
 
 # This should fail if there are connectivity problems
 # Gotcha: Listing all objects requires list permission,
