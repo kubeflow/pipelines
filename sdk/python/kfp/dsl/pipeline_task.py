@@ -98,6 +98,7 @@ class PipelineTask:
         component_spec: structures.ComponentSpec,
         args: Dict[str, Any],
         execute_locally: bool = False,
+        execution_caching_default: bool = True,
     ) -> None:
         """Initilizes a PipelineTask instance."""
         # import within __init__ to avoid circular import
@@ -130,7 +131,7 @@ class PipelineTask:
             inputs=dict(args.items()),
             dependent_tasks=[],
             component_ref=component_spec.name,
-            enable_caching=True)
+            enable_caching=execution_caching_default)
         self._run_after: List[str] = []
 
         self.importer_spec = None
