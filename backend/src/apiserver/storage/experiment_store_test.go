@@ -60,18 +60,20 @@ func TestListExperiments_Pagination(t *testing.T) {
 	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDFour, nil)
 	experimentStore.CreateExperiment(createExperiment("experiment2"))
 	expectedExperiment1 := &model.Experiment{
-		UUID:           fakeID,
-		CreatedAtInSec: 1,
-		Name:           "experiment1",
-		Description:    "My name is experiment1",
-		StorageState:   "AVAILABLE",
+		UUID:                  fakeID,
+		CreatedAtInSec:        1,
+		LastRunCreatedAtInSec: 0,
+		Name:                  "experiment1",
+		Description:           "My name is experiment1",
+		StorageState:          "AVAILABLE",
 	}
 	expectedExperiment4 := &model.Experiment{
-		UUID:           fakeIDFour,
-		CreatedAtInSec: 4,
-		Name:           "experiment2",
-		Description:    "My name is experiment2",
-		StorageState:   "AVAILABLE",
+		UUID:                  fakeIDFour,
+		CreatedAtInSec:        4,
+		LastRunCreatedAtInSec: 0,
+		Name:                  "experiment2",
+		Description:           "My name is experiment2",
+		StorageState:          "AVAILABLE",
 	}
 	experimentsExpected := []*model.Experiment{expectedExperiment1, expectedExperiment4}
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name", nil)
@@ -85,18 +87,20 @@ func TestListExperiments_Pagination(t *testing.T) {
 	assert.Equal(t, 4, total_size)
 
 	expectedExperiment2 := &model.Experiment{
-		UUID:           fakeIDTwo,
-		CreatedAtInSec: 2,
-		Name:           "experiment3",
-		Description:    "My name is experiment3",
-		StorageState:   "AVAILABLE",
+		UUID:                  fakeIDTwo,
+		CreatedAtInSec:        2,
+		LastRunCreatedAtInSec: 0,
+		Name:                  "experiment3",
+		Description:           "My name is experiment3",
+		StorageState:          "AVAILABLE",
 	}
 	expectedExperiment3 := &model.Experiment{
-		UUID:           fakeIDThree,
-		CreatedAtInSec: 3,
-		Name:           "experiment4",
-		Description:    "My name is experiment4",
-		StorageState:   "AVAILABLE",
+		UUID:                  fakeIDThree,
+		CreatedAtInSec:        3,
+		LastRunCreatedAtInSec: 0,
+		Name:                  "experiment4",
+		Description:           "My name is experiment4",
+		StorageState:          "AVAILABLE",
 	}
 	experimentsExpected2 := []*model.Experiment{expectedExperiment2, expectedExperiment3}
 

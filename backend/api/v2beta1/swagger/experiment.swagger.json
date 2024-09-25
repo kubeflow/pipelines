@@ -299,6 +299,11 @@
         "storage_state": {
           "$ref": "#/definitions/v2beta1ExperimentStorageState",
           "description": "Output. Specifies whether this experiment is in archived or available state."
+        },
+        "last_run_created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time the created time of the last run in this experiment."
         }
       }
     },

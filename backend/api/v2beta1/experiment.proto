@@ -104,6 +104,9 @@ message Experiment {
 
   // Output. Specifies whether this experiment is in archived or available state.
   StorageState storage_state = 6;
+
+  // Output. The creation time of the last run in this experiment.
+  google.protobuf.Timestamp last_run_created_at = 7;
 }
 
 message CreateExperimentRequest {
