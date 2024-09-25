@@ -162,7 +162,8 @@ def _get_packages_to_install_command(
         else:
             kfp_pip_install_command = make_pip_install_command(
                 install_parts=[
-                    f'kfp=={kfp.__version__}',
+                    # f'kfp=={kfp.__version__}',
+                    f'kfp==dev',
                     '--no-deps',
                     'typing-extensions>=3.7.4,<5; python_version<"3.9"',
                 ],
@@ -533,6 +534,7 @@ def create_component_from_func(
     install_kfp_package: bool = True,
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
+    ttl_active_seconds: Optional[int] = None,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -676,6 +678,7 @@ def create_graph_component_from_func(
     name: Optional[str] = None,
     description: Optional[str] = None,
     display_name: Optional[str] = None,
+    ttl_strategy_seconds_after_completion: Optional[int] = None,
 ) -> graph_component.GraphComponent:
     """Implementation for the @pipeline decorator.
 
@@ -692,6 +695,7 @@ def create_graph_component_from_func(
         component_spec=component_spec,
         pipeline_func=func,
         display_name=display_name,
+        ttl_strategy_seconds_after_completion=ttl_strategy_seconds_after_completion,
     )
 
 

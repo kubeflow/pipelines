@@ -28,7 +28,7 @@ def component(func: Optional[Callable] = None,
               output_component_file: Optional[str] = None,
               install_kfp_package: bool = True,
               kfp_package_path: Optional[str] = None,
-              pip_trusted_hosts: Optional[List[str]] = None):
+              ttl_active_seconds: Optional[int] = None):
     """Decorator for Python-function based components.
 
     A KFP component can either be a lightweight component or a containerized
@@ -116,7 +116,7 @@ def component(func: Optional[Callable] = None,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
             kfp_package_path=kfp_package_path,
-            pip_trusted_hosts=pip_trusted_hosts)
+            ttl_active_seconds=ttl_active_seconds)
 
     return component_factory.create_component_from_func(
         func,
@@ -127,4 +127,4 @@ def component(func: Optional[Callable] = None,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
         kfp_package_path=kfp_package_path,
-        pip_trusted_hosts=pip_trusted_hosts)
+        ttl_active_seconds=ttl_active_seconds)

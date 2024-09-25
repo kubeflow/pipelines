@@ -1879,6 +1879,7 @@ def create_pipeline_spec(
     pipeline: pipeline_context.Pipeline,
     component_spec: structures.ComponentSpec,
     pipeline_outputs: Optional[Any] = None,
+    ttl_strategy_seconds_after_completion: Optional[int] = None,
 ) -> Tuple[pipeline_spec_pb2.PipelineSpec, pipeline_spec_pb2.PlatformSpec]:
     """Creates a pipeline spec object.
 
@@ -1899,7 +1900,8 @@ def create_pipeline_spec(
     pipeline_spec = pipeline_spec_pb2.PipelineSpec()
 
     pipeline_spec.pipeline_info.name = pipeline.name
-    pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
+    # pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
+    pipeline_spec.sdk_version = f'kfp-dev'
     # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
     pipeline_spec.schema_version = '2.1.0'
 
@@ -1945,8 +1947,9 @@ def create_pipeline_spec(
         group_name_to_group=group_name_to_group,
         condition_channels=condition_channels,
     )
-
+    import pdb; pdb.set_trace()
     platform_spec = pipeline_spec_pb2.PlatformSpec()
+    platform_spec.ttlStrategysecondsAfterCompletion = ttl_strategy_seconds_after_completion
     for group in all_groups:
         build_spec_by_group(
             pipeline_spec=pipeline_spec,

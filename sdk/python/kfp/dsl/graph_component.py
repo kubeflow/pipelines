@@ -37,6 +37,7 @@ class GraphComponent(base_component.BaseComponent):
         component_spec: structures.ComponentSpec,
         pipeline_func: Callable,
         display_name: Optional[str] = None,
+        ttl_strategy_seconds_after_completion: Optional[int] = None,
     ):
         super().__init__(component_spec=component_spec)
         self.pipeline_func = pipeline_func
@@ -69,6 +70,7 @@ class GraphComponent(base_component.BaseComponent):
             pipeline=dsl_pipeline,
             component_spec=self.component_spec,
             pipeline_outputs=pipeline_outputs,
+            ttl_strategy_seconds_after_completion=ttl_strategy_seconds_after_completion,
         )
 
         pipeline_root = getattr(pipeline_func, 'pipeline_root', None)

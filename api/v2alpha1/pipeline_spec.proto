@@ -1077,6 +1077,8 @@ message PipelineStateEnum {
 message PlatformSpec {
   // Platform key to full platform config
   map<string, SinglePlatformSpec> platforms = 1;
+
+  optional int32 ttlStrategysecondsAfterCompletion = 2;
 }
 
 message SinglePlatformSpec {

@@ -27,7 +27,8 @@ def pipeline(func: Optional[Callable] = None,
              name: Optional[str] = None,
              description: Optional[str] = None,
              pipeline_root: Optional[str] = None,
-             display_name: Optional[str] = None) -> Callable:
+             display_name: Optional[str] = None,
+             ttl_active_seconds: Optional[int] = None) -> Callable:
     """Decorator used to construct a pipeline.
 
     Example
@@ -49,6 +50,7 @@ def pipeline(func: Optional[Callable] = None,
         pipeline_root: The root directory from which to read input and output
             parameters and artifacts.
         display_name: A human-readable name for the pipeline.
+        ttl_active_seconds: Delete completed workflows after a set time.
     """
     if func is None:
         return functools.partial(
@@ -57,6 +59,7 @@ def pipeline(func: Optional[Callable] = None,
             description=description,
             pipeline_root=pipeline_root,
             display_name=display_name,
+            ttl_active_seconds=ttl_active_seconds,
         )
 
     if pipeline_root:
@@ -67,6 +70,7 @@ def pipeline(func: Optional[Callable] = None,
         name=name,
         description=description,
         display_name=display_name,
+        ttl_strategy_seconds_after_completion=ttl_active_seconds,
     )
 
 
