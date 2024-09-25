@@ -16,14 +16,14 @@
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
-__version__ = '2.8.0'
+__version__ = '2.9.0'
 
 import sys
 import warnings
 
 if sys.version_info < (3, 9):
     warnings.warn(
-        ('KFP will drop support for Python 3.8 on Oct 1, 2024. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.9. See https://devguide.python.org/versions/ for more details.'
+        ('KFP will drop support for Python 3.9 on Oct 1, 2025. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.10. See https://devguide.python.org/versions/ for more details.'
         ),
         FutureWarning,
         stacklevel=2,

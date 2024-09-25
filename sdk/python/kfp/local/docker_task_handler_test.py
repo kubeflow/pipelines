@@ -190,7 +190,7 @@ class TestE2E(DockerMockTestCase,
         kwargs = run_mock.call_args[1]
         self.assertEqual(
             kwargs['image'],
-            'python:3.8',
+            'python:3.9',
         )
         self.assertTrue(
             any('def artifact_maker' in c for c in kwargs['command']))

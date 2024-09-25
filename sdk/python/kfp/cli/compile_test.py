@@ -29,7 +29,7 @@ class TestIsPipelineOrComponent(unittest.TestCase):
         @dsl.container_component
         def my_container_comp():
             return dsl.ContainerSpec(
-                image='python:3.7',
+                image='python:3.9',
                 command=['echo', 'hello world'],
                 args=[],
             )
@@ -55,7 +55,7 @@ class TestIsPipelineOrComponent(unittest.TestCase):
         @dsl.container_component
         def my_container_comp():
             return dsl.ContainerSpec(
-                image='python:3.7',
+                image='python:3.9',
                 command=['echo', 'hello world'],
                 args=[],
             )

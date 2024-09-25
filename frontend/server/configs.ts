@@ -123,6 +123,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
      * e.g. a valid header value for default values can be like `accounts.google.com:user@gmail.com`.
      */
     KUBEFLOW_USERID_PREFIX = 'accounts.google.com:',
+    FRONTEND_SERVER_NAMESPACE = 'kubeflow',
   } = env;
 
   return {
@@ -190,6 +191,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
           : asBool(HIDE_SIDENAV),
       port,
       staticDir,
+      serverNamespace: FRONTEND_SERVER_NAMESPACE,
     },
     viewer: {
       tensorboard: {
@@ -266,6 +268,8 @@ export interface ServerConfigs {
   apiVersion2Prefix: string;
   deployment: Deployments;
   hideSideNav: boolean;
+  // Namespace where the server is deployed
+  serverNamespace: string;
 }
 export interface GkeMetadataConfigs {
   disabled: boolean;

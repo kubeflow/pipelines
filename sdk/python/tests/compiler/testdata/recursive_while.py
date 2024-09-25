@@ -21,7 +21,7 @@ class FlipCoinOp(dsl.ContainerOp):
     def __init__(self):
         super(FlipCoinOp, self).__init__(
             name='Flip',
-            image='python:alpine3.6',
+            image='python:alpine3.9',
             command=['sh', '-c'],
             arguments=[
                 'python -c "import random; result = \'heads\' if random.randint(0,1) == 0 '
@@ -36,7 +36,7 @@ class PrintOp(dsl.ContainerOp):
     def __init__(self, msg):
         super(PrintOp, self).__init__(
             name='Print',
-            image='alpine:3.6',
+            image='alpine:3.9',
             command=['echo', msg],
         )
 

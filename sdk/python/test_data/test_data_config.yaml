@@ -80,9 +80,6 @@ pipelines:
           "first_number": 1,
           "second_number": 2,
         }
-    - module: xgboost_sample_pipeline
-      name: xgboost_pipeline
-      execute: false
     - module: pipeline_with_metrics_outputs
       name: my_pipeline
       execute: true

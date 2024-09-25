@@ -6,7 +6,7 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/e2e-test.yaml'
+      - '.github/workflows/e2e-test.yml'
       - 'scripts/deploy/github/**'
       - 'go.mod'
       - 'go.sum'
@@ -22,6 +22,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
@@ -46,6 +51,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
 
@@ -68,6 +78,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
@@ -92,6 +107,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
 
@@ -114,6 +134,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
@@ -144,17 +169,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
 
       - name: Forward API port
         run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
+      - name: Install prerequisites
+        run: pip3 install -r ./test/sample-test/requirements.txt
+
       - name: Basic sample tests - sequential
-        run: pip3 install -r ./test/sample-test/requirements.txt && pip3 install kfp~=2.0 && python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
+        run:  python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
 
       - name: Basic sample tests - exit_handler
-        run: pip3 install -r ./test/sample-test/requirements.txt && pip3 install kfp~=2.0 && python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name exit_handler --results-gcs-dir output
+        run: python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name exit_handler --results-gcs-dir output
 
       - name: Collect test results
         if: always()

@@ -41,16 +41,14 @@ then
   exit 1
 fi
 
-# Check if all pods are running - allow 20 retries (10 minutes)
-wait_for_pods kubeflow 40 30 || EXIT_CODE=$?
+# Check if all pods are running - (10 minutes)
+wait_for_pods || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Not all pods running."
   exit 1
 fi
 
-echo "List Kubeflow: "
-kubectl get pod -n kubeflow
 collect_artifacts kubeflow
 
 echo "Finished KFP deployment."

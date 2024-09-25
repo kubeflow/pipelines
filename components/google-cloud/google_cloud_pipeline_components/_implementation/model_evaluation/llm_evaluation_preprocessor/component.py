@@ -101,10 +101,8 @@ def evaluation_dataset_preprocessor_internal(
               f'--gcs_source_uris={gcs_source_uris}',
               f'--input_field_name={input_field_name}',
               f'--role_field_name={role_field_name}',
-              (
-                  f'--target_field_name={target_field_name}'
-                  f'--model_name={model_name}'
-              ),
+              f'--target_field_name={target_field_name}',
+              f'--model_name={model_name}',
               f'--output_dirs={output_dirs}',
               '--executor_input={{$.json_escape[1]}}',
           ],

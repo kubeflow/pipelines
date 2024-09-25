@@ -15,9 +15,10 @@ package driver
 
 import (
 	"encoding/json"
+	"testing"
+
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -49,7 +50,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - nvidia.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.9",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -88,7 +89,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - amd.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.9",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -127,7 +128,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v3",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.9",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -166,7 +167,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v2",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.9",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -205,7 +206,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - custom string",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.9",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -334,7 +335,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - with requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.9",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -370,7 +371,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - zero requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.7",
+					Image:   "python:3.9",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -532,7 +533,7 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 					{
 						Name: "secret1",
 						VolumeSource: k8score.VolumeSource{
-							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional:  &[]bool{false}[0],},
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional: &[]bool{false}[0]},
 						},
 					},
 				},
@@ -730,7 +731,7 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
 								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
-								Optional:             &[]bool{false}[0],},
+								Optional:             &[]bool{false}[0]},
 						},
 					},
 				},
@@ -875,6 +876,165 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 									},
 								},
 							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := extendPodSpecPatch(tt.podSpec, tt.k8sExecCfg, nil, nil)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expected, tt.podSpec)
+		})
+	}
+}
+
+func Test_extendPodSpecPatch_EmptyVolumeMount(t *testing.T) {
+	medium := "Memory"
+	sizeLimit := "1Gi"
+	var sizeLimitResource *k8sres.Quantity
+	r := k8sres.MustParse(sizeLimit)
+	sizeLimitResource = &r
+
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		podSpec    *k8score.PodSpec
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - emptydir mount with no medium or size limit",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				EmptyDirMounts: []*kubernetesplatform.EmptyDirMount{
+					{
+						VolumeName: "emptydir1",
+						MountPath:  "/data/path",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "emptydir1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "emptydir1",
+						VolumeSource: k8score.VolumeSource{
+							EmptyDir: &k8score.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - emptydir mount with medium and size limit",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				EmptyDirMounts: []*kubernetesplatform.EmptyDirMount{
+					{
+						VolumeName: "emptydir1",
+						MountPath:  "/data/path",
+						Medium:     &medium,
+						SizeLimit:  &sizeLimit,
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "emptydir1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "emptydir1",
+						VolumeSource: k8score.VolumeSource{
+							EmptyDir: &k8score.EmptyDirVolumeSource{
+								Medium:    k8score.StorageMedium(medium),
+								SizeLimit: sizeLimitResource,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - multiple emptydir mounts",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				EmptyDirMounts: []*kubernetesplatform.EmptyDirMount{
+					{
+						VolumeName: "emptydir1",
+						MountPath:  "/data/path",
+					},
+					{
+						VolumeName: "emptydir2",
+						MountPath:  "/data/path2",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "emptydir1",
+								MountPath: "/data/path",
+							},
+							{
+								Name:      "emptydir2",
+								MountPath: "/data/path2",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "emptydir1",
+						VolumeSource: k8score.VolumeSource{
+							EmptyDir: &k8score.EmptyDirVolumeSource{},
+						},
+					},
+					{
+						Name: "emptydir2",
+						VolumeSource: k8score.VolumeSource{
+							EmptyDir: &k8score.EmptyDirVolumeSource{},
 						},
 					},
 				},

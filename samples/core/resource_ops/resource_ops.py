@@ -36,7 +36,7 @@ _CONTAINER_MANIFEST = """
             "spec": {
                 "containers": [{
                     "name": "sample-container",
-                    "image": "k8s.gcr.io/busybox",
+                    "image": "registry.k8s.io/busybox",
                     "command": ["/usr/bin/env"]
                 }],
                 "restartPolicy": "Never"

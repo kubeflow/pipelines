@@ -109,7 +109,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef make_name(name: str) -> str:\n    return name\n\n"
-        image: python:3.8
+        image: python:3.9
 pipelineInfo:
   name: pipeline-with-importer
 root:

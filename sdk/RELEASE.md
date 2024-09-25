@@ -1,12 +1,31 @@
 # Current Version (in development)
 
 ## Features
+* Support dynamic machine type parameters in pipeline task setters. [\#11097](https://github.com/kubeflow/pipelines/pull/11097)
 
 ## Breaking changes
 
 ## Deprecations
 
 ## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.9.0
+
+## Features
+* Kfp support for pip trusted host [#11151](https://github.com/kubeflow/pipelines/pull/11151)
+
+## Breaking changes
+
+* Pin kfp-pipeline-spec==0.4.0, kfp-server-api>=2.1.0,<2.4.0 [#11192](https://github.com/kubeflow/pipelines/pull/11192)
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* Loosening kubernetes dependency constraint [#11079](https://github.com/kubeflow/pipelines/pull/11079)
+* Throw 'exit_task cannot depend on any other tasks.' error when an ExitHandler has a parameter dependent on other task [#11005](https://github.com/kubeflow/pipelines/pull/11005)
 
 ## Documentation updates
 

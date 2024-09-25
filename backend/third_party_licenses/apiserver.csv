@@ -85,7 +85,7 @@ github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-exithandler/pkg/apis/exitha
 github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-kfptask/pkg/apis/kfptask,https://github.com/kubeflow/kfp-tekton/blob/a75d4b3711ff/tekton-catalog/tekton-kfptask/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/api/v2alpha1/go,https://github.com/kubeflow/pipelines/blob/58ce09e07d03/api/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/backend,https://github.com/kubeflow/pipelines/blob/HEAD/LICENSE,Apache-2.0
-github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform,https://github.com/kubeflow/pipelines/blob/8b2a099e8c9f/kubernetes_platform/LICENSE,Apache-2.0
+github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform,https://github.com/kubeflow/pipelines/blob/d911c8b73b49/kubernetes_platform/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata,https://github.com/kubeflow/pipelines/blob/e1f0c010f800/third_party/ml-metadata/LICENSE,Apache-2.0
 github.com/lann/builder,https://github.com/lann/builder/blob/47ae307949d0/LICENSE,MIT
 github.com/lann/ps,https://github.com/lann/ps/blob/62de8c46ede0/LICENSE,MIT

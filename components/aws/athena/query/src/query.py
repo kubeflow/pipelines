@@ -63,7 +63,7 @@ def query(client, query, database, output, workgroup=None):
                     "OutputLocation"
                 ]
                 # could be multiple files?
-                filename = re.findall(".*\/(.*)", s3_path)[0]
+                filename = re.findall(r".*\/(.*)", s3_path)[0]
                 logging.info("S3 output file name %s", filename)
                 break
         time.sleep(5)

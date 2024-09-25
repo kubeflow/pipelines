@@ -168,7 +168,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op1(msg: str) -> str:\n    print(msg)\n    return msg\n\
           \n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op1-2:
       container:
         args:
@@ -197,7 +197,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op1(msg: str) -> str:\n    print(msg)\n    return msg\n\
           \n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op1-3:
       container:
         args:
@@ -226,7 +226,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op1(data: Input[Artifact]):\n    with open(data.path, 'r')\
           \ as f:\n        print(f.read())\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op2:
       container:
         args:

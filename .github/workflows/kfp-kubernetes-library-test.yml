@@ -5,7 +5,7 @@ on:
     branches: [master]
   pull_request:
     paths:
-      - '.github/workflows/kfp-kubernetes-library-test.yaml'
+      - '.github/workflows/kfp-kubernetes-library-test.yml'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
       - 'kubernetes_platform/**'
@@ -17,7 +17,6 @@ jobs:
     strategy:
       matrix:
         python: [
-          { 'version': '3.8' },
           { 'version': '3.9' },
           { 'version': '3.10' },
           { 'version': '3.11' },

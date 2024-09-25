@@ -1,9 +1,3 @@
 # install kfp sdk from local path
 -e ../../../../sdk/python
-# TODO(chensun): remove the deprecated dependencies once migrated tests.
--r ../../../../sdk/python/requirements-deprecated.txt
-ml-metadata==1.14.0
-minio==7.0.4
-google-cloud-storage
 fire
--e ../../../../samples/test/utils

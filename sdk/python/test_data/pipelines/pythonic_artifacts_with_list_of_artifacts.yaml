@@ -97,7 +97,7 @@ deploymentSpec:
           \ = []\n    for dataset in datasets:\n        with open(dataset.path, 'r')\
           \ as f:\n            texts.append(f.read())\n\n    return ''.join(texts)\n\
           \n"
-        image: python:3.8
+        image: python:3.9
     exec-make-dataset:
       container:
         args:
@@ -127,7 +127,7 @@ deploymentSpec:
           \ *\n\ndef make_dataset(text: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
           \ metadata={'length': len(text)})\n    with open(dataset.path, 'w') as f:\n\
           \        f.write(text)\n    return dataset\n\n"
-        image: python:3.8
+        image: python:3.9
 pipelineInfo:
   name: make-and-join-datasets
 root:

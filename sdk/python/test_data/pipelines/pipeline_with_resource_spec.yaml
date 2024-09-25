@@ -61,12 +61,12 @@ deploymentSpec:
         image: gcr.io/my-project/my-fancy-trainer
         resources:
           accelerator:
-            count: '1'
-            type: tpu-v3
-          cpuLimit: 4.0
-          cpuRequest: 2.0
-          memoryLimit: 15.032385536
-          memoryRequest: 4.294967296
+            resourceCount: '1'
+            resourceType: tpu-v3
+          resourceCpuLimit: '4'
+          resourceCpuRequest: '2'
+          resourceMemoryLimit: 14Gi
+          resourceMemoryRequest: 4Gi
 pipelineInfo:
   description: A linear two-step pipeline with resource specification.
   name: two-step-pipeline-with-resource-spec
@@ -119,4 +119,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.8.0

@@ -239,12 +239,12 @@ class ResourceSpec:
             container.
         accelerator_count (optional): the number of accelerators attached.
     """
-    cpu_request: Optional[float] = None
-    cpu_limit: Optional[float] = None
-    memory_request: Optional[float] = None
-    memory_limit: Optional[float] = None
+    cpu_request: Optional[str] = None
+    cpu_limit: Optional[str] = None
+    memory_request: Optional[str] = None
+    memory_limit: Optional[str] = None
     accelerator_type: Optional[str] = None
-    accelerator_count: Optional[int] = None
+    accelerator_count: Optional[str] = None
 
 
 @dataclasses.dataclass
