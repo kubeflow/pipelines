@@ -18,13 +18,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
-	"github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"io"
 	"net"
 	"strconv"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
@@ -1966,7 +1967,7 @@ func (r *ResourceManager) GetArtifactSessionInfo(ctx context.Context, artifact *
 	}
 
 	// Retrieve Session info
-	sessionInfoString := artifactCtx.CustomProperties["bucket_session_info"].GetStringValue()
+	sessionInfoString := artifactCtx.CustomProperties["store_session_info"].GetStringValue()
 	if sessionInfoString == "" {
 		return nil, "", fmt.Errorf("Unable to retrieve artifact session info via context property.")
 	}

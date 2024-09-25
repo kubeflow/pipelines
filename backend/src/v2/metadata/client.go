@@ -18,6 +18,7 @@ package metadata
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,6 +27,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
@@ -79,7 +83,7 @@ var (
 )
 
 type ClientInterface interface {
-	GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, bucketSessionInfo string) (*Pipeline, error)
+	GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, storeSessionInfo string) (*Pipeline, error)
 	GetDAG(ctx context.Context, executionID int64) (*DAG, error)
 	PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error
 	CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error)
@@ -107,14 +111,21 @@ type Client struct {
 }
 
 // NewClient creates a Client given the MLMD server address and port.
-func NewClient(serverAddress, serverPort string) (*Client, error) {
+func NewClient(serverAddress, serverPort string, tlsEnabled bool) (*Client, error) {
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
 		grpc_retry.WithCodes(codes.Aborted),
 	}
+
+	creds := insecure.NewCredentials()
+	if tlsEnabled {
+		config := &tls.Config{}
+		creds = credentials.NewTLS(config)
+	}
+
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(creds),
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
 		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
 	)
@@ -205,16 +216,16 @@ func (p *Pipeline) GetCtxID() int64 {
 	return p.pipelineCtx.GetId()
 }
 
-func (p *Pipeline) GetPipelineBucketSession() string {
+func (p *Pipeline) GetStoreSessionInfo() string {
 	if p == nil {
 		return ""
 	}
 	props := p.pipelineRunCtx.GetCustomProperties()
-	bucketSessionInfo, ok := props[keySessionInfoDetails]
+	storeSessionInfo, ok := props[keyStoreSessionInfo]
 	if !ok {
 		return ""
 	}
-	return bucketSessionInfo.GetStringValue()
+	return storeSessionInfo.GetStringValue()
 }
 
 func (p *Pipeline) GetPipelineRoot() string {
@@ -299,7 +310,7 @@ func GenerateOutputURI(pipelineRoot string, paths []string, preserveQueryString 
 
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
-func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, bucketSessionInfo string) (*Pipeline, error) {
+func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, storeSessionInfo string) (*Pipeline, error) {
 	pipelineContext, err := c.getOrInsertContext(ctx, pipelineName, pipelineContextType, nil)
 	if err != nil {
 		return nil, err
@@ -309,8 +320,8 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace
 		keyNamespace:    stringValue(namespace),
 		keyResourceName: stringValue(runResource),
 		// pipeline root of this run
-		keyPipelineRoot:       stringValue(strings.TrimRight(pipelineRoot, "/") + "/" + path.Join(pipelineName, runID)),
-		keySessionInfoDetails: stringValue(bucketSessionInfo),
+		keyPipelineRoot:     stringValue(GenerateOutputURI(pipelineRoot, []string{pipelineName, runID}, true)),
+		keyStoreSessionInfo: stringValue(storeSessionInfo),
 	}
 	runContext, err := c.getOrInsertContext(ctx, runID, pipelineRunContextType, metadata)
 	glog.Infof("Pipeline Run Context: %+v", runContext)
@@ -502,22 +513,22 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 
 // metadata keys
 const (
-	keyDisplayName        = "display_name"
-	keyTaskName           = "task_name"
-	keyImage              = "image"
-	keyPodName            = "pod_name"
-	keyPodUID             = "pod_uid"
-	keyNamespace          = "namespace"
-	keyResourceName       = "resource_name"
-	keyPipelineRoot       = "pipeline_root"
-	keySessionInfoDetails = "bucket_session_info"
-	keyCacheFingerPrint   = "cache_fingerprint"
-	keyCachedExecutionID  = "cached_execution_id"
-	keyInputs             = "inputs"
-	keyOutputs            = "outputs"
-	keyParentDagID        = "parent_dag_id" // Parent DAG Execution ID.
-	keyIterationIndex     = "iteration_index"
-	keyIterationCount     = "iteration_count"
+	keyDisplayName       = "display_name"
+	keyTaskName          = "task_name"
+	keyImage             = "image"
+	keyPodName           = "pod_name"
+	keyPodUID            = "pod_uid"
+	keyNamespace         = "namespace"
+	keyResourceName      = "resource_name"
+	keyPipelineRoot      = "pipeline_root"
+	keyStoreSessionInfo  = "store_session_info"
+	keyCacheFingerPrint  = "cache_fingerprint"
+	keyCachedExecutionID = "cached_execution_id"
+	keyInputs            = "inputs"
+	keyOutputs           = "outputs"
+	keyParentDagID       = "parent_dag_id" // Parent DAG Execution ID.
+	keyIterationIndex    = "iteration_index"
+	keyIterationCount    = "iteration_count"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -721,19 +732,18 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	// iterate through to find sub-executions.
 
 	nextPageToken := ""
-
-	res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
-		ContextId: pipeline.pipelineRunCtx.Id,
-		Options: &pb.ListOperationOptions{
-			FilterQuery:   &parentDAGFilter,
-			NextPageToken: &nextPageToken,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	for {
+		res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
+			ContextId: pipeline.pipelineRunCtx.Id,
+			Options: &pb.ListOperationOptions{
+				FilterQuery:   &parentDAGFilter,
+				NextPageToken: &nextPageToken,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
 		execs := res.GetExecutions()
 		for _, e := range execs {
 			execution := &Execution{execution: e}

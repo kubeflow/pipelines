@@ -174,7 +174,7 @@ func (c *FakeClient) createDummyData() {
 		AccessKeyKey: "testsecretaccesskey",
 		SecretKeyKey: "testsecretsecretkey",
 	}
-	bucketSessionInfo, err := json.Marshal(ctx1SessInfo)
+	storeSessionInfo, err := json.Marshal(ctx1SessInfo)
 	if err != nil {
 		glog.Fatal("failed to marshal fake session info")
 	}
@@ -184,9 +184,9 @@ func (c *FakeClient) createDummyData() {
 		Name: strPtr("ctx-0"),
 		Type: strPtr("1"),
 		CustomProperties: map[string]*pb.Value{
-			"pipeline_root":       stringValue("s3://test-bucket"),
-			"bucket_session_info": stringValue(string(bucketSessionInfo)),
-			"namespace":           stringValue("test-namespace"),
+			"pipeline_root":      stringValue("s3://test-bucket"),
+			"store_session_info": stringValue(string(storeSessionInfo)),
+			"namespace":          stringValue("test-namespace"),
 		},
 	}
 	c.contexts = []*pb.Context{ctx1}

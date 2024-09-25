@@ -50,6 +50,12 @@ spec:
       - '{{inputs.parameters.kubernetes-config}}'
       - "--mlPipelineServiceTLSEnabled"
       - "false"
+      - "--mlmd_server_address"
+      - "metadata-grpc-service"
+      - "--mlmd_server_port"
+      - "8080"
+      - "--metadataTLSEnabled"
+      - "false"
       command:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver
@@ -241,6 +247,12 @@ spec:
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
       - "--mlPipelineServiceTLSEnabled"
+      - "false"
+      - "--mlmd_server_address"
+      - "metadata-grpc-service"
+      - "--mlmd_server_port"
+      - "8080"
+      - "--metadataTLSEnabled"
       - "false"
       env:
         - name: ML_PIPELINE_SERVICE_HOST

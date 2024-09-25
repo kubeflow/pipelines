@@ -43,6 +43,7 @@ var (
 	mlmdServerAddress              = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
 	mlmdServerPort                 = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
+	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
 )
 
 func main() {
@@ -71,6 +72,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	metadataServiceTLSEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
+	if err != nil {
+		return err
+	}
+
 	launcherV2Opts := &component.LauncherV2Options{
 		Namespace:            namespace,
 		PodName:              *podName,
@@ -80,6 +87,7 @@ func run() error {
 		PipelineName:         *pipelineName,
 		RunID:                *runID,
 		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
+		MetadataTLSEnabled:   metadataServiceTLSEnabled,
 	}
 
 	switch *executorType {
