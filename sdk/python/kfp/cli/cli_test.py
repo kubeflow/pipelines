@@ -27,6 +27,7 @@ import click
 from click import testing
 from kfp.cli import cli
 from kfp.cli import compile_
+import yaml
 
 
 class TestCliNounAliases(unittest.TestCase):
@@ -194,6 +195,89 @@ class TestSmokeTestAllCommandsWithHelp(parameterized.TestCase):
                 obj={})
             self.assertTrue(result.output.startswith('Usage: '))
             self.assertEqual(result.exit_code, 0)
+
+
+class TestKfpDslCompile(unittest.TestCase):
+
+    def invoke(self, args):
+        starting_args = ['dsl', 'compile']
+        args = starting_args + args
+        runner = testing.CliRunner()
+        return runner.invoke(
+            cli=cli.cli, args=args, catch_exceptions=False, obj={})
+
+    def create_pipeline_file(self):
+        pipeline_code = b"""
+from kfp import dsl
+
+@dsl.component
+def my_component():
+    pass
+
+@dsl.pipeline(name="tiny-pipeline")
+def my_pipeline():
+    my_component_task = my_component()
+"""
+        temp_pipeline = tempfile.NamedTemporaryFile(suffix='.py', delete=False)
+        temp_pipeline.write(pipeline_code)
+        temp_pipeline.flush()
+        return temp_pipeline
+
+    def load_output_yaml(self, output_file):
+        with open(output_file, 'r') as f:
+            return yaml.safe_load(f)
+
+    def test_compile_with_caching_flag_enabled(self):
+        temp_pipeline = self.create_pipeline_file()
+        output_file = 'test_output.yaml'
+
+        result = self.invoke(
+            ['--py', temp_pipeline.name, '--output', output_file])
+        self.assertEqual(result.exit_code, 0)
+
+        output_data = self.load_output_yaml(output_file)
+        self.assertIn('root', output_data)
+        self.assertIn('tasks', output_data['root']['dag'])
+        for task in output_data['root']['dag']['tasks'].values():
+            self.assertIn('cachingOptions', task)
+            caching_options = task['cachingOptions']
+            self.assertEqual(caching_options.get('enableCache'), True)
+
+    def test_compile_with_caching_flag_disabled(self):
+        temp_pipeline = self.create_pipeline_file()
+        output_file = 'test_output.yaml'
+
+        result = self.invoke([
+            '--py', temp_pipeline.name, '--output', output_file,
+            '--disable-execution-caching-by-default'
+        ])
+        self.assertEqual(result.exit_code, 0)
+
+        output_data = self.load_output_yaml(output_file)
+        self.assertIn('root', output_data)
+        self.assertIn('tasks', output_data['root']['dag'])
+        for task in output_data['root']['dag']['tasks'].values():
+            self.assertIn('cachingOptions', task)
+            caching_options = task['cachingOptions']
+            self.assertEqual(caching_options, {})
+
+    def test_compile_with_caching_disabled_env_var(self):
+        temp_pipeline = self.create_pipeline_file()
+        output_file = 'test_output.yaml'
+
+        os.environ['KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT'] = 'true'
+        result = self.invoke(
+            ['--py', temp_pipeline.name, '--output', output_file])
+        self.assertEqual(result.exit_code, 0)
+        del os.environ['KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT']
+
+        output_data = self.load_output_yaml(output_file)
+        self.assertIn('root', output_data)
+        self.assertIn('tasks', output_data['root']['dag'])
+        for task in output_data['root']['dag']['tasks'].values():
+            self.assertIn('cachingOptions', task)
+            caching_options = task['cachingOptions']
+            self.assertEqual(caching_options, {})
 
 
 if __name__ == '__main__':

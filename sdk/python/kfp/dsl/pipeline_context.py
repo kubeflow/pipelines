@@ -14,6 +14,7 @@
 """Definition for Pipeline."""
 
 import functools
+import os
 from typing import Callable, Optional
 
 from kfp.dsl import component_factory
@@ -100,6 +101,19 @@ class Pipeline:
     def get_default_pipeline():
         """Gets the default pipeline."""
         return Pipeline._default_pipeline
+
+    # _execution_caching_default can be disabled via the click option --disable-execution-caching-by-default
+    # or the env var KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT.
+    # align with click's treatment of env vars for boolean flags.
+    # per click doc, "1", "true", "t", "yes", "y", and "on" are all converted to True
+    _execution_caching_default = not str(
+        os.getenv('KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT')).strip().lower(
+        ) in {'1', 'true', 't', 'yes', 'y', 'on'}
+
+    @staticmethod
+    def get_execution_caching_default():
+        """Gets the default execution caching."""
+        return Pipeline._execution_caching_default
 
     def __init__(self, name: str):
         """Creates a new instance of Pipeline.

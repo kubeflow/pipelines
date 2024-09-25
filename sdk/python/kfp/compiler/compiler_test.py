@@ -910,6 +910,59 @@ implementation:
                 task = print_and_return(text='Hello')
 
 
+class TestCompilePipelineCaching(unittest.TestCase):
+
+    def test_compile_pipeline_with_caching_enabled(self):
+        """Test pipeline compilation with caching enabled."""
+
+        @dsl.component
+        def my_component():
+            pass
+
+        @dsl.pipeline(name='tiny-pipeline')
+        def my_pipeline():
+            my_task = my_component()
+            my_task.set_caching_options(True)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+
+            task_spec = pipeline_spec['root']['dag']['tasks']['my-component']
+            caching_options = task_spec['cachingOptions']
+
+            self.assertTrue(caching_options['enableCache'])
+
+    def test_compile_pipeline_with_caching_disabled(self):
+        """Test pipeline compilation with caching disabled."""
+
+        @dsl.component
+        def my_component():
+            pass
+
+        @dsl.pipeline(name='tiny-pipeline')
+        def my_pipeline():
+            my_task = my_component()
+            my_task.set_caching_options(False)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+
+            task_spec = pipeline_spec['root']['dag']['tasks']['my-component']
+            caching_options = task_spec.get('cachingOptions', {})
+
+            self.assertEqual(caching_options, {})
+
+
 class V2NamespaceAliasTest(unittest.TestCase):
     """Test that imports of both modules and objects are aliased (e.g. all
     import path variants work)."""
