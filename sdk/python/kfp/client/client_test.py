@@ -24,7 +24,8 @@ from absl.testing import parameterized
 from google.protobuf import json_format
 from kfp.client import auth
 from kfp.client import client
-from kfp.compiler import Compiler
+from kfp.compiler.compiler import Compiler
+from kfp.compiler.compiler import override_caching_options
 from kfp.dsl import component
 from kfp.dsl import pipeline
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -88,7 +89,7 @@ class TestOverrideCachingOptions(parameterized.TestCase):
                 pipeline_obj = yaml.safe_load(f)
                 pipeline_spec = json_format.ParseDict(
                     pipeline_obj, pipeline_spec_pb2.PipelineSpec())
-                client._override_caching_options(pipeline_spec, True)
+                override_caching_options(pipeline_spec, True)
                 pipeline_obj = json_format.MessageToDict(pipeline_spec)
                 self.assertTrue(pipeline_obj['root']['dag']['tasks']
                                 ['hello-word']['cachingOptions']['enableCache'])

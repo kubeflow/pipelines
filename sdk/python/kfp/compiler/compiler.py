@@ -22,6 +22,7 @@ from typing import Any, Dict, Optional
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.dsl import base_component
 from kfp.dsl.types import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class Compiler:
@@ -53,6 +54,7 @@ class Compiler:
         pipeline_name: Optional[str] = None,
         pipeline_parameters: Optional[Dict[str, Any]] = None,
         type_check: bool = True,
+        enable_caching: Optional[bool] = None,
     ) -> None:
         """Compiles the pipeline or component function into IR YAML.
 
@@ -62,6 +64,12 @@ class Compiler:
             pipeline_name: Name of the pipeline.
             pipeline_parameters: Map of parameter names to argument values.
             type_check: Whether to enable type checking of component interfaces during compilation.
+            enable_caching: Whether or not to enable caching for the
+                run. If not set, defaults to the compile time settings, which
+                is ``True`` for all tasks by default, while users may specify
+                different caching options for individual tasks. If set, the
+                setting applies to all tasks in the pipeline (overrides the
+                compile time settings).
         """
 
         with type_utils.TypeCheckManager(enable=type_check):
@@ -78,9 +86,26 @@ class Compiler:
                 pipeline_parameters=pipeline_parameters,
             )
 
+            if enable_caching is not None:
+                override_caching_options(pipeline_spec, enable_caching)
+
             builder.write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec,
                 pipeline_description=pipeline_func.description,
                 platform_spec=pipeline_func.platform_spec,
                 package_path=package_path,
             )
+
+
+def override_caching_options(
+    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+    enable_caching: bool,
+) -> None:
+    """Overrides caching options.
+
+    Args:
+        pipeline_spec: The PipelineSpec object to update in-place.
+        enable_caching: Overrides options, one of True, False.
+    """
+    for _, task_spec in pipeline_spec.root.dag.tasks.items():
+        task_spec.caching_options.enable_cache = enable_caching
