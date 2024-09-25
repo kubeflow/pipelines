@@ -104,6 +104,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         customRenderer: this._last5RunsCustomRenderer,
         flex: 1,
         label: 'Last 5 runs',
+        sortKey: ExperimentSortKeys.LAST_RUN_CREATED_AT,
       },
     ];
 

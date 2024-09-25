@@ -586,6 +586,7 @@ export enum ExperimentSortKeys {
   CREATED_AT = 'created_at',
   ID = 'id',
   NAME = 'name',
+  LAST_RUN_CREATED_AT = 'last_run_created_at',
 }
 
 // Valid sortKeys as specified by the backend.
