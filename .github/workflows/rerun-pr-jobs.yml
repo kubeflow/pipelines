@@ -10,7 +10,7 @@ jobs:
     if: ${{ github.event.issue.pull_request }}
     runs-on: ubuntu-20.04
     steps:
-    - uses: estroz/rerun-actions@main
+    - uses: estroz/rerun-actions@6da343594fa5cc0869523be9b43ed9256c68d39b # https://github.com/estroz/rerun-actions/releases/tag/v0.3.0
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         comment_id: ${{ github.event.comment.id }}
