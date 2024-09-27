@@ -34,6 +34,8 @@ type S3ProviderDefault struct {
 	Region string `json:"region"`
 	// optional
 	DisableSSL *bool `json:"disableSSL"`
+	// optional
+	ForcePathStyle *bool `json:"forcePathStyle"`
 }
 
 type S3Credentials struct {
@@ -52,6 +54,8 @@ type S3Override struct {
 	KeyPrefix  string `json:"keyPrefix"`
 	// required
 	Credentials *S3Credentials `json:"credentials"`
+	// optional
+	ForcePathStyle *bool `json:"forcePathStyle"`
 }
 type S3SecretRef struct {
 	SecretName string `json:"secretName"`
@@ -99,6 +103,12 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 		params["disableSSL"] = strconv.FormatBool(*p.Default.DisableSSL)
 	}
 
+	if p.Default.ForcePathStyle == nil {
+		params["forcePathStyle"] = strconv.FormatBool(true)
+	} else {
+		params["forcePathStyle"] = strconv.FormatBool(*p.Default.ForcePathStyle)
+	}
+
 	params["fromEnv"] = strconv.FormatBool(p.Default.Credentials.FromEnv)
 	if !p.Default.Credentials.FromEnv {
 		params["secretName"] = p.Default.Credentials.SecretRef.SecretName
@@ -123,6 +133,9 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 		}
 		if override.DisableSSL != nil {
 			sessionInfo.Params["disableSSL"] = strconv.FormatBool(*override.DisableSSL)
+		}
+		if override.ForcePathStyle != nil {
+			sessionInfo.Params["forcePathStyle"] = strconv.FormatBool(*override.ForcePathStyle)
 		}
 		if override.Credentials == nil {
 			return objectstore.SessionInfo{}, invalidConfigErr(fmt.Errorf("missing override credentials"))

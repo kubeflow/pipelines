@@ -258,7 +258,7 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	config.Credentials = creds
 	config.Region = aws.String(params.Region)
 	config.DisableSSL = aws.Bool(params.DisableSSL)
-	config.S3ForcePathStyle = aws.Bool(true)
+	config.S3ForcePathStyle = aws.Bool(params.ForcePathStyle)
 
 	// AWS Specific:
 	// Path-style S3 endpoints, which are commonly used, may fall into either of two subdomains:
