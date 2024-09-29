@@ -46,6 +46,20 @@ then
   exit $EXIT_CODE
 fi
 
+docker build -q -t "${REGISTRY}/driver:${TAG}" -f backend/Dockerfile.driver . && docker push "${REGISTRY}/driver:${TAG}" || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Failed to build driver image."
+  exit $EXIT_CODE
+fi
+
+docker build -q -t "${REGISTRY}/launcher:${TAG}" -f backend/Dockerfile.launcher . && docker push "${REGISTRY}/launcher:${TAG}" || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Failed to build launcher image."
+  exit $EXIT_CODE
+fi
+
 
 # clean up intermittent build caches to free up disk space
 docker system prune -a -f

@@ -21,13 +21,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 
@@ -134,6 +135,8 @@ type ExecutionConfig struct {
 	NotTriggered     bool  // optional, not triggered executions will have CANCELED state.
 	ParentDagID      int64 // parent DAG execution ID. Only the root DAG does not have a parent DAG.
 	InputParameters  map[string]*structpb.Value
+	OutputParameters map[string]*structpb.Value
+	OutputArtifacts  map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
 	InputArtifactIDs map[string][]int64
 	IterationIndex   *int // Index of the iteration.
 
@@ -448,6 +451,8 @@ func getArtifactName(eventPath *pb.Event_Path) (string, error) {
 func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
 	e := execution.execution
 	e.LastKnownState = state.Enum()
+	glog.V(4).Infof("outputParameters: %v", outputParameters)
+	glog.V(4).Infof("outputArtifacts: %v", outputArtifacts)
 
 	if outputParameters != nil {
 		// Record output parameters.
@@ -512,7 +517,8 @@ const (
 	keyCacheFingerPrint  = "cache_fingerprint"
 	keyCachedExecutionID = "cached_execution_id"
 	keyInputs            = "inputs"
-	keyOutputs           = "outputs"
+	keyOutputs           = "outputs" // TODO: Consider renaming this to output_parameters to be consistent.
+	keyOutputArtifacts   = "output_artifacts"
 	keyParentDagID       = "parent_dag_id" // Parent DAG Execution ID.
 	keyIterationIndex    = "iteration_index"
 	keyIterationCount    = "iteration_count"
@@ -575,6 +581,24 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 				Fields: config.InputParameters,
 			},
 		}}
+	}
+	// We save the output parameter and output artifact relationships in MLMD in
+	// case they're provided by a sub-task so that we can follow the
+	// relationships and retrieve outputs downstream in components that depend
+	// on said outputs as inputs.
+	if config.OutputParameters != nil {
+		e.CustomProperties[keyOutputs] = &pb.Value{Value: &pb.Value_StructValue{
+			StructValue: &structpb.Struct{
+				Fields: config.OutputParameters,
+			},
+		}}
+	}
+	if config.OutputArtifacts != nil {
+		b, err := json.Marshal(config.OutputArtifacts)
+		if err != nil {
+			return nil, err
+		}
+		e.CustomProperties[keyOutputArtifacts] = StringValue(string(b))
 	}
 
 	req := &pb.PutExecutionRequest{

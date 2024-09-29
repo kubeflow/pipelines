@@ -26,6 +26,7 @@ import hello_world
 import producer_consumer_param
 import pipeline_container_no_input
 import two_step_pipeline_containerized
+import matroushka
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 5 * _MINUTE
@@ -50,6 +51,7 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=two_step_pipeline_containerized.two_step_pipeline_containerized),
             TestCase(pipeline_func=component_with_optional_inputs.pipeline),
             TestCase(pipeline_func=pipeline_with_env.pipeline_with_env),
+            TestCase(pipeline_func=matroushka.large_matroushka_doll)
 
             # The following tests are not working. Tracking issue: https://github.com/kubeflow/pipelines/issues/11053
             # TestCase(pipeline_func=pipeline_with_importer.pipeline_with_importer),
@@ -77,6 +79,7 @@ class SampleTest(unittest.TestCase):
             print(f"{self._kfp_ui_and_port}/#/runs/details/{run_response.run_id}")
 
             self.assertEqual(run_response.state, "SUCCEEDED")
+            print(f"Pipeline succeeded: {pipeline_func.pipeline_func.__name__}")
 
 
 if __name__ == '__main__':
