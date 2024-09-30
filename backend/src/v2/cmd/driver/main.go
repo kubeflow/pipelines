@@ -70,6 +70,7 @@ var (
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
 
 	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
+	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -154,6 +155,11 @@ func drive() (err error) {
 		return err
 	}
 
+	metadataTLSEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
+	if err != nil {
+		return err
+	}
+
 	cacheClient, err := cacheutils.NewClient(mlPipelineServiceTLSEnabled)
 	if err != nil {
 		return err
@@ -167,6 +173,9 @@ func drive() (err error) {
 		DAGExecutionID:       *dagExecutionID,
 		IterationIndex:       *iterationIndex,
 		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
+		MLMDServerAddress:    *mlmdServerAddress,
+		MLMDServerPort:       *mlmdServerPort,
+		MLMDTLSEnabled:       metadataTLSEnabled,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -292,5 +301,11 @@ func newMlmdClient() (*metadata.Client, error) {
 		mlmdConfig.Address = *mlmdServerAddress
 		mlmdConfig.Port = *mlmdServerPort
 	}
-	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port)
+
+	tlsEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, tlsEnabled)
 }

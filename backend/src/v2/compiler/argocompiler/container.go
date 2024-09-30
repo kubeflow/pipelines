@@ -17,6 +17,7 @@ package argocompiler
 import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
 	"os"
@@ -163,6 +164,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--condition_path", outputPath(paramCondition),
 				"--kubernetes_config", inputValue(paramKubernetesConfig),
 				"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
+				"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+				"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
+				"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
 			},
 			Resources: driverResources,
 		},

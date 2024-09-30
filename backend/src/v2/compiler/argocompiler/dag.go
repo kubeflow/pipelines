@@ -15,6 +15,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"sort"
 	"strconv"
 	"strings"
@@ -443,6 +444,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 				"--iteration_count_path", outputPath(paramIterationCount),
 				"--condition_path", outputPath(paramCondition),
 				"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
+				"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+				"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
+				"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
 			},
 			Resources: driverResources,
 		},
