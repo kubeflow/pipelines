@@ -77,6 +77,13 @@ type Options struct {
 
 	// set to true if ml pipeline server is serving over tls
 	MLPipelineTLSEnabled bool
+
+	MLMDServerAddress string
+
+	MLMDServerPort string
+
+	// set to true if MLMD server is serving over tls
+	MLMDTLSEnabled bool
 }
 
 // Identifying information used for error messages
@@ -339,7 +346,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.MLPipelineTLSEnabled)
+	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.MLPipelineTLSEnabled, opts.MLMDServerAddress, opts.MLMDServerPort, opts.MLMDTLSEnabled)
 	if err != nil {
 		return execution, err
 	}
@@ -373,6 +380,9 @@ func initPodSpecPatch(
 	pipelineName string,
 	runID string,
 	mlPipelineTLSEnabled bool,
+	mlmdServerAddress string,
+	mlmdServerPort string,
+	mlmdTLSEnabled bool,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -407,10 +417,9 @@ func initPodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
-		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--mlmd_server_address", mlmdServerAddress,
+		"--mlmd_server_port", mlmdServerPort,
+		"--metadataTLSEnabled", fmt.Sprintf("%v", mlmdTLSEnabled),
 		"--mlPipelineServiceTLSEnabled",
 		fmt.Sprintf("%v", mlPipelineTLSEnabled),
 		"--", // separater before user command and args

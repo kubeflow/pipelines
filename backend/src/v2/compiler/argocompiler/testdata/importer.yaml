@@ -38,9 +38,9 @@ spec:
       - --pod_uid
       - $(KFP_POD_UID)
       - --mlmd_server_address
-      - $(METADATA_GRPC_SERVICE_HOST)
+      - "metadata-grpc-service"
       - --mlmd_server_port
-      - $(METADATA_GRPC_SERVICE_PORT)
+      - "8080"
       command:
       - launcher-v2
       env:
@@ -119,6 +119,12 @@ spec:
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
       - "--mlPipelineServiceTLSEnabled"
+      - "false"
+      - "--mlmd_server_address"
+      - "metadata-grpc-service"
+      - "--mlmd_server_port"
+      - "8080"
+      - "--metadataTLSEnabled"
       - "false"
       command:
       - driver

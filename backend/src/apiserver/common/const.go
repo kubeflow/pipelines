@@ -57,6 +57,7 @@ const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
 const (
 	DefaultMetadataGrpcServiceServiceHost = "metadata-grpc-service"
 	DefaultMetadataGrpcServiceServicePort = "8080"
+	DefaultMetadataTLSEnabled             = false
 )
 
 const (
