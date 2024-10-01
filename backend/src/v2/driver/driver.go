@@ -1353,7 +1353,7 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamArtifactsConfig) error {
 	}
 	glog.V(4).Info("producer: ", producer)
 	currentTask := producer
-	var outputArtifactKey string = taskOutput.GetOutputArtifactKey()
+	outputArtifactKey := taskOutput.GetOutputArtifactKey()
 	currentSubTaskMaybeDAG := true
 	// Continue looping until we reach a sub-task that is NOT a DAG.
 	for currentSubTaskMaybeDAG {
@@ -1371,9 +1371,9 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamArtifactsConfig) error {
 			glog.V(4).Infof("Deserialized outputArtifacts: %v", outputArtifacts)
 			// Adding support for multiple output artifacts
 			var subTaskName string
-			value := outputArtifacts[outputArtifactKey].GetArtifactSelectors()
+			artifactSelectors := outputArtifacts[outputArtifactKey].GetArtifactSelectors()
 
-			for _, v := range value {
+			for _, v := range artifactSelectors {
 				glog.V(4).Infof("v: %v", v)
 				glog.V(4).Infof("v.ProducerSubtask: %v", v.ProducerSubtask)
 				glog.V(4).Infof("v.OutputArtifactKey: %v", v.OutputArtifactKey)
