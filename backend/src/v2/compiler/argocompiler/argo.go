@@ -40,7 +40,12 @@ type Options struct {
 	// optional
 	PipelineRoot string
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
+	TtlSeconds int32
 }
+
+const (
+	pipeline_default_ttlSeconds = int32(30)
+)
 
 func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
 	// clone jobArg, because we don't want to change it
@@ -86,6 +91,11 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		}
 	}
 
+	pipeline_ttlseconds := pipeline_default_ttlSeconds
+	if &opts.TtlSeconds != nil {
+		pipeline_ttlseconds = opts.TtlSeconds
+	}
+
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -117,6 +127,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			},
 			ServiceAccountName: "pipeline-runner",
 			Entrypoint:         tmplEntrypoint,
+			TTLStrategy: &wfapi.TTLStrategy{
+				SecondsAfterCompletion: &pipeline_ttlseconds,
+			},
 		},
 	}
 	c := &workflowCompiler{
