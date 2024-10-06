@@ -20,4 +20,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 ADD build /ml
 
-ENTRYPOINT ["python", "/ml/launch_pytorchjob.py"]
+ENTRYPOINT ["python", "/ml/src/launch_pytorchjob.py"]
