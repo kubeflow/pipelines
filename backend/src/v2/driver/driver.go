@@ -344,7 +344,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, err
 	}
 	if opts.KubernetesExecutorConfig != nil {
-		dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
+		dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline, true)
 		if err != nil {
 			return execution, err
 		}
@@ -758,29 +758,12 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	ecfg.NotTriggered = !execution.WillTrigger()
 
 	// Handle writing output parameters to MLMD.
-	outputParameters := opts.Component.GetDag().GetOutputs().GetParameters()
-	glog.V(4).Info("outputParameters: ", outputParameters)
-	ecfg.OutputParameters = make(map[string]*structpb.Value)
-	for name, value := range outputParameters {
-		outputParameterKey := value.GetValueFromParameter().GetOutputParameterKey()
-		producerSubTask := value.GetValueFromParameter().GetProducerSubtask()
-		glog.V(4).Info("outputParameterKey: ", outputParameterKey)
-		glog.V(4).Info("producerSubtask: ", producerSubTask)
-
-		outputParameterMap := map[string]interface{}{
-			"output_parameter_key": outputParameterKey,
-			"producer_subtask":     producerSubTask,
-		}
-
-		outputParameterStruct, _ := structpb.NewValue(outputParameterMap)
-
-		ecfg.OutputParameters[name] = outputParameterStruct
-	}
+	ecfg.OutputParameters = opts.Component.GetDag().GetOutputs().GetParameters()
+	glog.V(4).Info("outputParameters: ", ecfg.OutputParameters)
 
 	// Handle writing output artifacts to MLMD.
-	outputArtifacts := opts.Component.GetDag().GetOutputs().GetArtifacts()
-	glog.V(4).Info("outputArtifacts: ", outputArtifacts)
-	ecfg.OutputArtifacts = outputArtifacts
+	ecfg.OutputArtifacts = opts.Component.GetDag().GetOutputs().GetArtifacts()
+	glog.V(4).Info("outputArtifacts: ", ecfg.OutputArtifacts)
 
 	if opts.Task.GetArtifactIterator() != nil {
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
@@ -1256,55 +1239,109 @@ type resolveUpstreamParametersConfig struct {
 func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
 	taskOutput := cfg.paramSpec.GetTaskOutputParameter()
 	glog.V(4).Info("taskOutput: ", taskOutput)
-	if taskOutput.GetProducerTask() == "" {
-		return cfg.paramError(fmt.Errorf("producer task is empty"))
+	producerTaskName := taskOutput.GetProducerTask()
+	if producerTaskName == "" {
+		return cfg.paramError(fmt.Errorf("producerTaskName is empty"))
 	}
-	if taskOutput.GetOutputParameterKey() == "" {
+	outputParameterKey := taskOutput.GetOutputParameterKey()
+	if outputParameterKey == "" {
 		return cfg.paramError(fmt.Errorf("output parameter key is empty"))
 	}
-	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
+	tasks, err := cfg.mlmd.GetExecutionsInDAG(cfg.ctx, cfg.dag, cfg.pipeline, false)
 	if err != nil {
 		return cfg.paramError(err)
 	}
-
+	glog.V(4).Infof("tasks: %#v", tasks)
 	// The producer is the task that produces the output that we need to
 	// consume.
-	producer := tasks[taskOutput.GetProducerTask()]
-	outputParameterKey := taskOutput.GetOutputParameterKey()
+	producer, ok := tasks[producerTaskName]
+	if !ok {
+		return cfg.paramError(fmt.Errorf("producer task, %v, not in tasks", producerTaskName))
+	}
 	glog.V(4).Info("producer: ", producer)
 	currentTask := producer
 	currentSubTaskMaybeDAG := true
 	// Continue looping until we reach a sub-task that is NOT a DAG.
 	for currentSubTaskMaybeDAG {
 		glog.V(4).Info("currentTask: ", currentTask.TaskName())
-		_, outputParametersCustomProperty, err := currentTask.GetParameters()
-		if err != nil {
-			return err
-		}
 		// If the current task is a DAG:
 		if *currentTask.GetExecution().Type == "system.DAGExecution" {
 			// Since currentTask is a DAG, we need to deserialize its
-			// output parameter map so that we can look its
+			// output parameter map so that we can look up its
 			// corresponding producer sub-task, reassign currentTask,
 			// and iterate through this loop again.
-			var outputParametersMap map[string]string
-			b, err := outputParametersCustomProperty[outputParameterKey].GetStructValue().MarshalJSON()
-			if err != nil {
-				return err
+			outputParametersCustomProperty, ok := currentTask.GetExecution().GetCustomProperties()["parameter_producer_task"]
+			if !ok {
+				return cfg.paramError(fmt.Errorf("Task, %v, does not have a parameter_producer_task custom property", currentTask.TaskName()))
 			}
-			json.Unmarshal(b, &outputParametersMap)
-			glog.V(4).Info("Deserialized outputParametersMap: ", outputParametersMap)
-			subTaskName := outputParametersMap["producer_subtask"]
-			outputParameterKey = outputParametersMap["output_parameter_key"]
+			glog.V(4).Infof("outputParametersCustomProperty: %#v", outputParametersCustomProperty)
+
+			dagOutputParametersMap := make(map[string]*pipelinespec.DagOutputsSpec_DagOutputParameterSpec)
+			glog.V(4).Infof("outputParametersCustomProperty: %v", outputParametersCustomProperty.GetStructValue())
+
+			for name, value := range outputParametersCustomProperty.GetStructValue().GetFields() {
+				outputSpec := &pipelinespec.DagOutputsSpec_DagOutputParameterSpec{}
+				err := protojson.Unmarshal([]byte(value.GetStringValue()), outputSpec)
+				if err != nil {
+					return err
+				}
+				dagOutputParametersMap[name] = outputSpec
+			}
+
+			glog.V(4).Infof("Deserialized dagOutputParametersMap: %v", dagOutputParametersMap)
+
+			// Support for the 2 DagOutputParameterSpec types:
+			// ValueFromParameter & ValueFromOneof
+			var subTaskName string
+			switch dagOutputParametersMap[outputParameterKey].Kind.(type) {
+			case *pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromParameter:
+				subTaskName = dagOutputParametersMap[outputParameterKey].GetValueFromParameter().GetProducerSubtask()
+				outputParameterKey = dagOutputParametersMap[outputParameterKey].GetValueFromParameter().GetOutputParameterKey()
+			case *pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromOneof:
+				// When OneOf is specified in a pipeline, the output of only 1 task is consumed even though there may be more than 1 task output set. In this case we will attempt to grab the first successful task output.
+				paramSelectors := dagOutputParametersMap[outputParameterKey].GetValueFromOneof().GetParameterSelectors()
+				glog.V(4).Infof("paramSelectors: %v", paramSelectors)
+				// Since we have the tasks map, we can iterate through the parameterSelectors if the ProducerSubTask is not present in the task map and then assign the new OutputParameterKey only if it exists.
+				successfulOneOfTask := false
+				for !successfulOneOfTask {
+					for _, paramSelector := range paramSelectors {
+						subTaskName = paramSelector.GetProducerSubtask()
+						glog.V(4).Infof("subTaskName from paramSelector: %v", subTaskName)
+						glog.V(4).Infof("outputParameterKey from paramSelector: %v", paramSelector.GetOutputParameterKey())
+						if subTask, ok := tasks[subTaskName]; ok {
+							subTaskState := subTask.GetExecution().LastKnownState.String()
+							glog.V(4).Infof("subTask: %w , subTaskState: %v", subTaskName, subTaskState)
+							if subTaskState == "CACHED" || subTaskState == "COMPLETE" {
+
+								outputParameterKey = paramSelector.GetOutputParameterKey()
+								successfulOneOfTask = true
+								break
+							}
+						}
+					}
+					return cfg.paramError(fmt.Errorf("Processing OneOf: No successful task found"))
+				}
+			}
+			glog.V(4).Infof("SubTaskName from outputParams: %v", subTaskName)
+			glog.V(4).Infof("OutputParameterKey from outputParams: %v", outputParameterKey)
+			if subTaskName == "" {
+				return cfg.paramError(fmt.Errorf("producer_subtask not in outputParams"))
+			}
 			glog.V(4).Infof(
 				"Overriding currentTask, %v, output with currentTask's producer_subtask, %v, output.",
 				currentTask.TaskName(),
 				subTaskName,
 			)
+			currentTask, ok = tasks[subTaskName]
+			if !ok {
+				return cfg.paramError(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
+			}
 
-			// Reassign sub-task before running through the loop again.
-			currentTask = tasks[subTaskName]
 		} else {
+			_, outputParametersCustomProperty, err := currentTask.GetParameters()
+			if err != nil {
+				return err
+			}
 			cfg.inputs.ParameterValues[cfg.name] = outputParametersCustomProperty[outputParameterKey]
 			// Exit the loop.
 			currentSubTaskMaybeDAG = false
@@ -1340,7 +1377,7 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamArtifactsConfig) error {
 	if taskOutput.GetOutputArtifactKey() == "" {
 		cfg.artifactError(fmt.Errorf("output artifact key is empty"))
 	}
-	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
+	tasks, err := cfg.mlmd.GetExecutionsInDAG(cfg.ctx, cfg.dag, cfg.pipeline, false)
 	if err != nil {
 		cfg.artifactError(err)
 	}
@@ -1361,7 +1398,7 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamArtifactsConfig) error {
 		// If the current task is a DAG:
 		if *currentTask.GetExecution().Type == "system.DAGExecution" {
 			// Get the sub-task.
-			outputArtifactsCustomProperty := currentTask.GetExecution().GetCustomProperties()["output_artifacts"]
+			outputArtifactsCustomProperty := currentTask.GetExecution().GetCustomProperties()["artifact_producer_task"]
 			// Deserialize the output artifacts.
 			var outputArtifacts map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
 			err := json.Unmarshal([]byte(outputArtifactsCustomProperty.GetStringValue()), &outputArtifacts)
@@ -1414,44 +1451,6 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamArtifactsConfig) error {
 	}
 
 	return nil
-}
-
-// getDAGTasks gets all the tasks associated with the specified DAG and all of
-// its subDAGs.
-func getDAGTasks(
-	ctx context.Context,
-	dag *metadata.DAG,
-	pipeline *metadata.Pipeline,
-	mlmd *metadata.Client,
-	flattenedTasks map[string]*metadata.Execution,
-) (map[string]*metadata.Execution, error) {
-	if flattenedTasks == nil {
-		flattenedTasks = make(map[string]*metadata.Execution)
-	}
-	currentExecutionTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range currentExecutionTasks {
-		flattenedTasks[k] = v
-	}
-	for _, v := range currentExecutionTasks {
-		if v.GetExecution().GetType() == "system.DAGExecution" {
-			glog.V(4).Infof("Found a task, %v, with an execution type of system.DAGExecution. Adding its tasks to the task list.", v.TaskName())
-			subDAG, err := mlmd.GetDAG(ctx, v.GetExecution().GetId())
-			if err != nil {
-				return nil, err
-			}
-			// Pass the subDAG into a recursive call to getDAGTasks and update
-			// tasks to include the subDAG's tasks.
-			flattenedTasks, err = getDAGTasks(ctx, subDAG, pipeline, mlmd, flattenedTasks)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return flattenedTasks, nil
 }
 
 func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.ComponentOutputsSpec, outputUriSalt string) *pipelinespec.ExecutorInput_Outputs {

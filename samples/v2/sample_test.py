@@ -28,6 +28,8 @@ import pipeline_container_no_input
 import pipeline_with_env
 import producer_consumer_param
 import two_step_pipeline_containerized
+# import subdagio
+
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 5 * _MINUTE
@@ -74,10 +76,11 @@ class SampleTest(unittest.TestCase):
 
             # TestCase(pipeline_func=subdagio.parameter.crust),
             # TestCase(pipeline_func=subdagio.parameter_cache.crust),
+            # TestCase(pipeline_func=subdagio.mixed_parameters.crust),
+            # TestCase(pipeline_func=subdagio.multiple_parameters_namedtuple.crust),
+            # TestCase(pipeline_func=subdagio.parameter_oneof.crust),
             # TestCase(pipeline_func=subdagio.artifact_cache.crust),
             # TestCase(pipeline_func=subdagio.artifact.crust),
-            # TestCase(pipeline_func=subdagio.mixed_parameters.crust),
-            # TestCase(pipeline_func=subdagio.multiple_parameters_namedtuple.crust)
             # TestCase(pipeline_func=subdagio.multiple_artifacts_namedtuple.crust),
         ]
 

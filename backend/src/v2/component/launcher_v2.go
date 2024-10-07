@@ -148,6 +148,17 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			}
 		}
 		glog.Infof("publish success.")
+		// At the end of the current task, we check the statuses of all tasks in the current DAG and update the DAG's status accordingly.
+		// TODO: If there's a pipeline whose only components are DAGs, this launcher logic will never run and as a result the dag status will never be updated. We need to implement a mechanism to handle this edge case.
+		dag, err := l.metadataClient.GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
+		if err != nil {
+			glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
+		}
+		pipeline, _ := l.metadataClient.GetPipelineFromExecution(ctx, execution.GetID())
+		err = l.metadataClient.UpdateDAGExecutionsState(ctx, dag, pipeline)
+		if err != nil {
+			glog.Errorf("failed to update DAG state: %s", err.Error())
+		}
 	}()
 	executedStartedTime := time.Now().Unix()
 	execution, err = l.prePublish(ctx)

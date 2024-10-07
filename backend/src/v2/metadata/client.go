@@ -89,7 +89,9 @@ type ClientInterface interface {
 	GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error)
 	GetExecution(ctx context.Context, id int64) (*Execution, error)
 	GetPipelineFromExecution(ctx context.Context, id int64) (*Pipeline, error)
-	GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline) (executionsMap map[string]*Execution, err error)
+	GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline, filter bool) (executionsMap map[string]*Execution, err error)
+	UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) (err error)
+	PutDAGExecutionState(ctx context.Context, executionID int64, state pb.Execution_State) (err error)
 	GetEventsByArtifactIDs(ctx context.Context, artifactIds []int64) ([]*pb.Event, error)
 	GetArtifactName(ctx context.Context, artifactId int64) (string, error)
 	GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact, error)
@@ -135,7 +137,7 @@ type ExecutionConfig struct {
 	NotTriggered     bool  // optional, not triggered executions will have CANCELED state.
 	ParentDagID      int64 // parent DAG execution ID. Only the root DAG does not have a parent DAG.
 	InputParameters  map[string]*structpb.Value
-	OutputParameters map[string]*structpb.Value
+	OutputParameters map[string]*pipelinespec.DagOutputsSpec_DagOutputParameterSpec
 	OutputArtifacts  map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
 	InputArtifactIDs map[string][]int64
 	IterationIndex   *int // Index of the iteration.
@@ -505,23 +507,25 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 
 // metadata keys
 const (
-	keyDisplayName       = "display_name"
-	keyTaskName          = "task_name"
-	keyImage             = "image"
-	keyPodName           = "pod_name"
-	keyPodUID            = "pod_uid"
-	keyNamespace         = "namespace"
-	keyResourceName      = "resource_name"
-	keyPipelineRoot      = "pipeline_root"
-	keyStoreSessionInfo  = "store_session_info"
-	keyCacheFingerPrint  = "cache_fingerprint"
-	keyCachedExecutionID = "cached_execution_id"
-	keyInputs            = "inputs"
-	keyOutputs           = "outputs" // TODO: Consider renaming this to output_parameters to be consistent.
-	keyOutputArtifacts   = "output_artifacts"
-	keyParentDagID       = "parent_dag_id" // Parent DAG Execution ID.
-	keyIterationIndex    = "iteration_index"
-	keyIterationCount    = "iteration_count"
+	keyDisplayName           = "display_name"
+	keyTaskName              = "task_name"
+	keyImage                 = "image"
+	keyPodName               = "pod_name"
+	keyPodUID                = "pod_uid"
+	keyNamespace             = "namespace"
+	keyResourceName          = "resource_name"
+	keyPipelineRoot          = "pipeline_root"
+	keyStoreSessionInfo      = "store_session_info"
+	keyCacheFingerPrint      = "cache_fingerprint"
+	keyCachedExecutionID     = "cached_execution_id"
+	keyInputs                = "inputs"
+	keyOutputs               = "outputs"
+	keyParameterProducerTask = "parameter_producer_task"
+	keyOutputArtifacts       = "output_artifacts"
+	keyArtifactProducerTask  = "artifact_producer_task"
+	keyParentDagID           = "parent_dag_id" // Parent DAG Execution ID.
+	keyIterationIndex        = "iteration_index"
+	keyIterationCount        = "iteration_count"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -587,9 +591,25 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	// relationships and retrieve outputs downstream in components that depend
 	// on said outputs as inputs.
 	if config.OutputParameters != nil {
-		e.CustomProperties[keyOutputs] = &pb.Value{Value: &pb.Value_StructValue{
+		// Convert OutputParameters to a format that can be saved in MLMD.
+		glog.V(4).Info("outputParameters: ", config.OutputParameters)
+		outputParametersCustomPropertyProtoMap := make(map[string]*structpb.Value)
+
+		for name, value := range config.OutputParameters {
+			if outputParameterProtoMsg, ok := interface{}(value).(proto.Message); ok {
+				glog.V(4).Infof("name: %v, value: %w", name, value)
+				glog.V(4).Info("protoMessage: ", outputParameterProtoMsg)
+				b, err := protojson.Marshal(outputParameterProtoMsg)
+				if err != nil {
+					return nil, err
+				}
+				outputValue, _ := structpb.NewValue(string(b))
+				outputParametersCustomPropertyProtoMap[name] = outputValue
+			}
+		}
+		e.CustomProperties[keyParameterProducerTask] = &pb.Value{Value: &pb.Value_StructValue{
 			StructValue: &structpb.Struct{
-				Fields: config.OutputParameters,
+				Fields: outputParametersCustomPropertyProtoMap,
 			},
 		}}
 	}
@@ -598,7 +618,7 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		if err != nil {
 			return nil, err
 		}
-		e.CustomProperties[keyOutputArtifacts] = StringValue(string(b))
+		e.CustomProperties[keyArtifactProducerTask] = StringValue(string(b))
 	}
 
 	req := &pb.PutExecutionRequest{
@@ -662,6 +682,61 @@ func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, 
 		return nil, err
 	}
 	return execution, nil
+}
+
+// UpdateDAGExecutionState checks all the statuses of the tasks in the given DAG, based on that it will update the DAG to the corresponding status if necessary.
+func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) error {
+	tasks, err := c.GetExecutionsInDAG(ctx, dag, pipeline, true)
+	if err != nil {
+		return err
+	}
+	glog.V(4).Infof("tasks: %v", tasks)
+	glog.V(4).Infof("Checking Tasks' State")
+	completedTasks := 0
+	failedTasks := 0
+	totalTasks := len(tasks)
+	for _, task := range tasks {
+		taskState := task.GetExecution().LastKnownState.String()
+		glog.V(4).Infof("task: %s", task.TaskName())
+		glog.V(4).Infof("task state: %s", taskState)
+		switch taskState {
+		case "FAILED":
+			failedTasks++
+		case "COMPLETE":
+			completedTasks++
+		case "CACHED":
+			completedTasks++
+		case "CANCELED":
+			completedTasks++
+		}
+	}
+	glog.V(4).Infof("completedTasks: %d", completedTasks)
+	glog.V(4).Infof("failedTasks: %d", failedTasks)
+	glog.V(4).Infof("totalTasks: %d", totalTasks)
+
+	glog.Infof("Attempting to update DAG state")
+	if completedTasks == totalTasks {
+		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_COMPLETE)
+	} else if failedTasks > 0 {
+		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_FAILED)
+	} else {
+		glog.V(4).Infof("DAG is still running")
+	}
+	return nil
+}
+
+// PutDAGExecutionState updates the given DAG Id to the state provided.
+func (c *Client) PutDAGExecutionState(ctx context.Context, executionID int64, state pb.Execution_State) error {
+
+	e, err := c.GetExecution(ctx, executionID)
+	if err != nil {
+		return err
+	}
+	e.execution.LastKnownState = state.Enum()
+	_, err = c.svc.PutExecution(ctx, &pb.PutExecutionRequest{
+		Execution: e.execution,
+	})
+	return err
 }
 
 // GetExecutions ...
@@ -728,7 +803,7 @@ func (c *Client) GetPipelineFromExecution(ctx context.Context, id int64) (*Pipel
 
 // GetExecutionsInDAG gets all executions in the DAG, and organize them
 // into a map, keyed by task name.
-func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline) (executionsMap map[string]*Execution, err error) {
+func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline, filter bool) (executionsMap map[string]*Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to get executions in %s: %w", dag.Info(), err)
@@ -737,7 +812,12 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	executionsMap = make(map[string]*Execution)
 	// Documentation on query syntax:
 	// https://github.com/google/ml-metadata/blob/839c3501a195d340d2855b6ffdb2c4b0b49862c9/ml_metadata/proto/metadata_store.proto#L831
-	parentDAGFilter := fmt.Sprintf("custom_properties.parent_dag_id.int_value = %v", dag.Execution.GetID())
+	// If filter is set to true, the MLMD call will only grab executions for the current DAG, else it would grab all the execution for the context which includes sub-DAGs.
+	parentDAGFilter := ""
+	if filter {
+		parentDAGFilter = fmt.Sprintf("custom_properties.parent_dag_id.int_value = %v", dag.Execution.GetID())
+	}
+
 	// Note, because MLMD does not have index on custom properties right now, we
 	// take a pipeline run context to limit the number of executions the DB needs to
 	// iterate through to find sub-executions.
@@ -756,11 +836,16 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 		}
 
 		execs := res.GetExecutions()
+		glog.V(4).Infof("execs: %v", execs)
 		for _, e := range execs {
 			execution := &Execution{execution: e}
 			taskName := execution.TaskName()
 			if taskName == "" {
-				return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+				if e.GetCustomProperties()[keyParentDagID] != nil {
+					return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+				}
+				// When retrieving executions without the parentDAGFilter, the rootDAG execution is supplied but does not have an associated TaskName nor is the parentDagID set, therefore we won't include it in the executionsMap.
+				continue
 			}
 			existing, ok := executionsMap[taskName]
 			if ok {
