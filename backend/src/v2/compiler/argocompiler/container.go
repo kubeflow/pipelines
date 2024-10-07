@@ -182,8 +182,8 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:   GetDriverImage(),
-			Command: GetDriverCommand(),
+			Image:   c.driverImage,
+			Command: c.driverCommand,
 			Args: []string{
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
@@ -345,7 +345,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
-				Image:   GetLauncherImage(),
+				Image:   c.launcherImage,
 				Command: []string{"launcher-v2", "--copy", component.KFPLauncherPath},
 				VolumeMounts: []k8score.VolumeMount{
 					{
