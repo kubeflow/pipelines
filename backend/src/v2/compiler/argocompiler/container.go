@@ -34,6 +34,8 @@ const (
 	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
 	DefaultDriverImage       = "gcr.io/ml-pipeline/kfp-driver@sha256:dc8b56a2eb071f30409828a8884d621092e68385af11a6c06aa9e9fbcfbb19de"
 	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
+	DriverLogLevelEnvVar     = "DRIVER_LOG_LEVEL"
+	LauncherLogLevelEnvVar   = "LAUNCHER_LOG_LEVEL"
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
 	s3ScratchLocation        = "/s3"
@@ -130,6 +132,25 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if ok {
 		return name
 	}
+
+	args := []string{
+		"--type", "CONTAINER",
+		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
+		"--run_id", runID(),
+		"--dag_execution_id", inputValue(paramParentDagID),
+		"--component", inputValue(paramComponent),
+		"--task", inputValue(paramTask),
+		"--container", inputValue(paramContainer),
+		"--iteration_index", inputValue(paramIterationIndex),
+		"--cached_decision_path", outputPath(paramCachedDecision),
+		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
+		"--condition_path", outputPath(paramCondition),
+		"--kubernetes_config", inputValue(paramKubernetesConfig),
+	}
+	if value, ok := os.LookupEnv(DriverLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
+
 	t := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -150,22 +171,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:   c.driverImage,
-			Command: []string{"driver"},
-			Args: []string{
-				"--type", "CONTAINER",
-				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-				"--run_id", runID(),
-				"--dag_execution_id", inputValue(paramParentDagID),
-				"--component", inputValue(paramComponent),
-				"--task", inputValue(paramTask),
-				"--container", inputValue(paramContainer),
-				"--iteration_index", inputValue(paramIterationIndex),
-				"--cached_decision_path", outputPath(paramCachedDecision),
-				"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
-				"--condition_path", outputPath(paramCondition),
-				"--kubernetes_config", inputValue(paramKubernetesConfig),
-			},
+			Image:     c.driverImage,
+			Command:   []string{"driver"},
+			Args:      args,
 			Resources: driverResources,
 		},
 	}
@@ -245,6 +253,13 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 		},
 	}
 	c.templates[nameContainerExecutor] = container
+
+	args := []string{
+		"--copy", component.KFPLauncherPath,
+	}
+	if value, ok := os.LookupEnv(LauncherLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,
 		Inputs: wfapi.Inputs{
@@ -304,7 +319,8 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   c.launcherImage,
-				Command: []string{"launcher-v2", "--copy", component.KFPLauncherPath},
+				Command: []string{"launcher-v2"},
+				Args:    args,
 				VolumeMounts: []k8score.VolumeMount{
 					{
 						Name:      volumeNameKFPLauncher,

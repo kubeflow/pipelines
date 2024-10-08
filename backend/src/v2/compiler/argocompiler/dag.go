@@ -15,6 +15,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -406,6 +407,24 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	if ok {
 		return name
 	}
+
+	args := []string{
+		"--type", inputValue(paramDriverType),
+		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
+		"--run_id", runID(),
+		"--dag_execution_id", inputValue(paramParentDagID),
+		"--component", inputValue(paramComponent),
+		"--task", inputValue(paramTask),
+		"--runtime_config", inputValue(paramRuntimeConfig),
+		"--iteration_index", inputValue(paramIterationIndex),
+		"--execution_id_path", outputPath(paramExecutionID),
+		"--iteration_count_path", outputPath(paramIterationCount),
+		"--condition_path", outputPath(paramCondition),
+	}
+	if value, ok := os.LookupEnv(DriverLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
+
 	t := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -426,21 +445,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:   c.driverImage,
-			Command: []string{"driver"},
-			Args: []string{
-				"--type", inputValue(paramDriverType),
-				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-				"--run_id", runID(),
-				"--dag_execution_id", inputValue(paramParentDagID),
-				"--component", inputValue(paramComponent),
-				"--task", inputValue(paramTask),
-				"--runtime_config", inputValue(paramRuntimeConfig),
-				"--iteration_index", inputValue(paramIterationIndex),
-				"--execution_id_path", outputPath(paramExecutionID),
-				"--iteration_count_path", outputPath(paramIterationCount),
-				"--condition_path", outputPath(paramCondition),
-			},
+			Image:     c.driverImage,
+			Command:   []string{"driver"},
+			Args:      args,
 			Resources: driverResources,
 		},
 	}
