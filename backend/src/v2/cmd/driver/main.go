@@ -68,12 +68,17 @@ var (
 	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
+	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
 
 func main() {
 	flag.Parse()
+
+	glog.Infof("Setting log level to: '%s'", *logLevel)
+	flag.Set("v", *logLevel)
+
 	err := drive()
 	if err != nil {
 		glog.Exitf("%v", err)
