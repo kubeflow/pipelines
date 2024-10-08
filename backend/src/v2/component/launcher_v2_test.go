@@ -22,6 +22,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/stretchr/testify/assert"
 	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/memblob"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -75,9 +76,9 @@ func Test_executeV2_Parameters(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			fakeKubernetesClientset := &fake.Clientset{}
 			fakeMetadataClient := metadata.NewFakeClient()
-			bucket, err := blob.OpenBucket(context.Background(), "gs://test-bucket")
+			bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
 			assert.Nil(t, err)
-			bucketConfig, err := objectstore.ParseBucketConfig("gs://test-bucket/pipeline-root/", nil)
+			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
 			assert.Nil(t, err)
 			_, _, err = executeV2(context.Background(), test.executorInput, addNumbersComponent, "sh", test.executorArgs, bucket, bucketConfig, fakeMetadataClient, "namespace", fakeKubernetesClientset)
 

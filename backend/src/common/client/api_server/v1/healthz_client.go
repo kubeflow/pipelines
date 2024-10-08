@@ -28,7 +28,7 @@ import (
 )
 
 type HealthzInterface interface {
-	GetHealthz() (*params.GetHealthzOK, error)
+	GetHealthz() (*params.HealthzServiceGetHealthzOK, error)
 }
 
 type HealthzClient struct {
@@ -65,10 +65,10 @@ func NewKubeflowInClusterHealthzClient(namespace string, debug bool) (
 }
 
 func (c *HealthzClient) GetHealthz() (*model.APIGetHealthzResponse, error) {
-	parameters := params.NewGetHealthzParamsWithTimeout(api_server.APIServerDefaultTimeout)
-	response, err := c.apiClient.HealthzService.GetHealthz(parameters, api_server.PassThroughAuth)
+	parameters := params.NewHealthzServiceGetHealthzParamsWithTimeout(api_server.APIServerDefaultTimeout)
+	response, err := c.apiClient.HealthzService.HealthzServiceGetHealthz(parameters, api_server.PassThroughAuth)
 	if err != nil {
-		if defaultError, ok := err.(*params.GetHealthzDefault); ok {
+		if defaultError, ok := err.(*params.HealthzServiceGetHealthzDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)

@@ -26,7 +26,7 @@ def _resolve_image(default: str = '') -> str:
 
 # pytype: disable=unsupported-operands
 @dsl.container_component
-def PrivateTextImporter(  # pylint: disable=invalid-name
+def private_text_importer(
     project: str,
     location: str,
     input_text: str,
@@ -37,10 +37,11 @@ def PrivateTextImporter(  # pylint: disable=invalid-name
     imported_data_path: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     instruction: str = '',
-    image_uri: str = utils.get_default_image_uri('text_importer_backup'),
+    image_uri: str = utils.get_default_image_uri('refined_cpu', ''),
     machine_type: str = 'e2-highmem-8',
     output_split_name: str = 'all',
     max_num_input_examples: Optional[int] = None,
+    encryption_spec_key_name: str = '',
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Import a text dataset.
 
@@ -59,6 +60,10 @@ def PrivateTextImporter(  # pylint: disable=invalid-name
     output_split_name: The created seqio task has 1 split, its name is specified
       by this argument.
     max_num_input_examples: Maximum number of examples to import.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set,
+      then all resources created by the CustomJob will be encrypted with the
+      provided encryption key. Note that this is not supported for TPU at the
+      moment.
 
   Returns:
     imported_data: Artifact representing the imported data and cached Tasks.
@@ -76,6 +81,7 @@ def PrivateTextImporter(  # pylint: disable=invalid-name
           machine_type=machine_type,
           image_uri=_resolve_image(image_uri),
           args=[
+              '--app_name=text_importer',
               f'--input_text={input_text}',
               f'--inputs_field_name={inputs_field_name}',
               f'--targets_field_name={targets_field_name}',
@@ -88,7 +94,10 @@ def PrivateTextImporter(  # pylint: disable=invalid-name
               f'--max_num_input_examples={max_num_input_examples}',
               '--executor_input={{$.json_escape[1]}}',
           ],
+          encryption_spec_key_name=encryption_spec_key_name,
       ),
       gcp_resources=gcp_resources,
   )
+
+
 # pytype: enable=unsupported-operands

@@ -214,6 +214,60 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 	wg.Wait()
 }
 
+func Test_GenerateOutputURI(t *testing.T) {
+	// Const define the artifact name
+	const (
+		pipelineName      = "my-pipeline-name"
+		runID             = "my-run-id"
+		pipelineRoot      = "minio://mlpipeline/v2/artifacts"
+		pipelineRootQuery = "?query=string&another=query"
+	)
+	tests := []struct {
+		name                string
+		queryString         string
+		paths               []string
+		preserveQueryString bool
+		want                string
+	}{
+		{
+			name:                "plain pipeline root without preserveQueryString",
+			queryString:         "",
+			paths:               []string{pipelineName, runID},
+			preserveQueryString: false,
+			want:                fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID),
+		},
+		{
+			name:                "plain pipeline root with preserveQueryString",
+			queryString:         "",
+			paths:               []string{pipelineName, runID},
+			preserveQueryString: true,
+			want:                fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID),
+		},
+		{
+			name:                "pipeline root with query string without preserveQueryString",
+			queryString:         pipelineRootQuery,
+			paths:               []string{pipelineName, runID},
+			preserveQueryString: false,
+			want:                fmt.Sprintf("%s/%s/%s", pipelineRoot, pipelineName, runID),
+		},
+		{
+			name:                "pipeline root with query string with preserveQueryString",
+			queryString:         pipelineRootQuery,
+			paths:               []string{pipelineName, runID},
+			preserveQueryString: true,
+			want:                fmt.Sprintf("%s/%s/%s%s", pipelineRoot, pipelineName, runID, pipelineRootQuery),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := metadata.GenerateOutputURI(fmt.Sprintf("%s%s", pipelineRoot, tt.queryString), tt.paths, tt.preserveQueryString)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("GenerateOutputURI() = %v, want %v\nDiff (-want, +got)\n%s", got, tt.want, diff)
+			}
+		})
+	}
+}
+
 func Test_DAG(t *testing.T) {
 	t.Skip("Temporarily disable the test that requires cluster connection.")
 

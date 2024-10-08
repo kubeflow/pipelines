@@ -19,17 +19,20 @@ package metadata
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"github.com/golang/glog"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -80,7 +83,7 @@ var (
 )
 
 type ClientInterface interface {
-	GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, bucketSessionInfo string) (*Pipeline, error)
+	GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, storeSessionInfo string) (*Pipeline, error)
 	GetDAG(ctx context.Context, executionID int64) (*DAG, error)
 	PublishExecution(ctx context.Context, execution *Execution, outputParameters map[string]*structpb.Value, outputArtifacts []*OutputArtifact, state pb.Execution_State) error
 	CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error)
@@ -95,7 +98,7 @@ type ClientInterface interface {
 	GetContexts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*pb.Context, *string, error)
 	GetArtifactsByID(ctx context.Context, ids []int64) ([]*pb.Artifact, error)
 	GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string]*OutputArtifact, error)
-	RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error)
+	RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error)
 	GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error)
 	FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error)
 	GetContextByArtifactID(ctx context.Context, id int64) (*pb.Context, error)
@@ -213,16 +216,16 @@ func (p *Pipeline) GetCtxID() int64 {
 	return p.pipelineCtx.GetId()
 }
 
-func (p *Pipeline) GetPipelineBucketSession() string {
+func (p *Pipeline) GetStoreSessionInfo() string {
 	if p == nil {
 		return ""
 	}
 	props := p.pipelineRunCtx.GetCustomProperties()
-	bucketSessionInfo, ok := props[keySessionInfoDetails]
+	storeSessionInfo, ok := props[keyStoreSessionInfo]
 	if !ok {
 		return ""
 	}
-	return bucketSessionInfo.GetStringValue()
+	return storeSessionInfo.GetStringValue()
 }
 
 func (p *Pipeline) GetPipelineRoot() string {
@@ -285,9 +288,29 @@ func (e *Execution) FingerPrint() string {
 	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
 }
 
+// GenerateOutputURI appends the specified paths to the pipeline root.
+// It may be configured to preserve the query part of the pipeline root
+// by splitting it off and appending it back to the full URI.
+func GenerateOutputURI(pipelineRoot string, paths []string, preserveQueryString bool) string {
+	querySplit := strings.Split(pipelineRoot, "?")
+	query := ""
+	if len(querySplit) == 2 {
+		pipelineRoot = querySplit[0]
+		if preserveQueryString {
+			query = "?" + querySplit[1]
+		}
+	} else if len(querySplit) > 2 {
+		// this should never happen, but just in case.
+		glog.Warningf("Unexpected pipeline root: %v", pipelineRoot)
+	}
+	// we cannot path.Join(root, taskName, artifactName), because root
+	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
+	return fmt.Sprintf("%s/%s%s", strings.TrimRight(pipelineRoot, "/"), path.Join(paths...), query)
+}
+
 // GetPipeline returns the current pipeline represented by the specified
 // pipeline name and run ID.
-func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, bucketSessionInfo string) (*Pipeline, error) {
+func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot, storeSessionInfo string) (*Pipeline, error) {
 	pipelineContext, err := c.getOrInsertContext(ctx, pipelineName, pipelineContextType, nil)
 	if err != nil {
 		return nil, err
@@ -297,8 +320,8 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName, runID, namespace
 		keyNamespace:    stringValue(namespace),
 		keyResourceName: stringValue(runResource),
 		// pipeline root of this run
-		keyPipelineRoot:       stringValue(strings.TrimRight(pipelineRoot, "/") + "/" + path.Join(pipelineName, runID)),
-		keySessionInfoDetails: stringValue(bucketSessionInfo),
+		keyPipelineRoot:     stringValue(GenerateOutputURI(pipelineRoot, []string{pipelineName, runID}, true)),
+		keyStoreSessionInfo: stringValue(storeSessionInfo),
 	}
 	runContext, err := c.getOrInsertContext(ctx, runID, pipelineRunContextType, metadata)
 	glog.Infof("Pipeline Run Context: %+v", runContext)
@@ -490,22 +513,22 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 
 // metadata keys
 const (
-	keyDisplayName        = "display_name"
-	keyTaskName           = "task_name"
-	keyImage              = "image"
-	keyPodName            = "pod_name"
-	keyPodUID             = "pod_uid"
-	keyNamespace          = "namespace"
-	keyResourceName       = "resource_name"
-	keyPipelineRoot       = "pipeline_root"
-	keySessionInfoDetails = "bucket_session_info"
-	keyCacheFingerPrint   = "cache_fingerprint"
-	keyCachedExecutionID  = "cached_execution_id"
-	keyInputs             = "inputs"
-	keyOutputs            = "outputs"
-	keyParentDagID        = "parent_dag_id" // Parent DAG Execution ID.
-	keyIterationIndex     = "iteration_index"
-	keyIterationCount     = "iteration_count"
+	keyDisplayName       = "display_name"
+	keyTaskName          = "task_name"
+	keyImage             = "image"
+	keyPodName           = "pod_name"
+	keyPodUID            = "pod_uid"
+	keyNamespace         = "namespace"
+	keyResourceName      = "resource_name"
+	keyPipelineRoot      = "pipeline_root"
+	keyStoreSessionInfo  = "store_session_info"
+	keyCacheFingerPrint  = "cache_fingerprint"
+	keyCachedExecutionID = "cached_execution_id"
+	keyInputs            = "inputs"
+	keyOutputs           = "outputs"
+	keyParentDagID       = "parent_dag_id" // Parent DAG Execution ID.
+	keyIterationIndex    = "iteration_index"
+	keyIterationCount    = "iteration_count"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -707,29 +730,42 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	// Note, because MLMD does not have index on custom properties right now, we
 	// take a pipeline run context to limit the number of executions the DB needs to
 	// iterate through to find sub-executions.
-	res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
-		ContextId: pipeline.pipelineRunCtx.Id,
-		Options: &pb.ListOperationOptions{
-			FilterQuery: &parentDAGFilter,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	execs := res.GetExecutions()
-	for _, e := range execs {
-		execution := &Execution{execution: e}
-		taskName := execution.TaskName()
-		if taskName == "" {
-			return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+
+	nextPageToken := ""
+	for {
+		res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
+			ContextId: pipeline.pipelineRunCtx.Id,
+			Options: &pb.ListOperationOptions{
+				FilterQuery:   &parentDAGFilter,
+				NextPageToken: &nextPageToken,
+			},
+		})
+		if err != nil {
+			return nil, err
 		}
-		existing, ok := executionsMap[taskName]
-		if ok {
-			// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
-			return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+
+		execs := res.GetExecutions()
+		for _, e := range execs {
+			execution := &Execution{execution: e}
+			taskName := execution.TaskName()
+			if taskName == "" {
+				return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
+			}
+			existing, ok := executionsMap[taskName]
+			if ok {
+				// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
+				return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+			}
+			executionsMap[taskName] = execution
 		}
-		executionsMap[taskName] = execution
+
+		nextPageToken = res.GetNextPageToken()
+
+		if nextPageToken == "" {
+			break
+		}
 	}
+
 	return executionsMap, nil
 }
 
@@ -880,7 +916,7 @@ func SchemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 }
 
 // RecordArtifact ...
-func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error) {
+func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error) {
 	artifact, err := toMLMDArtifact(runtimeArtifact)
 	if err != nil {
 		return nil, err
@@ -903,6 +939,19 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	if _, ok := artifact.CustomProperties["display_name"]; !ok {
 		// display name default value
 		artifact.CustomProperties["display_name"] = stringValue(outputName)
+	}
+
+	// An artifact can belong to an external store specified via kfp-launcher
+	// or via executor environment (e.g. IRSA)
+	// This allows us to easily identify where to locate the artifact both
+	// in user executor environment as well as in kfp ui
+	if _, ok := artifact.CustomProperties["store_session_info"]; !ok {
+		storeSessionInfoJSON, err1 := json.Marshal(bucketConfig.SessionInfo)
+		if err1 != nil {
+			return nil, err1
+		}
+		storeSessionInfoStr := string(storeSessionInfoJSON)
+		artifact.CustomProperties["store_session_info"] = stringValue(storeSessionInfoStr)
 	}
 
 	res, err := c.svc.PutArtifacts(ctx, &pb.PutArtifactsRequest{

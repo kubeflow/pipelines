@@ -57,8 +57,7 @@ def automl_tabular_stage_1_tuner(
       root_dir: The Cloud Storage location to store the output.
       study_spec_parameters_override: JSON study spec. E.g., [{"parameter_id": "model_type","categorical_value_spec": {"values": ["nn"]}}]
       worker_pool_specs_override_json: JSON worker pool specs. E.g., [{"machine_spec": {"machine_type": "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]
-      reduce_search_space_mode: The reduce search space mode. Possible
-        values: "regular" (default), "minimal", "full".
+      reduce_search_space_mode: The reduce search space mode. Possible values: "regular" (default), "minimal", "full".
       num_selected_trials: Number of selected trials. The number of weak learners in the final model is 5 * num_selected_trials.
       num_selected_features: Number of selected features. The number of features to learn in the NN models.
       deadline_hours: Number of hours the cross-validation trainer should run.
@@ -110,11 +109,11 @@ def automl_tabular_stage_1_tuner(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240419_0625',
                   '", "args": ["l2l_stage_1_tuner", "--transform_output_path=',
                   transform_output.uri,
                   '", "--training_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240419_0625',
                   '", "--feature_selection_result_path=',
                   feature_ranking.uri,
                   '", "--disable_early_stopping=',

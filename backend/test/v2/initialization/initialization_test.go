@@ -54,7 +54,7 @@ func (s *InitializationTest) TestInitialization() {
 	t := s.T()
 
 	/* ---------- Verify that only the default experiment exists ---------- */
-	experiments, totalSize, _, err := s.experimentClient.List(&params.ListExperimentsParams{})
+	experiments, totalSize, _, err := s.experimentClient.List(&params.ExperimentServiceListExperimentsParams{})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.True(t, len(experiments) == 1)

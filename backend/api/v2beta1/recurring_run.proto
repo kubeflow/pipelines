@@ -25,6 +25,12 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "google/rpc/status.proto";
 
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  schemes: [1, 2], // http + https
+};
+
 service RecurringRunService {
   // Creates a new recurring run in an experiment, given the experiment ID.
   rpc CreateRecurringRun(CreateRecurringRunRequest) returns (RecurringRun) {
@@ -85,7 +91,7 @@ message RecurringRun {
   // Required input field. Specifies the source of the pipeline spec for this 
   // recurring run. Can be either a pipeline version id, or a pipeline spec.
   oneof pipeline_source {
-    // The ID of the pipeline version used for creating runs.
+    // This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.
     string pipeline_version_id = 4 [deprecated=true];
     // The pipeline spec.
     google.protobuf.Struct pipeline_spec = 5;

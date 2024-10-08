@@ -44,13 +44,22 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
+const (
+	executionTypeEnv = "ExecutionType"
+	launcherEnv      = "Launcher"
+)
+
 var (
+	logLevelFlag       = flag.String("logLevel", "", "Defines the log level for the application.")
 	rpcPortFlag        = flag.String("rpcPortFlag", ":8887", "RPC Port")
 	httpPortFlag       = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
 	configPath         = flag.String("config", "", "Path to JSON file containing config")
@@ -86,6 +95,14 @@ func main() {
 	flag.Parse()
 
 	initConfig()
+	// check ExecutionType Settings if presents
+	if viper.IsSet(executionTypeEnv) {
+		util.SetExecutionType(util.ExecutionType(common.GetStringConfig(executionTypeEnv)))
+	}
+	if viper.IsSet(launcherEnv) {
+		template.Launcher = common.GetStringConfig(launcherEnv)
+	}
+
 	clientManager := cm.NewClientManager()
 
 	tlsConfig, err := initCerts()
@@ -108,6 +125,17 @@ func main() {
 			glog.Infof("Couldn't create optional default experiment: %v", err)
 		}
 	}
+
+	logLevel := *logLevelFlag
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	level, err := log.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatal("Invalid log level:", err)
+	}
+	log.SetLevel(level)
 
 	go startRpcServer(resourceManager, tlsConfig)
 	startHttpProxy(resourceManager, tlsConfig)
@@ -175,6 +203,7 @@ func startRpcServer(resourceManager *resource.ResourceManager, tlsConfig *tls.Co
 	apiv2beta1.RegisterPipelineServiceServer(s, sharedPipelineServer)
 	apiv2beta1.RegisterRecurringRunServiceServer(s, sharedJobServer)
 	apiv2beta1.RegisterRunServiceServer(s, sharedRunServer)
+	apiv2beta1.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)

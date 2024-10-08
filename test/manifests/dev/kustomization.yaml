@@ -3,17 +3,16 @@ kind: Kustomization
 
 # namespace is required to change generated configmap to correct namespace
 namespace: kubeflow
-bases:
-- ../../../manifests/kustomize/env/dev
-patchesStrategicMerge:
-- proxy-agent-patch.yaml
-- workflow-controller-configmap-patch.yaml
+resources:
+  - ../../../manifests/kustomize/env/dev
+patches:
+  - path: proxy-agent-patch.yaml
 
 # Used by Kustomize.
 configMapGenerator:
-- behavior: merge
-  env: params.env
-  name: pipeline-install-config
+  - behavior: merge
+    env: params.env
+    name: pipeline-install-config
 
 # Actual image overrides will be added in test scripts.
 images: []

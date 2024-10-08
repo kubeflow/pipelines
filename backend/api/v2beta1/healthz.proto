@@ -23,6 +23,7 @@ import "protoc-gen-swagger/options/annotations.proto";
 import "google/rpc/status.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  schemes: [1, 2], // http + https
   responses: {
     key: "default";
     value: {

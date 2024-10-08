@@ -16,6 +16,7 @@
 from typing import Dict, List, NamedTuple, Optional, Union
 from google_cloud_pipeline_components import utils as gcpc_utils
 from google_cloud_pipeline_components._implementation.model_evaluation import utils
+from google_cloud_pipeline_components._implementation.model_evaluation import version
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import container_component
@@ -23,10 +24,10 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
-_IMAGE_URI = 'us-docker.pkg.dev/vertex-evaluation/public/llm:wjess-fishfooding'
+_IMAGE_URI = 'us-docker.pkg.dev/vertex-evaluation/public/llm:v0.5'
 
 
-@dsl.component
+@dsl.component(base_image=version.LLM_EVAL_IMAGE_TAG)
 def add_json_escape_parameters(parameters: dict) -> str:
   if not parameters:
     return
@@ -36,7 +37,7 @@ def add_json_escape_parameters(parameters: dict) -> str:
   return json_escaped_parameters
 
 
-@dsl.component
+@dsl.component(base_image=version.LLM_EVAL_IMAGE_TAG)
 def add_json_escape_paths(paths: list) -> str:
   if not paths:
     return

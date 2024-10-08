@@ -25,23 +25,23 @@ type Client struct {
 }
 
 /*
-CreateJob creates a new job
+JobServiceCreateJob creates a new job
 */
-func (a *Client) CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthInfoWriter) (*CreateJobOK, error) {
+func (a *Client) JobServiceCreateJob(params *JobServiceCreateJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceCreateJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCreateJobParams()
+		params = NewJobServiceCreateJobParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateJob",
+		ID:                 "JobService_CreateJob",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/jobs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &CreateJobReader{formats: a.formats},
+		Reader:             &JobServiceCreateJobReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -49,28 +49,28 @@ func (a *Client) CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthI
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreateJobOK), nil
+	return result.(*JobServiceCreateJobOK), nil
 
 }
 
 /*
-DeleteJob deletes a job
+JobServiceDeleteJob deletes a job
 */
-func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteJobOK, error) {
+func (a *Client) JobServiceDeleteJob(params *JobServiceDeleteJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceDeleteJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDeleteJobParams()
+		params = NewJobServiceDeleteJobParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeleteJob",
+		ID:                 "JobService_DeleteJob",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v1beta1/jobs/{id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &DeleteJobReader{formats: a.formats},
+		Reader:             &JobServiceDeleteJobReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -78,28 +78,28 @@ func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthI
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeleteJobOK), nil
+	return result.(*JobServiceDeleteJobOK), nil
 
 }
 
 /*
-DisableJob stops a job and all its associated runs the job is not deleted
+JobServiceDisableJob stops a job and all its associated runs the job is not deleted
 */
-func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAuthInfoWriter) (*DisableJobOK, error) {
+func (a *Client) JobServiceDisableJob(params *JobServiceDisableJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceDisableJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDisableJobParams()
+		params = NewJobServiceDisableJobParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DisableJob",
+		ID:                 "JobService_DisableJob",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/jobs/{id}/disable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &DisableJobReader{formats: a.formats},
+		Reader:             &JobServiceDisableJobReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -107,28 +107,28 @@ func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAut
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DisableJobOK), nil
+	return result.(*JobServiceDisableJobOK), nil
 
 }
 
 /*
-EnableJob restarts a job that was previously stopped all runs associated with the job will continue
+JobServiceEnableJob restarts a job that was previously stopped all runs associated with the job will continue
 */
-func (a *Client) EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthInfoWriter) (*EnableJobOK, error) {
+func (a *Client) JobServiceEnableJob(params *JobServiceEnableJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceEnableJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewEnableJobParams()
+		params = NewJobServiceEnableJobParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "EnableJob",
+		ID:                 "JobService_EnableJob",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/jobs/{id}/enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &EnableJobReader{formats: a.formats},
+		Reader:             &JobServiceEnableJobReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -136,28 +136,28 @@ func (a *Client) EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthI
 	if err != nil {
 		return nil, err
 	}
-	return result.(*EnableJobOK), nil
+	return result.(*JobServiceEnableJobOK), nil
 
 }
 
 /*
-GetJob finds a specific job by ID
+JobServiceGetJob finds a specific job by ID
 */
-func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWriter) (*GetJobOK, error) {
+func (a *Client) JobServiceGetJob(params *JobServiceGetJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceGetJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetJobParams()
+		params = NewJobServiceGetJobParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetJob",
+		ID:                 "JobService_GetJob",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/jobs/{id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &GetJobReader{formats: a.formats},
+		Reader:             &JobServiceGetJobReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -165,28 +165,28 @@ func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetJobOK), nil
+	return result.(*JobServiceGetJobOK), nil
 
 }
 
 /*
-ListJobs finds all jobs
+JobServiceListJobs finds all jobs
 */
-func (a *Client) ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInfoWriter) (*ListJobsOK, error) {
+func (a *Client) JobServiceListJobs(params *JobServiceListJobsParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceListJobsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListJobsParams()
+		params = NewJobServiceListJobsParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListJobs",
+		ID:                 "JobService_ListJobs",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/jobs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ListJobsReader{formats: a.formats},
+		Reader:             &JobServiceListJobsReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -194,7 +194,7 @@ func (a *Client) ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInf
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListJobsOK), nil
+	return result.(*JobServiceListJobsOK), nil
 
 }
 

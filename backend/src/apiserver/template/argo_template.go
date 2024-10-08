@@ -211,7 +211,7 @@ func (t *Argo) ParametersJSON() (string, error) {
 	if t == nil {
 		return "", nil
 	}
-	return util.MarshalParameters(util.ArgoWorkflow, t.wf.SpecParameters())
+	return util.MarshalParameters(util.CurrentExecutionType(), t.wf.SpecParameters())
 }
 
 func NewArgoTemplateFromWorkflow(wf *workflowapi.Workflow) (*Argo, error) {
@@ -230,7 +230,7 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	if wf.Kind != argoK8sResource {
 		return nil, util.NewInvalidInputError("Unexpected resource type. Expected: %v. Received: %v", argoK8sResource, wf.Kind)
 	}
-	_, err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
+	err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
 		Lint:                       true,
 		IgnoreEntrypoint:           true,
 		WorkflowTemplateValidation: false, // not used by kubeflow

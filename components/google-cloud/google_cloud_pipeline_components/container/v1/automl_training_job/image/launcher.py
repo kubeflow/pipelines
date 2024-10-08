@@ -28,7 +28,15 @@ def _parse_args(args: List[str]):
   args.append('--payload')
   args.append('"{}"')  # Unused but required by parser_util.
   parser, _ = parser_util.parse_default_args(args)
-  # Parse the conditionally required arguments
+  # Parse the conditionally required arguments.
+  parser.add_argument(
+      '--executor_input',
+      dest='executor_input',
+      type=str,
+      # executor_input is only needed for components that emit output artifacts.
+      required=True,
+      default=argparse.SUPPRESS,
+  )
   parser.add_argument(
       '--display_name',
       dest='display_name',

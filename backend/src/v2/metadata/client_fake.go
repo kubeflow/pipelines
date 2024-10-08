@@ -21,12 +21,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/types/known/structpb"
-	"time"
 )
 
 type FakeClient struct {
@@ -49,7 +50,7 @@ func NewFakeClient() *FakeClient {
 	return fakeClient
 }
 
-func (c *FakeClient) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, bucketSessionInfo string) (*Pipeline, error) {
+func (c *FakeClient) GetPipeline(ctx context.Context, pipelineName, runID, namespace, runResource, pipelineRoot string, storeSessionInfo string) (*Pipeline, error) {
 	return nil, nil
 }
 
@@ -64,7 +65,6 @@ func (c *FakeClient) PublishExecution(ctx context.Context, execution *Execution,
 func (c *FakeClient) CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error) {
 	return nil, nil
 }
-
 func (c *FakeClient) PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error) {
 	return nil, nil
 }
@@ -89,10 +89,6 @@ func (c *FakeClient) GetEventsByArtifactIDs(ctx context.Context, artifactIds []i
 	return nil, nil
 }
 
-func (c *FakeClient) GetArtifactName(ctx context.Context, artifactId int64) (string, error) {
-	return "", nil
-}
-
 func (c *FakeClient) GetArtifactsByID(ctx context.Context, ids []int64) ([]*pb.Artifact, error) {
 	var arts []*pb.Artifact
 	for _, id := range ids {
@@ -102,6 +98,10 @@ func (c *FakeClient) GetArtifactsByID(ctx context.Context, ids []int64) ([]*pb.A
 		arts = append(arts, c.artifacts[id])
 	}
 	return arts, nil
+}
+
+func (c *FakeClient) GetArtifactName(ctx context.Context, artifactId int64) (string, error) {
+	return "", nil
 }
 
 // dummy test data for orderByField/filterQuery/nextPageToken not implemented.
@@ -134,7 +134,7 @@ func (c *FakeClient) GetOutputArtifactsByExecutionId(ctx context.Context, execut
 	return nil, nil
 }
 
-func (c *FakeClient) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State) (*OutputArtifact, error) {
+func (c *FakeClient) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error) {
 	return nil, nil
 }
 
@@ -166,7 +166,7 @@ func (c *FakeClient) createDummyData() {
 		CreateTimeSinceEpoch:     intPtr(time.Unix(2, 0).UnixMilli()),
 		LastUpdateTimeSinceEpoch: intPtr(time.Unix(2, 0).UnixMilli()),
 	}
-	ctx1SessInfo := objectstore.SessionInfo{
+	ctx1SessInfo := objectstore.S3Params{
 		Region:       "test",
 		Endpoint:     "test.endpoint",
 		DisableSSL:   false,
@@ -174,7 +174,7 @@ func (c *FakeClient) createDummyData() {
 		AccessKeyKey: "testsecretaccesskey",
 		SecretKeyKey: "testsecretsecretkey",
 	}
-	bucketSessionInfo, err := json.Marshal(ctx1SessInfo)
+	storeSessionInfo, err := json.Marshal(ctx1SessInfo)
 	if err != nil {
 		glog.Fatal("failed to marshal fake session info")
 	}
@@ -184,9 +184,9 @@ func (c *FakeClient) createDummyData() {
 		Name: strPtr("ctx-0"),
 		Type: strPtr("1"),
 		CustomProperties: map[string]*pb.Value{
-			"pipeline_root":       stringValue("s3://test-bucket"),
-			"bucket_session_info": stringValue(string(bucketSessionInfo)),
-			"namespace":           stringValue("test-namespace"),
+			"pipeline_root":      stringValue("s3://test-bucket"),
+			"store_session_info": stringValue(string(storeSessionInfo)),
+			"namespace":          stringValue("test-namespace"),
 		},
 	}
 	c.contexts = []*pb.Context{ctx1}

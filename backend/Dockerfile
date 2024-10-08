@@ -17,9 +17,6 @@ ARG SOURCE_CODE=.
 
 FROM registry.access.redhat.com/ubi8/go-toolset:1.21 as builder
 
-## Build args to be used at this step
-ARG SOURCE_CODE
-
 USER root
 
 RUN dnf install -y cmake clang openssl
@@ -53,7 +50,4 @@ USER 1001
 EXPOSE 8888
 
 # Start the apiserver
-CMD /bin/apiserver --config=/config -logtostderr=true
-
-LABEL name="ds-pipelines-api-server" \
-      summary="DSP Server"
+CMD /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true --logLevel=${LOG_LEVEL}

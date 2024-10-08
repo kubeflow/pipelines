@@ -14,12 +14,11 @@
 # limitations under the License.
 
 
-from kfp.deprecated import dsl, compiler
-import kfp.deprecated.components as comp
+from kfp import dsl, compiler
 
 
-@comp.create_component_from_func
-def random_failure_op(exit_codes):
+@dsl.component
+def random_failure_op(exit_codes: str):
     """A component that fails randomly."""
     import random
     import sys
@@ -34,8 +33,8 @@ def random_failure_op(exit_codes):
     description='The pipeline includes two steps which fail randomly. It shows how to use ContainerOp(...).set_retry(...).'
 )
 def retry_sample_pipeline():
-    op1 = random_failure_op('0,1,2,3').set_retry(10)
-    op2 = random_failure_op('0,1').set_retry(5)
+    op1 = random_failure_op(exit_codes='0,1,2,3').set_retry(10)
+    op2 = random_failure_op(exit_codes='0,1').set_retry(5)
 
 
 if __name__ == '__main__':

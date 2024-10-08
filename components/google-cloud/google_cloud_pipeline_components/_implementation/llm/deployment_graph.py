@@ -34,8 +34,12 @@ PipelineOutput = NamedTuple(
 def pipeline(
     output_adapter_path: str,
     large_model_reference: str,
+    policy_model_reference: str,
     model_display_name: Optional[str] = None,
     deploy_model: bool = True,
+    encryption_spec_key_name: str = '',
+    upload_location: str = _placeholders.LOCATION_PLACEHOLDER,
+    regional_endpoint: str = '',
 ) -> PipelineOutput:
   # fmt: off
   """Uploads a tuned language model and (optionally) deploys it to an endpoint.
@@ -43,61 +47,53 @@ def pipeline(
   Args:
     output_adapter_path: Path to the trained model adapter if LoRA tuning was used.
     large_model_reference: Name of the base model. Supported values are `text-bison@001`, `t5-small`, `t5-large`, `t5-xl` and `t5-xxl`. `text-bison@001` and `t5-small` are supported in `us-central1` and `europe-west4`. `t5-large`, `t5-xl` and `t5-xxl` are only supported in `europe-west4`.
+    policy_model_reference: The name of the model for deployment. The name should be in capitalized snake case format.
     model_display_name: Name of the fine-tuned model shown in the Model Registry. If not provided, a default name will be created.
     deploy_model: Whether to deploy the model to an endpoint in `us-central1`. Default is True.
+    encryption_spec_key_name: Customer-managed encryption key. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key. Note that this is not supported for TPU at the moment.
+    upload_location: Region to upload and deploy the model to. Default is the location used to run the pipeline components.
+    regional_endpoint: Regional endpoint to upload the model.
 
   Returns:
     model_resource_name: Path to the model uploaded to the Model Registry. This will be an empty string if the model was not deployed.
     endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
   # fmt: on
-  upload_location = 'us-central1'
-  adapter_artifact = kfp.dsl.importer(
-      artifact_uri=output_adapter_path,
-      artifact_class=kfp.dsl.Artifact,
-  ).set_display_name('Import Tuned Adapter')
-
-  regional_endpoint = function_based.resolve_regional_endpoint(
-      upload_location=upload_location
-  ).set_display_name('Resolve Regional Endpoint')
-
-  display_name = function_based.resolve_model_display_name(
-      large_model_reference=large_model_reference,
-      model_display_name=model_display_name,
-  ).set_display_name('Resolve Model Display Name')
-
-  reference_model_metadata = function_based.resolve_reference_model_metadata(
-      large_model_reference=large_model_reference,
-  ).set_display_name('Resolve Model Metadata')
+  display_name = (
+      function_based.resolve_model_display_name(
+          large_model_reference=large_model_reference,
+          model_display_name=model_display_name,
+      )
+      .set_caching_options(False)
+      .set_display_name('Resolve Model Display Name')
+  )
 
   upload_model = function_based.resolve_upload_model(
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
-      ]
+      large_model_reference=policy_model_reference,
   ).set_display_name('Resolve Upload Model')
-  upload_task = upload_llm_model.upload_llm_model(
+  upload_task = upload_llm_model.refined_upload_llm_model(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
       location=upload_location,
-      regional_endpoint=regional_endpoint.output,
-      artifact_uri=adapter_artifact.output,
+      regional_endpoint=regional_endpoint,
+      artifact_uri=output_adapter_path,
       model_display_name=display_name.output,
-      model_reference_name='text-bison@001',
+      model_reference_name=large_model_reference,
       upload_model=upload_model.output,
+      encryption_spec_key_name=encryption_spec_key_name,
       tune_type='rlhf',
   ).set_display_name('Upload Model')
   deploy_model = function_based.resolve_deploy_model(
       deploy_model=deploy_model,
-      large_model_reference=reference_model_metadata.outputs[
-          'large_model_reference'
-      ],
+      large_model_reference=policy_model_reference,
   ).set_display_name('Resolve Deploy Model')
-  deploy_task = deploy_llm_model.create_endpoint_and_deploy_model(
+  deploy_task = deploy_llm_model.deploy_llm_model(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
       location=upload_location,
       model_resource_name=upload_task.outputs['model_resource_name'],
       display_name=display_name.output,
-      regional_endpoint=regional_endpoint.output,
+      regional_endpoint=regional_endpoint,
       deploy_model=deploy_model.output,
+      encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Deploy Model')
   return PipelineOutput(
       model_resource_name=upload_task.outputs['model_resource_name'],

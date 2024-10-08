@@ -49,3 +49,33 @@ rules:
   - tokenreviews
   verbs:
   - create
+- apiGroups:
+  - tekton.dev
+  resources:
+  - pipelineruns
+  - taskruns
+  - conditions
+  - runs
+  - tasks
+  - customruns
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - custom.tekton.dev
+  resources:
+  - pipelineloops
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+  

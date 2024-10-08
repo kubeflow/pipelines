@@ -219,10 +219,12 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 	onExitNodeName := w.ObjectMeta.Name + ".onExit"
 	var podsToDelete []string
 	for _, node := range w.Status.Nodes {
+		oldNodeID := RetrievePodName(*w.Workflow, node)
 		switch node.Phase {
 		case workflowapi.NodeSucceeded, workflowapi.NodeSkipped:
 			if !strings.HasPrefix(node.Name, onExitNodeName) {
-				newWF.Status.Nodes[node.ID] = node
+				nodeName := RetrievePodName(*newWF, node)
+				newWF.Status.Nodes[nodeName] = node
 				continue
 			}
 		case workflowapi.NodeError, workflowapi.NodeFailed, workflowapi.NodeOmitted:
@@ -231,7 +233,8 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 				newNode.Phase = workflowapi.NodeRunning
 				newNode.Message = ""
 				newNode.FinishedAt = metav1.Time{}
-				newWF.Status.Nodes[newNode.ID] = *newNode
+				nodeName := RetrievePodName(*newWF, *newNode)
+				newWF.Status.Nodes[nodeName] = *newNode
 				continue
 			}
 			// do not add this status to the node. pretend as if this node never existed.
@@ -239,10 +242,10 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 			// Do not allow retry of workflows with pods in Running/Pending phase
 			return nil, nil, NewInternalServerError(
 				errors.New("workflow cannot be retried"),
-				"Workflow cannot be retried with node %s in %s phase", node.ID, node.Phase)
+				"Workflow cannot be retried with node %s in %s phase", oldNodeID, node.Phase)
 		}
 		if node.Type == workflowapi.NodeTypePod {
-			podsToDelete = append(podsToDelete, node.ID)
+			podsToDelete = append(podsToDelete, oldNodeID)
 		}
 	}
 	return NewWorkflow(newWF), podsToDelete, nil
@@ -358,6 +361,28 @@ func (w *Workflow) ScheduledWorkflowUUIDAsStringOrEmpty() string {
 	return ""
 }
 
+// Derives the Pod name from a given workflowapi.Workflow and workflowapi.NodeStatus
+// This is a workaround for an upstream breaking change with node.ID and node.Name mismatches,
+// see https://github.com/argoproj/argo-workflows/issues/10107#issuecomment-1536113642
+func RetrievePodName(wf workflowapi.Workflow, node workflowapi.NodeStatus) string {
+	if wf.APIVersion == "v1" {
+		return node.ID
+	}
+	if wf.Name == node.Name {
+		return wf.Name
+	}
+
+	split := strings.Split(node.ID, "-")
+	hash := split[len(split)-1]
+
+	prefix := wf.Name
+	if !strings.Contains(node.Name, ".inline") {
+		prefix = fmt.Sprintf("%s-%s", wf.Name, node.TemplateName)
+	}
+
+	return fmt.Sprintf("%s-%s", prefix, hash)
+}
+
 func containsScheduledWorkflow(references []metav1.OwnerReference) bool {
 	if references == nil {
 		return false
@@ -441,7 +466,7 @@ func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.
 	runMetrics := make([]*api.RunMetric, 0, len(w.Status.Nodes))
 	partialFailures := make([]error, 0, len(w.Status.Nodes))
 	for _, nodeStatus := range w.Status.Nodes {
-		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, retrieveArtifact)
+		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, retrieveArtifact, *w.Workflow)
 		if err != nil {
 			partialFailures = append(partialFailures, err)
 			continue
@@ -460,17 +485,18 @@ func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.
 	return runMetrics, partialFailures
 }
 
-func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact RetrieveArtifact) (
+func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact RetrieveArtifact, wf workflowapi.Workflow) (
 	[]*api.RunMetric, error,
 ) {
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
-	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, retrieveArtifact)
+	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, retrieveArtifact, &wf)
 	if err != nil || metricsJSON == "" {
 		return nil, err
 	}
 
+	retrievedNodeID := RetrievePodName(wf, *nodeStatus)
 	// Proto json lib requires a proto message before unmarshal data from JSON. We use
 	// ReportRunMetricsRequest as a workaround to hold user's metrics, which is a superset of what
 	// user can provide.
@@ -481,25 +507,25 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 		// TODO(#1426): report the error back to api server to notify user
 		log.WithFields(log.Fields{
 			"run":         runID,
-			"node":        nodeStatus.ID,
+			"node":        retrievedNodeID,
 			"raw_content": metricsJSON,
 			"error":       err.Error(),
 		}).Warning("Failed to unmarshal metrics file.")
 		return nil, NewCustomError(err, CUSTOM_CODE_PERMANENT,
-			"failed to unmarshal metrics file from (%s, %s).", runID, nodeStatus.ID)
+			"failed to unmarshal metrics file from (%s, %s).", runID, retrievedNodeID)
 	}
 	if reportMetricsRequest.GetMetrics() == nil {
 		return nil, nil
 	}
 	for _, metric := range reportMetricsRequest.GetMetrics() {
 		// User metrics just have name and value but no NodeId.
-		metric.NodeId = nodeStatus.ID
+		metric.NodeId = retrievedNodeID
 	}
 	return reportMetricsRequest.GetMetrics(), nil
 }
 
 func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
-	retrieveArtifact RetrieveArtifact,
+	retrieveArtifact RetrieveArtifact, wf *workflowapi.Workflow,
 ) (string, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
 		return "", nil // No output artifacts, skip the reporting
@@ -517,7 +543,7 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 
 	artifactRequest := &api.ReadArtifactRequest{
 		RunId:        runID,
-		NodeId:       nodeStatus.ID,
+		NodeId:       RetrievePodName(*wf, *nodeStatus),
 		ArtifactName: metricsArtifactName,
 	}
 	artifactResponse, err := retrieveArtifact(artifactRequest)
@@ -663,11 +689,11 @@ func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, in
 
 // FindObjectStoreArtifactKeyOrEmpty loops through all node running statuses and look up the first
 // S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
-func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string {
+func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeName string, artifactName string) string {
 	if w.Status.Nodes == nil {
 		return ""
 	}
-	node, found := w.Status.Nodes[nodeID]
+	node, found := w.Status.Nodes[nodeName]
 	if !found {
 		return ""
 	}
@@ -709,7 +735,7 @@ func (w *Workflow) IsV2Compatible() bool {
 }
 
 func (w *Workflow) Validate(lint, ignoreEntrypoint bool) error {
-	_, err := validate.ValidateWorkflow(nil, nil, w.Workflow, validate.ValidateOpts{
+	err := validate.ValidateWorkflow(nil, nil, w.Workflow, validate.ValidateOpts{
 		Lint:                       lint,
 		IgnoreEntrypoint:           ignoreEntrypoint,
 		WorkflowTemplateValidation: false, // not used by kubeflow
@@ -755,7 +781,7 @@ func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 	rev := make(map[string]NodeStatus, len(w.Status.Nodes))
 	for id, node := range w.Status.Nodes {
 		rev[id] = NodeStatus{
-			ID:          node.ID,
+			ID:          RetrievePodName(*w.Workflow, node),
 			DisplayName: node.DisplayName,
 			State:       string(node.Phase),
 			StartTime:   node.StartedAt.Unix(),
@@ -790,6 +816,14 @@ func (wc *WorkflowClient) Execution(namespace string) ExecutionInterface {
 		workflowInterface: wc.client.ArgoprojV1alpha1().Workflows(namespace),
 		informer:          informer,
 	}
+}
+
+func (wc *WorkflowClient) Compare(old, new interface{}) bool {
+	newWorkflow := new.(*workflowapi.Workflow)
+	oldWorkflow := old.(*workflowapi.Workflow)
+	// Periodic resync will send update events for all known Workflows.
+	// Two different versions of the same WorkflowHistory will always have different RVs.
+	return newWorkflow.ResourceVersion != oldWorkflow.ResourceVersion
 }
 
 type WorkflowInterface struct {

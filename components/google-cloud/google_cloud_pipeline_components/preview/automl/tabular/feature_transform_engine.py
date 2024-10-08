@@ -308,7 +308,7 @@ def feature_transform_engine(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240419_0625',
       command=[],
       args=[
           'feature_transform_engine',
@@ -637,8 +637,8 @@ def feature_transform_engine(
           dsl.ConcatPlaceholder(
               items=['--dataflow_machine_type=', dataflow_machine_type]
           ),
-          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125',
-          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20231029_0125',
+          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240419_0625',
+          '--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20240419_0625',
           dsl.ConcatPlaceholder(
               items=['--dataflow_disk_size_gb=', dataflow_disk_size_gb]
           ),

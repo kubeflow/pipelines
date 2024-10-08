@@ -18,7 +18,7 @@
     "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}": {
       "get": {
         "summary": "Finds a pipeline by Name (and namespace)",
-        "operationId": "GetPipelineByNameV1",
+        "operationId": "PipelineService_GetPipelineByNameV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -27,9 +27,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -57,7 +57,7 @@
     "/apis/v1beta1/pipeline_versions": {
       "get": {
         "summary": "Lists all pipeline versions of a given pipeline.",
-        "operationId": "ListPipelineVersionsV1",
+        "operationId": "PipelineService_ListPipelineVersionsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -66,9 +66,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -132,7 +132,7 @@
       },
       "post": {
         "summary": "Adds a pipeline version to the specified pipeline.",
-        "operationId": "CreatePipelineVersionV1",
+        "operationId": "PipelineService_CreatePipelineVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -141,9 +141,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -166,7 +166,7 @@
     "/apis/v1beta1/pipeline_versions/{version_id}": {
       "get": {
         "summary": "Gets a pipeline version by pipeline version ID.",
-        "operationId": "GetPipelineVersionV1",
+        "operationId": "PipelineService_GetPipelineVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -175,9 +175,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -196,7 +196,7 @@
       },
       "delete": {
         "summary": "Deletes a pipeline version by pipeline version ID. If the deleted pipeline\nversion is the default pipeline version, the pipeline's default version\nchanges to the pipeline's most recent pipeline version. If there are no\nremaining pipeline versions, the pipeline will have no default version.\nExamines the run_service_api.ipynb notebook to learn more about creating a\nrun using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).",
-        "operationId": "DeletePipelineVersionV1",
+        "operationId": "PipelineService_DeletePipelineVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -205,9 +205,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -228,7 +228,7 @@
     "/apis/v1beta1/pipeline_versions/{version_id}/templates": {
       "get": {
         "summary": "Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.",
-        "operationId": "GetPipelineVersionTemplate",
+        "operationId": "PipelineService_GetPipelineVersionTemplate",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -237,9 +237,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -260,7 +260,7 @@
     "/apis/v1beta1/pipelines": {
       "get": {
         "summary": "Finds all pipelines.",
-        "operationId": "ListPipelinesV1",
+        "operationId": "PipelineService_ListPipelinesV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -269,9 +269,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -335,7 +335,7 @@
       },
       "post": {
         "summary": "Creates a pipeline.",
-        "operationId": "CreatePipelineV1",
+        "operationId": "PipelineService_CreatePipelineV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -344,9 +344,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -368,7 +368,7 @@
     "/apis/v1beta1/pipelines/{id}": {
       "get": {
         "summary": "Finds a specific pipeline by ID.",
-        "operationId": "GetPipelineV1",
+        "operationId": "PipelineService_GetPipelineV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -377,9 +377,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -398,7 +398,7 @@
       },
       "delete": {
         "summary": "Deletes a pipeline and its pipeline versions.",
-        "operationId": "DeletePipelineV1",
+        "operationId": "PipelineService_DeletePipelineV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -407,9 +407,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -430,7 +430,7 @@
     "/apis/v1beta1/pipelines/{id}/templates": {
       "get": {
         "summary": "Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.",
-        "operationId": "GetTemplate",
+        "operationId": "PipelineService_GetTemplate",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -439,9 +439,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -462,7 +462,7 @@
     "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}": {
       "post": {
         "summary": "Update the default pipeline version of a specific pipeline.",
-        "operationId": "UpdatePipelineDefaultVersionV1",
+        "operationId": "PipelineService_UpdatePipelineDefaultVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -471,9 +471,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -703,7 +703,16 @@
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
-    "apiStatus": {
+    "apiUrl": {
+      "type": "object",
+      "properties": {
+        "pipeline_url": {
+          "type": "string",
+          "description": "URL of the pipeline definition or the pipeline version definition."
+        }
+      }
+    },
+    "gatewayruntimeError": {
       "type": "object",
       "properties": {
         "error": {
@@ -713,20 +722,14 @@
           "type": "integer",
           "format": "int32"
         },
+        "message": {
+          "type": "string"
+        },
         "details": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/protobufAny"
           }
-        }
-      }
-    },
-    "apiUrl": {
-      "type": "object",
-      "properties": {
-        "pipeline_url": {
-          "type": "string",
-          "description": "URL of the pipeline definition or the pipeline version definition."
         }
       }
     },
