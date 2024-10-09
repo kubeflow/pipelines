@@ -174,8 +174,25 @@ func (c *FakeClient) createDummyData() {
 		AccessKeyKey: "testsecretaccesskey",
 		SecretKeyKey: "testsecretsecretkey",
 	}
-	storeSessionInfo, err := json.Marshal(ctx1SessInfo)
+	bucketSessionInfo, err := json.Marshal(ctx1SessInfo)
 	if err != nil {
+		glog.Fatal("failed to marshal fake session info")
+	}
+	ctx2SessInfo := map[string]string{
+		"Region":       "test2",
+		"Endpoint":     "test2.endpoint2",
+		"DisableSSL":   "false",
+		"SecretName":   "testsecret2",
+		"AccessKeyKey": "testsecretaccesskey2",
+		"SecretKeyKey": "testsecretsecretkey2",
+		"FromEnv":      "false",
+	}
+	sessInfo := &objectstore.SessionInfo{
+		Provider: "s3",
+		Params:   ctx2SessInfo,
+	}
+	storeSessionInfo2, err1 := json.Marshal(sessInfo)
+	if err1 != nil {
 		glog.Fatal("failed to marshal fake session info")
 	}
 
@@ -184,15 +201,25 @@ func (c *FakeClient) createDummyData() {
 		Name: strPtr("ctx-0"),
 		Type: strPtr("1"),
 		CustomProperties: map[string]*pb.Value{
+			"pipeline_root":       stringValue("s3://test-bucket"),
+			"bucket_session_info": stringValue(string(bucketSessionInfo)),
+			"namespace":           stringValue("test-namespace"),
+		},
+	}
+	ctx2 := &pb.Context{
+		Id:   intPtr(1),
+		Name: strPtr("ctx-1"),
+		Type: strPtr("1"),
+		CustomProperties: map[string]*pb.Value{
 			"pipeline_root":      stringValue("s3://test-bucket"),
-			"store_session_info": stringValue(string(storeSessionInfo)),
+			"store_session_info": stringValue(string(storeSessionInfo2)),
 			"namespace":          stringValue("test-namespace"),
 		},
 	}
-	c.contexts = []*pb.Context{ctx1}
+	c.contexts = []*pb.Context{ctx1, ctx2}
 	c.artifacts = []*pb.Artifact{art1, art2}
 	c.artifactIdsToContext = map[int64]*pb.Context{
 		*art1.Id: ctx1,
-		*art2.Id: ctx1,
+		*art2.Id: ctx2,
 	}
 }
