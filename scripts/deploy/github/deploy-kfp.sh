@@ -41,6 +41,14 @@ then
   exit 1
 fi
 
+echo "Patching deployments to use built docker images..."
+# Patch API server
+kubectl patch deployment ml-pipeline -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-api-server", "image": "kind-registry:5000/apiserver"}]}}}}' -n kubeflow
+# Patch persistance agent
+kubectl patch deployment.apps/ml-pipeline-persistenceagent -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-persistenceagent", "image": "kind-registry:5000/persistenceagent"}]}}}}' -n kubeflow
+# Patch scheduled workflow
+kubectl patch deployment.apps/ml-pipeline-scheduledworkflow -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-scheduledworkflow", "image": "kind-registry:5000/scheduledworkflow"}]}}}}' -n kubeflow
+
 # Check if all pods are running - (10 minutes)
 wait_for_pods || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
