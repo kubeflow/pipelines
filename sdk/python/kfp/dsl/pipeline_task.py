@@ -313,6 +313,21 @@ class PipelineTask:
         self._task_spec.enable_caching = enable_caching
         return self
 
+    def ensure_resource_requests_meet_limits(self) -> None:
+        resources = self.container_spec.resources
+        if (resources.memory_request is not None
+                and resources.memory_limit is not None
+                and resources.memory_request > resources.memory_limit):
+            raise ValueError(f'Requested memory: {resources.memory_request} cannot be greater than memory limit: {resources.memory_limit}. '
+                             'Check the set_memory_request and set_memory_limit parameters.')
+        if (resources.cpu_request is not None
+                and resources.cpu_limit is not None
+                and resources.cpu_request > resources.cpu_limit):
+            raise ValueError(
+                f'Requested cpu: {resources.cpu_request} cannot be greater than cpu limit: {resources.cpu_limit}. '
+                'Check the set_cpu_request and set_cpu_limit parameters.')
+
+
     def _ensure_container_spec_exists(self) -> None:
         """Ensures that the task has a container spec."""
         caller_method_name = inspect.stack()[1][3]
@@ -373,6 +388,8 @@ class PipelineTask:
             self.container_spec.resources = structures.ResourceSpec(
                 cpu_request=cpu)
 
+        self.ensure_resource_requests_meet_limits()
+
         return self
 
     @block_if_final()
@@ -400,6 +417,8 @@ class PipelineTask:
         else:
             self.container_spec.resources = structures.ResourceSpec(
                 cpu_limit=cpu)
+
+        self.ensure_resource_requests_meet_limits()
 
         return self
 
@@ -504,6 +523,8 @@ class PipelineTask:
             self.container_spec.resources = structures.ResourceSpec(
                 memory_request=memory)
 
+        self.ensure_resource_requests_meet_limits()
+
         return self
 
     @block_if_final()
@@ -530,6 +551,8 @@ class PipelineTask:
         else:
             self.container_spec.resources = structures.ResourceSpec(
                 memory_limit=memory)
+
+        self.ensure_resource_requests_meet_limits()
 
         return self
 
