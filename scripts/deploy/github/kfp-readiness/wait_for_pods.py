@@ -30,9 +30,9 @@ def get_pod_statuses():
                 ready += 1
             if status.state.waiting is not None:
                 if status.state.waiting.message is not None:
-                    waiting_messages.append(f'CONTAINER: {status.name} - {status.state.waiting.reason}: {status.state.waiting.message}')
+                    waiting_messages.append(f'Waiting on Container: {status.name} - {status.state.waiting.reason}: {status.state.waiting.message}')
                 else:
-                    waiting_messages.append(f'CONTAINER: {status.name} - {status.state.waiting.reason}')
+                    waiting_messages.append(f'Waiting on Container: {status.name} - {status.state.waiting.reason}')
         statuses[pod_name] = (pod_status, ready, total, waiting_messages)
     return statuses
 
