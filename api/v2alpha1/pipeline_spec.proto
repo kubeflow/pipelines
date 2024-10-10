@@ -1077,6 +1077,8 @@ message PipelineStateEnum {
 message PlatformSpec {
   // Platform key to full platform config
   map<string, SinglePlatformSpec> platforms = 1;
+
+  optional PipelineConfig pipelineConfig = 2;
 }
 
 message SinglePlatformSpec {
@@ -1084,6 +1086,10 @@ message SinglePlatformSpec {
   PlatformDeploymentConfig deployment_spec = 1;
 }
 
+message PipelineConfig {
+  // Set TTL at pipeline-level
+  optional int32 ttl = 1;
+}
 
 message PlatformDeploymentConfig {
   // Map of executor label to executor-level config
