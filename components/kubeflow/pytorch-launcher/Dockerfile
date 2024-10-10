@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.6
+FROM python:3.11
 
 ADD requirements.txt requirements.txt
 
@@ -20,4 +20,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 ADD build /ml
 
-ENTRYPOINT ["python", "/ml/launch_pytorchjob.py"]
+ENTRYPOINT ["python", "/ml/src/launch_pytorchjob.py"]
