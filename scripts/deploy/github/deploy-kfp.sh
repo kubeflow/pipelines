@@ -49,6 +49,10 @@ kubectl patch deployment.apps/ml-pipeline-persistenceagent -p '{"spec": {"templa
 # Patch scheduled workflow
 kubectl patch deployment.apps/ml-pipeline-scheduledworkflow -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-scheduledworkflow", "image": "kind-registry:5000/scheduledworkflow"}]}}}}' -n kubeflow
 
+# Update environment variables to override driver / launcher
+kubectl set env deployments/ml-pipeline V2_DRIVER_IMAGE=kind-registry:5000/driver -n kubeflow
+kubectl set env deployments/ml-pipeline V2_LAUNCHER_IMAGE=kind-registry:5000/launcher -n kubeflow
+
 # Check if all pods are running - (10 minutes)
 wait_for_pods || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
