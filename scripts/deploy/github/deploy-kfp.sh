@@ -44,7 +44,7 @@ fi
 echo "Patching deployments to use built docker images..."
 # Patch API server
 kubectl patch deployment ml-pipeline -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-api-server", "image": "kind-registry:5000/apiserver"}]}}}}' -n kubeflow
-# Patch persistance agent
+# Patch persistence agent
 kubectl patch deployment.apps/ml-pipeline-persistenceagent -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-persistenceagent", "image": "kind-registry:5000/persistenceagent"}]}}}}' -n kubeflow
 # Patch scheduled workflow
 kubectl patch deployment.apps/ml-pipeline-scheduledworkflow -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-scheduledworkflow", "image": "kind-registry:5000/scheduledworkflow"}]}}}}' -n kubeflow
