@@ -1,0 +1,32 @@
+# This workflow checks if all CI checks have passed by polling every 5 minutes for a total of 7 attempts.
+name: CI Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check_ci_status:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read  
+      pull-requests: write        
+    steps:    
+      - name: Check if all CI checks passed
+        uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
+        with:                                 
+          delay: '5'
+          retries: '7'
+          polling_interval: '5'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Save PR payload
+        shell: bash
+        run: |
+          mkdir -p ./pr
+          echo ${{ github.event.pull_request.number }} >> ./pr/pr_number          
+          echo ${{ github.event.action }} >> ./pr/event_action
+      - uses: actions/upload-artifact@v3.1.0
+        with:
+          name: pr
+          path: pr/
