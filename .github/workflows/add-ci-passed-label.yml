@@ -1,0 +1,84 @@
+# This workflow adds the 'ci-passed' label to a pull request once the 'CI Check' workflow completes successfully.
+# Resets the 'ci-passed' label status when a pull request is synchronized or reopened, 
+# indicating that changes have been pushed and CI needs to rerun.
+name: Add CI Passed Label
+
+on:
+  workflow_run:
+    workflows: ["CI Check"]
+    types:
+      - completed
+
+permissions:
+  pull-requests: write
+  checks: read
+  actions: read
+
+jobs:
+  fetch_data:
+    name: Fetch workflow payload
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    outputs:
+      pr_number: ${{ steps.extract.outputs.pr_number }}
+      event_action: ${{ steps.extract.outputs.event_action }}
+    steps:
+      - name: 'Download artifact'
+        uses: actions/github-script@v3.1.0        
+        with:
+          script: |
+            var artifacts = await github.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: ${{github.event.workflow_run.id}},
+            });
+            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "pr"
+            })[0];
+            var download = await github.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchArtifact.id,
+              archive_format: 'zip',
+            });
+            var fs = require('fs');
+            fs.writeFileSync('${{github.workspace}}/pr.zip', Buffer.from(download.data));
+      
+      - name: Unzip artifact
+        run: unzip pr.zip
+
+      - name: Extract PR information
+        id: extract
+        run: |
+          pr_number=$(cat ./pr_number)
+          event_action=$(cat ./event_action)
+          echo "pr_number=${pr_number}" >> $GITHUB_OUTPUT
+          echo "event_action=${event_action}" >> $GITHUB_OUTPUT
+
+  add_ci_passed_label:
+    name: Add 'ci-passed' label
+    runs-on: ubuntu-latest    
+    needs: fetch_data
+    steps:
+      - name: Add 'ci-passed' label
+        run: |
+          echo "Adding 'ci-passed' label to PR #${{ needs.fetch_data.outputs.pr_number }}"
+          gh pr edit ${{ needs.fetch_data.outputs.pr_number }} --add-label "ci-passed" --repo $GITHUB_REPOSITORY
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  reset_ci_passed_label:
+    name: Reset 'ci-passed' label on PR Synchronization
+    runs-on: ubuntu-latest
+    needs: fetch_data
+    steps:
+      - name: Check and reset label
+        run: |
+          if [[ "${{ needs.fetch_data.outputs.event_action }}" == "synchronize" || "${{ needs.fetch_data.outputs.event_action }}" == "reopened" ]]; then
+            echo "Resetting 'ci-passed' label as changes were pushed (event: ${{ needs.fetch_data.outputs.event_action }})."
+            gh pr edit ${{ needs.fetch_data.outputs.pr_number }} --remove-label "ci-passed" --repo $GITHUB_REPOSITORY || echo "Label not present"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
