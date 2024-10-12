@@ -4,10 +4,12 @@ metadata:
   name: cache-deployer-deployment
   labels:
     app: cache-deployer
+    application-crd-id: kubeflow-pipelines
 spec:
   replicas: 1
   selector:
     matchLabels:
+      application-crd-id: kubeflow-pipelines
       app: cache-deployer
   strategy:
     type: Recreate
