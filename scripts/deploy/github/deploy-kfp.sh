@@ -51,7 +51,7 @@ fi
 
 collect_artifacts kubeflow
 
-kubectl describe deployments/ml-pipeline
+kubectl describe deployments/ml-pipeline -n kubeflow
 
 echo "Finished KFP deployment."
 
