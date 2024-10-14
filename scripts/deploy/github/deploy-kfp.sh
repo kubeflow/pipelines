@@ -51,5 +51,7 @@ fi
 
 collect_artifacts kubeflow
 
+kubectl describe deployments/ml-pipeline
+
 echo "Finished KFP deployment."
 
