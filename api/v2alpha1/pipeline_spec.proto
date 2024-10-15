@@ -1085,7 +1085,12 @@ message SinglePlatformSpec {
   // Mirrors PipelineSpec.deployment_spec structure
   PlatformDeploymentConfig deployment_spec = 1;
 
-  reserved 2, 3;
+  // Name of the platform. For example, "google_cloud"
+  string platform = 2;
+
+  // Arbitrary configuration, which will be defined by the platform
+  // protos/libraries.
+  google.protobuf.Struct config = 3;
 }
 
 
