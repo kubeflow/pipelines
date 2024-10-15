@@ -93,6 +93,8 @@ message ComponentSpec {
     DagSpec dag = 3;
     string executor_label = 4;
   }
+  // Supports platform-specific component features.
+  repeated SinglePlatformSpec single_platform_specs = 5;
 }
 
 // A DAG contains multiple tasks.
@@ -1082,6 +1084,8 @@ message PlatformSpec {
 message SinglePlatformSpec {
   // Mirrors PipelineSpec.deployment_spec structure
   PlatformDeploymentConfig deployment_spec = 1;
+
+  reserved 2, 3;
 }
 
 
