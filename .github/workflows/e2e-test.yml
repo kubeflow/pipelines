@@ -7,7 +7,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/e2e-test.yml'
-      - 'scripts/deploy/github/**'
+      - '.github/resources/**'
       - 'go.mod'
       - 'go.sum'
       - 'backend/**'
@@ -32,7 +32,7 @@ jobs:
         uses: ./.github/actions/kfp-cluster
 
       - name: Forward API port
-        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
       - name: Initialization tests v1
         working-directory: ./backend/test/initialization
@@ -60,7 +60,7 @@ jobs:
         uses: ./.github/actions/kfp-cluster
 
       - name: Forward API port
-        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
       - name: Initialization tests v2
         working-directory: ./backend/test/v2/initialization
@@ -88,7 +88,7 @@ jobs:
         uses: ./.github/actions/kfp-cluster
 
       - name: Forward API port
-        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
       - name: API integration tests v1
         working-directory: ./backend/test/integration
@@ -116,7 +116,7 @@ jobs:
         uses: ./.github/actions/kfp-cluster
 
       - name: Forward API port
-        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
       - name: API integration tests v2
         working-directory: ./backend/test/v2/integration
@@ -144,10 +144,10 @@ jobs:
         uses: ./.github/actions/kfp-cluster
 
       - name: Forward API port
-        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
       - name: Forward Frontend port
-        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
 
       - name: Build frontend integration tests image
         working-directory: ./test/frontend-integration-test
@@ -178,7 +178,7 @@ jobs:
         uses: ./.github/actions/kfp-cluster
 
       - name: Forward API port
-        run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
       - name: Install prerequisites
         run: pip3 install -r ./test/sample-test/requirements.txt

@@ -10,7 +10,7 @@ on:
       - '.github/workflows/backend.yml'
       - 'go.mod'
       - 'backend/**'
-      - 'scripts/deploy/github/**'
+      - '.github/resources/**'
       - 'manifests/kustomize/**'
 
 env:
@@ -48,23 +48,23 @@ jobs:
       - name: "flip coin test"
         run: |
           . .venv/bin/activate
-          TEST_SCRIPT="test-flip-coin.sh" ./scripts/deploy/github/e2e-test.sh
+          TEST_SCRIPT="test-flip-coin.sh" ./.github/resources/scripts/e2e-test.sh
       - name: "static loop test"
         run: |
           . .venv/bin/activate
-          TEST_SCRIPT="test-static-loop.sh" ./scripts/deploy/github/e2e-test.sh
+          TEST_SCRIPT="test-static-loop.sh" ./.github/resources/scripts/e2e-test.sh
       - name: "dynamic loop test"
         run: |
           . .venv/bin/activate
-          TEST_SCRIPT="test-dynamic-loop.sh" ./scripts/deploy/github/e2e-test.sh
+          TEST_SCRIPT="test-dynamic-loop.sh" ./.github/resources/scripts/e2e-test.sh
       - name: "use env"
         run: |
           . .venv/bin/activate
-          TEST_SCRIPT="test-env.sh" ./scripts/deploy/github/e2e-test.sh
+          TEST_SCRIPT="test-env.sh" ./.github/resources/scripts/e2e-test.sh
       - name: "use volume"
         run: |
           . .venv/bin/activate
-          TEST_SCRIPT="test-volume.sh" ./scripts/deploy/github/e2e-test.sh
+          TEST_SCRIPT="test-volume.sh" ./.github/resources/scripts/e2e-test.sh
       - name: Collect test results
         if: always()
         uses: actions/upload-artifact@v4

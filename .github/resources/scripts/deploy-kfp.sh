@@ -32,8 +32,8 @@ then
   exit $EXIT_CODE
 fi
 
-TEST_MANIFESTS="scripts/deploy/github/manifests/test"
-
+# Deploy manifest
+TEST_MANIFESTS=".github/resources/manifests/argo"
 kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
