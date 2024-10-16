@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      containers:
+        - name: ml-pipeline-api-server
+          env:
+            - name: V2_DRIVER_IMAGE
+              value: kind-registry:5000/driver
+            - name: V2_LAUNCHER_IMAGE
+              value: kind-registry:5000/launcher
