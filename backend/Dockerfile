@@ -18,6 +18,12 @@ ARG SOURCE_CODE=.
 FROM registry.access.redhat.com/ubi8/go-toolset:1.21 as builder
 
 USER root
+# Downloading Argo CLI so that the samples are validated
+ENV ARGO_VERSION v3.4.17
+RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
+    gunzip argo-linux-amd64.gz && \
+    chmod +x argo-linux-amd64 && \
+    mv ./argo-linux-amd64 /usr/local/bin/argo
 
 RUN dnf install -y cmake clang openssl
 
