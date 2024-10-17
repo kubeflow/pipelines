@@ -1,4 +1,6 @@
 pyyaml
 kubernetes
 kubeflow-pytorchjob
+kubeflow.training
 retrying
+str2bool
