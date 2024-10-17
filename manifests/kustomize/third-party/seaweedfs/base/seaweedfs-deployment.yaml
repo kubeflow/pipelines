@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs
+  labels:
+    app: seaweedfs
+spec:
+  selector:
+    matchLabels:
+      app: seaweedfs
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+    spec:
+      containers:
+      - name: seaweedfs
+        image: 'chrislusf/seaweedfs:3.69'
+        args:
+        - 'server'
+        - '-dir=/data'
+        - '-s3'
+        - '-s3.config=/etc/seaweedfs/config.json'
+        ports:
+        - containerPort: 8333
+        volumeMounts:
+        - mountPath: /etc/seaweedfs/
+          name: config
+        - mountPath: /data
+          name: data
+        resources:
+          # Benchmark this, just taken from minio
+          requests:
+            cpu: 20m
+            memory: 100Mi
+      volumes:
+      - name: config
+        secret:
+          secretName: seaweedfs-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: seaweedfs-pvc
