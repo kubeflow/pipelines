@@ -28,6 +28,8 @@ def custom_training_job(
     worker_pool_specs: List[Dict[str, str]] = [],
     timeout: str = '604800s',
     restart_job_on_worker_restart: bool = False,
+    strategy: str = 'STANDARD',
+    max_wait_duration: str = '86400s',
     service_account: str = '',
     tensorboard: str = '',
     enable_web_access: bool = False,
@@ -48,6 +50,8 @@ def custom_training_job(
     worker_pool_specs: Serialized json spec of the worker pools including machine type and Docker image. All worker pools except the first one are optional and can be skipped by providing an empty value. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec).
     timeout: The maximum job running time. The default is 7 days. A duration in seconds with up to nine fractional digits, terminated by 's', for example: "3.5s".
     restart_job_on_worker_restart: Restarts the entire CustomJob if a worker gets restarted. This feature can be used by distributed training jobs that are not resilient to workers leaving and joining a job.
+    startegy: The strategy to use for the custom training job. The default is 'STANDARD'. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
+    max_wait_duration: The maximum duration to wait for the job to complete. The default is 24 hours. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
     service_account: Sets the default service account for workload run-as account. The [service account ](https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account) running the pipeline submitting jobs must have act-as permission on this run-as account. If unspecified, the Vertex AI Custom Code [Service Agent ](https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents) for the CustomJob's project.
     tensorboard: The name of a Vertex AI TensorBoard resource to which this CustomJob will upload TensorBoard logs.
     enable_web_access: Whether you want Vertex AI to enable [interactive shell access ](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell) to training containers. If `True`, you can access interactive shells at the URIs given by [CustomJob.web_access_uris][].
@@ -75,6 +79,8 @@ def custom_training_job(
                   'restart_job_on_worker_restart': (
                       restart_job_on_worker_restart
                   ),
+                  'strategy': strategy,
+                  'max_wait_duration': max_wait_duration,
               },
               'service_account': service_account,
               'tensorboard': tensorboard,

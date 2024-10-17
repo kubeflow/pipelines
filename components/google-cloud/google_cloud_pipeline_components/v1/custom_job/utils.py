@@ -60,6 +60,8 @@ def create_custom_training_job_from_component(
     boot_disk_size_gb: int = 100,
     timeout: str = '604800s',
     restart_job_on_worker_restart: bool = False,
+    strategy: str = 'STANDARD',
+    max_wait_duration: str = '86400s',
     service_account: str = '',
     network: str = '',
     encryption_spec_key_name: str = '',
@@ -88,6 +90,8 @@ def create_custom_training_job_from_component(
     boot_disk_size_gb: Size in GB of the boot disk (default is 100GB). `boot_disk_size_gb` is set as a static value and cannot be changed as a pipeline parameter.
     timeout: The maximum job running time. The default is 7 days. A duration in seconds with up to nine fractional digits, terminated by 's', for example: "3.5s".
     restart_job_on_worker_restart: Restarts the entire CustomJob if a worker gets restarted. This feature can be used by distributed training jobs that are not resilient to workers leaving and joining a job.
+    startegy: The strategy to use for the custom training job. The default is 'STANDARD'. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
+    max_wait_duration: The maximum duration to wait for the job to complete. The default is 24 hours. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
     service_account: Sets the default service account for workload run-as account. The [service account](https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account) running the pipeline submitting jobs must have act-as permission on this run-as account. If unspecified, the Vertex AI Custom Code [Service Agent](https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents) for the CustomJob's project.
     network: The full name of the Compute Engine network to which the job should be peered. For example, `projects/12345/global/networks/myVPC`. Format is of the form `projects/{project}/global/networks/{network}`. Where `{project}` is a project number, as in `12345`, and `{network}` is a network name. Private services access must already be configured for the network. If left unspecified, the job is not peered with any network.
     encryption_spec_key_name: Customer-managed encryption key options for the CustomJob. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key.
@@ -194,6 +198,8 @@ def create_custom_training_job_from_component(
       'worker_pool_specs': worker_pool_specs,
       'timeout': timeout,
       'restart_job_on_worker_restart': restart_job_on_worker_restart,
+      'strategy': strategy,
+      'max_wait_duration': max_wait_duration,
       'service_account': service_account,
       'tensorboard': tensorboard,
       'enable_web_access': enable_web_access,
