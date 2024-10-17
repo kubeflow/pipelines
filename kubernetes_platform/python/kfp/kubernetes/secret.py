@@ -18,7 +18,8 @@ from google.protobuf import json_format
 from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
-
+from typing import Union
+from kfp.dsl.pipeline_channel import PipelineParameterChannel
 
 def use_secret_as_env(
     task: PipelineTask,
@@ -59,7 +60,7 @@ def use_secret_as_env(
 
 def use_secret_as_volume(
     task: PipelineTask,
-    secret_name: str,
+    secret_name: Union[str, PipelineParameterChannel],
     mount_path: str,
     optional: bool = False,
 ) -> PipelineTask:
@@ -75,11 +76,16 @@ def use_secret_as_volume(
     Returns:
         Task object with updated secret configuration.
     """
-
     msg = common.get_existing_kubernetes_config_as_message(task)
 
+    val = secret_name
+    # if secret_name is a PipelineParameterChannel, then we don't know what secret to mount until RUNTIME
+    # so, treat is as a map KEY instead of a secret name
+    if isinstance(secret_name, PipelineParameterChannel):
+        val = "{{" + secret_name.name + "}}"
+
     secret_as_vol = pb.SecretAsVolume(
-        secret_name=secret_name,
+        secret_name=val,
         mount_path=mount_path,
         optional=optional,
     )
