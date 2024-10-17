@@ -85,6 +85,7 @@ func init() {
 	flag.Set("logtostderr", "true")
 	// Change the WARNING to INFO level for debugging.
 	flag.Set("stderrthreshold", "WARNING")
+	flag.Set("v", "4")
 }
 
 func validate() error {

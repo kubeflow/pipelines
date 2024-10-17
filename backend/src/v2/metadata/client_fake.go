@@ -19,6 +19,7 @@ package metadata
 
 import (
 	"context"
+
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -64,10 +65,15 @@ func (c *FakeClient) GetPipelineFromExecution(ctx context.Context, id int64) (*P
 	return nil, nil
 }
 
-func (c *FakeClient) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline) (executionsMap map[string]*Execution, err error) {
+func (c *FakeClient) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline, filter bool) (executionsMap map[string]*Execution, err error) {
 	return nil, nil
 }
-
+func (c *FakeClient) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) (err error) {
+	return nil
+}
+func (c *FakeClient) PutDAGExecutionState(ctx context.Context, executionID int64, state pb.Execution_State) (err error) {
+	return nil
+}
 func (c *FakeClient) GetEventsByArtifactIDs(ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
 	return nil, nil
 }

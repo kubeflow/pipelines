@@ -1872,7 +1872,9 @@ def validate_pipeline_outputs_dict(
                     f'Pipeline outputs may only be returned from the top level of the pipeline function scope. Got pipeline output from within the control flow group dsl.{channel.task.parent_task_group.__class__.__name__}.'
                 )
         else:
-            raise ValueError(f'Got unknown pipeline output: {channel}.')
+            raise ValueError(
+                f'Got unknown pipeline output, {channel}, of type {type(channel)}.'
+            )
 
 
 def create_pipeline_spec(
@@ -2006,13 +2008,18 @@ def convert_pipeline_outputs_to_dict(
     output name to PipelineChannel."""
     if pipeline_outputs is None:
         return {}
+    elif isinstance(pipeline_outputs, dict):
+        # This condition is required to support pipelines that return NamedTuples.
+        return pipeline_outputs
     elif isinstance(pipeline_outputs, pipeline_channel.PipelineChannel):
         return {component_factory.SINGLE_OUTPUT_NAME: pipeline_outputs}
     elif isinstance(pipeline_outputs, tuple) and hasattr(
             pipeline_outputs, '_asdict'):
         return dict(pipeline_outputs._asdict())
     else:
-        raise ValueError(f'Got unknown pipeline output: {pipeline_outputs}')
+        raise ValueError(
+            f'Got unknown pipeline output, {pipeline_outputs}, of type {type(pipeline_outputs)}.'
+        )
 
 
 def write_pipeline_spec_to_file(
