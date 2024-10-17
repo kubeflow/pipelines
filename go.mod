@@ -17,9 +17,9 @@ require (
 	github.com/go-openapi/validate v0.20.3
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang/glog v1.2.0
-	github.com/golang/protobuf v1.5.3
+	github.com/golang/protobuf v1.5.4
 	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76
-	github.com/google/cel-go v0.12.6
+	github.com/google/cel-go v0.12.7
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.5.0
 	github.com/gorilla/mux v1.8.0
@@ -51,12 +51,12 @@ require (
 	google.golang.org/genproto v0.0.0-20231212172506-995d672761c0 // indirect
 	google.golang.org/grpc v1.60.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.27.2
-	k8s.io/apimachinery v0.27.3
-	k8s.io/client-go v0.27.2
-	k8s.io/code-generator v0.27.2
+	k8s.io/api v0.27.16
+	k8s.io/apimachinery v0.27.16
+	k8s.io/client-go v0.27.16
+	k8s.io/code-generator v0.27.16
 	k8s.io/utils v0.0.0-20230505201702-9f6742963106 // indirect
 	knative.dev/pkg v0.0.0-20231023150739-56bfe0dd9626
 	sigs.k8s.io/controller-runtime v0.11.1
@@ -116,7 +116,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
@@ -197,7 +197,7 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiextensions-apiserver v0.27.2 // indirect
-	k8s.io/component-base v0.27.2 // indirect
+	k8s.io/component-base v0.27.16 // indirect
 	k8s.io/gengo v0.0.0-20221011193443-fad74ee6edd9 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230515203736-54b630e78af5 // indirect
@@ -206,12 +206,16 @@ require (
 )
 
 replace (
+	github.com/containerd/containerd => github.com/containerd/containerd v1.7.13
 	github.com/kubeflow/kfp-tekton/tekton-catalog/cache => github.com/kubeflow/kfp-tekton/tekton-catalog/cache v0.0.0-20231127195001-a75d4b3711ff
 	github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore => github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore v0.0.0-20231127195001-a75d4b3711ff
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.12
 	k8s.io/api => k8s.io/api v0.25.9
-	k8s.io/apimachinery => k8s.io/apimachinery v0.26.5
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.27.16
+	k8s.io/apimachinery => k8s.io/apimachinery v0.26.15
 	k8s.io/client-go => k8s.io/client-go v0.25.9
 	k8s.io/code-generator => k8s.io/code-generator v0.25.9
+	k8s.io/component-bsae => k8s.io/component-base v0.27.16
 	k8s.io/kubernetes => k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 )
