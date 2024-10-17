@@ -32,26 +32,14 @@ then
   exit $EXIT_CODE
 fi
 
-PLATFORM_AGNOSTIC_MANIFESTS="manifests/kustomize/env/platform-agnostic"
-
-kubectl apply -k "${PLATFORM_AGNOSTIC_MANIFESTS}" || EXIT_CODE=$?
+# Deploy manifest
+TEST_MANIFESTS=".github/resources/manifests/argo"
+kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
-  echo "Deploy unsuccessful. Failure applying ${PLATFORM_AGNOSTIC_MANIFESTS}."
+  echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
   exit 1
 fi
-
-echo "Patching deployments to use built docker images..."
-# Patch API server
-kubectl patch deployment ml-pipeline -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-api-server", "image": "kind-registry:5000/apiserver"}]}}}}' -n kubeflow
-# Patch persistence agent
-kubectl patch deployment.apps/ml-pipeline-persistenceagent -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-persistenceagent", "image": "kind-registry:5000/persistenceagent"}]}}}}' -n kubeflow
-# Patch scheduled workflow
-kubectl patch deployment.apps/ml-pipeline-scheduledworkflow -p '{"spec": {"template": {"spec": {"containers": [{"name": "ml-pipeline-scheduledworkflow", "image": "kind-registry:5000/scheduledworkflow"}]}}}}' -n kubeflow
-
-# Update environment variables to override driver / launcher
-kubectl set env deployments/ml-pipeline V2_DRIVER_IMAGE=kind-registry:5000/driver -n kubeflow
-kubectl set env deployments/ml-pipeline V2_LAUNCHER_IMAGE=kind-registry:5000/launcher -n kubeflow
 
 # Check if all pods are running - (10 minutes)
 wait_for_pods || EXIT_CODE=$?
