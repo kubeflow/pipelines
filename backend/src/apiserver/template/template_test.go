@@ -220,7 +220,9 @@ func TestScheduledWorkflow(t *testing.T) {
 				Parameters: []scheduledworkflow.Parameter{{Name: "y", Value: "\"world\""}},
 				Spec:       "",
 			},
-			NoCatchup: util.BoolPointer(true),
+			PipelineId:   "1",
+			PipelineName: "pipeline name",
+			NoCatchup:    util.BoolPointer(true),
 		},
 	}
 

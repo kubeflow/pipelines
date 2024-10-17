@@ -964,3 +964,9 @@ func TestDeleteJob_InternalError(t *testing.T) {
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected delete job to return internal error")
 }
+
+func TestJobAPIFieldMap(t *testing.T) {
+	for _, modelField := range (&model.Job{}).APIToModelFieldMap() {
+		assert.Contains(t, jobColumns, modelField)
+	}
+}

@@ -16,6 +16,7 @@
 import unittest
 
 from google.protobuf import json_format
+from kfp import dsl
 from kfp.local import executor_input_utils
 from kfp.local import testing_utilities
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -76,6 +77,7 @@ class TestConstructExecutorInput(unittest.TestCase):
             component_spec=component_spec,
             arguments=arguments,
             task_root=task_root,
+            block_input_artifact=True,
         )
         expected = pipeline_spec_pb2.ExecutorInput()
         json_format.ParseDict(
@@ -129,6 +131,7 @@ class TestConstructExecutorInput(unittest.TestCase):
             component_spec=component_spec,
             arguments=arguments,
             task_root=task_root,
+            block_input_artifact=True,
         )
         expected = pipeline_spec_pb2.ExecutorInput()
         json_format.ParseDict(
@@ -166,7 +169,7 @@ class TestConstructExecutorInput(unittest.TestCase):
             }, expected)
         self.assertEqual(actual, expected)
 
-    def test_input_artifacts_not_yet_supported(self):
+    def test_block_input_artifact(self):
         component_spec = pipeline_spec_pb2.ComponentSpec()
         json_format.ParseDict(
             {
@@ -191,7 +194,206 @@ class TestConstructExecutorInput(unittest.TestCase):
                 component_spec=component_spec,
                 arguments=arguments,
                 task_root=task_root,
+                block_input_artifact=True,
             )
+
+    def test_allow_input_artifact(self):
+        component_spec = pipeline_spec_pb2.ComponentSpec()
+        json_format.ParseDict(
+            {
+                'inputDefinitions': {
+                    'artifacts': {
+                        'in_artifact': {
+                            'artifactType': {
+                                'schemaTitle': 'system.Artifact',
+                                'schemaVersion': '0.0.1'
+                            }
+                        }
+                    }
+                },
+                'executorLabel': 'exec-comp'
+            }, component_spec)
+        task_root = '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp'
+        arguments = {
+            'in_artifact':
+                dsl.Artifact(
+                    name='artifact',
+                    uri='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/prev-comp/artifact',
+                    metadata={'foo': 'bar'})
+        }
+        actual = executor_input_utils.construct_executor_input(
+            component_spec=component_spec,
+            arguments=arguments,
+            task_root=task_root,
+            # this param says input artifacts should be permitted
+            block_input_artifact=False,
+        )
+        expected = pipeline_spec_pb2.ExecutorInput()
+        json_format.ParseDict(
+            {
+                'inputs': {
+                    'artifacts': {
+                        'in_artifact': {
+                            'artifacts': [{
+                                'name':
+                                    'artifact',
+                                'type': {
+                                    'schemaTitle': 'system.Artifact',
+                                    'schemaVersion': '0.0.1'
+                                },
+                                'uri':
+                                    '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/prev-comp/artifact',
+                                'metadata': {
+                                    'foo': 'bar'
+                                }
+                            }]
+                        }
+                    }
+                },
+                'outputs': {
+                    'outputFile':
+                        '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json'
+                }
+            }, expected)
+        self.assertEqual(actual, expected)
+
+    def test_fstring_case(self):
+        component_spec = pipeline_spec_pb2.ComponentSpec()
+        json_format.ParseDict(
+            {
+                'inputDefinitions': {
+                    'parameters': {
+                        'string': {
+                            'parameterType': 'STRING'
+                        }
+                    }
+                },
+                'outputDefinitions': {
+                    'parameters': {
+                        'Output': {
+                            'parameterType': 'STRING'
+                        }
+                    }
+                },
+                'executorLabel': 'exec-identity'
+            }, component_spec)
+        expected_executor_input = pipeline_spec_pb2.ExecutorInput()
+        json_format.ParseDict(
+            {
+                'inputs': {
+                    'parameterValues': {
+                        'pipelinechannel--string':
+                            'baz',
+                        'string':
+                            "bar-{{$.inputs.parameters['pipelinechannel--string']}}"
+                    }
+                },
+                'outputs': {
+                    'parameters': {
+                        'Output': {
+                            'outputFile':
+                                '/foo/bar/local_outputs/my-pipeline-2024-01-26-11-10-57XX-530768/identity/Output'
+                        }
+                    },
+                    'outputFile':
+                        '/foo/bar/local_outputs/my-pipeline-2024-01-26-11-10-57XX-530768/identity/executor_output.json'
+                }
+            }, expected_executor_input)
+        actual_executor_input = executor_input_utils.construct_executor_input(
+            component_spec=component_spec,
+            arguments={
+                'pipelinechannel--string':
+                    'baz',
+                # covers the case of an f-string, where the value of
+                # string includes an interpolation of
+                # pipelinechannel--string
+                'string':
+                    "bar-{{$.inputs.parameters['pipelinechannel--string']}}"
+            },
+            task_root='/foo/bar/local_outputs/my-pipeline-2024-01-26-11-10-57XX-530768/identity',
+            block_input_artifact=True,
+        )
+        self.assertEqual(
+            expected_executor_input,
+            actual_executor_input,
+        )
+
+
+class TestExecutorInputToDict(unittest.TestCase):
+
+    def test_with_ints_and_floats(self):
+        component_spec = pipeline_spec_pb2.ComponentSpec()
+        json_format.ParseDict(
+            {
+                'inputDefinitions': {
+                    'parameters': {
+                        'x': {
+                            'parameterType': 'NUMBER_INTEGER'
+                        },
+                        'y': {
+                            'parameterType': 'NUMBER_DOUBLE'
+                        }
+                    }
+                },
+                'outputDefinitions': {
+                    'parameters': {
+                        'Output': {
+                            'parameterType': 'STRING'
+                        }
+                    }
+                },
+                'executorLabel': 'exec-comp'
+            }, component_spec)
+
+        executor_input = pipeline_spec_pb2.ExecutorInput()
+        json_format.ParseDict(
+            {
+                'inputs': {
+                    'parameterValues': {
+                        'x': 1.0,
+                        'y': 2.0
+                    }
+                },
+                'outputs': {
+                    'parameters': {
+                        'Output': {
+                            'outputFile':
+                                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output'
+                        }
+                    },
+                    'outputFile':
+                        '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json'
+                }
+            }, executor_input)
+
+        executor_input_dict = executor_input_utils.executor_input_to_dict(
+            executor_input=executor_input,
+            component_spec=component_spec,
+        )
+        expected = {
+            'inputs': {
+                'parameterValues': {
+                    'x': 1,
+                    'y': 2.0
+                }
+            },
+            'outputs': {
+                'parameters': {
+                    'Output': {
+                        'outputFile':
+                            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output'
+                    }
+                },
+                'outputFile':
+                    '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json'
+            }
+        }
+        # assert types since 1.0 == 1
+        self.assertIsInstance(
+            executor_input_dict['inputs']['parameterValues']['x'], int)
+        self.assertIsInstance(
+            executor_input_dict['inputs']['parameterValues']['y'], float)
+        self.assertEqual(executor_input_dict, expected)
 
 
 if __name__ == '__main__':

@@ -171,11 +171,11 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobparams.JobServiceCreateJobParams{Body: &job_model.APIJob{
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*job_model.APIResourceReference{
@@ -196,13 +196,13 @@ func (s *JobApiTestSuite) TestJobApis() {
 	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipelineVersion.ID, helloWorldPipelineVersion.Name)
 
 	/* ---------- Get hello world job ---------- */
-	helloWorldJob, err = s.jobClient.Get(&jobparams.GetJobParams{ID: helloWorldJob.ID})
+	helloWorldJob, err = s.jobClient.Get(&jobparams.JobServiceGetJobParams{ID: helloWorldJob.ID})
 	assert.Nil(t, err)
 	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipelineVersion.ID, helloWorldPipelineVersion.Name)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	experiment = test.GetExperiment("argument parameter experiment", "", s.resourceNamespace)
-	argParamsExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
+	argParamsExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter job by uploading workflow manifest ---------- */
@@ -213,7 +213,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)
-	createJobRequest = &jobparams.CreateJobParams{Body: &job_model.APIJob{
+	createJobRequest = &jobparams.JobServiceCreateJobParams{Body: &job_model.APIJob{
 		Name:        "argument parameter",
 		Description: "this is argument parameter",
 		PipelineSpec: &job_model.APIPipelineSpec{
@@ -245,7 +245,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	/* ---------- List the jobs, paginated, sort by creation time ---------- */
 	jobs, totalSize, nextPageToken, err := test.ListJobs(
 		s.jobClient,
-		&jobparams.ListJobsParams{
+		&jobparams.JobServiceListJobsParams{
 			PageSize: util.Int32Pointer(1),
 			SortBy:   util.StringPointer("created_at"),
 		},
@@ -256,7 +256,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, "hello world", jobs[0].Name)
 	jobs, totalSize, _, err = test.ListJobs(
 		s.jobClient,
-		&jobparams.ListJobsParams{
+		&jobparams.JobServiceListJobsParams{
 			PageSize:  util.Int32Pointer(1),
 			PageToken: util.StringPointer(nextPageToken),
 		},
@@ -269,7 +269,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	/* ---------- List the jobs, paginated, sort by name ---------- */
 	jobs, totalSize, nextPageToken, err = test.ListJobs(
 		s.jobClient,
-		&jobparams.ListJobsParams{
+		&jobparams.JobServiceListJobsParams{
 			PageSize: util.Int32Pointer(1),
 			SortBy:   util.StringPointer("name"),
 		},
@@ -280,7 +280,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, "argument parameter", jobs[0].Name)
 	jobs, totalSize, _, err = test.ListJobs(
 		s.jobClient,
-		&jobparams.ListJobsParams{
+		&jobparams.JobServiceListJobsParams{
 			PageSize:  util.Int32Pointer(1),
 			SortBy:    util.StringPointer("name"),
 			PageToken: util.StringPointer(nextPageToken),
@@ -294,7 +294,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	/* ---------- List the jobs, sort by unsupported field ---------- */
 	jobs, _, _, err = test.ListJobs(
 		s.jobClient,
-		&jobparams.ListJobsParams{
+		&jobparams.JobServiceListJobsParams{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("unknown"),
 		},
@@ -303,7 +303,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, len(jobs), 0)
 
 	/* ---------- List jobs for hello world experiment. One job should be returned ---------- */
-	jobs, totalSize, _, err = s.jobClient.List(&jobparams.ListJobsParams{
+	jobs, totalSize, _, err = s.jobClient.List(&jobparams.JobServiceListJobsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID),
 	})
@@ -316,7 +316,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	time.Sleep(5 * time.Second) // Sleep for 5 seconds to make sure the previous jobs are created at a different timestamp
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
-	createJobRequestNew := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+	createJobRequestNew := &jobparams.JobServiceCreateJobParams{Body: &job_model.APIJob{
 		Name:        "new hello world job",
 		Description: "this is a new hello world",
 		ResourceReferences: []*job_model.APIResourceReference{
@@ -342,7 +342,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	// Check number of filtered jobs finished before filterTime to be 2
 	jobs, totalSize, _, err = test.ListJobs(
 		s.jobClient,
-		&jobparams.ListJobsParams{
+		&jobparams.JobServiceListJobsParams{
 			Filter: util.StringPointer(`{"predicates": [{"key": "created_at", "op": 6, "string_value": "` + fmt.Sprint(filterTime) + `"}]}`),
 		},
 		s.resourceNamespace)
@@ -355,7 +355,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	/* ---------- Check run for hello world job ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsV1Params{
+		runs, totalSize, _, err := s.runClient.List(&runParams.RunServiceListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID),
 		})
@@ -376,7 +376,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	/* ---------- Check run for argument parameter job ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsV1Params{
+		runs, totalSize, _, err := s.runClient.List(&runParams.RunServiceListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(argParamsExperiment.ID),
 		})
@@ -414,7 +414,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* ---------- Create a periodic job with start and end date in the past and catchup = true ---------- */
 	experiment := test.GetExperiment("periodic catchup true", "", s.resourceNamespace)
-	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
+	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	job := jobInThePastForTwoMinutes(jobOptions{
@@ -425,13 +425,13 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Name = "periodic-catchup-true-"
 	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
 	job.NoCatchup = false // This is the key difference.
-	createJobRequest := &jobparams.CreateJobParams{Body: job}
+	createJobRequest := &jobparams.JobServiceCreateJobParams{Body: job}
 	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
 	/* -------- Create another periodic job with start and end date in the past but catchup = false ------ */
 	experiment = test.GetExperiment("periodic catchup false", "", s.resourceNamespace)
-	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
+	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	job = jobInThePastForTwoMinutes(jobOptions{
@@ -442,13 +442,13 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Name = "periodic-catchup-false-"
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
-	createJobRequest = &jobparams.CreateJobParams{Body: job}
+	createJobRequest = &jobparams.JobServiceCreateJobParams{Body: job}
 	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
 	/* ---------- Create a cron job with start and end date in the past and catchup = true ---------- */
 	experiment = test.GetExperiment("cron catchup true", "", s.resourceNamespace)
-	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
+	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	job = jobInThePastForTwoMinutes(jobOptions{
@@ -459,13 +459,13 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Name = "cron-catchup-true-"
 	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
 	job.NoCatchup = false // This is the key difference.
-	createJobRequest = &jobparams.CreateJobParams{Body: job}
+	createJobRequest = &jobparams.JobServiceCreateJobParams{Body: job}
 	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
 	/* -------- Create another cron job with start and end date in the past but catchup = false ------ */
 	experiment = test.GetExperiment("cron catchup false", "", s.resourceNamespace)
-	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
+	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	job = jobInThePastForTwoMinutes(jobOptions{
@@ -476,7 +476,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Name = "cron-catchup-false-"
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
-	createJobRequest = &jobparams.CreateJobParams{Body: job}
+	createJobRequest = &jobparams.JobServiceCreateJobParams{Body: job}
 	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
@@ -485,7 +485,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* ---------- Assert number of runs when catchup = true ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.ListRunsV1Params{
+		_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.RunServiceListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupTrueExperiment.ID),
 		})
@@ -496,7 +496,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 			return fmt.Errorf("expected runsWhenCatchupTrue with periodic schedule to be 2, got: %v", runsWhenCatchupTrue)
 		}
 
-		_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsV1Params{
+		_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.RunServiceListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(cronCatchupTrueExperiment.ID),
 		})
@@ -514,7 +514,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* ---------- Assert number of runs when catchup = false ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsV1Params{
+		_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.RunServiceListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupFalseExperiment.ID),
 		})
@@ -525,7 +525,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 			return fmt.Errorf("expected runsWhenCatchupFalse with periodic schedule to be 1, got: %v", runsWhenCatchupFalse)
 		}
 
-		_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsV1Params{
+		_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.RunServiceListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(cronCatchupFalseExperiment.ID),
 		})
@@ -619,7 +619,7 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	require.Nil(t, err)
 
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobparams.JobServiceCreateJobParams{Body: &job_model.APIJob{
 		Name: "test-swf-not-found",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			PipelineID: pipeline.ID,
@@ -630,7 +630,7 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	// In multi-user mode, jobs must be associated with an experiment.
 	if *isKubeflowMode {
 		experiment := test.GetExperiment("test-swf-not-found experiment", "", s.resourceNamespace)
-		swfNotFoundExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
+		swfNotFoundExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
 		assert.Nil(t, err)
 
 		createJobRequest.Body.ResourceReferences = []*job_model.APIResourceReference{
@@ -652,11 +652,11 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	err = s.swfClient.ScheduledWorkflow(swfNamespace).DeleteCollection(context.Background(), &v1.DeleteOptions{}, v1.ListOptions{})
 	require.Nil(t, err)
 
-	err = s.jobClient.Delete(&jobparams.DeleteJobParams{ID: job.ID})
+	err = s.jobClient.Delete(&jobparams.JobServiceDeleteJobParams{ID: job.ID})
 	require.Nil(t, err)
 
 	/* ---------- Get job ---------- */
-	_, err = s.jobClient.Get(&jobparams.GetJobParams{ID: job.ID})
+	_, err = s.jobClient.Get(&jobparams.JobServiceGetJobParams{ID: job.ID})
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "not found")
 }

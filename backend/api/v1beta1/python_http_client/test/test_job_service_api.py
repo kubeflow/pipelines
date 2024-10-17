@@ -28,43 +28,43 @@ class TestJobServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_create_job(self):
-        """Test case for create_job
+    def test_job_service_create_job(self):
+        """Test case for job_service_create_job
 
         Creates a new job.  # noqa: E501
         """
         pass
 
-    def test_delete_job(self):
-        """Test case for delete_job
+    def test_job_service_delete_job(self):
+        """Test case for job_service_delete_job
 
         Deletes a job.  # noqa: E501
         """
         pass
 
-    def test_disable_job(self):
-        """Test case for disable_job
+    def test_job_service_disable_job(self):
+        """Test case for job_service_disable_job
 
         Stops a job and all its associated runs. The job is not deleted.  # noqa: E501
         """
         pass
 
-    def test_enable_job(self):
-        """Test case for enable_job
+    def test_job_service_enable_job(self):
+        """Test case for job_service_enable_job
 
         Restarts a job that was previously stopped. All runs associated with the job will continue.  # noqa: E501
         """
         pass
 
-    def test_get_job(self):
-        """Test case for get_job
+    def test_job_service_get_job(self):
+        """Test case for job_service_get_job
 
         Finds a specific job by ID.  # noqa: E501
         """
         pass
 
-    def test_list_jobs(self):
-        """Test case for list_jobs
+    def test_job_service_list_jobs(self):
+        """Test case for job_service_list_jobs
 
         Finds all jobs.  # noqa: E501
         """

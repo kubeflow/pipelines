@@ -50,8 +50,6 @@ RUN microdnf makecache && \
      microdnf install -y tzdata.noarch
 
 ENV NAMESPACE ""
+ENV LOG_LEVEL info
 
-CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE}
-
-LABEL name="ds-pipelines-scheduledworkflow" \
-      summary="DSP Scheduled Workflow Controller"
+CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE} --logLevel=${LOG_LEVEL}

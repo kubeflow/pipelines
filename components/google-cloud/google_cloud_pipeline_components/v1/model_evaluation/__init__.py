@@ -20,16 +20,22 @@ from google_cloud_pipeline_components.v1.model_evaluation.evaluation_automl_tabu
 from google_cloud_pipeline_components.v1.model_evaluation.evaluation_automl_tabular_pipeline import evaluation_automl_tabular_pipeline
 from google_cloud_pipeline_components.v1.model_evaluation.evaluation_automl_unstructure_data_pipeline import evaluation_automl_unstructure_data_pipeline
 from google_cloud_pipeline_components.v1.model_evaluation.evaluation_feature_attribution_pipeline import evaluation_feature_attribution_pipeline
+from google_cloud_pipeline_components.v1.model_evaluation.evaluation_llm_classification_pipeline import evaluation_llm_classification_pipeline
+from google_cloud_pipeline_components.v1.model_evaluation.evaluation_llm_text_generation_pipeline import evaluation_llm_text_generation_pipeline
 from google_cloud_pipeline_components.v1.model_evaluation.forecasting_component import model_evaluation_forecasting as ModelEvaluationForecastingOp
+from google_cloud_pipeline_components.v1.model_evaluation.model_based_llm_evaluation.autosxs.autosxs_pipeline import autosxs_pipeline
 from google_cloud_pipeline_components.v1.model_evaluation.regression_component import model_evaluation_regression as ModelEvaluationRegressionOp
 
 __all__ = [
-    'vision_model_error_analysis_pipeline',
+    'autosxs_pipeline',
     'evaluated_annotation_pipeline',
     'evaluation_automl_tabular_feature_attribution_pipeline',
     'evaluation_automl_tabular_pipeline',
     'evaluation_automl_unstructure_data_pipeline',
     'evaluation_feature_attribution_pipeline',
+    'evaluation_llm_classification_pipeline',
+    'evaluation_llm_text_generation_pipeline',
+    'vision_model_error_analysis_pipeline',
     'ModelEvaluationClassificationOp',
     'ModelEvaluationRegressionOp',
     'ModelEvaluationForecastingOp',

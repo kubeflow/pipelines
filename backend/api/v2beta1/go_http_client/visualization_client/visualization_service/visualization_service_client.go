@@ -25,23 +25,23 @@ type Client struct {
 }
 
 /*
-CreateVisualizationV1 create visualization v1 API
+VisualizationServiceCreateVisualizationV1 visualization service create visualization v1 API
 */
-func (a *Client) CreateVisualizationV1(params *CreateVisualizationV1Params, authInfo runtime.ClientAuthInfoWriter) (*CreateVisualizationV1OK, error) {
+func (a *Client) VisualizationServiceCreateVisualizationV1(params *VisualizationServiceCreateVisualizationV1Params, authInfo runtime.ClientAuthInfoWriter) (*VisualizationServiceCreateVisualizationV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCreateVisualizationV1Params()
+		params = NewVisualizationServiceCreateVisualizationV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateVisualizationV1",
+		ID:                 "VisualizationService_CreateVisualizationV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/visualizations/{namespace}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &CreateVisualizationV1Reader{formats: a.formats},
+		Reader:             &VisualizationServiceCreateVisualizationV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -49,7 +49,7 @@ func (a *Client) CreateVisualizationV1(params *CreateVisualizationV1Params, auth
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreateVisualizationV1OK), nil
+	return result.(*VisualizationServiceCreateVisualizationV1OK), nil
 
 }
 

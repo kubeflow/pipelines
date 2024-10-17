@@ -79,6 +79,7 @@ cssRaw(`
 
 const OPTIONS = {
   overrides: { a: { component: AutoLink } },
+  disableParsingRawHTML: true,
 };
 
 export class GettingStarted extends Page<{}, { links: string[] }> {

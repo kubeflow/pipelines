@@ -30,13 +30,13 @@ import (
 )
 
 type JobInterface interface {
-	Create(params *params.CreateJobParams) (*model.APIJob, error)
-	Get(params *params.GetJobParams) (*model.APIJob, error)
-	Delete(params *params.DeleteJobParams) error
-	Enable(params *params.EnableJobParams) error
-	Disable(params *params.DisableJobParams) error
-	List(params *params.ListJobsParams) ([]*model.APIJob, int, string, error)
-	ListAll(params *params.ListJobsParams, maxResultSize int) ([]*model.APIJob, error)
+	Create(params *params.JobServiceCreateJobParams) (*model.APIJob, error)
+	Get(params *params.JobServiceGetJobParams) (*model.APIJob, error)
+	Delete(params *params.JobServiceDeleteJobParams) error
+	Enable(params *params.JobServiceEnableJobParams) error
+	Disable(params *params.JobServiceDisableJobParams) error
+	List(params *params.JobServiceListJobsParams) ([]*model.APIJob, int, string, error)
+	ListAll(params *params.JobServiceListJobsParams, maxResultSize int) ([]*model.APIJob, error)
 }
 
 type JobClient struct {
@@ -74,7 +74,7 @@ func NewKubeflowInClusterJobClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
+func (c *JobClient) Create(parameters *params.JobServiceCreateJobParams) (*model.APIJob,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -82,9 +82,9 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.CreateJob(parameters, c.authInfoWriter)
+	response, err := c.apiClient.JobService.JobServiceCreateJob(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.CreateJobDefault); ok {
+		if defaultError, ok := err.(*params.JobServiceCreateJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -98,7 +98,7 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 	return response.Payload, nil
 }
 
-func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
+func (c *JobClient) Get(parameters *params.JobServiceGetJobParams) (*model.APIJob,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -106,9 +106,9 @@ func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.GetJob(parameters, c.authInfoWriter)
+	response, err := c.apiClient.JobService.JobServiceGetJob(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.GetJobDefault); ok {
+		if defaultError, ok := err.(*params.JobServiceGetJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -122,16 +122,16 @@ func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
 	return response.Payload, nil
 }
 
-func (c *JobClient) Delete(parameters *params.DeleteJobParams) error {
+func (c *JobClient) Delete(parameters *params.JobServiceDeleteJobParams) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.DeleteJob(parameters, c.authInfoWriter)
+	_, err := c.apiClient.JobService.JobServiceDeleteJob(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.DeleteJobDefault); ok {
+		if defaultError, ok := err.(*params.JobServiceDeleteJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -145,16 +145,16 @@ func (c *JobClient) Delete(parameters *params.DeleteJobParams) error {
 	return nil
 }
 
-func (c *JobClient) Enable(parameters *params.EnableJobParams) error {
+func (c *JobClient) Enable(parameters *params.JobServiceEnableJobParams) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.EnableJob(parameters, c.authInfoWriter)
+	_, err := c.apiClient.JobService.JobServiceEnableJob(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.EnableJobDefault); ok {
+		if defaultError, ok := err.(*params.JobServiceEnableJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -168,16 +168,16 @@ func (c *JobClient) Enable(parameters *params.EnableJobParams) error {
 	return nil
 }
 
-func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
+func (c *JobClient) Disable(parameters *params.JobServiceDisableJobParams) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.DisableJob(parameters, c.authInfoWriter)
+	_, err := c.apiClient.JobService.JobServiceDisableJob(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.DisableJobDefault); ok {
+		if defaultError, ok := err.(*params.JobServiceDisableJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -191,7 +191,7 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 	return nil
 }
 
-func (c *JobClient) List(parameters *params.ListJobsParams) (
+func (c *JobClient) List(parameters *params.JobServiceListJobsParams) (
 	[]*model.APIJob, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -199,9 +199,9 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.ListJobs(parameters, c.authInfoWriter)
+	response, err := c.apiClient.JobService.JobServiceListJobs(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.ListJobsDefault); ok {
+		if defaultError, ok := err.(*params.JobServiceListJobsDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
@@ -215,12 +215,12 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 	return response.Payload.Jobs, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
-func (c *JobClient) ListAll(parameters *params.ListJobsParams, maxResultSize int) (
+func (c *JobClient) ListAll(parameters *params.JobServiceListJobsParams, maxResultSize int) (
 	[]*model.APIJob, error) {
 	return listAllForJob(c, parameters, maxResultSize)
 }
 
-func listAllForJob(client JobInterface, parameters *params.ListJobsParams,
+func listAllForJob(client JobInterface, parameters *params.JobServiceListJobsParams,
 	maxResultSize int) ([]*model.APIJob, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0

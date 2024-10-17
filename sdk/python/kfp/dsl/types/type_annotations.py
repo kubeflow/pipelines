@@ -105,10 +105,10 @@ def construct_type_for_inputpath_or_outputpath(
                                                        type_.schema_version)
     elif isinstance(
             type_,
-            str) and type_.lower() in type_utils._ARTIFACT_CLASSES_MAPPING:
+            str) and type_.lower() in type_utils.ARTIFACT_CLASSES_MAPPING:
         # v1 artifact backward compat, e.g. dsl.OutputPath('Dataset')
         return type_utils.create_bundled_artifact_type(
-            type_utils._ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title)
+            type_utils.ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title)
     elif type_utils.get_parameter_type(type_):
         return type_
     else:

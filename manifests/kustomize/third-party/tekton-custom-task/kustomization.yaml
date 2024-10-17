@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- pipeline-loops
+- exit-handler
+- kfptask
+# Deprecated controller
+# - driver-controller
+
+namespace: tekton-pipelines
+
+images:
+  - name: quay.io/aipipeline/pipelineloop-controller
+    newTag: 1.9.2
+  - name: quay.io/aipipeline/pipelineloop-webhook
+    newTag: 1.9.2
+  - name: tekton-exithandler-controller
+    newName: quay.io/aipipeline/tekton-exithandler-controller
+    newTag: 2.0.5
+  - name: tekton-exithandler-webhook
+    newName: quay.io/aipipeline/tekton-exithandler-webhook
+    newTag: 2.0.5
+  - name: tekton-kfptask-controller
+    newName: quay.io/aipipeline/tekton-kfptask-controller
+    newTag: 2.0.5
+  - name: tekton-kfptask-webhook
+    newName: quay.io/aipipeline/tekton-kfptask-webhook
+    newTag: 2.0.5
+  # Deprecated controller
+  # - name: kfp-v2-dev-driver-controller
+  #   newName: quay.io/aipipeline/tekton-driver
+  #   newTag: 2.0.3

@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -92,4 +93,10 @@ func TestUnsetDefaultExperimentIdIfIdMatches(t *testing.T) {
 	assert.Equal(t, "", defaultExperimentId)
 
 	db.Close()
+}
+
+func TestExperimentAPIFieldMap(t *testing.T) {
+	for _, modelField := range (&model.Experiment{}).APIToModelFieldMap() {
+		assert.Contains(t, experimentColumns, modelField)
+	}
 }

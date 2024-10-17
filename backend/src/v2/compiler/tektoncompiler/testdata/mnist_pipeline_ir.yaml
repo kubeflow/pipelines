@@ -1,0 +1,701 @@
+pipelineSpec:
+  components:
+    comp-convert-experiment-spec-to-str:
+      executorLabel: exec-convert-experiment-spec-to-str
+      inputDefinitions:
+        parameters:
+          experiment_spec_json:
+            parameterType: STRUCT
+      outputDefinitions:
+        parameters:
+          experiment_spec_str_output:
+            parameterType: STRING
+    comp-convert-inference-service-to-artifact:
+      executorLabel: exec-convert-inference-service-to-artifact
+      inputDefinitions:
+        parameters:
+          inferenceservice_yaml:
+            parameterType: STRUCT
+      outputDefinitions:
+        artifacts:
+          inferenceservice_artifact:
+            artifactType:
+              schemaTitle: system.Artifact
+              schemaVersion: 0.0.1
+    comp-convert-katib-results:
+      executorLabel: exec-convert-katib-results
+      inputDefinitions:
+        artifacts:
+          katib_results:
+            artifactType:
+              schemaTitle: system.Artifact
+              schemaVersion: 0.0.1
+      outputDefinitions:
+        parameters:
+          Output:
+            parameterType: STRING
+    comp-create-dataset:
+      executorLabel: exec-create-dataset
+      inputDefinitions:
+        parameters:
+          experiment_name:
+            parameterType: STRING
+          experiment_namespace:
+            parameterType: STRING
+          experiment_spec_json:
+            parameterType: STRING
+          experiment_timeout_minutes:
+            parameterType: NUMBER_INTEGER
+      outputDefinitions:
+        artifacts:
+          parameter_set:
+            artifactType:
+              schemaTitle: system.Artifact
+              schemaVersion: 0.0.1
+    comp-create-katib-experiment-task:
+      executorLabel: exec-create-katib-experiment-task
+      inputDefinitions:
+        parameters:
+          experiment_name:
+            parameterType: STRING
+          experiment_namespace:
+            parameterType: STRING
+          training_steps:
+            parameterType: STRING
+      outputDefinitions:
+        parameters:
+          experiment_spec_json:
+            parameterType: STRUCT
+    comp-create-serving-task:
+      executorLabel: exec-create-serving-task
+      inputDefinitions:
+        parameters:
+          model_name:
+            parameterType: STRING
+          model_namespace:
+            parameterType: STRING
+          model_volume_name:
+            parameterType: STRING
+      outputDefinitions:
+        parameters:
+          inferenceservice_yaml:
+            parameterType: STRUCT
+    comp-create-tfjob-task:
+      executorLabel: exec-create-tfjob-task
+      inputDefinitions:
+        parameters:
+          best_hps:
+            parameterType: STRING
+          model_volume_name:
+            parameterType: STRING
+          tfjob_name:
+            parameterType: STRING
+          tfjob_namespace:
+            parameterType: STRING
+          training_steps:
+            parameterType: STRING
+      outputDefinitions:
+        parameters:
+          chief_spec:
+            parameterType: STRUCT
+          worker_spec:
+            parameterType: STRUCT
+    comp-serving-launcher:
+      executorLabel: exec-serving-launcher
+      inputDefinitions:
+        parameters:
+          action:
+            parameterType: STRING
+          inferenceservice_yaml:
+            parameterType: STRUCT
+    comp-serving-pipeline:
+      dag:
+        outputs:
+          artifacts:
+            Output:
+              artifactSelectors:
+              - outputArtifactKey: inferenceservice_artifact
+                producerSubtask: convert-inference-service-to-artifact
+        tasks:
+          convert-inference-service-to-artifact:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-convert-inference-service-to-artifact
+            dependentTasks:
+            - create-serving-task
+            inputs:
+              parameters:
+                inferenceservice_yaml:
+                  taskOutputParameter:
+                    outputParameterKey: inferenceservice_yaml
+                    producerTask: create-serving-task
+            taskInfo:
+              name: convert-inference-service-to-artifact
+          create-serving-task:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-create-serving-task
+            inputs:
+              parameters:
+                model_name:
+                  componentInputParameter: model_name
+                model_namespace:
+                  componentInputParameter: model_namespace
+                model_volume_name:
+                  componentInputParameter: model_volume_name
+            taskInfo:
+              name: create-serving-task
+          serving-launcher:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-serving-launcher
+            dependentTasks:
+            - convert-inference-service-to-artifact
+            - create-serving-task
+            inputs:
+              parameters:
+                action:
+                  runtimeValue:
+                    constant: apply
+                inferenceservice_yaml:
+                  taskOutputParameter:
+                    outputParameterKey: inferenceservice_yaml
+                    producerTask: create-serving-task
+            taskInfo:
+              name: serving-launcher
+      inputDefinitions:
+        parameters:
+          model_name:
+            parameterType: STRING
+          model_namespace:
+            parameterType: STRING
+          model_volume_name:
+            parameterType: STRING
+      outputDefinitions:
+        artifacts:
+          Output:
+            artifactType:
+              schemaTitle: system.Artifact
+              schemaVersion: 0.0.1
+    comp-tfjob-launcher:
+      executorLabel: exec-tfjob-launcher
+      inputDefinitions:
+        parameters:
+          chief_spec:
+            parameterType: STRUCT
+          tfjob_name:
+            parameterType: STRING
+          tfjob_namespace:
+            parameterType: STRING
+          tfjob_timeout_minutes:
+            parameterType: NUMBER_INTEGER
+          worker_spec:
+            parameterType: STRUCT
+  deploymentSpec:
+    executors:
+      exec-convert-experiment-spec-to-str:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - convert_experiment_spec_to_str
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef convert_experiment_spec_to_str(experiment_spec_json: Dict[str,\
+            \ str])-> NamedTuple('Outputs', [('experiment_spec_str_output', str)]):\n\
+            \    import json\n    output = NamedTuple('Outputs', [('experiment_spec_str_output',\
+            \ str)])\n    return output(json.dumps(experiment_spec_json))\n\n"
+          image: python:3.7
+      exec-convert-inference-service-to-artifact:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - convert_inference_service_to_artifact
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef convert_inference_service_to_artifact(inferenceservice_yaml:\
+            \ Dict[str, str], inferenceservice_artifact: Output[Artifact]):\n    import\
+            \ json\n    with open(inferenceservice_artifact.path, 'w') as f:\n     \
+            \   f.write(json.dumps(inferenceservice_yaml))\n\n"
+          image: python:3.7
+      exec-convert-katib-results:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - convert_katib_results
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef convert_katib_results(katib_results: Input[Artifact]) -> str:\n\
+            \    import json\n    import pprint\n    katib_results_str = ''\n    with\
+            \ open(katib_results.path, 'r') as f:\n        katib_results_str = f.read()\n\
+            \    katib_results_json = json.loads(katib_results_str)\n    print(\"Katib\
+            \ results:\")\n    pprint.pprint(katib_results_json)\n    best_hps = []\n\
+            \    for pa in katib_results_json[\"currentOptimalTrial\"][\"parameterAssignments\"\
+            ]:\n        if pa[\"name\"] == \"learning_rate\":\n            best_hps.append(\"\
+            --tf-learning-rate=\" + pa[\"value\"])\n        elif pa[\"name\"] == \"\
+            batch_size\":\n            best_hps.append(\"--tf-batch-size=\" + pa[\"\
+            value\"])\n    print(\"Best Hyperparameters: {}\".format(best_hps))\n  \
+            \  return \" \".join(best_hps)\n\n"
+          image: python:3.7
+      exec-create-dataset:
+        container:
+          args:
+          - --experiment-name
+          - '{{$.inputs.parameters[''experiment_name'']}}'
+          - --experiment-namespace
+          - '{{$.inputs.parameters[''experiment_namespace'']}}'
+          - --experiment-spec
+          - '{{$.inputs.parameters[''experiment_spec_json'']}}'
+          - --experiment-timeout-minutes
+          - '{{$.inputs.parameters[''experiment_timeout_minutes'']}}'
+          - --delete-after-done
+          - 'False'
+          - --output-file
+          - '{{$.outputs.artifacts[''parameter_set''].path}}'
+          command:
+          - python
+          - src/launch_experiment.py
+          image: docker.io/kubeflowkatib/kubeflow-pipelines-launcher
+      exec-create-katib-experiment-task:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - create_katib_experiment_task
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kubeflow-katib==0.12.0'\
+            \ 'kfp==2.0.1' && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef create_katib_experiment_task(experiment_name: str, experiment_namespace:\
+            \ str, training_steps: str\n                                ) -> NamedTuple('Outputs',\
+            \ [('experiment_spec_json', Dict[str, str])]):\n\n    from kubeflow.katib\
+            \ import ApiClient\n    from kubeflow.katib import V1beta1ExperimentSpec\n\
+            \    from kubeflow.katib import V1beta1AlgorithmSpec\n    from kubeflow.katib\
+            \ import V1beta1ObjectiveSpec\n    from kubeflow.katib import V1beta1ParameterSpec\n\
+            \    from kubeflow.katib import V1beta1FeasibleSpace\n    from kubeflow.katib\
+            \ import V1beta1TrialTemplate\n    from kubeflow.katib import V1beta1TrialParameterSpec\n\
+            \n    # Trial count specification.\n    max_trial_count = 5\n    max_failed_trial_count\
+            \ = 3\n    parallel_trial_count = 2\n\n    # Objective specification.\n\
+            \    objective = V1beta1ObjectiveSpec(\n        type=\"minimize\",\n   \
+            \     goal=0.001,\n        objective_metric_name=\"loss\"\n    )\n\n   \
+            \ # Algorithm specification.\n    algorithm = V1beta1AlgorithmSpec(\n  \
+            \      algorithm_name=\"random\",\n    )\n\n    # Experiment search space.\n\
+            \    # In this example we tune learning rate and batch size.\n    parameters\
+            \ = [\n        V1beta1ParameterSpec(\n            name=\"learning_rate\"\
+            ,\n            parameter_type=\"double\",\n            feasible_space=V1beta1FeasibleSpace(\n\
+            \                min=\"0.01\",\n                max=\"0.05\"\n         \
+            \   ),\n        ),\n        V1beta1ParameterSpec(\n            name=\"batch_size\"\
+            ,\n            parameter_type=\"int\",\n            feasible_space=V1beta1FeasibleSpace(\n\
+            \                min=\"80\",\n                max=\"100\"\n            ),\n\
+            \        )\n    ]\n\n    # Experiment Trial template.\n    # TODO (andreyvelich):\
+            \ Use community image for the mnist example.\n    trial_spec = {\n     \
+            \   \"apiVersion\": \"kubeflow.org/v1\",\n        \"kind\": \"TFJob\",\n\
+            \        \"spec\": {\n            \"tfReplicaSpecs\": {\n              \
+            \  \"Chief\": {\n                    \"replicas\": 1,\n                \
+            \    \"restartPolicy\": \"OnFailure\",\n                    \"template\"\
+            : {\n                        \"metadata\": {\n                         \
+            \   \"annotations\": {\n                                \"sidecar.istio.io/inject\"\
+            : \"false\"\n                            }\n                        },\n\
+            \                        \"spec\": {\n                            \"containers\"\
+            : [\n                                {\n                               \
+            \     \"name\": \"tensorflow\",\n                                    \"\
+            image\": \"docker.io/liuhougangxa/tf-estimator-mnist\",\n              \
+            \                      \"command\": [\n                                \
+            \        \"python\",\n                                        \"/opt/model.py\"\
+            ,\n                                        \"--tf-train-steps=\" + str(training_steps),\n\
+            \                                        \"--tf-learning-rate=${trialParameters.learningRate}\"\
+            ,\n                                        \"--tf-batch-size=${trialParameters.batchSize}\"\
+            \n                                    ]\n                              \
+            \  }\n                            ]\n                        }\n       \
+            \             }\n                },\n                \"Worker\": {\n   \
+            \                 \"replicas\": 1,\n                    \"restartPolicy\"\
+            : \"OnFailure\",\n                    \"template\": {\n                \
+            \        \"metadata\": {\n                            \"annotations\": {\n\
+            \                                \"sidecar.istio.io/inject\": \"false\"\n\
+            \                            }\n                        },\n           \
+            \             \"spec\": {\n                            \"containers\": [\n\
+            \                                {\n                                   \
+            \ \"name\": \"tensorflow\",\n                                    \"image\"\
+            : \"docker.io/liuhougangxa/tf-estimator-mnist\",\n                     \
+            \               \"command\": [\n                                       \
+            \ \"python\",\n                                        \"/opt/model.py\"\
+            ,\n                                        \"--tf-train-steps=\" + str(training_steps),\n\
+            \                                        \"--tf-learning-rate=${trialParameters.learningRate}\"\
+            ,\n                                        \"--tf-batch-size=${trialParameters.batchSize}\"\
+            \n                                    ]\n                              \
+            \  }\n                            ]\n                        }\n       \
+            \             }\n                }\n            }\n        }\n    }\n\n\
+            \    # Configure parameters for the Trial template.\n    trial_template\
+            \ = V1beta1TrialTemplate(\n        primary_container_name=\"tensorflow\"\
+            ,\n        trial_parameters=[\n            V1beta1TrialParameterSpec(\n\
+            \                name=\"learningRate\",\n                description=\"\
+            Learning rate for the training model\",\n                reference=\"learning_rate\"\
+            \n            ),\n            V1beta1TrialParameterSpec(\n             \
+            \   name=\"batchSize\",\n                description=\"Batch size for the\
+            \ model\",\n                reference=\"batch_size\"\n            ),\n \
+            \       ],\n        trial_spec=trial_spec\n    )\n\n    # Create an Experiment\
+            \ from the above parameters.\n    experiment_spec = V1beta1ExperimentSpec(\n\
+            \        max_trial_count=max_trial_count,\n        max_failed_trial_count=max_failed_trial_count,\n\
+            \        parallel_trial_count=parallel_trial_count,\n        objective=objective,\n\
+            \        algorithm=algorithm,\n        parameters=parameters,\n        trial_template=trial_template\n\
+            \    )\n\n    # Convert experiment_spec to Dict type.\n    experiment_spec_json\
+            \ = ApiClient().sanitize_for_serialization(experiment_spec)\n    output\
+            \ = NamedTuple('Outputs', [('experiment_spec_json', Dict[str, str])])\n\
+            \    return output(experiment_spec_json)\n\n"
+          image: python:3.8
+      exec-create-serving-task:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - create_serving_task
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef create_serving_task(model_name: str, model_namespace: str, model_volume_name:\
+            \ str\n                       ) -> NamedTuple('Outputs', [('inferenceservice_yaml',\
+            \ Dict[str, str])]):\n\n    api_version = 'serving.kserve.io/v1beta1'\n\
+            \    inference_service = {\n        \"apiVersion\": api_version,\n     \
+            \   \"kind\": \"InferenceService\",\n        \"metadata\": {\n         \
+            \ \"name\": model_name,\n          \"namespace\": model_namespace,\n   \
+            \       \"annotations\": {\n            \"sidecar.istio.io/inject\": \"\
+            false\"\n          }\n        },\n        \"spec\":{\n          \"predictor\"\
+            :{\n            \"tensorflow\": {\n              \"storageUri\": \"pvc://{}/\"\
+            .format(model_volume_name)\n            }\n          }\n        }\n    }\n\
+            \n    output = NamedTuple('Outputs', [('inferenceservice_yaml', Dict[str,\
+            \ str])])\n    return output(inference_service)\n\n"
+          image: python:3.7
+      exec-create-tfjob-task:
+        container:
+          args:
+          - --executor_input
+          - '{{$}}'
+          - --function_to_execute
+          - create_tfjob_task
+          command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef create_tfjob_task(tfjob_name: str, tfjob_namespace: str, training_steps:\
+            \ str, best_hps: str, model_volume_name: str,\n                     ) ->\
+            \ NamedTuple('Outputs', [('chief_spec', Dict[str, str]), ('worker_spec',\
+            \ Dict[str, str])]):\n    # Get parameters from the Katib Experiment.\n\
+            \    # Parameters are in the format \"--tf-learning-rate=0.01 --tf-batch-size=100\"\
+            \n\n    # Create the TFJob Chief and Worker specification with the best\
+            \ Hyperparameters.\n    # TODO (andreyvelich): Use community image for the\
+            \ mnist example.\n    tfjob_chief_spec = {\n        \"replicas\": 1,\n \
+            \       \"restartPolicy\": \"OnFailure\",\n        \"template\": {\n   \
+            \         \"metadata\": {\n                \"annotations\": {\n        \
+            \            \"sidecar.istio.io/inject\": \"false\"\n                }\n\
+            \            },\n            \"spec\": {\n                \"containers\"\
+            : [\n                    {\n                        \"name\": \"tensorflow\"\
+            ,\n                        \"image\": \"docker.io/liuhougangxa/tf-estimator-mnist\"\
+            ,\n                        \"command\": [\n                            \"\
+            sh\",\n                            \"-c\"\n                        ],\n\
+            \                        \"args\": [\n                            \"python\
+            \ /opt/model.py --tf-export-dir=/mnt/export --tf-train-steps={} {}\".format(training_steps,\
+            \ best_hps)\n                        ],\n                        \"volumeMounts\"\
+            : [\n                            {\n                                \"mountPath\"\
+            : \"/mnt/export\",\n                                \"name\": \"model-volume\"\
+            \n                            }\n                        ]\n           \
+            \         }\n                ],\n                \"volumes\": [\n      \
+            \              {\n                        \"name\": \"model-volume\",\n\
+            \                        \"persistentVolumeClaim\": {\n                \
+            \            \"claimName\": model_volume_name\n                        }\n\
+            \                    }\n                ]\n            }\n        }\n  \
+            \  }\n\n    tfjob_worker_spec = {\n        \"replicas\": 1,\n        \"\
+            restartPolicy\": \"OnFailure\",\n        \"template\": {\n            \"\
+            metadata\": {\n                \"annotations\": {\n                    \"\
+            sidecar.istio.io/inject\": \"false\"\n                }\n            },\n\
+            \            \"spec\": {\n                \"containers\": [\n          \
+            \          {\n                        \"name\": \"tensorflow\",\n      \
+            \                  \"image\": \"docker.io/liuhougangxa/tf-estimator-mnist\"\
+            ,\n                        \"command\": [\n                            \"\
+            sh\",\n                            \"-c\",\n                        ],\n\
+            \                        \"args\": [\n                          \"python\
+            \ /opt/model.py --tf-export-dir=/mnt/export --tf-train-steps={} {}\".format(training_steps,\
+            \ best_hps) \n                        ],\n                    }\n      \
+            \          ],\n            }\n        }\n    }\n\n    output = NamedTuple('Outputs',\
+            \ [('chief_spec', Dict[str, str]), ('worker_spec', Dict[str, str])])\n \
+            \   return output(tfjob_chief_spec, tfjob_worker_spec)\n\n"
+          image: python:3.7
+      exec-serving-launcher:
+        container:
+          args:
+          - --action
+          - '{{$.inputs.parameters[''action'']}}'
+          - --inferenceservice-yaml
+          - '{{$.inputs.parameters[''inferenceservice_yaml'']}}'
+          command:
+          - python
+          - kservedeployer.py
+          image: quay.io/aipipeline/kserve-component:v0.7.0
+      exec-tfjob-launcher:
+        container:
+          args:
+          - --name
+          - '{{$.inputs.parameters[''tfjob_name'']}}'
+          - --namespace
+          - '{{$.inputs.parameters[''tfjob_namespace'']}}'
+          - --workerSpec
+          - '{{$.inputs.parameters[''worker_spec'']}}'
+          - --chiefSpec
+          - '{{$.inputs.parameters[''chief_spec'']}}'
+          - --tfjobTimeoutMinutes
+          - '{{$.inputs.parameters[''tfjob_timeout_minutes'']}}'
+          - --deleteAfterDone
+          - 'False'
+          command:
+          - python
+          - /ml/launch_tfjob.py
+          image: nikenano/launchernew:latest
+  pipelineInfo:
+    name: end-to-end-pipeline
+  root:
+    dag:
+      tasks:
+        convert-experiment-spec-to-str:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-convert-experiment-spec-to-str
+          dependentTasks:
+          - create-katib-experiment-task
+          inputs:
+            parameters:
+              experiment_spec_json:
+                taskOutputParameter:
+                  outputParameterKey: experiment_spec_json
+                  producerTask: create-katib-experiment-task
+          taskInfo:
+            name: convert-experiment-spec-to-str
+        convert-katib-results:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-convert-katib-results
+          dependentTasks:
+          - create-dataset
+          inputs:
+            artifacts:
+              katib_results:
+                taskOutputArtifact:
+                  outputArtifactKey: parameter_set
+                  producerTask: create-dataset
+          taskInfo:
+            name: convert-katib-results
+        create-dataset:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-create-dataset
+          dependentTasks:
+          - convert-experiment-spec-to-str
+          inputs:
+            parameters:
+              experiment_name:
+                componentInputParameter: name
+              experiment_namespace:
+                componentInputParameter: namespace
+              experiment_spec_json:
+                taskOutputParameter:
+                  outputParameterKey: experiment_spec_str_output
+                  producerTask: convert-experiment-spec-to-str
+              experiment_timeout_minutes:
+                runtimeValue:
+                  constant: 60.0
+          taskInfo:
+            name: create-dataset
+        create-katib-experiment-task:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-create-katib-experiment-task
+          inputs:
+            parameters:
+              experiment_name:
+                componentInputParameter: name
+              experiment_namespace:
+                componentInputParameter: namespace
+              training_steps:
+                componentInputParameter: training_steps
+          taskInfo:
+            name: create-katib-experiment-task
+        create-tfjob-task:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-create-tfjob-task
+          dependentTasks:
+          - convert-katib-results
+          inputs:
+            parameters:
+              best_hps:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: convert-katib-results
+              model_volume_name:
+                componentInputParameter: model_volume_name
+              tfjob_name:
+                componentInputParameter: name
+              tfjob_namespace:
+                componentInputParameter: namespace
+              training_steps:
+                componentInputParameter: training_steps
+          taskInfo:
+            name: create-tfjob-task
+        serving-pipeline:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-serving-pipeline
+          dependentTasks:
+          - tfjob-launcher
+          inputs:
+            parameters:
+              model_name:
+                componentInputParameter: name
+              model_namespace:
+                componentInputParameter: namespace
+              model_volume_name:
+                componentInputParameter: model_volume_name
+          taskInfo:
+            name: serving-pipeline
+        tfjob-launcher:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-tfjob-launcher
+          dependentTasks:
+          - convert-katib-results
+          - create-tfjob-task
+          inputs:
+            parameters:
+              chief_spec:
+                taskOutputParameter:
+                  outputParameterKey: chief_spec
+                  producerTask: create-tfjob-task
+              tfjob_name:
+                componentInputParameter: name
+              tfjob_namespace:
+                componentInputParameter: namespace
+              tfjob_timeout_minutes:
+                runtimeValue:
+                  constant: 60.0
+              worker_spec:
+                taskOutputParameter:
+                  outputParameterKey: worker_spec
+                  producerTask: create-tfjob-task
+          taskInfo:
+            name: tfjob-launcher
+    inputDefinitions:
+      parameters:
+        model_volume_name:
+          defaultValue: workflow1-model-volume
+          parameterType: STRING
+        name:
+          defaultValue: mnist-e2e
+          parameterType: STRING
+        namespace:
+          defaultValue: kubeflow-user-project
+          parameterType: STRING
+        training_steps:
+          defaultValue: '200'
+          parameterType: STRING
+  schemaVersion: 2.1.0
+  sdkVersion: kfp-2.0.1

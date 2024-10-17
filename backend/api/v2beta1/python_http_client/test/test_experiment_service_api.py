@@ -28,43 +28,43 @@ class TestExperimentServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_archive_experiment(self):
-        """Test case for archive_experiment
+    def test_experiment_service_archive_experiment(self):
+        """Test case for experiment_service_archive_experiment
 
         Archives an experiment and the experiment's runs and recurring runs.  # noqa: E501
         """
         pass
 
-    def test_create_experiment(self):
-        """Test case for create_experiment
+    def test_experiment_service_create_experiment(self):
+        """Test case for experiment_service_create_experiment
 
         Creates a new experiment.  # noqa: E501
         """
         pass
 
-    def test_delete_experiment(self):
-        """Test case for delete_experiment
+    def test_experiment_service_delete_experiment(self):
+        """Test case for experiment_service_delete_experiment
 
         Deletes an experiment without deleting the experiment's runs and recurring  runs. To avoid unexpected behaviors, delete an experiment's runs and recurring  runs before deleting the experiment.  # noqa: E501
         """
         pass
 
-    def test_get_experiment(self):
-        """Test case for get_experiment
+    def test_experiment_service_get_experiment(self):
+        """Test case for experiment_service_get_experiment
 
         Finds a specific experiment by ID.  # noqa: E501
         """
         pass
 
-    def test_list_experiments(self):
-        """Test case for list_experiments
+    def test_experiment_service_list_experiments(self):
+        """Test case for experiment_service_list_experiments
 
         Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
         """
         pass
 
-    def test_unarchive_experiment(self):
-        """Test case for unarchive_experiment
+    def test_experiment_service_unarchive_experiment(self):
+        """Test case for experiment_service_unarchive_experiment
 
         Restores an archived experiment. The experiment's archived runs and recurring runs will stay archived.  # noqa: E501
         """

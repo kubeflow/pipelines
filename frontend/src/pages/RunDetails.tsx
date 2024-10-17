@@ -69,6 +69,7 @@ import {
   decodeCompressedNodes,
   errorToMessage,
   formatDateString,
+  getNodeNameFromNodeId,
   getRunDurationFromNode,
   getRunDurationFromWorkflow,
   logger,
@@ -253,6 +254,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     const { projectId, clusterName } = this.props.gkeMetadata;
     const selectedNodeId = selectedNodeDetails?.id || '';
     const namespace = workflow?.metadata?.namespace;
+    const selectedNodeName = getNodeNameFromNodeId(workflow!, selectedNodeId);
     let stackdriverK8sLogsUrl = '';
     if (projectId && clusterName && selectedNodeDetails && selectedNodeDetails.id) {
       stackdriverK8sLogsUrl = `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`;
@@ -321,7 +323,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                         isBusy={this.state.sidepanelBusy}
                         isOpen={!!selectedNodeDetails}
                         onClose={() => this.setStateSafe({ selectedNodeDetails: null })}
-                        title={selectedNodeId}
+                        title={selectedNodeName}
                       >
                         {!!selectedNodeDetails && (
                           <React.Fragment>
@@ -494,7 +496,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   selectedNodeDetails.phase !== NodePhase.SKIPPED && (
                                     <div className={commonCss.page}>
                                       {selectedNodeId && namespace && (
-                                        <PodInfo name={selectedNodeId} namespace={namespace} />
+                                        <PodInfo name={selectedNodeName} namespace={namespace} />
                                       )}
                                     </div>
                                   )}
@@ -503,7 +505,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   selectedNodeDetails.phase !== NodePhase.SKIPPED && (
                                     <div className={commonCss.page}>
                                       {selectedNodeId && namespace && (
-                                        <PodEvents name={selectedNodeId} namespace={namespace} />
+                                        <PodEvents name={selectedNodeName} namespace={namespace} />
                                       )}
                                     </div>
                                   )}
@@ -1051,6 +1053,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     if (!selectedNodeDetails || !runId || !namespace) {
       return;
     }
+
     this.setStateSafe({ sidepanelBusy: true });
 
     let logsBannerMessage = '';
@@ -1058,7 +1061,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     let logsBannerMode = '' as Mode;
 
     try {
-      selectedNodeDetails.logs = await Apis.getPodLogs(runId, selectedNodeDetails.id, namespace);
+      const nodeName = getNodeNameFromNodeId(this.state.workflow!, selectedNodeDetails.id);
+      selectedNodeDetails.logs = await Apis.getPodLogs(runId, nodeName, namespace);
     } catch (err) {
       let errMsg = await errorToMessage(err);
       logsBannerMessage = 'Failed to retrieve pod logs.';

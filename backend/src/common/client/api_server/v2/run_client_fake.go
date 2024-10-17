@@ -36,15 +36,15 @@ func NewRunClientFake() *RunClientFake {
 	return &RunClientFake{}
 }
 
-func (c *RunClientFake) Create(params *params.CreateRunParams) (*model.V2beta1Run, error) {
+func (c *RunClientFake) Create(params *params.RunServiceCreateRunParams) (*model.V2beta1Run, error) {
 	return getDefaultRun("100", "RUN_NAME"), nil
 }
 
-func (c *RunClientFake) Get(params *params.GetRunParams) (*model.V2beta1Run, error) {
+func (c *RunClientFake) Get(params *params.RunServiceGetRunParams) (*model.V2beta1Run, error) {
 	return getDefaultRun(params.RunID, "RUN_NAME"), nil
 }
 
-func (c *RunClientFake) List(params *params.ListRunsParams) (
+func (c *RunClientFake) List(params *params.RunServiceListRunsParams) (
 	[]*model.V2beta1Run, int, string, error) {
 	return []*model.V2beta1Run{
 		getDefaultRun("100", "MY_FIRST_RUN"),
@@ -52,20 +52,20 @@ func (c *RunClientFake) List(params *params.ListRunsParams) (
 	}, 2, "", nil
 }
 
-func (c *RunClientFake) ListAll(params *params.ListRunsParams, maxResultSize int) (
+func (c *RunClientFake) ListAll(params *params.RunServiceListRunsParams, maxResultSize int) (
 	[]*model.V2beta1Run, error) {
 	return listAllForRun(c, params, maxResultSize)
 }
 
-func (c *RunClientFake) Archive(params *params.ArchiveRunParams) error {
+func (c *RunClientFake) Archive(params *params.RunServiceArchiveRunParams) error {
 	return nil
 }
 
-func (c *RunClientFake) Unarchive(params *params.UnarchiveRunParams) error {
+func (c *RunClientFake) Unarchive(params *params.RunServiceUnarchiveRunParams) error {
 	return nil
 }
 
-func (c *RunClientFake) Terminate(params *params.TerminateRunParams) error {
+func (c *RunClientFake) Terminate(params *params.RunServiceTerminateRunParams) error {
 	return fmt.Errorf(InvalidFakeRequest, params.RunID)
 
 }

@@ -47,9 +47,8 @@ ENV TTL_SECONDS_AFTER_WORKFLOW_FINISH 86400
 
 # NUM_WORKERS indicates now many worker goroutines
 ENV NUM_WORKERS 2
+ENV LOG_LEVEL info
 
-CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS}
+ENV EXECUTIONTYPE Workflow
 
-LABEL name="ds-pipelines-persistenceagent" \
-      summary="DSP persistenceagent"
-
+CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS} --executionType ${EXECUTIONTYPE} --logLevel=${LOG_LEVEL}

@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
@@ -35,7 +36,22 @@ const (
 	configMapName                = "kfp-launcher"
 	defaultPipelineRoot          = "minio://mlpipeline/v2/artifacts"
 	configKeyDefaultPipelineRoot = "defaultPipelineRoot"
+	configBucketProviders        = "providers"
+	minioArtifactSecretName      = "mlpipeline-minio-artifact"
+	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
+	minioArtifactSecretKeyKey = "secretkey"
+	minioArtifactAccessKeyKey = "accesskey"
 )
+
+type BucketProviders struct {
+	Minio *MinioProviderConfig `json:"minio"`
+	S3    *S3ProviderConfig    `json:"s3"`
+	GCS   *GCSProviderConfig   `json:"gs"`
+}
+
+type SessionInfoProvider interface {
+	ProvideSessionInfo(path string) (objectstore.SessionInfo, error)
+}
 
 // Config is the KFP runtime configuration.
 type Config struct {
@@ -56,7 +72,7 @@ func FromConfigMap(ctx context.Context, clientSet kubernetes.Interface, namespac
 	return &Config{data: config.Data}, nil
 }
 
-// Config.DefaultPipelineRoot gets the configured default pipeline root.
+// DefaultPipelineRoot gets the configured default pipeline root.
 func (c *Config) DefaultPipelineRoot() string {
 	// The key defaultPipelineRoot is optional in launcher config.
 	if c == nil || c.data[configKeyDefaultPipelineRoot] == "" {
@@ -86,155 +102,50 @@ func InPodName() (string, error) {
 	return strings.TrimSuffix(name, "\n"), nil
 }
 
-const (
-	configBucketProviders = "providers"
-	// The endpoint uses Kubernetes service DNS name with namespace:
-	// https://kubernetes.io/docs/concepts/services-networking/service/#dns
-	defaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
-	minioArtifactSecretName             = "mlpipeline-minio-artifact"
-	minioArtifactSecretKeyKey           = "secretkey"
-	minioArtifactAccessKeyKey           = "accesskey"
-)
-
-type BucketProviders struct {
-	Minio *ProviderConfig `json:"minio"`
-	S3    *ProviderConfig `json:"s3"`
-	GCS   *ProviderConfig `json:"gcs"`
-}
-
-type ProviderConfig struct {
-	Endpoint                 string     `json:"endpoint"`
-	DefaultProviderSecretRef *SecretRef `json:"defaultProviderSecretRef"`
-	Region                   string     `json:"region"`
-	// optional
-	DisableSSL bool `json:"disableSSL"`
-	// optional, ordered, the auth config for the first matching prefix is used
-	AuthConfigs []AuthConfig `json:"authConfigs"`
-}
-
-type AuthConfig struct {
-	BucketName string `json:"bucketName"`
-	KeyPrefix  string `json:"keyPrefix"`
-	*SecretRef `json:"secretRef"`
-}
-
-type SecretRef struct {
-	SecretName   string `json:"secretName"`
-	AccessKeyKey string `json:"accessKeyKey"`
-	SecretKeyKey string `json:"secretKeyKey"`
-}
-
-func (c *Config) GetBucketSessionInfo(path string) (objectstore.SessionInfo, error) {
+func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, error) {
 	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}
-	bucketName := bucketConfig.BucketName
-	bucketPrefix := bucketConfig.Prefix
 	provider := strings.TrimSuffix(bucketConfig.Scheme, "://")
 	bucketProviders, err := c.getBucketProviders()
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}
 
-	// Case 1: No "providers" field in kfp-launcher
-	if bucketProviders == nil {
-		// Use default minio if provider is minio, otherwise we default to executor env
-		if provider == "minio" {
-			return getDefaultMinioSessionInfo(), nil
-		} else {
-			// If not using minio, and no other provider config is provided
-			// rely on executor env (e.g. IRSA) for authenticating with provider
-			return objectstore.SessionInfo{}, nil
-		}
-	}
+	var sessProvider SessionInfoProvider
 
-	var providerConfig *ProviderConfig
 	switch provider {
 	case "minio":
-		providerConfig = bucketProviders.Minio
+		if bucketProviders == nil || bucketProviders.Minio == nil {
+			sessProvider = &MinioProviderConfig{}
+		} else {
+			sessProvider = bucketProviders.Minio
+		}
 		break
 	case "s3":
-		providerConfig = bucketProviders.S3
+		if bucketProviders == nil || bucketProviders.S3 == nil {
+			sessProvider = &S3ProviderConfig{}
+		} else {
+			sessProvider = bucketProviders.S3
+		}
 		break
 	case "gs":
-		providerConfig = bucketProviders.Minio
+		if bucketProviders == nil || bucketProviders.GCS == nil {
+			sessProvider = &GCSProviderConfig{}
+		} else {
+			sessProvider = bucketProviders.GCS
+		}
 		break
 	default:
-		return objectstore.SessionInfo{}, fmt.Errorf("Encountered unsupported provider in BucketProviders %s", provider)
+		return objectstore.SessionInfo{}, fmt.Errorf("Encountered unsupported provider in provider config %s", provider)
 	}
 
-	// Case 2: "providers" field is empty {}
-	if providerConfig == nil {
-		if provider == "minio" {
-			return getDefaultMinioSessionInfo(), nil
-		} else {
-			return objectstore.SessionInfo{}, nil
-		}
+	sess, err := sessProvider.ProvideSessionInfo(path)
+	if err != nil {
+		return objectstore.SessionInfo{}, err
 	}
-
-	// Case 3: a provider is specified
-	endpoint := providerConfig.Endpoint
-	if endpoint == "" {
-		if provider == "minio" {
-			endpoint = objectstore.MinioDefaultEndpoint()
-		} else {
-			return objectstore.SessionInfo{}, fmt.Errorf("Invalid provider config, %s.defaultProviderSecretRef is required for this storage provider", provider)
-		}
-	}
-
-	// DefaultProviderSecretRef takes precedent over other configs
-	secretRef := providerConfig.DefaultProviderSecretRef
-	if secretRef == nil {
-		if provider == "minio" {
-			secretRef = &SecretRef{
-				SecretName:   minioArtifactSecretName,
-				SecretKeyKey: minioArtifactSecretKeyKey,
-				AccessKeyKey: minioArtifactAccessKeyKey,
-			}
-		} else {
-			return objectstore.SessionInfo{}, fmt.Errorf("Invalid provider config, %s.defaultProviderSecretRef is required for this storage provider", provider)
-		}
-	}
-
-	// if not provided, defaults to false
-	disableSSL := providerConfig.DisableSSL
-
-	region := providerConfig.Region
-	if region == "" {
-		return objectstore.SessionInfo{}, fmt.Errorf("Invalid provider config, missing provider region")
-	}
-
-	// if another secret is specified for a given bucket/prefix then that takes
-	// higher precedent over DefaultProviderSecretRef
-	authConfig := getBucketAuthByPrefix(providerConfig.AuthConfigs, bucketName, bucketPrefix)
-	if authConfig != nil {
-		if authConfig.SecretRef == nil || authConfig.SecretRef.SecretKeyKey == "" || authConfig.SecretRef.AccessKeyKey == "" || authConfig.SecretRef.SecretName == "" {
-			return objectstore.SessionInfo{}, fmt.Errorf("Invalid provider config, %s.AuthConfigs[].secretConfig is missing or invalid", provider)
-		}
-		secretRef = authConfig.SecretRef
-	}
-
-	return objectstore.SessionInfo{
-		Region:       region,
-		Endpoint:     endpoint,
-		DisableSSL:   disableSSL,
-		SecretName:   secretRef.SecretName,
-		AccessKeyKey: secretRef.AccessKeyKey,
-		SecretKeyKey: secretRef.SecretKeyKey,
-	}, nil
-}
-
-func getDefaultMinioSessionInfo() (sessionInfo objectstore.SessionInfo) {
-	sess := objectstore.SessionInfo{
-		Region:       "minio",
-		Endpoint:     objectstore.MinioDefaultEndpoint(),
-		DisableSSL:   true,
-		SecretName:   minioArtifactSecretName,
-		AccessKeyKey: minioArtifactAccessKeyKey,
-		SecretKeyKey: minioArtifactSecretKeyKey,
-	}
-	return sess
+	return sess, nil
 }
 
 // getBucketProviders gets the provider configuration
@@ -251,11 +162,19 @@ func (c *Config) getBucketProviders() (*BucketProviders, error) {
 	return bucketProviders, nil
 }
 
-func getBucketAuthByPrefix(authConfigs []AuthConfig, bucketName, prefix string) *AuthConfig {
-	for _, authConfig := range authConfigs {
-		if authConfig.BucketName == bucketName && (authConfig.KeyPrefix == prefix) {
-			return &authConfig
-		}
+func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
+	sess := objectstore.SessionInfo{
+		Provider: "minio",
+		Params: map[string]string{
+			"region":     "minio",
+			"endpoint":   objectstore.MinioDefaultEndpoint(),
+			"disableSSL": strconv.FormatBool(true),
+			"fromEnv":    strconv.FormatBool(false),
+			"secretName": minioArtifactSecretName,
+			// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
+			"accessKeyKey": minioArtifactAccessKeyKey,
+			"secretKeyKey": minioArtifactSecretKeyKey,
+		},
 	}
-	return nil
+	return sess, nil
 }

@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/visualizations/{namespace}": {
       "post": {
-        "operationId": "CreateVisualizationV1",
+        "operationId": "VisualizationService_CreateVisualizationV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -26,9 +26,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -55,24 +55,6 @@
     }
   },
   "definitions": {
-    "apiStatus": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string"
-        },
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufAny"
-          }
-        }
-      }
-    },
     "apiVisualization": {
       "type": "object",
       "properties": {
@@ -108,6 +90,27 @@
       ],
       "default": "ROC_CURVE",
       "description": "Type of visualization to be generated.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
+    },
+    "gatewayruntimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
     },
     "protobufAny": {
       "type": "object",

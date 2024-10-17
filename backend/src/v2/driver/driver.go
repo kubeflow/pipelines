@@ -17,9 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -157,24 +155,24 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 		return nil, err
 	}
 
-	pipelineBucketSessionInfo := objectstore.SessionInfo{}
+	storeSessionInfo := objectstore.SessionInfo{}
 	if pipelineRoot != "" {
 		glog.Infof("PipelineRoot=%q", pipelineRoot)
 	} else {
 		pipelineRoot = cfg.DefaultPipelineRoot()
 		glog.Infof("PipelineRoot=%q from default config", pipelineRoot)
 	}
-	pipelineBucketSessionInfo, err = cfg.GetBucketSessionInfo(pipelineRoot)
+	storeSessionInfo, err = cfg.GetStoreSessionInfo(pipelineRoot)
 	if err != nil {
 		return nil, err
 	}
-	bucketSessionInfo, err := json.Marshal(pipelineBucketSessionInfo)
+	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
 	if err != nil {
 		return nil, err
 	}
-	bucketSessionInfoEntry := string(bucketSessionInfo)
+	storeSessionInfoStr := string(storeSessionInfoJSON)
 	// TODO(Bobgy): fill in run resource.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot, bucketSessionInfoEntry)
+	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot, storeSessionInfoStr)
 	if err != nil {
 		return nil, err
 	}
@@ -641,6 +639,47 @@ func extendPodSpecPatch(
 		podSpec.ActiveDeadlineSeconds = &timeout
 	}
 
+	// Get Pod Generic Ephemeral volume information
+	for _, ephemeralVolumeSpec := range kubernetesExecutorConfig.GetGenericEphemeralVolume() {
+		var accessModes []k8score.PersistentVolumeAccessMode
+		for _, value := range ephemeralVolumeSpec.GetAccessModes() {
+			accessModes = append(accessModes, accessModeMap[value])
+		}
+		var storageClassName *string
+		storageClassName = nil
+		if !ephemeralVolumeSpec.GetDefaultStorageClass() {
+			_storageClassName := ephemeralVolumeSpec.GetStorageClassName()
+			storageClassName = &_storageClassName
+		}
+		ephemeralVolume := k8score.Volume{
+			Name: ephemeralVolumeSpec.GetVolumeName(),
+			VolumeSource: k8score.VolumeSource{
+				Ephemeral: &k8score.EphemeralVolumeSource{
+					VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels:      ephemeralVolumeSpec.GetMetadata().GetLabels(),
+							Annotations: ephemeralVolumeSpec.GetMetadata().GetAnnotations(),
+						},
+						Spec: k8score.PersistentVolumeClaimSpec{
+							AccessModes: accessModes,
+							Resources: k8score.ResourceRequirements{
+								Requests: k8score.ResourceList{
+									k8score.ResourceStorage: k8sres.MustParse(ephemeralVolumeSpec.GetSize()),
+								},
+							},
+							StorageClassName: storageClassName,
+						},
+					},
+				},
+			},
+		}
+		ephemeralVolumeMount := k8score.VolumeMount{
+			Name:      ephemeralVolumeSpec.GetVolumeName(),
+			MountPath: ephemeralVolumeSpec.GetMountPath(),
+		}
+		podSpec.Volumes = append(podSpec.Volumes, ephemeralVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, ephemeralVolumeMount)
+	}
 	return nil
 }
 
@@ -1189,7 +1228,9 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{
 				{
-					Uri:      generateOutputURI(pipelineRoot, name, taskName),
+					// Do not preserve the query string for output artifacts, as otherwise
+					// they'd appear in file and artifact names.
+					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},
@@ -1203,12 +1244,6 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 		}
 	}
 	return outputs
-}
-
-func generateOutputURI(root, artifactName string, taskName string) string {
-	// we cannot path.Join(root, taskName, artifactName), because root
-	// contains scheme like gs:// and path.Join cleans up scheme to gs:/
-	return fmt.Sprintf("%s/%s", strings.TrimRight(root, "/"), path.Join(taskName, artifactName))
 }
 
 var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
@@ -1248,7 +1283,7 @@ func kubernetesPlatformOps(
 		// We publish the execution, no matter this operartion succeeds or not
 		perr := publishDriverExecution(k8sClient, mlmd, ctx, createdExecution, outputParameters, nil, status)
 		if perr != nil && err != nil {
-			err = fmt.Errorf("failed to publish driver execution: %w. Also failed the Kubernetes platform operation: %w", perr, err)
+			err = fmt.Errorf("failed to publish driver execution: %s. Also failed the Kubernetes platform operation: %s", perr.Error(), err.Error())
 		} else if perr != nil {
 			err = fmt.Errorf("failed to publish driver execution: %w", perr)
 		}

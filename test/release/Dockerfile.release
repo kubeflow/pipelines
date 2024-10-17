@@ -14,7 +14,7 @@
 
 # Based on KFP backend api client generator dockerfile
 # Keep in sync with the version used in backend/api/Makefile
-FROM gcr.io/ml-pipeline-test/api-generator@sha256:431635b564a8716e0814df4b8803594d64a517e02d72c6950e936e4b5cce60e3
+FROM gcr.io/ml-pipeline-test/api-generator@sha256:41fd3e60ba40430a4c3d87e03be817c5f63b2dfed23059ec9d6bca62ce0cc39c
 
 # install nvm & node 12
 # Reference: https://stackoverflow.com/a/28390848
@@ -31,11 +31,8 @@ ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 # install java==11 python==3
 RUN apt-get update \
-    && apt-get install -y default-jdk python3-pip \
+    && apt-get install -y default-jdk python3-pip python3-setuptools \
     && rm -rf /var/lib/apt/lists/*
-
-# install setuptools
-RUN python3 -m pip install setuptools
 
 # install yq==3
 # Released in https://github.com/mikefarah/yq/releases/tag/3.4.1

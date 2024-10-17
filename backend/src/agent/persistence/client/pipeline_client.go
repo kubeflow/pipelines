@@ -77,8 +77,8 @@ func NewPipelineClient(
 	return &PipelineClient{
 		initializeTimeout:   initializeTimeout,
 		timeout:             timeout,
-		tokenRefresher:      tokenRefresher,
 		reportServiceClient: api.NewReportServiceClient(connection),
+		tokenRefresher:      tokenRefresher,
 		runServiceClient:    api.NewRunServiceClient(connection),
 	}, nil
 }

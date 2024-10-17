@@ -338,13 +338,13 @@ def main(argv):
           and slice_spec['dimension'] == 'annotationSpec'
       ):
         slice_config['model_explanation'] = {
-            'mean_attributions': [
-                {
-                    'feature_attributions': sliced_feature_attributions[
-                        slice_spec['value']
-                    ]
-                }
-            ]
+            'mean_attributions': [{
+                'feature_attributions': (
+                    sliced_feature_attributions[slice_spec['value']]
+                    if slice_spec['value'] in sliced_feature_attributions
+                    else None
+                )
+            }]
         }
         slices_with_explanations.append(slice_config)
       elif 'slice_spec' in slice_spec:

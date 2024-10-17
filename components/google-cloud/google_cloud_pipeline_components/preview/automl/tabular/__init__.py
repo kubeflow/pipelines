@@ -22,6 +22,12 @@ from google_cloud_pipeline_components.preview.automl.tabular.feature_selection i
 from google_cloud_pipeline_components.preview.automl.tabular.feature_transform_engine import feature_transform_engine as FeatureTransformEngineOp
 from google_cloud_pipeline_components.preview.automl.tabular.tabnet_hyperparameter_tuning_job import tabnet_hyperparameter_tuning_job as TabNetHyperparameterTuningJobOp
 from google_cloud_pipeline_components.preview.automl.tabular.tabnet_trainer import tabnet_trainer as TabNetTrainerOp
+from google_cloud_pipeline_components.preview.automl.tabular.utils import get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters
+from google_cloud_pipeline_components.preview.automl.tabular.utils import get_tabnet_trainer_pipeline_and_parameters
+from google_cloud_pipeline_components.preview.automl.tabular.utils import get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters
+from google_cloud_pipeline_components.preview.automl.tabular.utils import get_wide_and_deep_trainer_pipeline_and_parameters
+from google_cloud_pipeline_components.preview.automl.tabular.utils import get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters
+from google_cloud_pipeline_components.preview.automl.tabular.utils import get_xgboost_trainer_pipeline_and_parameters
 from google_cloud_pipeline_components.preview.automl.tabular.wide_and_deep_hyperparameter_tuning_job import wide_and_deep_hyperparameter_tuning_job as WideAndDeepHyperparameterTuningJobOp
 from google_cloud_pipeline_components.preview.automl.tabular.wide_and_deep_trainer import wide_and_deep_trainer as WideAndDeepTrainerOp
 from google_cloud_pipeline_components.preview.automl.tabular.xgboost_hyperparameter_tuning_job import xgboost_hyperparameter_tuning_job as XGBoostHyperparameterTuningJobOp
@@ -30,15 +36,21 @@ from kfp import components
 
 __all__ = [
     'AutoFeatureEngineeringOp',
+    'DistillationStageFeatureTransformEngineOp',
     'FeatureSelectionOp',
-    'WideAndDeepHyperparameterTuningJobOp',
-    'WideAndDeepTrainerOp',
+    'FeatureTransformEngineOp',
     'TabNetHyperparameterTuningJobOp',
     'TabNetTrainerOp',
-    'FeatureTransformEngineOp',
-    'DistillationStageFeatureTransformEngineOp',
+    'WideAndDeepHyperparameterTuningJobOp',
+    'WideAndDeepTrainerOp',
     'XGBoostHyperparameterTuningJobOp',
     'XGBoostTrainerOp',
+    'get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters',
+    'get_tabnet_trainer_pipeline_and_parameters',
+    'get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters',
+    'get_wide_and_deep_trainer_pipeline_and_parameters',
+    'get_xgboost_hyperparameter_tuning_job_pipeline_and_parameters',
+    'get_xgboost_trainer_pipeline_and_parameters',
 ]
 
 tabnet_trainer_pipeline = components.load_component_from_file(

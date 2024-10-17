@@ -632,7 +632,7 @@ func toApiParametersV1(p string) []*apiv1beta1.Parameter {
 	if p == "" || p == "null" || p == "[]" {
 		return apiParams
 	}
-	params, err := util.UnmarshalParameters(util.ArgoWorkflow, p)
+	params, err := util.UnmarshalParameters(util.CurrentExecutionType(), p)
 	if err != nil {
 		return nil
 	}
