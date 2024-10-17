@@ -1,3 +1,4 @@
+
 # Copyright 2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +18,12 @@ FROM golang:1.21.7-alpine3.19 as builder
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/v2/cmd/driver/*.go
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        ARCH="amd64"; \
+    fi && \
+    GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/v2/cmd/driver/*.go
+
 
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
