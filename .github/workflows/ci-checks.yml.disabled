@@ -1,3 +1,5 @@
+# DISABLED WHILE IS NOT 100% STABLE
+
 # This workflow checks if all CI checks have passed by polling every 5 minutes for a total of 8 attempts.
 name: CI Check
 
