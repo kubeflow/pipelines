@@ -56,7 +56,10 @@ func run() error {
 	ctx := context.Background()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
-	flag.Set("v", *logLevel)
+	err := flag.Set("v", *logLevel)
+	if err != nil {
+		glog.Warningf("Failed to set log level: %s", err.Error())
+	}
 
 	if *copy != "" {
 		// copy is used to copy this binary to a shared volume

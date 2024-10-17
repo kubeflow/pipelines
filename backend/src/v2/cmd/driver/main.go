@@ -77,9 +77,12 @@ func main() {
 	flag.Parse()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
-	flag.Set("v", *logLevel)
+	err := flag.Set("v", *logLevel)
+	if err != nil {
+		glog.Warningf("Failed to set log level: %s", err.Error())
+	}
 
-	err := drive()
+	err = drive()
 	if err != nil {
 		glog.Exitf("%v", err)
 	}
