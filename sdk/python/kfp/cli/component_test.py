@@ -579,9 +579,6 @@ class Test(unittest.TestCase):
                 COPY . .
                 '''))
 
-    @unittest.skip(
-        "Skipping this test as it's failing. Refer to https://github.com/kubeflow/pipelines/issues/11038"
-    )
     def test_dockerfile_can_contain_custom_kfp_package(self):
         component = _make_component(
             func_name='train', target_image='custom-image')
