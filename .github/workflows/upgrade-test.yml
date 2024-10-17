@@ -7,7 +7,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/upgrade-test.yml'
-      - 'scripts/deploy/github/**'
+      - '.github/resources/**'
       - 'backend/**'
       - 'manifests/kustomize/**'
 

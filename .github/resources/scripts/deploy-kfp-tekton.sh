@@ -33,7 +33,8 @@ then
 fi
 
 # Deploy manifest
-kubectl apply -k "scripts/deploy/github/manifests" || EXIT_CODE=$?
+TEST_MANIFESTS=".github/resources/manifests/tekton"
+kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Failure applying $KUSTOMIZE_DIR."

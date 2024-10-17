@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../../../manifests/kustomize/env/platform-agnostic
+
+images:
+- name: gcr.io/ml-pipeline/api-server
+  newName: kind-registry:5000/apiserver
+  newTag: latest
+- name: gcr.io/ml-pipeline/persistenceagent
+  newName: kind-registry:5000/persistenceagent
+  newTag: latest
+- name: gcr.io/ml-pipeline/scheduledworkflow
+  newName: kind-registry:5000/scheduledworkflow
+  newTag: latest
+
+patchesStrategicMerge:
+- overlays/apiserver-env.yaml

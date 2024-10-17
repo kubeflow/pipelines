@@ -6,7 +6,7 @@ on:
       - master
   pull_request:
     paths:
-      - 'scripts/deploy/github/**'
+      - '.github/resources/**'
       - 'samples/**'
       - 'backend/src/v2/**'
       - '.github/workflows/kfp-samples.yml'
@@ -28,7 +28,7 @@ jobs:
       uses: ./.github/actions/kfp-cluster
 
     - name: Forward API port
-      run: ./scripts/deploy/github/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+      run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
     - name: Run Samples Tests
       run: |
