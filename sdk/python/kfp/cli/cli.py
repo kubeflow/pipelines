@@ -92,7 +92,7 @@ def _install_completion(shell: str) -> None:
     show_default=True,
     help='The formatting style for command output.')
 @click.pass_context
-@click.version_option(version=kfp.__version__, message='%(prog)s %(version)s')
+@click.version_option(version='dev', message='%(prog)s %(version)s')
 def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
         other_client_id: str, other_client_secret: str, output: OutputFormat,
         show_completion: str, install_completion: str):

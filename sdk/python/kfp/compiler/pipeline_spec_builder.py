@@ -28,6 +28,7 @@ from kfp.compiler import compiler_utils
 from kfp.dsl import component_factory
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_config
 from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
 from kfp.dsl import placeholders
@@ -1879,6 +1880,7 @@ def create_pipeline_spec(
     pipeline: pipeline_context.Pipeline,
     component_spec: structures.ComponentSpec,
     pipeline_outputs: Optional[Any] = None,
+    pipeline_config: Optional[pipeline_config.PipelineConfig] = None,
 ) -> Tuple[pipeline_spec_pb2.PipelineSpec, pipeline_spec_pb2.PlatformSpec]:
     """Creates a pipeline spec object.
 
@@ -1899,7 +1901,8 @@ def create_pipeline_spec(
     pipeline_spec = pipeline_spec_pb2.PipelineSpec()
 
     pipeline_spec.pipeline_info.name = pipeline.name
-    pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
+    # pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
+    pipeline_spec.sdk_version = f'kfp-dev'
     # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
     pipeline_spec.schema_version = '2.1.0'
 
@@ -1947,6 +1950,8 @@ def create_pipeline_spec(
     )
 
     platform_spec = pipeline_spec_pb2.PlatformSpec()
+    if pipeline_config is not None:
+        _merge_pipeline_config(pipelineConfig=pipeline_config, platformSpec=platform_spec)
     for group in all_groups:
         build_spec_by_group(
             pipeline_spec=pipeline_spec,
@@ -2032,7 +2037,7 @@ def write_pipeline_spec_to_file(
     pipeline_spec_dict = json_format.MessageToDict(pipeline_spec)
     yaml_comments = extract_comments_from_pipeline_spec(pipeline_spec_dict,
                                                         pipeline_description)
-    has_platform_specific_features = len(platform_spec.platforms) > 0
+    has_platform_specific_features = (len(platform_spec.platforms) > 0) or (platform_spec.pipelineConfig is not None)
 
     if package_path.endswith('.json'):
         warnings.warn(
@@ -2060,7 +2065,15 @@ def write_pipeline_spec_to_file(
     else:
         raise ValueError(
             f'The output path {package_path} should end with ".yaml".')
-
+    
+def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig, platformSpec: pipeline_spec_pb2.PlatformSpec):
+    pipeline_config_json = json_format.ParseDict(
+        {
+            "pipelineConfig": {
+                "ttl": pipelineConfig.get_ttl(),
+            }
+        }, platformSpec)
+    return platformSpec
 
 def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                                         pipeline_description: str) -> str:

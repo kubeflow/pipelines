@@ -20,6 +20,7 @@ import uuid
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.dsl import base_component
 from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_config
 from kfp.dsl import pipeline_context
 from kfp.dsl import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -37,6 +38,7 @@ class GraphComponent(base_component.BaseComponent):
         component_spec: structures.ComponentSpec,
         pipeline_func: Callable,
         display_name: Optional[str] = None,
+        pipeline_config: Optional[pipeline_config.PipelineConfig] = None,
     ):
         super().__init__(component_spec=component_spec)
         self.pipeline_func = pipeline_func
@@ -69,6 +71,7 @@ class GraphComponent(base_component.BaseComponent):
             pipeline=dsl_pipeline,
             component_spec=self.component_spec,
             pipeline_outputs=pipeline_outputs,
+            pipeline_config=pipeline_config,
         )
 
         pipeline_root = getattr(pipeline_func, 'pipeline_root', None)
