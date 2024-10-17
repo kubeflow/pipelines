@@ -22,7 +22,7 @@ from kfp import dsl
 
 
 # pylint: disable=g-import-not-at-top, g-doc-args, unexpected-keyword-arg
-@dsl.component
+@dsl.component(base_image=version.LLM_EVAL_IMAGE_TAG)
 def add_json_escape_to_list(input_list: List[str]) -> str:
   import json
 
@@ -110,7 +110,7 @@ def llm_evaluation_dataset_preprocessor_graph_component(
     gcs_source_uris: List[str],
     input_field_name: str = 'input_text',
     display_name: str = 'llm_evaluation_dataset_preprocessor_component',
-    machine_type: str = 'e2-highmem-16',
+    machine_type: str = 'e2-standard-4',
     service_account: str = '',
     network: str = '',
     encryption_spec_key_name: str = '',
@@ -128,7 +128,7 @@ def llm_evaluation_dataset_preprocessor_graph_component(
         contains the input prompts to the LLM.
       display_name: The name of the Evaluation job.
       machine_type: The machine type of this custom job. If not set, defaulted
-        to `e2-highmem-16`. More details:
+        to `e2-standard-4`. More details:
         https://cloud.google.com/compute/docs/machine-resource
       service_account: Sets the default service account for workload run-as
         account. The service account running the pipeline

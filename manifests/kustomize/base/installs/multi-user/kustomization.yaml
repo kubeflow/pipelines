@@ -19,15 +19,15 @@ resources:
 - metadata-writer
 - istio-authorization-config.yaml
 - virtual-service.yaml
-patchesStrategicMerge:
-- api-service/deployment-patch.yaml
-- pipelines-ui/deployment-patch.yaml
-- pipelines-ui/configmap-patch.yaml
-- scheduled-workflow/deployment-patch.yaml
-- viewer-controller/deployment-patch.yaml
-- persistence-agent/deployment-patch.yaml
-- metadata-writer/deployment-patch.yaml
-- cache/deployment-patch.yaml
+patches:
+- path: api-service/deployment-patch.yaml
+- path: pipelines-ui/deployment-patch.yaml
+- path: pipelines-ui/configmap-patch.yaml
+- path: scheduled-workflow/deployment-patch.yaml
+- path: viewer-controller/deployment-patch.yaml
+- path: persistence-agent/deployment-patch.yaml
+- path: metadata-writer/deployment-patch.yaml
+- path: cache/deployment-patch.yaml
 
 configurations:
 - params.yaml

@@ -26,6 +26,7 @@ import "protoc-gen-swagger/options/annotations.proto";
 import "backend/api/v2beta1/runtime_config.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  schemes: [1, 2], // http + https
   responses: {
     key: "default";
     value: {
@@ -161,7 +162,7 @@ message Run {
   // Required input. Specifies the source of the pipeline spec for this 
   // run. Can be either a pipeline version id, or a pipeline spec.
   oneof pipeline_source {
-    // ID of an existing pipeline version.
+    // This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.
     string pipeline_version_id = 6 [deprecated = true];
 
     // Pipeline spec.

@@ -21,7 +21,7 @@ TEST_CLUSTER="${TEST_CLUSTER:-kfp-standalone-1}"
 REGION="${REGION:-us-central1}"
 PROJECT="${PROJECT:-kfp-ci}"
 # The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
-# 1. install go in /home/prow/go1.15.10
+# 1. install go in /home/prow/go1.20.4
 cd /home/prow
 mkdir go1.21.4
 cd go1.21.4

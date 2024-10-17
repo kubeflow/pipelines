@@ -1,7 +1,52 @@
 # Current Version (in development)
 
 ## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Throw compilation error when trying to iterate over a single parameter with ParallelFor [\#10494](https://github.com/kubeflow/pipelines/pull/10494)
+
+## Documentation updates
+* Make full version dropdown visible on all KFP SDK docs versions [\#10577](https://github.com/kubeflow/pipelines/pull/10577)
+
+# 2.7.0
+
+## Features
+* Support local execution of sequential pipelines [\#10423](https://github.com/kubeflow/pipelines/pull/10423)
+* Support local execution of `dsl.importer` components [\#10431](https://github.com/kubeflow/pipelines/pull/10431)
+* Support local execution of pipelines in pipelines [\#10440](https://github.com/kubeflow/pipelines/pull/10440)
+* Support `dsl.ParallelFor` over list of Artifacts [\#10441](https://github.com/kubeflow/pipelines/pull/10441)
+* Fix bug where `dsl.OneOf` with multiple consumers cannot be compiled [\#10452](https://github.com/kubeflow/pipelines/pull/10452)
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Fix the compilation error when trying to iterate over a list of dictionaries with ParallelFor [\#10436](https://github.com/kubeflow/pipelines/pull/10436)
+## Documentation updates
+
+# 2.6.0
+
+## Features
+
+## Breaking changes
+* Soft breaking change for [Protobuf 3 EOL](https://protobuf.dev/support/version-support/#python). Migrate to `protobuf==4`. Drop support for `protobuf==3`. [\#10307](https://github.com/kubeflow/pipelines/pull/10307)
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.5.0
+
+## Features
 * Add support for `dsl.PIPELINE_TASK_EXECUTOR_OUTPUT_PATH_PLACEHOLDER` and `dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER` [\#10240](https://github.com/kubeflow/pipelines/pull/10240)
+* Add support for local component execution using `local.init()`, `DockerRunner`, and `SubprocessRunner`
 
 ## Breaking changes
 

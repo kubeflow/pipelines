@@ -16,15 +16,16 @@ package storage
 
 import (
 	"bytes"
+	"net/url"
+	"path"
+	"regexp"
+	"time"
+
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	minio "github.com/minio/minio-go/v6"
 	v1 "k8s.io/api/core/v1"
-	"net/url"
-	"path"
-	"regexp"
 	"sigs.k8s.io/yaml"
-	"time"
 )
 
 const (
@@ -174,11 +175,14 @@ func (m *MinioObjectStore) GetObjectSize(bucketConfig *objectstore.Config, secre
 
 // buildClientFromConfig returns a minio s3 client constructed via the bucket identified by bucketConfig.
 func buildClientFromConfig(bucketConfig *objectstore.Config, secret *v1.Secret) (*minio.Client, error) {
-	sessionInfo := bucketConfig.Session
+	params, err := objectstore.StructuredS3Params(bucketConfig.SessionInfo.Params)
+	if err != nil {
+		return nil, err
+	}
 
-	accessKey := string(secret.Data[sessionInfo.AccessKeyKey])
-	secretKey := string(secret.Data[sessionInfo.SecretKeyKey])
-	parsedUrl, err := url.Parse(sessionInfo.Endpoint)
+	accessKey := string(secret.Data[params.AccessKeyKey])
+	secretKey := string(secret.Data[params.SecretKeyKey])
+	parsedUrl, err := url.Parse(params.Endpoint)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to parse object store endpoint.")
 	}
@@ -188,7 +192,7 @@ func buildClientFromConfig(bucketConfig *objectstore.Config, secret *v1.Secret) 
 	case "http":
 		secure = false
 	case "https":
-		secure = !sessionInfo.DisableSSL
+		secure = !params.DisableSSL
 	}
 	s3Client, err := minio.New(
 		parsedUrl.Host,

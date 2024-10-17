@@ -828,12 +828,11 @@ subjects:
 apiVersion: v1
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.3.10/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.3.10/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.3.10/docs/workflow-controller-configmap.yaml
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.17/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.17/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.4.17/docs/workflow-controller-configmap.yaml
 
   # Choice of an executor is deprecated in favor of emissary executor
-  containerRuntimeExecutor: emissary
   executor: |
     imagePullPolicy: IfNotPresent
     resources:

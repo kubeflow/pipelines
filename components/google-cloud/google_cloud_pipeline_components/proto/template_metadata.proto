@@ -1,0 +1,316 @@
+syntax = "proto3";
+
+package template_metadata;
+
+import "google/protobuf/struct.proto";
+
+option java_multiple_files = true;
+
+message TemplateMetadata {
+  IOMetadata io_metadata = 1;
+  ValidationItems preflight_validations = 2;
+}
+
+message IOMetadata {
+  // The content of a create run page. Top-level of organization. Use repeated
+  // to enforce ordering.
+  repeated Page pages = 1;
+  // Corresponds to the schema Version of PipelineSpec, since this message is
+  // tightly coupled to PipelineSpec
+  // https://github.com/kubeflow/pipelines/blob/87db18e3a1df08a23a71f872dc8dac6b4bfb9a95/api/v2alpha1/pipeline_spec.proto#L62
+  string schema_version = 2;
+}
+
+message Page {
+  // The title of the page.
+  string name = 1;
+  // The description of the page.
+  string description = 2;
+  // The sections in the page. Second-level heirarchical organization of
+  // template inputs.
+  repeated Section sections = 3;
+}
+
+message Section {
+  // The name of the section.
+  string name = 1;
+  // The description of the section.
+  string description = 2;
+  // The inputs included in this section. Use repeated to enforce ordering.
+  repeated Input inputs = 3;
+}
+
+message Input {
+  // The name of the input.
+  // Corresponds to parameter/artifact name in ComponentSpec.input_definitions
+  // (https://github.com/kubeflow/pipelines/blob/066f229e27dc2ac8a58a03d7745d5471d718157c/api/v2alpha1/pipeline_spec.proto#L353-L357).
+  string name = 1;
+  // The display name for the input. Typically a human-readable version of the
+  // input parameter name.
+  string display_name = 2;
+  // The description of the input.
+  string description = 3;
+  // The explanation of the default value for the input. Tells the user why we
+  // selected this default.
+  string default_explanation = 4;
+  // The string the user sees if they are unsure how to select a parameter.
+  string help_text = 5;
+  // Detailed information about what types of values are supported for input
+  // type specified in PipelineSpec.
+  SemanticType semantic_type = 6;
+}
+
+message SemanticType {
+  // Mirrors PipelineSpec ParameterTypeEnum + artifacts.
+  // https://github.com/kubeflow/pipelines/blob/87db18e3a1df08a23a71f872dc8dac6b4bfb9a95/api/v2alpha1/pipeline_spec.proto#L416-L443
+  // If none of oneof type is set, use default rendering with no additional
+  // constraints.
+  oneof type {
+    // Correspond to PipelineSpec NUMBER_DOUBLE.
+    Float float_type = 1;
+    // Corresponds to PipelineSpec NUMBER_INTEGER.
+    Integer integer_type = 2;
+    // Corresponds to PipelineSpec STRING.
+    String string_type = 3;
+    // Corresponds to PipelineSpec BOOLEAN.
+    Boolean boolean_type = 4;
+    // Corresponds to PipelineSpec LIST.
+    List list_type = 6;
+    // Corresponds to PipelineSpec STRUCT.
+    Struct struct_type = 7;
+    // Corresponds to PipelineSpec artifacts.
+    Artifact artifact_type = 8;
+  }
+}
+
+// START: top-level types
+message Float {
+  // The minimum value the float can take.
+  float min = 1;
+  // The maximum value the float can take.
+  float max = 2;
+  // The validation error if the float is outside of [min, max].
+  string validation_error = 3;
+}
+
+message Integer {
+  // The minimum value the integer can take.
+  int32 min = 1;
+  // The maximum value the integer can take.
+  int32 max = 2;
+  // The validation error if the integer is outside of [min, max].
+  string validation_error = 3;
+}
+
+message String {
+  oneof type {
+    // The user can enter arbitrary text.
+    FreeForm free_form = 1;
+    // The user can select one of the available options.
+    SelectOne select_one = 2;
+    // The user must provide or select a URI.
+    UriType uri_type = 3;
+  }
+}
+
+message Boolean {}
+
+message List {
+  oneof type {
+    // The user can enter arbitrary text for each entry in the list.
+    FreeForm free_form = 1;
+    // The user can select one of the available options.
+    SelectMany select_many = 2;
+    // The user must provide or select one or more URIs.
+    UriType uri_type = 3;
+  }
+}
+message Struct {}
+
+message Artifact {
+  // The encodes the constraints on the URI.
+  UriType uri = 1;
+  // The validation error if the URI does not comply with constraints.
+  string validation_error = 2;
+}
+// END: top-level types
+
+// START: inner messages for top-level types
+message FreeForm {
+  // The size of the free-form text box.
+  Size size = 1;
+  // The regex validation to apply to the free-form text box. Both regex and
+  // content can be set.
+  string regex = 2;
+  // The content of the free-form text box. To the degree possible, the input
+  // will be required to be this content type. Both regex and content can be
+  // set.
+  ContentType content_type = 3;
+  // The validation error if the free-form text box does pass regex or content
+  // validation.
+  string validation_error = 4;
+}
+
+message SelectOne {
+  // Specifies how the select one dropdown options are specified.
+  oneof type {
+    // The dropdown is author-specified options.
+    Options options = 1;
+
+    Location location = 2;
+    // The dropdown is a project picker.
+    bool project = 3;
+    // The dropdown is machine type picker.
+    MachineType machine_type = 4;
+  }
+}
+
+message SelectMany {
+  // The options in the dropdown. Use Options, rather than SelectOne, since
+  // SelectOne includes dropdown values for which >1 selection should be
+  // invalid.
+  Options options = 1;
+  // The number of options which may be selected.
+  int32 select_n = 2;
+}
+
+message Location {
+  oneof values {
+    // Any location which is permitted by the organization/project.
+    bool any = 1;
+    // An explicit list of location options, which will be filtered by the
+    // locations permitted by the organization/project.
+    Options options = 2;
+  }
+}
+
+message MachineType {
+  oneof values {
+    // Any machine type supported by CustomJobs
+    // https://cloud.google.com/vertex-ai/docs/training/configure-compute#machine-types.
+    bool any = 1;
+    // An explicit list of supported machine types.
+    Options options = 2;
+  }
+}
+
+message Options {
+  // An explicit list of permitted options.
+  repeated google.protobuf.Value values = 1;
+}
+
+// Indicates the relative size of an element, such as a free-form text box.
+enum Size {
+  SIZE_UNSET = 0;
+  SIZE_SMALL = 1;
+  SIZE_MEDIUM = 2;
+  SIZE_LARGE = 3;
+}
+
+// Content types, which inform field validation, the FE input component, and
+// instructions.
+enum ContentType {
+  UNSET_CONTENT = 0;  // default
+  YAML_CONTENT = 1;
+  JSON_CONTENT = 2;
+  MARKDOWN_CONTENT = 3;
+  HTML_CONTENT = 4;
+  DATETIME_CONTENT = 5;
+}
+
+enum UriType {
+  // Arbitrary user-inputted URI.
+  ANY_URI = 0;
+  // Any GCS URI.
+  GCS_ANY_URI = 1;
+  // A GCS bucket URI.
+  GCS_BUCKET_URI = 2;
+  // A GCS object URI.
+  GCS_OBJECT_URI = 3;
+  // A BigQuery URI.
+  BIGQUERY_URI = 4;
+}
+// END: inner messages for top-level types
+
+// Describes the details of validation items.
+message ValidationItems {
+  // Validation for Google Cloud Service Account.
+  repeated GoogleCloudServiceAccountValidation sa_validations = 1;
+  // Validation for Google Cloud Project Quota.
+  repeated GoogleCloudProjectQuotaValidation quota_validations = 2;
+  // Validation for Google Cloud Api Enablement.
+  repeated GoogleCloudApiEnablementValidation api_validations = 3;
+  // Validation for Google Cloud Storage.
+  repeated GoogleCloudStorageValidation gcs_validations = 4;
+}
+
+// Describes the details for Google Cloud Storage Validation.
+message GoogleCloudStorageValidation {
+  // Required. URI of the GCS object. Use placeholder to specify the dynamic
+  // value like bucket name. Example:
+  // "gs://{{$.parameter.bucket}}/file_name"
+  string gcs_uri = 1;
+  // Required. Whether the gcs_uri is input or output.
+  bool is_input = 2;
+  // Required. Default service account principal email to access the gcs object.
+  // Example:
+  // "{{$.pipeline_google_cloud_project_id}}-compute@developer.gserviceaccount.com"
+  // Use placeholder to specify the dynamic value like project id.
+  string default_service_account = 3;
+  // Optional. If specified, the principal email will be overridden based on the
+  // placeholder. Currently support two placeholders: 1.
+  // "{{$.pipeline_google_cloud_service_account}}"(actual value is from
+  // PipelineJob.service_account 2.
+  // "{{$.parameter.service_account}}"(actual value is from the input parameter
+  // of the component/pipeline). If the value doesn't exist or is empty,
+  // overriding won't happen.
+  string override_placeholder = 4;
+}
+
+// Describes the details for Google Cloud Project Quota Validation.
+message GoogleCloudProjectQuotaValidation {
+  // Required. Metric name of the quota. Example: "compute.googleapis.com/cpus"
+  string metric_name = 1;
+  // Required. Value of the quota demand. Example: 2 or 3.5
+  // We will validate if the demand is under the limit or not.
+  oneof value {
+    // A signed 64-bit integer value.
+    int64 int64_value = 2;
+    // A double precision floating point value.
+    double double_value = 3;
+  }
+}
+
+// Describes the details for Google Cloud Service Account Validation.
+message GoogleCloudServiceAccountValidation {
+  // Required. Default principal email of the service account used for
+  // validation. Example:
+  // "{{$.pipeline_google_cloud_project_id}}-compute@developer.gserviceaccount.com"
+  // Use placeholder to specify the dynamic value like project id.
+  string default_principal_email = 1;
+
+  // Optional. If specified, the principal email will be overridden based on the
+  // placeholder. Currently support two placeholders: 1.
+  // "{{$.pipeline_google_cloud_service_account}}"(actual value is from
+  // PipelineJob.service_account 2.
+  // "{{$.parameter.service_account}}"(actual value is from the input parameter
+  // of the component/pipeline). If the value doesn't exist or is empty,
+  // overriding won't happen.
+  string override_placeholder = 2;
+
+  // Optional. Permission required to have for the service account.
+  // Pipeline service will check if provided SA has these permissions.
+  // Example: "aiplatform.metadataStores.get"
+  repeated string permissions = 3;
+
+  // Optional. Roles need to be granted for the service account.
+  // The role names will occur in preflight validations' error message
+  // as an action item for users.
+  repeated string role_names = 4;
+}
+
+// Describes the details of Google Cloud Api Enablement Validation.
+message GoogleCloudApiEnablementValidation {
+  // Required. Service names of Google Cloud Api.
+  repeated string service_names = 1;
+}

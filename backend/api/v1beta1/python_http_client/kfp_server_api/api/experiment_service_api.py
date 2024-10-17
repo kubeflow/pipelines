@@ -36,13 +36,13 @@ class ExperimentServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def archive_experiment_v1(self, id, **kwargs):  # noqa: E501
+    def experiment_service_archive_experiment_v1(self, id, **kwargs):  # noqa: E501
         """Archives an experiment and the experiment's runs and jobs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.archive_experiment_v1(id, async_req=True)
+        >>> thread = api.experiment_service_archive_experiment_v1(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the experiment to be archived. (required)
@@ -62,15 +62,15 @@ class ExperimentServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.archive_experiment_v1_with_http_info(id, **kwargs)  # noqa: E501
+        return self.experiment_service_archive_experiment_v1_with_http_info(id, **kwargs)  # noqa: E501
 
-    def archive_experiment_v1_with_http_info(self, id, **kwargs):  # noqa: E501
+    def experiment_service_archive_experiment_v1_with_http_info(self, id, **kwargs):  # noqa: E501
         """Archives an experiment and the experiment's runs and jobs.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.archive_experiment_v1_with_http_info(id, async_req=True)
+        >>> thread = api.experiment_service_archive_experiment_v1_with_http_info(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the experiment to be archived. (required)
@@ -112,14 +112,14 @@ class ExperimentServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method archive_experiment_v1" % key
+                    " to method experiment_service_archive_experiment_v1" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'id' is set
         if self.api_client.client_side_validation and ('id' not in local_var_params or  # noqa: E501
                                                         local_var_params['id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `id` when calling `archive_experiment_v1`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `id` when calling `experiment_service_archive_experiment_v1`")  # noqa: E501
 
         collection_formats = {}
 
@@ -158,13 +158,13 @@ class ExperimentServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def create_experiment_v1(self, body, **kwargs):  # noqa: E501
+    def experiment_service_create_experiment_v1(self, body, **kwargs):  # noqa: E501
         """Creates a new experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_experiment_v1(body, async_req=True)
+        >>> thread = api.experiment_service_create_experiment_v1(body, async_req=True)
         >>> result = thread.get()
 
         :param body: The experiment to be created. (required)
@@ -184,15 +184,15 @@ class ExperimentServiceApi(object):
         :rtype: ApiExperiment
         """
         kwargs['_return_http_data_only'] = True
-        return self.create_experiment_v1_with_http_info(body, **kwargs)  # noqa: E501
+        return self.experiment_service_create_experiment_v1_with_http_info(body, **kwargs)  # noqa: E501
 
-    def create_experiment_v1_with_http_info(self, body, **kwargs):  # noqa: E501
+    def experiment_service_create_experiment_v1_with_http_info(self, body, **kwargs):  # noqa: E501
         """Creates a new experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.create_experiment_v1_with_http_info(body, async_req=True)
+        >>> thread = api.experiment_service_create_experiment_v1_with_http_info(body, async_req=True)
         >>> result = thread.get()
 
         :param body: The experiment to be created. (required)
@@ -234,14 +234,14 @@ class ExperimentServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method create_experiment_v1" % key
+                    " to method experiment_service_create_experiment_v1" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'body' is set
         if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
                                                         local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `create_experiment_v1`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `body` when calling `experiment_service_create_experiment_v1`")  # noqa: E501
 
         collection_formats = {}
 
@@ -284,13 +284,13 @@ class ExperimentServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def delete_experiment_v1(self, id, **kwargs):  # noqa: E501
+    def experiment_service_delete_experiment_v1(self, id, **kwargs):  # noqa: E501
         """Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_experiment_v1(id, async_req=True)
+        >>> thread = api.experiment_service_delete_experiment_v1(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the experiment to be deleted. (required)
@@ -310,15 +310,15 @@ class ExperimentServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.delete_experiment_v1_with_http_info(id, **kwargs)  # noqa: E501
+        return self.experiment_service_delete_experiment_v1_with_http_info(id, **kwargs)  # noqa: E501
 
-    def delete_experiment_v1_with_http_info(self, id, **kwargs):  # noqa: E501
+    def experiment_service_delete_experiment_v1_with_http_info(self, id, **kwargs):  # noqa: E501
         """Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.delete_experiment_v1_with_http_info(id, async_req=True)
+        >>> thread = api.experiment_service_delete_experiment_v1_with_http_info(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the experiment to be deleted. (required)
@@ -360,14 +360,14 @@ class ExperimentServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method delete_experiment_v1" % key
+                    " to method experiment_service_delete_experiment_v1" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'id' is set
         if self.api_client.client_side_validation and ('id' not in local_var_params or  # noqa: E501
                                                         local_var_params['id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `id` when calling `delete_experiment_v1`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `id` when calling `experiment_service_delete_experiment_v1`")  # noqa: E501
 
         collection_formats = {}
 
@@ -406,13 +406,13 @@ class ExperimentServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def get_experiment_v1(self, id, **kwargs):  # noqa: E501
+    def experiment_service_get_experiment_v1(self, id, **kwargs):  # noqa: E501
         """Finds a specific experiment by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_experiment_v1(id, async_req=True)
+        >>> thread = api.experiment_service_get_experiment_v1(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the experiment to be retrieved. (required)
@@ -432,15 +432,15 @@ class ExperimentServiceApi(object):
         :rtype: ApiExperiment
         """
         kwargs['_return_http_data_only'] = True
-        return self.get_experiment_v1_with_http_info(id, **kwargs)  # noqa: E501
+        return self.experiment_service_get_experiment_v1_with_http_info(id, **kwargs)  # noqa: E501
 
-    def get_experiment_v1_with_http_info(self, id, **kwargs):  # noqa: E501
+    def experiment_service_get_experiment_v1_with_http_info(self, id, **kwargs):  # noqa: E501
         """Finds a specific experiment by ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.get_experiment_v1_with_http_info(id, async_req=True)
+        >>> thread = api.experiment_service_get_experiment_v1_with_http_info(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the experiment to be retrieved. (required)
@@ -482,14 +482,14 @@ class ExperimentServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method get_experiment_v1" % key
+                    " to method experiment_service_get_experiment_v1" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'id' is set
         if self.api_client.client_side_validation and ('id' not in local_var_params or  # noqa: E501
                                                         local_var_params['id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `id` when calling `get_experiment_v1`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `id` when calling `experiment_service_get_experiment_v1`")  # noqa: E501
 
         collection_formats = {}
 
@@ -528,13 +528,13 @@ class ExperimentServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def list_experiments_v1(self, **kwargs):  # noqa: E501
+    def experiment_service_list_experiments_v1(self, **kwargs):  # noqa: E501
         """Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_experiments_v1(async_req=True)
+        >>> thread = api.experiment_service_list_experiments_v1(async_req=True)
         >>> result = thread.get()
 
         :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
@@ -564,15 +564,15 @@ class ExperimentServiceApi(object):
         :rtype: ApiListExperimentsResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.list_experiments_v1_with_http_info(**kwargs)  # noqa: E501
+        return self.experiment_service_list_experiments_v1_with_http_info(**kwargs)  # noqa: E501
 
-    def list_experiments_v1_with_http_info(self, **kwargs):  # noqa: E501
+    def experiment_service_list_experiments_v1_with_http_info(self, **kwargs):  # noqa: E501
         """Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_experiments_v1_with_http_info(async_req=True)
+        >>> thread = api.experiment_service_list_experiments_v1_with_http_info(async_req=True)
         >>> result = thread.get()
 
         :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
@@ -629,7 +629,7 @@ class ExperimentServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method list_experiments_v1" % key
+                    " to method experiment_service_list_experiments_v1" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
@@ -681,13 +681,13 @@ class ExperimentServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def unarchive_experiment_v1(self, id, **kwargs):  # noqa: E501
+    def experiment_service_unarchive_experiment_v1(self, id, **kwargs):  # noqa: E501
         """Restores an archived experiment. The experiment's archived runs and jobs will stay archived.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.unarchive_experiment_v1(id, async_req=True)
+        >>> thread = api.experiment_service_unarchive_experiment_v1(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the experiment to be restored. (required)
@@ -707,15 +707,15 @@ class ExperimentServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.unarchive_experiment_v1_with_http_info(id, **kwargs)  # noqa: E501
+        return self.experiment_service_unarchive_experiment_v1_with_http_info(id, **kwargs)  # noqa: E501
 
-    def unarchive_experiment_v1_with_http_info(self, id, **kwargs):  # noqa: E501
+    def experiment_service_unarchive_experiment_v1_with_http_info(self, id, **kwargs):  # noqa: E501
         """Restores an archived experiment. The experiment's archived runs and jobs will stay archived.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.unarchive_experiment_v1_with_http_info(id, async_req=True)
+        >>> thread = api.experiment_service_unarchive_experiment_v1_with_http_info(id, async_req=True)
         >>> result = thread.get()
 
         :param id: The ID of the experiment to be restored. (required)
@@ -757,14 +757,14 @@ class ExperimentServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method unarchive_experiment_v1" % key
+                    " to method experiment_service_unarchive_experiment_v1" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
         # verify the required parameter 'id' is set
         if self.api_client.client_side_validation and ('id' not in local_var_params or  # noqa: E501
                                                         local_var_params['id'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `id` when calling `unarchive_experiment_v1`")  # noqa: E501
+            raise ApiValueError("Missing the required parameter `id` when calling `experiment_service_unarchive_experiment_v1`")  # noqa: E501
 
         collection_formats = {}
 

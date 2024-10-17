@@ -658,7 +658,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-bigquery-create-dataset-2:
       container:
         args:
@@ -693,7 +693,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-bigquery-delete-dataset-with-prefix:
       container:
         args:
@@ -727,7 +727,7 @@ deploymentSpec:
           \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
           \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-bigquery-query-job:
       container:
         args:
@@ -788,7 +788,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-get-first-valid:
       container:
         args:
@@ -797,12 +797,6 @@ deploymentSpec:
         - --function_to_execute
         - get_first_valid
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -818,7 +812,7 @@ deploymentSpec:
           \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
           \n  for value in json.loads(values):\n    if value:\n      return value\n\
           \  raise ValueError('No valid values.')\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-get-model-metadata:
       container:
         args:
@@ -857,7 +851,7 @@ deploymentSpec:
           \          'forecast_horizon',\n      ],\n  )(\n      options.time_series_timestamp_column,\n\
           \      options.time_series_id_column,\n      options.time_series_data_column,\n\
           \      options.horizon,\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-get-table-location:
       container:
         args:
@@ -893,7 +887,7 @@ deploymentSpec:
           \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
           \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
           \  return client.get_table(table).location\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-load-table-from-uri:
       container:
         args:
@@ -934,7 +928,7 @@ deploymentSpec:
           \ source_format=source_format)\n  client.load_table_from_uri(\n      source_uris=csv_list,\n\
           \      destination=destination,\n      project=project,\n      location=location,\n\
           \      job_config=job_config).result()\n  return destination\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-maybe-replace-with-default:
       container:
         args:
@@ -943,12 +937,6 @@ deploymentSpec:
         - --function_to_execute
         - maybe_replace_with_default
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -962,7 +950,7 @@ deploymentSpec:
           \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
           \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
           \n  return default if not value else value\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
     exec-validate-inputs:
       container:
         args:
@@ -971,12 +959,6 @@ deploymentSpec:
         - --function_to_execute
         - validate_inputs
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -1064,7 +1046,7 @@ deploymentSpec:
           \   raise ValueError(\n          'Granularity unit should be one of the\
           \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20231029_0125
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20240419_0625
 pipelineInfo:
   description: Forecasts using a BQML ARIMA_PLUS model.
   name: automl-tabular-bqml-arima-prediction

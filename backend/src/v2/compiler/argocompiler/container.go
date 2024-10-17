@@ -15,13 +15,17 @@
 package argocompiler
 
 import (
+	"os"
+
+	"strconv"
+
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	k8score "k8s.io/api/core/v1"
-	"os"
-	"strconv"
 )
 
 const (
@@ -192,14 +196,14 @@ type containerExecutorInputs struct {
 // name: argo workflows DAG task name
 // The other arguments are argo workflows task parameters, they can be either a
 // string or a placeholder.
-func (c *workflowCompiler) containerExecutorTask(name string, inputs containerExecutorInputs) *wfapi.DAGTask {
+func (c *workflowCompiler) containerExecutorTask(name string, inputs containerExecutorInputs, refName string) *wfapi.DAGTask {
 	when := ""
 	if inputs.condition != "" {
 		when = inputs.condition + " != false"
 	}
 	return &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerExecutorTemplate(),
+		Template: c.addContainerExecutorTemplate(refName),
 		When:     when,
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
@@ -214,7 +218,7 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 // any container component task.
 // During runtime, it's expected that pod-spec-patch will specify command, args
 // and resources etc, that are different for different tasks.
-func (c *workflowCompiler) addContainerExecutorTemplate() string {
+func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 	// container template is parent of container implementation template
 	nameContainerExecutor := "system-container-executor"
 	nameContainerImpl := "system-container-impl"
@@ -363,7 +367,56 @@ func (c *workflowCompiler) addContainerExecutorTemplate() string {
 		},
 	}
 	ConfigureCABundle(executor)
+	// Update pod metadata if it defined in the Kubernetes Spec
+	if kubernetesConfigString, ok := c.wf.Annotations[annotationKubernetesSpec+refName]; ok {
+		k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
+		if err := jsonpb.UnmarshalString(kubernetesConfigString, k8sExecCfg); err == nil {
+			extendPodMetadata(&executor.Metadata, k8sExecCfg)
+		}
+	}
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
 	return nameContainerExecutor
+}
+
+// Extends the PodMetadata to include Kubernetes-specific executor config.
+// Although the current podMetadata object is always empty, this function
+// doesn't overwrite the existing podMetadata because for security reasons
+// the existing podMetadata should have higher privilege than the user definition.
+func extendPodMetadata(
+	podMetadata *wfapi.Metadata,
+	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,
+) {
+	// Get pod metadata information
+	if kubernetesExecutorConfig.GetPodMetadata() != nil {
+		labels := kubernetesExecutorConfig.GetPodMetadata().GetLabels()
+		if labels != nil {
+			if podMetadata.Labels == nil {
+				podMetadata.Labels = labels
+			} else {
+				podMetadata.Labels = extendMetadataMap(podMetadata.Labels, labels)
+			}
+		}
+		annotations := kubernetesExecutorConfig.GetPodMetadata().GetAnnotations()
+		if annotations != nil {
+			if podMetadata.Annotations == nil {
+				podMetadata.Annotations = annotations
+			} else {
+				podMetadata.Annotations = extendMetadataMap(podMetadata.Annotations, annotations)
+			}
+		}
+	}
+}
+
+// Extends metadata map values, highPriorityMap should overwrites lowPriorityMap values
+// The original Map inputs should have higher priority since its defined by admin
+// TODO: Use maps.Copy after moving to go 1.21+
+func extendMetadataMap(
+	highPriorityMap map[string]string,
+	lowPriorityMap map[string]string,
+) map[string]string {
+	for k, v := range highPriorityMap {
+		lowPriorityMap[k] = v
+	}
+	return lowPriorityMap
 }

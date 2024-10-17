@@ -20,6 +20,11 @@ package kubeflow.pipelines.backend.api.v2beta1;
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  schemes: [1, 2], // http + https
+};
 
 service ExperimentService {
   // Creates a new experiment.

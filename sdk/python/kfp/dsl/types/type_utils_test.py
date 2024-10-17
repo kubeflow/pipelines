@@ -23,6 +23,7 @@ from kfp import components
 from kfp import dsl
 from kfp.dsl import base_component
 from kfp.dsl import Dataset
+from kfp.dsl import for_loop
 from kfp.dsl import Input
 from kfp.dsl import Output
 from kfp.dsl import pipeline_channel
@@ -712,6 +713,31 @@ class TestTypeChecking(parameterized.TestCase):
                     'system.Artifact@1.0.0', is_artifact_list=True),
             'is_compatible':
                 False,
+        },
+        {
+            'argument_value':
+                for_loop.LoopArgumentVariable(
+                    loop_argument=for_loop.LoopParameterArgument
+                    .from_pipeline_channel(
+                        pipeline_channel.create_pipeline_channel(
+                            'Output-loop-item', 'List[str]',
+                            'list-dict-without-type-maker-5')),
+                    subvar_name='a'),
+            'parameter_input_spec':
+                structures.InputSpec('Integer'),
+            'is_compatible':
+                True,
+        },
+        {
+            'argument_value':
+                for_loop.LoopParameterArgument.from_pipeline_channel(
+                    pipeline_channel.create_pipeline_channel(
+                        'Output-loop-item', 'List[int]',
+                        'list-dict-without-type-maker-5')),
+            'parameter_input_spec':
+                structures.InputSpec('Integer'),
+            'is_compatible':
+                True,
         },
     )
     def test_verify_type_compatibility(

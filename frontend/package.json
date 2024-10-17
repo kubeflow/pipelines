@@ -23,7 +23,7 @@
     "lodash.flatten": "^4.4.0",
     "lodash.groupby": "^4.6.0",
     "lodash.isfunction": "^3.0.9",
-    "markdown-to-jsx": "^6.10.3",
+    "markdown-to-jsx": "^6.11.4",
     "pako": "^2.0.4",
     "portable-fetch": "^3.0.0",
     "proto3-json-serializer": "^0.1.6",

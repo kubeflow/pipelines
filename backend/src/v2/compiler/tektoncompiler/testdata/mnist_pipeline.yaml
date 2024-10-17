@@ -1,0 +1,1603 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    pipelines.kubeflow.org/v2_pipeline: "true"
+    tekton.dev/artifact_bucket: mlpipeline
+    tekton.dev/artifact_endpoint: minio-service.kubeflow:9000
+    tekton.dev/artifact_endpoint_scheme: http://
+  creationTimestamp: null
+  generateName: end-to-end-pipeline-
+  labels:
+    pipelines.kubeflow.org/v2_component: "true"
+spec:
+  pipelineSpec:
+    tasks:
+    - name: convert-experiment-spec-to-str
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-convert-experiment-spec-to-str"},"dependentTasks":["create-katib-experiment-task"],"inputs":{"parameters":{"experiment_spec_json":{"taskOutputParameter":{"outputParameterKey":"experiment_spec_json","producerTask":"create-katib-experiment-task"}}}},"taskInfo":{"name":"convert-experiment-spec-to-str"}}'
+      - name: container
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","convert_experiment_spec_to_str"],"command":["sh","-c","\nif
+          ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+          -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet     --no-warn-script-location ''kfp==2.0.1''
+          \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\nprintf
+          \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3 -m
+          kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+          kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+          convert_experiment_spec_to_str(experiment_spec_json: Dict[str, str])-\u003e
+          NamedTuple(''Outputs'', [(''experiment_spec_str_output'', str)]):\n    import
+          json\n    output = NamedTuple(''Outputs'', [(''experiment_spec_str_output'',
+          str)])\n    return output(json.dumps(experiment_spec_json))\n\n"],"image":"python:3.7"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-convert-experiment-spec-to-str","inputDefinitions":{"parameters":{"experiment_spec_json":{"parameterType":"STRUCT"}}},"outputDefinitions":{"parameters":{"experiment_spec_str_output":{"parameterType":"STRING"}}}}'
+      runAfter:
+      - create-katib-experiment-task
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - sh
+              - -c
+              - |2
+
+                if ! [ -x "$(command -v pip)" ]; then
+                    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+                fi
+
+                PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1' && "$0" "$@"
+              - sh
+              - -ec
+              - |
+                program_path=$(mktemp -d)
+                printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+              - |2+
+
+                import kfp
+                from kfp import dsl
+                from kfp.dsl import *
+                from typing import *
+
+                def convert_experiment_spec_to_str(experiment_spec_json: Dict[str, str])-> NamedTuple('Outputs', [('experiment_spec_str_output', str)]):
+                    import json
+                    output = NamedTuple('Outputs', [('experiment_spec_str_output', str)])
+                    return output(json.dumps(experiment_spec_json))
+
+              - --executor_input
+              - '{{$}}'
+              - --function_to_execute
+              - convert_experiment_spec_to_str
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - end-to-end-pipeline
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: python:3.7
+              name: user-main
+    - name: convert-katib-results
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-convert-katib-results"},"dependentTasks":["create-dataset"],"inputs":{"artifacts":{"katib_results":{"taskOutputArtifact":{"outputArtifactKey":"parameter_set","producerTask":"create-dataset"}}}},"taskInfo":{"name":"convert-katib-results"}}'
+      - name: container
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","convert_katib_results"],"command":["sh","-c","\nif
+          ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+          -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet     --no-warn-script-location ''kfp==2.0.1''
+          \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\nprintf
+          \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3 -m
+          kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+          kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+          convert_katib_results(katib_results: Input[Artifact]) -\u003e str:\n    import
+          json\n    import pprint\n    katib_results_str = ''''\n    with open(katib_results.path,
+          ''r'') as f:\n        katib_results_str = f.read()\n    katib_results_json
+          = json.loads(katib_results_str)\n    print(\"Katib results:\")\n    pprint.pprint(katib_results_json)\n    best_hps
+          = []\n    for pa in katib_results_json[\"currentOptimalTrial\"][\"parameterAssignments\"]:\n        if
+          pa[\"name\"] == \"learning_rate\":\n            best_hps.append(\"--tf-learning-rate=\"
+          + pa[\"value\"])\n        elif pa[\"name\"] == \"batch_size\":\n            best_hps.append(\"--tf-batch-size=\"
+          + pa[\"value\"])\n    print(\"Best Hyperparameters: {}\".format(best_hps))\n    return
+          \" \".join(best_hps)\n\n"],"image":"python:3.7"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-convert-katib-results","inputDefinitions":{"artifacts":{"katib_results":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+      runAfter:
+      - create-dataset
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - sh
+              - -c
+              - |2
+
+                if ! [ -x "$(command -v pip)" ]; then
+                    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+                fi
+
+                PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1' && "$0" "$@"
+              - sh
+              - -ec
+              - |
+                program_path=$(mktemp -d)
+                printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+              - |2+
+
+                import kfp
+                from kfp import dsl
+                from kfp.dsl import *
+                from typing import *
+
+                def convert_katib_results(katib_results: Input[Artifact]) -> str:
+                    import json
+                    import pprint
+                    katib_results_str = ''
+                    with open(katib_results.path, 'r') as f:
+                        katib_results_str = f.read()
+                    katib_results_json = json.loads(katib_results_str)
+                    print("Katib results:")
+                    pprint.pprint(katib_results_json)
+                    best_hps = []
+                    for pa in katib_results_json["currentOptimalTrial"]["parameterAssignments"]:
+                        if pa["name"] == "learning_rate":
+                            best_hps.append("--tf-learning-rate=" + pa["value"])
+                        elif pa["name"] == "batch_size":
+                            best_hps.append("--tf-batch-size=" + pa["value"])
+                    print("Best Hyperparameters: {}".format(best_hps))
+                    return " ".join(best_hps)
+
+              - --executor_input
+              - '{{$}}'
+              - --function_to_execute
+              - convert_katib_results
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - end-to-end-pipeline
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: python:3.7
+              name: user-main
+    - name: create-dataset
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-create-dataset"},"dependentTasks":["convert-experiment-spec-to-str"],"inputs":{"parameters":{"experiment_name":{"componentInputParameter":"name"},"experiment_namespace":{"componentInputParameter":"namespace"},"experiment_spec_json":{"taskOutputParameter":{"outputParameterKey":"experiment_spec_str_output","producerTask":"convert-experiment-spec-to-str"}},"experiment_timeout_minutes":{"runtimeValue":{"constant":60}}}},"taskInfo":{"name":"create-dataset"}}'
+      - name: container
+        value: '{"args":["--experiment-name","{{$.inputs.parameters[''experiment_name'']}}","--experiment-namespace","{{$.inputs.parameters[''experiment_namespace'']}}","--experiment-spec","{{$.inputs.parameters[''experiment_spec_json'']}}","--experiment-timeout-minutes","{{$.inputs.parameters[''experiment_timeout_minutes'']}}","--delete-after-done","False","--output-file","{{$.outputs.artifacts[''parameter_set''].path}}"],"command":["python","src/launch_experiment.py"],"image":"docker.io/kubeflowkatib/kubeflow-pipelines-launcher"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-create-dataset","inputDefinitions":{"parameters":{"experiment_name":{"parameterType":"STRING"},"experiment_namespace":{"parameterType":"STRING"},"experiment_spec_json":{"parameterType":"STRING"},"experiment_timeout_minutes":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"parameter_set":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
+      runAfter:
+      - convert-experiment-spec-to-str
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - python
+              - src/launch_experiment.py
+              - --experiment-name
+              - '{{$.inputs.parameters[''experiment_name'']}}'
+              - --experiment-namespace
+              - '{{$.inputs.parameters[''experiment_namespace'']}}'
+              - --experiment-spec
+              - '{{$.inputs.parameters[''experiment_spec_json'']}}'
+              - --experiment-timeout-minutes
+              - '{{$.inputs.parameters[''experiment_timeout_minutes'']}}'
+              - --delete-after-done
+              - "False"
+              - --output-file
+              - '{{$.outputs.artifacts[''parameter_set''].path}}'
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - end-to-end-pipeline
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: docker.io/kubeflowkatib/kubeflow-pipelines-launcher
+              name: user-main
+    - name: create-katib-experiment-task
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-create-katib-experiment-task"},"inputs":{"parameters":{"experiment_name":{"componentInputParameter":"name"},"experiment_namespace":{"componentInputParameter":"namespace"},"training_steps":{"componentInputParameter":"training_steps"}}},"taskInfo":{"name":"create-katib-experiment-task"}}'
+      - name: container
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_katib_experiment_task"],"command":["sh","-c","\nif
+          ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+          -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet     --no-warn-script-location ''kubeflow-katib==0.12.0''
+          ''kfp==2.0.1'' \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp
+          -d)\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3
+          -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+          kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+          create_katib_experiment_task(experiment_name: str, experiment_namespace:
+          str, training_steps: str\n                                ) -\u003e NamedTuple(''Outputs'',
+          [(''experiment_spec_json'', Dict[str, str])]):\n\n    from kubeflow.katib
+          import ApiClient\n    from kubeflow.katib import V1beta1ExperimentSpec\n    from
+          kubeflow.katib import V1beta1AlgorithmSpec\n    from kubeflow.katib import
+          V1beta1ObjectiveSpec\n    from kubeflow.katib import V1beta1ParameterSpec\n    from
+          kubeflow.katib import V1beta1FeasibleSpace\n    from kubeflow.katib import
+          V1beta1TrialTemplate\n    from kubeflow.katib import V1beta1TrialParameterSpec\n\n    #
+          Trial count specification.\n    max_trial_count = 5\n    max_failed_trial_count
+          = 3\n    parallel_trial_count = 2\n\n    # Objective specification.\n    objective
+          = V1beta1ObjectiveSpec(\n        type=\"minimize\",\n        goal=0.001,\n        objective_metric_name=\"loss\"\n    )\n\n    #
+          Algorithm specification.\n    algorithm = V1beta1AlgorithmSpec(\n        algorithm_name=\"random\",\n    )\n\n    #
+          Experiment search space.\n    # In this example we tune learning rate and
+          batch size.\n    parameters = [\n        V1beta1ParameterSpec(\n            name=\"learning_rate\",\n            parameter_type=\"double\",\n            feasible_space=V1beta1FeasibleSpace(\n                min=\"0.01\",\n                max=\"0.05\"\n            ),\n        ),\n        V1beta1ParameterSpec(\n            name=\"batch_size\",\n            parameter_type=\"int\",\n            feasible_space=V1beta1FeasibleSpace(\n                min=\"80\",\n                max=\"100\"\n            ),\n        )\n    ]\n\n    #
+          Experiment Trial template.\n    # TODO (andreyvelich): Use community image
+          for the mnist example.\n    trial_spec = {\n        \"apiVersion\": \"kubeflow.org/v1\",\n        \"kind\":
+          \"TFJob\",\n        \"spec\": {\n            \"tfReplicaSpecs\": {\n                \"Chief\":
+          {\n                    \"replicas\": 1,\n                    \"restartPolicy\":
+          \"OnFailure\",\n                    \"template\": {\n                        \"metadata\":
+          {\n                            \"annotations\": {\n                                \"sidecar.istio.io/inject\":
+          \"false\"\n                            }\n                        },\n                        \"spec\":
+          {\n                            \"containers\": [\n                                {\n                                    \"name\":
+          \"tensorflow\",\n                                    \"image\": \"docker.io/liuhougangxa/tf-estimator-mnist\",\n                                    \"command\":
+          [\n                                        \"python\",\n                                        \"/opt/model.py\",\n                                        \"--tf-train-steps=\"
+          + str(training_steps),\n                                        \"--tf-learning-rate=${trialParameters.learningRate}\",\n                                        \"--tf-batch-size=${trialParameters.batchSize}\"\n                                    ]\n                                }\n                            ]\n                        }\n                    }\n                },\n                \"Worker\":
+          {\n                    \"replicas\": 1,\n                    \"restartPolicy\":
+          \"OnFailure\",\n                    \"template\": {\n                        \"metadata\":
+          {\n                            \"annotations\": {\n                                \"sidecar.istio.io/inject\":
+          \"false\"\n                            }\n                        },\n                        \"spec\":
+          {\n                            \"containers\": [\n                                {\n                                    \"name\":
+          \"tensorflow\",\n                                    \"image\": \"docker.io/liuhougangxa/tf-estimator-mnist\",\n                                    \"command\":
+          [\n                                        \"python\",\n                                        \"/opt/model.py\",\n                                        \"--tf-train-steps=\"
+          + str(training_steps),\n                                        \"--tf-learning-rate=${trialParameters.learningRate}\",\n                                        \"--tf-batch-size=${trialParameters.batchSize}\"\n                                    ]\n                                }\n                            ]\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    #
+          Configure parameters for the Trial template.\n    trial_template = V1beta1TrialTemplate(\n        primary_container_name=\"tensorflow\",\n        trial_parameters=[\n            V1beta1TrialParameterSpec(\n                name=\"learningRate\",\n                description=\"Learning
+          rate for the training model\",\n                reference=\"learning_rate\"\n            ),\n            V1beta1TrialParameterSpec(\n                name=\"batchSize\",\n                description=\"Batch
+          size for the model\",\n                reference=\"batch_size\"\n            ),\n        ],\n        trial_spec=trial_spec\n    )\n\n    #
+          Create an Experiment from the above parameters.\n    experiment_spec = V1beta1ExperimentSpec(\n        max_trial_count=max_trial_count,\n        max_failed_trial_count=max_failed_trial_count,\n        parallel_trial_count=parallel_trial_count,\n        objective=objective,\n        algorithm=algorithm,\n        parameters=parameters,\n        trial_template=trial_template\n    )\n\n    #
+          Convert experiment_spec to Dict type.\n    experiment_spec_json = ApiClient().sanitize_for_serialization(experiment_spec)\n    output
+          = NamedTuple(''Outputs'', [(''experiment_spec_json'', Dict[str, str])])\n    return
+          output(experiment_spec_json)\n\n"],"image":"python:3.8"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-create-katib-experiment-task","inputDefinitions":{"parameters":{"experiment_name":{"parameterType":"STRING"},"experiment_namespace":{"parameterType":"STRING"},"training_steps":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"experiment_spec_json":{"parameterType":"STRUCT"}}}}'
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - sh
+              - -c
+              - |2
+
+                if ! [ -x "$(command -v pip)" ]; then
+                    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+                fi
+
+                PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kubeflow-katib==0.12.0' 'kfp==2.0.1' && "$0" "$@"
+              - sh
+              - -ec
+              - |
+                program_path=$(mktemp -d)
+                printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+              - |2+
+
+                import kfp
+                from kfp import dsl
+                from kfp.dsl import *
+                from typing import *
+
+                def create_katib_experiment_task(experiment_name: str, experiment_namespace: str, training_steps: str
+                                                ) -> NamedTuple('Outputs', [('experiment_spec_json', Dict[str, str])]):
+
+                    from kubeflow.katib import ApiClient
+                    from kubeflow.katib import V1beta1ExperimentSpec
+                    from kubeflow.katib import V1beta1AlgorithmSpec
+                    from kubeflow.katib import V1beta1ObjectiveSpec
+                    from kubeflow.katib import V1beta1ParameterSpec
+                    from kubeflow.katib import V1beta1FeasibleSpace
+                    from kubeflow.katib import V1beta1TrialTemplate
+                    from kubeflow.katib import V1beta1TrialParameterSpec
+
+                    # Trial count specification.
+                    max_trial_count = 5
+                    max_failed_trial_count = 3
+                    parallel_trial_count = 2
+
+                    # Objective specification.
+                    objective = V1beta1ObjectiveSpec(
+                        type="minimize",
+                        goal=0.001,
+                        objective_metric_name="loss"
+                    )
+
+                    # Algorithm specification.
+                    algorithm = V1beta1AlgorithmSpec(
+                        algorithm_name="random",
+                    )
+
+                    # Experiment search space.
+                    # In this example we tune learning rate and batch size.
+                    parameters = [
+                        V1beta1ParameterSpec(
+                            name="learning_rate",
+                            parameter_type="double",
+                            feasible_space=V1beta1FeasibleSpace(
+                                min="0.01",
+                                max="0.05"
+                            ),
+                        ),
+                        V1beta1ParameterSpec(
+                            name="batch_size",
+                            parameter_type="int",
+                            feasible_space=V1beta1FeasibleSpace(
+                                min="80",
+                                max="100"
+                            ),
+                        )
+                    ]
+
+                    # Experiment Trial template.
+                    # TODO (andreyvelich): Use community image for the mnist example.
+                    trial_spec = {
+                        "apiVersion": "kubeflow.org/v1",
+                        "kind": "TFJob",
+                        "spec": {
+                            "tfReplicaSpecs": {
+                                "Chief": {
+                                    "replicas": 1,
+                                    "restartPolicy": "OnFailure",
+                                    "template": {
+                                        "metadata": {
+                                            "annotations": {
+                                                "sidecar.istio.io/inject": "false"
+                                            }
+                                        },
+                                        "spec": {
+                                            "containers": [
+                                                {
+                                                    "name": "tensorflow",
+                                                    "image": "docker.io/liuhougangxa/tf-estimator-mnist",
+                                                    "command": [
+                                                        "python",
+                                                        "/opt/model.py",
+                                                        "--tf-train-steps=" + str(training_steps),
+                                                        "--tf-learning-rate=${trialParameters.learningRate}",
+                                                        "--tf-batch-size=${trialParameters.batchSize}"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "Worker": {
+                                    "replicas": 1,
+                                    "restartPolicy": "OnFailure",
+                                    "template": {
+                                        "metadata": {
+                                            "annotations": {
+                                                "sidecar.istio.io/inject": "false"
+                                            }
+                                        },
+                                        "spec": {
+                                            "containers": [
+                                                {
+                                                    "name": "tensorflow",
+                                                    "image": "docker.io/liuhougangxa/tf-estimator-mnist",
+                                                    "command": [
+                                                        "python",
+                                                        "/opt/model.py",
+                                                        "--tf-train-steps=" + str(training_steps),
+                                                        "--tf-learning-rate=${trialParameters.learningRate}",
+                                                        "--tf-batch-size=${trialParameters.batchSize}"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    # Configure parameters for the Trial template.
+                    trial_template = V1beta1TrialTemplate(
+                        primary_container_name="tensorflow",
+                        trial_parameters=[
+                            V1beta1TrialParameterSpec(
+                                name="learningRate",
+                                description="Learning rate for the training model",
+                                reference="learning_rate"
+                            ),
+                            V1beta1TrialParameterSpec(
+                                name="batchSize",
+                                description="Batch size for the model",
+                                reference="batch_size"
+                            ),
+                        ],
+                        trial_spec=trial_spec
+                    )
+
+                    # Create an Experiment from the above parameters.
+                    experiment_spec = V1beta1ExperimentSpec(
+                        max_trial_count=max_trial_count,
+                        max_failed_trial_count=max_failed_trial_count,
+                        parallel_trial_count=parallel_trial_count,
+                        objective=objective,
+                        algorithm=algorithm,
+                        parameters=parameters,
+                        trial_template=trial_template
+                    )
+
+                    # Convert experiment_spec to Dict type.
+                    experiment_spec_json = ApiClient().sanitize_for_serialization(experiment_spec)
+                    output = NamedTuple('Outputs', [('experiment_spec_json', Dict[str, str])])
+                    return output(experiment_spec_json)
+
+              - --executor_input
+              - '{{$}}'
+              - --function_to_execute
+              - create_katib_experiment_task
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - end-to-end-pipeline
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: python:3.8
+              name: user-main
+    - name: create-tfjob-task
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-create-tfjob-task"},"dependentTasks":["convert-katib-results"],"inputs":{"parameters":{"best_hps":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"convert-katib-results"}},"model_volume_name":{"componentInputParameter":"model_volume_name"},"tfjob_name":{"componentInputParameter":"name"},"tfjob_namespace":{"componentInputParameter":"namespace"},"training_steps":{"componentInputParameter":"training_steps"}}},"taskInfo":{"name":"create-tfjob-task"}}'
+      - name: container
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_tfjob_task"],"command":["sh","-c","\nif
+          ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+          -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet     --no-warn-script-location ''kfp==2.0.1''
+          \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\nprintf
+          \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3 -m
+          kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+          kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+          create_tfjob_task(tfjob_name: str, tfjob_namespace: str, training_steps:
+          str, best_hps: str, model_volume_name: str,\n                     ) -\u003e
+          NamedTuple(''Outputs'', [(''chief_spec'', Dict[str, str]), (''worker_spec'',
+          Dict[str, str])]):\n    # Get parameters from the Katib Experiment.\n    #
+          Parameters are in the format \"--tf-learning-rate=0.01 --tf-batch-size=100\"\n\n    #
+          Create the TFJob Chief and Worker specification with the best Hyperparameters.\n    #
+          TODO (andreyvelich): Use community image for the mnist example.\n    tfjob_chief_spec
+          = {\n        \"replicas\": 1,\n        \"restartPolicy\": \"OnFailure\",\n        \"template\":
+          {\n            \"metadata\": {\n                \"annotations\": {\n                    \"sidecar.istio.io/inject\":
+          \"false\"\n                }\n            },\n            \"spec\": {\n                \"containers\":
+          [\n                    {\n                        \"name\": \"tensorflow\",\n                        \"image\":
+          \"docker.io/liuhougangxa/tf-estimator-mnist\",\n                        \"command\":
+          [\n                            \"sh\",\n                            \"-c\"\n                        ],\n                        \"args\":
+          [\n                            \"python /opt/model.py --tf-export-dir=/mnt/export
+          --tf-train-steps={} {}\".format(training_steps, best_hps)\n                        ],\n                        \"volumeMounts\":
+          [\n                            {\n                                \"mountPath\":
+          \"/mnt/export\",\n                                \"name\": \"model-volume\"\n                            }\n                        ]\n                    }\n                ],\n                \"volumes\":
+          [\n                    {\n                        \"name\": \"model-volume\",\n                        \"persistentVolumeClaim\":
+          {\n                            \"claimName\": model_volume_name\n                        }\n                    }\n                ]\n            }\n        }\n    }\n\n    tfjob_worker_spec
+          = {\n        \"replicas\": 1,\n        \"restartPolicy\": \"OnFailure\",\n        \"template\":
+          {\n            \"metadata\": {\n                \"annotations\": {\n                    \"sidecar.istio.io/inject\":
+          \"false\"\n                }\n            },\n            \"spec\": {\n                \"containers\":
+          [\n                    {\n                        \"name\": \"tensorflow\",\n                        \"image\":
+          \"docker.io/liuhougangxa/tf-estimator-mnist\",\n                        \"command\":
+          [\n                            \"sh\",\n                            \"-c\",\n                        ],\n                        \"args\":
+          [\n                          \"python /opt/model.py --tf-export-dir=/mnt/export
+          --tf-train-steps={} {}\".format(training_steps, best_hps) \n                        ],\n                    }\n                ],\n            }\n        }\n    }\n\n    output
+          = NamedTuple(''Outputs'', [(''chief_spec'', Dict[str, str]), (''worker_spec'',
+          Dict[str, str])])\n    return output(tfjob_chief_spec, tfjob_worker_spec)\n\n"],"image":"python:3.7"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-create-tfjob-task","inputDefinitions":{"parameters":{"best_hps":{"parameterType":"STRING"},"model_volume_name":{"parameterType":"STRING"},"tfjob_name":{"parameterType":"STRING"},"tfjob_namespace":{"parameterType":"STRING"},"training_steps":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"chief_spec":{"parameterType":"STRUCT"},"worker_spec":{"parameterType":"STRUCT"}}}}'
+      runAfter:
+      - convert-katib-results
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - sh
+              - -c
+              - |2
+
+                if ! [ -x "$(command -v pip)" ]; then
+                    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+                fi
+
+                PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1' && "$0" "$@"
+              - sh
+              - -ec
+              - |
+                program_path=$(mktemp -d)
+                printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+              - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing
+                import *\n\ndef create_tfjob_task(tfjob_name: str, tfjob_namespace:
+                str, training_steps: str, best_hps: str, model_volume_name: str,\n
+                \                    ) -> NamedTuple('Outputs', [('chief_spec', Dict[str,
+                str]), ('worker_spec', Dict[str, str])]):\n    # Get parameters from
+                the Katib Experiment.\n    # Parameters are in the format \"--tf-learning-rate=0.01
+                --tf-batch-size=100\"\n\n    # Create the TFJob Chief and Worker specification
+                with the best Hyperparameters.\n    # TODO (andreyvelich): Use community
+                image for the mnist example.\n    tfjob_chief_spec = {\n        \"replicas\":
+                1,\n        \"restartPolicy\": \"OnFailure\",\n        \"template\":
+                {\n            \"metadata\": {\n                \"annotations\": {\n
+                \                   \"sidecar.istio.io/inject\": \"false\"\n                }\n
+                \           },\n            \"spec\": {\n                \"containers\":
+                [\n                    {\n                        \"name\": \"tensorflow\",\n
+                \                       \"image\": \"docker.io/liuhougangxa/tf-estimator-mnist\",\n
+                \                       \"command\": [\n                            \"sh\",\n
+                \                           \"-c\"\n                        ],\n                        \"args\":
+                [\n                            \"python /opt/model.py --tf-export-dir=/mnt/export
+                --tf-train-steps={} {}\".format(training_steps, best_hps)\n                        ],\n
+                \                       \"volumeMounts\": [\n                            {\n
+                \                               \"mountPath\": \"/mnt/export\",\n
+                \                               \"name\": \"model-volume\"\n                            }\n
+                \                       ]\n                    }\n                ],\n
+                \               \"volumes\": [\n                    {\n                        \"name\":
+                \"model-volume\",\n                        \"persistentVolumeClaim\":
+                {\n                            \"claimName\": model_volume_name\n
+                \                       }\n                    }\n                ]\n
+                \           }\n        }\n    }\n\n    tfjob_worker_spec = {\n        \"replicas\":
+                1,\n        \"restartPolicy\": \"OnFailure\",\n        \"template\":
+                {\n            \"metadata\": {\n                \"annotations\": {\n
+                \                   \"sidecar.istio.io/inject\": \"false\"\n                }\n
+                \           },\n            \"spec\": {\n                \"containers\":
+                [\n                    {\n                        \"name\": \"tensorflow\",\n
+                \                       \"image\": \"docker.io/liuhougangxa/tf-estimator-mnist\",\n
+                \                       \"command\": [\n                            \"sh\",\n
+                \                           \"-c\",\n                        ],\n
+                \                       \"args\": [\n                          \"python
+                /opt/model.py --tf-export-dir=/mnt/export --tf-train-steps={} {}\".format(training_steps,
+                best_hps) \n                        ],\n                    }\n                ],\n
+                \           }\n        }\n    }\n\n    output = NamedTuple('Outputs',
+                [('chief_spec', Dict[str, str]), ('worker_spec', Dict[str, str])])\n
+                \   return output(tfjob_chief_spec, tfjob_worker_spec)\n\n"
+              - --executor_input
+              - '{{$}}'
+              - --function_to_execute
+              - create_tfjob_task
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - end-to-end-pipeline
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: python:3.7
+              name: user-main
+    - name: convert-inference-service-to-artifact
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.serving-pipeline-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-convert-inference-service-to-artifact"},"dependentTasks":["create-serving-task"],"inputs":{"parameters":{"inferenceservice_yaml":{"taskOutputParameter":{"outputParameterKey":"inferenceservice_yaml","producerTask":"create-serving-task"}}}},"taskInfo":{"name":"convert-inference-service-to-artifact"}}'
+      - name: container
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","convert_inference_service_to_artifact"],"command":["sh","-c","\nif
+          ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+          -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet     --no-warn-script-location ''kfp==2.0.1''
+          \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\nprintf
+          \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3 -m
+          kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+          kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+          convert_inference_service_to_artifact(inferenceservice_yaml: Dict[str, str],
+          inferenceservice_artifact: Output[Artifact]):\n    import json\n    with
+          open(inferenceservice_artifact.path, ''w'') as f:\n        f.write(json.dumps(inferenceservice_yaml))\n\n"],"image":"python:3.7"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-convert-inference-service-to-artifact","inputDefinitions":{"parameters":{"inferenceservice_yaml":{"parameterType":"STRUCT"}}},"outputDefinitions":{"artifacts":{"inferenceservice_artifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
+      runAfter:
+      - create-serving-task
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - sh
+              - -c
+              - |2
+
+                if ! [ -x "$(command -v pip)" ]; then
+                    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+                fi
+
+                PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1' && "$0" "$@"
+              - sh
+              - -ec
+              - |
+                program_path=$(mktemp -d)
+                printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+              - |2+
+
+                import kfp
+                from kfp import dsl
+                from kfp.dsl import *
+                from typing import *
+
+                def convert_inference_service_to_artifact(inferenceservice_yaml: Dict[str, str], inferenceservice_artifact: Output[Artifact]):
+                    import json
+                    with open(inferenceservice_artifact.path, 'w') as f:
+                        f.write(json.dumps(inferenceservice_yaml))
+
+              - --executor_input
+              - '{{$}}'
+              - --function_to_execute
+              - convert_inference_service_to_artifact
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - end-to-end-pipeline
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: python:3.7
+              name: user-main
+    - name: create-serving-task
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.serving-pipeline-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-create-serving-task"},"inputs":{"parameters":{"model_name":{"componentInputParameter":"model_name"},"model_namespace":{"componentInputParameter":"model_namespace"},"model_volume_name":{"componentInputParameter":"model_volume_name"}}},"taskInfo":{"name":"create-serving-task"}}'
+      - name: container
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_serving_task"],"command":["sh","-c","\nif
+          ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+          -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+          python3 -m pip install --quiet     --no-warn-script-location ''kfp==2.0.1''
+          \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\nprintf
+          \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3 -m
+          kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+          kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+          create_serving_task(model_name: str, model_namespace: str, model_volume_name:
+          str\n                       ) -\u003e NamedTuple(''Outputs'', [(''inferenceservice_yaml'',
+          Dict[str, str])]):\n\n    api_version = ''serving.kserve.io/v1beta1''\n    inference_service
+          = {\n        \"apiVersion\": api_version,\n        \"kind\": \"InferenceService\",\n        \"metadata\":
+          {\n          \"name\": model_name,\n          \"namespace\": model_namespace,\n          \"annotations\":
+          {\n            \"sidecar.istio.io/inject\": \"false\"\n          }\n        },\n        \"spec\":{\n          \"predictor\":{\n            \"tensorflow\":
+          {\n              \"storageUri\": \"pvc://{}/\".format(model_volume_name)\n            }\n          }\n        }\n    }\n\n    output
+          = NamedTuple(''Outputs'', [(''inferenceservice_yaml'', Dict[str, str])])\n    return
+          output(inference_service)\n\n"],"image":"python:3.7"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-create-serving-task","inputDefinitions":{"parameters":{"model_name":{"parameterType":"STRING"},"model_namespace":{"parameterType":"STRING"},"model_volume_name":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"inferenceservice_yaml":{"parameterType":"STRUCT"}}}}'
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - sh
+              - -c
+              - |2
+
+                if ! [ -x "$(command -v pip)" ]; then
+                    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+                fi
+
+                PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.1' && "$0" "$@"
+              - sh
+              - -ec
+              - |
+                program_path=$(mktemp -d)
+                printf "%s" "$0" > "$program_path/ephemeral_component.py"
+                python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+              - |2+
+
+                import kfp
+                from kfp import dsl
+                from kfp.dsl import *
+                from typing import *
+
+                def create_serving_task(model_name: str, model_namespace: str, model_volume_name: str
+                                       ) -> NamedTuple('Outputs', [('inferenceservice_yaml', Dict[str, str])]):
+
+                    api_version = 'serving.kserve.io/v1beta1'
+                    inference_service = {
+                        "apiVersion": api_version,
+                        "kind": "InferenceService",
+                        "metadata": {
+                          "name": model_name,
+                          "namespace": model_namespace,
+                          "annotations": {
+                            "sidecar.istio.io/inject": "false"
+                          }
+                        },
+                        "spec":{
+                          "predictor":{
+                            "tensorflow": {
+                              "storageUri": "pvc://{}/".format(model_volume_name)
+                            }
+                          }
+                        }
+                    }
+
+                    output = NamedTuple('Outputs', [('inferenceservice_yaml', Dict[str, str])])
+                    return output(inference_service)
+
+              - --executor_input
+              - '{{$}}'
+              - --function_to_execute
+              - create_serving_task
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - end-to-end-pipeline
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: python:3.7
+              name: user-main
+    - name: serving-launcher
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.serving-pipeline-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-serving-launcher"},"dependentTasks":["convert-inference-service-to-artifact","create-serving-task"],"inputs":{"parameters":{"action":{"runtimeValue":{"constant":"apply"}},"inferenceservice_yaml":{"taskOutputParameter":{"outputParameterKey":"inferenceservice_yaml","producerTask":"create-serving-task"}}}},"taskInfo":{"name":"serving-launcher"}}'
+      - name: container
+        value: '{"args":["--action","{{$.inputs.parameters[''action'']}}","--inferenceservice-yaml","{{$.inputs.parameters[''inferenceservice_yaml'']}}"],"command":["python","kservedeployer.py"],"image":"quay.io/aipipeline/kserve-component:v0.7.0"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-serving-launcher","inputDefinitions":{"parameters":{"action":{"parameterType":"STRING"},"inferenceservice_yaml":{"parameterType":"STRUCT"}}}}'
+      runAfter:
+      - convert-inference-service-to-artifact
+      - create-serving-task
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - python
+              - kservedeployer.py
+              - --action
+              - '{{$.inputs.parameters[''action'']}}'
+              - --inferenceservice-yaml
+              - '{{$.inputs.parameters[''inferenceservice_yaml'']}}'
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - end-to-end-pipeline
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: quay.io/aipipeline/kserve-component:v0.7.0
+              name: user-main
+    - name: serving-pipeline-dag-driver
+      params:
+      - name: type
+        value: DAG
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: component
+        value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"inferenceservice_artifact","producerSubtask":"convert-inference-service-to-artifact"}]}}},"tasks":{"convert-inference-service-to-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-convert-inference-service-to-artifact"},"dependentTasks":["create-serving-task"],"inputs":{"parameters":{"inferenceservice_yaml":{"taskOutputParameter":{"outputParameterKey":"inferenceservice_yaml","producerTask":"create-serving-task"}}}},"taskInfo":{"name":"convert-inference-service-to-artifact"}},"create-serving-task":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-create-serving-task"},"inputs":{"parameters":{"model_name":{"componentInputParameter":"model_name"},"model_namespace":{"componentInputParameter":"model_namespace"},"model_volume_name":{"componentInputParameter":"model_volume_name"}}},"taskInfo":{"name":"create-serving-task"}},"serving-launcher":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-serving-launcher"},"dependentTasks":["convert-inference-service-to-artifact","create-serving-task"],"inputs":{"parameters":{"action":{"runtimeValue":{"constant":"apply"}},"inferenceservice_yaml":{"taskOutputParameter":{"outputParameterKey":"inferenceservice_yaml","producerTask":"create-serving-task"}}}},"taskInfo":{"name":"serving-launcher"}}}},"inputDefinitions":{"parameters":{"model_name":{"parameterType":"STRING"},"model_namespace":{"parameterType":"STRING"},"model_volume_name":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-serving-pipeline"},"dependentTasks":["tfjob-launcher"],"inputs":{"parameters":{"model_name":{"componentInputParameter":"name"},"model_namespace":{"componentInputParameter":"namespace"},"model_volume_name":{"componentInputParameter":"model_volume_name"}}},"taskInfo":{"name":"serving-pipeline"}}'
+      - name: runtime-config
+        value: ""
+      - name: iteration-index
+        value: "-1"
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      runAfter:
+      - tfjob-launcher
+      taskRef:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+    - name: serving-pipeline-dag-pub-driver
+      params:
+      - name: type
+        value: DAG_PUB
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.serving-pipeline-dag-driver.results.execution-id)
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      runAfter:
+      - serving-launcher
+      taskRef:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+    - name: tfjob-launcher
+      params:
+      - name: type
+        value: CONTAINER
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: task
+        value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-tfjob-launcher"},"dependentTasks":["convert-katib-results","create-tfjob-task"],"inputs":{"parameters":{"chief_spec":{"taskOutputParameter":{"outputParameterKey":"chief_spec","producerTask":"create-tfjob-task"}},"tfjob_name":{"componentInputParameter":"name"},"tfjob_namespace":{"componentInputParameter":"namespace"},"tfjob_timeout_minutes":{"runtimeValue":{"constant":60}},"worker_spec":{"taskOutputParameter":{"outputParameterKey":"worker_spec","producerTask":"create-tfjob-task"}}}},"taskInfo":{"name":"tfjob-launcher"}}'
+      - name: container
+        value: '{"args":["--name","{{$.inputs.parameters[''tfjob_name'']}}","--namespace","{{$.inputs.parameters[''tfjob_namespace'']}}","--workerSpec","{{$.inputs.parameters[''worker_spec'']}}","--chiefSpec","{{$.inputs.parameters[''chief_spec'']}}","--tfjobTimeoutMinutes","{{$.inputs.parameters[''tfjob_timeout_minutes'']}}","--deleteAfterDone","False"],"command":["python","/ml/launch_tfjob.py"],"image":"nikenano/launchernew:latest"}'
+      - name: iteration-index
+        value: ""
+      - name: kubernetes-config
+        value: ""
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      - name: component
+        value: '{"executorLabel":"exec-tfjob-launcher","inputDefinitions":{"parameters":{"chief_spec":{"parameterType":"STRUCT"},"tfjob_name":{"parameterType":"STRING"},"tfjob_namespace":{"parameterType":"STRING"},"tfjob_timeout_minutes":{"parameterType":"NUMBER_INTEGER"},"worker_spec":{"parameterType":"STRUCT"}}}}'
+      runAfter:
+      - convert-katib-results
+      - create-tfjob-task
+      taskSpec:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+        metadata:
+          annotations:
+            pipelines.kubeflow.org/v2_pipeline: "true"
+          labels:
+            pipelines.kubeflow.org/v2_component: "true"
+        spec:
+          taskSpec:
+            params:
+            - name: executor-input
+              type: string
+            - name: execution-id
+              type: string
+            - name: run-id
+              type: string
+            - name: component
+              type: string
+            steps:
+            - command:
+              - launcher-v2
+              - --copy
+              - /tekton/home/launch
+              computeResources: {}
+              image: gcr.io/ml-pipeline/kfp-launcher@sha256:50151a8615c8d6907aa627902dce50a2619fd231f25d1e5c2a72737a2ea4001e
+              imagePullPolicy: Always
+              name: kfp-launcher
+            - args:
+              - python
+              - /ml/launch_tfjob.py
+              - --name
+              - '{{$.inputs.parameters[''tfjob_name'']}}'
+              - --namespace
+              - '{{$.inputs.parameters[''tfjob_namespace'']}}'
+              - --workerSpec
+              - '{{$.inputs.parameters[''worker_spec'']}}'
+              - --chiefSpec
+              - '{{$.inputs.parameters[''chief_spec'']}}'
+              - --tfjobTimeoutMinutes
+              - '{{$.inputs.parameters[''tfjob_timeout_minutes'']}}'
+              - --deleteAfterDone
+              - "False"
+              command:
+              - /tekton/home/launch
+              - --pipeline_name
+              - end-to-end-pipeline
+              - --run_id
+              - $(params.run-id)
+              - --execution_id
+              - $(params.execution-id)
+              - --executor_input
+              - $(params.executor-input)
+              - --component_spec
+              - $(params.component)
+              - --pod_name
+              - $(KFP_POD_NAME)
+              - --pod_uid
+              - $(KFP_POD_UID)
+              - --mlmd_server_address
+              - $(METADATA_GRPC_SERVICE_HOST)
+              - --mlmd_server_port
+              - $(METADATA_GRPC_SERVICE_PORT)
+              - --
+              computeResources: {}
+              env:
+              - name: KFP_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: KFP_POD_UID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.uid
+              - name: METADATA_GRPC_SERVICE_HOST
+                value: metadata-grpc-service.kubeflow.svc.cluster.local
+              - name: METADATA_GRPC_SERVICE_PORT
+                value: "8080"
+              - name: ML_PIPELINE_SERVICE_HOST
+                value: ml-pipeline.kubeflow.svc.cluster.local
+              - name: ML_PIPELINE_SERVICE_PORT_GRPC
+                value: "8887"
+              - name: MINIO_SERVICE_SERVICE_HOST
+                value: minio-service.kubeflow.svc.cluster.local
+              - name: MINIO_SERVICE_SERVICE_PORT
+                value: "9000"
+              envFrom:
+              - configMapRef:
+                  name: metadata-grpc-configmap
+                  optional: true
+              image: nikenano/launchernew:latest
+              name: user-main
+    - name: root-system-dag-driver
+      params:
+      - name: type
+        value: ROOT_DAG
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: "0"
+      - name: component
+        value: '{"dag":{"tasks":{"convert-experiment-spec-to-str":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-convert-experiment-spec-to-str"},"dependentTasks":["create-katib-experiment-task"],"inputs":{"parameters":{"experiment_spec_json":{"taskOutputParameter":{"outputParameterKey":"experiment_spec_json","producerTask":"create-katib-experiment-task"}}}},"taskInfo":{"name":"convert-experiment-spec-to-str"}},"convert-katib-results":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-convert-katib-results"},"dependentTasks":["create-dataset"],"inputs":{"artifacts":{"katib_results":{"taskOutputArtifact":{"outputArtifactKey":"parameter_set","producerTask":"create-dataset"}}}},"taskInfo":{"name":"convert-katib-results"}},"create-dataset":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-create-dataset"},"dependentTasks":["convert-experiment-spec-to-str"],"inputs":{"parameters":{"experiment_name":{"componentInputParameter":"name"},"experiment_namespace":{"componentInputParameter":"namespace"},"experiment_spec_json":{"taskOutputParameter":{"outputParameterKey":"experiment_spec_str_output","producerTask":"convert-experiment-spec-to-str"}},"experiment_timeout_minutes":{"runtimeValue":{"constant":60}}}},"taskInfo":{"name":"create-dataset"}},"create-katib-experiment-task":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-create-katib-experiment-task"},"inputs":{"parameters":{"experiment_name":{"componentInputParameter":"name"},"experiment_namespace":{"componentInputParameter":"namespace"},"training_steps":{"componentInputParameter":"training_steps"}}},"taskInfo":{"name":"create-katib-experiment-task"}},"create-tfjob-task":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-create-tfjob-task"},"dependentTasks":["convert-katib-results"],"inputs":{"parameters":{"best_hps":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"convert-katib-results"}},"model_volume_name":{"componentInputParameter":"model_volume_name"},"tfjob_name":{"componentInputParameter":"name"},"tfjob_namespace":{"componentInputParameter":"namespace"},"training_steps":{"componentInputParameter":"training_steps"}}},"taskInfo":{"name":"create-tfjob-task"}},"serving-pipeline":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-serving-pipeline"},"dependentTasks":["tfjob-launcher"],"inputs":{"parameters":{"model_name":{"componentInputParameter":"name"},"model_namespace":{"componentInputParameter":"namespace"},"model_volume_name":{"componentInputParameter":"model_volume_name"}}},"taskInfo":{"name":"serving-pipeline"}},"tfjob-launcher":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-tfjob-launcher"},"dependentTasks":["convert-katib-results","create-tfjob-task"],"inputs":{"parameters":{"chief_spec":{"taskOutputParameter":{"outputParameterKey":"chief_spec","producerTask":"create-tfjob-task"}},"tfjob_name":{"componentInputParameter":"name"},"tfjob_namespace":{"componentInputParameter":"namespace"},"tfjob_timeout_minutes":{"runtimeValue":{"constant":60}},"worker_spec":{"taskOutputParameter":{"outputParameterKey":"worker_spec","producerTask":"create-tfjob-task"}}}},"taskInfo":{"name":"tfjob-launcher"}}}},"inputDefinitions":{"parameters":{"model_volume_name":{"defaultValue":"workflow1-model-volume","parameterType":"STRING"},"name":{"defaultValue":"mnist-e2e","parameterType":"STRING"},"namespace":{"defaultValue":"kubeflow-user-project","parameterType":"STRING"},"training_steps":{"defaultValue":"200","parameterType":"STRING"}}}}'
+      - name: task
+        value: ""
+      - name: runtime-config
+        value: '{"parameterValues":{"model_volume_name":"workflow1-model-volume","name":"mnist-e2e","namespace":"kubeflow-user-project","training_steps":"200"}}'
+      - name: iteration-index
+        value: "-1"
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      taskRef:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+    - name: root-system-dag-pub-driver
+      params:
+      - name: type
+        value: DAG_PUB
+      - name: pipeline-name
+        value: end-to-end-pipeline
+      - name: run-id
+        value: $(context.pipelineRun.uid)
+      - name: dag-execution-id
+        value: $(tasks.root-system-dag-driver.results.execution-id)
+      - name: mlmd-server-address
+        value: metadata-grpc-service.kubeflow.svc.cluster.local
+      - name: mlmd-server-port
+        value: "8080"
+      runAfter:
+      - serving-launcher
+      taskRef:
+        apiVersion: custom.tekton.dev/v1alpha1
+        kind: KFPTask
+  taskRunTemplate: {}
+status: {}

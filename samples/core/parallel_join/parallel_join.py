@@ -16,24 +16,22 @@
 
 from kfp import dsl, compiler
 
-def gcs_download_op(url):
-    return dsl.ContainerOp(
-        name='GCS - Download',
+@dsl.container_component()
+def gcs_download_op(url: str, output: dsl.OutputPath(str)):
+    return dsl.ContainerSpec(
         image='google/cloud-sdk:279.0.0',
-        command=['sh', '-c'],
-        arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
-        file_outputs={
-            'data': '/tmp/results.txt',
-        }
+        command=['sh', '-c', '''mkdir -p $(dirname $1)\
+                               && gsutil cat $0 | tee $1'''],
+        args=[url, output],
     )
 
 
-def echo2_op(text1, text2):
-    return dsl.ContainerOp(
-        name='echo',
+@dsl.container_component()
+def echo2_op(text1: str, text2: str):
+    return dsl.ContainerSpec(
         image='library/bash:4.4.23',
         command=['sh', '-c'],
-        arguments=['echo "Text 1: $0"; echo "Text 2: $1"', text1, text2]
+        args=['echo "Text 1: $0"; echo "Text 2: $1"', text1, text2]
     )
 
 
@@ -42,15 +40,15 @@ def echo2_op(text1, text2):
   description='Download two messages in parallel and prints the concatenated result.'
 )
 def download_and_join(
-    url1='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt',
-    url2='gs://ml-pipeline/sample-data/shakespeare/shakespeare2.txt'
+    url1: str='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt',
+    url2: str='gs://ml-pipeline/sample-data/shakespeare/shakespeare2.txt'
 ):
     """A three-step pipeline with first two running in parallel."""
 
-    download1_task = gcs_download_op(url1)
-    download2_task = gcs_download_op(url2)
+    download1_task = gcs_download_op(url=url1)
+    download2_task = gcs_download_op(url=url2)
 
-    echo_task = echo2_op(download1_task.output, download2_task.output)
+    echo_task = echo2_op(text1=download1_task.output, text2=download2_task.output)
 
 if __name__ == '__main__':
     compiler.Compiler().compile(download_and_join, __file__ + '.yaml')

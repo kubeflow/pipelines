@@ -25,170 +25,170 @@ type Client struct {
 }
 
 /*
-CreateRecurringRun creates a new recurring run in an experiment given the experiment ID
+RecurringRunServiceCreateRecurringRun creates a new recurring run in an experiment given the experiment ID
 */
-func (a *Client) CreateRecurringRun(params *CreateRecurringRunParams) (*CreateRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceCreateRecurringRun(params *RecurringRunServiceCreateRecurringRunParams) (*RecurringRunServiceCreateRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCreateRecurringRunParams()
+		params = NewRecurringRunServiceCreateRecurringRunParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateRecurringRun",
+		ID:                 "RecurringRunService_CreateRecurringRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/recurringruns",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &CreateRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceCreateRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreateRecurringRunOK), nil
+	return result.(*RecurringRunServiceCreateRecurringRunOK), nil
 
 }
 
 /*
-DeleteRecurringRun deletes a recurring run
+RecurringRunServiceDeleteRecurringRun deletes a recurring run
 */
-func (a *Client) DeleteRecurringRun(params *DeleteRecurringRunParams) (*DeleteRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceDeleteRecurringRun(params *RecurringRunServiceDeleteRecurringRunParams) (*RecurringRunServiceDeleteRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDeleteRecurringRunParams()
+		params = NewRecurringRunServiceDeleteRecurringRunParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeleteRecurringRun",
+		ID:                 "RecurringRunService_DeleteRecurringRun",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &DeleteRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceDeleteRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeleteRecurringRunOK), nil
+	return result.(*RecurringRunServiceDeleteRecurringRunOK), nil
 
 }
 
 /*
-DisableRecurringRun stops a recurring run and all its associated runs the recurring run is not deleted
+RecurringRunServiceDisableRecurringRun stops a recurring run and all its associated runs the recurring run is not deleted
 */
-func (a *Client) DisableRecurringRun(params *DisableRecurringRunParams) (*DisableRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceDisableRecurringRun(params *RecurringRunServiceDisableRecurringRunParams) (*RecurringRunServiceDisableRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewDisableRecurringRunParams()
+		params = NewRecurringRunServiceDisableRecurringRunParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DisableRecurringRun",
+		ID:                 "RecurringRunService_DisableRecurringRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}:disable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &DisableRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceDisableRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DisableRecurringRunOK), nil
+	return result.(*RecurringRunServiceDisableRecurringRunOK), nil
 
 }
 
 /*
-EnableRecurringRun restarts a recurring run that was previously stopped all runs associated with the recurring run will continue
+RecurringRunServiceEnableRecurringRun restarts a recurring run that was previously stopped all runs associated with the recurring run will continue
 */
-func (a *Client) EnableRecurringRun(params *EnableRecurringRunParams) (*EnableRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceEnableRecurringRun(params *RecurringRunServiceEnableRecurringRunParams) (*RecurringRunServiceEnableRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewEnableRecurringRunParams()
+		params = NewRecurringRunServiceEnableRecurringRunParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "EnableRecurringRun",
+		ID:                 "RecurringRunService_EnableRecurringRun",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}:enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &EnableRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceEnableRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*EnableRecurringRunOK), nil
+	return result.(*RecurringRunServiceEnableRecurringRunOK), nil
 
 }
 
 /*
-GetRecurringRun finds a specific recurring run by ID
+RecurringRunServiceGetRecurringRun finds a specific recurring run by ID
 */
-func (a *Client) GetRecurringRun(params *GetRecurringRunParams) (*GetRecurringRunOK, error) {
+func (a *Client) RecurringRunServiceGetRecurringRun(params *RecurringRunServiceGetRecurringRunParams) (*RecurringRunServiceGetRecurringRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewGetRecurringRunParams()
+		params = NewRecurringRunServiceGetRecurringRunParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetRecurringRun",
+		ID:                 "RecurringRunService_GetRecurringRun",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &GetRecurringRunReader{formats: a.formats},
+		Reader:             &RecurringRunServiceGetRecurringRunReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetRecurringRunOK), nil
+	return result.(*RecurringRunServiceGetRecurringRunOK), nil
 
 }
 
 /*
-ListRecurringRuns finds all recurring runs given experiment and namespace if experiment ID is not specified find all recurring runs across all experiments
+RecurringRunServiceListRecurringRuns finds all recurring runs given experiment and namespace if experiment ID is not specified find all recurring runs across all experiments
 */
-func (a *Client) ListRecurringRuns(params *ListRecurringRunsParams) (*ListRecurringRunsOK, error) {
+func (a *Client) RecurringRunServiceListRecurringRuns(params *RecurringRunServiceListRecurringRunsParams) (*RecurringRunServiceListRecurringRunsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListRecurringRunsParams()
+		params = NewRecurringRunServiceListRecurringRunsParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListRecurringRuns",
+		ID:                 "RecurringRunService_ListRecurringRuns",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/recurringruns",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ListRecurringRunsReader{formats: a.formats},
+		Reader:             &RecurringRunServiceListRecurringRunsReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListRecurringRunsOK), nil
+	return result.(*RecurringRunServiceListRecurringRunsOK), nil
 
 }
 

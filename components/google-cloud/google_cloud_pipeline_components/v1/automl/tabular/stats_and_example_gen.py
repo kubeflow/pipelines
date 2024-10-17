@@ -77,9 +77,7 @@ def tabular_stats_and_example_gen(
       target_column_name: The target column name.
       weight_column_name: The weight column name.
       prediction_type: The prediction type. Supported values: "classification", "regression".
-      optimization_objective: Objective function the model is optimizing towards. The training process creates a model that maximizes/minimizes the value of the objective function over the validation set. The supported optimization objectives depend on the prediction type. If the field is not set, a default objective function is used.
-          classification: "maximize-au-roc" (default) - Maximize the area under the receiver operating characteristic (ROC) curve. "minimize-log-loss" - Minimize log loss. "maximize-au-prc" - Maximize the area under the precision-recall curve. "maximize-precision-at-recall" - Maximize precision for a specified recall value. "maximize-recall-at-precision" - Maximize recall for a specified precision value. classification (multi-class): "minimize-log-loss" (default) - Minimize log loss.
-          regression: "minimize-rmse" (default) - Minimize root-mean-squared error (RMSE). "minimize-mae" - Minimize mean-absolute error (MAE). "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
+      optimization_objective: Objective function the model is optimizing towards. The training process creates a model that maximizes/minimizes the value of the objective function over the validation set. The supported optimization objectives depend on the prediction type. If the field is not set, a default objective function is used.  classification: "maximize-au-roc" (default) - Maximize the area under the receiver operating characteristic (ROC) curve.  "minimize-log-loss" - Minimize log loss. "maximize-au-prc" - Maximize the area under the precision-recall curve.  "maximize-precision-at-recall" - Maximize precision for a specified recall value. "maximize-recall-at-precision" - Maximize recall for a specified precision value.  classification (multi-class): "minimize-log-loss" (default) - Minimize log loss.  regression: "minimize-rmse" (default) - Minimize root-mean-squared error (RMSE). "minimize-mae" - Minimize mean-absolute error (MAE).  "minimize-rmsle" - Minimize root-mean-squared log error (RMSLE).
       optimization_objective_recall_value: Required when optimization_objective is "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
       optimization_objective_precision_value: Required when optimization_objective is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
       transformations: Quote escaped JSON string for transformations. Each transformation will apply transform function to given input column. And the result will be used for training. When creating transformation for BigQuery Struct column, the column should be flattened using "." as the delimiter.
@@ -87,8 +85,7 @@ def tabular_stats_and_example_gen(
       dataflow_machine_type: The machine type used for dataflow jobs. If not set, default to n1-standard-16.
       dataflow_max_num_workers: The number of workers to run the dataflow job. If not set, default to 25.
       dataflow_disk_size_gb: The disk size, in gigabytes, to use on each Dataflow worker instance. If not set, default to 40.
-      dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. More
-        details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
       dataflow_use_public_ips: Specifies whether Dataflow workers use public IP addresses.
       dataflow_service_account: Custom service account to run dataflow jobs.
       encryption_spec_key_name: Customer-managed encryption key.
@@ -139,7 +136,7 @@ def tabular_stats_and_example_gen(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20231029_0125',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20240419_0625',
                   '", "args": ["stats_generator",',
                   '"--train_spec={\\"prediction_type\\": \\"',
                   prediction_type,
@@ -218,7 +215,7 @@ def tabular_stats_and_example_gen(
                   ),
                   dataflow_max_num_workers,
                   '", "--dataflow_worker_container_image=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20231029_0125',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20240419_0625',
                   '", "--dataflow_machine_type=',
                   dataflow_machine_type,
                   '", "--dataflow_disk_size_gb=',

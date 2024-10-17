@@ -18,7 +18,7 @@
     "/apis/v1beta1/experiments": {
       "get": {
         "summary": "Finds all experiments. Supports pagination, and sorting on certain fields.",
-        "operationId": "ListExperimentsV1",
+        "operationId": "ExperimentService_ListExperimentsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -27,9 +27,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -93,7 +93,7 @@
       },
       "post": {
         "summary": "Creates a new experiment.",
-        "operationId": "CreateExperimentV1",
+        "operationId": "ExperimentService_CreateExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -102,9 +102,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -127,7 +127,7 @@
     "/apis/v1beta1/experiments/{id}": {
       "get": {
         "summary": "Finds a specific experiment by ID.",
-        "operationId": "GetExperimentV1",
+        "operationId": "ExperimentService_GetExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -136,9 +136,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -157,7 +157,7 @@
       },
       "delete": {
         "summary": "Deletes an experiment without deleting the experiment's runs and jobs. To\navoid unexpected behaviors, delete an experiment's runs and jobs before\ndeleting the experiment.",
-        "operationId": "DeleteExperimentV1",
+        "operationId": "ExperimentService_DeleteExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -166,9 +166,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -189,7 +189,7 @@
     "/apis/v1beta1/experiments/{id}:archive": {
       "post": {
         "summary": "Archives an experiment and the experiment's runs and jobs.",
-        "operationId": "ArchiveExperimentV1",
+        "operationId": "ExperimentService_ArchiveExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -198,9 +198,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -221,7 +221,7 @@
     "/apis/v1beta1/experiments/{id}:unarchive": {
       "post": {
         "summary": "Restores an archived experiment. The experiment's archived runs and jobs\nwill stay archived.",
-        "operationId": "UnarchiveExperimentV1",
+        "operationId": "ExperimentService_UnarchiveExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -230,9 +230,9 @@
             }
           },
           "default": {
-            "description": "",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/apiStatus"
+              "$ref": "#/definitions/gatewayruntimeError"
             }
           }
         },
@@ -365,7 +365,7 @@
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
-    "apiStatus": {
+    "gatewayruntimeError": {
       "type": "object",
       "properties": {
         "error": {
@@ -374,6 +374,9 @@
         "code": {
           "type": "integer",
           "format": "int32"
+        },
+        "message": {
+          "type": "string"
         },
         "details": {
           "type": "array",

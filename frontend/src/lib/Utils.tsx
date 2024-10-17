@@ -186,6 +186,42 @@ export function getRunDurationFromNode(workflow: Workflow, nodeId: string): stri
     new Date(workflow.status.nodes[nodeId].finishedAt),
   );
 }
+/**
+ * Derives the Pod name from a given workflowapi.Workflow and workflowapi.NodeStatus
+ * This is a workaround for an upstream breaking change with node.ID and node.Name mismatches,
+ * see https://github.com/argoproj/argo-workflows/issues/10107#issuecomment-1536113642
+ *
+ * @param workflow
+ * @param nodeId
+ * @returns the node name for a given nodeID
+ */
+export function getNodeNameFromNodeId(workflow: Workflow, nodeId: string): string {
+  if (!workflow || !nodeId) {
+    return '';
+  }
+  if (workflow.apiVersion === 'v1') {
+    return nodeId;
+  }
+
+  const node = workflow?.status?.nodes?.[nodeId];
+  if (!node || !node.name) {
+    return '';
+  }
+
+  const wfname = workflow.metadata.name;
+  if (wfname === node.name) {
+    return wfname;
+  }
+
+  const split = node.id.split('-');
+  const hash = split[split.length - 1];
+  var prefix = wfname;
+  if (!node.name.includes('.inline')) {
+    prefix = wfname!.concat('-', node.templateName);
+  }
+
+  return prefix!.concat('-', hash);
+}
 
 export function s(items: any[] | number): string {
   const length = Array.isArray(items) ? items.length : items;

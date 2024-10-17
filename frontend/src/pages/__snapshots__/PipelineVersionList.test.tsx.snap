@@ -4303,6 +4303,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                             <Markdown
                               options={
                                 Object {
+                                  "disableParsingRawHTML": true,
                                   "forceInline": true,
                                   "namedCodesToUnicode": Object {
                                     "amp": "&",
@@ -5531,6 +5532,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                             <Markdown
                               options={
                                 Object {
+                                  "disableParsingRawHTML": true,
                                   "forceInline": true,
                                   "namedCodesToUnicode": Object {
                                     "amp": "&",
@@ -11306,6 +11308,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                             <Markdown
                               options={
                                 Object {
+                                  "disableParsingRawHTML": true,
                                   "forceInline": true,
                                   "namedCodesToUnicode": Object {
                                     "amp": "&",
@@ -12534,6 +12537,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                             <Markdown
                               options={
                                 Object {
+                                  "disableParsingRawHTML": true,
                                   "forceInline": true,
                                   "namedCodesToUnicode": Object {
                                     "amp": "&",
@@ -13762,6 +13766,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                             <Markdown
                               options={
                                 Object {
+                                  "disableParsingRawHTML": true,
                                   "forceInline": true,
                                   "namedCodesToUnicode": Object {
                                     "amp": "&",

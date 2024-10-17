@@ -267,6 +267,7 @@ class PipelineArtifactChannel(PipelineChannel):
             channel_type: The type of the pipeline channel.
             task_name: Optional; the name of the task that produces the pipeline
                 channel.
+            is_artifact_list: True if `channel_type` represents a list of the artifact type.
 
         Raises:
             ValueError: If name or task_name contains invalid characters.

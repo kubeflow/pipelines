@@ -35,29 +35,29 @@ func NewRecurringRunClientFake() *RecurringRunClientFake {
 	return &RecurringRunClientFake{}
 }
 
-func (c *RecurringRunClientFake) Create(params *params.CreateRecurringRunParams) (
+func (c *RecurringRunClientFake) Create(params *params.RecurringRunServiceCreateRecurringRunParams) (
 	*model.V2beta1RecurringRun, error) {
 	return getDefaultJob("500", params.Body.DisplayName), nil
 }
 
-func (c *RecurringRunClientFake) Get(params *params.GetRecurringRunParams) (
+func (c *RecurringRunClientFake) Get(params *params.RecurringRunServiceGetRecurringRunParams) (
 	*model.V2beta1RecurringRun, error) {
 	return getDefaultJob(params.RecurringRunID, "RECURRING_RUN_NAME"), nil
 }
 
-func (c *RecurringRunClientFake) Delete(params *params.DeleteRecurringRunParams) error {
+func (c *RecurringRunClientFake) Delete(params *params.RecurringRunServiceDeleteRecurringRunParams) error {
 	return nil
 }
 
-func (c *RecurringRunClientFake) Enable(params *params.EnableRecurringRunParams) error {
+func (c *RecurringRunClientFake) Enable(params *params.RecurringRunServiceEnableRecurringRunParams) error {
 	return nil
 }
 
-func (c *RecurringRunClientFake) Disable(params *params.DisableRecurringRunParams) error {
+func (c *RecurringRunClientFake) Disable(params *params.RecurringRunServiceDisableRecurringRunParams) error {
 	return nil
 }
 
-func (c *RecurringRunClientFake) List(params *params.ListRecurringRunsParams) (
+func (c *RecurringRunClientFake) List(params *params.RecurringRunServiceListRecurringRunsParams) (
 	[]*model.V2beta1RecurringRun, int, string, error) {
 	return []*model.V2beta1RecurringRun{
 		getDefaultJob("100", "MY_FIRST_RECURRING_RUN"),
@@ -65,7 +65,7 @@ func (c *RecurringRunClientFake) List(params *params.ListRecurringRunsParams) (
 	}, 2, "", nil
 }
 
-func (c *RecurringRunClientFake) ListAll(params *params.ListRecurringRunsParams,
+func (c *RecurringRunClientFake) ListAll(params *params.RecurringRunServiceListRecurringRunsParams,
 	maxResultSize int) ([]*model.V2beta1RecurringRun, error) {
 	return listAllForJob(c, params, maxResultSize)
 }

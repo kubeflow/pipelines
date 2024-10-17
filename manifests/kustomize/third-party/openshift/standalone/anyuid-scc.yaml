@@ -1,0 +1,64 @@
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  annotations:
+    kubernetes.io/description: kubeflow-anyuid provides all features of the restricted SCC
+      but allows users to run with any UID and any GID.
+  name: kubeflow-anyuid-kfp-tekton
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: true
+allowedCapabilities: null
+defaultAddCapabilities: null
+fsGroup:
+  type: RunAsAny
+groups:
+- system:cluster-admins
+priority: 10
+readOnlyRootFilesystem: false
+requiredDropCapabilities:
+- MKNOD
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+users:
+#Metadata DB accesses files owned by root
+- system:serviceaccount:kubeflow:metadatadb
+#Minio accesses files owned by root
+- system:serviceaccount:kubeflow:minio
+#Katib injects container into pods which does not run as non-root user, trying to find Dockerfile for that image and fix it
+- system:serviceaccount:kubeflow:default
+- system:serviceaccount:kubeflow:pipeline-runner
+- system:serviceaccount:kubeflow:kubeflow-pipelines-cache
+- system:serviceaccount:kubeflow:kubeflow-pipelines-cache-deployer-sa
+- system:serviceaccount:kubeflow:metadata-grpc-server
+- system:serviceaccount:kubeflow:kubeflow-pipelines-metadata-writer
+- system:serviceaccount:kubeflow:ml-pipeline
+- system:serviceaccount:kubeflow:ml-pipeline-persistenceagent
+- system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow
+- system:serviceaccount:kubeflow:ml-pipeline-ui
+- system:serviceaccount:kubeflow:ml-pipeline-viewer-crd-service-account
+- system:serviceaccount:kubeflow:ml-pipeline-visualizationserver
+- system:serviceaccount:kubeflow:mysql
+- system:serviceaccount:kubeflow:kfp-csi-s3
+- system:serviceaccount:kubeflow:kfp-csi-attacher
+- system:serviceaccount:kubeflow:kfp-csi-provisioner
+- system:serviceaccount:openshift-pipelines:kfp-driver
+- system:serviceaccount:openshift-pipelines:kfp-exithandler-controller
+- system:serviceaccount:openshift-pipelines:kfp-exithandler-webhook
+- system:serviceaccount:openshift-pipelines:tekton-pipelineloop-controller
+- system:serviceaccount:openshift-pipelines:tekton-pipelineloop-webhook
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- persistentVolumeClaim
+- projected
+- secret

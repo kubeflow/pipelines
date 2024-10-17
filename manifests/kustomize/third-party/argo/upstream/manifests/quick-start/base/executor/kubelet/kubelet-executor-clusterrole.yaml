@@ -3,6 +3,7 @@ kind: ClusterRole
 metadata: # kpt-merge: /kubelet-executor
   name: kubelet-executor
   annotations:
+    workflows.argoproj.io/version: "< 3.4.0"
     internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|ClusterRole|default|kubelet-executor'
 rules:
   # This allows the kubelet executor.

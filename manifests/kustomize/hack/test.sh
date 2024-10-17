@@ -34,7 +34,6 @@ kustomization_yamls=(
   "env/dev"
   "env/gcp"
   "env/platform-agnostic"
-  "env/platform-agnostic-pns"
   "env/platform-agnostic-emissary"
   "env/aws"
   "env/azure"
@@ -48,7 +47,6 @@ done
 kustomization_yamls_v3=(
   "base/installs/multi-user"
   "env/platform-agnostic-multi-user"
-  "env/platform-agnostic-multi-user-pns"
   "env/platform-agnostic-multi-user-emissary"
 )
 for path in "${kustomization_yamls_v3[@]}"

@@ -1,5 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: kubeflow
 resources:
   - metadata-grpc-configmap.yaml
   - metadata-grpc-deployment.yaml
@@ -9,4 +10,4 @@ resources:
   - metadata-grpc-sa.yaml
 images:
   - name: gcr.io/ml-pipeline/metadata-envoy
-    newTag: 2.0.5
+    newTag: 2.2.0

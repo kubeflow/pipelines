@@ -76,6 +76,23 @@ type ScheduledWorkflowSpec struct {
 	// +optional
 	Workflow *WorkflowResource `json:"workflow,omitempty"`
 
+	// ExperimentId
+	ExperimentId string `json:"experimentId,omitempty"`
+
+	// PipelineId
+	PipelineId string `json:"pipelineId,omitempty"`
+
+	// PipelineVersionId
+	PipelineVersionId string `json:"pipelineVersionId,omitempty"`
+
+	// TODO(gkcalat): consider adding PipelineVersionName to avoid confusion.
+	// Pipeline versions's Name will be required if ID is not empty.
+	// This carries the name of the pipeline version in v2beta1.
+	PipelineName string `json:"pipelineName,omitempty"`
+
+	// ServiceAccount
+	ServiceAccount string `json:"serviceAccount,omitempty"`
+
 	// TODO: support additional resource types: K8 jobs, etc.
 
 }

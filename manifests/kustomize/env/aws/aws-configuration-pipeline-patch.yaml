@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline
+    spec:
+      containers:
+        - env:
+            - name: OBJECTSTORECONFIG_SECURE
+              value: "true"
+            - name: OBJECTSTORECONFIG_BUCKETNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: bucketName
+            - name: OBJECTSTORECONFIG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: minioServiceHost
+            - name: OBJECTSTORECONFIG_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: minioServiceRegion
+            - name: OBJECTSTORECONFIG_PORT
+              value: ""
+          name: ml-pipeline-api-server
