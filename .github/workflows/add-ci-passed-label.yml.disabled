@@ -1,3 +1,5 @@
+# DISABLED WHILE IS NOT 100% STABLE
+
 # This workflow adds the 'ci-passed' label to a pull request once the 'CI Check' workflow completes successfully.
 # Resets the 'ci-passed' label status when a pull request is synchronized or reopened, 
 # indicating that changes have been pushed and CI needs to rerun.
