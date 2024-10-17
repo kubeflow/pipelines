@@ -48,6 +48,11 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/importer.yaml",
 		},
 		{
+			jobPath:          "../testdata/multiple_parallel_loops.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/multiple_parallel_loops.yaml",
+		},
+		{
 			jobPath:          "../testdata/create_mount_delete_dynamic_pvc.json",
 			platformSpecPath: "../testdata/create_mount_delete_dynamic_pvc_platform.json",
 			argoYAMLPath:     "testdata/create_mount_delete_dynamic_pvc.yaml",

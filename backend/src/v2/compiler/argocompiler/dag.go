@@ -269,6 +269,82 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	if err != nil {
 		return nil, err
 	}
+
+	// Set up Loop Control Template
+	loopDriverArgoName := name + "-loop-driver"
+	loopDriverInputs := dagDriverInputs{
+		component:   componentSpecPlaceholder,
+		parentDagID: parentDagID,
+		task:        taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
+	}
+	loopDriver, loopDriverOutputs, err := c.dagDriverTask(loopDriverArgoName, loopDriverInputs)
+	if err != nil {
+		return nil, err
+	}
+	loopDriver.Depends = depends(task.GetDependentTasks())
+
+	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJson, parentDagID)
+	if err != nil {
+		return nil, err
+	}
+
+	loopTmpl := &wfapi.Template{
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramParentDagID},
+			},
+		},
+		DAG: &wfapi.DAGTemplate{
+			Tasks: iteratorTasks,
+		},
+	}
+	parallelismLimit := int64(task.GetIteratorPolicy().GetParallelismLimit())
+	if parallelismLimit > 0 {
+		loopTmpl.Parallelism = &parallelismLimit
+	}
+
+	loopTmplName, err := c.addTemplate(loopTmpl, fmt.Sprintf("%s-loop-iterator", componentName))
+	if err != nil {
+		return nil, err
+	}
+	when := ""
+	if task.GetTriggerPolicy().GetCondition() != "" {
+		when = loopDriverOutputs.condition + " != false"
+	}
+
+	tasks = []wfapi.DAGTask{
+		*loopDriver,
+		{
+			Name:     name + "-loop",
+			Template: loopTmplName,
+			Depends:  depends([]string{loopDriverArgoName}),
+			When:     when,
+			Arguments: wfapi.Arguments{
+				Parameters: []wfapi.Parameter{
+					{
+						Name:  paramParentDagID,
+						Value: wfapi.AnyStringPtr(parentDagID),
+					},
+				},
+			},
+		},
+	}
+	return tasks, nil
+}
+
+func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("iterationItem task: %w", err)
+		}
+	}()
+	componentName := task.GetComponentRef().GetName()
+	componentSpecPlaceholder, err := c.useComponentSpec(componentName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set up Iteration (Single  Task) Template
 	driverArgoName := name + "-driver"
 	driverInputs := dagDriverInputs{
 		component:   componentSpecPlaceholder,
@@ -279,10 +355,10 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	if err != nil {
 		return nil, err
 	}
-	driver.Depends = depends(task.GetDependentTasks())
+
 	iterationCount := intstr.FromString(driverOutputs.iterationCount)
 	iterationTasks, err := c.task(
-		"iteration",
+		"iteration-item",
 		task,
 		taskInputs{
 			parentDagID:    inputParameter(paramParentDagID),
@@ -303,7 +379,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 			Tasks: iterationTasks,
 		},
 	}
-	iterationsTmplName, err := c.addTemplate(iterationsTmpl, componentName+"-"+name)
+	iterationsTmplName, err := c.addTemplate(iterationsTmpl, componentName+"-iteration")
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +387,8 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	if task.GetTriggerPolicy().GetCondition() != "" {
 		when = driverOutputs.condition + " != false"
 	}
-	tasks = []wfapi.DAGTask{
+
+	iteratorTasks := []wfapi.DAGTask{
 		*driver,
 		{
 			Name:     name + "-iterations",
@@ -330,7 +407,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 			WithSequence: &wfapi.Sequence{Count: &iterationCount},
 		},
 	}
-	return tasks, nil
+	return iteratorTasks, nil
 }
 
 type dagDriverOutputs struct {
