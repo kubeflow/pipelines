@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for `components` command group in KFP CLI."""
 import contextlib
-import functools
 import os
 import pathlib
 import subprocess
@@ -579,27 +578,28 @@ class Test(unittest.TestCase):
                 COPY . .
                 '''))
 
-    @unittest.skip(
-        "Skipping this test as it's failing. Refer to https://github.com/kubeflow/pipelines/issues/11038"
-    )
     def test_dockerfile_can_contain_custom_kfp_package(self):
         component = _make_component(
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
         package_dir = os.path.dirname(os.path.dirname(self.current_dir))
 
-        # suppresses large stdout from subprocess that builds kfp package
-        with mock.patch.object(
-                subprocess,
-                'run',
-                new=functools.partial(subprocess.run, capture_output=True)):
-            result = self.runner.invoke(
-                self.cli,
-                [
-                    'build',
-                    str(self._working_dir), f'--kfp-package-path={package_dir}'
-                ],
-            )
+        try:
+            subprocess.run(['python3', 'setup.py', 'bdist_wheel'],
+                           cwd=package_dir,
+                           check=True,
+                           capture_output=True)
+        except subprocess.CalledProcessError as e:
+            print(f'Failed to build KFP package: {e.stderr.decode()}')
+            raise
+
+        result = self.runner.invoke(
+            self.cli,
+            [
+                'build',
+                str(self._working_dir), f'--kfp-package-path={package_dir}'
+            ],
+        )
         self.assertEqual(result.exit_code, 0)
         self._docker_client.api.build.assert_called_once()
         self.assert_file_exists('Dockerfile')
