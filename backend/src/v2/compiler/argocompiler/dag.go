@@ -265,29 +265,11 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 		}
 	}()
 	componentName := task.GetComponentRef().GetName()
-	componentSpecPlaceholder, err := c.useComponentSpec(componentName)
-	if err != nil {
-		return nil, err
-	}
-
 	// Set up Loop Control Template
-	loopDriverArgoName := name + "-loop-driver"
-	loopDriverInputs := dagDriverInputs{
-		component:   componentSpecPlaceholder,
-		parentDagID: parentDagID,
-		task:        taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
-	}
-	loopDriver, loopDriverOutputs, err := c.dagDriverTask(loopDriverArgoName, loopDriverInputs)
-	if err != nil {
-		return nil, err
-	}
-	loopDriver.Depends = depends(task.GetDependentTasks())
-
 	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJson, parentDagID)
 	if err != nil {
 		return nil, err
 	}
-
 	loopTmpl := &wfapi.Template{
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
@@ -303,22 +285,16 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 		loopTmpl.Parallelism = &parallelismLimit
 	}
 
-	loopTmplName, err := c.addTemplate(loopTmpl, fmt.Sprintf("%s-loop-iterator", componentName))
+	loopTmplName, err := c.addTemplate(loopTmpl, fmt.Sprintf("%s-%s-iterator", componentName, name))
 	if err != nil {
 		return nil, err
 	}
-	when := ""
-	if task.GetTriggerPolicy().GetCondition() != "" {
-		when = loopDriverOutputs.condition + " != false"
-	}
 
 	tasks = []wfapi.DAGTask{
-		*loopDriver,
 		{
 			Name:     name + "-loop",
 			Template: loopTmplName,
-			Depends:  depends([]string{loopDriverArgoName}),
-			When:     when,
+			Depends:  depends(task.GetDependentTasks()),
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{
 					{
@@ -379,7 +355,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 			Tasks: iterationTasks,
 		},
 	}
-	iterationsTmplName, err := c.addTemplate(iterationsTmpl, componentName+"-iteration")
+	iterationsTmplName, err := c.addTemplate(iterationsTmpl, componentName+"-"+name)
 	if err != nil {
 		return nil, err
 	}
