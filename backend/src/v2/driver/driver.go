@@ -1247,18 +1247,30 @@ func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
 	if outputParameterKey == "" {
 		return cfg.paramError(fmt.Errorf("output parameter key is empty"))
 	}
-	tasks, err := cfg.mlmd.GetExecutionsInDAG(cfg.ctx, cfg.dag, cfg.pipeline, false)
+
+	// Get a list of tasks for the current DAG first.
+	tasks, err := cfg.mlmd.GetExecutionsInDAG(cfg.ctx, cfg.dag, cfg.pipeline, true)
 	if err != nil {
 		return cfg.paramError(err)
 	}
-	glog.V(4).Infof("tasks: %#v", tasks)
-	// The producer is the task that produces the output that we need to
-	// consume.
+
+	// Check to see if the producer is in the list of tasks.
 	producer, ok := tasks[producerTaskName]
 	if !ok {
-		return cfg.paramError(fmt.Errorf("producer task, %v, not in tasks", producerTaskName))
+		// If the producer is not in the list of tasks for the current DAG,
+		// lookup all of the tasks in the context (which includes other DAGs).
+		tasks, err = cfg.mlmd.GetExecutionsInDAG(cfg.ctx, cfg.dag, cfg.pipeline, false)
+		if err != nil {
+			return cfg.paramError(err)
+		}
+		producer, ok = tasks[producerTaskName]
+		if !ok {
+			return cfg.paramError(fmt.Errorf("producer task, %v, not in tasks", producerTaskName))
+		}
 	}
+
 	glog.V(4).Info("producer: ", producer)
+	glog.V(4).Infof("tasks: %#v", tasks)
 	currentTask := producer
 	currentSubTaskMaybeDAG := true
 	// Continue looping until we reach a sub-task that is NOT a DAG.
