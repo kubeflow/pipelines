@@ -27,9 +27,8 @@ from kfp.dsl.graph_component import GraphComponent
 import pipeline_container_no_input
 import pipeline_with_env
 import producer_consumer_param
+import subdagio
 import two_step_pipeline_containerized
-# import subdagio
-
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 5 * _MINUTE
@@ -65,23 +64,16 @@ class SampleTest(unittest.TestCase):
             # TestCase(pipeline_func=pipeline_with_volume.pipeline_with_volume),
             # TestCase(pipeline_func=pipeline_with_secret_as_volume.pipeline_secret_volume),
             # TestCase(pipeline_func=pipeline_with_secret_as_env.pipeline_secret_env),
-
-            # This next set of tests needs to be commented out until issue
-            # https://github.com/kubeflow/pipelines/issues/11239#issuecomment-2374792592
-            # is addressed or the driver image that is used in CI is updated
-            # because otherwise the tests are run against incompatible version
-            # of the driver. In the meantime, for local validation, these tests
-            # can be executed (once you've manually deployed an updated driver
-            # image).
-
-            # TestCase(pipeline_func=subdagio.parameter.crust),
-            # TestCase(pipeline_func=subdagio.parameter_cache.crust),
-            # TestCase(pipeline_func=subdagio.mixed_parameters.crust),
-            # TestCase(pipeline_func=subdagio.multiple_parameters_namedtuple.crust),
-            # TestCase(pipeline_func=subdagio.parameter_oneof.crust),
-            # TestCase(pipeline_func=subdagio.artifact_cache.crust),
-            # TestCase(pipeline_func=subdagio.artifact.crust),
-            # TestCase(pipeline_func=subdagio.multiple_artifacts_namedtuple.crust),
+            TestCase(pipeline_func=subdagio.parameter.crust),
+            TestCase(pipeline_func=subdagio.parameter_cache.crust),
+            TestCase(pipeline_func=subdagio.mixed_parameters.crust),
+            TestCase(
+                pipeline_func=subdagio.multiple_parameters_namedtuple.crust),
+            TestCase(pipeline_func=subdagio.parameter_oneof.crust),
+            TestCase(pipeline_func=subdagio.artifact_cache.crust),
+            TestCase(pipeline_func=subdagio.artifact.crust),
+            TestCase(
+                pipeline_func=subdagio.multiple_artifacts_namedtuple.crust),
         ]
 
         with ThreadPoolExecutor() as executor:
