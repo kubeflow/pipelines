@@ -27,6 +27,7 @@ from kfp import dsl
 from kfp.dsl import container_component_artifact_channel
 from kfp.dsl import container_component_class
 from kfp.dsl import graph_component
+from kfp.dsl import pipeline_config
 from kfp.dsl import placeholders
 from kfp.dsl import python_component
 from kfp.dsl import structures
@@ -533,6 +534,7 @@ def create_component_from_func(
     install_kfp_package: bool = True,
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
+    pipeline_config: Optional[pipeline_config.PipelineConfig] = None,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -676,6 +678,7 @@ def create_graph_component_from_func(
     name: Optional[str] = None,
     description: Optional[str] = None,
     display_name: Optional[str] = None,
+    pipeline_config: Optional[pipeline_config.PipelineConfig] = None,
 ) -> graph_component.GraphComponent:
     """Implementation for the @pipeline decorator.
 
@@ -692,6 +695,7 @@ def create_graph_component_from_func(
         component_spec=component_spec,
         pipeline_func=func,
         display_name=display_name,
+        pipeline_config=pipeline_config,
     )
 
 

@@ -17,6 +17,7 @@ from typing import Callable, List, Optional
 import warnings
 
 from kfp.dsl import component_factory
+from kfp.dsl import pipeline_config
 
 
 def component(func: Optional[Callable] = None,
@@ -28,7 +29,7 @@ def component(func: Optional[Callable] = None,
               output_component_file: Optional[str] = None,
               install_kfp_package: bool = True,
               kfp_package_path: Optional[str] = None,
-              pip_trusted_hosts: Optional[List[str]] = None):
+              pipeline_config: Optional[pipeline_config.PipelineConfig] = None):
     """Decorator for Python-function based components.
 
     A KFP component can either be a lightweight component or a containerized
@@ -116,7 +117,7 @@ def component(func: Optional[Callable] = None,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
             kfp_package_path=kfp_package_path,
-            pip_trusted_hosts=pip_trusted_hosts)
+            pipeline_config=pipeline_config)
 
     return component_factory.create_component_from_func(
         func,
@@ -127,4 +128,4 @@ def component(func: Optional[Callable] = None,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
         kfp_package_path=kfp_package_path,
-        pip_trusted_hosts=pip_trusted_hosts)
+        pipeline_config=pipeline_config)
