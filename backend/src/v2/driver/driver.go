@@ -1238,7 +1238,16 @@ func getDAGTasks(
 		flattenedTasks[k] = v
 	}
 	for _, v := range currentExecutionTasks {
+
 		if v.GetExecution().GetType() == "system.DAGExecution" {
+			// Iteration index is only applied when using ParallelFor, and in
+			// that scenario you're guaranteed to have redundant task names even
+			// within a single DAG, which results in an error when
+			// mlmd.GetExecutionsInDAG is called. ParallelFor outputs should be
+			// handled with dsl.Collected.
+			if _, ok := v.GetExecution().GetCustomProperties()["iteration_index"]; !ok {
+				continue
+			}
 			glog.V(4).Infof("Found a task, %v, with an execution type of system.DAGExecution. Adding its tasks to the task list.", v.TaskName())
 			subDAG, err := mlmd.GetDAG(ctx, v.GetExecution().GetId())
 			if err != nil {
