@@ -9,8 +9,6 @@ resources:
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
 # when application is deleted.
-commonLabels:
-  application-crd-id: kubeflow-pipelines
 
 patches:
 - path: tekton-config.yaml
@@ -66,3 +64,7 @@ patches:
               env:
               - name: POD_LOG_CONTAINER_NAME
                 value: step-user-main
+labels:
+- includeSelectors: true
+  pairs:
+    application-crd-id: kubeflow-pipelines
