@@ -101,7 +101,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     /** The main container name of a pod where logs are retrieved */
     POD_LOG_CONTAINER_NAME = 'main',
     /** Disables GKE metadata endpoint. */
-    DISABLE_GKE_METADATA = 'false',
+    DISABLE_GKE_METADATA = 'true',
     /** Enable authorization checks for multi user mode. */
     ENABLE_AUTHZ = 'false',
     /** Deployment type. */
