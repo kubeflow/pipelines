@@ -1245,7 +1245,8 @@ func getDAGTasks(
 			// within a single DAG, which results in an error when
 			// mlmd.GetExecutionsInDAG is called. ParallelFor outputs should be
 			// handled with dsl.Collected.
-			if _, ok := v.GetExecution().GetCustomProperties()["iteration_index"]; !ok {
+			iterationIndex, ok := v.GetExecution().GetCustomProperties()["iteration_index"]
+			if ok && iterationIndex != nil {
 				continue
 			}
 			glog.V(4).Infof("Found a task, %v, with an execution type of system.DAGExecution. Adding its tasks to the task list.", v.TaskName())
