@@ -1219,6 +1219,43 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 	return inputs, nil
 }
 
+// getDAGTasks is a recursive function that returns a map of all tasks across all DAGs in the context of nested DAGs.
+func getDAGTasks(
+	ctx context.Context,
+	dag *metadata.DAG,
+	pipeline *metadata.Pipeline,
+	mlmd *metadata.Client,
+	flattenedTasks map[string]*metadata.Execution,
+) (map[string]*metadata.Execution, error) {
+	if flattenedTasks == nil {
+		flattenedTasks = make(map[string]*metadata.Execution)
+	}
+	currentExecutionTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline, true)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range currentExecutionTasks {
+		flattenedTasks[k] = v
+	}
+	for _, v := range currentExecutionTasks {
+		if v.GetExecution().GetType() == "system.DAGExecution" {
+			glog.V(4).Infof("Found a task, %v, with an execution type of system.DAGExecution. Adding its tasks to the task list.", v.TaskName())
+			subDAG, err := mlmd.GetDAG(ctx, v.GetExecution().GetId())
+			if err != nil {
+				return nil, err
+			}
+			// Pass the subDAG into a recursive call to getDAGTasks and update
+			// tasks to include the subDAG's tasks.
+			flattenedTasks, err = getDAGTasks(ctx, subDAG, pipeline, mlmd, flattenedTasks)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return flattenedTasks, nil
+}
+
 // resolveUpstreamParametersConfig is just a config struct used to store the
 // input parameters of the resolveUpstreamParameters function.
 type resolveUpstreamParametersConfig struct {
@@ -1249,26 +1286,16 @@ func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
 	}
 
 	// Get a list of tasks for the current DAG first.
-	tasks, err := cfg.mlmd.GetExecutionsInDAG(cfg.ctx, cfg.dag, cfg.pipeline, true)
+	// The reason we use gatDAGTasks instead of mlmd.GetExecutionsInDAG is because the latter does not handle task name collisions in the map which results in a bunch of unhandled edge cases and test failures.
+	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
 	if err != nil {
 		return cfg.paramError(err)
 	}
 
-	// Check to see if the producer is in the list of tasks.
 	producer, ok := tasks[producerTaskName]
 	if !ok {
-		// If the producer is not in the list of tasks for the current DAG,
-		// lookup all of the tasks in the context (which includes other DAGs).
-		tasks, err = cfg.mlmd.GetExecutionsInDAG(cfg.ctx, cfg.dag, cfg.pipeline, false)
-		if err != nil {
-			return cfg.paramError(err)
-		}
-		producer, ok = tasks[producerTaskName]
-		if !ok {
-			return cfg.paramError(fmt.Errorf("producer task, %v, not in tasks", producerTaskName))
-		}
+		return cfg.paramError(fmt.Errorf("producer task, %v, not in tasks", producerTaskName))
 	}
-
 	glog.V(4).Info("producer: ", producer)
 	glog.V(4).Infof("tasks: %#v", tasks)
 	currentTask := producer
@@ -1284,7 +1311,7 @@ func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
 			// and iterate through this loop again.
 			outputParametersCustomProperty, ok := currentTask.GetExecution().GetCustomProperties()["parameter_producer_task"]
 			if !ok {
-				return cfg.paramError(fmt.Errorf("Task, %v, does not have a parameter_producer_task custom property", currentTask.TaskName()))
+				return cfg.paramError(fmt.Errorf("task, %v, does not have a parameter_producer_task custom property", currentTask.TaskName()))
 			}
 			glog.V(4).Infof("outputParametersCustomProperty: %#v", outputParametersCustomProperty)
 
@@ -1331,7 +1358,9 @@ func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
 							}
 						}
 					}
-					return cfg.paramError(fmt.Errorf("Processing OneOf: No successful task found"))
+					if !successfulOneOfTask {
+						return cfg.paramError(fmt.Errorf("processing OneOf: No successful task found"))
+					}
 				}
 			}
 			glog.V(4).Infof("SubTaskName from outputParams: %v", subTaskName)
