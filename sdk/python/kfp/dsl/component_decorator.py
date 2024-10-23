@@ -28,7 +28,8 @@ def component(func: Optional[Callable] = None,
               output_component_file: Optional[str] = None,
               install_kfp_package: bool = True,
               kfp_package_path: Optional[str] = None,
-              pip_trusted_hosts: Optional[List[str]] = None):
+              pip_trusted_hosts: Optional[List[str]] = None,
+              use_venv: bool = False):
     """Decorator for Python-function based components.
 
     A KFP component can either be a lightweight component or a containerized
@@ -75,6 +76,9 @@ def component(func: Optional[Callable] = None,
             as that used when this component was created. Component authors can
             choose to override this to point to a GitHub pull request or
             other pip-compatible package server.
+        use_venv: Specifies if the component should be executed in a virtual environment.
+            The environment will be created in a temporary directory and will inherit the system site packages.
+            This is useful in restricted environments where most of the system is read-only.
 
     Returns:
         A component task factory that can be used in pipeline definitions.
@@ -116,7 +120,8 @@ def component(func: Optional[Callable] = None,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
             kfp_package_path=kfp_package_path,
-            pip_trusted_hosts=pip_trusted_hosts)
+            pip_trusted_hosts=pip_trusted_hosts,
+            use_venv=use_venv)
 
     return component_factory.create_component_from_func(
         func,
@@ -127,4 +132,5 @@ def component(func: Optional[Callable] = None,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
         kfp_package_path=kfp_package_path,
-        pip_trusted_hosts=pip_trusted_hosts)
+        pip_trusted_hosts=pip_trusted_hosts,
+        use_venv=use_venv)
