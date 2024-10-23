@@ -1,4 +1,5 @@
-pyyaml
-kubernetes
-kubeflow-pytorchjob
-retrying
+pyyaml<7,>=5.3
+kubernetes<31,>=8.0.0
+kubeflow-training>=1.8.0
+retrying>=1.3.3
+str2bool==1.1

@@ -1,15 +1,16 @@
 import argparse
 import datetime
-from distutils.util import strtobool
+from str2bool import str2bool
 import logging
 import yaml
 
 from kubernetes import client as k8s_client
 from kubernetes import config
 
-import launch_crd
-from kubeflow.pytorchjob import V1PyTorchJob as V1PyTorchJob_original
-from kubeflow.pytorchjob import V1PyTorchJobSpec as V1PyTorchJobSpec_original
+from kubeflow.training import TrainingClient
+from kubeflow.training import KubeflowOrgV1RunPolicy
+from kubeflow.training import KubeflowOrgV1PyTorchJob
+from kubeflow.training import KubeflowOrgV1PyTorchJobSpec
 
 
 def yamlOrJsonStr(string):
@@ -27,18 +28,6 @@ def get_current_namespace():
         current_namespace = "kubeflow"
     return current_namespace
 
-
-# Patch PyTorchJob APIs to align with k8s usage
-class V1PyTorchJob(V1PyTorchJob_original):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.openapi_types = self.swagger_types
-
-
-class V1PyTorchJobSpec(V1PyTorchJobSpec_original):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.openapi_types = self.swagger_types
 
 
 def get_arg_parser():
@@ -70,7 +59,7 @@ def get_arg_parser():
     parser.add_argument('--workerSpec', type=yamlOrJsonStr,
                         default={},
                         help='Job worker replicaSpecs.')
-    parser.add_argument('--deleteAfterDone', type=strtobool,
+    parser.add_argument('--deleteAfterDone', type=str2bool,
                         default=True,
                         help='When Job done, delete the Job automatically if it is True.')
     parser.add_argument('--jobTimeoutMinutes', type=int,
@@ -94,20 +83,22 @@ def main(args):
     logging.getLogger(__name__).setLevel(logging.INFO)
     logging.info('Generating job template.')
 
-    jobSpec = V1PyTorchJobSpec(
+    jobSpec = KubeflowOrgV1PyTorchJobSpec(
         pytorch_replica_specs={
             'Master': args.masterSpec,
             'Worker': args.workerSpec,
         },
-        active_deadline_seconds=args.activeDeadlineSeconds,
-        backoff_limit=args.backoffLimit,
-        clean_pod_policy=args.cleanPodPolicy,
-        ttl_seconds_after_finished=args.ttlSecondsAfterFinished,
+        run_policy=KubeflowOrgV1RunPolicy(
+            active_deadline_seconds=args.activeDeadlineSeconds,
+            backoff_limit=args.backoffLimit,
+            clean_pod_policy=args.cleanPodPolicy,
+            ttl_seconds_after_finished=args.ttlSecondsAfterFinished,
+        )
     )
 
     api_version = f"{args.jobGroup}/{args.version}"
 
-    job = V1PyTorchJob(
+    job = KubeflowOrgV1PyTorchJob(
         api_version=api_version,
         kind=args.kind,
         metadata=k8s_client.V1ObjectMeta(
@@ -116,33 +107,31 @@ def main(args):
         ),
         spec=jobSpec,
     )
+    logging.info('Creating TrainingClient.')
 
-    serialized_job = k8s_client.ApiClient().sanitize_for_serialization(job)
-
-    logging.info('Creating launcher client.')
-
+    # remove one of these depending on where you are running this
     config.load_incluster_config()
-    api_client = k8s_client.ApiClient()
-    launcher_client = launch_crd.K8sCR(
-        group=args.jobGroup,
-        plural=args.jobPlural,
-        version=args.version,
-        client=api_client
-    )
+    #config.load_kube_config()
+    
+    training_client = TrainingClient()
 
-    logging.info('Submitting CR.')
-    create_response = launcher_client.create(serialized_job)
+    logging.info(f"Creating PyTorchJob in namespace: {args.namespace}")
+    training_client.create_job(job, namespace=args.namespace)
 
     expected_conditions = ["Succeeded", "Failed"]
     logging.info(
         f'Monitoring job until status is any of {expected_conditions}.'
     )
-    launcher_client.wait_for_condition(
-        args.namespace, args.name, expected_conditions,
-        timeout=datetime.timedelta(minutes=args.jobTimeoutMinutes))
+    training_client.wait_for_job_conditions(
+        name=args.name,
+        namespace=args.namespace,
+        job_kind=args.kind,
+        expected_conditions=set(expected_conditions),
+        timeout=int(datetime.timedelta(minutes=args.jobTimeoutMinutes).total_seconds())
+    )
     if args.deleteAfterDone:
-        logging.info('Deleting job.')
-        launcher_client.delete(args.name, args.namespace)
+        logging.info('Deleting job after completion.')
+        training_client.delete_job(args.name, args.namespace)
 
 
 if __name__ == "__main__":
