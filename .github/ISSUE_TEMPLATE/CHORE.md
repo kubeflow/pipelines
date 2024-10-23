@@ -7,7 +7,7 @@ labels: "type : chore, area/backend, area/frontend, area/sdk"
 
 ## Chore description
 
-Describe the chore details and why it's needed. 
+<!-- Describe the chore details and why it's needed.  -->
 
 
 ### Labels
