@@ -233,6 +233,207 @@ class PipelineTaskTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
+            'memory': '2E',
+            'limit': '1E',
+        },
+        {
+            'memory': '3Ei',
+            'limit': '2Ei',
+        },
+        {
+            'memory': '20P',
+            'limit': '2P',
+        },
+        {
+            'memory': '2P',
+            'limit': '1999T',
+        },
+        {
+            'memory': '3P',
+            'limit': '2000T',
+        },
+        {
+            'memory': '25Pi',
+            'limit': '24Pi',
+        },
+        {
+            'memory': '1Pi',
+            'limit': '1023Ti',
+        },
+        {
+            'memory': '14T',
+            'limit': '4T',
+        },
+        {
+            'memory': '4T',
+            'limit': '3999G',
+        },
+        {
+            'memory': '1P',
+            'limit': '999T',
+        },
+        {
+            'memory': '1Ti',
+            'limit': '999Gi',
+        },
+        {
+            'memory': '14G',
+            'limit': '9G',
+        },
+        {
+            'memory': '1G',
+            'limit': '999999K',
+        },
+        {
+            'memory': '1Gi',
+            'limit': '1000M',
+        },
+        {
+            'memory': '10Gi',
+            'limit': '9Gi',
+        },
+        {
+            'memory': '15M',
+            'limit': '5M',
+        },
+        {
+            'memory': '5Mi',
+            'limit': '5M',
+        },
+        {
+            'memory': '95Mi',
+            'limit': '94Mi',
+        },
+        {
+            'memory': '6K',
+            'limit': '5K',
+        },
+        {
+            'memory': '100Ki',
+            'limit': '65Ki',
+        },
+        {
+            'memory': '1Mi',
+            'limit': '10Ki',
+        },
+        {
+            'memory': '7001',
+            'limit': '7000',
+        },
+    )
+    def test_set_memory_request_greater_than_limit_should_raise(
+            self, memory: str, limit: str):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(
+                ValueError,
+                f'Requested memory: {memory} cannot be greater than memory limit: {limit}. '
+                'Check the set_memory_request and set_memory_limit parameters.'
+        ):
+            task.set_memory_request(memory).set_memory_limit(limit)
+
+    @parameterized.parameters(
+        {
+            'memory': '1E',
+            'limit': '2E',
+        },
+        {
+            'memory': '55Ei',
+            'limit': '150Ei',
+        },
+        {
+            'memory': '2P',
+            'limit': '20P',
+        },
+        {
+            'memory': '3P',
+            'limit': '3000T',
+        },
+        {
+            'memory': '25Pi',
+            'limit': '25Pi',
+        },
+        {
+            'memory': '1Pi',
+            'limit': '1024Ti',
+        },
+        {
+            'memory': '4T',
+            'limit': '14T',
+        },
+        {
+            'memory': '4T',
+            'limit': '4000G',
+        },
+        {
+            'memory': '4T',
+            'limit': '1P',
+        },
+        {
+            'memory': '1Ti',
+            'limit': '1024Gi',
+        },
+        {
+            'memory': '4G',
+            'limit': '14G',
+        },
+        {
+            'memory': '1G',
+            'limit': '1000M',
+        },
+        {
+            'memory': '1Gi',
+            'limit': '1024Mi',
+        },
+        {
+            'memory': '45Gi',
+            'limit': '100Gi',
+        },
+        {
+            'memory': '5M',
+            'limit': '15M',
+        },
+        {
+            'memory': '5M',
+            'limit': '5Mi',
+        },
+        {
+            'memory': '95Mi',
+            'limit': '95Mi',
+        },
+        {
+            'memory': '6K',
+            'limit': '7K',
+        },
+        {
+            'memory': '65Ki',
+            'limit': '100Ki',
+        },
+        {
+            'memory': '10Ki',
+            'limit': '1Mi',
+        },
+        {
+            'memory': '7000',
+            'limit': '7001',
+        },
+    )
+    def test_set_memory_request_and_limit(self, memory: str, limit: str):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.set_memory_request(memory)
+        self.assertEqual(memory, task.container_spec.resources.memory_request)
+        task.set_memory_limit(limit)
+        self.assertEqual(limit, task.container_spec.resources.memory_limit)
+
+    @parameterized.parameters(
+        {
             'memory': '1E',
             'expected_memory': '1E',
         },
