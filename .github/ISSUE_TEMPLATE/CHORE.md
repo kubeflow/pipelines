@@ -5,7 +5,7 @@ title: "chore(<component>): <Chore Name>"
 labels: "type : chore, area/backend, area/frontend, area/sdk"
 ---
 
-## Describe the chore
+## Chore description
 
 Describe the chore details and why it's needed. 
 
