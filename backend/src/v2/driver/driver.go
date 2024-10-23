@@ -1240,7 +1240,7 @@ func getDAGTasks(
 	for _, v := range currentExecutionTasks {
 
 		if v.GetExecution().GetType() == "system.DAGExecution" {
-			// Iteration index is only applied when using ParallelFor, and in
+			// Iteration count is only applied when using ParallelFor, and in
 			// that scenario you're guaranteed to have redundant task names even
 			// within a single DAG, which results in an error when
 			// mlmd.GetExecutionsInDAG is called. ParallelFor outputs should be
