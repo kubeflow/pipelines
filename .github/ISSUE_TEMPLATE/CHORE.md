@@ -2,7 +2,6 @@
 name: 🧹 Chore
 about: Create a Chore on Kubeflow Pipelines
 title: "chore(<component>): <Chore Name>"
-labels: "type : chore, area/backend, area/frontend, area/sdk"
 ---
 
 ## Chore description
