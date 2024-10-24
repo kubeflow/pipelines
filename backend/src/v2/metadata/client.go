@@ -120,7 +120,9 @@ func NewClient(serverAddress, serverPort string, tlsEnabled bool) (*Client, erro
 
 	creds := insecure.NewCredentials()
 	if tlsEnabled {
-		config := &tls.Config{}
+		config := &tls.Config{
+			InsecureSkipVerify: true, // This should be removed by https://issues.redhat.com/browse/RHOAIENG-13871
+		}
 		creds = credentials.NewTLS(config)
 	}
 
