@@ -41,6 +41,8 @@ spec:
       - "metadata-grpc-service"
       - --mlmd_server_port
       - "8080"
+      - --metadataTLSEnabled
+      - "false"
       command:
       - launcher-v2
       env:
