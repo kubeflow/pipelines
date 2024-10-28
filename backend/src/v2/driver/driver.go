@@ -1148,15 +1148,15 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 
 		// This is the case where the input comes from the output of an upstream task.
 		case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
-			cfg := resolveUpstreamParametersConfig{
-				ctx:        ctx,
-				paramSpec:  paramSpec,
-				dag:        dag,
-				pipeline:   pipeline,
-				mlmd:       mlmd,
-				inputs:     inputs,
-				name:       name,
-				paramError: paramError,
+			cfg := resolveUpstreamOutputsConfig{
+				ctx:       ctx,
+				paramSpec: paramSpec,
+				dag:       dag,
+				pipeline:  pipeline,
+				mlmd:      mlmd,
+				inputs:    inputs,
+				name:      name,
+				err:       paramError,
 			}
 			if err := resolveUpstreamParameters(cfg); err != nil {
 				return nil, err
@@ -1198,15 +1198,15 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			inputs.Artifacts[name] = v
 
 		case *pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact:
-			cfg := resolveUpstreamArtifactsConfig{
-				ctx:           ctx,
-				artifactSpec:  artifactSpec,
-				dag:           dag,
-				pipeline:      pipeline,
-				mlmd:          mlmd,
-				inputs:        inputs,
-				name:          name,
-				artifactError: artifactError,
+			cfg := resolveUpstreamOutputsConfig{
+				ctx:          ctx,
+				artifactSpec: artifactSpec,
+				dag:          dag,
+				pipeline:     pipeline,
+				mlmd:         mlmd,
+				inputs:       inputs,
+				name:         name,
+				err:          artifactError,
 			}
 			if err := resolveUpstreamArtifacts(cfg); err != nil {
 				return nil, err
@@ -1267,45 +1267,47 @@ func getDAGTasks(
 	return flattenedTasks, nil
 }
 
-// resolveUpstreamParametersConfig is just a config struct used to store the
-// input parameters of the resolveUpstreamParameters function.
-type resolveUpstreamParametersConfig struct {
-	ctx        context.Context
-	paramSpec  *pipelinespec.TaskInputsSpec_InputParameterSpec
-	dag        *metadata.DAG
-	pipeline   *metadata.Pipeline
-	mlmd       *metadata.Client
-	inputs     *pipelinespec.ExecutorInput_Inputs
-	name       string
-	paramError func(error) error
+// resolveUpstreamOutputsConfig is just a config struct used to store the input
+// parameters of the resolveUpstreamParameters and resolveUpstreamArtifacts
+// functions.
+type resolveUpstreamOutputsConfig struct {
+	ctx          context.Context
+	paramSpec    *pipelinespec.TaskInputsSpec_InputParameterSpec
+	artifactSpec *pipelinespec.TaskInputsSpec_InputArtifactSpec
+	dag          *metadata.DAG
+	pipeline     *metadata.Pipeline
+	mlmd         *metadata.Client
+	inputs       *pipelinespec.ExecutorInput_Inputs
+	name         string
+	err          func(error) error
 }
 
 // resolveUpstreamParameters resolves input parameters that come from upstream
 // tasks. These tasks can be components/containers, which is relatively
 // straightforward, or DAGs, in which case, we need to traverse the graph until
 // we arrive at a component/container (since there can be n nested DAGs).
-func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
+func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) error {
 	taskOutput := cfg.paramSpec.GetTaskOutputParameter()
 	glog.V(4).Info("taskOutput: ", taskOutput)
 	producerTaskName := taskOutput.GetProducerTask()
 	if producerTaskName == "" {
-		return cfg.paramError(fmt.Errorf("producerTaskName is empty"))
+		return cfg.err(fmt.Errorf("producerTaskName is empty"))
 	}
 	outputParameterKey := taskOutput.GetOutputParameterKey()
 	if outputParameterKey == "" {
-		return cfg.paramError(fmt.Errorf("output parameter key is empty"))
+		return cfg.err(fmt.Errorf("output parameter key is empty"))
 	}
 
 	// Get a list of tasks for the current DAG first.
 	// The reason we use gatDAGTasks instead of mlmd.GetExecutionsInDAG is because the latter does not handle task name collisions in the map which results in a bunch of unhandled edge cases and test failures.
 	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
 	if err != nil {
-		return cfg.paramError(err)
+		return cfg.err(err)
 	}
 
 	producer, ok := tasks[producerTaskName]
 	if !ok {
-		return cfg.paramError(fmt.Errorf("producer task, %v, not in tasks", producerTaskName))
+		return cfg.err(fmt.Errorf("producer task, %v, not in tasks", producerTaskName))
 	}
 	glog.V(4).Info("producer: ", producer)
 	glog.V(4).Infof("tasks: %#v", tasks)
@@ -1322,7 +1324,7 @@ func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
 			// and iterate through this loop again.
 			outputParametersCustomProperty, ok := currentTask.GetExecution().GetCustomProperties()["parameter_producer_task"]
 			if !ok {
-				return cfg.paramError(fmt.Errorf("task, %v, does not have a parameter_producer_task custom property", currentTask.TaskName()))
+				return cfg.err(fmt.Errorf("task, %v, does not have a parameter_producer_task custom property", currentTask.TaskName()))
 			}
 			glog.V(4).Infof("outputParametersCustomProperty: %#v", outputParametersCustomProperty)
 
@@ -1370,14 +1372,14 @@ func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
 						}
 					}
 					if !successfulOneOfTask {
-						return cfg.paramError(fmt.Errorf("processing OneOf: No successful task found"))
+						return cfg.err(fmt.Errorf("processing OneOf: No successful task found"))
 					}
 				}
 			}
 			glog.V(4).Infof("SubTaskName from outputParams: %v", subTaskName)
 			glog.V(4).Infof("OutputParameterKey from outputParams: %v", outputParameterKey)
 			if subTaskName == "" {
-				return cfg.paramError(fmt.Errorf("producer_subtask not in outputParams"))
+				return cfg.err(fmt.Errorf("producer_subtask not in outputParams"))
 			}
 			glog.V(4).Infof(
 				"Overriding currentTask, %v, output with currentTask's producer_subtask, %v, output.",
@@ -1386,7 +1388,7 @@ func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
 			)
 			currentTask, ok = tasks[subTaskName]
 			if !ok {
-				return cfg.paramError(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
+				return cfg.err(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
 			}
 
 		} else {
@@ -1403,40 +1405,27 @@ func resolveUpstreamParameters(cfg resolveUpstreamParametersConfig) error {
 	return nil
 }
 
-// resolveUpstreamArtifactsConfig is just a config struct used to store the
-// input parameters of the resolveUpstreamArtifacts function.
-type resolveUpstreamArtifactsConfig struct {
-	ctx           context.Context
-	artifactSpec  *pipelinespec.TaskInputsSpec_InputArtifactSpec
-	dag           *metadata.DAG
-	pipeline      *metadata.Pipeline
-	mlmd          *metadata.Client
-	inputs        *pipelinespec.ExecutorInput_Inputs
-	name          string
-	artifactError func(error) error
-}
-
 // resolveUpstreamArtifacts resolves input artifacts that come from upstream
 // tasks. These tasks can be components/containers, which is relatively
 // straightforward, or DAGs, in which case, we need to traverse the graph until
 // we arrive at a component/container (since there can be n nested DAGs).
-func resolveUpstreamArtifacts(cfg resolveUpstreamArtifactsConfig) error {
+func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) error {
 	glog.V(4).Infof("artifactSpec: %#v", cfg.artifactSpec)
 	taskOutput := cfg.artifactSpec.GetTaskOutputArtifact()
 	if taskOutput.GetProducerTask() == "" {
-		return cfg.artifactError(fmt.Errorf("producer task is empty"))
+		return cfg.err(fmt.Errorf("producer task is empty"))
 	}
 	if taskOutput.GetOutputArtifactKey() == "" {
-		cfg.artifactError(fmt.Errorf("output artifact key is empty"))
+		cfg.err(fmt.Errorf("output artifact key is empty"))
 	}
 	tasks, err := cfg.mlmd.GetExecutionsInDAG(cfg.ctx, cfg.dag, cfg.pipeline, false)
 	if err != nil {
-		cfg.artifactError(err)
+		cfg.err(err)
 	}
 
 	producer, ok := tasks[taskOutput.GetProducerTask()]
 	if !ok {
-		cfg.artifactError(
+		cfg.err(
 			fmt.Errorf("cannot find producer task %q", taskOutput.GetProducerTask()),
 		)
 	}
@@ -1477,12 +1466,12 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamArtifactsConfig) error {
 			// Base case, currentTask is a container, not a DAG.
 			outputs, err := cfg.mlmd.GetOutputArtifactsByExecutionId(cfg.ctx, currentTask.GetID())
 			if err != nil {
-				cfg.artifactError(err)
+				cfg.err(err)
 			}
 			glog.V(4).Infof("outputs: %#v", outputs)
 			artifact, ok := outputs[outputArtifactKey]
 			if !ok {
-				cfg.artifactError(
+				cfg.err(
 					fmt.Errorf(
 						"cannot find output artifact key %q in producer task %q",
 						taskOutput.GetOutputArtifactKey(),
@@ -1492,7 +1481,7 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamArtifactsConfig) error {
 			}
 			runtimeArtifact, err := artifact.ToRuntimeArtifact()
 			if err != nil {
-				cfg.artifactError(err)
+				cfg.err(err)
 			}
 			cfg.inputs.Artifacts[cfg.name] = &pipelinespec.ArtifactList{
 				Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
