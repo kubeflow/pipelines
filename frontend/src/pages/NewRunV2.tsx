@@ -953,77 +953,82 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
         onClose={() => setExperimentSelectorOpen(false)}
         PaperProps={{ id: 'experimentSelectorDialog' }}
       >
-        {props.isOpenNewExperiment ? <NewExperimentFC onCancel={props.onCancelNewExperiment} {...props} /> :
-          <><DialogContent>
-          <ResourceSelector
-            {...props}
-            toolbarActionMap={props.toolbarActionMap}
-            title='Choose an experiment'
-            filterLabel='Filter experiments'
-            listApi={async (
-              page_token?: string,
-              page_size?: number,
-              sort_by?: string,
-              filter?: string,
-            ) => {
-              // A new run can only be created in an unarchived experiment.
-              // Therefore, when listing experiments here for selection, we
-              // only list unarchived experiments.
-              const new_filter = JSON.parse(
-                decodeURIComponent(filter || '{"predicates": []}'),
-              ) as V2beta1Filter;
-              new_filter.predicates = (new_filter.predicates || []).concat([
-                {
-                  key: 'storage_state',
-                  operation: V2beta1PredicateOperation.NOTEQUALS,
-                  string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
-                },
-              ]);
-              const response = await Apis.experimentServiceApiV2.listExperiments(
-                page_token,
-                page_size,
-                sort_by,
-                encodeURIComponent(JSON.stringify(new_filter)),
-                props.namespace,
-              );
-              return {
-                nextPageToken: response.next_page_token || '',
-                resources: response.experiments?.map(e => convertExperimentToResource(e)) || [],
-              };
-            }}
-            columns={EXPERIMENT_SELECTOR_COLUMNS}
-            emptyMessage='No experiments found. Create an experiment and then try again.'
-            initialSortColumn={ExperimentSortKeys.CREATED_AT}
-            selectionChanged={async (selectedExperimentId: string) => {
-              const selectedExperiment = await Apis.experimentServiceApiV2.getExperiment(
-                selectedExperimentId,
-              );
-              setPendingExperiment(selectedExperiment);
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            id='cancelExperimentSelectionBtn'
-            onClick={() => setExperimentSelectorOpen(false)}
-            color='secondary'
-          >
-            Cancel
-          </Button>
-          <Button
-            id='useExperimentBtn'
-            onClick={() => {
-              if (pendingExperiment) {
-                props.handleExperimentChange(pendingExperiment);
-              }
-              setExperimentSelectorOpen(false);
-            }}
-            color='secondary'
-            disabled={!pendingExperiment}
-          >
-            Use this experiment
-          </Button>
-        </DialogActions></>}
+        {props.isOpenNewExperiment ? (
+          <NewExperimentFC onCancel={props.onCancelNewExperiment} {...props} />
+        ) : (
+          <>
+            <DialogContent>
+              <ResourceSelector
+                {...props}
+                toolbarActionMap={props.toolbarActionMap}
+                title='Choose an experiment'
+                filterLabel='Filter experiments'
+                listApi={async (
+                  page_token?: string,
+                  page_size?: number,
+                  sort_by?: string,
+                  filter?: string,
+                ) => {
+                  // A new run can only be created in an unarchived experiment.
+                  // Therefore, when listing experiments here for selection, we
+                  // only list unarchived experiments.
+                  const new_filter = JSON.parse(
+                    decodeURIComponent(filter || '{"predicates": []}'),
+                  ) as V2beta1Filter;
+                  new_filter.predicates = (new_filter.predicates || []).concat([
+                    {
+                      key: 'storage_state',
+                      operation: V2beta1PredicateOperation.NOTEQUALS,
+                      string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
+                    },
+                  ]);
+                  const response = await Apis.experimentServiceApiV2.listExperiments(
+                    page_token,
+                    page_size,
+                    sort_by,
+                    encodeURIComponent(JSON.stringify(new_filter)),
+                    props.namespace,
+                  );
+                  return {
+                    nextPageToken: response.next_page_token || '',
+                    resources: response.experiments?.map(e => convertExperimentToResource(e)) || [],
+                  };
+                }}
+                columns={EXPERIMENT_SELECTOR_COLUMNS}
+                emptyMessage='No experiments found. Create an experiment and then try again.'
+                initialSortColumn={ExperimentSortKeys.CREATED_AT}
+                selectionChanged={async (selectedExperimentId: string) => {
+                  const selectedExperiment = await Apis.experimentServiceApiV2.getExperiment(
+                    selectedExperimentId,
+                  );
+                  setPendingExperiment(selectedExperiment);
+                }}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button
+                id='cancelExperimentSelectionBtn'
+                onClick={() => setExperimentSelectorOpen(false)}
+                color='secondary'
+              >
+                Cancel
+              </Button>
+              <Button
+                id='useExperimentBtn'
+                onClick={() => {
+                  if (pendingExperiment) {
+                    props.handleExperimentChange(pendingExperiment);
+                  }
+                  setExperimentSelectorOpen(false);
+                }}
+                color='secondary'
+                disabled={!pendingExperiment}
+              >
+                Use this experiment
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </>
   );
