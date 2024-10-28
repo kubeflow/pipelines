@@ -59,7 +59,6 @@ import {
 import AddIcon from '@material-ui/icons/Add';
 import { ToolbarActionMap } from '../components/Toolbar';
 import { NewExperimentFC } from './functional_components/NewExperimentFC';
-import { log } from '@craco/craco/dist/lib/logger';
 
 const css = stylesheet({
   nonEditableInput: {
