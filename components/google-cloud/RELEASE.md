@@ -1,6 +1,7 @@
 ## Upcoming release
 * Remove default prediction column names in `v1.model_evaluation.regression_component` component to fix pipeline errors when using bigquery data source.
 * Add reservation_affinition support in `v1.create_custom_training_job_from_component`.
+* Deprecate `preview.custom_job.create_custom_training_job_from_component` and `preview.custom_job.CustomTrainingJobOP`.
 
 ## Release 2.17.0
 * Fix Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline` after output schema change.

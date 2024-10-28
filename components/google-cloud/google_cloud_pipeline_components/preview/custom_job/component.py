@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Dict, List
+import warnings
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import _placeholders
@@ -63,6 +64,14 @@ def custom_training_job(
     gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the CustomJob.
   """
   # fmt: on
+
+  warnings.warn(
+      "'preview.custom_job.CustomTrainingJobOp' is"
+      ' deprecated and will be removed in a future release. Please use'
+      " 'v1.custom_job.CustomTrainingJobOp' instead.",
+      DeprecationWarning,
+  )
+
   return dsl.ContainerSpec(
       image=_image.GCPC_IMAGE_TAG,
       command=[

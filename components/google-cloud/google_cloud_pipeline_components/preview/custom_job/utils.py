@@ -138,6 +138,14 @@ def create_custom_training_job_from_component(
   # After adding the appropriate description and the name, the new component
   # is returned.
 
+  warnings.warn(
+      "'preview.custom_job.create_custom_training_job_from_component' is"
+      ' deprecated and will be removed in a future release. Please use'
+      " 'v1.custom_job.create_custom_training_job_from_component' instead.",
+      category=DeprecationWarning,
+      stacklevel=2,
+  )
+
   cj_pipeline_spec = json_format.MessageToDict(
       component.custom_training_job.pipeline_spec
   )
