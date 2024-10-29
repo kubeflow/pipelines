@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Base image to use for this docker
-FROM marketplace.gcr.io/google/ubuntu2004:latest
+FROM marketplace.gcr.io/google/ubuntu2404:latest
 RUN apt update && apt -y install python3 python3-pip git
 
 WORKDIR /root
