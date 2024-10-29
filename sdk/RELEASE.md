@@ -2,6 +2,7 @@
 
 ## Features
 * Support dynamic machine type parameters in pipeline task setters. [\#11097](https://github.com/kubeflow/pipelines/pull/11097)
+* Add a new `use_venv` field to the component decorator, enabling the component to run inside a virtual environment. [\#11326](https://github.com/kubeflow/pipelines/pull/11326)
 
 ## Breaking changes
 
