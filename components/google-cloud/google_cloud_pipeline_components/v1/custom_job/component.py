@@ -24,7 +24,7 @@ from kfp import dsl
 def custom_training_job(
     display_name: str,
     gcp_resources: dsl.OutputPath(str),
-    location: str = 'us-central1',
+    location: str = _placeholders.LOCATION_PLACEHOLDER,
     worker_pool_specs: List[Dict[str, str]] = [],
     timeout: str = '604800s',
     restart_job_on_worker_restart: bool = False,
@@ -43,7 +43,7 @@ def custom_training_job(
   """Launch a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API. See [Create custom training jobs ](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for more information.
 
   Args:
-    location: Location for creating the custom training job. If not set, default to us-central1.
+    location: Location for creating the custom training job. If not set, default to the location where the PipelineJob is run.
     display_name: The name of the CustomJob.
     worker_pool_specs: Serialized json spec of the worker pools including machine type and Docker image. All worker pools except the first one are optional and can be skipped by providing an empty value. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec).
     timeout: The maximum job running time. The default is 7 days. A duration in seconds with up to nine fractional digits, terminated by 's', for example: "3.5s".
