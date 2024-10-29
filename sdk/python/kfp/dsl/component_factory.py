@@ -57,6 +57,7 @@ class ComponentInfo():
     packages_to_install: Optional[List[str]] = None
     pip_index_urls: Optional[List[str]] = None
     pip_trusted_hosts: Optional[List[str]] = None
+    use_venv: bool = False
 
 
 # A map from function_name to components.  This is always populated when a
@@ -132,6 +133,15 @@ fi
 PIP_DISABLE_PIP_VERSION_CHECK=1 {pip_install_commands} && "$0" "$@"
 '''
 
+# Creates and activates a virtual environment in a temporary directory.
+# The environment inherits the system site packages.
+_use_venv_script_template = '''
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+tmp=$(mktemp -d)
+python3 -m venv "$tmp/venv" --system-site-packages
+. "$tmp/venv/bin/activate"
+'''
+
 
 def _get_packages_to_install_command(
     kfp_package_path: Optional[str] = None,
@@ -140,6 +150,7 @@ def _get_packages_to_install_command(
     install_kfp_package: bool = True,
     target_image: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
+    use_venv: bool = False,
 ) -> List[str]:
     packages_to_install = packages_to_install or []
     kfp_in_user_pkgs = any(pkg.startswith('kfp') for pkg in packages_to_install)
@@ -154,6 +165,8 @@ def _get_packages_to_install_command(
                                                pip_trusted_hosts)
 
     if inject_kfp_install:
+        if use_venv:
+            pip_install_strings.append(_use_venv_script_template)
         if kfp_package_path:
             kfp_pip_install_command = make_pip_install_command(
                 install_parts=[kfp_package_path],
@@ -533,6 +546,7 @@ def create_component_from_func(
     install_kfp_package: bool = True,
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
+    use_venv: bool = False,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -547,6 +561,7 @@ def create_component_from_func(
         packages_to_install=packages_to_install,
         pip_index_urls=pip_index_urls,
         pip_trusted_hosts=pip_trusted_hosts,
+        use_venv=use_venv,
     )
 
     command = []
