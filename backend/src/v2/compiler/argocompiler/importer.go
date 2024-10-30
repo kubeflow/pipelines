@@ -81,6 +81,7 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
 		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
 		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
+		"--ca_cert_path", common.GetCaCertPath(),
 	}
 	importerTemplate := &wfapi.Template{
 		Name: name,
@@ -101,6 +102,9 @@ func (c *workflowCompiler) addImporterTemplate() string {
 			Resources: driverResources,
 		},
 	}
+
+	ConfigureCABundle(importerTemplate)
+
 	c.templates[name] = importerTemplate
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *importerTemplate)
 	return name

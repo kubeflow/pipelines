@@ -16,10 +16,12 @@ package util
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -77,10 +79,23 @@ func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 	return clientSet, config, namespace, nil
 }
 
-func GetRpcConnection(address string, tlsEnabled bool) (*grpc.ClientConn, error) {
+func GetRpcConnection(address string, tlsEnabled bool, caCertPath string) (*grpc.ClientConn, error) {
 	creds := insecure.NewCredentials()
 	if tlsEnabled {
-		config := &tls.Config{}
+		if caCertPath == "" {
+			return nil, errors.New("CA cert path is empty")
+		}
+
+		caCert, err := os.ReadFile(caCertPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "Encountered error when reading CA cert path for creating a metadata client.")
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		config := &tls.Config{
+			RootCAs: caCertPool,
+		}
 		creds = credentials.NewTLS(config)
 	}
 
