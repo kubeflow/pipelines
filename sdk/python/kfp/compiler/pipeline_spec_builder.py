@@ -2009,7 +2009,9 @@ def convert_pipeline_outputs_to_dict(
     if pipeline_outputs is None:
         return {}
     elif isinstance(pipeline_outputs, dict):
-        # This condition is required to support pipelines that return NamedTuples.
+        # This condition is required to support the case where a nested pipeline
+        # returns a namedtuple but its output is converted into a dict by
+        # earlier invocations of this function (a few lines down).
         return pipeline_outputs
     elif isinstance(pipeline_outputs, pipeline_channel.PipelineChannel):
         return {component_factory.SINGLE_OUTPUT_NAME: pipeline_outputs}
