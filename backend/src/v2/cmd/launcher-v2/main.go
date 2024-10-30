@@ -44,6 +44,7 @@ var (
 	mlmdServerPort                 = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
 	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
+	caCertPath                     = flag.String("ca_cert_path", "", "The path to the CA certificate.")
 )
 
 func main() {
@@ -88,6 +89,7 @@ func run() error {
 		RunID:                *runID,
 		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
 		MetadataTLSEnabled:   metadataServiceTLSEnabled,
+		CaCertPath:           *caCertPath,
 	}
 
 	switch *executorType {

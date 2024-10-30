@@ -171,6 +171,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
 				"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
 				"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
+				"--ca_cert_path", common.GetCaCertPath(),
 			},
 			Resources: driverResources,
 		},

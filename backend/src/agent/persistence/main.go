@@ -48,6 +48,7 @@ var (
 	clientBurst                    int
 	executionType                  string
 	saTokenRefreshIntervalInSecs   int64
+	caCertPath                     string
 )
 
 const (
@@ -68,6 +69,7 @@ const (
 	clientBurstFlagName                   = "clientBurst"
 	executionTypeFlagName                 = "executionType"
 	saTokenRefreshIntervalFlagName        = "saTokenRefreshIntervalInSecs"
+	caCertPathFlagName                    = "caCertPath"
 )
 
 const (
@@ -135,7 +137,8 @@ func main() {
 		mlPipelineAPIServerName,
 		mlPipelineServiceHttpPort,
 		mlPipelineServiceGRPCPort,
-		mlPipelineServiceTLSEnabled)
+		mlPipelineServiceTLSEnabled,
+		caCertPath)
 	if err != nil {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
@@ -177,5 +180,5 @@ func init() {
 	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
 	flag.Int64Var(&saTokenRefreshIntervalInSecs, saTokenRefreshIntervalFlagName, DefaultSATokenRefresherIntervalInSecs, "Persistence agent service account token read interval in seconds. "+
 		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
-
+	flag.StringVar(&caCertPath, caCertPathFlagName, "", "The path to the CA certificate.")
 }
