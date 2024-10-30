@@ -1914,7 +1914,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		return nil, util.NewUnknownApiVersionError("RecurringRun", j)
 	}
 	if maxConcur > 10 || maxConcur < 1 {
-		return nil, util.NewInvalidInputError("Max concurrency of a recurring run must be at leas 1 and at most 10. Received %v", maxConcur)
+		return nil, util.NewInvalidInputError("Max concurrency of a recurring run must be at least 1 and at most 10. Received %v", maxConcur)
 	}
 	if trigger != nil && trigger.CronSchedule.Cron != nil {
 		if _, err := cron.Parse(*trigger.CronSchedule.Cron); err != nil {

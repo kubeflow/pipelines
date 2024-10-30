@@ -214,7 +214,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 					{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID}, Relationship: apiv1beta1.Relationship_OWNER},
 				},
 			},
-			"Max concurrency of a recurring run must be at leas 1 and at most 10. Received 0",
+			"Max concurrency of a recurring run must be at least 1 and at most 10. Received 0",
 		},
 		{
 			"negative interval seconds",
