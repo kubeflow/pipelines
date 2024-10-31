@@ -311,7 +311,7 @@ func Test_DAG(t *testing.T) {
 		t.Fatal(err)
 	}
 	rootDAG := &metadata.DAG{Execution: root}
-	rootChildren, err := client.GetExecutionsInDAG(ctx, rootDAG, pipeline)
+	rootChildren, err := client.GetExecutionsInDAG(ctx, rootDAG, pipeline, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,7 +324,7 @@ func Test_DAG(t *testing.T) {
 	if rootChildren["task2"].GetID() != task2.GetID() {
 		t.Errorf("executions[\"task2\"].GetID()=%v, task2.GetID()=%v. Not equal", rootChildren["task2"].GetID(), task2.GetID())
 	}
-	task1Children, err := client.GetExecutionsInDAG(ctx, &metadata.DAG{Execution: task1DAG}, pipeline)
+	task1Children, err := client.GetExecutionsInDAG(ctx, &metadata.DAG{Execution: task1DAG}, pipeline, true)
 	if len(task1Children) != 1 {
 		t.Errorf("len(task1Children)=%v, expect 1", len(task1Children))
 	}

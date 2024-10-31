@@ -148,6 +148,17 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			}
 		}
 		glog.Infof("publish success.")
+		// At the end of the current task, we check the statuses of all tasks in
+		// the current DAG and update the DAG's status accordingly.
+		dag, err := l.metadataClient.GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
+		if err != nil {
+			glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
+		}
+		pipeline, _ := l.metadataClient.GetPipelineFromExecution(ctx, execution.GetID())
+		err = l.metadataClient.UpdateDAGExecutionsState(ctx, dag, pipeline)
+		if err != nil {
+			glog.Errorf("failed to update DAG state: %s", err.Error())
+		}
 	}()
 	executedStartedTime := time.Now().Unix()
 	execution, err = l.prePublish(ctx)
