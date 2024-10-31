@@ -15,12 +15,19 @@
 FROM golang:1.21.7-alpine3.19 as builder
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
+
+COPY ./go.mod ./
+COPY ./go.sum ./
+COPY ./hack/install-go-licenses.sh ./hack/
+
+RUN GO111MODULE=on go mod download
+RUN ./hack/install-go-licenses.sh
+
 COPY . .
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/v2/cmd/driver/*.go
 
 # Check licenses and comply with license terms.
-RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
 RUN go-licenses check ./backend/src/v2/cmd/driver
 RUN go-licenses csv ./backend/src/v2/cmd/driver > /tmp/licenses.csv && \

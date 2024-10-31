@@ -16,10 +16,17 @@
 FROM golang:1.21.7-bookworm as builder
 RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
+
+COPY ./go.mod ./
+COPY ./go.sum ./
+COPY ./hack/install-go-licenses.sh ./hack/
+
+RUN GO111MODULE=on go mod download
+RUN ./hack/install-go-licenses.sh
+
 COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 # Check licenses and comply with license terms.
-RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
 RUN go-licenses check ./backend/src/apiserver
 RUN go-licenses csv ./backend/src/apiserver > /tmp/licenses.csv && \
