@@ -17,6 +17,7 @@ package argocompiler
 import (
 	"fmt"
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	k8score "k8s.io/api/core/v1"
 	"os"
 	"strconv"
@@ -98,9 +99,9 @@ func GetMLPipelineServicePortGRPC() string {
 // ConfigureCABundle adds CABundle environment variables and volume mounts
 // if CA Bundle env vars are specified.
 func ConfigureCABundle(tmpl *wfapi.Template) {
-	caBundleCfgMapName := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_NAME")
-	caBundleCfgMapKey := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_KEY")
-	caBundleMountPath := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_MOUNTPATH")
+	caBundleCfgMapName := os.Getenv(common.CaBundleConfigMapName)
+	caBundleCfgMapKey := os.Getenv(common.CaBundleConfigMapKey)
+	caBundleMountPath := os.Getenv(common.CaBundleMountPath)
 	if caBundleCfgMapName != "" && caBundleCfgMapKey != "" {
 		caFile := fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCfgMapKey)
 		var certDirectories = []string{

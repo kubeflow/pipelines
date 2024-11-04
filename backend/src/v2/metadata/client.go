@@ -19,9 +19,12 @@ package metadata
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -111,7 +114,7 @@ type Client struct {
 }
 
 // NewClient creates a Client given the MLMD server address and port.
-func NewClient(serverAddress, serverPort string, tlsEnabled bool) (*Client, error) {
+func NewClient(serverAddress, serverPort string, tlsEnabled bool, caCertPath string) (*Client, error) {
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
@@ -120,8 +123,19 @@ func NewClient(serverAddress, serverPort string, tlsEnabled bool) (*Client, erro
 
 	creds := insecure.NewCredentials()
 	if tlsEnabled {
+		if caCertPath == "" {
+			return nil, errors.New("CA cert path is empty")
+		}
+
+		caCert, err := os.ReadFile(caCertPath)
+		if err != nil {
+			return nil, util.Wrap(err, "metadata.NewClient() failed")
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
 		config := &tls.Config{
-			InsecureSkipVerify: true, // This should be removed by https://issues.redhat.com/browse/RHOAIENG-13871
+			RootCAs: caCertPool,
 		}
 		creds = credentials.NewTLS(config)
 	}

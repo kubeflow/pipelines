@@ -244,7 +244,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, false, "unused-mlmd-server-address", "unused-mlmd-server-port", false)
+			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, false, "unused-mlmd-server-address", "unused-mlmd-server-port", false, "unused-ca-cert-path")
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
 				assert.NotNil(t, err)
@@ -406,7 +406,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, false, "unused-mlmd-server-address", "unused-mlmd-server-port", false)
+			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, false, "unused-mlmd-server-address", "unused-mlmd-server-port", false, "unused-ca-cert-path")
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
 			podSpecString, err := json.Marshal(podSpec)
@@ -533,7 +533,7 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 					{
 						Name: "secret1",
 						VolumeSource: k8score.VolumeSource{
-							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional:  &[]bool{false}[0],},
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional: &[]bool{false}[0]},
 						},
 					},
 				},
