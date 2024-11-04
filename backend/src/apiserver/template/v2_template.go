@@ -105,9 +105,19 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		}
 	}
 
+	var PipelineOptions argocompiler.Options
+	for _, platform := range t.platformSpec.Platforms {
+		if platform.PipelineConfig.PipelineTtl != 0 {
+			PipelineOptions = argocompiler.Options{
+				TtlSeconds: platform.PipelineConfig.PipelineTtl,
+			}
+			break
+		}
+	}
+
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, &PipelineOptions)
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -310,9 +320,21 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		}
 	}
 
+	var PipelineOptions *argocompiler.Options
+	if t.platformSpec != nil && t.platformSpec.Platforms != nil {
+		for _, platform := range t.platformSpec.Platforms {
+			if platform.PipelineConfig.PipelineTtl != 0 {
+				PipelineOptions = &argocompiler.Options{
+					TtlSeconds: platform.PipelineConfig.PipelineTtl,
+				}
+				break
+			}
+		}
+	}
+
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, PipelineOptions)
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
