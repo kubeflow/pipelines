@@ -19,8 +19,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -41,7 +42,12 @@ type Options struct {
 	// optional
 	PipelineRoot string
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
+	TtlSeconds int32
 }
+
+const (
+	pipelineDefaultTtlSeconds = int32(30)
+)
 
 func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
 	// clone jobArg, because we don't want to change it
@@ -87,6 +93,11 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		}
 	}
 
+	pipelineTtlSeconds := pipelineDefaultTtlSeconds
+	if opts != nil && opts.TtlSeconds > 0 {
+		pipelineTtlSeconds = opts.TtlSeconds
+	}
+
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -118,6 +129,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			},
 			ServiceAccountName: common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
 			Entrypoint:         tmplEntrypoint,
+			TTLStrategy: &wfapi.TTLStrategy{
+				SecondsAfterCompletion: &pipelineTtlSeconds,
+			},
 		},
 	}
 
