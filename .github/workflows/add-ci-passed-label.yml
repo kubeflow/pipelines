@@ -74,7 +74,7 @@ jobs:
   add_ci_passed_label:
     name: Add 'ci-passed' label
     runs-on: ubuntu-latest    
-    needs: fetch_data
+    needs: [fetch_data, reset_ci_passed_label]
     steps:
       - name: Add 'ci-passed' label
         run: |
