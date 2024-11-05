@@ -19,6 +19,12 @@ RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc musl-dev
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
+
+COPY ./go.mod ./
+COPY ./go.sum ./
+
+RUN GO111MODULE=on go mod download
+
 COPY . .
 
 # Compile the test
