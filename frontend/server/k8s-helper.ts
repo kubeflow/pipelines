@@ -19,6 +19,7 @@ import {
   V1DeleteOptions,
   V1Pod,
   V1EventList,
+  V1ConfigMap,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
@@ -273,6 +274,25 @@ export async function getPod(
   } catch (error) {
     const { message, additionalInfo } = await parseError(error);
     const userMessage = `Could not get pod ${podName} in namespace ${podNamespace}: ${message}`;
+    return [undefined, { message: userMessage, additionalInfo }];
+  }
+}
+
+/**
+ * Retrieves a configmap.
+ * @param configMapName name of the configmap
+ * @param configMapNamespace namespace of the configmap
+ */
+export async function getConfigMap(
+  configMapName: string,
+  configMapNamespace: string,
+): Promise<[V1ConfigMap, undefined] | [undefined, K8sError]> {
+  try {
+    const { body } = await k8sV1Client.readNamespacedConfigMap(configMapName, configMapNamespace);
+    return [body, undefined];
+  } catch (error) {
+    const { message, additionalInfo } = await parseError(error);
+    const userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}: ${message}`;
     return [undefined, { message: userMessage, additionalInfo }];
   }
 }
