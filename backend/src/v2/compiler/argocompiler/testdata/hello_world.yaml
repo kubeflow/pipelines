@@ -56,6 +56,8 @@ spec:
       - "8080"
       - "--metadataTLSEnabled"
       - "false"
+      - "--ca_cert_path"
+      - ""
       command:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver
@@ -254,6 +256,8 @@ spec:
       - "8080"
       - "--metadataTLSEnabled"
       - "false"
+      - "--ca_cert_path"
+      - ""
       env:
         - name: ML_PIPELINE_SERVICE_HOST
           value: ml-pipeline.kubeflow.svc.cluster.local

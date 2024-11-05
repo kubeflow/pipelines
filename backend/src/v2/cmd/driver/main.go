@@ -71,6 +71,7 @@ var (
 
 	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
 	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
+	caCertPath                     = flag.String("ca_cert_path", "", "The path to the CA certificate.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -176,6 +177,7 @@ func drive() (err error) {
 		MLMDServerAddress:    *mlmdServerAddress,
 		MLMDServerPort:       *mlmdServerPort,
 		MLMDTLSEnabled:       metadataTLSEnabled,
+		CaCertPath:           *caCertPath,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -307,5 +309,5 @@ func newMlmdClient() (*metadata.Client, error) {
 		return nil, err
 	}
 
-	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, tlsEnabled)
+	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, tlsEnabled, *caCertPath)
 }
