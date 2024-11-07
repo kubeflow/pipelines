@@ -7,6 +7,7 @@
 ## Breaking changes
 
 ## Deprecations
+* Deprecate the metrics artifact auto-populating feature. [\#11362](https://github.com/kubeflow/pipelines/pull/11362)
 
 ## Bug fixes and other changes
 
