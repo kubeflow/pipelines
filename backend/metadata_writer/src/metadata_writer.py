@@ -402,7 +402,3 @@ while True:
     except urllib3.exceptions.ReadTimeoutError as e:
         # Client side timeout, continue watching.
         pass
-
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
