@@ -1,15 +1,32 @@
 # Current Version (in development)
 
 ## Features
-* Support dynamic machine type parameters in pipeline task setters. [\#11097](https://github.com/kubeflow/pipelines/pull/11097)
-* Add a new `use_venv` field to the component decorator, enabling the component to run inside a virtual environment. [\#11326](https://github.com/kubeflow/pipelines/pull/11326)
 
 ## Breaking changes
 
 ## Deprecations
-* Deprecate the metrics artifact auto-populating feature. [\#11362](https://github.com/kubeflow/pipelines/pull/11362)
 
 ## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.10.0
+
+## Features
+* Support dynamic machine type parameters in pipeline task setters. [\#11097](https://github.com/kubeflow/pipelines/pull/11097)
+* Add a new `use_venv` field to the component decorator, enabling the component to run inside a virtual environment. [\#11326](https://github.com/kubeflow/pipelines/pull/11326)
+* Add PipelineConfig to DSL to re-implement pipeline-level config [\#11112](https://github.com/kubeflow/pipelines/pull/11112)
+* Allow disabling default caching via a CLI flag and env var [\#11222](https://github.com/kubeflow/pipelines/pull/11222)
+
+## Breaking changes
+* Deprecate the metrics artifact auto-populating feature. [\#11362](https://github.com/kubeflow/pipelines/pull/11362)
+
+## Deprecations
+* Set Python 3.9 as the Minimum Supported Version [\#11159](https://github.com/kubeflow/pipelines/pull/11159)
+
+## Bug fixes and other changes
+* Fix invalid escape sequences [\#11147](https://github.com/kubeflow/pipelines/pull/11147)
+* Fix nested pipeline returns. [\#11196](https://github.com/kubeflow/pipelines/pull/11196)
 
 ## Documentation updates
 
