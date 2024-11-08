@@ -14,32 +14,31 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+from dataclasses import dataclass
 import json
 import logging
 import os
+from pprint import pprint
 import random
 import subprocess
 import sys
 import tempfile
 import time
-import unittest
-from dataclasses import asdict
-from dataclasses import dataclass
-from pprint import pprint
 from typing import Callable, Optional
+import unittest
 
+from google.protobuf.json_format import MessageToDict
 import kfp
 import kfp.compiler
 import kfp_server_api
-import nbformat
-from google.protobuf.json_format import MessageToDict
-from kfp.deprecated.onprem import add_default_resource_spec
 from ml_metadata import metadata_store
 from ml_metadata.metadata_store.metadata_store import ListOptions
 from ml_metadata.proto import Event
 from ml_metadata.proto import Execution
 from ml_metadata.proto import metadata_store_pb2
 from nbconvert import PythonExporter
+import nbformat
 
 MINUTE = 60
 
@@ -80,7 +79,6 @@ class TestCase:
     pipeline_func: Optional[Callable] = None
     pipeline_file: Optional[str] = None
     pipeline_file_compile_path: Optional[str] = None
-    mode: kfp.deprecated.dsl.PipelineExecutionMode = kfp.deprecated.dsl.PipelineExecutionMode.V1_LEGACY
     enable_caching: bool = False
     arguments: Optional[dict[str, str]] = None
     verify_func: Verifier = _default_verify_func
@@ -99,10 +97,8 @@ def run_pipeline_func(test_cases: list[TestCase]):
         raise ValueError('No test cases!')
 
     def test_wrapper(
-        run_pipeline: Callable[[
-            Callable, str, str, kfp.deprecated.dsl
-            .PipelineExecutionMode, bool, dict, bool
-        ], kfp_server_api.ApiRunDetail],
+        run_pipeline: Callable[[Callable, str, str, bool, dict, bool],
+                               kfp_server_api.ApiRunDetail],
         mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
         for case in test_cases:
@@ -129,21 +125,10 @@ def run_pipeline_func(test_cases: list[TestCase]):
                         'TestCase.run_pipeline = False can only be specified when used together with pipeline_file.'
                     )
 
-            if case.mode == kfp.deprecated.dsl.PipelineExecutionMode.V2_COMPATIBLE:
-                print(
-                    f'Unexpected v2 compatible mode test for: {pipeline_name}')
-                raise RuntimeError
-
-            if case.mode == kfp.deprecated.dsl.PipelineExecutionMode.V2_ENGINE:
-                print(f'Running v2 engine mode test for: {pipeline_name}')
-            if case.mode == kfp.deprecated.dsl.PipelineExecutionMode.V1_LEGACY:
-                print(f'Running v1 legacy test for: {pipeline_name}')
-
             run_detail = run_pipeline(
                 pipeline_func=case.pipeline_func,
                 pipeline_file=case.pipeline_file,
                 pipeline_file_compile_path=case.pipeline_file_compile_path,
-                mode=case.mode,
                 enable_caching=case.enable_caching,
                 arguments=case.arguments or {},
                 dry_run=not case.run_pipeline,
@@ -160,12 +145,6 @@ def run_pipeline_func(test_cases: list[TestCase]):
             t.maxDiff = None  # we always want to see full diff
             tasks = {}
             client = None
-            # we cannot stably use MLMD to query status in v1, because it may be async.
-            if case.mode == kfp.deprecated.dsl.PipelineExecutionMode.V2_ENGINE:
-                client = KfpMlmdClient(
-                    mlmd_connection_config=mlmd_connection_config)
-                tasks = client.get_tasks(run_id=run_detail.run.id)
-                pprint(tasks)
             case.verify_func(
                 run=run_detail.run,
                 run_detail=run_detail,
@@ -220,8 +199,6 @@ def _run_test(callback):
 
     def main(
         pipeline_root: Optional[str] = None,  # example
-        launcher_v2_image: Optional[str] = None,
-        driver_image: Optional[str] = None,
         experiment: str = 'v2_sample_test_samples',
         metadata_service_host: Optional[str] = None,
         metadata_service_port: int = 8080,
@@ -235,10 +212,6 @@ def _run_test(callback):
         :param pipeline_root: pipeline root that holds intermediate
         artifacts, example gs://your-bucket/path/to/workdir.
         :type pipeline_root: str, optional
-        :param launcher_v2_image: override launcher v2 image, only used in V2_ENGINE mode
-        :type launcher_v2_image: URI, optional
-        :param driver_image: override driver image, only used in V2_ENGINE mode
-        :type driver_image: URI, optional
         :param experiment: experiment the run is added to, defaults to 'v2_sample_test_samples'
         :type experiment: str, optional
         :param metadata_service_host: host for metadata grpc service, defaults to METADATA_GRPC_SERVICE_HOST or 'metadata-grpc-service'
@@ -260,17 +233,7 @@ def _run_test(callback):
             metadata_service_host = os.getenv('METADATA_GRPC_SERVICE_HOST',
                                               'metadata-grpc-service')
         logger.info(f'METADATA_GRPC_SERVICE_HOST={metadata_service_host}')
-        if launcher_v2_image is None:
-            launcher_v2_image = os.getenv('KFP_LAUNCHER_V2_IMAGE')
-            if not launcher_v2_image:
-                raise Exception("launcher_v2_image is empty")
-        logger.info(f'KFP_LAUNCHER_V2_IMAGE={launcher_v2_image}')
-        if driver_image is None:
-            driver_image = os.getenv('KFP_DRIVER_IMAGE')
-            if not driver_image:
-                raise Exception("driver_image is empty")
-        logger.info(f'KFP_DRIVER_IMAGE={driver_image}')
-        client = kfp.deprecated.Client()
+        client = kfp.Client()
         # TODO(Bobgy): avoid using private fields when getting loaded config
         kfp_endpoint = client._existing_config.host
         kfp_ui_endpoint = client._uihost
@@ -282,8 +245,6 @@ def _run_test(callback):
             pipeline_func: Optional[Callable],
             pipeline_file: Optional[str],
             pipeline_file_compile_path: Optional[str],
-            mode: kfp.deprecated.dsl.PipelineExecutionMode = kfp.deprecated.dsl
-            .PipelineExecutionMode.V2_ENGINE,
             enable_caching: bool = False,
             arguments: Optional[dict] = None,
             dry_run: bool = False,  # just compile the pipeline without running it
@@ -292,67 +253,16 @@ def _run_test(callback):
             arguments = arguments or {}
 
             def _create_run():
-                if mode == kfp.deprecated.dsl.PipelineExecutionMode.V2_ENGINE:
-                    return run_v2_pipeline(
-                        client=client,
-                        fn=pipeline_func,
-                        file=pipeline_file,
-                        driver_image=driver_image,
-                        launcher_v2_image=launcher_v2_image,
-                        pipeline_root=pipeline_root,
-                        enable_caching=enable_caching,
-                        arguments={
-                            **arguments,
-                        },
-                    )
-                else:
-                    conf = kfp.deprecated.dsl.PipelineConf()
-                    conf.add_op_transformer(
-                        # add a default resource request & limit to all container tasks
-                        add_default_resource_spec(
-                            cpu_request='0.5',
-                            cpu_limit='1',
-                            memory_limit='512Mi',
-                        ))
-                    if mode == kfp.deprecated.dsl.PipelineExecutionMode.V1_LEGACY:
-                        conf.add_op_transformer(_disable_cache)
-                    if pipeline_func:
-                        return client.create_run_from_pipeline_func(
-                            pipeline_func,
-                            pipeline_conf=conf,
-                            mode=mode,
-                            arguments=arguments,
-                            experiment_name=experiment,
-                        )
-                    else:
-                        pyfile = pipeline_file
-                        if pipeline_file.endswith(".ipynb"):
-                            pyfile = tempfile.mktemp(
-                                suffix='.py', prefix="pipeline_py_code")
-                            _nb_sample_to_py(pipeline_file, pyfile)
-                        if dry_run:
-                            subprocess.check_call([sys.executable, pyfile])
-                            return
-                        package_path = None
-                        if pipeline_file_compile_path:
-                            subprocess.check_call([sys.executable, pyfile])
-                            package_path = pipeline_file_compile_path
-                        else:
-                            package_path = tempfile.mktemp(
-                                suffix='.yaml', prefix="kfp_package")
-                            from kfp.deprecated.compiler.main import \
-                                compile_pyfile
-                            compile_pyfile(
-                                pyfile=pyfile,
-                                output_path=package_path,
-                                mode=mode,
-                                pipeline_conf=conf,
-                            )
-                        return client.create_run_from_pipeline_package(
-                            pipeline_file=package_path,
-                            arguments=arguments,
-                            experiment_name=experiment,
-                        )
+                return run_v2_pipeline(
+                    client=client,
+                    fn=pipeline_func,
+                    file=pipeline_file,
+                    pipeline_root=pipeline_root,
+                    enable_caching=enable_caching,
+                    arguments={
+                        **arguments,
+                    },
+                )
 
             run_result = _retry_with_backoff(fn=_create_run)
             if dry_run:
@@ -389,69 +299,30 @@ def _run_test(callback):
 
 
 def run_v2_pipeline(
-    client: kfp.deprecated.Client,
+    client: kfp.Client,
     fn: Optional[Callable],
     file: Optional[str],
-    driver_image: Optional[str],
-    launcher_v2_image: Optional[str],
     pipeline_root: Optional[str],
     enable_caching: bool,
     arguments: dict[str, str],
 ):
-    original_pipeline_spec = tempfile.mktemp(
-        suffix='.json', prefix="original_pipeline_spec")
+    pipeline_spec_file = tempfile.mktemp(
+        suffix='.yaml', prefix="original_pipeline_spec")
     if fn:
         kfp.compiler.Compiler().compile(
-            pipeline_func=fn, package_path=original_pipeline_spec)
+            pipeline_func=fn, package_path=pipeline_spec_file)
     else:
         pyfile = file
         if file.endswith(".ipynb"):
             pyfile = tempfile.mktemp(suffix='.py', prefix="pipeline_py_code")
             _nb_sample_to_py(file, pyfile)
         from kfp.cli.compile import dsl_compile
-        dsl_compile(py=pyfile, output=original_pipeline_spec)
+        dsl_compile(py=pyfile, output=pipeline_spec_file)
 
-    # remove following overriding logic once we use create_run_from_job_spec to trigger kfp pipeline run
-    with open(original_pipeline_spec) as f:
-        pipeline_job_dict = {
-            'pipelineSpec': json.load(f),
-            'runtimeConfig': {},
-        }
-
-    for component in [pipeline_job_dict['pipelineSpec']['root']] + list(
-            pipeline_job_dict['pipelineSpec']['components'].values()):
-        if 'dag' in component:
-            for task in component['dag']['tasks'].values():
-                task['cachingOptions'] = {'enableCache': enable_caching}
-
-    if arguments:
-        pipeline_job_dict['runtimeConfig']['parameterValues'] = {}
-
-    for k, v in arguments.items():
-        pipeline_job_dict['runtimeConfig']['parameterValues'][k] = v
-
-    pipeline_job = tempfile.mktemp(suffix='.json', prefix="pipeline_job")
-    with open(pipeline_job, 'w') as f:
-        json.dump(pipeline_job_dict, f)
-
-    argo_workflow_spec = tempfile.mktemp(suffix='.yaml')
-    with open(argo_workflow_spec, 'w') as f:
-        args = [
-            'kfp-v2-compiler',
-            '--job',
-            pipeline_job,
-        ]
-        if driver_image:
-            args += ['--driver', driver_image]
-        if launcher_v2_image:
-            args += ['--launcher', launcher_v2_image]
-        if pipeline_root:
-            args += ['--pipeline_root', pipeline_root]
-        # call v2 backend compiler CLI to compile pipeline spec to argo workflow
-        subprocess.check_call(args, stdout=f)
     return client.create_run_from_pipeline_package(
-        pipeline_file=argo_workflow_spec,
+        pipeline_file=pipeline_spec_file,
         arguments={},
+        pipeline_root=pipeline_root,
         enable_caching=enable_caching)
 
 
@@ -722,14 +593,6 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
                     MessageToDict(value))["structValue"].items():
                 parameters['outputs'][k] = v
     return parameters
-
-
-def _disable_cache(task):
-    # Skip tasks which are not container ops.
-    if not isinstance(task, kfp.deprecated.dsl.ContainerOp):
-        return task
-    task.execution_options.caching_strategy.max_cache_staleness = "P0D"
-    return task
 
 
 def _nb_sample_to_py(notebook_path: str, output_path: str):

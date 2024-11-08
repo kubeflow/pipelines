@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import unittest
 
-import kfp.deprecated as kfp
+import kfp
 from kfp.samples.test.utils import KfpTask
 from kfp.samples.test.utils import run_pipeline_func
 from kfp.samples.test.utils import TaskInputs
@@ -48,11 +48,11 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'state': Execution.State.COMPLETE,
         }, component_op_dict)
 
+
 if __name__ == '__main__':
     run_pipeline_func([
         TestCase(
             pipeline_func=pipeline,
             verify_func=verify,
-            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         ),
     ])

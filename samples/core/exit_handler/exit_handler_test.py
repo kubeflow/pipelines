@@ -14,14 +14,15 @@
 
 # %%
 
-import unittest
 from pprint import pprint
+import unittest
 
-import kfp as kfp
+from kfp.samples.test.utils import KfpMlmdClient
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TestCase
 import kfp_server_api
 
 from .exit_handler import pipeline_exit_handler as pipeline_exit_handler
-from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient
 
 
 def verify(mlmd_connection_config, run: kfp_server_api.ApiRun, **kwargs):
@@ -50,8 +51,5 @@ def verify(mlmd_connection_config, run: kfp_server_api.ApiRun, **kwargs):
 
 if __name__ == '__main__':
     run_pipeline_func([
-        TestCase(
-            pipeline_func=pipeline_exit_handler,
-            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-        ),
+        TestCase(pipeline_func=pipeline_exit_handler,),
     ])

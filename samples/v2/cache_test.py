@@ -17,17 +17,20 @@
 
 from __future__ import annotations
 
+import functools
 import random
 import string
 import unittest
-import functools
 
-import kfp.deprecated as kfp
+import kfp
+from kfp.samples.test.utils import KfpMlmdClient
+from kfp.samples.test.utils import KfpTask
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TestCase
 import kfp_server_api
+from ml_metadata.proto import Execution
 
 from ..test.two_step import two_step_pipeline
-from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
-from ml_metadata.proto import Execution
 
 
 def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask], task_state,
@@ -120,7 +123,6 @@ if __name__ == '__main__':
                 some_int=random_int,
                 state=Execution.State.COMPLETE,
             ),
-            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
             enable_caching=True),
     ]),
     run_pipeline_func([
@@ -135,7 +137,6 @@ if __name__ == '__main__':
                 uri=random_uri,
                 some_int=random_int,
                 state=Execution.State.CACHED),
-            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
             enable_caching=True),
     ])
 
