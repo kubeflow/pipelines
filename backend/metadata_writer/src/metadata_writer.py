@@ -397,7 +397,7 @@ while True:
 
                 pods_with_written_metadata[obj.metadata.name] = None
 
-        # Server side timeout, continue watching.
+        # If the for loop ended, a server-side timeout occurred. Continue watching.
         pass
 
     except urllib3.exceptions.ReadTimeoutError as e:
