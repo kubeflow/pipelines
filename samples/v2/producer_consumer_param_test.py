@@ -15,10 +15,8 @@
 
 from __future__ import annotations
 
-from pprint import pprint
 import unittest
 
-import kfp
 from kfp.samples.test.utils import KfpMlmdClient
 from kfp.samples.test.utils import KfpTask
 from kfp.samples.test.utils import run_pipeline_func

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import unittest
 
-import kfp
 from kfp.samples.test.utils import KfpTask
 from kfp.samples.test.utils import run_pipeline_func
 from kfp.samples.test.utils import TestCase
