@@ -4,6 +4,8 @@
 * Deprecate `preview.custom_job` module.
 * Fix default location in `v1.create_custom_training_job_from_component`.
 * Update Docker image.
+* Bump supported KFP versions to `kfp>=2.6.0,<=2.10.0`.
+* Support Python versions 3.12 and 3.13.
 
 ## Release 2.17.0
 * Fix Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline` after output schema change.
