@@ -30,8 +30,7 @@ python3 -m pip install --upgrade protobuf
 
 python3 -m pip install sdk/python
 
-# TODO: remove deprecated dependency; then remove --ignore arg
-pytest sdk/python/kfp --ignore=sdk/python/kfp/deprecated --cov=kfp
+pytest sdk/python/kfp --cov=kfp
 
 set +x
 # export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)

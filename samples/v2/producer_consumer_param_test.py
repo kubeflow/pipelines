@@ -14,15 +14,19 @@
 """Hello world v2 engine pipeline."""
 
 from __future__ import annotations
-import unittest
-from pprint import pprint
 
-import kfp.deprecated as kfp
+import unittest
+
+from kfp.samples.test.utils import KfpMlmdClient
+from kfp.samples.test.utils import KfpTask
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TaskInputs
+from kfp.samples.test.utils import TaskOutputs
+from kfp.samples.test.utils import TestCase
 import kfp_server_api
+from ml_metadata.proto import Execution
 
 from .producer_consumer_param import producer_consumer_param_pipeline
-from kfp.samples.test.utils import KfpTask, TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpMlmdClient
-from ml_metadata.proto import Execution
 
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
@@ -63,6 +67,5 @@ if __name__ == '__main__':
         TestCase(
             pipeline_func=producer_consumer_param_pipeline,
             verify_func=verify,
-            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         ),
     ])

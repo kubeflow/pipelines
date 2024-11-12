@@ -105,7 +105,7 @@ Please organize your imports using [isort](https://pycqa.github.io/isort/index.h
 
 From the project root, run the following code to format your code:
 ```sh
-isort sdk/python --sg sdk/python/kfp/deprecated
+isort sdk/python
 ```
 
 #### Pylint [Encouraged]

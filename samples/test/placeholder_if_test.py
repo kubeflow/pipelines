@@ -12,23 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated as kfp
-from .placeholder_if import pipeline_both, pipeline_none
-# from .placeholder_if_v2 import pipeline_both as pipeline_both_v2, pipeline_none as pipeline_none_v2
-from kfp.samples.test.utils import run_pipeline_func, TestCase
+import kfp
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TestCase
+
+from .placeholder_if_v2 import pipeline_both as pipeline_both_v2
+from .placeholder_if_v2 import pipeline_none as pipeline_none_v2
 
 run_pipeline_func([
-    # TODO(chesu): fix compile failure, https://github.com/kubeflow/pipelines/issues/6966
-    # TestCase(
-    #     pipeline_func=pipeline_none_v2,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE),
-    # TestCase(
-    #     pipeline_func=pipeline_both_v2,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE),
-    TestCase(
-        pipeline_func=pipeline_none,
-        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY),
-    TestCase(
-        pipeline_func=pipeline_both,
-        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY),
+    TestCase(pipeline_func=pipeline_none_v2),
+    TestCase(pipeline_func=pipeline_both_v2),
 ])
