@@ -1,0 +1,29 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: semaphore-config
+data: {}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: semaphore-configmap-init
+  namespace: kubeflow
+spec:
+  template:
+    spec:
+      containers:
+        - name: create-configmap
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if ! kubectl get configmap semaphore-config -n kubeflow > /dev/null 2>&1; then
+                echo "Creating semaphore-config ConfigMap..."
+                kubectl create configmap semaphore-config -n kubeflow --from-literal=init=""
+              else
+                echo "ConfigMap semaphore-config already exists. Skipping creation."
+              fi
+      restartPolicy: OnFailure
+  backoffLimit: 3
