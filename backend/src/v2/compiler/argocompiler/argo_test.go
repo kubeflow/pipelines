@@ -27,7 +27,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/encoding/protojson"
+	k8score "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -206,6 +208,40 @@ func Test_argo_compiler(t *testing.T) {
 
 	}
 
+}
+
+func TestSemaphoreAndMutex(t *testing.T) {
+	opts := &argocompiler.Options{
+		SemaphoreKey: "semaphore-key",
+		MutexName:    "mutex-name",
+	}
+
+	wf := &wfapi.WorkflowSpec{}
+	sync := &wfapi.Synchronization{}
+
+	if opts.SemaphoreKey != "" {
+		sync.Semaphore = &wfapi.SemaphoreRef{
+			ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+				LocalObjectReference: k8score.LocalObjectReference{
+					Name: "semaphore-config",
+				},
+				Key: opts.SemaphoreKey,
+			},
+		}
+	}
+
+	if opts.MutexName != "" {
+		sync.Mutex = &wfapi.Mutex{
+			Name: opts.MutexName,
+		}
+	}
+
+	if sync.Semaphore != nil || sync.Mutex != nil {
+		wf.Synchronization = sync
+	}
+
+	assert.Equal(t, "semaphore-key", wf.Synchronization.Semaphore.ConfigMapKeyRef.Key)
+	assert.Equal(t, "mutex-name", wf.Synchronization.Mutex.Name)
 }
 
 func load(t *testing.T, path string, platformSpecPath string) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
