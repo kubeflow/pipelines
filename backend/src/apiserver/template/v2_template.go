@@ -77,9 +77,22 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		}
 	}
 
+	var PipelineOptions argocompiler.Options
+	for key, platform := range t.platformSpec.Platforms {
+		if key == "kubernetes" && platform != nil && platform.PipelineConfig != nil {
+			if platform.PipelineConfig.SemaphoreKey != "" {
+				PipelineOptions.SemaphoreKey = platform.PipelineConfig.SemaphoreKey
+			}
+			if platform.PipelineConfig.MutexName != "" {
+				PipelineOptions.MutexName = platform.PipelineConfig.MutexName
+			}
+			break
+		}
+	}
+
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, &PipelineOptions)
 	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
 		obj, err = tektoncompiler.Compile(job, kubernetesSpec, &tektoncompiler.Options{LauncherImage: Launcher})
 	}
@@ -300,9 +313,22 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		}
 	}
 
+	var PipelineOptions *argocompiler.Options
+	for key, platform := range t.platformSpec.Platforms {
+		if key == "kubernetes" && platform != nil && platform.PipelineConfig != nil {
+			if platform.PipelineConfig.SemaphoreKey != "" {
+				PipelineOptions.SemaphoreKey = platform.PipelineConfig.SemaphoreKey
+			}
+			if platform.PipelineConfig.MutexName != "" {
+				PipelineOptions.MutexName = platform.PipelineConfig.MutexName
+			}
+			break
+		}
+	}
+
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, PipelineOptions)
 	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
 		obj, err = tektoncompiler.Compile(job, kubernetesSpec, nil)
 	}
