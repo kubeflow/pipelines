@@ -449,6 +449,34 @@ class Test(unittest.TestCase):
         self._docker_client.api.build.assert_called_once()
         self._docker_client.images.push.assert_not_called()
 
+    def test_docker_client_failed_to_build_img(self):
+        self._docker_client.api.build.return_value = [{'error': 'Error log'}]
+        created_component = _make_component(
+            func_name='train', target_image='custom-image')
+        _write_components('components.py', created_component)
+
+        result = self.runner.invoke(
+            self.cli,
+            ['build', str(self._working_dir), '--push-image'],
+        )
+
+        self.assertEqual(result.exit_code, 1)
+        self._docker_client.api.build.assert_called_once()
+        self._docker_client.images.push.assert_not_called()
+
+    def test_docker_client_failed_to_push_img(self):
+        self._docker_client.images.push.return_value = [{'error': 'Error log'}]
+        created_component = _make_component(
+            func_name='train', target_image='custom-image')
+        _write_components('components.py', created_component)
+
+        result = self.runner.invoke(
+            self.cli,
+            ['build', str(self._working_dir), '--push-image'],
+        )
+        self.assertEqual(result.exit_code, 1)
+        self._docker_client.images.push.assert_called_once()
+
     @mock.patch('kfp.__version__', '1.2.3')
     def test_docker_file_is_created_correctly(self):
         component = _make_component(
