@@ -61,6 +61,8 @@ deploymentSpec:
         image: gcr.io/my-project/my-fancy-trainer
         resources:
           accelerator:
+            count: '1'
+            type: tpu-v3
             resourceCount: '1'
             resourceType: tpu-v3
           resourceCpuLimit: '4'
