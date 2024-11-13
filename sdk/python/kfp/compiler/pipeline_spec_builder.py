@@ -667,6 +667,10 @@ def build_container_spec_for_task(
                         task.container_spec.resources.accelerator_type),
                     resource_count=convert_to_placeholder(
                         task.container_spec.resources.accelerator_count),
+                    type=convert_to_placeholder(
+                        task.container_spec.resources.accelerator_type),
+                    count=convert_to_placeholder(
+                        int(task.container_spec.resources.accelerator_count)),
                 ))
 
     return container_spec
