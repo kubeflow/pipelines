@@ -7,7 +7,22 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.10.1
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+* Remove `kfp.deprecated` module [\#11366](https://github.com/kubeflow/pipelines/pull/11366)
+
+## Bug fixes and other changes
 * Support Python 3.13. [\#11372](https://github.com/kubeflow/pipelines/pull/11372)
+* Fix accelerator type setting [\#11373](https://github.com/kubeflow/pipelines/pull/11373)
+* Depends on `kfp-pipeline-spec==0.5.0`.
 
 ## Documentation updates
 
