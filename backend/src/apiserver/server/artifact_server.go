@@ -17,6 +17,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -141,7 +142,7 @@ func (s *ArtifactServer) ListArtifacts(ctx context.Context, r *apiv2beta1.ListAr
 		if err1 != nil || bucketConfig == nil {
 			return nil, util.NewInternalServerError(fmt.Errorf("failed to retrieve session info error: %v", err1), artifactId)
 		}
-		artifactResp, err1 := s.generateResponseArtifact(ctx, artifact, bucketConfig, namespace, false)
+		artifactResp, err1 := s.generateResponseArtifact(ctx, artifact, bucketConfig, namespace, apiv2beta1.GetArtifactRequest_ARTIFACT_VIEW_UNSPECIFIED)
 		if err1 != nil {
 			return nil, util.NewInternalServerError(fmt.Errorf("encountered error parsing artifact: %v", err), artifactId)
 		}
@@ -186,12 +187,7 @@ func (s *ArtifactServer) GetArtifact(ctx context.Context, r *apiv2beta1.GetArtif
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	downloadURL := false
-	if r.GetView() == apiv2beta1.GetArtifactRequest_DOWNLOAD {
-		downloadURL = true
-	}
-
-	artifactResp, err := s.generateResponseArtifact(ctx, artifact, sessionInfo, namespace, downloadURL)
+	artifactResp, err := s.generateResponseArtifact(ctx, artifact, sessionInfo, namespace, r.GetView())
 	if err != nil {
 		return nil, util.NewInternalServerError(fmt.Errorf("encountered error parsing artifact: %v", err), r.ArtifactId)
 	}
@@ -211,7 +207,7 @@ func (s *ArtifactServer) generateResponseArtifact(
 	artifact *ml_metadata.Artifact,
 	bucketConfig *objectstore.Config,
 	namespace string,
-	includeShareUrl bool,
+	view apiv2beta1.GetArtifactRequest_ArtifactView,
 ) (*apiv2beta1.Artifact, error) {
 	params, err := objectstore.StructuredS3Params(bucketConfig.SessionInfo.Params)
 	if err != nil {
@@ -242,13 +238,25 @@ func (s *ArtifactServer) generateResponseArtifact(
 		LastUpdatedAt:   timestamppb.New(time.UnixMilli(*artifact.LastUpdateTimeSinceEpoch)),
 	}
 
-	if includeShareUrl {
-		expiry := time.Second * time.Duration(common.GetSignedURLExpiryTimeSeconds())
-		shareUrl, err := s.resourceManager.GetSignedUrl(bucketConfig, secret, expiry, *artifact.Uri)
+	expiry := time.Second * time.Duration(common.GetSignedURLExpiryTimeSeconds())
+	switch view {
+	case apiv2beta1.GetArtifactRequest_DOWNLOAD:
+		queryParams := make(url.Values)
+		queryParams.Set("response-content-disposition", "attachment")
+		shareUrl, err := s.resourceManager.GetSignedUrl(bucketConfig, secret, expiry, *artifact.Uri, queryParams)
 		if err != nil {
 			return nil, err
 		}
 		artifactResp.DownloadUrl = shareUrl
+
+	case apiv2beta1.GetArtifactRequest_RENDER:
+		queryParams := make(url.Values)
+		queryParams.Set("response-content-disposition", "inline")
+		renderUrl, err := s.resourceManager.GetSignedUrl(bucketConfig, secret, expiry, *artifact.Uri, queryParams)
+		if err != nil {
+			return nil, err
+		}
+		artifactResp.RenderUrl = renderUrl
 	}
 
 	return artifactResp, nil

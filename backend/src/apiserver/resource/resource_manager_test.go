@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -83,7 +84,7 @@ func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) err
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string) (string, error) {
+func (m *FakeBadObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error) {
 	return "", util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
