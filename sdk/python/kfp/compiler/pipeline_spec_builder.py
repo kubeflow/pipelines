@@ -2243,23 +2243,19 @@ def _write_kubernetes_manifest_to_file(
 def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
                            platformSpec: pipeline_spec_pb2.PlatformSpec):
     config_dict = {}
-    
-    # Handle workspace configuration
+
     workspace = pipelineConfig.workspace
     if workspace is not None:
         config_dict['workspace'] = workspace.get_workspace()
-    
-    # Handle semaphore and mutex configuration
+
     if pipelineConfig.semaphore_key is not None:
         config_dict['semaphoreKey'] = pipelineConfig.semaphore_key
     if pipelineConfig.mutex_name is not None:
         config_dict['mutexName'] = pipelineConfig.mutex_name
-    
-    # Only update platformSpec if there's something to configure
+
     if config_dict:
-        json_format.ParseDict(
-            {'pipelineConfig': config_dict},
-            platformSpec.platforms['kubernetes'])
+        json_format.ParseDict({'pipelineConfig': config_dict},
+                              platformSpec.platforms['kubernetes'])
 
     return platformSpec
 

@@ -16,11 +16,21 @@
 source_root=$(pwd)
 SETUP_ENV="${SETUP_ENV:-true}"
 
+# Download and install protoc binary (from your branch)
+PROTOC_ZIP=protoc-3.19.6-linux-x86_64.zip
+curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.19.6/$PROTOC_ZIP
+sudo unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
+sudo unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
+rm -f $PROTOC_ZIP
+
+protoc --version
+
 if [ "${SETUP_ENV}" = "true" ]; then
   # Create a virtual environment and activate it
   python3 -m venv venv
   source venv/bin/activate
 
+  # Master branch approach for pip installations
   python3 -m pip install --upgrade pip
   python3 -m pip install -r sdk/python/requirements.txt 
   python3 -m pip install -r sdk/python/requirements-dev.txt
@@ -29,6 +39,11 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install coveralls==4.0.1
   python3 -m pip install --upgrade protobuf
   python3 -m pip install sdk/python
+
+  # API regeneration steps (from your branch)
+  #install kfp api
+  pushd api && make clean-python python && popd
+  python3 -m pip install api/v2alpha1/python
 
   # regenerate the kfp-pipeline-spec
   cd api/
