@@ -35,6 +35,8 @@ RUN dnf upgrade -y && \
 COPY ${SOURCE_CODE}/go.mod ./
 COPY ${SOURCE_CODE}/go.sum ./
 
+RUN GO111MODULE=on go mod download
+
 # Copy the source
 COPY ${SOURCE_CODE}/ ./
 
