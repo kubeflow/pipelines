@@ -909,6 +909,70 @@ implementation:
             ]):
                 task = print_and_return(text='Hello')
 
+    def test_pipeline_with_parameterized_container_image(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            @dsl.component(base_image='docker.io/python:3.9.17')
+            def empty_component():
+                pass
+
+            @dsl.pipeline()
+            def simple_pipeline(img: str):
+                task = empty_component()
+                # overwrite base_image="docker.io/python:3.9.17"
+                task.set_container_image(img)
+
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline,
+                package_path=output_yaml,
+                pipeline_parameters={'img': 'someimage'})
+            self.assertTrue(os.path.exists(output_yaml))
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+                container = pipeline_spec['deploymentSpec']['executors'][
+                    'exec-empty-component']['container']
+                self.assertEqual(
+                    container['image'],
+                    "{{$.inputs.parameters['pipelinechannel--img']}}")
+                # A parameter value should result in 2 input parameters
+                # One for storing pipeline channel template to be resolved during runtime.
+                # Two for holding the key to the resolved input.
+                input_parameters = pipeline_spec['root']['dag']['tasks'][
+                    'empty-component']['inputs']['parameters']
+                self.assertTrue('base_image' in input_parameters)
+                self.assertTrue('pipelinechannel--img' in input_parameters)
+
+    def test_pipeline_with_constant_container_image(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            @dsl.component(base_image='docker.io/python:3.9.17')
+            def empty_component():
+                pass
+
+            @dsl.pipeline()
+            def simple_pipeline():
+                task = empty_component()
+                # overwrite base_image="docker.io/python:3.9.17"
+                task.set_container_image('constant-value')
+
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline, package_path=output_yaml)
+
+            self.assertTrue(os.path.exists(output_yaml))
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+                container = pipeline_spec['deploymentSpec']['executors'][
+                    'exec-empty-component']['container']
+                self.assertEqual(container['image'], 'constant-value')
+                # A constant value should yield no parameters
+                dag_task = pipeline_spec['root']['dag']['tasks'][
+                    'empty-component']
+                self.assertTrue('inputs' not in dag_task)
+
 
 class TestCompilePipelineCaching(unittest.TestCase):
 
