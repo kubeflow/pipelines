@@ -171,13 +171,11 @@ export async function getKeyFormatFromArtifactRepositories(
   namespace: string,
 ): Promise<string | undefined> {
   try {
-    const [configMap] = await getConfigMap('artifact-repositories', namespace);
+    const [configMap, k8sError] = await getConfigMap('artifact-repositories', namespace);
     if (configMap === undefined) {
-      // If there is no artifact-repositories configmap, return undefined. The
-      // caller will just use keyFormat as specified in configs.ts.
-      return undefined;
+      throw k8sError;
     }
-    let artifactRepositories = configMap?.data['artifact-repositories'];
+    const artifactRepositories = configMap?.data['artifact-repositories'];
     const artifactRepositoriesValue = JsYaml.safeLoad(
       artifactRepositories,
     ) as PartialArtifactRepositoriesValue;
