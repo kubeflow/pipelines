@@ -96,6 +96,13 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
      * https://github.com/kubeflow/pipelines/blob/7b7918ebf8c30e6ceec99283ef20dbc02fdf6a42/manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml#L28
      */
     ARGO_KEYFORMAT = 'artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}',
+    /** Argo Workflows lets you specify a unique artifact repository for each
+     * namespace by adding an appropriately formatted configmap to the namespace
+     * as documented here:
+     * https://argo-workflows.readthedocs.io/en/latest/artifact-repository-ref/.
+     * Use this field to enable this lookup. It defaults to false.
+     */
+    ARGO_ARTIFACT_REPOSITORIES_LOOKUP = 'false',
     /** Should use server API for log streaming? */
     STREAM_LOGS_FROM_SERVER_API = 'false',
     /** The main container name of a pod where logs are retrieved */
@@ -132,6 +139,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       archiveBucketName: ARGO_ARCHIVE_BUCKETNAME,
       archiveLogs: asBool(ARGO_ARCHIVE_LOGS),
       keyFormat: ARGO_KEYFORMAT,
+      artifactRepositoriesLookup: asBool(ARGO_ARTIFACT_REPOSITORIES_LOOKUP),
     },
     pod: {
       logContainerName: POD_LOG_CONTAINER_NAME,
@@ -259,6 +267,7 @@ export interface ArgoConfigs {
   archiveArtifactory: string;
   archiveBucketName: string;
   keyFormat: string;
+  artifactRepositoriesLookup: boolean;
 }
 export interface ServerConfigs {
   basePath: string;
