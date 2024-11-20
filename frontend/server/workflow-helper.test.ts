@@ -19,8 +19,10 @@ import {
   getPodLogsStreamFromK8s,
   getPodLogsStreamFromWorkflow,
   toGetPodLogsStream,
+  getKeyFormatFromArtifactRepositories,
 } from './workflow-helper';
-import { getK8sSecret, getArgoWorkflow, getPodLogs } from './k8s-helper';
+import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap } from './k8s-helper';
+import { V1ConfigMap, V1ObjectMeta } from '@kubernetes/client-node';
 
 jest.mock('minio');
 jest.mock('./k8s-helper');
@@ -118,6 +120,40 @@ describe('workflow-helper', () => {
     });
   });
 
+  describe('getKeyFormatFromArtifactRepositories', () => {
+    it('returns a keyFormat string from the artifact-repositories configmap.', async () => {
+      const artifactRepositories = {
+        'artifact-repositories':
+          'archiveLogs: true\n' +
+          's3:\n' +
+          '  accessKeySecret:\n' +
+          '    key: accesskey\n' +
+          '    name: mlpipeline-minio-artifact\n' +
+          '  bucket: mlpipeline\n' +
+          '  endpoint: minio-service.kubeflow:9000\n' +
+          '  insecure: true\n' +
+          '  keyFormat: foo\n' +
+          '  secretKeySecret:\n' +
+          '    key: secretkey\n' +
+          '    name: mlpipeline-minio-artifact',
+      };
+
+      const mockedConfigMap: V1ConfigMap = {
+        apiVersion: 'v1',
+        kind: 'ConfigMap',
+        metadata: new V1ObjectMeta(),
+        data: artifactRepositories,
+        binaryData: {},
+      };
+
+      const mockedGetConfigMap: jest.Mock = getConfigMap as any;
+      mockedGetConfigMap.mockResolvedValueOnce([mockedConfigMap, undefined]);
+      const res = await getKeyFormatFromArtifactRepositories('');
+      expect(mockedGetConfigMap).toBeCalledTimes(1);
+      expect(res).toEqual('foo');
+    });
+  });
+
   describe('createPodLogsMinioRequestConfig', () => {
     it('returns a MinioRequestConfig factory with the provided minioClientOptions, bucket, and prefix.', async () => {
       const mockedClient: jest.Mock = MinioClient as any;
@@ -125,6 +161,7 @@ describe('workflow-helper', () => {
         minioConfig,
         'bucket',
         'artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}',
+        true,
       );
       const request = await requestFunc(
         'workflow-name-system-container-impl-foo',

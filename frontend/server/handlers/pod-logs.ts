@@ -39,7 +39,13 @@ export function getPodLogsHandler(
   },
   podLogContainerName: string,
 ): Handler {
-  const { archiveLogs, archiveArtifactory, archiveBucketName, keyFormat } = argoOptions;
+  const {
+    archiveLogs,
+    archiveArtifactory,
+    archiveBucketName,
+    keyFormat,
+    artifactRepositoriesLookup,
+  } = argoOptions;
 
   // get pod log from the provided bucket and keyFormat.
   const getPodLogsStreamFromArchive = toGetPodLogsStream(
@@ -47,6 +53,7 @@ export function getPodLogsHandler(
       archiveArtifactory === 'minio' ? artifactsOptions.minio : artifactsOptions.aws,
       archiveBucketName,
       keyFormat,
+      artifactRepositoriesLookup,
     ),
   );
 

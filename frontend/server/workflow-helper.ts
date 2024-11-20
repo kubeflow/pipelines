@@ -13,8 +13,9 @@
 // limitations under the License.
 import { PassThrough, Stream } from 'stream';
 import { ClientOptions as MinioClientOptions } from 'minio';
-import { getK8sSecret, getArgoWorkflow, getPodLogs } from './k8s-helper';
+import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap } from './k8s-helper';
 import { createMinioClient, MinioRequestConfig, getObjectStream } from './minio-helper';
+import * as JsYaml from 'js-yaml';
 
 export interface PartialArgoWorkflow {
   status: {
@@ -142,18 +143,76 @@ export function toGetPodLogsStream(
   };
 }
 
+/** PartialArtifactRepositoriesValue is used to deserialize the contents of the
+ * artifact-repositories configmap.
+ */
+interface PartialArtifactRepositoriesValue {
+  s3?: {
+    keyFormat: string;
+  };
+  gcs?: {
+    keyFormat: string;
+  };
+  oss?: {
+    keyFormat: string;
+  };
+  artifactory?: {
+    keyFormat: string;
+  };
+}
+
 /**
- * Returns a MinioRequestConfig with the provided minio options (a MinioRequestConfig
- * object contains the artifact bucket and keys, with the corresponding minio
- * client).
+ * getKeyFormatFromArtifactRepositories attempts to retrieve an
+ * artifact-repositories configmap from a specified namespace. It then parses
+ * the configmap and returns a keyFormat value in its data field.
+ * @param namespace namespace of the configmap
+ */
+export async function getKeyFormatFromArtifactRepositories(
+  namespace: string,
+): Promise<string | undefined> {
+  try {
+    const [configMap, k8sError] = await getConfigMap('artifact-repositories', namespace);
+    if (configMap === undefined) {
+      throw k8sError;
+    }
+    const artifactRepositories = configMap?.data['artifact-repositories'];
+    const artifactRepositoriesValue = JsYaml.safeLoad(
+      artifactRepositories,
+    ) as PartialArtifactRepositoriesValue;
+    if ('s3' in artifactRepositoriesValue) {
+      return artifactRepositoriesValue.s3?.keyFormat;
+    } else if ('gcs' in artifactRepositoriesValue) {
+      return artifactRepositoriesValue.gcs?.keyFormat;
+    } else if ('oss' in artifactRepositoriesValue) {
+      return artifactRepositoriesValue.oss?.keyFormat;
+    } else if ('artifactory' in artifactRepositoriesValue) {
+      return artifactRepositoriesValue.artifactory?.keyFormat;
+    } else {
+      throw new Error(
+        'artifact-repositories configmap missing one of [s3|gcs|oss|artifactory] fields.',
+      );
+    }
+  } catch (error) {
+    console.log(error);
+    return undefined;
+  }
+}
+
+/**
+ * Returns a MinioRequestConfig with the provided minio options (a
+ * MinioRequestConfig object contains the artifact bucket and keys, with the
+ * corresponding minio client).
  * @param minioOptions Minio options to create a minio client.
  * @param bucket bucket containing the pod logs artifacts.
- * @param keyFormat the keyFormat for pod logs artifacts stored in the bucket.
+ * @param keyFormatDefault the default keyFormat for pod logs artifacts stored
+ * in the bucket. This is overriden if there's an "artifact-repositories"
+ * configmap in the target namespace with a keyFormat field.
  */
 export function createPodLogsMinioRequestConfig(
   minioOptions: MinioClientOptions,
   bucket: string,
-  keyFormat: string,
+  keyFormatDefault: string,
+  artifactRepositoriesLookup: boolean,
 ) {
   return async (
     podName: string,
@@ -164,7 +223,21 @@ export function createPodLogsMinioRequestConfig(
     const client = await createMinioClient(minioOptions, 's3');
     const createdAtArray = createdAt.split('-');
 
-    let key: string = keyFormat
+    // If artifactRepositoriesLookup is enabled, try to extract they keyformat
+    // from the configmap. Otherwise, just used the default keyFormat specified
+    // in configs.ts.
+    let keyFormatFromConfigMap = undefined;
+    if (artifactRepositoriesLookup) {
+      keyFormatFromConfigMap = await getKeyFormatFromArtifactRepositories(namespace);
+    }
+    let key: string;
+    if (keyFormatFromConfigMap !== undefined) {
+      key = keyFormatFromConfigMap;
+    } else {
+      key = keyFormatDefault;
+    }
+
+    key = key
       .replace(/\s+/g, '') // Remove all whitespace.
       .replace('{{workflow.name}}', podName.replace(/-system-container-impl-.*/, ''))
       .replace('{{workflow.creationTimestamp.Y}}', createdAtArray[0])
