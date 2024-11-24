@@ -1,17 +1,8 @@
 # PIPELINE DEFINITION
 # Name: pipeline-with-metrics-outputs
-# Outputs:
-#    output-metrics-2-metrics: system.Metrics
-#    output-metrics-metrics: system.Metrics
 components:
   comp-for-loop-2:
     dag:
-      outputs:
-        artifacts:
-          output-metrics-2-metrics:
-            artifactSelectors:
-            - outputArtifactKey: metrics
-              producerSubtask: output-metrics-2
       tasks:
         output-metrics-2:
           cachingOptions:
@@ -24,12 +15,6 @@ components:
       parameters:
         pipelinechannel--loop-item-param-1:
           parameterType: NUMBER_INTEGER
-    outputDefinitions:
-      artifacts:
-        output-metrics-2-metrics:
-          artifactType:
-            schemaTitle: system.Metrics
-            schemaVersion: 0.0.1
   comp-output-metrics:
     executorLabel: exec-output-metrics
     outputDefinitions:
@@ -60,7 +45,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -91,7 +76,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -114,16 +99,6 @@ pipelineInfo:
   name: pipeline-with-metrics-outputs
 root:
   dag:
-    outputs:
-      artifacts:
-        output-metrics-2-metrics:
-          artifactSelectors:
-          - outputArtifactKey: output-metrics-2-metrics
-            producerSubtask: for-loop-2
-        output-metrics-metrics:
-          artifactSelectors:
-          - outputArtifactKey: metrics
-            producerSubtask: output-metrics
     tasks:
       for-loop-2:
         componentRef:
@@ -141,15 +116,5 @@ root:
           name: comp-output-metrics
         taskInfo:
           name: output-metrics
-  outputDefinitions:
-    artifacts:
-      output-metrics-2-metrics:
-        artifactType:
-          schemaTitle: system.Metrics
-          schemaVersion: 0.0.1
-      output-metrics-metrics:
-        artifactType:
-          schemaTitle: system.Metrics
-          schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.9.0

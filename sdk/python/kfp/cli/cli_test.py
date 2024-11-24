@@ -139,7 +139,7 @@ class TestCliVersion(unittest.TestCase):
     def test_version(self):
         result = self.invoke(args=['--version'])
         self.assertEqual(result.exit_code, 0)
-        matches = re.match(r'^kfp \d\.\d\.\d.*', result.output)
+        matches = re.match(r'^kfp \d+\.\d+\.\d+.*', result.output)
         self.assertTrue(matches)
 
 

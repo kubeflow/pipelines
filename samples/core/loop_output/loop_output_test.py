@@ -15,11 +15,13 @@
 from __future__ import annotations
 
 import unittest
-import kfp
+
+from kfp.samples.test.utils import KfpTask
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TestCase
 import kfp_server_api
-from ml_metadata.proto.metadata_store_pb2 import Execution
 from loop_output import my_pipeline
-from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
+from ml_metadata.proto.metadata_store_pb2 import Execution
 
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
@@ -76,7 +78,6 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
 run_pipeline_func([
     TestCase(
         pipeline_func=my_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         verify_func=verify,
     ),
 ])

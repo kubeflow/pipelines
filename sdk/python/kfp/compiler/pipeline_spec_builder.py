@@ -667,6 +667,10 @@ def build_container_spec_for_task(
                         task.container_spec.resources.accelerator_type),
                     resource_count=convert_to_placeholder(
                         task.container_spec.resources.accelerator_count),
+                    type=convert_to_placeholder(
+                        task.container_spec.resources.accelerator_type),
+                    count=convert_to_placeholder(
+                        int(task.container_spec.resources.accelerator_count)),
                 ))
 
     return container_spec
@@ -1131,67 +1135,6 @@ def build_task_spec_for_group(
     return pipeline_task_spec
 
 
-def populate_metrics_in_dag_outputs(
-    tasks: List[pipeline_task.PipelineTask],
-    task_name_to_parent_groups: Mapping[str,
-                                        List[compiler_utils.GroupOrTaskType]],
-    task_name_to_component_spec: Mapping[str, pipeline_spec_pb2.ComponentSpec],
-    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-) -> None:
-    """Populates metrics artifacts in DAG outputs.
-
-    Args:
-        tasks: The list of tasks that may produce metrics outputs.
-        task_name_to_parent_groups: The dict of task name to parent groups.
-            Key is the task's name. Value is a list of ancestor groups including
-            the task itself. The list of a given op is sorted in a way that the
-            farthest group is the first and the task itself is the last.
-        task_name_to_component_spec: The dict of task name to ComponentSpec.
-        pipeline_spec: The pipeline_spec to update in-place.
-    """
-    for task in tasks:
-        component_spec = task_name_to_component_spec[task.name]
-
-        # Get the tuple of (component_name, task_name) of all its parent groups.
-        parent_components_and_tasks = [('_root', '')]
-        # skip the op itself and the root group which cannot be retrived via name.
-        for group_name in task_name_to_parent_groups[task.name][1:-1]:
-            parent_components_and_tasks.append(
-                (utils.sanitize_component_name(group_name),
-                 utils.sanitize_task_name(group_name)))
-        # Reverse the order to make the farthest group in the end.
-        parent_components_and_tasks.reverse()
-
-        for output_name, artifact_spec in \
-            component_spec.output_definitions.artifacts.items():
-
-            if artifact_spec.artifact_type.WhichOneof(
-                    'kind'
-            ) == 'schema_title' and artifact_spec.artifact_type.schema_title in [
-                    artifact_types.Metrics.schema_title,
-                    artifact_types.ClassificationMetrics.schema_title,
-            ]:
-                unique_output_name = f'{task.name}-{output_name}'
-
-                sub_task_name = task.name
-                sub_task_output = output_name
-                for component_name, task_name in parent_components_and_tasks:
-                    group_component_spec = (
-                        pipeline_spec.root if component_name == '_root' else
-                        pipeline_spec.components[component_name])
-                    group_component_spec.output_definitions.artifacts[
-                        unique_output_name].CopyFrom(artifact_spec)
-                    group_component_spec.dag.outputs.artifacts[
-                        unique_output_name].artifact_selectors.append(
-                            pipeline_spec_pb2.DagOutputsSpec
-                            .ArtifactSelectorSpec(
-                                producer_subtask=sub_task_name,
-                                output_artifact_key=sub_task_output,
-                            ))
-                    sub_task_name = task_name
-                    sub_task_output = unique_output_name
-
-
 def modify_pipeline_spec_with_override(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     pipeline_name: Optional[str],
@@ -1493,14 +1436,6 @@ def build_spec_by_group(
 
     pipeline_spec.deployment_spec.update(
         json_format.MessageToDict(deployment_config))
-
-    # Surface metrics outputs to the top.
-    populate_metrics_in_dag_outputs(
-        tasks=group.tasks,
-        task_name_to_parent_groups=task_name_to_parent_groups,
-        task_name_to_component_spec=task_name_to_component_spec,
-        pipeline_spec=pipeline_spec,
-    )
 
 
 def modify_task_for_ignore_upstream_failure(

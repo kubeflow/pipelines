@@ -794,7 +794,7 @@ type PipelineRunInterface struct {
 func (pri *PipelineRunInterface) Create(ctx context.Context, execution ExecutionSpec, opts metav1.CreateOptions) (ExecutionSpec, error) {
 	pipelinerun, ok := execution.(*PipelineRun)
 	if !ok {
-		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Argo Workflow")
+		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Tekton")
 	}
 
 	revPipelineRun, err := pri.pipelinerunInterface.Create(ctx, pipelinerun.PipelineRun, opts)
@@ -809,7 +809,7 @@ func (pri *PipelineRunInterface) Create(ctx context.Context, execution Execution
 func (pri *PipelineRunInterface) Update(ctx context.Context, execution ExecutionSpec, opts metav1.UpdateOptions) (ExecutionSpec, error) {
 	pipelinerun, ok := execution.(*PipelineRun)
 	if !ok {
-		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Argo Workflow")
+		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Tekton")
 	}
 
 	revPipelineRun, err := pri.pipelinerunInterface.Update(ctx, pipelinerun.PipelineRun, opts)
