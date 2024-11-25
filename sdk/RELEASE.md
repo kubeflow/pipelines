@@ -1,6 +1,7 @@
 # Current Version (in development)
 
 ## Features
+* Expose `--existing-token` flag in `kfp` CLI to allow users to provide an existing token for authentication. [\#11400](https://github.com/kubeflow/pipelines/pull/11400)
 
 ## Breaking changes
 
