@@ -12,7 +12,7 @@ permissions:
   # id-token: write
 jobs:
   scan-repository:
-    runs-on: ubuntu-latest
+    runs-on: [ self-hosted, jfrog ]
     strategy:
       matrix:
         # The repository scanning will be triggered periodically on the following branches.
