@@ -6,6 +6,7 @@
 * Update Docker image.
 * Bump supported KFP versions to `kfp>=2.6.0,<2.11.0`.
 * Support Python versions 3.12 and 3.13.
+* Bump image for Structured Data pipelines.
 
 ## Release 2.17.0
 * Fix Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline` after output schema change.
