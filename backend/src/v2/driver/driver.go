@@ -447,12 +447,16 @@ func initPodSpecPatch(
 	}
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
-		if accelerator.GetType() != "" && accelerator.GetCount() > 0 {
-			q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", accelerator.GetCount()))
+		// TODO: do not ignore the err obj from the strconv function
+		// TODO: communicate with the team to decide to have GetResourceCount as
+		//   int
+		resourceCountInt, _ := strconv.Atoi(accelerator.GetResourceCount())
+		if accelerator.GetResourceType() != "" && resourceCountInt > 0 {
+			q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", resourceCountInt))
 			if err != nil {
 				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 			}
-			res.Limits[k8score.ResourceName(accelerator.GetType())] = q
+			res.Limits[k8score.ResourceName(accelerator.GetResourceType())] = q
 		}
 	}
 	podSpec := &k8score.PodSpec{
@@ -2021,7 +2025,7 @@ func createCache(
 		fmt.Errorf("failed to get id from createdExecution")
 	}
 	task := &api.Task{
-		//TODO how to differentiate between shared pipeline and namespaced pipeline
+		// TODO how to differentiate between shared pipeline and namespaced pipeline
 		PipelineName:    "pipeline/" + opts.PipelineName,
 		Namespace:       opts.Namespace,
 		RunId:           opts.RunID,
