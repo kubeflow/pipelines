@@ -567,6 +567,79 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	return newRun, nil
 }
 
+// SyncSwfCrs synchronizes/updates the existing ScheduledWorkflow CRs with the existing jobs.
+func (r *ResourceManager) SyncSwfCrs(ctx context.Context) error {
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "kubeflow"},
+	}
+
+	opts := list.EmptyOptions()
+
+	jobs, _, _, err := r.jobStore.ListJobs(filterContext, opts)
+
+	if err != nil {
+		return util.Wrap(err, "Failed to refresh ScheduledWorkflow Kubernetes resources")
+	}
+
+	for i := 0; i < len(jobs); i++ {
+		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
+		if err != nil {
+			return failedToSyncSwfCrsError(err)
+		}
+
+		scheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
+		if err != nil {
+			return failedToSyncSwfCrsError(err)
+		}
+
+		err = r.patchSwfCrSpec(ctx, jobs[i].Namespace, jobs[i].K8SName, scheduledWorkflow.Spec)
+		if err != nil {
+			if util.IsNotFound(errors.Cause(err)) {
+				continue
+			}
+			return failedToSyncSwfCrsError(err)
+		}
+	}
+
+	return nil
+}
+
+func failedToSyncSwfCrsError(err error) error {
+	return util.Wrap(err, "Failed to refresh ScheduledWorkflow Kubernetes resources")
+}
+
+func (r *ResourceManager) patchSwfCrSpec(ctx context.Context, k8sNamespace string, crdName string, newSpec interface{}) error {
+	if k8sNamespace == "" {
+		k8sNamespace = common.GetPodNamespace()
+	}
+	if k8sNamespace == "" {
+		return errors.New("Namespace cannot be empty when deleting a ScheduledWorkflow Kubernetes resource.")
+	}
+
+	patchPayload := map[string]interface{}{
+		"spec": newSpec,
+	}
+
+	patchBytes, err := json.Marshal(patchPayload)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to marshal patch spec")
+	}
+
+	_, err = r.getScheduledWorkflowClient(k8sNamespace).Patch(
+		ctx,
+		crdName,
+		types.MergePatchType,
+		patchBytes,
+	)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to patch ScheduledWorkflow")
+	}
+
+	return nil
+}
+
 // Fetches a run with a given id.
 func (r *ResourceManager) GetRun(runId string) (*model.Run, error) {
 	run, err := r.runStore.GetRun(runId)

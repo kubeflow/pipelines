@@ -106,6 +106,13 @@ func main() {
 	}
 	log.SetLevel(level)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	err = resourceManager.SyncSwfCrs(ctx)
+	if err != nil {
+		log.Errorf("Could not refresh the ScheduledWorkflow Kubernetes resources: %v", err)
+	}
+
 	go startRpcServer(resourceManager)
 	startHttpProxy(resourceManager)
 
