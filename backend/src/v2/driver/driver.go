@@ -1793,9 +1793,11 @@ func createPVC(
 			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
 		}
 	*/
-	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
-	if err != nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for create pvc: %w", err)
+	if opts.Task.GetCachingOptions().GetEnableCache() {
+		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
+		if err != nil {
+			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for create pvc: %w", err)
+		}
 	}
 
 	return createdPVC.ObjectMeta.Name, createdExecution, pb.Execution_COMPLETE, nil
@@ -1902,9 +1904,11 @@ func deletePVC(
 			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
 		}
 	*/
-	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
-	if err != nil {
-		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for delete pvc: %w", err)
+	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
+		if err != nil {
+			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for delete pvc: %w", err)
+		}
 	}
 
 	return createdExecution, pb.Execution_COMPLETE, nil
