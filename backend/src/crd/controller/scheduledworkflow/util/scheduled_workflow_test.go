@@ -510,7 +510,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) 
 func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *testing.T) {
 	// Must run now
 	scheduledEpoch := int64(10 * hour)
-	updatedEpoch := int64(11 * hour)
+	updatedEpoch := int64(0)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -591,7 +591,7 @@ func createStatus(workflowName string, scheduledEpoch int64) *swfapi.WorkflowSta
 func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *testing.T) {
 	// Must run now
 	scheduledEpoch := int64(10 * hour)
-	updatedEpoch := int64(11 * hour)
+	updatedEpoch := int64(0)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
