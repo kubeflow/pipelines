@@ -3,4 +3,14 @@ bower_components
 dist
 **/node_modules
 backend/build
+backend/Dockerfile
+backend/Dockerfile.cacheserver
+backend/Dockerfile.conformance
+backend/Dockerfile.driver
+backend/Dockerfile.launcher
+backend/Dockerfile.persistenceagent
+backend/Dockerfile.scheduledworkflow
+backend/Dockerfile.viewercontroller
+backend/Dockerfile.visualization
+frontend/Dockerfile
 v2/build
