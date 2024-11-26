@@ -402,4 +402,5 @@ while True:
 
     except urllib3.exceptions.ReadTimeoutError as e:
         # Client side timeout, continue watching.
-        pass
+        continue
+ 
