@@ -77,7 +77,7 @@ setuptools.setup(
         ],
     },
     include_package_data=True,
-    python_requires=">=3.8.0,<3.12.0",
+    python_requires=">=3.8.0",
     install_requires=[
         # Pin google-api-core version for the bug fixing in 1.31.5
         # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
