@@ -1736,63 +1736,6 @@ func createPVC(
 	inputs := execution.ExecutorInput.Inputs
 	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
-	// Requied input: access_modes
-	accessModeInput, ok := inputs.ParameterValues["access_modes"]
-	if !ok || accessModeInput == nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter access_modes not provided")
-	}
-	var accessModes []k8score.PersistentVolumeAccessMode
-	for _, value := range accessModeInput.GetListValue().GetValues() {
-		accessModes = append(accessModes, accessModeMap[value.GetStringValue()])
-	}
-
-	// Optional input: pvc_name and pvc_name_suffix
-	// Can only provide at most one of these two parameters.
-	// If neither is provided, PVC name is a randomly generated UUID.
-	pvcNameSuffixInput := inputs.ParameterValues["pvc_name_suffix"]
-	pvcNameInput := inputs.ParameterValues["pvc_name"]
-	if pvcNameInput.GetStringValue() != "" && pvcNameSuffixInput.GetStringValue() != "" {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: at most one of pvc_name and pvc_name_suffix can be non-empty")
-	} else if pvcNameSuffixInput.GetStringValue() != "" {
-		pvcName = uuid.NewString() + pvcNameSuffixInput.GetStringValue()
-		// Add pvcName to the executor input for fingerprint generation
-		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
-	} else if pvcNameInput.GetStringValue() != "" {
-		pvcName = pvcNameInput.GetStringValue()
-	} else {
-		pvcName = uuid.NewString()
-		// Add pvcName to the executor input for fingerprint generation
-		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
-	}
-
-	// Required input: size
-	volumeSizeInput, ok := inputs.ParameterValues["size"]
-	if !ok || volumeSizeInput == nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter volumeSize not provided")
-	}
-
-	// Optional input: storage_class_name
-	// When not provided, use default value `standard`
-	storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]
-	var storageClassName string
-	if !ok {
-		storageClassName = "standard"
-	} else {
-		storageClassName = storageClassNameInput.GetStringValue()
-	}
-
-	// Optional input: annotations
-	pvcAnnotationsInput := inputs.ParameterValues["annotations"]
-	pvcAnnotations := make(map[string]string)
-	for key, val := range pvcAnnotationsInput.GetStructValue().AsMap() {
-		typedVal := val.(structpb.Value)
-		pvcAnnotations[key] = typedVal.GetStringValue()
-	}
-
-	// Optional input: volume_name
-	volumeNameInput := inputs.ParameterValues["volume_name"]
-	volumeName := volumeNameInput.GetStringValue()
-
 	// Get execution fingerprint and MLMD ID for caching
 	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
 	// The original execution is not changed.
@@ -1840,22 +1783,10 @@ func createPVC(
 		return pvcName, createdExecution, pb.Execution_CACHED, nil
 	}
 
-	// Create a PersistentVolumeClaim object
-	pvc := &k8score.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        pvcName,
-			Annotations: pvcAnnotations,
-		},
-		Spec: k8score.PersistentVolumeClaimSpec{
-			AccessModes: accessModes,
-			Resources: k8score.VolumeResourceRequirements{
-				Requests: k8score.ResourceList{
-					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
-				},
-			},
-			StorageClassName: &storageClassName,
-			VolumeName:       volumeName,
-		},
+	// Build the PVC object
+	pvc, err := buildPVC(inputs)
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to build pvc definition: %w", err)
 	}
 
 	// Create the PVC in the cluster
@@ -1878,6 +1809,81 @@ func createPVC(
 	}
 
 	return createdPVC.ObjectMeta.Name, createdExecution, pb.Execution_COMPLETE, nil
+}
+
+// buildPVC creates a PersistentVolumeClaim object based on the provided inputs.
+func buildPVC(inputs *pipelinespec.ExecutorInput_Inputs) (*k8score.PersistentVolumeClaim, error) {
+	// Required input: access_modes
+	accessModeInput, ok := inputs.ParameterValues["access_modes"]
+	if !ok || accessModeInput == nil {
+		return nil, fmt.Errorf("parameter access_modes not provided")
+	}
+	var accessModes []k8score.PersistentVolumeAccessMode
+	for _, value := range accessModeInput.GetListValue().GetValues() {
+		accessModes = append(accessModes, accessModeMap[value.GetStringValue()])
+	}
+
+	// Optional input: pvc_name and pvc_name_suffix
+	// Can only provide at most one of these two parameters.
+	// If neither is provided, PVC name is a randomly generated UUID.
+	pvcNameSuffixInput := inputs.ParameterValues["pvc_name_suffix"]
+	pvcNameInput := inputs.ParameterValues["pvc_name"]
+	var pvcName string
+	if pvcNameInput.GetStringValue() != "" && pvcNameSuffixInput.GetStringValue() != "" {
+		return nil, fmt.Errorf("at most one of pvc_name and pvc_name_suffix can be non-empty")
+	} else if pvcNameSuffixInput.GetStringValue() != "" {
+		pvcName = uuid.NewString() + pvcNameSuffixInput.GetStringValue()
+		// Add pvcName to the executor input for fingerprint generation
+		inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
+	} else if pvcNameInput.GetStringValue() != "" {
+		pvcName = pvcNameInput.GetStringValue()
+	} else {
+		pvcName = uuid.NewString()
+		// Add pvcName to the executor input for fingerprint generation
+		inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
+	}
+
+	// Required input: size
+	volumeSizeInput, ok := inputs.ParameterValues["size"]
+	if !ok || volumeSizeInput == nil {
+		return nil, fmt.Errorf("parameter size not provided")
+	}
+
+	// Optional input: annotations
+	pvcAnnotationsInput := inputs.ParameterValues["annotations"]
+	pvcAnnotations := make(map[string]string)
+	for key, val := range pvcAnnotationsInput.GetStructValue().GetFields() {
+		pvcAnnotations[key] = val.GetStringValue()
+	}
+
+	// Optional input: volume_name
+	volumeNameInput := inputs.ParameterValues["volume_name"]
+	volumeName := volumeNameInput.GetStringValue()
+
+	// Create a PersistentVolumeClaim object
+	pvc := &k8score.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        pvcName,
+			Annotations: pvcAnnotations,
+		},
+		Spec: k8score.PersistentVolumeClaimSpec{
+			AccessModes: accessModes,
+			Resources: k8score.VolumeResourceRequirements{
+				Requests: k8score.ResourceList{
+					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
+				},
+			},
+			VolumeName: volumeName,
+		},
+	}
+
+	// Optional input: storage_class_name
+	if storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]; ok {
+		storageClassName := storageClassNameInput.GetStringValue()
+		pvc.Spec.StorageClassName = &storageClassName
+	}
+
+	return pvc, nil
 }
 
 func deletePVC(

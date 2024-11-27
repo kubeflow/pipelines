@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	k8score "k8s.io/api/core/v1"
 )
 
@@ -1750,6 +1751,161 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 			err := extendPodSpecPatch(tt.podSpec, tt.k8sExecCfg, nil, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, tt.podSpec)
+		})
+	}
+}
+
+func Test_buildPVC(t *testing.T) {
+	type args struct {
+		inputs *pipelinespec.ExecutorInput_Inputs
+	}
+	accessModesList, _ := structpb.NewList([]interface{}{"ReadWriteOnce"})
+	accessModes := structpb.NewListValue(accessModesList)
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			"valid case",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"access_modes":       accessModes,
+						"pvc_name":           structpb.NewStringValue("my-pvc"),
+						"size":               structpb.NewStringValue("5Gi"),
+						"storage_class_name": structpb.NewStringValue("standard"),
+						"volume_name":        structpb.NewStringValue("volume-name"),
+					},
+				},
+			},
+			false,
+			"",
+		},
+		{
+			"missing required access_modes",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"access_modes":       nil,
+						"pvc_name":           structpb.NewStringValue("my-pvc-2"),
+						"size":               structpb.NewStringValue("5Gi"),
+						"storage_class_name": structpb.NewStringValue("standard"),
+						"volume_name":        structpb.NewStringValue("volume-name"),
+					},
+				},
+			},
+			true,
+			"parameter access_modes not provided",
+		},
+		{
+			"both pvc_name_suffix and pvc_name provided",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"access_modes":       accessModes,
+						"pvc_name":           structpb.NewStringValue("my-pvc-3"),
+						"pvc_name_suffix":    structpb.NewStringValue("-my-pvc"),
+						"size":               structpb.NewStringValue("5Gi"),
+						"storage_class_name": structpb.NewStringValue("standard"),
+						"volume_name":        structpb.NewStringValue("volume-name"),
+					},
+				},
+			},
+			true,
+			"at most one of pvc_name and pvc_name_suffix can be non-empty",
+		},
+		{
+			"missing required size",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"access_modes":       accessModes,
+						"pvc_name":           structpb.NewStringValue("my-pvc"),
+						"storage_class_name": structpb.NewStringValue("standard"),
+						"volume_name":        structpb.NewStringValue("volume-name"),
+					},
+				},
+			},
+			true,
+			"parameter size not provided",
+		},
+		{
+			"annotations provided",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"access_modes": accessModes,
+						"pvc_name":     structpb.NewStringValue("my-pvc"),
+						"size":         structpb.NewStringValue("5Gi"),
+						"annotations": structpb.NewStructValue(
+							&structpb.Struct{
+								Fields: map[string]*structpb.Value{
+									"key1": structpb.NewStringValue("value1"),
+									"key2": structpb.NewStringValue("value2"),
+								},
+							},
+						),
+						"volume_name": structpb.NewStringValue("volume-name"),
+					},
+				},
+			},
+			false,
+			"",
+		},
+		{
+			"storage_class_name not provided",
+			args{
+				&pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"access_modes": accessModes,
+						"pvc_name":     structpb.NewStringValue("my-pvc"),
+						"size":         structpb.NewStringValue("5Gi"),
+						"volume_name":  structpb.NewStringValue("volume-name"),
+					},
+				},
+			},
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pvc, err := buildPVC(tt.args.inputs)
+			if tt.wantErr {
+				require.NotNil(t, err)
+				require.Nil(t, pvc)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				require.Nil(t, err)
+				require.NotNil(t, pvc)
+				// Test the PVC fields
+				if storageClassNameInput, ok := tt.args.inputs.ParameterValues["storage_class_name"]; ok {
+					assert.Equal(t, storageClassNameInput.GetStringValue(), *pvc.Spec.StorageClassName)
+				} else {
+					assert.Nil(t, pvc.Spec.StorageClassName)
+				}
+				if annotationsInput, ok := tt.args.inputs.ParameterValues["annotations"]; ok {
+					annotations := annotationsInput.GetStructValue().GetFields()
+					assert.Equal(t, len(annotations), len(pvc.Annotations))
+					for key, value := range annotations {
+						assert.Equal(t, value.GetStringValue(), pvc.Annotations[key])
+					}
+				}
+				if pvcNameInput, ok := tt.args.inputs.ParameterValues["pvc_name"]; ok {
+					assert.Equal(t, pvcNameInput.GetStringValue(), pvc.Name)
+				}
+				if pvcNameSuffixInput, ok := tt.args.inputs.ParameterValues["pvc_name_suffix"]; ok {
+					assert.Equal(t, pvc.Name, pvcNameSuffixInput.GetStringValue())
+				}
+				if sizeInput, ok := tt.args.inputs.ParameterValues["size"]; ok {
+					storage := pvc.Spec.Resources.Requests[k8score.ResourceStorage]
+					assert.Equal(t, sizeInput.GetStringValue(), storage.String())
+				}
+				assert.Equal(t, k8score.ReadWriteOnce, pvc.Spec.AccessModes[0])
+				assert.Equal(t, "volume-name", pvc.Spec.VolumeName)
+			}
 		})
 	}
 }
