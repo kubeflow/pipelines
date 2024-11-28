@@ -16,18 +16,11 @@
 FROM marketplace.gcr.io/google/ubuntu2404:latest
 RUN apt update && apt -y install git python3 \
   python3-pip \
-  python3-venv
+  python3-setuptools
 
 WORKDIR /root
 
-# Create a virtual environment
-RUN python3 -m venv venv
-
-# Activate the virtual environment
-ENV PATH="venv/bin:$PATH"
-
-# Python 3.12 removed distutils
-RUN pip3 install -U pip setuptools
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 # Required by gcp_launcher
 # Using google-cloud-aiplatform>=1.21.0 to avoid dataset creatation timeout
