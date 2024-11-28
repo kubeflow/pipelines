@@ -181,7 +181,7 @@ termcolor==2.4.0
     # via fire
 tomli==2.0.1
     # via black
-tornado==6.4.1
+tornado==6.4.2
     # via jupyter-client
 tqdm==4.66.5
     # via papermill
