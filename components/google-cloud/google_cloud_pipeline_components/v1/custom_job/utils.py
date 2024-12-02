@@ -71,6 +71,7 @@ def create_custom_training_job_from_component(
     labels: Optional[Dict[str, str]] = None,
     persistent_resource_id: str = _placeholders.PERSISTENT_RESOURCE_ID_PLACEHOLDER,
     env: Optional[List[Dict[str, str]]] = None,
+    strategy: str = 'STANDARD',
     reservation_affinity_type: Optional[str] = None,
     reservation_affinity_key: Optional[str] = None,
     reservation_affinity_values: Optional[List[str]] = None,
@@ -102,6 +103,7 @@ def create_custom_training_job_from_component(
     labels: The labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).
     persistent_resource_id: The ID of the PersistentResource in the same Project and Location which to run. The default value is a placeholder that will be resolved to the PipelineJob [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)'s persistent resource id at runtime. However, if the PipelineJob doesn't set Persistent Resource as the job level runtime, the placedholder will be resolved to an empty string and the custom job will be run on demand. If the value is set explicitly, the custom job will runs in the specified persistent resource, in this case, please note the network and CMEK configs on the job should be consistent with those on the PersistentResource, otherwise, the job will be rejected.
     env: Environment variables to be passed to the container. Takes the form `[{'name': '...', 'value': '...'}]`. Maximum limit is 100.
+    startegy: The strategy to use for the custom training job. The default is 'STANDARD'. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
     reservation_affinity_type: The type of [reservation affinity](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#reservationaffinity). Valid values are "NO_RESERVATION", "ANY_RESERVATION", "SPECIFIC_RESERVATION".
     reservation_affinity_key: Corresponds to the label key of a reservation resource. To target a SPECIFIC_RESERVATION by name, use compute.googleapis.com/reservation-name as the key and specify the name of your reservation as its value.
     reservation_affinity_values: Corresponds to the label values of a reservation resource. This must be the full resource name of the reservation.
@@ -214,6 +216,7 @@ def create_custom_training_job_from_component(
       'worker_pool_specs': worker_pool_specs,
       'timeout': timeout,
       'restart_job_on_worker_restart': restart_job_on_worker_restart,
+      'strategy': strategy,
       'service_account': service_account,
       'tensorboard': tensorboard,
       'enable_web_access': enable_web_access,
