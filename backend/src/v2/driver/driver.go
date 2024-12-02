@@ -2018,7 +2018,7 @@ func createCache(
 ) error {
 	id := execution.GetID()
 	if id == 0 {
-		fmt.Errorf("failed to get id from createdExecution")
+		return fmt.Errorf("failed to get id from createdExecution")
 	}
 	task := &api.Task{
 		//TODO how to differentiate between shared pipeline and namespaced pipeline
