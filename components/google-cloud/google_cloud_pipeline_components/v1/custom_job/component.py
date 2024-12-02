@@ -38,6 +38,7 @@ def custom_training_job(
     encryption_spec_key_name: str = '',
     persistent_resource_id: str = _placeholders.PERSISTENT_RESOURCE_ID_PLACEHOLDER,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
+    strategy: str = 'STANDARD',
 ):
   # fmt: off
   """Launch a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API. See [Create custom training jobs ](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for more information.
@@ -58,6 +59,7 @@ def custom_training_job(
     encryption_spec_key_name: Customer-managed encryption key options for the CustomJob. If this is set, then all resources created by the CustomJob will be encrypted with the provided encryption key.
     persistent_resource_id: The ID of the PersistentResource in the same Project and Location which to run. The default value is a placeholder that will be resolved to the PipelineJob [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)'s persistent resource id at runtime. However, if the PipelineJob doesn't set Persistent Resource as the job level runtime, the placedholder will be resolved to an empty string and the custom job will be run on demand. If the value is set explicitly, the custom job will runs in the specified persistent resource, in this case, please note the network and CMEK configs on the job should be consistent with those on the PersistentResource, otherwise, the job will be rejected.
     project: Project to create the custom training job in. Defaults to the project in which the PipelineJob is run.
+    strategy: The strategy to use for the custom training job. The default is 'STANDARD'. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
 
   Returns:
     gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the CustomJob.
@@ -75,6 +77,7 @@ def custom_training_job(
                   'restart_job_on_worker_restart': (
                       restart_job_on_worker_restart
                   ),
+                  'strategy': strategy,
               },
               'service_account': service_account,
               'tensorboard': tensorboard,
