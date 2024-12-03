@@ -8,6 +8,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Add error handling for image build/push failures in KFP SDK. [\#11164](https://github.com/kubeflow/pipelines/pull/11356)
 
 ## Documentation updates
 
