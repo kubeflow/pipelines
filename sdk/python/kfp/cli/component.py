@@ -64,6 +64,10 @@ _DOCKERIGNORE_TEMPLATE = f'''
 _COMPONENT_ROOT_DIR = pathlib.Path('/usr/local/src/kfp/components')
 
 
+class ComponentBuildError(Exception):
+    pass
+
+
 @contextlib.contextmanager
 def _registered_modules():
     registered_modules = {}
@@ -313,8 +317,12 @@ class ComponentBuilder():
             )
             for log in logs:
                 message = log.get('stream', '').rstrip('\n')
+                error = log.get('error', '').rstrip('\n')
                 if message:
                     logging.info(f'{docker_log_prefix}: {message}')
+                if error:
+                    raise ComponentBuildError(
+                        f'{docker_log_prefix} ERROR: {error}')
 
         except docker.errors.BuildError as e:
             for log in e.build_log:
@@ -339,7 +347,8 @@ class ComponentBuilder():
                 if status:
                     logging.info(f'{docker_log_prefix}: {layer} {status}')
                 if error:
-                    logging.error(f'{docker_log_prefix} ERROR: {error}')
+                    raise ComponentBuildError(
+                        f'{docker_log_prefix} ERROR: {error}')
         except docker.errors.BuildError as e:
             logging.error(f'{docker_log_prefix}: {e}')
             raise e
