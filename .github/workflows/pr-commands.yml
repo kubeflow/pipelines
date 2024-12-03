@@ -9,7 +9,7 @@ jobs:
   process-command:
     runs-on: ubuntu-latest
     # Fail early if the command is not recognized
-    if: github.event.comment.body == '/ok-to-test'
+    if: contains(github.event.comment.body, '/ok-to-test')
     outputs:
       PR_SHA: ${{ steps.fetch-pr-sha.outputs.PR_SHA }}
     steps:
@@ -61,7 +61,7 @@ jobs:
   approve:
     runs-on: ubuntu-latest
     needs: process-command
-    if: github.event.comment.body == '/ok-to-test'
+    if: contains(github.event.comment.body, '/ok-to-test')
     steps:
       - name: Checkout Main Branch
         uses: actions/checkout@v3
