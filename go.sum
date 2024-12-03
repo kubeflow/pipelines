@@ -2210,8 +2210,10 @@ github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-exithandler v0.0.0-20231127
 github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-exithandler v0.0.0-20231127195001-a75d4b3711ff/go.mod h1:a6DSo/UxoG4hkJXJMo4nSmHURDEEiEVremmXy4GwdII=
 github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-kfptask v0.0.0-20231127195001-a75d4b3711ff h1:9gC2hCj8pnbfUKIFQKbmGjlR4p7Vr5v0u9hyLygnybw=
 github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-kfptask v0.0.0-20231127195001-a75d4b3711ff/go.mod h1:lAFdPugzj3bcAXyN3+8y0NByidZ88zwGxMc+gdc8cHw=
-github.com/kubeflow/pipelines/api v0.0.0-20231027040853-58ce09e07d03 h1:reL3LbkRIozBkKSUYjtQFV2kVC1R4WHG9FrTClRT1FY=
-github.com/kubeflow/pipelines/api v0.0.0-20231027040853-58ce09e07d03/go.mod h1:T7TOQB36gGe97yUdfVAnYK5uuT0+uQbLNHDUHxYkmE4=
+github.com/kubeflow/pipelines/api v0.0.0-20241126143452-94a21cc7e27a h1:TdvEhjEGtDpkp4YkVdYtoObLHcFxcrmmRmxnwkxSAu0=
+github.com/kubeflow/pipelines/api v0.0.0-20241126143452-94a21cc7e27a/go.mod h1:puPWVUzB1VCb8lVq4g06IR2rIXuSpejDTd/FkSr6nvc=
+github.com/kubeflow/pipelines/api v0.0.0-20241126190553-5cc1b8d22116 h1:sM0+448ywxNipQJhGx0mdRD3BiJn/y8D7jvrkvgtWy4=
+github.com/kubeflow/pipelines/api v0.0.0-20241126190553-5cc1b8d22116/go.mod h1:puPWVUzB1VCb8lVq4g06IR2rIXuSpejDTd/FkSr6nvc=
 github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240725205754-d911c8b73b49 h1:Xf1qun8x4ZJj/nLZpUSIaphDK04NKeV7WME31qIC8Xo=
 github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240725205754-d911c8b73b49/go.mod h1:UhJrmpVSWawsAsSr1OzZfsEZTvQce+GvGwcZ58ULEhM=
 github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20230810215105-e1f0c010f800 h1:YAW+X9xCW8Yq5tQaBBQaLTNU9CJj8Nr7lx1+k66ZHJ0=
@@ -3859,7 +3861,6 @@ google.golang.org/genproto v0.0.0-20210909211513-a8c4777a87af/go.mod h1:eFjDcFEc
 google.golang.org/genproto v0.0.0-20210917145530-b395a37504d4/go.mod h1:eFjDcFEctNawg4eG61bRv87N7iHBWyVhJu7u1kqDUXY=
 google.golang.org/genproto v0.0.0-20210924002016-3dee208752a0/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211016002631-37fc39342514/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
-google.golang.org/genproto v0.0.0-20211026145609-4688e4c4e024/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211206160659-862468c7d6e0/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
