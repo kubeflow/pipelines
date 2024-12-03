@@ -15,9 +15,11 @@
 
 import collections
 import copy
+import re
 from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 from kfp import dsl
+from kfp.dsl import constants
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context
@@ -803,3 +805,79 @@ def recursive_replace_placeholders(data: Union[Dict, List], old_value: str,
         if isinstance(data, pipeline_channel.PipelineChannel):
             data = str(data)
         return new_value if data == old_value else data
+
+
+def validate_cpu_request_limit_to_float(cpu: str) -> float:
+    """Validates cpu request/limit string and converts to its numeric float
+    value.
+
+    Args:
+        cpu: CPU requests or limits. This string should be a number or a
+            number followed by an "m" to indicate millicores (1/1000). For
+            more information, see `Specify a CPU Request and a CPU Limit
+            <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
+
+    Raises:
+        ValueError if the cpu request/limit string value is invalid.
+
+    Returns:
+        The numeric value (float) of the cpu request/limit.
+    """
+    if re.match(r'([0-9]*[.])?[0-9]+m?$', cpu) is None:
+        raise ValueError(
+            'Invalid cpu string. Should be float or integer, or integer'
+            ' followed by "m".')
+
+    return float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
+
+
+def validate_memory_request_limit_to_float(memory: str) -> float:
+    """Validates memory request/limit string and converts to its numeric value.
+
+    Args:
+        memory: Memory requests or limits. This string should be a number or
+            a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G",
+            "Gi", "M", "Mi", "K", or "Ki".
+
+    Raises:
+        ValueError if the memory request/limit string value is invalid.
+
+    Returns:
+        The numeric value (float) of the memory request/limit.
+    """
+    if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
+                memory) is None:
+        raise ValueError(
+            'Invalid memory string. Should be a number or a number '
+            'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
+            '"Gi", "M", "Mi", "K", "Ki".')
+
+    if memory.endswith('E'):
+        memory = float(memory[:-1]) * constants._E / constants._G
+    elif memory.endswith('Ei'):
+        memory = float(memory[:-2]) * constants._EI / constants._G
+    elif memory.endswith('P'):
+        memory = float(memory[:-1]) * constants._P / constants._G
+    elif memory.endswith('Pi'):
+        memory = float(memory[:-2]) * constants._PI / constants._G
+    elif memory.endswith('T'):
+        memory = float(memory[:-1]) * constants._T / constants._G
+    elif memory.endswith('Ti'):
+        memory = float(memory[:-2]) * constants._TI / constants._G
+    elif memory.endswith('G'):
+        memory = float(memory[:-1])
+    elif memory.endswith('Gi'):
+        memory = float(memory[:-2]) * constants._GI / constants._G
+    elif memory.endswith('M'):
+        memory = float(memory[:-1]) * constants._M / constants._G
+    elif memory.endswith('Mi'):
+        memory = float(memory[:-2]) * constants._MI / constants._G
+    elif memory.endswith('K'):
+        memory = float(memory[:-1]) * constants._K / constants._G
+    elif memory.endswith('Ki'):
+        memory = float(memory[:-2]) * constants._KI / constants._G
+    else:
+        # By default interpret as a plain integer, in the unit of Bytes.
+        memory = float(memory) / constants._G
+
+    return memory
