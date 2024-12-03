@@ -62,13 +62,17 @@ deploymentSpec:
         resources:
           accelerator:
             count: '1'
-            type: tpu-v3
+            type: 'tpu-v3'
             resourceCount: '1'
-            resourceType: tpu-v3
+            resourceType: 'tpu-v3'
+          cpuLimit: 4.0
+          cpuRequest: 2.0
+          memoryLimit: 15.032385536
+          memoryRequest: 4.294967296
           resourceCpuLimit: '4'
           resourceCpuRequest: '2'
-          resourceMemoryLimit: 14Gi
-          resourceMemoryRequest: 4Gi
+          resourceMemoryLimit: '14Gi'
+          resourceMemoryRequest: '4Gi'
 pipelineInfo:
   description: A linear two-step pipeline with resource specification.
   name: two-step-pipeline-with-resource-spec
