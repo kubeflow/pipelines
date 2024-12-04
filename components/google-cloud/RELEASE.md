@@ -1,4 +1,6 @@
 ## Upcoming release
+
+## Release 2.18.0
 * Remove default prediction column names in `v1.model_evaluation.regression_component` component to fix pipeline errors when using bigquery data source.
 * Add reservation_affinition support in `v1.create_custom_training_job_from_component`.
 * Deprecate `preview.custom_job` module.
@@ -8,6 +10,7 @@
 * Support Python versions 3.12 and 3.13.
 * Bump image for Structured Data pipelines.
 * Add strategy to v1 GCPC custom job components/utils
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates)
 
 ## Release 2.17.0
 * Fix Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline` after output schema change.
