@@ -1789,6 +1789,15 @@ func createPVC(
 		},
 	}
 
+	// Optional input: data_source
+	if pvcDataSourceInput, ok := inputs.ParameterValues["data_source"]; ok {
+		dataSource, err := buildPVCDataSource(pvcDataSourceInput)
+		if err != nil {
+			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to build data source: %w", err)
+		}
+		pvc.Spec.DataSource = dataSource
+	}
+
 	// Create the PVC in the cluster
 	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
 	if err != nil {
@@ -1809,6 +1818,30 @@ func createPVC(
 	}
 
 	return createdPVC.ObjectMeta.Name, createdExecution, pb.Execution_COMPLETE, nil
+}
+
+// buildPVCDataSource converts a protobuf Value representing a PVC data source
+// into a Kubernetes TypedLocalObjectReference. If the input is nil or if JSON
+// marshaling/unmarshaling fails, it returns an error. Field validation is
+// deferred to the Kubernetes API during PVC creation.
+func buildPVCDataSource(pvcDataSourceInput *structpb.Value) (*k8score.TypedLocalObjectReference, error) {
+	if pvcDataSourceInput == nil {
+		return nil, fmt.Errorf("data_source is nil")
+	}
+
+	var dataSource k8score.TypedLocalObjectReference
+	dataSourceStructByte, err := pvcDataSourceInput.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal data_source %v: %w", pvcDataSourceInput.String(), err)
+	}
+
+	if err := json.Unmarshal(dataSourceStructByte, &dataSource); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal data_source: %v. %w", string(dataSourceStructByte), err)
+	}
+
+	// Don't do any validation here, if there is a missing required fields, the k8s API will return
+	// an error during the PVC creation.
+	return &dataSource, nil
 }
 
 func deletePVC(

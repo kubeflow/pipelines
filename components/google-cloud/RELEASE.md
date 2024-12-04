@@ -11,6 +11,7 @@
 * Bump image for Structured Data pipelines.
 * Add strategy to v1 GCPC custom job components/utils
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates)
+* Support PVC creation using the data_source parameter.
 
 ## Release 2.17.0
 * Fix Gemini batch prediction support to `v1.model_evaluation.autosxs_pipeline` after output schema change.

@@ -21,6 +21,11 @@ components:
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
           isOptional: true
           parameterType: STRUCT
+        data_source:
+          description: Data source to use for the PVC's creation. Corresponds to `PersistentVolumeClaim.spec.dataSource
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#beta-level>`_.
+          isOptional: true
+          parameterType: STRUCT
         pvc_name:
           description: 'Name of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
@@ -86,7 +91,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.4.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.10.1'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -161,7 +166,7 @@ root:
         taskInfo:
           name: deletepvc
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.4.0
+sdkVersion: kfp-2.10.1
 ---
 platforms:
   kubernetes:
