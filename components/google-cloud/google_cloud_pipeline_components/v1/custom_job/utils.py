@@ -210,7 +210,7 @@ def create_custom_training_job_from_component(
       user_component_spec_key
   ]
 
-  # add custom job defaults based on user-provided args
+  # add custom job defaults based on user-provided args.
   custom_job_param_defaults = {
       'display_name': display_name or component_spec.component_spec.name,
       'worker_pool_specs': worker_pool_specs,
