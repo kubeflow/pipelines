@@ -2,6 +2,7 @@
 
 ## Features
 * Expose `--existing-token` flag in `kfp` CLI to allow users to provide an existing token for authentication. [\#11400](https://github.com/kubeflow/pipelines/pull/11400)
+* Add the ability to parameterize container images for tasks within pipelines
 
 ## Breaking changes
 

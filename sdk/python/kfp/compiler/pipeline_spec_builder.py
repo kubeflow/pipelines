@@ -135,6 +135,11 @@ def build_task_spec_for_task(
             if val and pipeline_channel.extract_pipeline_channels_from_any(val):
                 task.inputs[key] = val
 
+    if task.container_spec and task.container_spec.image:
+        val = task.container_spec.image
+        if val and pipeline_channel.extract_pipeline_channels_from_any(val):
+            task.inputs['base_image'] = val
+
     for input_name, input_value in task.inputs.items():
         # Since LoopParameterArgument and LoopArtifactArgument and LoopArgumentVariable are narrower
         # types than PipelineParameterChannel, start with them.
@@ -634,7 +639,7 @@ def build_container_spec_for_task(
 
     container_spec = (
         pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
-            image=task.container_spec.image,
+            image=convert_to_placeholder(task.container_spec.image),
             command=task.container_spec.command,
             args=task.container_spec.args,
             env=[

@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package driver
 
 import (
@@ -448,19 +449,28 @@ func initPodSpecPatch(
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
 		if accelerator.GetType() != "" && accelerator.GetCount() > 0 {
+			acceleratorType, err := resolvePodSpecInputRuntimeParameter(accelerator.GetType(), executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+			}
 			q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", accelerator.GetCount()))
 			if err != nil {
 				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 			}
-			res.Limits[k8score.ResourceName(accelerator.GetType())] = q
+			res.Limits[k8score.ResourceName(acceleratorType)] = q
 		}
+	}
+
+	containerImage, err := resolvePodSpecInputRuntimeParameter(container.Image, executorInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
 	podSpec := &k8score.PodSpec{
 		Containers: []k8score.Container{{
 			Name:      "main", // argo task user container is always called "main"
 			Command:   launcherCmd,
 			Args:      userCmdArgs,
-			Image:     container.Image,
+			Image:     containerImage,
 			Resources: res,
 			Env:       userEnvVar,
 		}},
