@@ -461,6 +461,9 @@ message PipelineTaskSpec {
   message CachingOptions {
     // Whether or not to enable cache for this task. Defaults to false.
     bool enable_cache = 1;
+    // Customized cache key for this task. If set, the cache_key will be used
+    // as the key for the task's cache.
+    string cache_key = 2;
   }
   CachingOptions caching_options = 6;
 
@@ -620,7 +623,7 @@ message PipelineInfo {
   // Required field. The name of the pipeline.
   // The name will be used to create or find pipeline context in MLMD.
   string name = 1;
-  
+
   // Optional fields. The readable display name for the pipeline template.
   // Should not exceed 1024 characters.
   string display_name = 2;
@@ -783,7 +786,7 @@ message PipelineDeploymentConfig {
         string resource_count = 4;
       }
       AcceleratorConfig accelerator = 3;
-      
+
       reserved 4;
     }
     ResourceSpec resources = 5;
