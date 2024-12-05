@@ -15,15 +15,15 @@
 package client
 
 import (
+	"os"
+
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"os"
 )
 
 func getKubernetesClientset(clientParams util.ClientParameters) (*kubernetes.Clientset, error) {
-	restConfig, err := rest.InClusterConfig()
+	restConfig, err := util.GetKubernetesConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to initialize kubernetes client")
 	}

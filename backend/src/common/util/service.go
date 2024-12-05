@@ -50,6 +50,26 @@ func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAd
 	return errors.Wrapf(err, "Waiting for ml pipeline API server failed after all attempts.")
 }
 
+// GetKubernetesConfig will first try an in-cluster configuration but fallback to using a kubeconfig.
+func GetKubernetesConfig() (*rest.Config, error) {
+	restConfig, errInCluster := rest.InClusterConfig()
+	if errInCluster == nil {
+		return restConfig, nil
+	}
+
+	// Fallback to using a kubeconfig
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{},
+	)
+
+	restConfig, errKubeconfig := clientConfig.ClientConfig()
+	if errKubeconfig != nil {
+		return nil, fmt.Errorf("%w; %w", errInCluster, errKubeconfig)
+	}
+
+	return restConfig, nil
+}
+
 func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 	*kubernetes.Clientset, *rest.Config, string, error,
 ) {
