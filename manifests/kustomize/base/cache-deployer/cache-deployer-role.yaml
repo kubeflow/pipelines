@@ -3,6 +3,7 @@ kind: Role
 metadata:
   labels:
     app: kubeflow-pipelines-cache-deployer-role
+    application-crd-id: kubeflow-pipelines
   name: kubeflow-pipelines-cache-deployer-role
 rules:
 - apiGroups:

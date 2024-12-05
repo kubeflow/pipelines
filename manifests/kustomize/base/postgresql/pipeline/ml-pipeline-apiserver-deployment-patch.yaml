@@ -2,8 +2,16 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ml-pipeline
+  label:
+    application-crd-id: kubeflow-pipelines
 spec:
+  selector:
+    matchLabels:
+      application-crd-id: kubeflow-pipelines
   template:
+    metadata:
+      label:
+        application-crd-id: kubeflow-pipelines
     spec:
       containers:
       - name: ml-pipeline-api-server
