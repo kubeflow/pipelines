@@ -54,6 +54,7 @@ import InputOutputTab, {
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+import { PodEvents } from '../PodYaml';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
@@ -168,10 +169,14 @@ function TaskNodeDetail({
 
   const [selectedTab, setSelectedTab] = useState(0);
 
+  const customPropertiesMap = execution?.getCustomPropertiesMap();
+  const podName = customPropertiesMap?.get(KfpExecutionProperties.POD_NAME)?.getStringValue() || '';
+  const podNameSpace = customPropertiesMap?.get('namespace')?.getStringValue() || '';
+
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Logs']}
+        tabs={['Input/Output', 'Task Details', 'Logs', 'Events']}
         selectedTab={selectedTab}
         onSwitch={tab => setSelectedTab(tab)}
       />
@@ -208,6 +213,12 @@ function TaskNodeDetail({
                 <LogViewer logLines={(logsDetails || '').split(/[\r\n]+/)} />
               </div>
             )}
+          </div>
+        )}
+        {/* Events tab */}
+        {selectedTab === 3 && (
+          <div className={commonCss.page}>
+            <PodEvents name={podName} namespace={podNameSpace} />
           </div>
         )}
       </div>
