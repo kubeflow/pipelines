@@ -40,7 +40,7 @@
 * **internal:** Adding proto field to support regional quota ([c8f08ba](https://github.com/kubeflow/pipelines/commit/c8f08ba49f92f53269d71425666c0bc3a687615d))
 * **kubernetes_platform:** Add empty dir mount ([\#10892](https://github.com/kubeflow/pipelines/issues/10892)) ([10aaf43](https://github.com/kubeflow/pipelines/commit/10aaf431367e974bf6c73306acf6a7fd40e36942))
 * **kubernetes_platform:** Update kubernetes_platform go package to include EnabledSharedMemory ([\#10703](https://github.com/kubeflow/pipelines/issues/10703)) ([7c63599](https://github.com/kubeflow/pipelines/commit/7c6359984314472bf801ea1ba8b0e8c5d9e2be2c))
-
+* **kubernetes_platform:** Update kubernetes_platform go package to include node DataSource on PersistentVolumeClaim's creation ([\#11420](https://github.com/kubeflow/pipelines/issues/11420)
 
 ### Bug Fixes
 
