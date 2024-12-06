@@ -23,7 +23,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/rest"
 )
 
 type ArgoClientInterface interface {
@@ -41,7 +40,7 @@ func (argoClient *ArgoClient) Workflow(namespace string) argoprojv1alpha1.Workfl
 func NewArgoClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) *ArgoClient {
 	var argoProjClient argoprojv1alpha1.ArgoprojV1alpha1Interface
 	operation := func() error {
-		restConfig, err := rest.InClusterConfig()
+		restConfig, err := util.GetKubernetesConfig()
 		if err != nil {
 			return errors.Wrap(err, "Failed to initialize the RestConfig")
 		}
