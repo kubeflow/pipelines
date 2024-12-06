@@ -16,9 +16,9 @@ package v1beta1
 
 import (
 	"github.com/kubeflow/pipelines/backend/src/common"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // +genclient
@@ -198,7 +198,7 @@ type ScheduledWorkflowCondition struct {
 	// Type of job condition.
 	Type ScheduledWorkflowConditionType `json:"type,omitempty"`
 	// Status of the condition, one of True, False, Unknown.
-	Status core.ConditionStatus `json:"status,omitempty"`
+	Status corev1.ConditionStatus `json:"status,omitempty"`
 	// Last time the condition was checked.
 	// +optional
 	LastProbeTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
