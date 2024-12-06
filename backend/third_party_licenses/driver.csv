@@ -48,7 +48,7 @@ github.com/google/go-containerregistry/pkg/name,https://github.com/google/go-con
 github.com/google/gofuzz,https://github.com/google/gofuzz/blob/v1.2.0/LICENSE,Apache-2.0
 github.com/google/s2a-go,https://github.com/google/s2a-go/blob/v0.1.7/LICENSE.md,Apache-2.0
 github.com/google/uuid,https://github.com/google/uuid/blob/v1.5.0/LICENSE,BSD-3-Clause
-github.com/google/wire,https://github.com/google/wire/blob/v0.4.0/LICENSE,Apache-2.0
+github.com/google/wire,https://github.com/google/wire/blob/v0.5.0/LICENSE,Apache-2.0
 github.com/googleapis/enterprise-certificate-proxy/client,https://github.com/googleapis/enterprise-certificate-proxy/blob/v0.3.2/LICENSE,Apache-2.0
 github.com/googleapis/gax-go/v2,https://github.com/googleapis/gax-go/blob/v2.12.0/v2/LICENSE,BSD-3-Clause
 github.com/gorilla/websocket,https://github.com/gorilla/websocket/blob/v1.5.0/LICENSE,BSD-2-Clause
@@ -115,7 +115,7 @@ go.opentelemetry.io/otel/trace,https://github.com/open-telemetry/opentelemetry-g
 go.uber.org/atomic,https://github.com/uber-go/atomic/blob/v1.10.0/LICENSE.txt,MIT
 go.uber.org/multierr,https://github.com/uber-go/multierr/blob/v1.11.0/LICENSE.txt,MIT
 go.uber.org/zap,https://github.com/uber-go/zap/blob/v1.26.0/LICENSE.txt,MIT
-gocloud.dev,https://github.com/google/go-cloud/blob/v0.22.0/LICENSE,Apache-2.0
+gocloud.dev,https://github.com/google/go-cloud/blob/v0.23.0/LICENSE,Apache-2.0
 golang.org/x/crypto,https://cs.opensource.google/go/x/crypto/+/v0.22.0:LICENSE,BSD-3-Clause
 golang.org/x/exp,https://cs.opensource.google/go/x/exp/+/92128663:LICENSE,BSD-3-Clause
 golang.org/x/net,https://cs.opensource.google/go/x/net/+/v0.23.0:LICENSE,BSD-3-Clause

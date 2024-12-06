@@ -46,7 +46,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tektoncd/pipeline v0.54.0
 	go.uber.org/zap v1.26.0 // indirect
-	gocloud.dev v0.22.0
+	gocloud.dev v0.23.0
 	golang.org/x/net v0.23.0
 	google.golang.org/genproto v0.0.0-20231212172506-995d672761c0 // indirect
 	google.golang.org/grpc v1.60.1
@@ -113,7 +113,7 @@ require (
 	github.com/google/go-containerregistry v0.16.1 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
-	github.com/google/wire v0.4.0 // indirect
+	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
@@ -159,7 +159,7 @@ require (
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
@@ -208,9 +208,16 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
 
+// Introduced through tekton dependencies
 replace (
+	github.com/cloudevents/sdk-go/v2 => github.com/cloudevents/sdk-go/v2 v2.15.1
+	github.com/containerd/containerd => github.com/containerd/containerd v1.7.13
+	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.9.1
+	github.com/jackc/pgproto3/v2 => github.com/jackc/pgproto3/v2 v2.3.3
 	github.com/kubeflow/kfp-tekton/tekton-catalog/cache => github.com/kubeflow/kfp-tekton/tekton-catalog/cache v0.0.0-20231127195001-a75d4b3711ff
 	github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore => github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore v0.0.0-20231127195001-a75d4b3711ff
+	github.com/open-policy-agent/opa => github.com/open-policy-agent/opa v0.43.1
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.12
 	gopkg.in/src-d/go-git.v4 => github.com/go-git/go-git/v5 v5.12.0
 )
 

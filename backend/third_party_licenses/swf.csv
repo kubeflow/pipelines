@@ -75,7 +75,7 @@ github.com/mxk/go-flowrate/flowrate,https://github.com/mxk/go-flowrate/blob/cca7
 github.com/oklog/ulid,https://github.com/oklog/ulid/blob/v1.3.1/LICENSE,Apache-2.0
 github.com/oliveagle/jsonpath,https://github.com/oliveagle/jsonpath/blob/2e52cf6e6852/LICENSE,MIT
 github.com/opencontainers/go-digest,https://github.com/opencontainers/go-digest/blob/v1.0.0/LICENSE,Apache-2.0
-github.com/pelletier/go-toml/v2,https://github.com/pelletier/go-toml/blob/v2.0.6/LICENSE,MIT
+github.com/pelletier/go-toml/v2,https://github.com/pelletier/go-toml/blob/v2.0.8/LICENSE,MIT
 github.com/pkg/errors,https://github.com/pkg/errors/blob/v0.9.1/LICENSE,BSD-2-Clause
 github.com/prometheus/client_golang/prometheus,https://github.com/prometheus/client_golang/blob/v1.18.0/LICENSE,Apache-2.0
 github.com/prometheus/client_model/go,https://github.com/prometheus/client_model/blob/v0.5.0/LICENSE,Apache-2.0
