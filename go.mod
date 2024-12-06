@@ -43,7 +43,7 @@ require (
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.15.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/tektoncd/pipeline v0.54.0
 	go.uber.org/zap v1.26.0 // indirect
 	gocloud.dev v0.22.0
@@ -211,6 +211,7 @@ require (
 replace (
 	github.com/kubeflow/kfp-tekton/tekton-catalog/cache => github.com/kubeflow/kfp-tekton/tekton-catalog/cache v0.0.0-20231127195001-a75d4b3711ff
 	github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore => github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore v0.0.0-20231127195001-a75d4b3711ff
+	gopkg.in/src-d/go-git.v4 => github.com/go-git/go-git/v5 v5.12.0
 )
 
 go 1.21
