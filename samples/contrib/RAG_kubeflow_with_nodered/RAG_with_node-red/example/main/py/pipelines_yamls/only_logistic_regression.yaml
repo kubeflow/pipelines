@@ -1,0 +1,131 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: only-logistic-regression-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.20, pipelines.kubeflow.org/pipeline_compilation_time: '2023-04-28T21:47:07.033809',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Applies Logistic Regression
+      for classification problem.", "name": "only_logistic_regression"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.20}
+spec:
+  entrypoint: only-logistic-regression
+  templates:
+  - name: download-data-function
+    container:
+      args: []
+      command: [python, download_data.py, --data, /tmp/outputs/Data/data]
+      image: lightnighttw/kubeflow:download_data
+      resources:
+          limits:
+            cpu: 2
+    outputs:
+      artifacts:
+      - {name: download-data-function-Data, path: /tmp/outputs/Data/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.20
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Download
+          toy data from sklearn datasets", "implementation": {"container": {"command":
+          ["python", "download_data.py", "--data", {"outputPath": "Data"}], "image":
+          "lightnighttw/kubeflow:download_data"}}, "name": "Download Data Function",
+          "outputs": [{"description": "Path where data will be stored.", "name": "Data",
+          "type": "LocalPath"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "467750defdccfec51c3af2a7eb853f74235f5f97329006d72bf33ff6e15ed02d", "url":
+          "download_data/download_data.yaml"}'}
+  - name: logistic-regression-classifier
+    container:
+      args: []
+      command: [python, logistic_regression.py, --data, /tmp/inputs/Data/data, --accuracy,
+        /tmp/outputs/Accuracy/data]
+      image: lightnighttw/kubeflow:logistic_regression
+      resources:
+          limits:
+            cpu: 2
+    inputs:
+      artifacts:
+      - {name: download-data-function-Data, path: /tmp/inputs/Data/data}
+    outputs:
+      parameters:
+      - name: logistic-regression-classifier-Accuracy
+        valueFrom: {path: /tmp/outputs/Accuracy/data}
+      artifacts:
+      - {name: logistic-regression-classifier-Accuracy, path: /tmp/outputs/Accuracy/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.20
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Trains
+          a Logistic Regression Classifier", "implementation": {"container": {"command":
+          ["python", "logistic_regression.py", "--data", {"inputPath": "Data"}, "--accuracy",
+          {"outputPath": "Accuracy"}], "image": "lightnighttw/kubeflow:logistic_regression"}},
+          "inputs": [{"description": "Path where data is stored.", "name": "Data",
+          "type": "LocalPath"}], "name": "Logistic Regression Classifier", "outputs":
+          [{"description": "Accuracy metric", "name": "Accuracy", "type": "Float"}]}',
+        pipelines.kubeflow.org/component_ref: '{"digest": "a8d1e77d07d18a75bef200aee96f35136833fc4bb535f33fd949a307beb094c2",
+          "url": "logistic_regression/logistic_regression.yaml"}'}
+  - name: only-logistic-regression
+    dag:
+      tasks:
+      - {name: download-data-function, template: download-data-function}
+      - name: logistic-regression-classifier
+        template: logistic-regression-classifier
+        dependencies: [download-data-function]
+        arguments:
+          artifacts:
+          - {name: download-data-function-Data, from: '{{tasks.download-data-function.outputs.artifacts.download-data-function-Data}}'}
+      - name: show-results
+        template: show-results
+        dependencies: [logistic-regression-classifier]
+        arguments:
+          parameters:
+          - {name: logistic-regression-classifier-Accuracy, value: '{{tasks.logistic-regression-classifier.outputs.parameters.logistic-regression-classifier-Accuracy}}'}
+  - name: show-results
+    container:
+      args: [--logistic-regression, '{{inputs.parameters.logistic-regression-classifier-Accuracy}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def show_results(logistic_regression):
+            # the results are shown.
+
+            print(f"Logistic regression (accuracy): {logistic_regression}")
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Show results', description='')
+        _parser.add_argument("--logistic-regression", dest="logistic_regression", type=float, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = show_results(**_parsed_args)
+      image: python:3.7
+      resources:
+          limits:
+            cpu: 2
+    inputs:
+      parameters:
+      - {name: logistic-regression-classifier-Accuracy}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.20
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--logistic-regression", {"inputValue": "logistic_regression"}],
+          "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" >
+          \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def show_results(logistic_regression):\n    #
+          the results are shown.\n\n    print(f\"Logistic regression (accuracy): {logistic_regression}\")\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Show results'', description='''')\n_parser.add_argument(\"--logistic-regression\",
+          dest=\"logistic_regression\", type=float, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = show_results(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "logistic_regression", "type":
+          "Float"}], "name": "Show results"}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"logistic_regression": "{{inputs.parameters.logistic-regression-classifier-Accuracy}}"}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner

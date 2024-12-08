@@ -1,0 +1,184 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: kfserving-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0, pipelines.kubeflow.org/pipeline_compilation_time: '2023-11-14T09:23:34.926467',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline for KFServing
+      with PVC.", "inputs": [{"default": "apply", "name": "action", "optional": true},
+      {"default": "kubeflow02", "name": "namespace", "optional": true}, {"default":
+      "undefined", "name": "pvc_name", "optional": true}, {"default": "model01", "name":
+      "model_name", "optional": true}], "name": "KFServing pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.0}
+spec:
+  entrypoint: kfserving-pipeline
+  templates:
+  - name: kfserving-pipeline
+    inputs:
+      parameters:
+      - {name: action}
+      - {name: model_name}
+      - {name: namespace}
+      - {name: pvc_name}
+    dag:
+      tasks:
+      - name: serve-a-model-with-kserve
+        template: serve-a-model-with-kserve
+        arguments:
+          parameters:
+          - {name: action, value: '{{inputs.parameters.action}}'}
+          - {name: model_name, value: '{{inputs.parameters.model_name}}'}
+          - {name: namespace, value: '{{inputs.parameters.namespace}}'}
+          - {name: pvc_name, value: '{{inputs.parameters.pvc_name}}'}
+  - name: serve-a-model-with-kserve
+    container:
+      args:
+      - -u
+      - kservedeployer.py
+      - --action
+      - '{{inputs.parameters.action}}'
+      - --model-name
+      - ''
+      - --model-uri
+      - ''
+      - --canary-traffic-percent
+      - '100'
+      - --namespace
+      - ''
+      - --framework
+      - ''
+      - --runtime-version
+      - latest
+      - --resource-requests
+      - '{"cpu": "0.5", "memory": "512Mi"}'
+      - --resource-limits
+      - '{"cpu": "1", "memory": "1Gi"}'
+      - --custom-model-spec
+      - '{}'
+      - --autoscaling-target
+      - '0'
+      - --service-account
+      - ''
+      - --enable-istio-sidecar
+      - "True"
+      - --output-path
+      - /tmp/outputs/InferenceService_Status/data
+      - --inferenceservice-yaml
+      - |2
+
+        apiVersion: "serving.kserve.io/v1beta1"
+        kind: "InferenceService"
+        metadata:
+          name: {{inputs.parameters.model_name}}
+          namespace: {{inputs.parameters.namespace}}
+        spec:
+          predictor:
+            sklearn:
+              storageUri: pvc://{{inputs.parameters.pvc_name}}/{{inputs.parameters.model_name}}/
+              resources:
+                limits:
+                  cpu: "100m"
+                requests:
+                  cpu: "100m"
+      - --watch-timeout
+      - '300'
+      - --min-replicas
+      - '-1'
+      - --max-replicas
+      - '-1'
+      - --request-timeout
+      - '60'
+      - --enable-isvc-status
+      - "True"
+      command: [python]
+      image: quay.io/aipipeline/kserve-component:v0.11.1
+      resources:
+        limits: {cpu: 500m}
+        requests: {cpu: 500m}
+    inputs:
+      parameters:
+      - {name: action}
+      - {name: model_name}
+      - {name: namespace}
+      - {name: pvc_name}
+    outputs:
+      artifacts:
+      - {name: serve-a-model-with-kserve-InferenceService-Status, path: /tmp/outputs/InferenceService_Status/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.0
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Serve
+          Models using KServe", "implementation": {"container": {"args": ["-u", "kservedeployer.py",
+          "--action", {"inputValue": "Action"}, "--model-name", {"inputValue": "Model
+          Name"}, "--model-uri", {"inputValue": "Model URI"}, "--canary-traffic-percent",
+          {"inputValue": "Canary Traffic Percent"}, "--namespace", {"inputValue":
+          "Namespace"}, "--framework", {"inputValue": "Framework"}, "--runtime-version",
+          {"inputValue": "Runtime Version"}, "--resource-requests", {"inputValue":
+          "Resource Requests"}, "--resource-limits", {"inputValue": "Resource Limits"},
+          "--custom-model-spec", {"inputValue": "Custom Model Spec"}, "--autoscaling-target",
+          {"inputValue": "Autoscaling Target"}, "--service-account", {"inputValue":
+          "Service Account"}, "--enable-istio-sidecar", {"inputValue": "Enable Istio
+          Sidecar"}, "--output-path", {"outputPath": "InferenceService Status"}, "--inferenceservice-yaml",
+          {"inputValue": "InferenceService YAML"}, "--watch-timeout", {"inputValue":
+          "Watch Timeout"}, "--min-replicas", {"inputValue": "Min Replicas"}, "--max-replicas",
+          {"inputValue": "Max Replicas"}, "--request-timeout", {"inputValue": "Request
+          Timeout"}, "--enable-isvc-status", {"inputValue": "Enable ISVC Status"}],
+          "command": ["python"], "image": "quay.io/aipipeline/kserve-component:v0.11.1"}},
+          "inputs": [{"default": "create", "description": "Action to execute on KServe",
+          "name": "Action", "type": "String"}, {"default": "", "description": "Name
+          to give to the deployed model", "name": "Model Name", "type": "String"},
+          {"default": "", "description": "Path of the S3 or GCS compatible directory
+          containing the model.", "name": "Model URI", "type": "String"}, {"default":
+          "100", "description": "The traffic split percentage between the candidate
+          model and the last ready model", "name": "Canary Traffic Percent", "type":
+          "String"}, {"default": "", "description": "Kubernetes namespace where the
+          KServe service is deployed.", "name": "Namespace", "type": "String"}, {"default":
+          "", "description": "Machine Learning Framework for Model Serving.", "name":
+          "Framework", "type": "String"}, {"default": "latest", "description": "Runtime
+          Version of Machine Learning Framework", "name": "Runtime Version", "type":
+          "String"}, {"default": "{\"cpu\": \"0.5\", \"memory\": \"512Mi\"}", "description":
+          "CPU and Memory requests for Model Serving", "name": "Resource Requests",
+          "type": "String"}, {"default": "{\"cpu\": \"1\", \"memory\": \"1Gi\"}",
+          "description": "CPU and Memory limits for Model Serving", "name": "Resource
+          Limits", "type": "String"}, {"default": "{}", "description": "Custom model
+          runtime container spec in JSON", "name": "Custom Model Spec", "type": "String"},
+          {"default": "0", "description": "Autoscaling Target Number", "name": "Autoscaling
+          Target", "type": "String"}, {"default": "", "description": "ServiceAccount
+          to use to run the InferenceService pod", "name": "Service Account", "type":
+          "String"}, {"default": "True", "description": "Whether to enable istio sidecar
+          injection", "name": "Enable Istio Sidecar", "type": "Bool"}, {"default":
+          "{}", "description": "Raw InferenceService serialized YAML for deployment",
+          "name": "InferenceService YAML", "type": "String"}, {"default": "300", "description":
+          "Timeout seconds for watching until InferenceService becomes ready.", "name":
+          "Watch Timeout", "type": "String"}, {"default": "-1", "description": "Minimum
+          number of InferenceService replicas", "name": "Min Replicas", "type": "String"},
+          {"default": "-1", "description": "Maximum number of InferenceService replicas",
+          "name": "Max Replicas", "type": "String"}, {"default": "60", "description":
+          "Specifies the number of seconds to wait before timing out a request to
+          the component.", "name": "Request Timeout", "type": "String"}, {"default":
+          "True", "description": "Specifies whether to store the inference service
+          status as the output parameter", "name": "Enable ISVC Status", "type": "Bool"}],
+          "name": "Serve a model with KServe", "outputs": [{"description": "Status
+          JSON output of InferenceService", "name": "InferenceService Status", "type":
+          "String"}]}', pipelines.kubeflow.org/component_ref: '{"digest": "b0379af21c170410b8b1a9606cb6cad63f99b0af53c2a5c1f0af397b53c81cd7",
+          "url": "https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kserve/component.yaml"}',
+        pipelines.kubeflow.org/arguments.parameters: '{"Action": "{{inputs.parameters.action}}",
+          "Autoscaling Target": "0", "Canary Traffic Percent": "100", "Custom Model
+          Spec": "{}", "Enable ISVC Status": "True", "Enable Istio Sidecar": "True",
+          "Framework": "", "InferenceService YAML": "\napiVersion: \"serving.kserve.io/v1beta1\"\nkind:
+          \"InferenceService\"\nmetadata:\n  name: {{inputs.parameters.model_name}}\n  namespace:
+          {{inputs.parameters.namespace}}\nspec:\n  predictor:\n    sklearn:\n      storageUri:
+          pvc://{{inputs.parameters.pvc_name}}/{{inputs.parameters.model_name}}/\n      resources:\n        limits:\n          cpu:
+          \"100m\"\n        requests:\n          cpu: \"100m\"\n", "Max Replicas":
+          "-1", "Min Replicas": "-1", "Model Name": "", "Model URI": "", "Namespace":
+          "", "Request Timeout": "60", "Resource Limits": "{\"cpu\": \"1\", \"memory\":
+          \"1Gi\"}", "Resource Requests": "{\"cpu\": \"0.5\", \"memory\": \"512Mi\"}",
+          "Runtime Version": "latest", "Service Account": "", "Watch Timeout": "300"}'}
+  arguments:
+    parameters:
+    - {name: action, value: apply}
+    - {name: namespace, value: kubeflow02}
+    - {name: pvc_name, value: undefined}
+    - {name: model_name, value: model01}
+  serviceAccountName: pipeline-runner
