@@ -1,6 +1,11 @@
 name: "Set up KFP on KinD"
 description: "Step to start and configure KFP on KinD"
 
+inputs:
+  k8s_version:
+    description: "The Kubernetes version to use for the Kind cluster"
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -8,9 +13,9 @@ runs:
       uses: container-tools/kind-action@v2
       with:
         cluster_name: kfp
-        kubectl_version: v1.29.2
-        version: v0.22.0
-        node_image: kindest/node:v1.29.2
+        kubectl_version: ${{ inputs.k8s_version }}
+        version: v0.25.0
+        node_image: kindest/node:${{ inputs.k8s_version }}
 
     - name: Build images
       shell: bash
