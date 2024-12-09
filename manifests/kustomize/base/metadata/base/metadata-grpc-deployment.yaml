@@ -22,7 +22,7 @@ spec:
         # * .cloudbuild.yaml and .release.cloudbuild.yaml
         # * manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml
         # * test/tag_for_hosted.sh
-        image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
+        image: docker.intuit.com/personal/y0001/ml_metadata_store_server:1.5.0
         env:
         - name: DBCONFIG_USER
           valueFrom:
@@ -56,6 +56,7 @@ spec:
                "--mysql_config_port=$(MYSQL_PORT)",
                "--mysql_config_user=$(DBCONFIG_USER)",
                "--mysql_config_password=$(DBCONFIG_PASSWORD)",
+               "--mysql_config_verify_server_cert=false",
                "--enable_database_upgrade=true"
                ]
         ports:
