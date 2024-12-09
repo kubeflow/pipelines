@@ -1,8 +1,20 @@
 # Current Version (in development)
 
 ## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.11.0
+
+## Features
 * Expose `--existing-token` flag in `kfp` CLI to allow users to provide an existing token for authentication. [\#11400](https://github.com/kubeflow/pipelines/pull/11400)
-* Add the ability to parameterize container images for tasks within pipelines
+* Add the ability to parameterize container images for tasks within pipelines [\#11404](https://github.com/kubeflow/pipelines/pull/11404)
 
 ## Breaking changes
 
@@ -11,6 +23,7 @@
 ## Bug fixes and other changes
 * Add error handling for image build/push failures in KFP SDK. [\#11164](https://github.com/kubeflow/pipelines/pull/11356)
 * Backport fixes in kubeflow/pipelines#11075. [\#11392])(https://github.com/kubeflow/pipelines/pull/11392)
+* Depends on `kfp-pipeline-spec==0.6.0`. [\#11447](https://github.com/kubeflow/pipelines/pull/11447)
 
 ## Documentation updates
 
