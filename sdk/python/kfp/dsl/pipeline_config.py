@@ -18,6 +18,21 @@ class PipelineConfig:
     """PipelineConfig contains pipeline-level config options."""
 
     def __init__(self):
-        pass
+        self.semaphore_key = None
+        self.mutex_name = None
 
-    # TODO add pipeline level configs
+    def set_semaphore_key(self, semaphore_key: str):
+        """Set the name of the semaphore to control pipeline concurrency.
+
+        Args:
+            semaphore_key (str): Name of the semaphore.
+        """
+        self.semaphore_key = semaphore_key.strip()
+
+    def set_mutex_name(self, mutex_name: str):
+        """Set the name of the mutex to ensure mutual exclusion.
+
+        Args:
+            mutex_name (str): Name of the mutex.
+        """
+        self.mutex_name = mutex_name.strip()
