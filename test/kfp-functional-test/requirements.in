@@ -1,1 +1,2 @@
-kfp
+git+https://github.com/SimonDR-Boltzmann/kubeflow-pipelines.git@sdr-requests-toolbelt#subdirectory=sdk/python
+requests-toolbelt==1.0.0
