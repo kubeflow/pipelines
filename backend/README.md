@@ -78,3 +78,92 @@ Run
 ```
 docker build . -f backend/Dockerfile.conformance -t <tag>
 ```
+
+## API Server Development
+
+### Run Locally With a Kind Cluster
+
+This deploys a local Kubernetes cluster leveraging [kind](https://kind.sigs.k8s.io/), with all the components required
+to run the Kubeflow Pipelines API server. Note that the `ml-pipeline` `Deployment` (API server) has its replicas set to
+0 so that the API server can be run locally for debugging and faster development. The local API server is available by
+pods on the cluster using the `ml-pipeline` `Service`.
+
+#### Prerequisites
+
+* The [kind CLI](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) is installed.
+* The following ports are available on your localhost: 3000, 3306, 8080, 9000, and 8889. If these are unavailable,
+  modify [kind-config.yaml](../tools/kind/kind-config.yaml) and configure the API server with alternative ports when
+  running locally.
+* If using a Mac, you will need to modify the
+  [Endpoints](../manifests/kustomize/env/dev-kind/forward-local-api-endpoint.yaml) manifest to leverage the bridge
+  network interface through Docker/Podman Desktop. See
+  [kind #1200](https://github.com/kubernetes-sigs/kind/issues/1200#issuecomment-1304855791) for an example manifest.
+* Optional: VSCode is installed to leverage a sample `launch.json` file.
+
+#### Provisioning the Cluster
+
+To provision the kind cluster, run the following from the Git repository's root directory,:
+
+```bash
+make -C backend dev-kind-cluster
+```
+
+This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
+all the pods have started.
+
+#### Deleting the Cluster
+
+Run the following to delete the cluster:
+
+```bash
+kind delete clusters dev-pipelines-api
+```
+
+#### Launch the API Server With VSCode
+
+After the cluster is provisioned, you may leverage the following sample `.vscode/launch.json` file to run the API
+server locally:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch API Server (Kind)",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/backend/src/apiserver",
+      "env": {
+        "POD_NAMESPACE": "kubeflow",
+        "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
+        "MINIO_SERVICE_SERVICE_HOST": "localhost",
+        "MINIO_SERVICE_SERVICE_PORT": "9000",
+        "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
+        "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888"
+      },
+      "args": [
+        "--config",
+        "${workspaceFolder}/backend/src/apiserver/config",
+        "-logtostderr=true"
+      ]
+    }
+  ]
+}
+```
+
+#### Using the Environment
+
+Once the cluster is provisioned and the API server is running, you can access the API server at
+[http://localhost:8888](http://localhost:8888)
+(e.g. [http://localhost:8888/apis/v2beta1/pipelines](http://localhost:8888/apis/v2beta1/pipelines)).
+
+You can also access the Kubeflow Pipelines web interface at [http://localhost:3000](http://localhost:3000).
+
+You can also directly connect to the MariaDB database server with:
+
+```bash
+mysql -h 127.0.0.1 -u root
+```

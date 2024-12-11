@@ -1,6 +1,7 @@
 BUILD=build
 MOD_ROOT=..
 CSV_PATH=backend/third_party_licenses
+KIND_NAME ?= dev-pipelines-api
 
 # Container Build Params
 CONTAINER_ENGINE ?= docker
@@ -88,3 +89,14 @@ image_driver:
 .PHONY: image_launcher
 image_launcher:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_LAUNCHER} -f backend/Dockerfile.launcher .
+
+.PHONY: dev-kind-cluster
+dev-kind-cluster:
+	-kind create cluster --name $(KIND_NAME) --config $(CURDIR)/../tools/kind/kind-config.yaml
+	kubectl config use-context kind-$(KIND_NAME)
+	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
+	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind
+	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
+	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment

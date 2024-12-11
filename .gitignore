@@ -12,6 +12,7 @@ bower_components/
 
 # Build output
 dist
+__debug_bin*
 
 # Web server
 frontend/server/dist
