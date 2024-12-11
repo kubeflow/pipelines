@@ -109,7 +109,7 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 		}
 
 		// Add kubernetes spec to annotation
-		if state.kubernetesSpec != nil {
+		if state.kubernetesSpec != nil && state.kubernetesSpec.DeploymentSpec != nil {
 			kubernetesExecSpec, ok := state.kubernetesSpec.DeploymentSpec.Executors[executorLabel]
 			if ok {
 				state.visitor.AddKubernetesSpec(name, kubernetesExecSpec)
