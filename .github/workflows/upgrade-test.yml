@@ -14,6 +14,11 @@ on:
 jobs:
   upgrade-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+    name: KFP upgrade tests - K8s ${{ matrix.k8s_version }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,6 +30,8 @@ jobs:
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
 
       - name: Prepare upgrade tests
         working-directory: backend/test/integration
