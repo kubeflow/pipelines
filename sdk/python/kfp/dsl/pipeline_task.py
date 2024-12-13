@@ -99,6 +99,7 @@ class PipelineTask:
         args: Dict[str, Any],
         execute_locally: bool = False,
         execution_caching_default: bool = True,
+        execution_cache_key: str = "",
     ) -> None:
         """Initilizes a PipelineTask instance."""
         # import within __init__ to avoid circular import
@@ -131,7 +132,8 @@ class PipelineTask:
             inputs=dict(args.items()),
             dependent_tasks=[],
             component_ref=component_spec.name,
-            enable_caching=execution_caching_default)
+            enable_caching=execution_caching_default,
+            cache_key=execution_cache_key)
         self._run_after: List[str] = []
 
         self.importer_spec = None
@@ -301,16 +303,18 @@ class PipelineTask:
         return container_spec
 
     @block_if_final()
-    def set_caching_options(self, enable_caching: bool) -> 'PipelineTask':
+    def set_caching_options(self, enable_caching: bool, cache_key: str = "") -> 'PipelineTask':
         """Sets caching options for the task.
 
         Args:
             enable_caching: Whether to enable caching.
+            cache_key: Customized cache key for this task.
 
         Returns:
             Self return to allow chained setting calls.
         """
         self._task_spec.enable_caching = enable_caching
+        self._task_spec.cache_key = cache_key
         return self
 
     def _ensure_container_spec_exists(self) -> None:

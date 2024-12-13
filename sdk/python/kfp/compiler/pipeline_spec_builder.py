@@ -124,6 +124,8 @@ def build_task_spec_for_task(
         utils.sanitize_component_name(task.name))
     pipeline_task_spec.caching_options.enable_cache = (
         task._task_spec.enable_caching)
+    pipeline_task_spec.caching_options.cache_key = (
+        task._task_spec.cache_key)
 
     if task._task_spec.retry_policy is not None:
         pipeline_task_spec.retry_policy.CopyFrom(

@@ -409,6 +409,8 @@ class TaskSpec:
             from the [items][] collection.
         enable_caching (optional): whether or not to enable caching for the task.
             Default is True.
+        cache_key (optional): Customized cache key for this task.
+            Default is empty string.
         display_name (optional): the display name of the task. If not specified,
             the task name will be used as the display name.
     """
@@ -421,6 +423,7 @@ class TaskSpec:
     iterator_items: Optional[Any] = None
     iterator_item_input: Optional[str] = None
     enable_caching: bool = True
+    cache_key: str = ""
     display_name: Optional[str] = None
     retry_policy: Optional[RetryPolicy] = None
 
