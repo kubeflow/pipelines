@@ -16,6 +16,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"os"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -64,7 +65,7 @@ func (c *workflowCompiler) addImporterTemplate() string {
 	if _, alreadyExists := c.templates[name]; alreadyExists {
 		return name
 	}
-	launcherArgs := []string{
+	args := []string{
 		"--executor_type", "importer",
 		"--task_spec", inputValue(paramTask),
 		"--component_spec", inputValue(paramComponent),
@@ -81,6 +82,9 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 	}
+	if value, ok := os.LookupEnv(LauncherLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
 	importerTemplate := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -94,7 +98,7 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		Container: &k8score.Container{
 			Image:     c.launcherImage,
 			Command:   []string{"launcher-v2"},
-			Args:      launcherArgs,
+			Args:      args,
 			EnvFrom:   []k8score.EnvFromSource{metadataEnvFrom},
 			Env:       commonEnvs,
 			Resources: driverResources,
