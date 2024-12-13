@@ -1001,6 +1001,32 @@ class TestCompilePipelineCaching(unittest.TestCase):
 
             self.assertTrue(caching_options['enableCache'])
 
+    def test_compile_pipeline_with_cache_key(self):
+        """Test pipeline compilation with cache key."""
+
+        @dsl.component
+        def my_component():
+            pass
+
+        @dsl.pipeline(name='tiny-pipeline')
+        def my_pipeline():
+            my_task = my_component()
+            my_task.set_caching_options(True, cache_key='MY_KEY')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+
+            task_spec = pipeline_spec['root']['dag']['tasks']['my-component']
+            caching_options = task_spec['cachingOptions']
+
+            self.assertTrue(caching_options['enableCache'])
+            self.assertEqual(caching_options['cacheKey'], 'MY_KEY')
+
     def test_compile_pipeline_with_caching_disabled(self):
         """Test pipeline compilation with caching disabled."""
 
