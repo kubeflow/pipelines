@@ -20,6 +20,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 
 	"github.com/golang/glog"
 
@@ -77,7 +78,11 @@ func main() {
 
 	// Create a controller that is in charge of Viewer types, and also responds to
 	// changes to any deployment and services that is owned by any Viewer instance.
-	mgr, err := manager.New(cfg, manager.Options{Namespace: *namespace})
+	cacheOpts := cache.Options{
+		DefaultNamespaces: map[string]cache.Config{
+			*namespace: {},
+		}}
+	mgr, err := manager.New(cfg, manager.Options{Cache: cacheOpts})
 	if err != nil {
 		log.Fatal(err)
 	}

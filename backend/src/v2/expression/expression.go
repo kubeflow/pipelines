@@ -21,14 +21,12 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
 	"github.com/google/cel-go/common/types"
-	"github.com/google/cel-go/common/types/pb"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/interpreter/functions"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -182,36 +180,38 @@ func celParseJson(arg ref.Val) ref.Val {
 
 // Convert a proto message into a map[string]interface{} for CEL.
 func msgToCELMap(m proto.Message, skipUnsetFields bool) (map[string]interface{}, error) {
-	var err error
-	fields := make(map[string]interface{})
+	vars := make(map[string]interface{})
 	if m == nil {
-		return fields, nil
+		return vars, nil
 	}
-	if skipUnsetFields {
-		m.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
-			var raw interface{}
-			raw, err = pb.NewFieldDescription(fd).GetFrom(m)
-			if err != nil {
-				return false
-			}
-			fields[fd.TextName()] = raw
-			return true
-		})
+
+	reg, err := types.NewRegistry(m)
+	if err != nil {
+		return nil, err
+	}
+
+	msgReflect := m.ProtoReflect()
+	msgDescriptor := msgReflect.Descriptor()
+	pbRef := m.ProtoReflect()
+	typeName := string(pbRef.Descriptor().FullName())
+	fields := msgDescriptor.Fields()
+
+	for i := 0; i < msgDescriptor.Fields().Len(); i++ {
+		field := fields.Get(i)
+		sft, found := reg.FindStructFieldType(typeName, field.TextName())
+		if !found {
+			return nil, fmt.Errorf("no such field: %s", field.TextName())
+		}
+
+		fieldVal, err := sft.GetFrom(m)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert proto message to CEL map: %w", err)
+			return nil, err
 		}
-	} else {
-		// Bind default values for unset fields.
-		fds := m.ProtoReflect().Descriptor().Fields()
-		for i := 0; i < fds.Len(); i++ {
-			fd := fds.Get(i)
-			// When the field is unset, GetFrom returns the default.
-			raw, err := pb.NewFieldDescription(fd).GetFrom(m)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert proto message to CEL map: %w", err)
-			}
-			fields[fd.TextName()] = raw
+
+		if sft.IsSet(m) || !skipUnsetFields {
+			fieldName := field.TextName()
+			vars[fieldName] = fieldVal
 		}
 	}
-	return fields, nil
+	return vars, nil
 }
