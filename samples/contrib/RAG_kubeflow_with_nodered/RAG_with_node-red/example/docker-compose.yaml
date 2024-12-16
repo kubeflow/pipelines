@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  node-red:
+    image: reg.footprint-ai.com/public/kube-nodered:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      labels:
+        com.docker.compose.container-number: "1"
+    environment:
+      - TZ=Asia/Taipei
+      - USERDIR=$USERDIR
+      - NODE_RED_CREDENTIAL_SECRET=noderedtutorial
+      - KUBEFLOW_HOST=$KUBEFLOW_HOST
+      - KUBEFLOW_USERNAME=$KUBEFLOW_USERNAME
+      - KUBEFLOW_PASSWORD=$KUBEFLOW_PASSWORD
+      - MINIO_HOST=$MINIO_HOST
+      - MINIO_ROOT_USER=$MINIO_ROOT_USER
+      - MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD 
+    ports:
+      - "1880:1880"
+    networks:
+      - node-red-net
+    volumes:
+      - ./:/data
+
+  minio:
+    image: minio/minio
+    command: server --console-address ":9001" /data
+    expose:
+      - "9000"
+    environment:
+      - MINIO_ROOT_USER=$MINIO_ROOT_USER
+      - MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD  
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    volumes:
+      - ./data:/data
+
+networks:
+  node-red-net:
