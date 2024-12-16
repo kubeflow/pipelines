@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Visual regression end to end test package for ML Pipelines",
   "dependencies": {
-    "@wdio/cli": "^8.3.2",
+    "@wdio/cli": "^8.40.6",
     "@wdio/junit-reporter": "^8.3.0",
     "@wdio/local-runner": "^8.3.3",
     "@wdio/mocha-framework": "^8.3.0",
