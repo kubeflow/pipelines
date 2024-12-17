@@ -36,7 +36,8 @@ class PySampleChecker(object):
                  result,
                  experiment_name,
                  host,
-                 namespace='kubeflow'):
+                 namespace='kubeflow',
+                 expected_result='succeeded'):
         """Util class for checking python sample test running results.
 
         :param testname: test name.
@@ -45,6 +46,7 @@ class PySampleChecker(object):
         :param result: The path of the test result that will be exported.
         :param host: The hostname of KFP API endpoint.
         :param namespace: namespace of the deployed pipeline system. Default: kubeflow
+        :param expected_result: the expected status for the run, default is succeeded.
         :param experiment_name: Name of the experiment to monitor
         """
         self._testname = testname
@@ -65,6 +67,7 @@ class PySampleChecker(object):
         self._job_name = None
         self._test_args = None
         self._run_id = None
+        self._expected_result = expected_result
 
     def run(self):
         """Run compiled KFP pipeline."""
@@ -154,7 +157,7 @@ class PySampleChecker(object):
             ###### Monitor Job ######
             start_time = datetime.now()
             response = self._client.wait_for_run_completion(self._run_id, self._test_timeout)
-            succ = (response.state.lower() == 'succeeded')
+            succ = (response.state.lower() == self._expected_result)
             end_time = datetime.now()
             elapsed_time = (end_time - start_time).seconds
             utils.add_junit_test(self._test_cases, 'job completion', succ,

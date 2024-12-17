@@ -181,6 +181,10 @@ type containerExecutorInputs struct {
 	cachedDecision string
 	// if false, the container will be skipped.
 	condition string
+	// if provided, this will be the template the Argo Workflow exit lifecycle hook will execute.
+	exitTemplate string
+	// this will be provided as the parent-dag-id input to the Argo Workflow exit lifecycle hook.
+	hookParentDagID string
 }
 
 // containerExecutorTask returns an argo workflows DAGTask.
@@ -192,7 +196,7 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 	if inputs.condition != "" {
 		when = inputs.condition + " != false"
 	}
-	return &wfapi.DAGTask{
+	task := &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addContainerExecutorTemplate(refName),
 		When:     when,
@@ -203,6 +207,10 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 			},
 		},
 	}
+
+	addExitTask(task, inputs.exitTemplate, inputs.hookParentDagID)
+
+	return task
 }
 
 // addContainerExecutorTemplate adds a generic container executor template for
