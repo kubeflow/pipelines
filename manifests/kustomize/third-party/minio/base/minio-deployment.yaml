@@ -34,6 +34,16 @@ spec:
         name: minio
         ports:
         - containerPort: 9000
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
         volumeMounts:
         - mountPath: /data
           name: data
