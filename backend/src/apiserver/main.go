@@ -28,6 +28,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -106,17 +107,21 @@ func main() {
 	}
 	log.SetLevel(level)
 
-	go reconcileSwfCrs(resourceManager)
-
+	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
+	defer backgroundCancel()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
 	go startRpcServer(resourceManager)
+	// This is blocking
 	startHttpProxy(resourceManager)
-
+	backgroundCancel()
 	clientManager.Close()
+	wg.Wait()
 }
 
-func reconcileSwfCrs(resourceManager *resource.ResourceManager) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-	defer cancel()
+func reconcileSwfCrs(resourceManager *resource.ResourceManager, ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
 	err := resourceManager.ReconcileSwfCrs(ctx)
 	if err != nil {
 		log.Errorf("Could not reconcile the ScheduledWorkflow Kubernetes resources: %v", err)
