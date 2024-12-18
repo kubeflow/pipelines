@@ -9,7 +9,7 @@
     "@wdio/mocha-framework": "^8.3.0",
     "@wdio/selenium-standalone-service": "^8.3.2",
     "@wdio/spec-reporter": "^8.3.0",
-    "mocha": "^10.2.0",
+    "mocha": "^10.8.2",
     "wait-port": "^1.0.4",
     "webdriverio": "^8.3.2"
   },
