@@ -567,8 +567,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	return newRun, nil
 }
 
-// SyncSwfCrs synchronizes/updates the existing ScheduledWorkflow CRs with the existing jobs.
-func (r *ResourceManager) SyncSwfCrs(ctx context.Context) error {
+// ReconcileSwfCrs reconciles the ScheduledWorkflow CRs based on existing jobs.
+func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "kubeflow"},
 	}
@@ -578,18 +578,18 @@ func (r *ResourceManager) SyncSwfCrs(ctx context.Context) error {
 	jobs, _, _, err := r.jobStore.ListJobs(filterContext, opts)
 
 	if err != nil {
-		return util.Wrap(err, "Failed to refresh ScheduledWorkflow Kubernetes resources")
+		return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
 	}
 
 	for i := range jobs {
 		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
 		if err != nil {
-			return failedToSyncSwfCrsError(err)
+			return failedToReconcileSwfCrsError(err)
 		}
 
 		scheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
 		if err != nil {
-			return failedToSyncSwfCrsError(err)
+			return failedToReconcileSwfCrsError(err)
 		}
 
 		err = r.patchSwfCrSpec(ctx, jobs[i].Namespace, jobs[i].K8SName, scheduledWorkflow.Spec)
@@ -597,15 +597,15 @@ func (r *ResourceManager) SyncSwfCrs(ctx context.Context) error {
 			if util.IsNotFound(errors.Cause(err)) {
 				continue
 			}
-			return failedToSyncSwfCrsError(err)
+			return failedToReconcileSwfCrsError(err)
 		}
 	}
 
 	return nil
 }
 
-func failedToSyncSwfCrsError(err error) error {
-	return util.Wrap(err, "Failed to refresh ScheduledWorkflow Kubernetes resources")
+func failedToReconcileSwfCrsError(err error) error {
+	return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
 }
 
 func (r *ResourceManager) patchSwfCrSpec(ctx context.Context, k8sNamespace string, crdName string, newSpec interface{}) error {
