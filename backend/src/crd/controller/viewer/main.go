@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -72,12 +73,16 @@ func main() {
 	reconciler, err := reconciler.New(cli, scheme.Scheme, opts)
 	if err != nil {
 		log.Fatalf("Failed to create a Viewer Controller: %v", err)
-
 	}
 
 	// Create a controller that is in charge of Viewer types, and also responds to
 	// changes to any deployment and services that is owned by any Viewer instance.
-	mgr, err := manager.New(cfg, manager.Options{Namespace: *namespace})
+	mgr, err := manager.New(cfg, manager.Options{
+		Cache: cache.Options{
+			DefaultNamespaces: map[string]cache.Config{*namespace: {}},
+		},
+	},
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
