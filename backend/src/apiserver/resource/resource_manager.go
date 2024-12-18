@@ -609,13 +609,6 @@ func failedToReconcileSwfCrsError(err error) error {
 }
 
 func (r *ResourceManager) patchSwfCrSpec(ctx context.Context, k8sNamespace string, crdName string, newSpec interface{}) error {
-	if k8sNamespace == "" {
-		k8sNamespace = common.GetPodNamespace()
-	}
-	if k8sNamespace == "" {
-		return errors.New("Namespace cannot be empty when deleting a ScheduledWorkflow Kubernetes resource.")
-	}
-
 	patchPayload := map[string]interface{}{
 		"spec": newSpec,
 	}
