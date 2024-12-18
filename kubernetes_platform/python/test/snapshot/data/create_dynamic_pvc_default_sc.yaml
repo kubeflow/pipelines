@@ -1,8 +1,6 @@
 # PIPELINE DEFINITION
 # Name: my-pipeline
 components:
-  comp-comp:
-    executorLabel: exec-comp
   comp-createpvc:
     executorLabel: exec-createpvc
     inputDefinitions:
@@ -64,64 +62,16 @@ components:
       parameters:
         name:
           parameterType: STRING
-  comp-deletepvc:
-    executorLabel: exec-deletepvc
-    inputDefinitions:
-      parameters:
-        pvc_name:
-          description: Name of the PVC to delete. Supports passing a runtime-generated
-            name, such as a name provided by ``kubernetes.CreatePvcOp().outputs['name']``.
-          parameterType: STRING
 deploymentSpec:
   executors:
-    exec-comp:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - comp
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.10.1'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef comp():\n    pass\n\n"
-        image: python:3.9
     exec-createpvc:
       container:
         image: argostub/createpvc
-    exec-deletepvc:
-      container:
-        image: argostub/deletepvc
 pipelineInfo:
   name: my-pipeline
 root:
   dag:
     tasks:
-      comp:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-comp
-        dependentTasks:
-        - createpvc
-        taskInfo:
-          name: comp
       createpvc:
         cachingOptions:
           enableCache: true
@@ -133,43 +83,17 @@ root:
               runtimeValue:
                 constant:
                 - ReadWriteOnce
-            pvc_name:
+            annotations:
               runtimeValue:
-                constant: static-pvc-name
+                constant:
+                  foo: bar
+            pvc_name_suffix:
+              runtimeValue:
+                constant: -my-pvc
             size:
               runtimeValue:
-                constant: 5Gi
-            storage_class_name:
-              runtimeValue:
-                constant: standard
+                constant: 5Mi
         taskInfo:
           name: createpvc
-      deletepvc:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-deletepvc
-        dependentTasks:
-        - comp
-        - createpvc
-        inputs:
-          parameters:
-            pvc_name:
-              taskOutputParameter:
-                outputParameterKey: name
-                producerTask: createpvc
-        taskInfo:
-          name: deletepvc
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.10.1
----
-platforms:
-  kubernetes:
-    deploymentSpec:
-      executors:
-        exec-comp:
-          pvcMount:
-          - mountPath: /data
-            taskOutputParameter:
-              outputParameterKey: name
-              producerTask: createpvc
