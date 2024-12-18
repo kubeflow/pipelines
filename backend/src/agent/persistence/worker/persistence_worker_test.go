@@ -35,8 +35,10 @@ func NewFakeEventHandler() *FakeEventHandler {
 	return &FakeEventHandler{}
 }
 
-func (h *FakeEventHandler) AddEventHandler(handler cache.ResourceEventHandler) {
+func (h *FakeEventHandler) AddEventHandler(handler cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error) {
 	h.handler = handler
+
+	return nil, nil
 }
 
 func TestPersistenceWorker_Success(t *testing.T) {
@@ -57,15 +59,16 @@ func TestPersistenceWorker_Success(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	assert.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow)
+	eventHandler.handler.OnAdd(workflow, true)
 	worker.processNextWorkItem()
 	assert.Equal(t, workflow, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 0, worker.Len())
@@ -87,15 +90,16 @@ func TestPersistenceWorker_NotFoundError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	assert.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow)
+	eventHandler.handler.OnAdd(workflow, true)
 	worker.processNextWorkItem()
 	assert.Nil(t, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 0, worker.Len())
@@ -118,15 +122,16 @@ func TestPersistenceWorker_GetWorklowError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	assert.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow)
+	eventHandler.handler.OnAdd(workflow, true)
 	worker.processNextWorkItem()
 	assert.Nil(t, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 1, worker.Len())
@@ -152,15 +157,16 @@ func TestPersistenceWorker_ReportWorkflowRetryableError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	assert.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow)
+	eventHandler.handler.OnAdd(workflow, true)
 	worker.processNextWorkItem()
 	assert.Nil(t, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 1, worker.Len())
@@ -185,15 +191,16 @@ func TestPersistenceWorker_ReportWorkflowNonRetryableError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	assert.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow)
+	eventHandler.handler.OnAdd(workflow, true)
 	worker.processNextWorkItem()
 	assert.Nil(t, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 0, worker.Len())
