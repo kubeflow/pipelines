@@ -581,7 +581,7 @@ func (r *ResourceManager) SyncSwfCrs(ctx context.Context) error {
 		return util.Wrap(err, "Failed to refresh ScheduledWorkflow Kubernetes resources")
 	}
 
-	for i := 0; i < len(jobs); i++ {
+	for i := range jobs {
 		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
 		if err != nil {
 			return failedToSyncSwfCrsError(err)
