@@ -30,6 +30,8 @@ spec:
             - --zap-log-level=4
             - '--discovery-interval=3600s' # less insane than 10 seconds
           securityContext:
+            seccompProfile: 
+              type: RuntimeDefault
             capabilities:
               drop:
               - ALL
