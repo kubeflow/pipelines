@@ -659,7 +659,7 @@ func extendPodSpecPatch(
 						},
 						Spec: k8score.PersistentVolumeClaimSpec{
 							AccessModes: accessModes,
-							Resources: k8score.ResourceRequirements{
+							Resources: k8score.VolumeResourceRequirements{
 								Requests: k8score.ResourceList{
 									k8score.ResourceStorage: k8sres.MustParse(ephemeralVolumeSpec.GetSize()),
 								},
@@ -1779,7 +1779,7 @@ func createPVC(
 		},
 		Spec: k8score.PersistentVolumeClaimSpec{
 			AccessModes: accessModes,
-			Resources: k8score.ResourceRequirements{
+			Resources: k8score.VolumeResourceRequirements{
 				Requests: k8score.ResourceList{
 					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
 				},

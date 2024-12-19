@@ -39,7 +39,7 @@ type Saver interface {
 }
 
 type EventHandler interface {
-	AddEventHandler(handler cache.ResourceEventHandler)
+	AddEventHandler(handler cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error)
 }
 
 // PersistenceWorker is a generic worker to persist objects from a queue.

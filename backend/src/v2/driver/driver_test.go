@@ -1483,7 +1483,7 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 								VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
 									Spec: k8score.PersistentVolumeClaimSpec{
 										AccessModes: []k8score.PersistentVolumeAccessMode{k8score.ReadWriteOnce},
-										Resources: k8score.ResourceRequirements{
+										Resources: k8score.VolumeResourceRequirements{
 											Requests: k8score.ResourceList{
 												k8score.ResourceStorage: k8sres.MustParse("5Gi"),
 											},
@@ -1573,7 +1573,7 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 								VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
 									Spec: k8score.PersistentVolumeClaimSpec{
 										AccessModes: []k8score.PersistentVolumeAccessMode{k8score.ReadWriteOnce},
-										Resources: k8score.ResourceRequirements{
+										Resources: k8score.VolumeResourceRequirements{
 											Requests: k8score.ResourceList{
 												k8score.ResourceStorage: k8sres.MustParse("5Gi"),
 											},
@@ -1598,7 +1598,7 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 									},
 									Spec: k8score.PersistentVolumeClaimSpec{
 										AccessModes: []k8score.PersistentVolumeAccessMode{k8score.ReadWriteOnce},
-										Resources: k8score.ResourceRequirements{
+										Resources: k8score.VolumeResourceRequirements{
 											Requests: k8score.ResourceList{
 												k8score.ResourceStorage: k8sres.MustParse("10Gi"),
 											},

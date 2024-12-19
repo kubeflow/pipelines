@@ -48,11 +48,21 @@ spec:
         env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
-        image: gcr.io/ml-pipeline/mysql:8.0.26
+        image: mariadb:latest
         name: mysql
         ports:
         - containerPort: 3306
           name: mysql
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
         volumeMounts:
         - mountPath: /var/lib/mysql
           name: mysql-persistent-storage

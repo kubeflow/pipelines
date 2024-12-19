@@ -16,6 +16,7 @@ package util
 
 import (
 	"encoding/json"
+	corev1 "k8s.io/api/core/v1"
 	"testing"
 	"time"
 
@@ -23,7 +24,6 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestScheduledWorkflow_Getters(t *testing.T) {
@@ -72,7 +72,7 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 			Conditions: []swfapi.ScheduledWorkflowCondition{
 				{
 					Type:               swfapi.ScheduledWorkflowEnabled,
-					Status:             core.ConditionTrue,
+					Status:             corev1.ConditionTrue,
 					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
 					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
 					Reason:             string(swfapi.ScheduledWorkflowEnabled),
@@ -89,14 +89,14 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 			Conditions: []swfapi.ScheduledWorkflowCondition{
 				{
 					Type:               swfapi.ScheduledWorkflowEnabled,
-					Status:             core.ConditionTrue,
+					Status:             corev1.ConditionTrue,
 					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
 					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
 					Reason:             string(swfapi.ScheduledWorkflowEnabled),
 					Message:            "The schedule is enabled.",
 				}, {
 					Type:               swfapi.ScheduledWorkflowDisabled,
-					Status:             core.ConditionTrue,
+					Status:             corev1.ConditionTrue,
 					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
 					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
 					Reason:             string(swfapi.ScheduledWorkflowEnabled),

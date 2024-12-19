@@ -30,6 +30,8 @@ spec:
             - --zap-log-level=4
             - '--discovery-interval=3600s' # less insane than 10 seconds
           securityContext:
+            seccompProfile: 
+              type: RuntimeDefault
             capabilities:
               drop:
               - ALL
@@ -39,7 +41,7 @@ spec:
             privileged: false
             allowPrivilegeEscalation: false
           name: metacontroller
-          image: 'docker.io/metacontrollerio/metacontroller:v2.0.4'
+          image: 'ghcr.io/metacontroller/metacontroller:v4.11.21'
       serviceAccountName: meta-controller-service
   # Workaround for https://github.com/kubernetes-sigs/kustomize/issues/677
   volumeClaimTemplates: []

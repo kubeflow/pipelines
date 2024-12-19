@@ -20,7 +20,7 @@ spec:
         configMap:
           name: ml-pipeline-ui-configmap
       containers:
-      - image: gcr.io/ml-pipeline/frontend:dummy
+      - image: na.artifactory.swg-devops.com/sys-linux-power-team-ftp3distro-docker-images-docker-local/kubeflow-ppc/frontend:latest
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
@@ -29,6 +29,16 @@ spec:
         - name: config-volume
           mountPath: /etc/config
           readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
         env:
           - name: VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
             value: /etc/config/viewer-pod-template.json
