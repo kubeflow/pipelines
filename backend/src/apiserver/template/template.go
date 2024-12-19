@@ -232,7 +232,7 @@ func modelToParametersMap(modelParameters string) (map[string]string, error) {
 func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, error) {
 	crdTrigger := scheduledworkflow.Trigger{}
 	// CronSchedule and PeriodicSchedule can have at most one being non-empty
-	if modelTrigger.CronSchedule != (model.CronSchedule{}) {
+	if !modelTrigger.CronSchedule.IsEmpty() {
 		// Check if CronSchedule is non-empty
 		crdCronSchedule := scheduledworkflow.CronSchedule{}
 		if modelTrigger.Cron != nil {
@@ -247,7 +247,7 @@ func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, e
 			crdCronSchedule.EndTime = &endTime
 		}
 		crdTrigger.CronSchedule = &crdCronSchedule
-	} else if modelTrigger.PeriodicSchedule != (model.PeriodicSchedule{}) {
+	} else if !modelTrigger.PeriodicSchedule.IsEmpty() {
 		// Check if PeriodicSchedule is non-empty
 		crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
 		if modelTrigger.IntervalSecond != nil {

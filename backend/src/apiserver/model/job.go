@@ -189,34 +189,6 @@ type Trigger struct {
 	PeriodicSchedule
 }
 
-type CronSchedule struct {
-	// Time at which scheduling starts.
-	// If no start time is specified, the StartTime is the creation time of the schedule.
-	CronScheduleStartTimeInSec *int64 `gorm:"column:CronScheduleStartTimeInSec;"`
-
-	// Time at which scheduling ends.
-	// If no end time is specified, the EndTime is the end of time.
-	CronScheduleEndTimeInSec *int64 `gorm:"column:CronScheduleEndTimeInSec;"`
-
-	// Cron string describing when a workflow should be created within the
-	// time interval defined by StartTime and EndTime.
-	Cron *string `gorm:"column:Schedule;"`
-}
-
-type PeriodicSchedule struct {
-	// Time at which scheduling starts.
-	// If no start time is specified, the StartTime is the creation time of the schedule.
-	PeriodicScheduleStartTimeInSec *int64 `gorm:"column:PeriodicScheduleStartTimeInSec;"`
-
-	// Time at which scheduling ends.
-	// If no end time is specified, the EndTime is the end of time.
-	PeriodicScheduleEndTimeInSec *int64 `gorm:"column:PeriodicScheduleEndTimeInSec;"`
-
-	// Interval describing when a workflow should be created within the
-	// time interval defined by StartTime and EndTime.
-	IntervalSecond *int64 `gorm:"column:IntervalSecond;"`
-}
-
 func (j Job) GetValueOfPrimaryKey() string {
 	return fmt.Sprint(j.UUID)
 }
