@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"reflect"
 	"strconv"
 
 	"github.com/cenkalti/backoff"
@@ -587,17 +588,24 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 			return failedToReconcileSwfCrsError(err)
 		}
 
-		scheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
+		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
 		}
 
-		err = r.patchSwfCrSpec(ctx, jobs[i].Namespace, jobs[i].K8SName, scheduledWorkflow.Spec)
+		currentScheduledWorkflow, err := r.getScheduledWorkflowClient(jobs[i].Namespace).Get(ctx, jobs[i].K8SName, v1.GetOptions{})
 		if err != nil {
-			if util.IsNotFound(errors.Cause(err)) {
-				continue
-			}
 			return failedToReconcileSwfCrsError(err)
+		}
+
+		if !reflect.DeepEqual(currentScheduledWorkflow.Spec, newScheduledWorkflow.Spec) {
+			err = r.patchSwfCrSpec(ctx, jobs[i].Namespace, jobs[i].K8SName, newScheduledWorkflow.Spec)
+			if err != nil {
+				if util.IsNotFound(errors.Cause(err)) {
+					continue
+				}
+				return failedToReconcileSwfCrsError(err)
+			}
 		}
 	}
 
