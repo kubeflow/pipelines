@@ -28,7 +28,7 @@ type CronSchedule struct {
 }
 
 func (c CronSchedule) IsEmpty() bool {
-	return c.CronScheduleStartTimeInSec == nil &&
-		c.CronScheduleEndTimeInSec == nil &&
+	return (c.CronScheduleStartTimeInSec == nil || *c.CronScheduleStartTimeInSec == 0) &&
+		(c.CronScheduleEndTimeInSec == nil || *c.CronScheduleEndTimeInSec == 0) &&
 		(c.Cron == nil || *c.Cron == "")
 }

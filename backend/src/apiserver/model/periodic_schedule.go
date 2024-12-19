@@ -28,7 +28,7 @@ type PeriodicSchedule struct {
 }
 
 func (p PeriodicSchedule) IsEmpty() bool {
-	return p.PeriodicScheduleStartTimeInSec == nil &&
-		p.PeriodicScheduleEndTimeInSec == nil &&
+	return (p.PeriodicScheduleStartTimeInSec == nil || *p.PeriodicScheduleStartTimeInSec == 0) &&
+		(p.PeriodicScheduleEndTimeInSec == nil || *p.PeriodicScheduleEndTimeInSec == 0) &&
 		(p.IntervalSecond == nil || *p.IntervalSecond == 0)
 }
