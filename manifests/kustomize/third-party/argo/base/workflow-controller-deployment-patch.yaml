@@ -7,12 +7,12 @@ spec:
     spec:
       containers:
         - name: workflow-controller
-          image: gcr.io/ml-pipeline/workflow-controller:v3.4.17-license-compliance
+          image: na.artifactory.swg-devops.com/sys-linux-power-team-ftp3distro-docker-images-docker-local/argoproj/workflow-controller:latest
           args:
             - --configmap
             - workflow-controller-configmap
             - --executor-image
-            - gcr.io/ml-pipeline/argoexec:v3.4.17-license-compliance
+            - na.artifactory.swg-devops.com/sys-linux-power-team-ftp3distro-docker-images-docker-local/argoproj/argoexec:latest
           resources:
             requests:
               cpu: 100m
