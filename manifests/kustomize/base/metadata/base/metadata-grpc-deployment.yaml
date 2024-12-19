@@ -23,6 +23,16 @@ spec:
         # * manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml
         # * test/tag_for_hosted.sh
         image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: DBCONFIG_USER
           valueFrom:
