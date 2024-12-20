@@ -24,3 +24,13 @@ spec:
           containerPort: 9090
         - name: envoy-admin
           containerPort: 9901
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
