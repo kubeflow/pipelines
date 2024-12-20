@@ -51,6 +51,8 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
+      - --log_level
+      - "5"
       command:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver
@@ -144,6 +146,8 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
+      - --log_level
+      - "5"
       command:
       - launcher-v2
       image: gcr.io/ml-pipeline/kfp-launcher
@@ -233,6 +237,8 @@ spec:
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
+      - --log_level
+      - "5"
       command:
       - driver
       image: gcr.io/ml-pipeline/kfp-driver
