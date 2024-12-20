@@ -870,8 +870,8 @@ type PipelineRunInformer struct {
 	factory   prsinformers.SharedInformerFactory
 }
 
-func (pri *PipelineRunInformer) AddEventHandler(funcs cache.ResourceEventHandler) {
-	pri.informer.Informer().AddEventHandler(funcs)
+func (pri *PipelineRunInformer) AddEventHandler(funcs cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error) {
+	return pri.informer.Informer().AddEventHandler(funcs)
 }
 
 func (pri *PipelineRunInformer) HasSynced() func() bool {

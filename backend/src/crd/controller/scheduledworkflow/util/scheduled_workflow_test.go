@@ -16,6 +16,7 @@ package util
 
 import (
 	"encoding/json"
+	corev1 "k8s.io/api/core/v1"
 	"math"
 	"strconv"
 	"testing"
@@ -27,7 +28,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestScheduledWorkflow_maxConcurrency(t *testing.T) {
@@ -560,7 +560,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{{
 				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             core.ConditionTrue,
+				Status:             corev1.ConditionTrue,
 				LastProbeTime:      metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				LastTransitionTime: metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				Reason:             string(swfapi.ScheduledWorkflowEnabled),
@@ -641,7 +641,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{{
 				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             core.ConditionTrue,
+				Status:             corev1.ConditionTrue,
 				LastProbeTime:      metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				LastTransitionTime: metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				Reason:             string(swfapi.ScheduledWorkflowEnabled),
