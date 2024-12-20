@@ -17,10 +17,12 @@ import (
 	"encoding/json"
 	"testing"
 
+	"google.golang.org/protobuf/types/known/structpb"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
@@ -1618,6 +1620,59 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 			err := extendPodSpecPatch(tt.podSpec, tt.k8sExecCfg, nil, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, tt.podSpec)
+		})
+	}
+}
+
+func TestBuildPVCWithDataSource(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       *structpb.Value
+		expected    *k8score.TypedLocalObjectReference
+		expectError bool
+	}{
+		{
+			name: "Valid data source",
+			input: structpb.NewStructValue(
+				&structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"apiGroup": structpb.NewStringValue("snapshot.storage.k8s.io"),
+						"kind":     structpb.NewStringValue("VolumeSnapshot"),
+						"name":     structpb.NewStringValue("snapshot-name"),
+					},
+				},
+			),
+			expected: &k8score.TypedLocalObjectReference{
+				APIGroup: util.StringPointer("snapshot.storage.k8s.io"),
+				Kind:     "VolumeSnapshot",
+				Name:     "snapshot-name",
+			},
+			expectError: false,
+		},
+		{
+			name:        "Nil input",
+			input:       nil,
+			expected:    nil,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Call the function
+			result, err := buildPVCDataSource(tt.input)
+
+			// Assert
+			if tt.expectError {
+				assert.Error(t, err, "Expected an error but got none")
+				assert.Nil(t, result, "Expected result to be nil on error")
+			} else {
+				assert.NoError(t, err, "Unexpected error: %v", err)
+				assert.NotNil(t, result, "Expected result to be non-nil")
+				assert.Equal(t, tt.expected.Name, result.Name, "Mismatched Name field")
+				assert.Equal(t, tt.expected.Kind, result.Kind, "Mismatched Kind field")
+				assert.Equal(t, tt.expected.APIGroup, result.APIGroup, "Mismatched APIGroup field")
+			}
 		})
 	}
 }
