@@ -17,6 +17,7 @@ package util
 import (
 	"fmt"
 	"hash/fnv"
+	corev1 "k8s.io/api/core/v1"
 	"math"
 	"sort"
 	"strconv"
@@ -25,7 +26,6 @@ import (
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -338,7 +338,7 @@ func (s *ScheduledWorkflow) updateNextTriggeredTime(epoch int64) {
 
 func (s *ScheduledWorkflow) getStatusAndMessage(activeCount int) (
 	conditionType swfapi.ScheduledWorkflowConditionType,
-	status core.ConditionStatus, message string) {
+	status corev1.ConditionStatus, message string) {
 	// Schedule messages
 	const (
 		ScheduleEnabledMessage   = "The schedule is enabled."
@@ -349,15 +349,15 @@ func (s *ScheduledWorkflow) getStatusAndMessage(activeCount int) (
 
 	if s.isOneOffRun() {
 		if s.hasRunAtLeastOnce() && activeCount == 0 {
-			return swfapi.ScheduledWorkflowSucceeded, core.ConditionTrue, ScheduleSucceededMessage
+			return swfapi.ScheduledWorkflowSucceeded, corev1.ConditionTrue, ScheduleSucceededMessage
 		} else {
-			return swfapi.ScheduledWorkflowRunning, core.ConditionTrue, ScheduleRunningMessage
+			return swfapi.ScheduledWorkflowRunning, corev1.ConditionTrue, ScheduleRunningMessage
 		}
 	} else {
 		if s.enabled() {
-			return swfapi.ScheduledWorkflowEnabled, core.ConditionTrue, ScheduleEnabledMessage
+			return swfapi.ScheduledWorkflowEnabled, corev1.ConditionTrue, ScheduleEnabledMessage
 		} else {
-			return swfapi.ScheduledWorkflowDisabled, core.ConditionTrue, ScheduleDisabledMessage
+			return swfapi.ScheduledWorkflowDisabled, corev1.ConditionTrue, ScheduleDisabledMessage
 		}
 	}
 }

@@ -899,8 +899,8 @@ type WorkflowInformer struct {
 	factory  argoinformer.SharedInformerFactory
 }
 
-func (wfi *WorkflowInformer) AddEventHandler(funcs cache.ResourceEventHandler) {
-	wfi.informer.Informer().AddEventHandler(funcs)
+func (wfi *WorkflowInformer) AddEventHandler(funcs cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error) {
+	return wfi.informer.Informer().AddEventHandler(funcs)
 }
 
 func (wfi *WorkflowInformer) HasSynced() func() bool {
