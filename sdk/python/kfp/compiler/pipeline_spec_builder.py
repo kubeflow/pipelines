@@ -2038,6 +2038,11 @@ def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
     #         '<some pipeline config option>': pipelineConfig.<get that value>,
     #     }}, platformSpec.platforms['kubernetes'])
 
+    pipeline_config_json = json_format.ParseDict(
+        {'pipelineConfig': {
+            'pipelineTtl': pipelineConfig.get_ttl(),
+        }}, platformSpec.platforms['kubernetes'])
+
     return platformSpec
 
 
