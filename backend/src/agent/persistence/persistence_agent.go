@@ -46,7 +46,8 @@ func NewPersistenceAgent(
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	execInformer util.ExecutionInformer,
 	pipelineClient *client.PipelineClient,
-	time util.TimeInterface) *PersistenceAgent {
+	time util.TimeInterface,
+) (*PersistenceAgent, error) {
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 
@@ -57,12 +58,18 @@ func NewPersistenceAgent(
 	swfClient := client.NewScheduledWorkflowClient(swfInformer)
 	workflowClient := client.NewWorkflowClient(execInformer)
 
-	swfWorker := worker.NewPersistenceWorker(time, swfregister.Kind, swfInformer.Informer(), true,
+	swfWorker, err := worker.NewPersistenceWorker(time, swfregister.Kind, swfInformer.Informer(), true,
 		worker.NewScheduledWorkflowSaver(swfClient, pipelineClient))
+	if err != nil {
+		return nil, err
+	}
 
-	workflowWorker := worker.NewPersistenceWorker(time, workflowregister.WorkflowKind,
+	workflowWorker, err := worker.NewPersistenceWorker(time, workflowregister.WorkflowKind,
 		execInformer, true,
 		worker.NewWorkflowSaver(workflowClient, pipelineClient, ttlSecondsAfterWorkflowFinish))
+	if err != nil {
+		return nil, err
+	}
 
 	agent := &PersistenceAgent{
 		swfClient:      swfClient,
@@ -73,7 +80,7 @@ func NewPersistenceAgent(
 
 	log.Info("Setting up event handlers")
 
-	return agent
+	return agent, nil
 }
 
 // Run will set up the event handlers for types we are interested in, as well
