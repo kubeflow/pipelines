@@ -109,6 +109,8 @@ spec:
             secretKeyRef:
               name: mlpipeline-minio-artifact
               key: secretkey
+        - name: SEMAPHORE_CONFIGMAP_NAME
+          value: "semaphore-config"
         image: gcr.io/ml-pipeline/api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
