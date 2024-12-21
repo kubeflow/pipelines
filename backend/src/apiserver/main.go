@@ -106,10 +106,21 @@ func main() {
 	}
 	log.SetLevel(level)
 
+	go reconcileSwfCrs(resourceManager)
+
 	go startRpcServer(resourceManager)
 	startHttpProxy(resourceManager)
 
 	clientManager.Close()
+}
+
+func reconcileSwfCrs(resourceManager *resource.ResourceManager) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	err := resourceManager.ReconcileSwfCrs(ctx)
+	if err != nil {
+		log.Errorf("Could not reconcile the ScheduledWorkflow Kubernetes resources: %v", err)
+	}
 }
 
 // A custom http request header matcher to pass on the user identity
