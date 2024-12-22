@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -36,6 +37,7 @@ func Test_argo_compiler(t *testing.T) {
 		jobPath          string // path of input PipelineJob to compile
 		platformSpecPath string // path of possible input PlatformSpec to compile
 		argoYAMLPath     string // path of expected output argo workflow YAML
+		envVars          []string
 	}{
 		{
 			jobPath:          "../testdata/hello_world.json",
@@ -62,10 +64,40 @@ func Test_argo_compiler(t *testing.T) {
 			platformSpecPath: "../testdata/create_pod_metadata.json",
 			argoYAMLPath:     "testdata/create_pod_metadata.yaml",
 		},
+		// With envOptions
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/with_logging/hello_world.yaml",
+			envVars:          []string{"DRIVER_LOG_LEVEL=5", "LAUNCHER_LOG_LEVEL=5"},
+		},
+		{
+			jobPath:          "../testdata/importer.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/with_logging/importer.yaml",
+			envVars:          []string{"DRIVER_LOG_LEVEL=5", "LAUNCHER_LOG_LEVEL=5"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
 			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
+			if tt.envVars != nil {
+				for _, envVar := range tt.envVars {
+					parts := strings.Split(strings.ReplaceAll(envVar, " ", ""), "=")
+					err := os.Setenv(parts[0], parts[1])
+					if err != nil {
+						t.Fatalf("Failed to set environment variable '%s' with error: %s", parts[0], err.Error())
+					}
+
+					// Unset after test cases has ended
+					defer func() {
+						err := os.Unsetenv(parts[0])
+						if err != nil {
+							t.Fatalf("Failed to unset env variable '%s' with error: %s", parts[0], err.Error())
+						}
+					}()
+				}
+			}
 			if *update {
 				wf, err := argocompiler.Compile(job, platformSpec, nil)
 				if err != nil {
