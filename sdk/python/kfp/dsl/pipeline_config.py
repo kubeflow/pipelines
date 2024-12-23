@@ -17,7 +17,9 @@
 class PipelineConfig:
     """PipelineConfig contains pipeline-level config options."""
 
-    def __init__(self):
-        pass
+    def __init__(self, ttl=None):
+        self.ttl, ttl
 
     # TODO add pipeline level configs
+    def set_pipeline_ttl(self, ttl: int):
+        self.ttl = ttl
