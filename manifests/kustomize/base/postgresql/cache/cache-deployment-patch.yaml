@@ -2,7 +2,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cache-server
+  label:
+    application-crd-id: kubeflow-pipelines
 spec:
+  selector:
+    matchLabels:
+      application-crd-id: kubeflow-pipelines
   template:
     spec:
       containers:

@@ -2,6 +2,8 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: pipeline-install-config
+  labels:
+    application-crd-id: kubeflow-pipelines
 data:
   warning: |
     1. Do not use kubectl to edit this configmap, because some values are used
