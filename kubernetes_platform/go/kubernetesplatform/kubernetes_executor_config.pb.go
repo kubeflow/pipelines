@@ -346,6 +346,8 @@ type SecretAsEnv struct {
 	// Deprecated: Marked as deprecated in kubernetes_executor_config.proto.
 	SecretName string                           `protobuf:"bytes,1,opt,name=secret_name,json=secretName,proto3" json:"secret_name,omitempty"`
 	KeyToEnv   []*SecretAsEnv_SecretKeyToEnvMap `protobuf:"bytes,2,rep,name=key_to_env,json=keyToEnv,proto3" json:"key_to_env,omitempty"`
+	// An optional boolean value indicating whether the Secret must be defined.
+	Optional *bool `protobuf:"varint,3,opt,name=optional,proto3,oneof" json:"optional,omitempty"`
 	// Name of the Secret.
 	SecretNameParameter *pipelinespec.TaskInputsSpec_InputParameterSpec `protobuf:"bytes,4,opt,name=secret_name_parameter,json=secretNameParameter,proto3" json:"secret_name_parameter,omitempty"`
 	unknownFields       protoimpl.UnknownFields
@@ -395,6 +397,13 @@ func (x *SecretAsEnv) GetKeyToEnv() []*SecretAsEnv_SecretKeyToEnvMap {
 		return x.KeyToEnv
 	}
 	return nil
+}
+
+func (x *SecretAsEnv) GetOptional() bool {
+	if x != nil && x.Optional != nil {
+		return *x.Optional
+	}
+	return false
 }
 
 func (x *SecretAsEnv) GetSecretNameParameter() *pipelinespec.TaskInputsSpec_InputParameterSpec {
@@ -971,8 +980,10 @@ type ConfigMapAsEnv struct {
 	// Deprecated: Marked as deprecated in kubernetes_executor_config.proto.
 	ConfigMapName string                                 `protobuf:"bytes,1,opt,name=config_map_name,json=configMapName,proto3" json:"config_map_name,omitempty"`
 	KeyToEnv      []*ConfigMapAsEnv_ConfigMapKeyToEnvMap `protobuf:"bytes,2,rep,name=key_to_env,json=keyToEnv,proto3" json:"key_to_env,omitempty"`
+	// An optional boolean value indicating whether the ConfigMap must be defined.
+	Optional *bool `protobuf:"varint,3,opt,name=optional,proto3,oneof" json:"optional,omitempty"`
 	// Name of the ConfigMap.
-	ConfigMapNameParameter *pipelinespec.TaskInputsSpec_InputParameterSpec `protobuf:"bytes,3,opt,name=config_map_name_parameter,json=configMapNameParameter,proto3" json:"config_map_name_parameter,omitempty"`
+	ConfigMapNameParameter *pipelinespec.TaskInputsSpec_InputParameterSpec `protobuf:"bytes,4,opt,name=config_map_name_parameter,json=configMapNameParameter,proto3" json:"config_map_name_parameter,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -1020,6 +1031,13 @@ func (x *ConfigMapAsEnv) GetKeyToEnv() []*ConfigMapAsEnv_ConfigMapKeyToEnvMap {
 		return x.KeyToEnv
 	}
 	return nil
+}
+
+func (x *ConfigMapAsEnv) GetOptional() bool {
+	if x != nil && x.Optional != nil {
+		return *x.Optional
+	}
+	return false
 }
 
 func (x *ConfigMapAsEnv) GetConfigMapNameParameter() *pipelinespec.TaskInputsSpec_InputParameterSpec {
@@ -1782,17 +1800,19 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"mount_path\x18\x02 \x01(\tR\tmountPath\x12\x1f\n" +
 	"\boptional\x18\x03 \x01(\bH\x00R\boptional\x88\x01\x01\x12c\n" +
 	"\x15secret_name_parameter\x18\x04 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x13secretNameParameterB\v\n" +
-	"\t_optional\"\xb1\x02\n" +
+	"\t_optional\"\xdf\x02\n" +
 	"\vSecretAsEnv\x12#\n" +
 	"\vsecret_name\x18\x01 \x01(\tB\x02\x18\x01R\n" +
 	"secretName\x12K\n" +
 	"\n" +
-	"key_to_env\x18\x02 \x03(\v2-.kfp_kubernetes.SecretAsEnv.SecretKeyToEnvMapR\bkeyToEnv\x12c\n" +
+	"key_to_env\x18\x02 \x03(\v2-.kfp_kubernetes.SecretAsEnv.SecretKeyToEnvMapR\bkeyToEnv\x12\x1f\n" +
+	"\boptional\x18\x03 \x01(\bH\x00R\boptional\x88\x01\x01\x12c\n" +
 	"\x15secret_name_parameter\x18\x04 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x13secretNameParameter\x1aK\n" +
 	"\x11SecretKeyToEnvMap\x12\x1d\n" +
 	"\n" +
 	"secret_key\x18\x01 \x01(\tR\tsecretKey\x12\x17\n" +
-	"\aenv_var\x18\x02 \x01(\tR\x06envVar\"\x81\x03\n" +
+	"\aenv_var\x18\x02 \x01(\tR\x06envVarB\v\n" +
+	"\t_optional\"\x81\x03\n" +
 	"\bPvcMount\x12\x81\x01\n" +
 	"\x15task_output_parameter\x18\x01 \x01(\v2G.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpecB\x02\x18\x01H\x00R\x13taskOutputParameter\x12 \n" +
 	"\bconstant\x18\x02 \x01(\tB\x02\x18\x01H\x00R\bconstant\x12@\n" +
@@ -1838,15 +1858,17 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"mount_path\x18\x02 \x01(\tR\tmountPath\x12\x1f\n" +
 	"\boptional\x18\x03 \x01(\bH\x00R\boptional\x88\x01\x01\x12j\n" +
 	"\x19config_map_name_parameter\x18\x04 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x16configMapNameParameterB\v\n" +
-	"\t_optional\"\xd2\x02\n" +
+	"\t_optional\"\x80\x03\n" +
 	"\x0eConfigMapAsEnv\x12*\n" +
 	"\x0fconfig_map_name\x18\x01 \x01(\tB\x02\x18\x01R\rconfigMapName\x12Q\n" +
 	"\n" +
-	"key_to_env\x18\x02 \x03(\v23.kfp_kubernetes.ConfigMapAsEnv.ConfigMapKeyToEnvMapR\bkeyToEnv\x12j\n" +
-	"\x19config_map_name_parameter\x18\x03 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x16configMapNameParameter\x1aU\n" +
+	"key_to_env\x18\x02 \x03(\v23.kfp_kubernetes.ConfigMapAsEnv.ConfigMapKeyToEnvMapR\bkeyToEnv\x12\x1f\n" +
+	"\boptional\x18\x03 \x01(\bH\x00R\boptional\x88\x01\x01\x12j\n" +
+	"\x19config_map_name_parameter\x18\x04 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x16configMapNameParameter\x1aU\n" +
 	"\x14ConfigMapKeyToEnvMap\x12$\n" +
 	"\x0econfig_map_key\x18\x01 \x01(\tR\fconfigMapKey\x12\x17\n" +
-	"\aenv_var\x18\x02 \x01(\tR\x06envVar\"\xaa\x02\n" +
+	"\aenv_var\x18\x02 \x01(\tR\x06envVarB\v\n" +
+	"\t_optional\"\xaa\x02\n" +
 	"\x16GenericEphemeralVolume\x12\x1f\n" +
 	"\vvolume_name\x18\x01 \x01(\tR\n" +
 	"volumeName\x12\x1d\n" +
@@ -2011,6 +2033,7 @@ func file_kubernetes_executor_config_proto_init() {
 		return
 	}
 	file_kubernetes_executor_config_proto_msgTypes[2].OneofWrappers = []any{}
+	file_kubernetes_executor_config_proto_msgTypes[3].OneofWrappers = []any{}
 	file_kubernetes_executor_config_proto_msgTypes[4].OneofWrappers = []any{
 		(*PvcMount_TaskOutputParameter)(nil),
 		(*PvcMount_Constant)(nil),
@@ -2026,6 +2049,7 @@ func file_kubernetes_executor_config_proto_init() {
 		(*DeletePvc_ComponentInputParameter)(nil),
 	}
 	file_kubernetes_executor_config_proto_msgTypes[9].OneofWrappers = []any{}
+	file_kubernetes_executor_config_proto_msgTypes[10].OneofWrappers = []any{}
 	file_kubernetes_executor_config_proto_msgTypes[14].OneofWrappers = []any{}
 	file_kubernetes_executor_config_proto_msgTypes[16].OneofWrappers = []any{}
 	file_kubernetes_executor_config_proto_msgTypes[17].OneofWrappers = []any{}
