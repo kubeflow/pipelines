@@ -69,6 +69,8 @@ message SecretAsEnv {
     }
 
     repeated SecretKeyToEnvMap key_to_env = 2;
+    // An optional boolean value indicating whether the Secret must be defined.
+    optional bool optional = 3;
 }
 
 // Represents an upstream task's output parameter.
@@ -166,6 +168,8 @@ message ConfigMapAsEnv {
     }
 
     repeated ConfigMapKeyToEnvMap key_to_env = 2;
+    // An optional boolean value indicating whether the ConfigMap must be defined.
+    optional bool optional = 3;
 }
 
 message GenericEphemeralVolume {

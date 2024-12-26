@@ -24,6 +24,7 @@ def use_config_map_as_env(
     task: PipelineTask,
     config_map_name: str,
     config_map_key_to_env: Dict[str, str],
+    optional: bool = False,
 ) -> PipelineTask:
     """Use a Kubernetes ConfigMap as an environment variable as described by the `Kubernetes documentation
     https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#define-container-environment-variables-using-configmap-data` _.
@@ -48,6 +49,7 @@ def use_config_map_as_env(
     config_map_as_env = pb.ConfigMapAsEnv(
         config_map_name=config_map_name,
         key_to_env=key_to_env,
+        optional=optional,
     )
 
     msg.config_map_as_env.append(config_map_as_env)
