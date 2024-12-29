@@ -48,6 +48,12 @@ The meeting is happening every other Wed 10-11AM (PST)
 
 [#kubeflow-pipelines](https://kubeflow.slack.com)
 
+## Architecture
+
+![KubeFlow Pipelines Cluster Wide Architecture](images/kfp-cluster-wide-architecture.png)
+
+The above diagram documents the various components in Kubeflow Pipelines and how they interact. This should be a useful starting point for any developers.
+
 ## Blog posts
 
 * [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
