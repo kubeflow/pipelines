@@ -48,6 +48,10 @@ The meeting is happening every other Wed 10-11AM (PST)
 
 [#kubeflow-pipelines](https://kubeflow.slack.com)
 
+## Architecture
+
+Details about the KFP Architecture can be found at [Architecture.md](docs/Architecture.md)
+
 ## Blog posts
 
 * [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
