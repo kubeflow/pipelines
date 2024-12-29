@@ -37,16 +37,21 @@ Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.i
 
 Before you start contributing to Kubeflow Pipelines, read the guidelines in [How to Contribute](./CONTRIBUTING.md). To learn how to build and deploy Kubeflow Pipelines from source code, reagd the [developer guide](./developer_guide.md).
 
-## Kubeflow Pipelines Community Meeting
+## Kubeflow Pipelines Community
 
-The meeting is happening every other Wed 10-11AM (PST)
-[Calendar Invite](https://calendar.google.com/event?action=TEMPLATE&tmeid=NTdoNG5uMDBtcnJlYmdlOWt1c2lkY25jdmlfMjAxOTExMTNUMTgwMDAwWiBqZXNzaWV6aHVAZ29vZ2xlLmNvbQ&tmsrc=jessiezhu%40google.com&scp=ALL) or [Join Meeting Directly](https://meet.google.com/phd-ixfj-kcr/)
+### Community Meeting
+
+The Kubeflow Pipelines Community Meeting occurs every other Wed 10-11AM (PST).
+
+[Calendar Invite](https://calendar.google.com/event?action=TEMPLATE&tmeid=NTdoNG5uMDBtcnJlYmdlOWt1c2lkY25jdmlfMjAxOTExMTNUMTgwMDAwWiBqZXNzaWV6aHVAZ29vZ2xlLmNvbQ&tmsrc=jessiezhu%40google.com&scp=ALL)
+
+[Direct Meeting Link](https://zoom.us/j/92607298595?pwd%3DVlKLUbiguGkbT9oKbaoDmCxrhbRop7.1&sa=D&source=calendar&ust=1736264977415448&usg=AOvVaw1EIkjFsKy0d4yQPptIJS3x)
 
 [Meeting notes](http://bit.ly/kfp-meeting-notes)
 
-## Kubeflow Pipelines Slack Channel
+### Slack
 
-[#kubeflow-pipelines](https://kubeflow.slack.com)
+We also have a slack channel (#kubeflow-pipelines) on the Cloud Native Computing Foundation Slack workspace. You can find more details at [https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels)
 
 ## Architecture
 
