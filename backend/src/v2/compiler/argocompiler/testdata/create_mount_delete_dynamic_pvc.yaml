@@ -155,10 +155,11 @@ spec:
       - mountPath: /.config
         name: dot-config-scratch
     initContainers:
-    - command:
-      - launcher-v2
+    - args:
       - --copy
       - /kfp-launcher/launch
+      command:
+      - launcher-v2
       image: gcr.io/ml-pipeline/kfp-launcher
       name: kfp-launcher
       resources:
