@@ -30,5 +30,7 @@ patches:
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
 # when application is deleted.
-commonLabels:
-  application-crd-id: kubeflow-pipelines
+labels:
+- includeSelectors: true
+  pairs:
+    application-crd-id: kubeflow-pipelines
