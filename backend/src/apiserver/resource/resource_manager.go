@@ -584,17 +584,17 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 	}
 
 	for i := range jobs {
+		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
+		if err != nil {
+			return failedToReconcileSwfCrsError(err)
+		}
+
+		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
+		if err != nil {
+			return failedToReconcileSwfCrsError(err)
+		}
+
 		for {
-			tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
-			if err != nil {
-				return failedToReconcileSwfCrsError(err)
-			}
-
-			newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
-			if err != nil {
-				return failedToReconcileSwfCrsError(err)
-			}
-
 			currentScheduledWorkflow, err := r.getScheduledWorkflowClient(jobs[i].Namespace).Get(ctx, jobs[i].K8SName, v1.GetOptions{})
 			if err != nil {
 				return failedToReconcileSwfCrsError(err)
