@@ -583,9 +583,7 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 		return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
 	}
 
-nextJob:
 	for i := range jobs {
-	retryJob:
 		for {
 			tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
 			if err != nil {
@@ -608,14 +606,14 @@ nextJob:
 				err = r.updateSwfCrSpec(ctx, jobs[i].Namespace, newScheduledWorkflow)
 				if err != nil {
 					if apierrors.IsConflict(errors.Unwrap(err)) {
-						continue retryJob
+						continue
 					} else if util.IsNotFound(errors.Cause(err)) {
-						continue nextJob
+						break
 					}
 					return failedToReconcileSwfCrsError(err)
 				}
 			}
-			continue nextJob
+			break
 		}
 	}
 
