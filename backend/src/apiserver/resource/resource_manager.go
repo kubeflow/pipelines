@@ -604,9 +604,8 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 			}
 
 			if !reflect.DeepEqual(currentScheduledWorkflow.Spec, newScheduledWorkflow.Spec) {
-				newScheduledWorkflow.Name = currentScheduledWorkflow.Name
-				newScheduledWorkflow.ResourceVersion = currentScheduledWorkflow.ResourceVersion
-				err = r.updateSwfCrSpec(ctx, jobs[i].Namespace, newScheduledWorkflow)
+				currentScheduledWorkflow.Spec = newScheduledWorkflow.Spec
+				err = r.updateSwfCrSpec(ctx, jobs[i].Namespace, currentScheduledWorkflow)
 				if err != nil {
 					if apierrors.IsConflict(errors.Unwrap(err)) {
 						continue
