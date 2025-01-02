@@ -14,7 +14,10 @@
 
 package argocompiler
 
-import k8score "k8s.io/api/core/v1"
+import (
+	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	k8score "k8s.io/api/core/v1"
+)
 
 // env vars in metadata-grpc-configmap is defined in component package
 var metadataConfigIsOptional bool = true
@@ -42,3 +45,25 @@ var commonEnvs = []k8score.EnvVar{{
 		},
 	},
 }}
+
+// addExitTask adds an exit lifecycle hook to a task if exitTemplate is not empty.
+func addExitTask(task *wfapi.DAGTask, exitTemplate string, parentDagID string) {
+	if exitTemplate == "" {
+		return
+	}
+
+	var args wfapi.Arguments
+
+	if parentDagID != "" {
+		args = wfapi.Arguments{Parameters: []wfapi.Parameter{
+			{Name: paramParentDagID, Value: wfapi.AnyStringPtr(parentDagID)},
+		}}
+	}
+
+	task.Hooks = wfapi.LifecycleHooks{
+		wfapi.ExitLifecycleEvent: wfapi.LifecycleHook{
+			Template:  exitTemplate,
+			Arguments: args,
+		},
+	}
+}

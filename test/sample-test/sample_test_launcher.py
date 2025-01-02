@@ -42,7 +42,8 @@ class SampleTest(object):
                  results_gcs_dir,
                  host='',
                  target_image_prefix='',
-                 namespace='kubeflow'):
+                 namespace='kubeflow',
+                 expected_result='succeeded'):
         """Launch a KFP sample_test provided its name.
 
         :param test_name: name of the corresponding sample test.
@@ -50,6 +51,7 @@ class SampleTest(object):
         :param host: host of KFP API endpoint, default is auto-discovery from inverse-proxy-config.
         :param target_image_prefix: prefix of docker image, default is empty.
         :param namespace: namespace for kfp, default is kubeflow.
+        :param expected_result: the expected status for the run, default is succeeded.
         """
         self._test_name = test_name
         self._results_gcs_dir = results_gcs_dir
@@ -81,6 +83,7 @@ class SampleTest(object):
 
         self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
         self._sample_test_output = self._results_gcs_dir
+        self._expected_result = expected_result
 
     def _compile(self):
 
@@ -210,6 +213,7 @@ class SampleTest(object):
                 host=self._host,
                 namespace=self._namespace,
                 experiment_name=experiment_name,
+                expected_result=self._expected_result,
             )
             pysample_checker.run()
             pysample_checker.check()

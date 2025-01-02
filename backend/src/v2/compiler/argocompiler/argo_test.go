@@ -62,6 +62,11 @@ func Test_argo_compiler(t *testing.T) {
 			platformSpecPath: "../testdata/create_pod_metadata.json",
 			argoYAMLPath:     "testdata/create_pod_metadata.yaml",
 		},
+		{
+			jobPath:          "../testdata/exit_handler.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/exit_handler.yaml",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
