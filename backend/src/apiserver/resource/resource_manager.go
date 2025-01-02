@@ -584,6 +584,12 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 	}
 
 	for i := range jobs {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
 		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
