@@ -4,9 +4,9 @@
 #
 #    pip-compile requirements.in
 #
-cachetools==5.5.0
+cachetools==5.3.3
     # via google-auth
-certifi==2024.8.30
+certifi==2024.2.2
     # via
     #   kfp-server-api
     #   kubernetes
@@ -17,12 +17,12 @@ click==8.1.7
     # via kfp
 docstring-parser==0.16
     # via kfp
-google-api-core==2.19.2
+google-api-core==2.19.0
     # via
     #   google-cloud-core
     #   google-cloud-storage
     #   kfp
-google-auth==2.34.0
+google-auth==2.29.0
     # via
     #   google-api-core
     #   google-cloud-core
@@ -31,54 +31,52 @@ google-auth==2.34.0
     #   kubernetes
 google-cloud-core==2.4.1
     # via google-cloud-storage
-google-cloud-storage==2.18.2
+google-cloud-storage==2.16.0
     # via kfp
-google-crc32c==1.6.0
+google-crc32c==1.5.0
     # via
     #   google-cloud-storage
     #   google-resumable-media
-google-resumable-media==2.7.2
+google-resumable-media==2.7.0
     # via google-cloud-storage
-googleapis-common-protos==1.65.0
+googleapis-common-protos==1.63.0
     # via google-api-core
-idna==3.10
+idna==3.7
     # via requests
-kfp==2.9.0
+kfp==2.7.0
     # via -r requirements.in
-kfp-pipeline-spec==0.4.0
+kfp-pipeline-spec==0.3.0
     # via kfp
-kfp-server-api==2.3.0
+kfp-server-api==2.0.5
     # via kfp
-kubernetes==30.1.0
+kubernetes==26.1.0
     # via kfp
 oauthlib==3.2.2
-    # via
-    #   kubernetes
-    #   requests-oauthlib
-proto-plus==1.24.0
+    # via requests-oauthlib
+proto-plus==1.23.0
     # via google-api-core
-protobuf==4.25.5
+protobuf==4.25.3
     # via
     #   google-api-core
     #   googleapis-common-protos
     #   kfp
     #   kfp-pipeline-spec
     #   proto-plus
-pyasn1==0.6.1
+pyasn1==0.6.0
     # via
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.4.1
+pyasn1-modules==0.4.0
     # via google-auth
 python-dateutil==2.9.0.post0
     # via
     #   kfp-server-api
     #   kubernetes
-pyyaml==6.0.2
+pyyaml==6.0.1
     # via
     #   kfp
     #   kubernetes
-requests==2.32.3
+requests==2.32.2
     # via
     #   google-api-core
     #   google-cloud-storage
@@ -98,7 +96,7 @@ six==1.16.0
     #   python-dateutil
 tabulate==0.9.0
     # via kfp
-urllib3==1.26.20
+urllib3==1.26.18
     # via
     #   kfp
     #   kfp-server-api
@@ -106,3 +104,6 @@ urllib3==1.26.20
     #   requests
 websocket-client==1.8.0
     # via kubernetes
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools
