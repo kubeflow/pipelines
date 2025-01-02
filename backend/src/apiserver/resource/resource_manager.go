@@ -597,6 +597,9 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 		for {
 			currentScheduledWorkflow, err := r.getScheduledWorkflowClient(jobs[i].Namespace).Get(ctx, jobs[i].K8SName, v1.GetOptions{})
 			if err != nil {
+				if util.IsNotFound(err) {
+					break
+				}
 				return failedToReconcileSwfCrsError(err)
 			}
 
