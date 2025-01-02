@@ -17,4 +17,4 @@
 set -ex
 
 # TODO: update to a released version.
-go install github.com/google/go-licenses@d483853
+go install github.com/google/go-licenses@f6568ae
