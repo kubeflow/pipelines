@@ -48,7 +48,7 @@ spec:
         env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
-        image: gcr.io/ml-pipeline/mysql:8.0.26
+        image: mariadb:latest
         name: mysql
         ports:
         - containerPort: 3306

@@ -109,7 +109,7 @@ spec:
             secretKeyRef:
               name: mlpipeline-minio-artifact
               key: secretkey
-        image: gcr.io/ml-pipeline/api-server:dummy
+        image: na.artifactory.swg-devops.com/sys-linux-power-team-ftp3distro-docker-images-docker-local/kubeflow-ppc/api-server:latest
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
         ports:

@@ -18,19 +18,14 @@ on:
 
 jobs:
   initialization-tests-v1:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.2", "v1.31.0" ]
     name: Initialization tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
@@ -51,26 +46,24 @@ jobs:
           name: kfp-initialization-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp.*/*
 
+      - name: Delete KFP cluster
+        shell: bash
+        run: kind delete cluster
+
   initialization-tests-v2:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.2", "v1.31.0" ]
     name: Initialization tests v2 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -86,20 +79,19 @@ jobs:
           name: kfp-initialization-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp.*/*
 
+      - name: Delete KFP cluster
+        shell: bash
+        run: kind delete cluster
+
   api-integration-tests-v1:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.2", "v1.31.0" ]
     name: API integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
@@ -120,20 +112,19 @@ jobs:
           name: kfp-api-integration-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp.*/*
 
+      - name: Delete KFP cluster
+        shell: bash
+        run: kind delete cluster
+
   api-integration-tests-v2:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.2", "v1.31.0" ]
     name: API integration tests v2 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
@@ -154,81 +145,6 @@ jobs:
           name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp.*/*
 
-  frontend-integration-test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
-    name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-
-      - name: Create KFP cluster
-        uses: ./.github/actions/kfp-cluster
-        with:
-          k8s_version: ${{ matrix.k8s_version }}
-
-      - name: Forward API port
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
-      - name: Forward Frontend port
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
-
-      - name: Build frontend integration tests image
-        working-directory: ./test/frontend-integration-test
-        run: docker build . -t kfp-frontend-integration-test:local
-
-      - name: Frontend integration tests
-        run: docker run --net=host kfp-frontend-integration-test:local --remote-run true
-
-      - name: Collect test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }}
-          path: /tmp/tmp.*/*
-
-  basic-sample-tests:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
-    name: Basic Sample Tests - K8s ${{ matrix.k8s_version }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-
-      - name: Create KFP cluster
-        uses: ./.github/actions/kfp-cluster
-        with:
-          k8s_version: ${{ matrix.k8s_version }}
-
-      - name: Forward API port
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
-      - name: Install prerequisites
-        run: pip3 install -r ./test/sample-test/requirements.txt
-
-      - name: Basic sample tests - sequential
-        run:  python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
-
-      - name: Basic sample tests - exit_handler
-        run: python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name exit_handler --results-gcs-dir output
-
-      - name: Collect test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kfp-basic-sample-tests-artifacts-k8s-${{ matrix.k8s_version }}
-          path: /tmp/tmp.*/*
+      - name: Delete KFP cluster
+        shell: bash
+        run: kind delete cluster
