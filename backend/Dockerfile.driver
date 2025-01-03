@@ -14,6 +14,8 @@
 
 FROM golang:1.22.10-alpine3.21 as builder
 
+ARG GCFLAGS=""
+
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -25,7 +27,7 @@ RUN ./hack/install-go-licenses.sh
 
 COPY . .
 
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/v2/cmd/driver/*.go
+RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -gcflags="${GCFLAGS}" -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/v2/cmd/driver/*.go
 
 # Check licenses and comply with license terms.
 # First, make sure there's no forbidden license.
