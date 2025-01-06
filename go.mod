@@ -31,7 +31,7 @@ require (
 	github.com/kubeflow/kfp-tekton/tekton-catalog/pipeline-loops v0.0.0-20240417221339-0b894195443c
 	github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-exithandler v0.0.0-20240417221339-0b894195443c
 	github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-kfptask v0.0.0-20240417221339-0b894195443c
-	github.com/kubeflow/pipelines/api v0.0.0-20240416215826-da804407ad31
+	github.com/kubeflow/pipelines/api v0.0.0-20250102152816-873e9dedd766
 	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240725205754-d911c8b73b49
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20240416215826-da804407ad31
 	github.com/lestrrat-go/strftime v1.0.4
