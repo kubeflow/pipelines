@@ -6,6 +6,7 @@ approvers:
   - gregsheremeta
   - HumairAK
   - rimolive
+  - mprahl
 reviewers:
   - amadhusu
   - DharmitD
@@ -15,5 +16,6 @@ reviewers:
   - HumairAK
   - rimolive
   - VaniHaripriya
+  - mprahl
 emeritus_approvers:
   - harshad16
