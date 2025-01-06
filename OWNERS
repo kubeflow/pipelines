@@ -3,7 +3,6 @@ approvers:
   - DharmitD
   - dsp-developers
   - gmfrasca
-  - gregsheremeta
   - HumairAK
   - rimolive
   - mprahl
@@ -11,7 +10,6 @@ reviewers:
   - amadhusu
   - DharmitD
   - gmfrasca
-  - gregsheremeta
   - hbelmiro
   - HumairAK
   - rimolive
