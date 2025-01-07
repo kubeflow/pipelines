@@ -313,6 +313,14 @@ message TaskInputsSpec {
       string producer_task = 1;
     }
 
+    message MapTaskOutputParameterSpec {
+      // The name of the upstream task which produces the output parameter that
+      // matches with the `output_parameter_key`.
+      map<string, TaskOutputParameterSpec> map = 1;
+
+      // The key of [TaskOutputsSpec.parameters][] map of the producer task.
+
+    }
     oneof kind {
       // Output parameter from an upstream task.
       TaskOutputParameterSpec task_output_parameter = 1;
@@ -322,6 +330,8 @@ message TaskInputsSpec {
       string component_input_parameter = 3;
       // The final status of an uptream task.
       TaskFinalStatus task_final_status = 5;
+      // Collection of TaskOutputParameterSpec.
+      MapTaskOutputParameterSpec task_output_parameters = 6;
     }
 
     // Selector expression of Common Expression Language (CEL)
