@@ -3200,6 +3200,35 @@ func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.
 	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
 }
 
+func TestReconcileSwfCrs(t *testing.T) {
+	store, manager, job := initWithJobV2(t)
+	defer store.Close()
+
+	fetchedJob, err := manager.GetJob(job.UUID)
+	require.Nil(t, err)
+	require.NotNil(t, fetchedJob)
+
+	swfClient := store.SwfClient().ScheduledWorkflow("ns1")
+
+	options := v1.GetOptions{}
+	ctx := context.Background()
+
+	swf, err := swfClient.Get(ctx, "job-", options)
+	require.Nil(t, err)
+
+	// emulates an invalid/outdated spec
+	swf.Spec.Workflow.Spec = nil
+	swf, err = swfClient.Update(ctx, swf)
+	require.Nil(t, swf.Spec.Workflow.Spec)
+
+	err = manager.ReconcileSwfCrs(ctx)
+	require.Nil(t, err)
+
+	swf, err = swfClient.Get(ctx, "job-", options)
+	require.Nil(t, err)
+	require.NotNil(t, swf.Spec.Workflow.Spec)
+}
+
 func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
