@@ -10,16 +10,12 @@ runs:
   using: "composite"
   steps:
     - name: Create k8s Kind Cluster
-      uses: container-tools/kind-action@v2
-      with:
-        cluster_name: kfp
-        kubectl_version: ${{ inputs.k8s_version }}
-        version: v0.25.0
-        node_image: kindest/node:${{ inputs.k8s_version }}
-
-    - name: Build images
       shell: bash
-      run: ./.github/resources/scripts/build-images.sh
+      run: kind create cluster --image quay.io/powercloud/kind-node:${{ inputs.k8s_version }} --config /home/ubuntu/pipelines/config.yaml
+
+    # - name: Build images
+    #   shell: bash
+    #   run: ./.github/resources/scripts/build-images.sh
 
     - name: Deploy KFP
       shell: bash
