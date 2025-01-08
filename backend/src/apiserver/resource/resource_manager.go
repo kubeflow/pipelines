@@ -1022,18 +1022,19 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	for _, modelRef := range job.ResourceReferences {
 		modelRef.ResourceUUID = string(swf.UID)
 	}
-	// Get the service account
-	serviceAccount := ""
-	if swf.Spec.Workflow != nil {
-		execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
-		if err == nil {
-			serviceAccount = execSpec.ServiceAccount()
-		}
-	}
-	job.ServiceAccount = serviceAccount
 	if tmpl.GetTemplateType() == template.V1 {
+		// Get the service account
+		serviceAccount := ""
+		if swf.Spec.Workflow != nil {
+			execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
+			if err == nil {
+				serviceAccount = execSpec.ServiceAccount()
+			}
+		}
+		job.ServiceAccount = serviceAccount
 		job.PipelineSpec.WorkflowSpecManifest = manifest
 	} else {
+		job.ServiceAccount = newScheduledWorkflow.Spec.ServiceAccount
 		job.PipelineSpec.PipelineSpecManifest = manifest
 	}
 	return r.jobStore.CreateJob(job)
