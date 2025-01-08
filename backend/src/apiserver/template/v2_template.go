@@ -97,7 +97,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 	if modelJob.Namespace != "" {
 		executionSpec.SetExecutionNamespace(modelJob.Namespace)
 	}
-	setDefaultServiceAccount(executionSpec, modelJob.ServiceAccount)
+	if executionSpec.ServiceAccount() == "" {
+		setDefaultServiceAccount(executionSpec, modelJob.ServiceAccount)
+	}
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
@@ -135,7 +137,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 			PipelineId:        modelJob.PipelineId,
 			PipelineName:      modelJob.PipelineName,
 			PipelineVersionId: modelJob.PipelineVersionId,
-			ServiceAccount:    modelJob.ServiceAccount,
+			ServiceAccount:    executionSpec.ServiceAccount(),
 		},
 	}
 	return scheduledWorkflow, nil
