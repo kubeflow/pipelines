@@ -22,6 +22,7 @@ import (
 	client "github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
@@ -68,12 +69,13 @@ func TestPersistenceWorker_Success(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	require.NoError(t, err)
 
 	// Test
 	eventHandler.handler.OnAdd(workflow, true)
@@ -98,12 +100,13 @@ func TestPersistenceWorker_NotFoundError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	require.NoError(t, err)
 
 	// Test
 	eventHandler.handler.OnAdd(workflow, true)
@@ -129,12 +132,13 @@ func TestPersistenceWorker_GetWorklowError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	require.NoError(t, err)
 
 	// Test
 	eventHandler.handler.OnAdd(workflow, true)
@@ -163,12 +167,13 @@ func TestPersistenceWorker_ReportWorkflowRetryableError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	require.NoError(t, err)
 
 	// Test
 	eventHandler.handler.OnAdd(workflow, true)
@@ -196,12 +201,13 @@ func TestPersistenceWorker_ReportWorkflowNonRetryableError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker := NewPersistenceWorker(
+	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
+	require.NoError(t, err)
 
 	// Test
 	eventHandler.handler.OnAdd(workflow, true)

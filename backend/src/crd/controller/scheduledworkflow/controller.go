@@ -83,8 +83,8 @@ func NewController(
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	executionInformer commonutil.ExecutionInformer,
 	time commonutil.TimeInterface,
-	location *time.Location) *Controller {
-
+	location *time.Location,
+) (*Controller, error) {
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 
@@ -112,13 +112,16 @@ func NewController(
 	log.Info("Setting up event handlers")
 
 	// Set up an event handler for when the Scheduled Workflow changes
-	controller.swfClient.AddEventHandler(&cache.ResourceEventHandlerFuncs{
+	_, err := controller.swfClient.AddEventHandler(&cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.enqueueScheduledWorkflow,
 		UpdateFunc: func(old, new interface{}) {
 			controller.enqueueScheduledWorkflow(new)
 		},
 		DeleteFunc: controller.enqueueScheduledWorkflowForDelete,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	// Set up an event handler for when WorkflowHistory resources change. This
 	// handler will lookup the owner of the given WorkflowHistory, and if it is
@@ -126,7 +129,7 @@ func NewController(
 	// processing. This way, we don't need to implement custom logic for
 	// handling WorkflowHistory resources. More info on this pattern:
 	// https://github.com/kubernetes/community/blob/8cafef897a22026d42f5e5bb3f104febe7e29830/contributors/devel/controllers.md
-	controller.workflowClient.AddEventHandler(&cache.ResourceEventHandlerFuncs{
+	_, err = controller.workflowClient.AddEventHandler(&cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.handleWorkflow,
 		UpdateFunc: func(old, new interface{}) {
 			newWorkflow := new.(*workflowapi.Workflow)
@@ -140,8 +143,11 @@ func NewController(
 		},
 		DeleteFunc: controller.handleWorkflow,
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return controller
+	return controller, nil
 }
 
 // Run will set up the event handlers for types we are interested in, as well
