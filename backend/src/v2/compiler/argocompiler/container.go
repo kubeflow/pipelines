@@ -34,6 +34,8 @@ const (
 	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
 	DefaultDriverImage       = "gcr.io/ml-pipeline/kfp-driver@sha256:dc8b56a2eb071f30409828a8884d621092e68385af11a6c06aa9e9fbcfbb19de"
 	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
+	DefaultDriverCommand     = "driver"
+	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
 	s3ScratchLocation        = "/s3"
@@ -89,6 +91,14 @@ func GetDriverImage() string {
 		driverImage = DefaultDriverImage
 	}
 	return driverImage
+}
+
+func GetDriverCommand() []string {
+	driverCommand := os.Getenv(DriverCommandEnvVar)
+	if driverCommand == "" {
+		driverCommand = DefaultDriverCommand
+	}
+	return strings.Split(driverCommand, " ")
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
@@ -151,7 +161,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 		Container: &k8score.Container{
 			Image:   GetDriverImage(),
-			Command: []string{"driver"},
+			Command: GetDriverCommand(),
 			Args: []string{
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),

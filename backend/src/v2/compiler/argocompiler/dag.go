@@ -480,7 +480,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		},
 		Container: &k8score.Container{
 			Image:   c.driverImage,
-			Command: []string{"driver"},
+			Command: c.driverCommand,
 			Args: []string{
 				"--type", inputValue(paramDriverType),
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),

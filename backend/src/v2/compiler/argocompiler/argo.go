@@ -125,6 +125,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		// TODO(chensun): release process and update the images.
 		launcherImage: GetLauncherImage(),
 		driverImage:   GetDriverImage(),
+		driverCommand: GetDriverCommand(),
 		job:           job,
 		spec:          spec,
 		executors:     deploy.GetExecutors(),
@@ -161,6 +162,7 @@ type workflowCompiler struct {
 	wf            *wfapi.Workflow
 	templates     map[string]*wfapi.Template
 	driverImage   string
+	driverCommand []string
 	launcherImage string
 }
 
