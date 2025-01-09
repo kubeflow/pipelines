@@ -362,6 +362,35 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	return execution, nil
 }
 
+// getPodResource will accept the new field that accepts placeholders (e.g. resourceMemoryLimit) and the old float64
+// field (e.g. memoryLimit) and return the resolved value as a Quantity. If the returned Quantity is nil, it was not set
+// by the user. If the new field is set, the old field is ignored.
+func getPodResource(
+	new string, old float64, executorInput *pipelinespec.ExecutorInput, oldFmtStr string,
+) (*k8sres.Quantity, error) {
+	var resolved string
+
+	if new != "" {
+		var err error
+
+		resolved, err = resolvePodSpecInputRuntimeParameter(new, executorInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve executor input when retrieving pod resource: %w", err)
+		}
+	} else if old != 0 {
+		resolved = fmt.Sprintf(oldFmtStr, old)
+	} else {
+		return nil, nil
+	}
+
+	q, err := k8sres.ParseQuantity(resolved)
+	if err != nil {
+		return nil, err
+	}
+
+	return &q, nil
+}
+
 // initPodSpecPatch generates a strategic merge patch for pod spec, it is merged
 // to container base template generated in compiler/container.go. Therefore, only
 // dynamic values are patched here. The volume mounts / configmap mounts are
@@ -414,46 +443,86 @@ func initPodSpecPatch(
 		Limits:   map[k8score.ResourceName]k8sres.Quantity{},
 		Requests: map[k8score.ResourceName]k8sres.Quantity{},
 	}
-	memoryLimit := container.GetResources().GetMemoryLimit()
-	if memoryLimit != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryLimit))
-		if err != nil {
-			return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-		}
-		res.Limits[k8score.ResourceMemory] = q
+
+	memoryLimit, err := getPodResource(
+		container.GetResources().GetResourceMemoryLimit(),
+		container.GetResources().GetMemoryLimit(),
+		executorInput,
+		"%vG",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
-	memoryRequest := container.GetResources().GetMemoryRequest()
-	if memoryRequest != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryRequest))
-		if err != nil {
-			return nil, err
-		}
-		res.Requests[k8score.ResourceMemory] = q
+	if memoryLimit != nil {
+		res.Limits[k8score.ResourceMemory] = *memoryLimit
 	}
-	cpuLimit := container.GetResources().GetCpuLimit()
-	if cpuLimit != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
-		if err != nil {
-			return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-		}
-		res.Limits[k8score.ResourceCPU] = q
+
+	memoryRequest, err := getPodResource(
+		container.GetResources().GetResourceMemoryRequest(),
+		container.GetResources().GetMemoryRequest(),
+		executorInput,
+		"%vG",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
-	cpuRequest := container.GetResources().GetCpuRequest()
-	if cpuRequest != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuRequest))
-		if err != nil {
-			return nil, err
-		}
-		res.Requests[k8score.ResourceCPU] = q
+	if memoryRequest != nil {
+		res.Requests[k8score.ResourceMemory] = *memoryRequest
 	}
+
+	cpuLimit, err := getPodResource(
+		container.GetResources().GetResourceCpuLimit(),
+		container.GetResources().GetCpuLimit(),
+		executorInput,
+		"%v",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+	}
+	if cpuLimit != nil {
+		res.Limits[k8score.ResourceCPU] = *cpuLimit
+	}
+
+	cpuRequest, err := getPodResource(
+		container.GetResources().GetResourceCpuRequest(),
+		container.GetResources().GetCpuRequest(),
+		executorInput,
+		"%v",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+	}
+	if cpuRequest != nil {
+		res.Requests[k8score.ResourceCPU] = *cpuRequest
+	}
+
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
-		if accelerator.GetType() != "" && accelerator.GetCount() > 0 {
-			acceleratorType, err := resolvePodSpecInputRuntimeParameter(accelerator.GetType(), executorInput)
+		var acceleratorType string
+		if accelerator.GetResourceType() != "" {
+			acceleratorType, err = resolvePodSpecInputRuntimeParameter(accelerator.GetResourceType(), executorInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 			}
-			q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", accelerator.GetCount()))
+		} else if accelerator.GetType() != "" {
+			acceleratorType = accelerator.GetType()
+		}
+
+		var acceleratorCount string
+
+		if accelerator.GetResourceCount() != "" {
+			var err error
+
+			acceleratorCount, err = resolvePodSpecInputRuntimeParameter(accelerator.GetResourceCount(), executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+			}
+		} else if accelerator.Count > 0 {
+			acceleratorCount = fmt.Sprintf("%v", accelerator.GetCount())
+		}
+
+		if acceleratorType != "" && acceleratorCount != "" {
+			q, err := k8sres.ParseQuantity(acceleratorCount)
 			if err != nil {
 				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 			}
