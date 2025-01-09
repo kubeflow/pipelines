@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"google.golang.org/protobuf/types/known/structpb"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -257,6 +258,137 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.9",
+		Args:    []string{"--function_to_execute", "add"},
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
+			ResourceCpuRequest:    "{{$.inputs.parameters['pipelinechannel--cpu_request']}}",
+			ResourceCpuLimit:      "{{$.inputs.parameters['pipelinechannel--cpu_limit']}}",
+			ResourceMemoryRequest: "{{$.inputs.parameters['pipelinechannel--memory_request']}}",
+			ResourceMemoryLimit:   "{{$.inputs.parameters['pipelinechannel--memory_limit']}}",
+			Accelerator: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig{
+				ResourceType:  "{{$.inputs.parameters['pipelinechannel--accelerator_type']}}",
+				ResourceCount: "{{$.inputs.parameters['pipelinechannel--accelerator_count']}}",
+			},
+		},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"cpu_request": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "{{$.inputs.parameters['pipelinechannel--cpu_request']}}",
+					},
+				},
+				"pipelinechannel--cpu_request": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "200m",
+					},
+				},
+				"cpu_limit": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "{{$.inputs.parameters['pipelinechannel--cpu_limit']}}",
+					},
+				},
+				"pipelinechannel--cpu_limit": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "400m",
+					},
+				},
+				"memory_request": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "{{$.inputs.parameters['pipelinechannel--memory_request']}}",
+					},
+				},
+				"pipelinechannel--memory_request": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "100Mi",
+					},
+				},
+				"memory_limit": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "{{$.inputs.parameters['pipelinechannel--memory_limit']}}",
+					},
+				},
+				"pipelinechannel--memory_limit": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "500Mi",
+					},
+				},
+				"accelerator_type": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "{{$.inputs.parameters['pipelinechannel--accelerator_type']}}",
+					},
+				},
+				"pipelinechannel--accelerator_type": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "nvidia.com/gpu",
+					},
+				},
+				"accelerator_count": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "{{$.inputs.parameters['pipelinechannel--accelerator_count']}}",
+					},
+				},
+				"pipelinechannel--accelerator_count": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "1",
+					},
+				},
+			},
+		},
+	}
+
+	podSpec, err := initPodSpecPatch(
+		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
+	)
+	assert.Nil(t, err)
+	assert.Len(t, podSpec.Containers, 1)
+
+	res := podSpec.Containers[0].Resources
+	assert.Equal(t, k8sres.MustParse("200m"), res.Requests[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("400m"), res.Limits[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("100Mi"), res.Requests[k8score.ResourceMemory])
+	assert.Equal(t, k8sres.MustParse("500Mi"), res.Limits[k8score.ResourceMemory])
+	assert.Equal(t, k8sres.MustParse("1"), res.Limits[k8score.ResourceName("nvidia.com/gpu")])
+}
+
+func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.9",
+		Args:    []string{"--function_to_execute", "add"},
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
+			CpuRequest:            200,
+			CpuLimit:              400,
+			ResourceMemoryRequest: "100Mi",
+			ResourceMemoryLimit:   "500Mi",
+			Accelerator: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig{
+				Type:  "nvidia.com/gpu",
+				Count: 1,
+			},
+		},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	executorInput := &pipelinespec.ExecutorInput{}
+
+	podSpec, err := initPodSpecPatch(
+		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
+	)
+	assert.Nil(t, err)
+	assert.Len(t, podSpec.Containers, 1)
+
+	res := podSpec.Containers[0].Resources
+	assert.Equal(t, k8sres.MustParse("200"), res.Requests[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("400"), res.Limits[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("100Mi"), res.Requests[k8score.ResourceMemory])
+	assert.Equal(t, k8sres.MustParse("500Mi"), res.Limits[k8score.ResourceMemory])
+	assert.Equal(t, k8sres.MustParse("1"), res.Limits[k8score.ResourceName("nvidia.com/gpu")])
 }
 
 func Test_makeVolumeMountPatch(t *testing.T) {

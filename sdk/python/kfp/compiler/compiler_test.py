@@ -3501,9 +3501,6 @@ class TestResourceConfig(unittest.TestCase):
         self.assertEqual(
             '5', dict_format['deploymentSpec']['executors']['exec-return-1-2']
             ['container']['resources']['resourceCpuLimit'])
-        self.assertEqual(
-            5.0, dict_format['deploymentSpec']['executors']['exec-return-1-2']
-            ['container']['resources']['cpuLimit'])
         self.assertNotIn(
             'memoryLimit', dict_format['deploymentSpec']['executors']
             ['exec-return-1-2']['container']['resources'])
@@ -3511,9 +3508,6 @@ class TestResourceConfig(unittest.TestCase):
         self.assertEqual(
             '50G', dict_format['deploymentSpec']['executors']['exec-return-1-3']
             ['container']['resources']['resourceMemoryLimit'])
-        self.assertEqual(
-            50.0, dict_format['deploymentSpec']['executors']['exec-return-1-3']
-            ['container']['resources']['memoryLimit'])
         self.assertNotIn(
             'cpuLimit', dict_format['deploymentSpec']['executors']
             ['exec-return-1-3']['container']['resources'])
@@ -3522,26 +3516,14 @@ class TestResourceConfig(unittest.TestCase):
             '2', dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['resourceCpuRequest'])
         self.assertEqual(
-            2.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['cpuRequest'])
-        self.assertEqual(
             '5', dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['resourceCpuLimit'])
-        self.assertEqual(
-            5.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['cpuLimit'])
         self.assertEqual(
             '4G', dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['resourceMemoryRequest'])
         self.assertEqual(
-            4.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['memoryRequest'])
-        self.assertEqual(
             '50G', dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['resourceMemoryLimit'])
-        self.assertEqual(
-            50.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
-            ['container']['resources']['memoryLimit'])
 
 
 class TestPlatformConfig(unittest.TestCase):
