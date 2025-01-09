@@ -85,3 +85,6 @@ __pycache__
 
 # kfp local execution default directory
 local_outputs/
+
+# Ignore debug Driver Dockerfile produced from `make -C backend image_driver_debug`
+backend/Dockerfile.driver-debug

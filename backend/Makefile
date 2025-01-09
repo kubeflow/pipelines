@@ -86,6 +86,16 @@ image_visualization:
 .PHONY: image_driver
 image_driver:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .
+.PHONY: image_driver_debug
+image_driver_debug:
+	cd $(MOD_ROOT) && sed -e '/RUN .*go mod download/a\
+	RUN go install github.com/go-delve/delve/cmd/dlv@latest' \
+	-e '/COPY .*\/bin\/driver \/bin\/driver/a\
+	COPY . \/go\/src\/github.com\/kubeflow\/pipelines\
+	COPY --from=builder /go/bin/dlv /bin/dlv\
+	EXPOSE 2345' \
+	backend/Dockerfile.driver > backend/Dockerfile.driver-debug
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --build-arg GCFLAGS="all=-N -l" -t ${IMG_TAG_DRIVER}:debug -f backend/Dockerfile.driver-debug .
 .PHONY: image_launcher
 image_launcher:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_TAG_LAUNCHER} -f backend/Dockerfile.launcher .
@@ -100,3 +110,10 @@ dev-kind-cluster:
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
+
+.PHONY: kind-load-driver-debug
+kind-load-driver-debug:
+	kind --name $(KIND_NAME) load docker-image ${IMG_TAG_DRIVER}:debug
+
+.PHONY: kind-build-and-load-driver-debug
+kind-build-and-load-driver-debug: image_driver_debug kind-load-driver-debug

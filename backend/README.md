@@ -167,3 +167,109 @@ You can also directly connect to the MariaDB database server with:
 ```bash
 mysql -h 127.0.0.1 -u root
 ```
+
+## Remote Debug the Driver
+
+These instructions assume you are leveraging the Kind cluster in the
+[Run Locally With a Kind Cluster](#run-locally-with-a-kind-cluster) section.
+
+### Build the Driver Image With Debug Prerequisites
+
+Run the following to create the `backend/Dockerfile.driver-debug` file and build the container image
+tagged as `kfp-driver:debug`. This container image is based on `backend/Dockerfile.driver` but installs
+[Delve](https://github.com/go-delve/delve), builds the binary without compiler optimizations so the binary matches the
+source code (via `GCFLAGS="all=-N -l"`), and copies the source code to the destination container for the debugger.
+Any changes to the Driver code will require rebuilding this container image.
+
+```bash
+make -C backend image_driver_debug
+```
+
+Then load the container image in the Kind cluster.
+
+```bash
+make -C backend kind-load-driver-debug
+```
+
+Alternatively, you can use this Make target that does both.
+
+```bash
+make -C kind-build-and-load-driver-debug
+```
+
+### Run the API Server With Debug Configuration
+
+You may use the following VS Code `launch.json` file to run the API server which overrides the Driver
+command to use Delve and the Driver image to use debug image built previously.
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch API server (Kind) (Debug Driver)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/backend/src/apiserver",
+            "env": {
+                "POD_NAMESPACE": "kubeflow",
+                "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
+                "MINIO_SERVICE_SERVICE_HOST": "localhost",
+                "MINIO_SERVICE_SERVICE_PORT": "9000",
+                "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
+                "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
+                "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
+                "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
+                "V2_DRIVER_IMAGE": "kfp-driver:debug",
+                "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --",
+            }
+        }
+    ]
+}
+```
+
+### Starting a Remote Debug Session
+
+Start by launching a pipeline. This will eventually create a Driver pod that is waiting for a remote debug connection.
+
+You can see the pods with the following command.
+
+```bash
+kubectl -n kubeflow get pods -w
+```
+
+Once you see a pod with `-driver` in the name such as `hello-world-clph9-system-dag-driver-10974850`, port forward
+the Delve port in the pod to your localhost (replace `<driver pod name>` with the actual name).
+
+```bash
+kubectl -n kubeflow port-forward <driver pod name> 2345:2345
+```
+
+Set a breakpoint on the Driver code in VS Code. Then remotely connect to the Delve debug session with the following VS
+Code `launch.json` file:
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Connect to remote driver",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "remotePath": "/go/src/github.com/kubeflow/pipelines",
+            "port": 2345,
+            "host": "127.0.0.1",
+        }
+    ]
+}
+```
+
+Once the Driver pod succeeds, the remote debug session will close. Then repeat the process of forwarding the port
+of subsequent Driver pods and starting remote debug sessions in VS Code until the pipeline completes.
+
+For debugging a specific Driver pod, you'll need to continuously port forward and connect to the remote debug session
+without a breakpoint so that Delve will continue execution until the Driver pod you are interested in starts up. At that
+point, you can set a break point, port forward, and connect to the remote debug session to debug that specific Driver
+pod.
