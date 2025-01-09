@@ -85,7 +85,7 @@ func main() {
 		scheduleInformerFactory = swfinformers.NewFilteredSharedInformerFactory(scheduleClient, time.Second*30, namespace, nil)
 	}
 
-	controller := NewController(
+	controller, err := NewController(
 		kubeClient,
 		scheduleClient,
 		execClient,
@@ -93,6 +93,9 @@ func main() {
 		execInformer,
 		commonutil.NewRealTime(),
 		location)
+	if err != nil {
+		log.Fatalf("Failed to instantiate the controller: %v", err)
+	}
 
 	go scheduleInformerFactory.Start(stopCh)
 	go execInformer.InformerFactoryStart(stopCh)
