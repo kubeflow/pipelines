@@ -47,7 +47,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tektoncd/pipeline v0.54.0
 	gocloud.dev v0.23.0
-	golang.org/x/net v0.25.0
+	golang.org/x/net v0.33.0
 	golang.org/x/oauth2 v0.16.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20231212172506-995d672761c0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240102182953-50ed04b92917
