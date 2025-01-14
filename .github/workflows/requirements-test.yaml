@@ -1,0 +1,32 @@
+name: Requirements generated tests
+
+on:
+  push:
+    branches: [master]
+
+  pull_request:
+    paths:
+      - 'test/**'
+      - 'backend/**'
+      - 'sdk/**'
+
+jobs:
+  requirements-generated-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install pip-tools
+        run: |
+          pip3 install pip-tools
+
+      - name: Run Tests
+        run: |
+          ./.github/resources/scripts/test-requirements.sh
