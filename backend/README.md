@@ -13,7 +13,7 @@ Before you begin, ensure you have:
 - [go-licenses tool](../hack/install-go-licenses.sh)
 - Docker or Podman installed (for building container images)
 
-Note that you may need to restart your shell after installing these resources in order for the changes to take affect.
+Note that you may need to restart your shell after installing these resources in order for the changes to take effect.
 
 ## Building & Testing
 
