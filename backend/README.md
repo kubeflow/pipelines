@@ -11,7 +11,7 @@ This README will help you set up your coding environment in order to build and r
 Before you begin, ensure you have:
 - Go programming language installed
 - [go-licenses tool](../hack/install-go-licenses.sh)
-- Docker installed (for building container images)
+- Docker or Podman installed (for building container images)
 
 Note that you may need to restart your shell after installing these resources in order for the changes to take affect.
 
