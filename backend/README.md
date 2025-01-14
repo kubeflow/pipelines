@@ -57,7 +57,7 @@ need to be regenerated and checked-in. Refer to [backend/api](./api/README.md) f
 2. Run the tool to update all licenses:
 
     ```bash
-    make -c backend all
+    make -C backend all
     ```
 
 ### Updating python dependencies
