@@ -42,7 +42,7 @@ Then, run:
 ```
 kubectl edit deployment.v1.apps/ml-pipeline -n kubeflow
 ```
-You'll see the field reference the api server docker image (`spec.containers[0].image: gcr.io/ml-pipeline/api-server:<image-version>`).
+You'll see the field reference the api server container image (`spec.containers[0].image: gcr.io/ml-pipeline/api-server:<image-version>`).
 Change it to point to your own build, after saving and closing the file, apiserver will restart with your change.
 
 ### Building client library and swagger files
