@@ -36,6 +36,11 @@
     "tslint": "^5.20.1",
     "typescript": "^3.6.4"
   },
+  "overrides": {
+    "express": {
+      "path-to-regexp": "0.1.12"
+    }
+  },
   "scripts": {
     "build": "tsc --project .",
     "format": "prettier --write './**/*.{ts,tsx}'",
