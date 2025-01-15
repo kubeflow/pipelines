@@ -7,30 +7,19 @@ from snapshottest import Snapshot
 
 snapshots = Snapshot()
 
-snapshots['TestExporterMethods::test_create_cell_from_args_with_multiple_args 1'] = '''
+snapshots['TestExporterMethods::test_create_cell_from_args_with_multiple_args 1'] = '''\
 <div class="output_wrapper">
 <div class="output">
-
-
 <div class="output_area">
-
-    <div class="prompt"></div>
-
-
-
+<div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>gs://ml-pipeline/data.csv
-lambda x: (x[&#39;target&#39;] &gt; x[&#39;fare&#39;] * 0.2)
+lambda x: (x['target'] &gt; x['fare'] * 0.2)
 </pre>
 </div>
-  
-</div>
-
 </div>
 </div>
-
-
-
+</div>
 '''
 
 snapshots['TestExporterMethods::test_create_cell_from_args_with_no_args 1'] = 'variables = {}'
@@ -61,27 +50,16 @@ because it does not have dependencies and had a low chance of being updated.
 
 print(2)'''
 
-snapshots['TestExporterMethods::test_generate_custom_visualization_html_from_notebook 1'] = '''
+snapshots['TestExporterMethods::test_generate_custom_visualization_html_from_notebook 1'] = '''\
 <div class="output_wrapper">
 <div class="output">
-
-
 <div class="output_area">
-
-    <div class="prompt"></div>
-
-
-
+<div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>2
 </pre>
 </div>
-  
-</div>
-
 </div>
 </div>
-
-
-
+</div>
 '''

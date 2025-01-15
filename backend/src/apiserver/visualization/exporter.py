@@ -143,11 +143,10 @@ class Exporter:
 
         """
         # HTML generator and exporter object
-        html_exporter = HTMLExporter()
         template_file = "templates/{}.tpl".format(self.template_type.value)
-        html_exporter.template_file = str(Path.cwd() / template_file)
         # Output generator
         self.ep.preprocess(nb, {"metadata": {"path": Path.cwd()}}, self.km)
+        html_exporter = HTMLExporter(template_file=str(Path.cwd() / template_file))
         # Export all html and outputs
         body, _ = html_exporter.from_notebook_node(nb, resources={})
         return body
