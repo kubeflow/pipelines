@@ -42,6 +42,7 @@ class TestCase:
     yaml_path: str
     function_name: str
     arguments: Dict[str, Any]
+    expected_state: str
 
 
 def create_test_case_parameters() -> List[TestCase]:
@@ -60,6 +61,7 @@ def create_test_case_parameters() -> List[TestCase]:
                                        f'{test_case["module"]}.yaml'),
                 function_name=test_case['name'],
                 arguments=test_case.get('arguments'),
+                expected_state=test_case.get('expected_state', 'SUCCEEDED'),
             ) for test_case in test_group['test_cases'] if test_case['execute'])
 
     return parameters
@@ -122,7 +124,7 @@ async def test(test_case: TestCase) -> None:
             f'Error triggering pipeline {test_case.name}.') from e
 
     api_run = await event_loop.run_in_executor(None, wait, run_result)
-    assert api_run.state == 'SUCCEEDED', f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
+    assert api_run.state == test_case.expected_state, f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
 
 
 if __name__ == '__main__':
