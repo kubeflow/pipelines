@@ -1,4 +1,4 @@
-name: Requirements generated tests
+name: requirements.txt automatically generated
 
 on:
   push:
