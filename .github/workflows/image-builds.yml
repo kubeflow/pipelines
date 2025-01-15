@@ -77,20 +77,43 @@ jobs:
         include:
           - image: kfp-api-server
             dockerfile: backend/Dockerfile
+            context: .
           - image: kfp-frontend
             dockerfile: frontend/Dockerfile
+            context: .
           - image: kfp-persistence-agent
             dockerfile: backend/Dockerfile.persistenceagent
+            context: .
           - image: kfp-scheduled-workflow-controller
             dockerfile: backend/Dockerfile.scheduledworkflow
+            context: .
           - image: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
+            context: .
           - image: kfp-visualization-server
             dockerfile: backend/Dockerfile.visualization
+            context: .
           - image: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
+            context: .
           - image: kfp-driver
             dockerfile: backend/Dockerfile.driver
+            context: .
+          - image: kfp-cache-deployer
+            dockerfile: backend/src/cache/deployer/Dockerfile
+            context: .
+          - image: kfp-cache-server
+            dockerfile: backend/Dockerfile.cacheserver
+            context: .
+          - image: kfp-metadata-writer
+            dockerfile: backend/metadata_writer/Dockerfile
+            context: .
+          - image: kfp-metadata-envoy
+            dockerfile: third_party/metadata_envoy/Dockerfile
+            context: .
+          - image: kfp-inverse-proxy-agent
+            dockerfile: proxy/Dockerfile
+            context: ./proxy
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -144,7 +167,7 @@ jobs:
         uses: docker/build-push-action@v6
         if: steps.check_tag.outcome == 'success'
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
