@@ -22,7 +22,7 @@ spec:
         # * .cloudbuild.yaml and .release.cloudbuild.yaml
         # * manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml
         # * test/tag_for_hosted.sh
-        image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
+        image: na.artifactory.swg-devops.com/sys-linux-power-team-ftp3distro-docker-images-docker-local/mlmd-grpc-server:latest_odh
         securityContext:
           allowPrivilegeEscalation: false
           seccompProfile:
