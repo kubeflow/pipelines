@@ -6,7 +6,7 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/requirements-test.yaml'
+      - '.github/workflows/requirements-txt-automatically-generated.yaml'
 
 jobs:
   requirements-generated-tests:
