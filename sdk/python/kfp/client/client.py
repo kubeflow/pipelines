@@ -105,7 +105,7 @@ class Client:
         host: Host name to use to talk to Kubeflow Pipelines. If not set,
             the in-cluster service DNS name will be used, which only works if
             the current environment is a pod in the same cluster (such as a
-            Jupyter instance spawned by Kubeflow's JupyterHub). (`More information on connecting. <https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/>`_)
+            Jupyter instance spawned by Kubeflow's JupyterHub). (`More information on connecting. <https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/>`_)
         client_id: Client ID used by Identity-Aware Proxy.
         namespace: Kubernetes namespace to use. Used for multi-user deployments. For single-user deployments, this should be left as ``None``.
         other_client_id: Client ID used to obtain the auth codes and refresh
