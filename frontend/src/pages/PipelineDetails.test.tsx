@@ -515,7 +515,7 @@ describe('PipelineDetails', () => {
       expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          additionalInfo: 'Unexpected token o in JSON at position 1',
+          additionalInfo: 'Unexpected token \'o\', "not valid JSON" is not valid JSON',
           message: `Failed to parse pipeline spec from run with ID: ${
             testV1Run.run!.id
           }. Click Details for more information.`,

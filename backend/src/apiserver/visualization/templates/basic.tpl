@@ -1,4 +1,4 @@
-{%- extends 'display_priority.tpl' -%}
+{%- extends 'base/display_priority.j2' -%}
 
 {% block output_group %}
 <div class="output_wrapper">
