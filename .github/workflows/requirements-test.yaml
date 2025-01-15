@@ -6,9 +6,7 @@ on:
 
   pull_request:
     paths:
-      - 'test/**'
-      - 'backend/**'
-      - 'sdk/**'
+      - '.github/workflows/requirements-test.yaml'
 
 jobs:
   requirements-generated-tests:
