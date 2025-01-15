@@ -86,6 +86,7 @@ pipelines:
     - module: pipeline_with_exit_handler
       name: my_pipeline
       execute: true
+      expected_state: FAILED
     - module: pipeline_with_env
       name: my_pipeline
       execute: true
@@ -114,6 +115,7 @@ pipelines:
     - module: pipeline_with_multiple_exit_handlers
       name: my_pipeline
       execute: true
+      expected_state: FAILED
     - module: pipeline_with_parallelfor_parallelism
       name: my_pipeline
       execute: false
