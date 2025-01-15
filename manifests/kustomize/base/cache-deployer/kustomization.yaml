@@ -11,3 +11,4 @@ labels:
   - includeSelectors: true
     pairs:
       app: cache-deployer
+      application-crd-id: kubeflow-pipelines
