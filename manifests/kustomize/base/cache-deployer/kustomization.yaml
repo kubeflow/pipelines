@@ -7,5 +7,5 @@ resources:
 commonLabels:
   app: cache-deployer
 images:
-  - name: gcr.io/ml-pipeline/cache-deployer
-    newTag: 2.3.0
+  - name: ghcr.io/kubeflow/kfp-cache-deployer
+    newTag: 2.4.0

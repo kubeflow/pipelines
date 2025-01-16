@@ -9,5 +9,5 @@ resources:
   - metadata-envoy-service.yaml
   - metadata-grpc-sa.yaml
 images:
-  - name: gcr.io/ml-pipeline/metadata-envoy
-    newTag: 2.3.0
+  - name: ghcr.io/kubeflow/kfp-metadata-envoy
+    newTag: 2.4.0

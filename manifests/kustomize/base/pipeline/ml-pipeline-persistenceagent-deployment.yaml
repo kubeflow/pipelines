@@ -27,7 +27,7 @@ spec:
             value: "2"
           - name: LOG_LEVEL
             value: "info"
-        image: gcr.io/ml-pipeline/persistenceagent:dummy
+        image: ghcr.io/kubeflow/kfp-persistence-agent:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent
         resources:
