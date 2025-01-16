@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: main
-        image: gcr.io/ml-pipeline/metadata-writer:dummy
+        image: ghcr.io/kubeflow/kfp-metadata-writer:dummy
         env:
         - name: NAMESPACE_TO_WATCH
           valueFrom:
