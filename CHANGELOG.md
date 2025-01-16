@@ -1,5 +1,82 @@
 # Changelog
 
+## [2.4.0](https://github.com/kubeflow/pipelines/compare/2.3.0...2.4.0) (2025-01-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** stop auto-populating metrics as dag output ([\#11362](https://github.com/kubeflow/pipelines/issues/11362))
+* **components:** Deprecate preview.custom_job module
+* **sdk:** Pin kfp-pipeline-spec==0.4.0, kfp-server-api>=2.1.0,<2.4.0 ([\#11192](https://github.com/kubeflow/pipelines/issues/11192))
+
+### Features
+
+* **sdk/backend:** Add support for placeholders in resource limits ([\#11501](https://github.com/kubeflow/pipelines/issues/11501)) ([7c931ae](https://github.com/kubeflow/pipelines/commit/7c931ae20197b2309d7a8462f6ce099882a8f915))
+* Introduce cache_key for cache key customization ([\#11434](https://github.com/kubeflow/pipelines/issues/11434)) ([50b367f](https://github.com/kubeflow/pipelines/commit/50b367f232b2d37b762745c8b4296a29c9d8fd45))
+* **api:** add PipelineConfig to api to re-implement pipeline-level config ([\#11333](https://github.com/kubeflow/pipelines/issues/11333)) ([c2f5649](https://github.com/kubeflow/pipelines/commit/c2f56495b9b1e9eda1b44b6106e12d5290a89ed7))
+* **backend:** add configurable S3 path style support ([\#11246](https://github.com/kubeflow/pipelines/issues/11246)) ([85fdd73](https://github.com/kubeflow/pipelines/commit/85fdd73ae0bb1c2ce01da6311807b37cfc589710))
+* **backend:** Add Parallelism Limit to ParallelFor tasks. Fixes [\#8718](https://github.com/kubeflow/pipelines/issues/8718) ([\#10798](https://github.com/kubeflow/pipelines/issues/10798)) ([b7d8c97](https://github.com/kubeflow/pipelines/commit/b7d8c97d65af575b71efe6755eb67b0bb9126f01))
+* **backend:** implement subdag output resolution ([\#11196](https://github.com/kubeflow/pipelines/issues/11196)) ([c5b787a](https://github.com/kubeflow/pipelines/commit/c5b787aacc4fddeeb1ebc526a83159540cd7b311))
+* **backend:** Remove PipelineSpec Template storage from ObjStore responsibilies. Fixes [\#10509](https://github.com/kubeflow/pipelines/issues/10509) ([\#10790](https://github.com/kubeflow/pipelines/issues/10790)) ([374b18b](https://github.com/kubeflow/pipelines/commit/374b18bc3366a51f4b92821cdb3a942bc12343a0))
+* **cli:** expose existing_token client property ([\#11400](https://github.com/kubeflow/pipelines/issues/11400)) ([35793be](https://github.com/kubeflow/pipelines/commit/35793be4168584b1084169b723bfb216aa4a03b6))
+* **component:** Created Snowflake data unload component ([\#11349](https://github.com/kubeflow/pipelines/issues/11349)) ([22e7780](https://github.com/kubeflow/pipelines/commit/22e77805ed41a72837f7cd15a9d679f42169b253))
+* **component:** execute in a virtual env ([\#11326](https://github.com/kubeflow/pipelines/issues/11326)) ([df28e89](https://github.com/kubeflow/pipelines/commit/df28e891c4374f7eac98cc6a4892b6e6c35a43f2))
+* **components:** Add reservation_affinity support in v1.create_custom_training_job_from_component ([c84241b](https://github.com/kubeflow/pipelines/commit/c84241b7362c0351109bc0ddbc2f697479ff8675))
+* **components:** add strategy to v1 GCPC custom job components/utils ([1cdd648](https://github.com/kubeflow/pipelines/commit/1cdd648239ff850bf5baae48e4e7bd1b24330dd5))
+* **components:** Deprecate preview.custom_job module ([abbd915](https://github.com/kubeflow/pipelines/commit/abbd915a2ac32b22151efef662b937601602ba9d))
+* **frontend/backend:** Allow the ability to sort experiments by last run creation. Fixes [\#10884](https://github.com/kubeflow/pipelines/issues/10884) ([\#11163](https://github.com/kubeflow/pipelines/issues/11163)) ([db8669c](https://github.com/kubeflow/pipelines/commit/db8669c33e60bb8910710359c0638d21ec27ac7c))
+* **sdk:** add PipelineConfig to DSL to re-implement pipeline-level config ([\#11112](https://github.com/kubeflow/pipelines/issues/11112)) ([df4d787](https://github.com/kubeflow/pipelines/commit/df4d7878c4ce25c801a916351bcbce1266a9daf1))
+* **sdk:** Allow disabling default caching via a CLI flag and env var ([\#11222](https://github.com/kubeflow/pipelines/issues/11222)) ([3f49522](https://github.com/kubeflow/pipelines/commit/3f495229f26ef08360048d050dfe014ca4b57b4f))
+* **sdk:** Pin kfp-pipeline-spec==0.4.0, kfp-server-api>=2.1.0,<2.4.0 ([\#11192](https://github.com/kubeflow/pipelines/issues/11192)) ([dfd4cc1](https://github.com/kubeflow/pipelines/commit/dfd4cc1e537523b04b01b6e209b5760bd2a007d5))
+* **sdk:** stop auto-populating metrics as dag output ([\#11362](https://github.com/kubeflow/pipelines/issues/11362)) ([8d018af](https://github.com/kubeflow/pipelines/commit/8d018aff6ed14b5bed7b3f90d9f450b3144ae18e))
+* **sdk/backend:** enable parameterization of container images ([\#11404](https://github.com/kubeflow/pipelines/issues/11404)) ([22e85de](https://github.com/kubeflow/pipelines/commit/22e85de2bcbd2ff5ed2a099e4f11a39ff27e4190))
+* **testing:** use kustomize to patch deployments before deploy ([\#11294](https://github.com/kubeflow/pipelines/issues/11294)) ([be863a8](https://github.com/kubeflow/pipelines/commit/be863a852997718701a1ee548d9db86dca7ffc33))
+* add fields in SinglePlatformSpec ([\#11299](https://github.com/kubeflow/pipelines/issues/11299)) ([a0d313e](https://github.com/kubeflow/pipelines/commit/a0d313e095c2b5fc1a32809c38cf96b13e5772b2))
+* **sdk:** support dynamic machine type parameters in pipeline task setters ([\#11097](https://github.com/kubeflow/pipelines/issues/11097)) ([70aaf8a](https://github.com/kubeflow/pipelines/commit/70aaf8a9a469607dc6e4aad58d40b39c75363b99))
+* **workflows:** use built images in Github workflows ([\#11284](https://github.com/kubeflow/pipelines/issues/11284)) ([1550b36](https://github.com/kubeflow/pipelines/commit/1550b363aed3745b476d2b3798725432329e8cea))
+
+
+### Bug Fixes
+
+* **backend:** Allow initializing the Kubernetes client with a kubeconfig ([\#11443](https://github.com/kubeflow/pipelines/issues/11443)) ([87bdb7c](https://github.com/kubeflow/pipelines/commit/87bdb7c3b1126ae5e899826be0834c11764edbae))
+* **backend:** handle client side HTTP timeouts to fix crashes of metadata-writer. Fixes [\#8200](https://github.com/kubeflow/pipelines/issues/8200) ([\#11361](https://github.com/kubeflow/pipelines/issues/11361)) ([94a21cc](https://github.com/kubeflow/pipelines/commit/94a21cc7e27a3824732e7f4c09a4d8b826dde5b8))
+* **backend:** modelToCRDTrigger was not including periodic schedule correctly ([\#11475](https://github.com/kubeflow/pipelines/issues/11475)) ([97acacb](https://github.com/kubeflow/pipelines/commit/97acacbd2a0b72d442398ca04382ac1e6d9aa37f))
+* **backend:** randomizing output uri path to avoid overwriting. Fixes [\#10186](https://github.com/kubeflow/pipelines/issues/10186) ([\#11243](https://github.com/kubeflow/pipelines/issues/11243)) ([219725d](https://github.com/kubeflow/pipelines/commit/219725d9f02b690cf0829a21faf092a3e4c65531))
+* **backend:** remove unused function argument ([\#11425](https://github.com/kubeflow/pipelines/issues/11425)) ([7f2278f](https://github.com/kubeflow/pipelines/commit/7f2278f25222992bedfcae5b613a7a06430f4542))
+* **backend:** return error properly ([\#11424](https://github.com/kubeflow/pipelines/issues/11424)) ([13f83cf](https://github.com/kubeflow/pipelines/commit/13f83cf745eb5628d6ae5b25c1ca979d8c6d92ad))
+* **backend:** set default value to true for ForcePathStyle ([\#11281](https://github.com/kubeflow/pipelines/issues/11281)) ([391de8c](https://github.com/kubeflow/pipelines/commit/391de8ca9ec68fe4cd85bba6c82348386fc79842))
+* **backend:** stop heartbeat status updates for ScheduledWorkflows. Fixes [\#8757](https://github.com/kubeflow/pipelines/issues/8757) ([\#11363](https://github.com/kubeflow/pipelines/issues/11363)) ([9ccec4c](https://github.com/kubeflow/pipelines/commit/9ccec4c7d1aff4d2bfdb20cf4fd1f9d64b8632f4))
+* **backend:** Synced ScheduledWorkflow CRs on apiserver startup ([\#11469](https://github.com/kubeflow/pipelines/issues/11469)) ([d21fca6](https://github.com/kubeflow/pipelines/commit/d21fca650c8152d992ad5f7f590f70b1368bc60b))
+* **backend:** upgrade PyYMAL to fix metadata_writer build error ([\#11231](https://github.com/kubeflow/pipelines/issues/11231)) ([a4119a6](https://github.com/kubeflow/pipelines/commit/a4119a6bf1fe220c84aaa5caa7051c423b5f145e))
+* **backend:** upgrade various old dependencies  ([\#11448](https://github.com/kubeflow/pipelines/issues/11448)) ([803d7a8](https://github.com/kubeflow/pipelines/commit/803d7a8ebb00924107b890de01e2a53af78d9a5e))
+* **backend:** Use an Argo Workflow exit lifecycle hook for exit handlers ([\#11470](https://github.com/kubeflow/pipelines/issues/11470)) ([3059f7c](https://github.com/kubeflow/pipelines/commit/3059f7c124dc95f867e6f755f7c0720aaa32d48b))
+* **components:** Fix create_custom_training_job_from_component default location ([04d600b](https://github.com/kubeflow/pipelines/commit/04d600b2d36405f34799306c5d24287c75e31595))
+* **components:** remove default prediction column names in evaluation regression component to fix issues with bigquery data source ([753a2f1](https://github.com/kubeflow/pipelines/commit/753a2f148ac3f001bc785acc6359295e6fe521fd))
+* **frontend:** Detailed information of nodes is not displayed when clicking the node. Fixes [\#11325](https://github.com/kubeflow/pipelines/issues/11325) ([\#11493](https://github.com/kubeflow/pipelines/issues/11493)) ([028d81b](https://github.com/kubeflow/pipelines/commit/028d81b624629d4610ddcdced5b982437ff88d08))
+* **frontend:** first time choosing a pipeline definition is VERY slow. Fixes [\#10897](https://github.com/kubeflow/pipelines/issues/10897) ([\#11130](https://github.com/kubeflow/pipelines/issues/11130)) ([cfb3b31](https://github.com/kubeflow/pipelines/commit/cfb3b3149d9ba02daec584af77ef763f936cd727))
+* **frontend:** Fix the frontend image build with Node 22 ([\#11524](https://github.com/kubeflow/pipelines/issues/11524)) ([\#11525](https://github.com/kubeflow/pipelines/issues/11525)) ([2e47604](https://github.com/kubeflow/pipelines/commit/2e4760435ff988063dba6e21707e910bf748e5ff))
+* **sdk:** accelerator type setting in kfp ([\#11373](https://github.com/kubeflow/pipelines/issues/11373)) ([64e3900](https://github.com/kubeflow/pipelines/commit/64e390069d6c60c97ea03e833529a0930398620f))
+* **sdk:** Add error handling. Fixes [\#11164](https://github.com/kubeflow/pipelines/issues/11164) ([\#11356](https://github.com/kubeflow/pipelines/issues/11356)) ([4a64fe9](https://github.com/kubeflow/pipelines/commit/4a64fe9532556a48585b9966db8e10c7de0a8d37))
+* **sdk:** Backport fixes in kubeflow/pipelines#11075 ([\#11392](https://github.com/kubeflow/pipelines/issues/11392)) ([6ebf4aa](https://github.com/kubeflow/pipelines/commit/6ebf4aae0335424d3bc88175fd06a2b2ba05251f))
+* **tests:** remove redundant integration test wf ([\#11322](https://github.com/kubeflow/pipelines/issues/11322)) ([6a35ee5](https://github.com/kubeflow/pipelines/commit/6a35ee5144fba1c72badc7c52161d8a49f34804e))
+* **ui:** Disable GKE Metadata as default Fixes: [\#11247](https://github.com/kubeflow/pipelines/issues/11247), fixes [\#11260](https://github.com/kubeflow/pipelines/issues/11260)  ([\#11403](https://github.com/kubeflow/pipelines/issues/11403)) ([23f718d](https://github.com/kubeflow/pipelines/commit/23f718d02e402bad5c9da1a3d76da5c4a97743b3))
+* **ui:** Fixes V1 Run detail unnecessary reloading. Fixes [\#10590](https://github.com/kubeflow/pipelines/issues/10590) ([\#11214](https://github.com/kubeflow/pipelines/issues/11214)) ([eee095e](https://github.com/kubeflow/pipelines/commit/eee095e5c8d53c0eae45165f72549afe5a5cb0e3))
+* **workflows:** patch reversed launcher / driver in workflow matrix ([\#11238](https://github.com/kubeflow/pipelines/issues/11238)) ([ceeda01](https://github.com/kubeflow/pipelines/commit/ceeda01d0a35bd84b79d8f2e7aa2e029cb1de06b))
+
+
+### Other Pull Requests
+
+* switch release/api generator images to ghcr ([\#11528](https://github.com/kubeflow/pipelines/issues/11528)) ([\#11530](https://github.com/kubeflow/pipelines/issues/11530)) ([33fca73](https://github.com/kubeflow/pipelines/commit/33fca73fd6f96751db3c7e2c4795acfc7980b649))
+* add remaining dockerfiles to build workflow ([\#11522](https://github.com/kubeflow/pipelines/issues/11522)) ([682d3ac](https://github.com/kubeflow/pipelines/commit/682d3aca5fb92622fb6a1cd94e5984fea4d90471))
+* Fix the failing exit handler SDK execution tests ([\#11519](https://github.com/kubeflow/pipelines/issues/11519)) ([8bce9c4](https://github.com/kubeflow/pipelines/commit/8bce9c4ef6b047d3b71206a97f66ca567e1a7e4f))
+* nominate reviewers for backend ([\#11508](https://github.com/kubeflow/pipelines/issues/11508)) ([56e6116](https://github.com/kubeflow/pipelines/commit/56e6116d054898f8dbe73990da3836e10e8b7523))
+* nominate approver & reviewer for backend ([\#11507](https://github.com/kubeflow/pipelines/issues/11507)) ([81ebd7f](https://github.com/kubeflow/pipelines/commit/81ebd7ff9b0376c44928f2398f48196e38d92cd3))
+* feat[frontend]: implement artifact-repositories configmap support ([\#11354](https://github.com/kubeflow/pipelines/issues/11354)) ([467f30c](https://github.com/kubeflow/pipelines/commit/467f30cf613ecfe181e7bf9c03cb2eef7ae1ea2d))
+* Add-Create-Experiment-button-when-selecting-experiement-final ([\#11332](https://github.com/kubeflow/pipelines/issues/11332)) ([c5f162d](https://github.com/kubeflow/pipelines/commit/c5f162d552e5ae405689066736acf730b9147606))
+* adding chore as a new template. Fixes [\#11263](https://github.com/kubeflow/pipelines/issues/11263) ([\#11317](https://github.com/kubeflow/pipelines/issues/11317)) ([f256d86](https://github.com/kubeflow/pipelines/commit/f256d86fbb9bfff0388cd6ef9df1120e49e995d8))
+* correct lastrun unittest timestamps ([\#11270](https://github.com/kubeflow/pipelines/issues/11270)) ([6f6c8ae](https://github.com/kubeflow/pipelines/commit/6f6c8aeda9d5c219e2958df94dce93ca5a88a6ea))
+* replaced deprecated image repos with registry.k8s.io ([\#11152](https://github.com/kubeflow/pipelines/issues/11152)) ([d23b72b](https://github.com/kubeflow/pipelines/commit/d23b72bf12f55f123a16f53eb35d061180ad9ac4))
+
 ## [2.3.0](https://github.com/kubeflow/pipelines/compare/2.2.0...2.3.0) (2024-09-06)
 
 
