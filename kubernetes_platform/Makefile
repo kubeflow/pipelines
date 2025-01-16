@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator:latest
+PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.0
 
 .PHONY: all
 all: golang python
