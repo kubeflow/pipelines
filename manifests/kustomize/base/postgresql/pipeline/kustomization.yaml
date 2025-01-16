@@ -4,3 +4,7 @@ resources:
   - ../../pipeline
 patches:
   - path: ml-pipeline-apiserver-deployment-patch.yaml
+labels:
+  - includeSelectors: true
+    pairs:
+      application-crd-id: kubeflow-pipelines

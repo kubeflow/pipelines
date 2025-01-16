@@ -7,6 +7,10 @@ resources:
 - ../../../cache-deployer
 - pipeline-install-config.yaml
 - postgres-secret-extended.yaml
+labels:
+- includeSelectors: true
+  pairs:
+    application-crd-id: kubeflow-pipelines
 vars:
 - name: kfp-namespace
   objref:

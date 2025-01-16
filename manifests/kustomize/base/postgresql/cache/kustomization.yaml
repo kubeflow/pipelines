@@ -4,3 +4,7 @@ resources:
 - ../../cache
 patches:
 - path: cache-deployment-patch.yaml
+labels:
+- includeSelectors: true
+  pairs: 
+    application-crd-id: kubeflow-pipelines
