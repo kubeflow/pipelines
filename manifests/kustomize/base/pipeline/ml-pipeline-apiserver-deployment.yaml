@@ -115,6 +115,10 @@ spec:
             secretKeyRef:
               name: mlpipeline-minio-artifact
               key: secretkey
+        - name: V2_DRIVER_IMAGE
+          value: ghcr.io/kubeflow/kfp-driver:2.4.1
+        - name: V2_LAUNCHER_IMAGE
+          value: ghcr.io/kubeflow/kfp-launcher:2.4.1
         image: ghcr.io/kubeflow/kfp-api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server

@@ -32,12 +32,16 @@ import (
 )
 
 const (
-	volumeNameKFPLauncher    = "kfp-launcher"
-	volumeNameCABundle       = "ca-bundle"
-	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:2.4.0"
-	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
-	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:2.4.0"
-	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
+	volumeNameKFPLauncher = "kfp-launcher"
+	volumeNameCABundle    = "ca-bundle"
+	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
+	DriverImageEnvVar     = "V2_DRIVER_IMAGE"
+	// DefaultLauncherImage & DefaultDriverImage are set as latest here
+	// but are overridden by environment variables set via k8s manifests.
+	// For releases, the manifest will have the correct release version set.
+	// this is to avoid hardcoding releases in code here.
+	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:latest"
+	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:latest"
 	DefaultDriverCommand     = "driver"
 	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
 	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
