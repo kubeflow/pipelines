@@ -45,6 +45,34 @@ var (
 	Launcher = ""
 )
 
+func getKubernetesSpec(platformSpec map[string]*pipelinespec.SinglePlatformSpec) *pipelinespec.SinglePlatformSpec {
+    var kubernetesSpec *pipelinespec.SinglePlatformSpec
+
+    // Check for "kubernetes" key in the platformSpec map
+    if platformSpec != nil {
+        if platform, ok := platformSpec["kubernetes"]; ok && platform != nil {
+            kubernetesSpec = platform
+        }
+    }
+    return kubernetesSpec
+}
+
+func getPipelineOptions(platform *pipelinespec.SinglePlatformSpec) *argocompiler.Options {
+    var pipelineOptions *argocompiler.Options
+
+    if platform != nil && platform.PipelineConfig != nil {
+        pipelineOptions = &argocompiler.Options{}
+        if platform.PipelineConfig.SemaphoreKey != "" {
+            pipelineOptions.SemaphoreKey = platform.PipelineConfig.SemaphoreKey
+        }
+        if platform.PipelineConfig.MutexName != "" {
+            pipelineOptions.MutexName = platform.PipelineConfig.MutexName
+        }
+    }
+    return pipelineOptions
+}
+
+
 // Converts modelJob to ScheduledWorkflow.
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
@@ -69,17 +97,12 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
 
-	// Pick out Kubernetes platform configs
-	var kubernetesSpec *pipelinespec.SinglePlatformSpec
-	if t.platformSpec != nil {
-		if _, ok := t.platformSpec.Platforms["kubernetes"]; ok {
-			kubernetesSpec = t.platformSpec.Platforms["kubernetes"]
-		}
-	}
+	kubernetesSpec := getKubernetesSpec(t.platformSpec.Platforms)
+	pipelineOptions := getPipelineOptions(kubernetesSpec)
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, pipelineOptions)
 	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
 		obj, err = tektoncompiler.Compile(job, kubernetesSpec, &tektoncompiler.Options{LauncherImage: Launcher})
 	}
@@ -294,17 +317,13 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	if err = t.validatePipelineJobInputs(job); err != nil {
 		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
-	// Pick out Kubernetes platform configs
-	var kubernetesSpec *pipelinespec.SinglePlatformSpec
-	if t.platformSpec != nil {
-		if _, ok := t.platformSpec.Platforms["kubernetes"]; ok {
-			kubernetesSpec = t.platformSpec.Platforms["kubernetes"]
-		}
-	}
+
+	kubernetesSpec := getKubernetesSpec(t.platformSpec.Platforms)
+	pipelineOptions := getPipelineOptions(kubernetesSpec)
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, pipelineOptions)
 	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
 		obj, err = tektoncompiler.Compile(job, kubernetesSpec, nil)
 	}

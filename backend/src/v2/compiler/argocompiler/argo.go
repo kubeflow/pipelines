@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"os"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -40,6 +41,16 @@ type Options struct {
 	// optional
 	PipelineRoot string
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
+	SemaphoreKey string
+	MutexName    string
+}
+
+func getSemaphoreConfigMapName() string {
+	const defaultConfigMapName = "semaphore-config"
+	if name := os.Getenv("SEMAPHORE_CONFIGMAP_NAME"); name != "" {
+		return name
+	}
+	return defaultConfigMapName
 }
 
 func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
@@ -86,7 +97,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		}
 	}
 
-	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
 			APIVersion: "argoproj.io/v1alpha1",
@@ -94,14 +104,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
 			GenerateName: retrieveLastValidString(spec.GetPipelineInfo().GetName()) + "-",
-			// Note, uncomment the following during development to view argo inputs/outputs in KFP UI.
-			// TODO(Bobgy): figure out what annotations we should use for v2 engine.
-			// For now, comment this annotation, so that in KFP UI, it shows argo input/output params/artifacts
-			// suitable for debugging.
-			//
-			// Annotations: map[string]string{
-			// 	"pipelines.kubeflow.org/v2_pipeline": "true",
-			// },
 		},
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{
@@ -119,6 +121,28 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Entrypoint:         tmplEntrypoint,
 		},
 	}
+	
+	if opts != nil && opts.SemaphoreKey != "" {
+		wf.Spec.Synchronization = &wfapi.Synchronization{
+			Semaphore: &wfapi.SemaphoreRef{
+				ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+					LocalObjectReference: k8score.LocalObjectReference{
+						Name: getSemaphoreConfigMapName(),
+					},
+					Key: opts.SemaphoreKey,
+				},
+			},
+		}
+	}
+	
+	if opts != nil && opts.MutexName != "" {
+		wf.Spec.Synchronization = &wfapi.Synchronization{
+			Mutex: &wfapi.Mutex{
+				Name: opts.MutexName,
+			},
+		}
+	}
+	
 	c := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
