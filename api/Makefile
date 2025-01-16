@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Contact one of Bobgy, capri-xiyue or zijianjoy if this remote image needs an update.
-PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator:latest
+# Contact one of chensun, HumairAK, zijianjoy if this remote image needs an update.
+PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.0
 
 .PHONY: all
 all: golang python
