@@ -30,9 +30,9 @@ import (
 const (
 	volumeNameKFPLauncher    = "kfp-launcher"
 	volumeNameCABundle       = "ca-bundle"
-	DefaultLauncherImage     = "gcr.io/ml-pipeline/kfp-launcher@sha256:bef55a344574a25c557256d7c66cb19edacfd2008d694e5b6bb5b612d59feae0"
+	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:2.4.0"
 	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
-	DefaultDriverImage       = "gcr.io/ml-pipeline/kfp-driver@sha256:dc8b56a2eb071f30409828a8884d621092e68385af11a6c06aa9e9fbcfbb19de"
+	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:2.4.0"
 	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
 	DefaultDriverCommand     = "driver"
 	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
