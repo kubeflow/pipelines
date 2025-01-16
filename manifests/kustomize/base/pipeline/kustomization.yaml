@@ -35,15 +35,15 @@ resources:
   - viewer-sa.yaml
   - kfp-launcher-configmap.yaml
 images:
-  - name: gcr.io/ml-pipeline/api-server
-    newTag: 2.3.0
-  - name: gcr.io/ml-pipeline/persistenceagent
-    newTag: 2.3.0
-  - name: gcr.io/ml-pipeline/scheduledworkflow
-    newTag: 2.3.0
-  - name: gcr.io/ml-pipeline/frontend
-    newTag: 2.3.0
-  - name: gcr.io/ml-pipeline/viewer-crd-controller
-    newTag: 2.3.0
-  - name: gcr.io/ml-pipeline/visualization-server
-    newTag: 2.3.0
+  - name: ghcr.io/kubeflow/kfp-api-server
+    newTag: 2.4.0
+  - name: ghcr.io/kubeflow/kfp-persistence-agent
+    newTag: 2.4.0
+  - name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
+    newTag: 2.4.0
+  - name: ghcr.io/kubeflow/kfp-frontend
+    newTag: 2.4.0
+  - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
+    newTag: 2.4.0
+  - name: ghcr.io/kubeflow/kfp-visualization-server
+    newTag: 2.4.0

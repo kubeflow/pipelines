@@ -9,5 +9,5 @@ resources:
 commonLabels:
   app: cache-server
 images:
-  - name: gcr.io/ml-pipeline/cache-server
-    newTag: 2.3.0
+  - name: ghcr.io/kubeflow/kfp-cache-server
+    newTag: 2.4.0

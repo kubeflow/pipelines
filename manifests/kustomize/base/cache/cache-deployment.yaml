@@ -26,7 +26,7 @@ spec:
           capabilities:
             drop:
             - ALL
-        image: gcr.io/ml-pipeline/cache-server:dummy
+        image: ghcr.io/kubeflow/kfp-cache-server:dummy
         env:
           - name: DEFAULT_CACHE_STALENESS
             valueFrom:
