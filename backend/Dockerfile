@@ -30,6 +30,8 @@ RUN dnf install -y cmake clang openssl
 COPY ${SOURCE_CODE}/go.mod ./
 COPY ${SOURCE_CODE}/go.sum ./
 
+RUN GO111MODULE=on go mod download
+
 # Copy the source
 COPY ${SOURCE_CODE}/ ./
 
@@ -42,6 +44,7 @@ WORKDIR /bin
 
 COPY --from=builder /opt/app-root/src/backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
+COPY --from=builder /opt/app-root/src/backend/src/apiserver/sample_pipelines /pipelines
 
 RUN chmod +x /bin/apiserver
 

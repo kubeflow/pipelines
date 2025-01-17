@@ -11,7 +11,7 @@
     "gunzip-maybe": "^1.4.1",
     "http-proxy-middleware": "^0.18.0",
     "lodash": ">=4.17.21",
-    "minio": "~7.0.0",
+    "minio": "~8.0.3",
     "node-fetch": "^2.6.7",
     "peek-stream": "^1.1.3",
     "portable-fetch": "^3.0.0",
@@ -23,7 +23,6 @@
     "@types/gunzip-maybe": "^1.4.0",
     "@types/http-proxy-middleware": "^0.19.3",
     "@types/jest": "^24.9.1",
-    "@types/minio": "~7.0.3",
     "@types/node": "^14.14.20",
     "@types/node-fetch": "^2.1.2",
     "@types/supertest": "^2.0.8",
@@ -35,6 +34,11 @@
     "ts-jest": "^25.2.1",
     "tslint": "^5.20.1",
     "typescript": "^3.6.4"
+  },
+  "overrides": {
+    "express": {
+      "path-to-regexp": "0.1.12"
+    }
   },
   "scripts": {
     "build": "tsc --project .",
