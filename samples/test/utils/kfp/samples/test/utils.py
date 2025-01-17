@@ -205,8 +205,7 @@ def _run_test(callback):
     ):
         """Test file CLI entrypoint used by Fire. To configure KFP endpoint,
         configure env vars following:
-        https://www.kubeflow.org/docs/components/pipelines/sdk/connect-
-        api/#configure-sdk-client-by-environment-variables. KFP UI endpoint can
+        https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/#configure-sdk-client-by-environment-variables. KFP UI endpoint can
         be configured by KF_PIPELINES_UI_ENDPOINT env var.
 
         :param pipeline_root: pipeline root that holds intermediate
