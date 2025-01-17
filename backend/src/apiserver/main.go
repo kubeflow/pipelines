@@ -28,6 +28,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -137,10 +138,25 @@ func main() {
 	}
 	log.SetLevel(level)
 
+	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
+	defer backgroundCancel()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
 	go startRpcServer(resourceManager, tlsConfig)
+	// This is blocking
 	startHttpProxy(resourceManager, tlsConfig)
-
+	backgroundCancel()
 	clientManager.Close()
+	wg.Wait()
+}
+
+func reconcileSwfCrs(resourceManager *resource.ResourceManager, ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	err := resourceManager.ReconcileSwfCrs(ctx)
+	if err != nil {
+		log.Errorf("Could not reconcile the ScheduledWorkflow Kubernetes resources: %v", err)
+	}
 }
 
 // A custom http request header matcher to pass on the user identity
