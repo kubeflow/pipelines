@@ -88,12 +88,19 @@ class TestOverrideCachingOptions(parameterized.TestCase):
                 pipeline_obj = yaml.safe_load(f)
                 pipeline_spec = json_format.ParseDict(
                     pipeline_obj, pipeline_spec_pb2.PipelineSpec())
-                client._override_caching_options(pipeline_spec, True)
+                client._override_caching_options(
+                    pipeline_spec, True, cache_key='OVERRIDE_KEY')
                 pipeline_obj = json_format.MessageToDict(pipeline_spec)
                 self.assertTrue(pipeline_obj['root']['dag']['tasks']
                                 ['hello-word']['cachingOptions']['enableCache'])
+                self.assertEqual(
+                    pipeline_obj['root']['dag']['tasks']['hello-word']
+                    ['cachingOptions']['cacheKey'], 'OVERRIDE_KEY')
                 self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
                                 ['cachingOptions']['enableCache'])
+                self.assertEqual(
+                    pipeline_obj['root']['dag']['tasks']['to-lower']
+                    ['cachingOptions']['cacheKey'], 'OVERRIDE_KEY')
 
 
 class TestExtractPipelineYAML(parameterized.TestCase):
