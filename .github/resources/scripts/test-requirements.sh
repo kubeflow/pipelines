@@ -6,7 +6,7 @@ check_requirements() {
 
   temp_file=$(mktemp)
 
-  pip-compile - < "$req_in" --output-file="$temp_file" --annotate
+  pip-compile - < "$req_in" --output-file="$temp_file" --annotate --resolver=backtracking
 
   # Compare the generated file with the existing requirements.txt
   if diff -q "$temp_file" "$req_txt" >/dev/null; then
