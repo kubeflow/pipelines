@@ -35,7 +35,7 @@ Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.i
 
 ## Contributing to Kubeflow Pipelines
 
-Before you start contributing to Kubeflow Pipelines, read the guidelines in [How to Contribute](./CONTRIBUTING.md). To learn how to build and deploy Kubeflow Pipelines from source code, reagd the [developer guide](./developer_guide.md).
+Before you start contributing to Kubeflow Pipelines, read the guidelines in [How to Contribute](./CONTRIBUTING.md). To learn how to build and deploy Kubeflow Pipelines from source code, read the [developer guide](./developer_guide.md).
 
 ## Kubeflow Pipelines Community
 
