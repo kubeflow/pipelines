@@ -1,0 +1,60 @@
+name: Validate Generated Files
+on:
+  pull_request:
+    paths:
+      - 'backend/api/**/*.proto'
+      - '.github/workflows/validate-proto-gen.yml'
+      - 'backend/api/**/go_http_client/**'
+      - 'backend/api/**/go_client/**'
+      - 'backend/api/**/python_http_client/**'
+      - 'backend/api/**/swagger/**'
+
+jobs:
+  validate-generated-files:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        api_version: ['v1beta1', 'v2beta1']
+      fail-fast: false
+
+    container:
+      image: golang:1.21
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          # Go dependencies
+          apt-get update && apt-get install -y protobuf-compiler jq default-jdk python3 python3-pip curl
+          go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway@latest
+          go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger@latest
+          go install github.com/golang/protobuf/protoc-gen-go@latest
+          go install github.com/go-swagger/go-swagger/cmd/swagger@latest
+
+          # Python dependencies
+          python3 -m pip install setuptools wheel
+
+      - name: Generate Proto Files
+        run: |
+          export API_VERSION=${{ matrix.api_version }}
+          export PROTOCCOMPILER=protoc
+          export TMP_OUTPUT=/tmp
+          ./backend/api/hack/generate_api.sh
+
+      - name: Generate Python Package
+        run: |
+          export API_VERSION=${{ matrix.api_version }}
+          ./backend/api/build_kfp_server_api_python_package.sh
+
+      - name: Check for Changes
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "ERROR: Generated files are out of date for API version ${{ matrix.api_version }}."
+            echo "Please regenerate using both generate_api.sh and build_kfp_server_api_python_package.sh"
+            echo "Changes found in the following files:"
+            git status
+            echo "Diff of changes:"
+            git diff
+            exit 1
+          fi
