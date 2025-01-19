@@ -33,4 +33,4 @@ jobs:
       run: pip install yapf
 
     - name: Run YAPF SDK Tests
-      run: ./test/presubmit-yapf-sdk.sh
+      run: make sdk-yapf

@@ -25,4 +25,4 @@ jobs:
         go-version-file: go.mod
 
     - name: Run Backend Tests
-      run: ./test/presubmit-backend-test.sh
+      run: make presubmit-backend

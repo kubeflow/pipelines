@@ -33,9 +33,6 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
 
-      - name: Forward API port
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
       - name: apt-get update
         run: sudo apt-get update
 
@@ -72,8 +69,6 @@ jobs:
       - name: Install requirements
         run: pip install -r ./test/kfp-kubernetes-execution-tests/requirements.txt
 
-      - name: Run tests
+      - name: Forward port and run tests
         run: |
-          export KFP_ENDPOINT="http://localhost:8888"
-          export TIMEOUT_SECONDS=2700
-          pytest ./test/kfp-kubernetes-execution-tests/sdk_execution_tests.py --asyncio-task-timeout $TIMEOUT_SECONDS
+          make kfp-kubernetes-execution-tests

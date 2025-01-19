@@ -40,31 +40,24 @@ jobs:
           python-version: '3.9'
       - name: Install sdk
         run: |
-          python3 -m venv .venv
-          . .venv/bin/activate
-          pip install -e sdk/python
+          make setup-backend-test
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-tekton-cluster
       - name: "flip coin test"
         run: |
-          . .venv/bin/activate
-          TEST_SCRIPT="test-flip-coin.sh" ./.github/resources/scripts/e2e-test.sh
+          make backend-test-flip-coin
       - name: "static loop test"
         run: |
-          . .venv/bin/activate
-          TEST_SCRIPT="test-static-loop.sh" ./.github/resources/scripts/e2e-test.sh
+          make backend-test-static-loop
       - name: "dynamic loop test"
         run: |
-          . .venv/bin/activate
-          TEST_SCRIPT="test-dynamic-loop.sh" ./.github/resources/scripts/e2e-test.sh
+          make backend-test-dynamic-loop
       - name: "use env"
         run: |
-          . .venv/bin/activate
-          TEST_SCRIPT="test-env.sh" ./.github/resources/scripts/e2e-test.sh
+          make backend-test-env
       - name: "use volume"
         run: |
-          . .venv/bin/activate
-          TEST_SCRIPT="test-volume.sh" ./.github/resources/scripts/e2e-test.sh
+          make backend-test-volume
       - name: Collect test results
         if: always()
         uses: actions/upload-artifact@v4

@@ -53,4 +53,4 @@ jobs:
         run: pip install -r ./test/sdk-execution-tests/requirements.txt
         
       - name: Run component YAML tests
-        run: ./test/presubmit-component-yaml.sh
+        run: make sdk-component-yaml

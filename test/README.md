@@ -71,7 +71,7 @@ Tests are automatically triggered on GitHub when:
 
 GitHub Actions workflows are defined in the `.github/workflows/` directory.
 
-### Reproducing CI Steps Locally
+### Reproducing CI Steps Locally with Make Commands
 
 To replicate the steps locally:
 
@@ -83,6 +83,10 @@ To replicate the steps locally:
 2.  Follow the steps outlined in the **Running Tests Locally with Kind** section.
 
 3.  To mimic the GitHub Actions environment, export any required environment variables found in the workflow files.
+
+4.  Install the dependencies for the test using command `make setup-{test_name}` . The commands with the steps are in `Makefile.setup.mk`
+
+5.  Run the test using command `make {test_name}` all the test that can be run using make command are in `Makefile`. 
 
 * * * * *
 

@@ -22,13 +22,10 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-      - name: Port forward kfp apiserver
-        run: |
-          nohup kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
-      - name: Run Functional Tests
-        run: |
-          log_dir=$(mktemp -d)
-          ./test/kfp-functional-test/kfp-functional-test.sh > $log_dir/periodic_tests.txt
+      
+      - name: Port forward and run Functional Tests
+        run: make periodic-test
+          
       - name: Collect test results
         if: always()
         uses: actions/upload-artifact@v4

@@ -37,12 +37,8 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
 
-      - name: Forward API port
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
-      - name: Initialization tests v1
-        working-directory: ./backend/test/initialization
-        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+      - name: Forward Port and initialize tests v1
+        run: make e2e-initialization-tests-v1
 
       - name: Collect test results
         if: always()
@@ -71,13 +67,8 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
 
-
-      - name: Forward API port
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
       - name: Initialization tests v2
-        working-directory: ./backend/test/v2/initialization
-        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+        run: make e2e-initialization-tests-v2
 
       - name: Collect test results
         if: always()
@@ -106,12 +97,8 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
 
-      - name: Forward API port
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
       - name: API integration tests v1
-        working-directory: ./backend/test/integration
-        run: go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true
+        run:  make e2e-api-integration-tests-v1
 
       - name: Collect test results
         if: always()
@@ -140,12 +127,8 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
 
-      - name: Forward API port
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
       - name: API integration tests v2
-        working-directory: ./backend/test/v2/integration
-        run: go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true
+        run: make e2e-api-integration-tests-v2
 
       - name: Collect test results
         if: always()
