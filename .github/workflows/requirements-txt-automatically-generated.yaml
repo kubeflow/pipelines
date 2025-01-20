@@ -27,4 +27,4 @@ jobs:
 
       - name: Run Tests
         run: |
-          ./.github/resources/scripts/test-requirements.sh
+          make test-requirements
