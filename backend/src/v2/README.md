@@ -56,7 +56,7 @@ it should have the following content:
   echo "GOARCH_VALUE="$(go env GOARCH) >> .env
   ```
 
-* Install sample test python dependencies (require Python 3.7 or 3.8 due to [ml-metadata limitation](https://github.com/google/ml-metadata/issues/139)):
+* Install sample test python dependencies:
 
   ```bash
   cd test
