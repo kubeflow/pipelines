@@ -54,7 +54,7 @@ def component(func: Optional[Callable] = None,
             a plain parameter, or a path to a file).
         base_image: Image to use when executing the Python function. It should
             contain a default Python interpreter that is compatible with KFP.
-        target_image: Image to when creating containerized components.
+        target_image: Image to use when creating containerized components.
         packages_to_install: List of packages to install before
             executing the Python function. These will always be installed at component runtime.
         pip_index_urls: Python Package Index base URLs from which to
