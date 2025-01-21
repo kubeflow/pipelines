@@ -48,3 +48,5 @@ jobs:
       - name: Prepare verification tests v2
         working-directory: backend/test/v2/integration
         run: go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Verify
+
+#FORCE
