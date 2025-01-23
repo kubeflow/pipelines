@@ -18,10 +18,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"io"
 	"net"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -584,77 +582,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	return newRun, nil
 }
 
-// ReconcileSwfCrs reconciles the ScheduledWorkflow CRs based on existing jobs.
-func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
-	filterContext := &model.FilterContext{
-		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: common.GetPodNamespace()},
-	}
-
-	opts := list.EmptyOptions()
-
-	jobs, _, _, err := r.jobStore.ListJobs(filterContext, opts)
-
-	if err != nil {
-		return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
-	}
-
-	for i := range jobs {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
-		if err != nil {
-			return failedToReconcileSwfCrsError(err)
-		}
-
-		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i], r.getOwnerReferences())
-		if err != nil {
-			return failedToReconcileSwfCrsError(err)
-		}
-
-		for {
-			currentScheduledWorkflow, err := r.getScheduledWorkflowClient(jobs[i].Namespace).Get(ctx, jobs[i].K8SName, v1.GetOptions{})
-			if err != nil {
-				if util.IsNotFound(err) {
-					break
-				}
-				return failedToReconcileSwfCrsError(err)
-			}
-
-			if !reflect.DeepEqual(currentScheduledWorkflow.Spec, newScheduledWorkflow.Spec) {
-				currentScheduledWorkflow.Spec = newScheduledWorkflow.Spec
-				err = r.updateSwfCrSpec(ctx, jobs[i].Namespace, currentScheduledWorkflow)
-				if err != nil {
-					if apierrors.IsConflict(errors.Unwrap(err)) {
-						continue
-					} else if util.IsNotFound(errors.Cause(err)) {
-						break
-					}
-					return failedToReconcileSwfCrsError(err)
-				}
-			}
-			break
-		}
-	}
-
-	return nil
-}
-
-func failedToReconcileSwfCrsError(err error) error {
-	return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
-}
-
-func (r *ResourceManager) updateSwfCrSpec(ctx context.Context, k8sNamespace string, scheduledWorkflow *scheduledworkflow.ScheduledWorkflow) error {
-	_, err := r.getScheduledWorkflowClient(k8sNamespace).Update(ctx, scheduledWorkflow)
-	if err != nil {
-		return util.Wrap(err, "Failed to update ScheduledWorkflow")
-	}
-	return nil
-}
-
 // Fetches a run with a given id.
 func (r *ResourceManager) GetRun(runId string) (*model.Run, error) {
 	run, err := r.runStore.GetRun(runId)
@@ -1063,6 +990,12 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 	}
 
+	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
+	// Convert modelJob into scheduledWorkflow.
+	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+	}
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {
@@ -1070,15 +1003,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	}
 	if k8sNamespace == "" {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo scheduled workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a recurring run due to empty namespace")
-	}
-
-	job.Namespace = k8sNamespace
-
-	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
-	// Convert modelJob into scheduledWorkflow.
-	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 	}
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
@@ -1091,23 +1015,23 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	swf := util.NewScheduledWorkflow(newScheduledWorkflow)
 	job.UUID = string(swf.UID)
 	job.K8SName = swf.Name
+	job.Namespace = swf.Namespace
 	job.Conditions = model.StatusState(swf.ConditionSummary()).ToString()
 	for _, modelRef := range job.ResourceReferences {
 		modelRef.ResourceUUID = string(swf.UID)
 	}
-	if tmpl.GetTemplateType() == template.V1 {
-		// Get the service account
-		serviceAccount := ""
-		if swf.Spec.Workflow != nil {
-			execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
-			if err == nil {
-				serviceAccount = execSpec.ServiceAccount()
-			}
+	// Get the service account
+	serviceAccount := ""
+	if swf.Spec.Workflow != nil {
+		execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
+		if err == nil {
+			serviceAccount = execSpec.ServiceAccount()
 		}
-		job.ServiceAccount = serviceAccount
+	}
+	job.ServiceAccount = serviceAccount
+	if tmpl.GetTemplateType() == template.V1 {
 		job.PipelineSpec.WorkflowSpecManifest = manifest
 	} else {
-		job.ServiceAccount = newScheduledWorkflow.Spec.ServiceAccount
 		job.PipelineSpec.PipelineSpecManifest = manifest
 	}
 	return r.jobStore.CreateJob(job)
