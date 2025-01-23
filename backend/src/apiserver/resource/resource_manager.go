@@ -990,6 +990,12 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 	}
 
+	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
+	// Convert modelJob into scheduledWorkflow.
+	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+	}
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {
@@ -997,15 +1003,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	}
 	if k8sNamespace == "" {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo scheduled workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a recurring run due to empty namespace")
-	}
-
-	job.Namespace = k8sNamespace
-
-	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
-	// Convert modelJob into scheduledWorkflow.
-	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 	}
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
@@ -1018,6 +1015,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	swf := util.NewScheduledWorkflow(newScheduledWorkflow)
 	job.UUID = string(swf.UID)
 	job.K8SName = swf.Name
+	job.Namespace = swf.Namespace
 	job.Conditions = model.StatusState(swf.ConditionSummary()).ToString()
 	for _, modelRef := range job.ResourceReferences {
 		modelRef.ResourceUUID = string(swf.UID)
