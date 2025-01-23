@@ -15,8 +15,6 @@
 package list
 
 import (
-	"fmt"
-	"math"
 	"reflect"
 	"strings"
 	"testing"
@@ -645,11 +643,6 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				},
 			},
 			wantSQL:  "SELECT * FROM MyTable ORDER BY SortField DESC, KeyField DESC LIMIT 124",
-			wantArgs: nil,
-		},
-		{
-			in:       EmptyOptions(),
-			wantSQL:  fmt.Sprintf("SELECT * FROM MyTable LIMIT %d", math.MaxInt32+1),
 			wantArgs: nil,
 		},
 		{

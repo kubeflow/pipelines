@@ -18,10 +18,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"io"
 	"net"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -582,77 +580,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 
 	return newRun, nil
-}
-
-// ReconcileSwfCrs reconciles the ScheduledWorkflow CRs based on existing jobs.
-func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
-	filterContext := &model.FilterContext{
-		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: common.GetPodNamespace()},
-	}
-
-	opts := list.EmptyOptions()
-
-	jobs, _, _, err := r.jobStore.ListJobs(filterContext, opts)
-
-	if err != nil {
-		return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
-	}
-
-	for i := range jobs {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
-		if err != nil {
-			return failedToReconcileSwfCrsError(err)
-		}
-
-		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i], r.getOwnerReferences())
-		if err != nil {
-			return failedToReconcileSwfCrsError(err)
-		}
-
-		for {
-			currentScheduledWorkflow, err := r.getScheduledWorkflowClient(jobs[i].Namespace).Get(ctx, jobs[i].K8SName, v1.GetOptions{})
-			if err != nil {
-				if util.IsNotFound(err) {
-					break
-				}
-				return failedToReconcileSwfCrsError(err)
-			}
-
-			if !reflect.DeepEqual(currentScheduledWorkflow.Spec, newScheduledWorkflow.Spec) {
-				currentScheduledWorkflow.Spec = newScheduledWorkflow.Spec
-				err = r.updateSwfCrSpec(ctx, jobs[i].Namespace, currentScheduledWorkflow)
-				if err != nil {
-					if apierrors.IsConflict(errors.Unwrap(err)) {
-						continue
-					} else if util.IsNotFound(errors.Cause(err)) {
-						break
-					}
-					return failedToReconcileSwfCrsError(err)
-				}
-			}
-			break
-		}
-	}
-
-	return nil
-}
-
-func failedToReconcileSwfCrsError(err error) error {
-	return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
-}
-
-func (r *ResourceManager) updateSwfCrSpec(ctx context.Context, k8sNamespace string, scheduledWorkflow *scheduledworkflow.ScheduledWorkflow) error {
-	_, err := r.getScheduledWorkflowClient(k8sNamespace).Update(ctx, scheduledWorkflow)
-	if err != nil {
-		return util.Wrap(err, "Failed to update ScheduledWorkflow")
-	}
-	return nil
 }
 
 // Fetches a run with a given id.

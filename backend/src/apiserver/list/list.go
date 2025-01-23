@@ -22,7 +22,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"math"
 	"reflect"
 	"strings"
 
@@ -96,13 +95,6 @@ func (t *token) marshal() (string, error) {
 type Options struct {
 	PageSize int
 	*token
-}
-
-func EmptyOptions() *Options {
-	return &Options{
-		math.MaxInt32,
-		&token{},
-	}
 }
 
 // Matches returns trues if the sorting and filtering criteria in o matches that
@@ -221,14 +213,9 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 	if o.IsDesc {
 		order = "DESC"
 	}
-
-	if o.SortByFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortByFieldName, order))
-	}
-
-	if o.KeyFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.KeyFieldPrefix+o.KeyFieldName, order))
-	}
+	sqlBuilder = sqlBuilder.
+		OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortByFieldName, order)).
+		OrderBy(fmt.Sprintf("%v %v", o.KeyFieldPrefix+o.KeyFieldName, order))
 
 	return sqlBuilder
 }
