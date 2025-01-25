@@ -1,12 +1,15 @@
-[
-  {
-    "name": "[Tutorial] Data passing in python components",
-    "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components) Shows how to pass data between python components.",
-    "file": "/samples/tutorials/Data passing in python components/Data passing in python components - Files.py.yaml"
-  },
-  {
-    "name": "[Tutorial] DSL - Control structures",
-    "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures) Shows how to use conditional execution and exit handlers. This pipeline will randomly fail to demonstrate that the exit handler gets executed even in case of failure.",
-    "file": "/samples/tutorials/DSL - Control structures/DSL - Control structures.py.yaml"
-  }
-]
+{
+  "loadSamplesOnRestart": true,
+  "pipelines": [
+    {
+      "name": "[Tutorial] Data passing in python components",
+      "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components) Shows how to pass data between python components.",
+      "file": "/samples/tutorials/Data passing in python components/Data passing in python components - Files.py.yaml"
+    },
+    {
+      "name": "[Tutorial] DSL - Control structures",
+      "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures) Shows how to use conditional execution and exit handlers. This pipeline will randomly fail to demonstrate that the exit handler gets executed even in case of failure.",
+      "file": "/samples/tutorials/DSL - Control structures/DSL - Control structures.py.yaml"
+    }
+  ]
+}

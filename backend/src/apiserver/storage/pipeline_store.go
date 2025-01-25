@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -100,6 +99,7 @@ type PipelineStoreInterface interface {
 	CreatePipelineVersion(pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error)
 	GetPipelineVersionWithStatus(pipelineVersionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
 	GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error)
+	GetPipelineVersionByName(name string) (*model.PipelineVersion, error)
 	GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error)
 	ListPipelineVersions(pipelineId string, opts *list.Options) ([]*model.PipelineVersion, int, string, error)
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
@@ -822,33 +822,45 @@ func (s *PipelineStore) GetPipelineVersion(versionId string) (*model.PipelineVer
 	return s.GetPipelineVersionWithStatus(versionId, model.PipelineVersionReady)
 }
 
+func (s *PipelineStore) GetPipelineVersionByName(name string) (*model.PipelineVersion, error) {
+	return s.getPipelineVersionByCol("Name", name, model.PipelineVersionReady)
+}
+
 // Returns a pipeline version with specified status.
 func (s *PipelineStore) GetPipelineVersionWithStatus(versionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error) {
+	return s.getPipelineVersionByCol("UUID", versionId, status)
+}
+
+// getPipelineVersionByCol retrieves a PipelineVersion filtered on
+// colName with colVal and the given status. This is particularly
+// useful for fetching pipeline Version by either UUID or Name columns.
+func (s *PipelineStore) getPipelineVersionByCol(colName, colVal string, status model.PipelineVersionStatus) (*model.PipelineVersion, error) {
 	// Prepare a SQL query
 	sql, args, err := sq.
 		Select(pipelineVersionColumns...).
 		From("pipeline_versions").
-		Where(sq.And{sq.Eq{"pipeline_versions.UUID": versionId}, sq.Eq{"pipeline_versions.Status": status}}).
+		Where(sq.And{
+			sq.Eq{fmt.Sprintf("pipeline_versions.%s", colName): colVal}, sq.Eq{"pipeline_versions.Status": status}}).
 		Limit(1).
 		ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to fetch a pipeline version %v with status %v", versionId, string(status))
+		return nil, util.NewInternalServerError(err, "Failed to create query to fetch a pipeline version with %v=%v and status=%v", colName, colVal, string(status))
 	}
 
 	// Execute the query
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed fetching pipeline version %v with status %v", versionId, string(status))
+		return nil, util.NewInternalServerError(err, "Failed fetching pipeline version with %v=%v and status=%v", colName, colVal, string(status))
 	}
 	defer r.Close()
 
 	// Parse results
 	versions, err := s.scanPipelineVersionsRows(r)
 	if err != nil || len(versions) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to parse a pipeline version %v from SQL response with status %v", versionId, string(status))
+		return nil, util.NewInternalServerError(err, "Failed to parse a pipeline version from SQL response with %v=%v and status=%v", colName, colVal, string(status))
 	}
 	if len(versions) == 0 {
-		return nil, util.NewResourceNotFoundError("PipelineVersion", versionId)
+		return nil, util.NewResourceNotFoundError("PipelineVersion", colVal)
 	}
 	return versions[0], nil
 }
