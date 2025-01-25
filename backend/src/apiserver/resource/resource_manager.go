@@ -1616,7 +1616,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	}
 
 	// After pipeline version being created in DB and pipeline file being
-	// saved in minio server, set this pieline version to status ready.
+	// saved in minio server, set this pipeline version to status ready.
 	version.Status = model.PipelineVersionReady
 	err = r.pipelineStore.UpdatePipelineVersionStatus(version.UUID, version.Status)
 	if err != nil {
@@ -1625,10 +1625,19 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	return version, nil
 }
 
-// Returns a pipeline version.
+// Returns a pipeline version by Id.
 func (r *ResourceManager) GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error) {
 	if pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId); err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline version with id %v", pipelineVersionId)
+	} else {
+		return pipelineVersion, nil
+	}
+}
+
+// Returns a pipeline version by Name.
+func (r *ResourceManager) GetPipelineVersionByName(name string) (*model.PipelineVersion, error) {
+	if pipelineVersion, err := r.pipelineStore.GetPipelineVersionByName(name); err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline version with name %v", name)
 	} else {
 		return pipelineVersion, nil
 	}
