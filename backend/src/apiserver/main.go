@@ -16,21 +16,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
-	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	"io"
-	"io/ioutil"
-	"math"
-	"net"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -39,7 +25,7 @@ import (
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -49,6 +35,13 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"io"
+	"math"
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+	"sync"
 )
 
 const (
@@ -84,7 +77,7 @@ func main() {
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
 	)
-	err := loadSamples(resourceManager)
+	err := config.LoadSamples(resourceManager, *sampleConfigPath)
 	if err != nil {
 		glog.Fatalf("Failed to load samples. Err: %v", err)
 	}
@@ -253,95 +246,6 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 	if err := handler(ctx, mux, endpoint, opts); err != nil {
 		glog.Fatalf("Failed to register %v handler: %v", serviceName, err)
 	}
-}
-
-// Preload a bunch of pipeline samples
-// Samples are only loaded once when the pipeline system is initially installed.
-// They won't be loaded when upgrade or pod restart, to prevent them reappear if user explicitly
-// delete the samples.
-func loadSamples(resourceManager *resource.ResourceManager) error {
-	// Check if sample has being loaded already and skip loading if true.
-	haveSamplesLoaded, err := resourceManager.HaveSamplesLoaded()
-	if err != nil {
-		return err
-	}
-	if haveSamplesLoaded {
-		glog.Infof("Samples already loaded in the past. Skip loading.")
-		return nil
-	}
-
-	pathExists, err := client.PathExists(*sampleConfigPath)
-	if err != nil {
-		return err
-	}
-
-	if !pathExists {
-		glog.Infof("No samples path provided, skipping loading samples..")
-		return nil
-	}
-
-	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
-	if err != nil {
-		return fmt.Errorf("failed to read sample configurations file. Err: %v", err)
-	}
-	type config struct {
-		Name        string
-		Description string
-		File        string
-	}
-	var configs []config
-	if err = json.Unmarshal(configBytes, &configs); err != nil {
-		return fmt.Errorf("failed to read sample configurations. Err: %v", err)
-	}
-	for _, config := range configs {
-		reader, configErr := os.Open(config.File)
-		if configErr != nil {
-			return fmt.Errorf("failed to load sample %s. Error: %v", config.Name, configErr)
-		}
-		pipelineFile, configErr := server.ReadPipelineFile(config.File, reader, common.MaxFileLength)
-		if configErr != nil {
-			return fmt.Errorf("failed to decompress the file %s. Error: %v", config.Name, configErr)
-		}
-		p, configErr := resourceManager.CreatePipeline(
-			&model.Pipeline{
-				Name:        config.Name,
-				Description: config.Description,
-			},
-		)
-		if configErr != nil {
-			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
-			// In the future, we might consider loading samples during deployment, instead of when API server starts.
-			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, configErr))
-
-			continue
-		}
-
-		_, configErr = resourceManager.CreatePipelineVersion(
-			&model.PipelineVersion{
-				Name:         config.Name,
-				Description:  config.Description,
-				PipelineId:   p.UUID,
-				PipelineSpec: string(pipelineFile),
-			},
-		)
-		if configErr != nil {
-			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
-			// In the future, we might consider loading samples during deployment, instead of when API server starts.
-			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, configErr))
-
-			continue
-		}
-		// Since the default sorting is by create time,
-		// Sleep one second makes sure the samples are showing up in the same order as they are added.
-		time.Sleep(1 * time.Second)
-	}
-	// Mark sample as loaded
-	err = resourceManager.MarkSampleLoaded()
-	if err != nil {
-		return err
-	}
-	glog.Info("All samples are loaded.")
-	return nil
 }
 
 func initConfig() {
