@@ -109,9 +109,12 @@ jobs:
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
+      - name: Forward MySQL port
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "mysql" 3306 3306
+
       - name: API integration tests v1
         working-directory: ./backend/test/integration
-        run: go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
 
       - name: Collect test results
         if: always()
@@ -145,7 +148,7 @@ jobs:
 
       - name: API integration tests v2
         working-directory: ./backend/test/v2/integration
-        run: go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
 
       - name: Collect test results
         if: always()
