@@ -33,18 +33,21 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
 
+      - name: Forward API port
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
       - name: Prepare upgrade tests
         working-directory: backend/test/integration
-        run: go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Prepare
+        run: go test -v ./... -namespace kubeflow -args -runUpgradeTests=true -testify.m=Prepare
 
       - name: Prepare verification tests
         working-directory: backend/test/integration
-        run: go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Verify
+        run: go test -v ./... -namespace kubeflow -args -runUpgradeTests=true -testify.m=Verify
 
       - name: Prepare upgrade tests v2
         working-directory: backend/test/v2/integration/
-        run: go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Prepare
+        run: go test -v ./... -namespace kubeflow -args -runUpgradeTests=true -testify.m=Prepare
 
       - name: Prepare verification tests v2
         working-directory: backend/test/v2/integration
-        run: go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Verify
+        run: go test -v ./... -namespace kubeflow -args -runUpgradeTests=true -testify.m=Verify
