@@ -5,13 +5,13 @@ resources:
 - ../../../../manifests/kustomize/env/platform-agnostic
 
 images:
-- name: gcr.io/ml-pipeline/api-server
+- name: ghcr.io/kubeflow/kfp-api-server
   newName: kind-registry:5000/apiserver
   newTag: latest
-- name: gcr.io/ml-pipeline/persistenceagent
+- name: ghcr.io/kubeflow/kfp-persistence-agent
   newName: kind-registry:5000/persistenceagent
   newTag: latest
-- name: gcr.io/ml-pipeline/scheduledworkflow
+- name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
   newName: kind-registry:5000/scheduledworkflow
   newTag: latest
 
