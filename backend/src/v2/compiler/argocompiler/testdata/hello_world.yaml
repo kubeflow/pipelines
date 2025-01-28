@@ -57,7 +57,7 @@ spec:
       - '{{inputs.parameters.kubernetes-config}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver
+      image: ghcr.io/kubeflow/kfp-driver
       name: ""
       resources:
         limits:
@@ -150,7 +150,7 @@ spec:
       - /kfp-launcher/launch
       command:
       - launcher-v2
-      image: gcr.io/ml-pipeline/kfp-launcher
+      image: ghcr.io/kubeflow/kfp-launcher
       name: kfp-launcher
       resources:
         limits:
@@ -243,7 +243,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver
+      image: ghcr.io/kubeflow/kfp-driver
       name: ""
       resources:
         limits:

@@ -122,14 +122,14 @@ func Test_argo_compiler(t *testing.T) {
 			// mask the driver launcher image hash to maintain test stability
 			for _, template := range wf.Spec.Templates {
 				if template.Container != nil && strings.Contains(template.Container.Image, "kfp-driver") {
-					template.Container.Image = "gcr.io/ml-pipeline/kfp-driver"
+					template.Container.Image = "ghcr.io/kubeflow/kfp-driver"
 				}
 				if template.Container != nil && strings.Contains(template.Container.Image, "kfp-launcher") {
-					template.Container.Image = "gcr.io/ml-pipeline/kfp-launcher"
+					template.Container.Image = "ghcr.io/kubeflow/kfp-launcher"
 				}
 				for i := range template.InitContainers {
 					if strings.Contains(template.InitContainers[i].Image, "kfp-launcher") {
-						template.InitContainers[i].Image = "gcr.io/ml-pipeline/kfp-launcher"
+						template.InitContainers[i].Image = "ghcr.io/kubeflow/kfp-launcher"
 					}
 				}
 			}
