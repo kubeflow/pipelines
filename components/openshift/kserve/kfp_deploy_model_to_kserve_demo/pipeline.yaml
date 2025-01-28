@@ -1,0 +1,170 @@
+# PIPELINE DEFINITION
+# Name: kserve-pipeline
+# Description: A pipeline for creating a KServe inference service.
+components:
+  comp-serve-a-model-with-kserve:
+    executorLabel: exec-serve-a-model-with-kserve
+    inputDefinitions:
+      parameters:
+        action:
+          defaultValue: create
+          isOptional: true
+          parameterType: STRING
+        autoscaling_target:
+          defaultValue: '0'
+          isOptional: true
+          parameterType: STRING
+        canary_traffic_percent:
+          defaultValue: '100'
+          isOptional: true
+          parameterType: STRING
+        custom_model_spec:
+          defaultValue: '{}'
+          isOptional: true
+          parameterType: STRING
+        enable_istio_sidecar:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        enable_isvc_status:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        framework:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        inferenceservice_yaml:
+          defaultValue: '{}'
+          isOptional: true
+          parameterType: STRING
+        max_replicas:
+          defaultValue: '-1'
+          isOptional: true
+          parameterType: STRING
+        min_replicas:
+          defaultValue: '-1'
+          isOptional: true
+          parameterType: STRING
+        model_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        model_uri:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        namespace:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        request_timeout:
+          defaultValue: '60'
+          isOptional: true
+          parameterType: STRING
+        resource_limits:
+          defaultValue: '{"cpu": "1", "memory": "1Gi"}'
+          isOptional: true
+          parameterType: STRING
+        resource_requests:
+          defaultValue: '{"cpu": "0.5", "memory": "512Mi"}'
+          isOptional: true
+          parameterType: STRING
+        runtime_version:
+          defaultValue: latest
+          isOptional: true
+          parameterType: STRING
+        service_account:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        watch_timeout:
+          defaultValue: '300'
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        inferenceservice_status:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-serve-a-model-with-kserve:
+      container:
+        args:
+        - -u
+        - kservedeployer.py
+        - --action
+        - '{{$.inputs.parameters[''action'']}}'
+        - --model-name
+        - '{{$.inputs.parameters[''model_name'']}}'
+        - --model-uri
+        - '{{$.inputs.parameters[''model_uri'']}}'
+        - --canary-traffic-percent
+        - '{{$.inputs.parameters[''canary_traffic_percent'']}}'
+        - --namespace
+        - '{{$.inputs.parameters[''namespace'']}}'
+        - --framework
+        - '{{$.inputs.parameters[''framework'']}}'
+        - --runtime-version
+        - '{{$.inputs.parameters[''runtime_version'']}}'
+        - --resource-requests
+        - '{{$.inputs.parameters[''resource_requests'']}}'
+        - --resource-limits
+        - '{{$.inputs.parameters[''resource_limits'']}}'
+        - --custom-model-spec
+        - '{{$.inputs.parameters[''custom_model_spec'']}}'
+        - --autoscaling-target
+        - '{{$.inputs.parameters[''autoscaling_target'']}}'
+        - --service-account
+        - '{{$.inputs.parameters[''service_account'']}}'
+        - --enable-istio-sidecar
+        - '{{$.inputs.parameters[''enable_istio_sidecar'']}}'
+        - --output-path
+        - '{{$.outputs.parameters[''inferenceservice_status''].output_file}}'
+        - --inferenceservice-yaml
+        - '{{$.inputs.parameters[''inferenceservice_yaml'']}}'
+        - --watch-timeout
+        - '{{$.inputs.parameters[''watch_timeout'']}}'
+        - --min-replicas
+        - '{{$.inputs.parameters[''min_replicas'']}}'
+        - --max-replicas
+        - '{{$.inputs.parameters[''max_replicas'']}}'
+        - --request-timeout
+        - '{{$.inputs.parameters[''request_timeout'']}}'
+        - --enable-isvc-status
+        - '{{$.inputs.parameters[''enable_isvc_status'']}}'
+        command:
+        - python
+        image: quay.io/hbelmiro/kfp_deploy_model_to_kserve_demo:v0.0.3
+pipelineInfo:
+  description: A pipeline for creating a KServe inference service.
+  name: kserve-pipeline
+root:
+  dag:
+    tasks:
+      serve-a-model-with-kserve:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-serve-a-model-with-kserve
+        inputs:
+          parameters:
+            action:
+              runtimeValue:
+                constant: apply
+            framework:
+              runtimeValue:
+                constant: sklearn
+            model_name:
+              runtimeValue:
+                constant: example
+            model_uri:
+              runtimeValue:
+                constant: gs://kfserving-examples/models/sklearn/1.0/model
+            namespace:
+              runtimeValue:
+                constant: hbelmiro-kustomize
+        taskInfo:
+          name: serve-a-model-with-kserve
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.11.0
