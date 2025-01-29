@@ -1,5 +1,19 @@
+# Kubeflow Pipelines Backend
+
+## Overview
+
 This directory contains code for the components that comprise the Kubeflow
 Pipelines backend.
+
+This README will help you set up your coding environment in order to build and run the Kubeflow Pipelines backend. The KFP backend powers the core functionality of the KFP platform, handling API requests, workflow management, and data persistence.
+
+## Prerequisites
+Before you begin, ensure you have:
+- Go programming language installed
+- [go-licenses tool](../hack/install-go-licenses.sh)
+- Docker or Podman installed (for building container images)
+
+Note that you may need to restart your shell after installing these resources in order for the changes to take effect.
 
 ## Building & Testing
 
@@ -15,56 +29,38 @@ The API server itself can be built using:
 go build -o /tmp/apiserver backend/src/apiserver/*.go
 ```
 
-## Code Style
-
-Backend codebase follows the [Google's Go Style Guide](https://google.github.io/styleguide/go/). Please, take time to get familiar with the [best practices](https://google.github.io/styleguide/go/best-practices). It is not intended to be exhaustive, but it often helps minimizing guesswork among developers and keep codebase uniform and consistent.
-
-We use [golangci-lint](https://golangci-lint.run/) tool that can catch common mistakes locally (see detailed configuration [here](https://github.com/kubeflow/pipelines/blob/master/.golangci.yaml)). It can be [conveniently integrated](https://golangci-lint.run/usage/integrations/) with multiple popular IDEs such as VS Code or Vim.
-
-Finally, it is advised to install [pre-commit](https://pre-commit.com/) in order to automate linter checks (see configuration [here](https://github.com/kubeflow/pipelines/blob/master/.pre-commit-config.yaml))
-
-## Building APIServer image locally
-
 The API server image can be built from the root folder of the repo using:
 ```
 export API_SERVER_IMAGE=api_server
 docker build -f backend/Dockerfile . --tag $API_SERVER_IMAGE
 ```
-## Deploy APIServer with the image you own build
+### Deploying the APIServer (from the image you built) on Kubernetes
 
-Run
+First, push your image to a registry that is accessible from your Kubernetes cluster. 
+
+Then, run:
 ```
 kubectl edit deployment.v1.apps/ml-pipeline -n kubeflow
 ```
-You'll see the field reference the api server docker image.
+You'll see the field reference the api server container image (`spec.containers[0].image: gcr.io/ml-pipeline/api-server:<image-version>`).
 Change it to point to your own build, after saving and closing the file, apiserver will restart with your change.
 
-## Building client library and swagger files
+### Building client library and swagger files
 
 After making changes to proto files, the Go client libraries, Python client libraries and swagger files
 need to be regenerated and checked-in. Refer to [backend/api](./api/README.md) for details.
 
-## Updating licenses info
+### Updating licenses info
 
-1. [Install go-licenses tool](../hack/install-go-licenses.sh) and refer to [its documentation](https://github.com/google/go-licenses) for how to use it.
-
+1. [Install go-licenses tool](../hack/install-go-licenses.sh) (if you haven't already) and refer to [its documentation](https://github.com/google/go-licenses) for how to use it.
 
 2. Run the tool to update all licenses:
 
     ```bash
-    make all
+    make -C backend all
     ```
 
-## Updating python dependencies
-
-[pip-tools](https://github.com/jazzband/pip-tools) is used to manage python
-dependencies. To update dependencies, edit [requirements.in](requirements.in)
-and run `./update_requirements.sh` to update and pin the transitive
-dependencies.
-
-# Visualization Server Instructions
-
-## Updating python dependencies
+### Updating python dependencies
 
 [pip-tools](https://github.com/jazzband/pip-tools) is used to manage python
 dependencies. To update dependencies, edit [requirements.in](requirements.in)
@@ -72,7 +68,7 @@ and run `./update_requirements.sh` to update and pin the transitive
 dependencies.
 
 
-## Building conformance tests (WIP)
+### Building conformance tests (WIP)
 
 Run
 ```
@@ -81,7 +77,7 @@ docker build . -f backend/Dockerfile.conformance -t <tag>
 
 ## API Server Development
 
-### Run Locally With a Kind Cluster
+### Run the KFP Backend Locally With a Kind Cluster
 
 This deploys a local Kubernetes cluster leveraging [kind](https://kind.sigs.k8s.io/), with all the components required
 to run the Kubeflow Pipelines API server. Note that the `ml-pipeline` `Deployment` (API server) has its replicas set to
@@ -99,6 +95,7 @@ pods on the cluster using the `ml-pipeline` `Service`.
   network interface through Docker/Podman Desktop. See
   [kind #1200](https://github.com/kubernetes-sigs/kind/issues/1200#issuecomment-1304855791) for an example manifest.
 * Optional: VSCode is installed to leverage a sample `launch.json` file.
+  * This relies on dlv: (go install -v github.com/go-delve/delve/cmd/dlv@latest)
 
 #### Provisioning the Cluster
 
@@ -111,15 +108,9 @@ make -C backend dev-kind-cluster
 This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
 all the pods have started.
 
-#### Deleting the Cluster
+Also, note that the config in the `make` command above sets the `ml-pipeline` `Deployment` (api server) to have 0 replicas. The intent is to replace it with a locally running API server for debugging and faster development. See the following steps to run the API server locally, and connect it to the KFP backend on your Kind cluster. Note that other backend components (for example, the persistence agent) may show errors until the API server is brought up and connected to the cluster.
 
-Run the following to delete the cluster:
-
-```bash
-kind delete clusters dev-pipelines-api
-```
-
-#### Launch the API Server With VSCode
+#### Launching the API Server With VSCode
 
 After the cluster is provisioned, you may leverage the following sample `.vscode/launch.json` file to run the API
 server locally:
@@ -168,12 +159,12 @@ You can also directly connect to the MariaDB database server with:
 mysql -h 127.0.0.1 -u root
 ```
 
-## Remote Debug the Driver
+### Remote Debug the Driver
 
 These instructions assume you are leveraging the Kind cluster in the
 [Run Locally With a Kind Cluster](#run-locally-with-a-kind-cluster) section.
 
-### Build the Driver Image With Debug Prerequisites
+#### Build the Driver Image With Debug Prerequisites
 
 Run the following to create the `backend/Dockerfile.driver-debug` file and build the container image
 tagged as `kfp-driver:debug`. This container image is based on `backend/Dockerfile.driver` but installs
@@ -197,7 +188,7 @@ Alternatively, you can use this Make target that does both.
 make -C kind-build-and-load-driver-debug
 ```
 
-### Run the API Server With Debug Configuration
+#### Run the API Server With Debug Configuration
 
 You may use the following VS Code `launch.json` file to run the API server which overrides the Driver
 command to use Delve and the Driver image to use debug image built previously.
@@ -229,7 +220,7 @@ command to use Delve and the Driver image to use debug image built previously.
 }
 ```
 
-### Starting a Remote Debug Session
+#### Starting a Remote Debug Session
 
 Start by launching a pipeline. This will eventually create a Driver pod that is waiting for a remote debug connection.
 
@@ -273,3 +264,22 @@ For debugging a specific Driver pod, you'll need to continuously port forward an
 without a breakpoint so that Delve will continue execution until the Driver pod you are interested in starts up. At that
 point, you can set a break point, port forward, and connect to the remote debug session to debug that specific Driver
 pod.
+
+### Deleting the Kind Cluster
+
+Run the following to delete the cluster (once you are finished):
+
+```bash
+kind delete clusters dev-pipelines-api
+```
+
+## Contributing   
+### Code Style
+          
+Backend codebase follows the [Google's Go Style Guide](https://google.github.io/styleguide/go/). Please, take time to get familiar with the [best practices](https://google.github.io/styleguide/go/best-practices). It is not intended to be exhaustive, but it often helps minimizing guesswork among developers and keep codebase uniform and consistent.
+
+We use [golangci-lint](https://golangci-lint.run/) tool that can catch common mistakes locally (see detailed configuration [here](https://github.com/kubeflow/pipelines/blob/master/.golangci.yaml)). It can be [conveniently integrated](https://golangci-lint.run/usage/integrations/) with multiple popular IDEs such as VS Code or Vim.
+
+Finally, it is advised to install [pre-commit](https://pre-commit.com/) in order to automate linter checks (see configuration [here](https://github.com/kubeflow/pipelines/blob/master/.pre-commit-config.yaml))
+
+
