@@ -1106,5 +1106,9 @@ message PlatformDeploymentConfig {
 
 // Spec for pipeline-level config options. See PipelineConfig DSL class.
 message PipelineConfig {
-  // TODO add pipeline-level configs
+  // Name of the semaphore key to control pipeline concurrency
+  string semaphore_key = 1;
+
+  // Name of the mutex to ensure mutual exclusion
+  string mutex_name = 2;
 }
