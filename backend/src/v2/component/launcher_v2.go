@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -365,7 +364,7 @@ func collectOutputParameters(executorInput *pipelinespec.ExecutorInput, executor
 		msg := func(err error) error {
 			return fmt.Errorf("failed to read output parameter name=%q type=%q path=%q: %w", name, paramSpec.GetParameterType(), param.GetOutputFile(), err)
 		}
-		b, err := ioutil.ReadFile(param.GetOutputFile())
+		b, err := os.ReadFile(param.GetOutputFile())
 		if err != nil {
 			return msg(err)
 		}
@@ -708,7 +707,7 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 		}
 	}
 
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read output metadata file %q: %w", path, err)
 	}
