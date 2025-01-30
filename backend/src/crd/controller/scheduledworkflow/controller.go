@@ -80,7 +80,7 @@ type Controller struct {
 	location *time.Location
 
 	// tokenSrc provides a way to get the latest refreshed token when authentication to the REST API server is enabled.
-	// This will be nil when authentication is not enabled (e.g. Kubeconfig does not have token based authentication).
+	// This will be nil when authentication is not enabled.
 	tokenSrc transport.ResettableTokenSource
 }
 
