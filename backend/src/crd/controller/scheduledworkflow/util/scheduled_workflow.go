@@ -17,11 +17,12 @@ package util
 import (
 	"fmt"
 	"hash/fnv"
-	corev1 "k8s.io/api/core/v1"
 	"math"
 	"sort"
 	"strconv"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
 
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -154,7 +155,7 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	nextScheduledEpoch int64, nowEpoch int64) (commonutil.ExecutionSpec, error) {
 
 	// Creating the workflow.
-	execSpec, err := commonutil.ScheduleSpecToExecutionSpec(commonutil.CurrentExecutionType(), s.Spec.Workflow)
+	execSpec, err := commonutil.ScheduleSpecToExecutionSpec(commonutil.ArgoWorkflow, s.Spec.Workflow)
 	if err != nil {
 		return nil, err
 	}
