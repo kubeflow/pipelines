@@ -53,7 +53,7 @@ spec:
       - '{{inputs.parameters.kubernetes-config}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver
+      image: ghcr.io/kubeflow/kfp-driver
       name: ""
       resources:
         limits:
@@ -141,11 +141,12 @@ spec:
       - mountPath: /.config
         name: dot-config-scratch
     initContainers:
-    - command:
-      - launcher-v2
+    - args:
       - --copy
       - /kfp-launcher/launch
-      image: gcr.io/ml-pipeline/kfp-launcher
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher
       name: kfp-launcher
       resources:
         limits:
@@ -234,7 +235,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver
+      image: ghcr.io/kubeflow/kfp-driver
       name: ""
       resources:
         limits:

@@ -36,6 +36,8 @@ const (
 	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
 	DefaultDriverCommand     = "driver"
 	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
+	DriverLogLevelEnvVar     = "DRIVER_LOG_LEVEL"
+	LauncherLogLevelEnvVar   = "LAUNCHER_LOG_LEVEL"
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
 	s3ScratchLocation        = "/s3"
@@ -140,6 +142,25 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if ok {
 		return name
 	}
+
+	args := []string{
+		"--type", "CONTAINER",
+		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
+		"--run_id", runID(),
+		"--dag_execution_id", inputValue(paramParentDagID),
+		"--component", inputValue(paramComponent),
+		"--task", inputValue(paramTask),
+		"--container", inputValue(paramContainer),
+		"--iteration_index", inputValue(paramIterationIndex),
+		"--cached_decision_path", outputPath(paramCachedDecision),
+		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
+		"--condition_path", outputPath(paramCondition),
+		"--kubernetes_config", inputValue(paramKubernetesConfig),
+	}
+	if value, ok := os.LookupEnv(DriverLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
+
 	t := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -160,22 +181,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:   GetDriverImage(),
-			Command: GetDriverCommand(),
-			Args: []string{
-				"--type", "CONTAINER",
-				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-				"--run_id", runID(),
-				"--dag_execution_id", inputValue(paramParentDagID),
-				"--component", inputValue(paramComponent),
-				"--task", inputValue(paramTask),
-				"--container", inputValue(paramContainer),
-				"--iteration_index", inputValue(paramIterationIndex),
-				"--cached_decision_path", outputPath(paramCachedDecision),
-				"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
-				"--condition_path", outputPath(paramCondition),
-				"--kubernetes_config", inputValue(paramKubernetesConfig),
-			},
+			Image:     c.driverImage,
+			Command:   c.driverCommand,
+			Args:      args,
 			Resources: driverResources,
 		},
 	}
@@ -263,6 +271,13 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 		},
 	}
 	c.templates[nameContainerExecutor] = container
+
+	args := []string{
+		"--copy", component.KFPLauncherPath,
+	}
+	if value, ok := os.LookupEnv(LauncherLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,
 		Inputs: wfapi.Inputs{
@@ -321,8 +336,9 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
-				Image:   GetLauncherImage(),
-				Command: []string{"launcher-v2", "--copy", component.KFPLauncherPath},
+				Image:   c.launcherImage,
+				Command: []string{"launcher-v2"},
+				Args:    args,
 				VolumeMounts: []k8score.VolumeMount{
 					{
 						Name:      volumeNameKFPLauncher,

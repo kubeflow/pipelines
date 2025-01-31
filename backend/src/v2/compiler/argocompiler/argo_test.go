@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -36,6 +37,7 @@ func Test_argo_compiler(t *testing.T) {
 		jobPath          string // path of input PipelineJob to compile
 		platformSpecPath string // path of possible input PlatformSpec to compile
 		argoYAMLPath     string // path of expected output argo workflow YAML
+		envVars          []string
 	}{
 		{
 			jobPath:          "../testdata/hello_world.json",
@@ -71,6 +73,23 @@ func Test_argo_compiler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
 			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
+			if tt.envVars != nil {
+				for _, envVar := range tt.envVars {
+					parts := strings.Split(strings.ReplaceAll(envVar, " ", ""), "=")
+					err := os.Setenv(parts[0], parts[1])
+					if err != nil {
+						t.Fatalf("Failed to set environment variable '%s' with error: %s", parts[0], err.Error())
+					}
+
+					// Unset after test cases has ended
+					defer func() {
+						err := os.Unsetenv(parts[0])
+						if err != nil {
+							t.Fatalf("Failed to unset env variable '%s' with error: %s", parts[0], err.Error())
+						}
+					}()
+				}
+			}
 			if *update {
 				wf, err := argocompiler.Compile(job, platformSpec, nil)
 				if err != nil {
@@ -97,14 +116,14 @@ func Test_argo_compiler(t *testing.T) {
 			// mask the driver launcher image hash to maintain test stability
 			for _, template := range wf.Spec.Templates {
 				if template.Container != nil && strings.Contains(template.Container.Image, "kfp-driver") {
-					template.Container.Image = "gcr.io/ml-pipeline/kfp-driver"
+					template.Container.Image = "ghcr.io/kubeflow/kfp-driver"
 				}
 				if template.Container != nil && strings.Contains(template.Container.Image, "kfp-launcher") {
-					template.Container.Image = "gcr.io/ml-pipeline/kfp-launcher"
+					template.Container.Image = "ghcr.io/kubeflow/kfp-launcher"
 				}
 				for i := range template.InitContainers {
 					if strings.Contains(template.InitContainers[i].Image, "kfp-launcher") {
-						template.InitContainers[i].Image = "gcr.io/ml-pipeline/kfp-launcher"
+						template.InitContainers[i].Image = "ghcr.io/kubeflow/kfp-launcher"
 					}
 				}
 			}
