@@ -373,6 +373,73 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	}
 }
 
+func (s *RecurringRunApiTestSuite) TestRecurringRunApisUseLatest() {
+	t := s.T()
+
+	/* ---------- Upload pipelines YAML ---------- */
+	helloWorldPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", upload_params.NewUploadPipelineParams())
+	assert.Nil(t, err)
+
+	/* ---------- Upload pipeline version YAML ---------- */
+	time.Sleep(1 * time.Second)
+	helloWorldPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/hello-world.yaml", &upload_params.UploadPipelineVersionParams{
+			Name:       util.StringPointer("hello-world-version"),
+			Pipelineid: util.StringPointer(helloWorldPipeline.PipelineID),
+		})
+	assert.Nil(t, err)
+
+	/* ---------- Create a new hello world experiment ---------- */
+	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	assert.Nil(t, err)
+
+	/* ---------- Create a new hello world recurringRun by specifying pipeline ID without a version ---------- */
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+		DisplayName:  "hello world with latest pipeline version",
+		Description:  "this is hello world",
+		ExperimentID: helloWorldExperiment.ExperimentID,
+		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
+			PipelineID: helloWorldPipelineVersion.PipelineID,
+		},
+		MaxConcurrency: 10,
+		Mode:           recurring_run_model.RecurringRunModeENABLE,
+	}}
+	helloWorldRecurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
+	assert.Nil(t, err)
+
+	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
+	// This could take a few seconds to finish.
+
+	/* ---------- Check run for hello world recurringRun ---------- */
+	var helloWorldRun *run_model.V2beta1Run
+
+	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
+		runs, totalSize, _, err := s.runClient.List(&run_params.RunServiceListRunsParams{
+			ExperimentID: util.StringPointer(helloWorldExperiment.ExperimentID),
+		})
+		if err != nil {
+			return err
+		}
+		if len(runs) != 1 {
+			return fmt.Errorf("expected runs to be length 1, got: %v", len(runs))
+		}
+		if totalSize != 1 {
+			return fmt.Errorf("expected total size 1, got: %v", totalSize)
+		}
+		helloWorldRun = runs[0]
+		return s.checkHelloWorldRun(helloWorldRun, helloWorldExperiment.ExperimentID, helloWorldRecurringRun.RecurringRunID)
+	}); err != nil {
+		assert.Nil(t, err)
+		assert.FailNow(t, "Timed out waiting for the recurring run")
+	}
+
+	// Verify the latest pipeline version was selected
+	assert.Equal(
+		t, helloWorldPipelineVersion.PipelineVersionID, helloWorldRun.PipelineVersionReference.PipelineVersionID,
+	)
+}
+
 func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	t := s.T()
 

@@ -159,6 +159,39 @@ You can also directly connect to the MariaDB database server with:
 mysql -h 127.0.0.1 -u root
 ```
 
+### Scheduled Workflow Development
+
+If you also want to run the Scheduled Workflow controller locally, stop the controller on the cluster with:
+
+```bash
+kubectl -n kubeflow scale deployment ml-pipeline-scheduledworkflow --replicas=0
+```
+
+Then you may leverage the following sample `.vscode/launch.json` file to run the Scheduled Workflow controller locally:
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Scheduled Workflow controller (Kind)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/backend/src/crd/controller/scheduledworkflow",
+            "env": {
+                "CRON_SCHEDULE_TIMEZONE": "UTC"
+            },
+            "args": [
+                "-namespace=kubeflow",
+                "-kubeconfig=${workspaceFolder}/kubeconfig_dev-pipelines-api",
+                "-mlPipelineAPIServerName=localhost"
+            ]
+        }
+    ]
+}
+```
+
 ### Remote Debug the Driver
 
 These instructions assume you are leveraging the Kind cluster in the

@@ -12,7 +12,7 @@ Tools needed:
 Set the environment variable `API_VERSION` to the version that you want to generate. We use `v1beta1` as example here.
 
 ```bash
-export API_VERSION="v1beta1"
+export API_VERSION="v2beta1"
 ```
 
 ## Compiling `.proto` files to Go client and swagger definitions

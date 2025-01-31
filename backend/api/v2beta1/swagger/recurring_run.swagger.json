@@ -390,7 +390,7 @@
         },
         "pipeline_version_id": {
           "type": "string",
-          "description": "Input. Required. Unique ID of an existing pipeline version."
+          "description": "Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used."
         }
       },
       "description": "Reference to an existing pipeline version."

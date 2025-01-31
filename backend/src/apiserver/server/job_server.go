@@ -115,6 +115,19 @@ func (s *JobServer) CreateJob(ctx context.Context, request *apiv1beta1.CreateJob
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run due to conversion error")
 	}
+
+	// In the v2 API, the pipeline version being empty means always pick the latest at run submission time. In v1,
+	// it means to use the latest pipeline version at recurring run creation time. Handle this case here since
+	// modelJob does not have the concept of which API version it came from.
+	if modelJob.PipelineId != "" && modelJob.WorkflowSpecManifest == "" && modelJob.PipelineSpecManifest == "" && modelJob.PipelineVersionId == "" {
+		pipelineVersion, err := s.resourceManager.GetLatestPipelineVersion(modelJob.PipelineId)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to fetch a pipeline version from pipeline %v", modelJob.PipelineId)
+		}
+
+		modelJob.PipelineVersionId = pipelineVersion.UUID
+	}
+
 	newJob, err := s.createJob(ctx, modelJob)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run")
