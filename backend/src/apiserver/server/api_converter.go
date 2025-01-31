@@ -1869,10 +1869,13 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	case *apiv2beta1.RecurringRun:
 		pipelineId = apiJob.GetPipelineVersionReference().GetPipelineId()
 		pipelineVersionId = apiJob.GetPipelineVersionReference().GetPipelineVersionId()
-		if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
-			pipelineSpec = spec
-		} else {
-			return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
+
+		if apiJob.GetPipelineSpec() != nil {
+			if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
+				pipelineSpec = spec
+			} else {
+				return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
+			}
 		}
 
 		cfg, err := toModelRuntimeConfig(apiJob.GetRuntimeConfig())
@@ -1933,6 +1936,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	} else if pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("pipelines/%v", pipelineVersionId)
 	}
+
 	status := model.StatusStateUnspecified
 	if isEnabled {
 		status = model.StatusStateEnabled

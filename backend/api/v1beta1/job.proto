@@ -210,9 +210,9 @@ message Job {
   // Optional input field. Describing the purpose of the job
   string description = 3;
 
-  // Required input field.
+  // Optional input field.
   // Describing what the pipeline manifest and parameters to use
-  // for the scheduled job.
+  // for the scheduled job. If unset, fetch the pipline_spec at runtime.
   PipelineSpec pipeline_spec = 4;
 
   // Optional input field. Specify which resource this job belongs to.
