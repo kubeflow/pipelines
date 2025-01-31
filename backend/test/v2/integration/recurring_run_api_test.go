@@ -17,7 +17,7 @@ package integration
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -197,7 +197,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	// Make sure the recurringRun is created at least 1 second later than the first one,
 	// because sort by created_at has precision of 1 second.
 	time.Sleep(1 * time.Second)
-	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	pipeline_spec := &structpb.Struct{}
 	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
