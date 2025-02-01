@@ -23,7 +23,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -113,10 +112,6 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	setDefaultServiceAccount(workflow, modelJob.ServiceAccount)
 	// Disable istio sidecar injection if not specified
 	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
-	if err != nil {
-		return nil, util.Wrap(err, "Create job failed")
-	}
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
@@ -127,28 +122,17 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert v1 parameters to CRD parameters")
 	}
-	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
+
+	scheduledWorkflow, err := NewGenericScheduledWorkflow(modelJob)
 	if err != nil {
 		return nil, err
 	}
 
-	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kubeflow.org/v1beta1",
-			Kind:       "ScheduledWorkflow",
-		},
-		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
-		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled:        modelJob.Enabled,
-			MaxConcurrency: &modelJob.MaxConcurrency,
-			Trigger:        crdTrigger,
-			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: swfParameters,
-				Spec:       workflow.ToStringForSchedule(),
-			},
-			NoCatchup: util.BoolPointer(modelJob.NoCatchup),
-		},
+	scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
+		Parameters: swfParameters,
+		Spec:       workflow.ToStringForSchedule(),
 	}
+
 	return scheduledWorkflow, nil
 }
 

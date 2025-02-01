@@ -108,10 +108,14 @@ type WorkflowResource struct {
 
 	Parameters []Parameter `json:"parameters,omitempty"`
 
+	PipelineRoot string `json:"pipelineRoot,omitempty"`
+
 	// Specification of the workflow to start.
 	// Use interface{} for backward compatibility
 	// TODO: change it to string and avoid type casting
 	//       after several releases
+	// This is deprecated. In a future release, this will be ignored and this will be compiled by the API server
+	// at runtime.
 	Spec interface{} `json:"spec,omitempty"`
 }
 

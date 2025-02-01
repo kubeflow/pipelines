@@ -16,7 +16,7 @@ package integration
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -285,7 +285,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.NotNil(t, pipelineVersion.CreatedAt)
 
 	/* ---------- Verify pipeline spec ---------- */
-	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
 	expected_bytes, err := yaml.YAMLToJSON(bytes)
 	require.Nil(t, err)
@@ -319,7 +319,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	assert.Equal(t, "hello-world", v2Version.DisplayName)
 
 	/* ---------- Verify pipeline spec ---------- */
-	bytes, err := ioutil.ReadFile("../resources/hello-world.yaml")
+	bytes, err := os.ReadFile("../resources/hello-world.yaml")
 	require.Nil(t, err)
 	expected_bytes, err := yaml.YAMLToJSON(bytes)
 	require.Nil(t, err)

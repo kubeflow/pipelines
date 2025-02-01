@@ -20,6 +20,7 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
@@ -30,6 +31,8 @@ import (
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	wraperror "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -40,6 +43,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/transport"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -60,6 +64,7 @@ type Controller struct {
 	kubeClient     *client.KubeClient
 	swfClient      *client.ScheduledWorkflowClient
 	workflowClient *client.WorkflowClient
+	runClient      api.RunServiceClient
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -73,6 +78,10 @@ type Controller struct {
 
 	// the timezone loation which the scheduled will use
 	location *time.Location
+
+	// tokenSrc provides a way to get the latest refreshed token when authentication to the REST API server is enabled.
+	// This will be nil when authentication is not enabled.
+	tokenSrc transport.ResettableTokenSource
 }
 
 // NewController returns a new sample controller
@@ -80,10 +89,12 @@ func NewController(
 	kubeClientSet kubernetes.Interface,
 	swfClientSet swfclientset.Interface,
 	workflowClientSet commonutil.ExecutionClient,
+	runClient api.RunServiceClient,
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	executionInformer commonutil.ExecutionInformer,
 	time commonutil.TimeInterface,
 	location *time.Location,
+	tokenSrc transport.ResettableTokenSource,
 ) (*Controller, error) {
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
@@ -102,11 +113,13 @@ func NewController(
 	controller := &Controller{
 		kubeClient:     client.NewKubeClient(kubeClientSet, recorder),
 		swfClient:      client.NewScheduledWorkflowClient(swfClientSet, swfInformer),
+		runClient:      runClient,
 		workflowClient: client.NewWorkflowClient(workflowClientSet, executionInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
 		time:     time,
 		location: location,
+		tokenSrc: tokenSrc,
 	}
 
 	log.Info("Setting up event handlers")
@@ -507,12 +520,72 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	}
 
 	// If the workflow is not found, we need to create it.
-	newWorkflow, err := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
-	createdWorkflow, err := c.workflowClient.Create(ctx, swf.Namespace, newWorkflow)
-	if err != nil {
-		return false, "", err
+	if swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {
+		newWorkflow, err := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
+		if err != nil {
+			return false, "", err
+		}
+
+		createdWorkflow, err := c.workflowClient.Create(ctx, swf.Namespace, newWorkflow)
+		if err != nil {
+			return false, "", err
+		}
+		return true, createdWorkflow.ExecutionName(), nil
 	}
-	return true, createdWorkflow.ExecutionName(), nil
+
+	if c.tokenSrc != nil {
+		token, err := c.tokenSrc.Token()
+		if err != nil {
+			return false, "", fmt.Errorf("Failed to get a token to communicate with the REST API: %w", err)
+		}
+
+		ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token.AccessToken)
+	}
+
+	var runtimeConfig *api.RuntimeConfig
+
+	if swf.Spec.Workflow != nil {
+		runtimeConfig = &api.RuntimeConfig{
+			Parameters:   map[string]*structpb.Value{},
+			PipelineRoot: swf.Spec.Workflow.PipelineRoot,
+		}
+
+		for _, param := range swf.Spec.Workflow.Parameters {
+			val := &structpb.Value{}
+
+			err := val.UnmarshalJSON([]byte(param.Value))
+			if err != nil {
+				return false, "", err
+			}
+
+			runtimeConfig.Parameters[param.Name] = val
+		}
+	}
+
+	run, err := c.runClient.CreateRun(ctx, &api.CreateRunRequest{
+		ExperimentId: swf.Spec.ExperimentId,
+		Run: &api.Run{
+			ExperimentId:   swf.Spec.ExperimentId,
+			DisplayName:    swf.NextResourceName(),
+			RecurringRunId: string(swf.UID),
+			RuntimeConfig:  runtimeConfig,
+			PipelineSource: &api.Run_PipelineVersionReference{
+				PipelineVersionReference: &api.PipelineVersionReference{
+					PipelineId: swf.Spec.PipelineId,
+					// This can be empty, which causes the latest pipeline version to be selected.
+					PipelineVersionId: swf.Spec.PipelineVersionId,
+				},
+			},
+			ServiceAccount: swf.Spec.ServiceAccount,
+		},
+	})
+	if err != nil {
+		return false, "", fmt.Errorf(
+			"failed to create a run from the scheduled workflow (%s/%s): %w", swf.Namespace, swf.Name, err,
+		)
+	}
+
+	return true, run.DisplayName, nil
 }
 
 func (c *Controller) updateStatus(

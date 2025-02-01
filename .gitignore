@@ -86,5 +86,8 @@ __pycache__
 # kfp local execution default directory
 local_outputs/
 
+# Ignore the Kind cluster kubeconfig
+kubeconfig_dev-pipelines-api
+
 # Ignore debug Driver Dockerfile produced from `make -C backend image_driver_debug`
 backend/Dockerfile.driver-debug

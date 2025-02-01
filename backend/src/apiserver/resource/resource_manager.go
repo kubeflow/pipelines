@@ -590,6 +590,12 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 		default:
 		}
 
+		// If the pipeline isn't pinned, skip it. The runs API is used directly by the ScheduledWorkflow controller
+		// in this case with just the pipeline ID and optionally the pipeline version ID.
+		if jobs[i].PipelineSpec.PipelineSpecManifest == "" && jobs[i].PipelineSpec.WorkflowSpecManifest == "" {
+			continue
+		}
+
 		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
@@ -1041,13 +1047,6 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
-	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
-	// Update the job.PipelineSpec if an existing pipeline version is used.
-	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
-	}
-
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {
@@ -1059,12 +1058,63 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 	job.Namespace = k8sNamespace
 
-	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
-	// Convert modelJob into scheduledWorkflow.
-	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+	var manifest string
+	var scheduledWorkflow *scheduledworkflow.ScheduledWorkflow
+	var tmpl template.Template
+
+	// If the pipeline version or pipeline spec is provided, this means the user wants to pin to a specific pipeline.
+	// Otherwise, always let the ScheduledWorkflow controller pick the latest.
+	if job.PipelineVersionId != "" || job.PipelineSpecManifest != "" || job.WorkflowSpecManifest != "" {
+		var err error
+		// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
+		// Update the job.PipelineSpec if an existing pipeline version is used.
+		tmpl, manifest, err = r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
+		}
+
+		// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
+		// Convert modelJob into scheduledWorkflow.
+		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+		}
+	} else if job.PipelineId == "" {
+		return nil, errors.New("Cannot create a job with an empty pipeline ID")
+	} else {
+		// Validate the input parameters on the latest pipeline version. The latest pipeline version is not stored
+		// in the ScheduledWorkflow. It's just to help the user with up front validation at recurring run creation
+		// time.
+		manifest, err := r.GetPipelineLatestTemplate(job.PipelineId)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
+		}
+
+		tmpl, err := template.New(manifest)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
+		}
+
+		_, err = tmpl.ScheduledWorkflow(job)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
+		}
+
+		scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+		}
+
+		parameters, err := template.StringMapToCRDParameters(job.RuntimeConfig.Parameters)
+		if err != nil {
+			return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
+		}
+
+		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
+			Parameters: parameters, PipelineRoot: job.PipelineRoot,
+		}
 	}
+
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -1080,6 +1130,11 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	for _, modelRef := range job.ResourceReferences {
 		modelRef.ResourceUUID = string(swf.UID)
 	}
+
+	if tmpl == nil {
+		return r.jobStore.CreateJob(job)
+	}
+
 	if tmpl.GetTemplateType() == template.V1 {
 		// Get the service account
 		serviceAccount := ""

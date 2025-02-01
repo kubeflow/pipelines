@@ -17,6 +17,8 @@
 IMAGE_TAG=kfp-api-generator
 # Contact chensun or zijianjoy if this remote image needs an update.
 REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator
+# Assume the latest API version by default.
+API_VERSION ?= v2beta1
 
 # Keep in sync with the version used in test/release/Dockerfile.release
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.0
