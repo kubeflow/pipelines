@@ -28,7 +28,7 @@ describe(`${PATH_FRONTEND_CONFIG}`, () => {
   it(`should be in sync with ${PATH_BACKEND_CONFIG}, if not please run "npm run sync-backend-sample-config" to update.`, () => {
     const configBackend = require(PATH_BACKEND_CONFIG);
     const configFrontend = require(PATH_FRONTEND_CONFIG);
-    expect(configFrontend).toEqual(configBackend.map((sample: any) => sample.name));
+    expect(configFrontend).toEqual(configBackend.pipelines.map((sample: any) => sample.name));
   });
 });
 
