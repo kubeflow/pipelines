@@ -26,6 +26,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -131,7 +132,7 @@ func main() {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
 
-	controller, err := NewPersistenceAgent(
+	mgr, err := NewPersistenceAgent(
 		swfInformerFactory,
 		execInformer,
 		pipelineClient,
@@ -139,13 +140,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to instantiate the controller: %v", err)
 	}
-
 	go swfInformerFactory.Start(stopCh)
 	go execInformer.InformerFactoryStart(stopCh)
 
-	if err = controller.Run(numWorker, stopCh); err != nil {
-		log.Fatalf("Error running controller: %s", err.Error())
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		log.Fatalf("problem running manager: %v", err)
 	}
+
 }
 
 func init() {
