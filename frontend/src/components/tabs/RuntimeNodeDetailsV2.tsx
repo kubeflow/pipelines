@@ -321,15 +321,17 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
     return logsInfo; // Early return if it is from cache.
   }
 
-  try {
-    logsDetails = await Apis.getPodLogs(runId!, podName, podNameSpace, createdAt);
-    logsInfo.set(LOGS_DETAILS, logsDetails);
-  } catch (err) {
-    let errMsg = await errorToMessage(err);
-    logsBannerMessage = 'Failed to retrieve pod logs.';
-    logsInfo.set(LOGS_BANNER_MESSAGE, logsBannerMessage);
-    logsBannerAdditionalInfo = 'Error response: ' + errMsg;
-    logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, logsBannerAdditionalInfo);
+  if (podName && podName !== '') {
+    try {
+      logsDetails = await Apis.getPodLogs(runId!, podName, podNameSpace, createdAt);
+      logsInfo.set(LOGS_DETAILS, logsDetails);
+    } catch (err) {
+      let errMsg = await errorToMessage(err);
+      logsBannerMessage = 'Failed to retrieve pod logs.';
+      logsInfo.set(LOGS_BANNER_MESSAGE, logsBannerMessage);
+      logsBannerAdditionalInfo = 'Error response: ' + errMsg;
+      logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, logsBannerAdditionalInfo);
+    }
   }
   return logsInfo;
 }
