@@ -561,10 +561,16 @@ As noted in the previous section, the API server will have two new endpoints:
 - `/webhooks/validate-pipelineversion` - for a validating webhook for pipeline versions.
 - `/webhooks/mutate-pipelineversion` - for a mutating webhook for pipeline versions.
 
-If the cluster has multiple installations of Kubeflow Pipelines (e.g. multiple standalone), the webhook configuration
-should have a namespace selector set at `webhooks[0].namespaceSelector` to target that specific installation. The
-administrator can create multiple webhook entries in the same `ValidatingWebhookConfiguration` and
-`MutatingWebhookConfiguration` objects or create one object per installation.
+If the cluster has multiple installations of Kubeflow Pipelines (e.g. multiple standalone), administrator has two
+options:
+
+- The webhook configuration could have a namespace selector set at `webhooks[0].namespaceSelector` to target that
+  specific installation. The administrator can create multiple webhook entries in the same
+  `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` objects or create one object per installation.
+- A new option in the API server of `--global-kubernetes-webhook-mode` can be enabled to run the API server with
+  **only** the Kubernetes webhook endpoints enabled. The administrator would have just one entry in the
+  `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` objects that point to this global instance. The
+  administrator should ensure that all Kubeflow Pipeline servers on the cluster are the same version in this case.
 
 ##### Validating Webhook
 
