@@ -156,6 +156,8 @@ func (w *Workflow) SetAnnotations(val map[string]string) {
 	}
 }
 
+// Override SetLabels on our Workflow type.
+// This method will be used instead of util.Workflow's version.
 func (w *Workflow) SetLabels(val map[string]string) {
 	if w.Labels == nil {
 		w.Labels = make(map[string]string)
