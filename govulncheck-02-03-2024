@@ -1,0 +1,186 @@
+=== Symbol Results ===
+
+Vulnerability #1: GO-2025-3420
+    Sensitive headers incorrectly sent after cross-domain redirect in net/http
+  More info: https://pkg.go.dev/vuln/GO-2025-3420
+  Standard library
+    Found in: net/http@go1.23.3
+    Fixed in: net/http@go1.23.5
+    Example traces found:
+      #1: backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1/scheduledworkflow.go:105:8: v1beta1.scheduledWorkflows.Watch calls rest.Request.Watch, which calls http.Client.Do
+      #2: backend/src/apiserver/server/pipeline_server.go:636:31: server.PipelineServer.createPipelineVersion calls http.Client.Get
+      #3: backend/api/v2beta1/go_client/run.pb.go:2159:51: go_client.file_backend_api_v2beta1_run_proto_rawDescGZIP calls sync.Once.Do, which eventually calls http.Client.PostForm
+      #4: backend/src/apiserver/server/visualization_server.go:141:23: server.isVisualizationServiceAlive calls http.Get
+      #5: backend/src/apiserver/server/visualization_server.go:115:28: server.VisualizationServer.generateVisualizationFromRequest calls http.PostForm
+
+Vulnerability #2: GO-2025-3373
+    Usage of IPv6 zone IDs can bypass URI name constraints in crypto/x509
+  More info: https://pkg.go.dev/vuln/GO-2025-3373
+  Standard library
+    Found in: crypto/x509@go1.23.3
+    Fixed in: crypto/x509@go1.23.5
+    Example traces found:
+      #1: backend/src/apiserver/client/minio.go:53:46: client.CreateMinioClient calls minio.NewWithCredentials, which eventually calls x509.CertPool.AppendCertsFromPEM
+      #2: backend/src/apiserver/storage/object_store.go:87:14: storage.MinioObjectStore.GetFile calls bytes.Buffer.ReadFrom, which eventually calls x509.Certificate.Verify
+      #3: backend/src/apiserver/storage/object_store.go:87:14: storage.MinioObjectStore.GetFile calls bytes.Buffer.ReadFrom, which eventually calls x509.Certificate.VerifyHostname
+      #4: backend/api/v2beta1/go_client/run.pb.go:2159:51: go_client.file_backend_api_v2beta1_run_proto_rawDescGZIP calls sync.Once.Do, which eventually calls x509.CreateCertificate
+      #5: backend/src/apiserver/resource/resource_manager.go:896:188: resource.ResourceManager.RetryRun calls x509.HostnameError.Error
+      #6: backend/src/common/util/workflow.go:738:34: util.Workflow.Validate calls validate.ValidateWorkflow, which eventually calls x509.MarshalECPrivateKey
+      #7: backend/api/v2beta1/go_client/run.pb.go:2159:51: go_client.file_backend_api_v2beta1_run_proto_rawDescGZIP calls sync.Once.Do, which eventually calls x509.MarshalPKCS1PrivateKey
+      #8: backend/src/common/util/workflow.go:738:34: util.Workflow.Validate calls validate.ValidateWorkflow, which eventually calls x509.MarshalPKCS8PrivateKey
+      #9: backend/src/cache/main.go:103:36: cache.main calls http.Server.ListenAndServeTLS, which eventually calls x509.ParseCertificate
+      #10: backend/src/cache/main.go:103:36: cache.main calls http.Server.ListenAndServeTLS, which eventually calls x509.ParseECPrivateKey
+      #11: backend/src/cache/main.go:103:36: cache.main calls http.Server.ListenAndServeTLS, which eventually calls x509.ParsePKCS1PrivateKey
+      #12: backend/src/cache/main.go:103:36: cache.main calls http.Server.ListenAndServeTLS, which eventually calls x509.ParsePKCS8PrivateKey
+      #13: backend/api/v2beta1/go_client/run.pb.go:2159:51: go_client.file_backend_api_v2beta1_run_proto_rawDescGZIP calls sync.Once.Do, which eventually calls x509.ParsePKIXPublicKey
+      #14: backend/src/apiserver/client/minio.go:53:46: client.CreateMinioClient calls minio.NewWithCredentials, which eventually calls x509.SystemCertPool
+
+Vulnerability #3: GO-2025-3372
+    Vulnerability when creating log files in github.com/golang/glog
+  More info: https://pkg.go.dev/vuln/GO-2025-3372
+  Module: github.com/golang/glog
+    Found in: github.com/golang/glog@v1.2.0
+    Fixed in: github.com/golang/glog@v1.2.4
+    Example traces found:
+      #1: backend/src/cache/client/pod_fake.go:117:12: client.FakePodClient.ProxyGet calls glog.Error
+      #2: backend/src/apiserver/resource/resource_manager.go:1699:14: resource.ResourceManager.DeletePipelineVersion calls glog.Errorf
+      #3: backend/src/common/util/metrics.go:37:17: util.GetMetricValue calls glog.Errorln
+      #4: backend/src/v2/cmd/launcher-v2/main.go:49:12: launcher.main calls glog.Exit
+      #5: backend/src/v2/cmd/driver/main.go:79:13: driver.main calls glog.Exitf
+      #6: backend/src/v2/metadata/client.go:1004:13: metadata.SchemaToArtifactType calls glog.Fatal
+      #7: backend/src/common/util/error.go:425:14: util.TerminateIfError calls glog.Fatalf
+      #8: backend/src/apiserver/resource/resource_manager.go:1738:11: resource.ResourceManager.IsAuthorized calls glog.Info
+      #9: backend/src/apiserver/resource/resource_manager.go:1734:13: resource.ResourceManager.IsAuthorized calls glog.Infof
+      #10: backend/src/v2/driver/driver.go:787:16: driver.DAG calls glog.Verbose.Info
+      #11: backend/src/v2/metadata/client.go:839:18: metadata.Client.GetExecutionsInDAG calls glog.Verbose.Infof
+      #12: backend/src/apiserver/resource/resource_manager.go:723:16: resource.ResourceManager.DeleteRun calls glog.Warningf
+
+Vulnerability #4: GO-2023-1901
+    Pipelines do not validate child UIDs in github.com/tektoncd/pipeline
+  More info: https://pkg.go.dev/vuln/GO-2023-1901
+  Module: github.com/tektoncd/pipeline
+    Found in: github.com/tektoncd/pipeline@v0.54.0
+    Fixed in: N/A
+    Example traces found:
+      #1: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which calls checksum.init
+      #2: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which eventually calls config.SpireConfig.Validate
+      #3: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which calls config.init
+      #4: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which eventually calls config.init
+      #5: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which calls dag.init
+      #6: backend/src/common/util/pipelinerun.go:771:59: util.PipelineRunClient.Execution calls externalversions.NewFilteredSharedInformerFactory
+      #7: backend/src/common/util/pipelinerun.go:768:51: util.PipelineRunClient.Execution calls externalversions.NewSharedInformerFactory
+      #8: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init
+      #9: backend/src/common/util/pipelinerun.go:878:30: util.PipelineRunInformer.HasSynced calls pipeline.pipelineRunInformer.Informer, which calls externalversions.sharedInformerFactory.InformerFor
+      #10: backend/src/common/util/pipelinerun.go:908:19: util.PipelineRunInformer.InformerFactoryStart calls externalversions.sharedInformerFactory.Start
+      #11: backend/src/common/util/pipelinerun.go:769:10: util.PipelineRunClient.Execution calls externalversions.sharedInformerFactory.Tekton
+      #12: backend/src/common/util/pipelinerun.go:38:2: util.init calls pipeline.init, which calls internalinterfaces.init
+      #13: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which eventually calls list.init
+      #14: backend/src/crd/pkg/client/listers/scheduledworkflow/v1beta1/scheduledworkflow.go:46:21: v1beta1.scheduledWorkflowLister.List calls cache.ListAll, which calls pipeline.List
+      #15: backend/src/common/util/pipelinerun.go:769:10: util.PipelineRunClient.Execution calls externalversions.sharedInformerFactory.Tekton, which calls pipeline.New
+      #16: backend/src/common/util/pipelinerun.go:769:15: util.PipelineRunClient.Execution calls pipeline.group.V1, which calls pipeline.New
+      #17: backend/src/crd/controller/scheduledworkflow/controller.go:176:3: scheduledworkflow.Controller.Run calls wait.Until, which eventually calls pipeline.NewFilteredPipelineRunInformer
+      #18: backend/src/crd/controller/scheduledworkflow/controller.go:176:3: scheduledworkflow.Controller.Run calls wait.Until, which eventually calls pipeline.NewFilteredPipelineRunInformer
+      #19: backend/src/common/util/execution_client.go:115:44: util.NewExecutionClientOrFatal calls versioned.NewForConfigOrDie, which eventually calls pipeline.NewForConfigAndClient
+      #20: backend/src/common/util/pipelinerun.go:895:42: util.PipelineRunInformer.List calls pipeline.pipelineRunInformer.Lister, which calls pipeline.NewPipelineRunLister
+      #21: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.ParamSpec.DeepCopyInto
+      #22: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.Pipeline.DeepCopyObject
+      #23: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.PipelineList.DeepCopyObject
+      #24: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.PipelineRef.DeepCopyInto
+      #25: backend/src/common/util/pipelinerun.go:613:22: util.PipelineRun.GenerateRetryExecution calls pipeline.PipelineRun.DeepCopy
+      #26: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.PipelineRun.DeepCopyObject
+      #27: backend/src/crd/pkg/client/clientset/versioned/fake/clientset_generated.go:36:18: fake.NewSimpleClientset calls testing.tracker.Add, which eventually calls pipeline.PipelineRun.GetName
+      #28: backend/src/common/util/pipelinerun.go:539:52: util.PipelineRun.IsTerminating calls pipeline.PipelineRun.IsDone
+      #29: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.PipelineRunList.DeepCopyObject
+      #30: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.PipelineSpec.DeepCopyInto
+      #31: backend/src/common/util/pipelinerun.go:882:71: util.PipelineRunInformer.Get calls pipeline.pipelineRunNamespaceLister.Get, which calls pipeline.Resource
+      #32: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.StepResult.DeepCopyInto
+      #33: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.Task.DeepCopyObject
+      #34: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.TaskList.DeepCopyObject
+      #35: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.TaskRef.DeepCopyInto
+      #36: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.TaskRun.DeepCopyObject
+      #37: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.TaskRunList.DeepCopyObject
+      #38: backend/src/common/util/pipelinerun.go:735:42: util.PipelineRun.NodeStatuses calls pipeline.TaskRunStatus.GetCondition
+      #39: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls pipeline.TaskSpec.DeepCopyInto
+      #40: backend/src/common/util/pipelinerun.go:776:59: util.PipelineRunClient.Execution calls pipeline.TektonV1Client.PipelineRuns
+      #41: backend/src/crd/controller/viewer/main.go:71:27: viewer.main calls runtime.SchemeBuilder.AddToScheme, which calls pipeline.addKnownTypes
+      #42: backend/src/common/util/pipelinerun.go:769:15: util.PipelineRunClient.Execution calls pipeline.group.V1
+      #43: backend/src/common/util/pipelinerun.go:38:2: util.init calls pipeline.init, which calls pipeline.init
+      #44: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init
+      #45: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which calls pipeline.init
+      #46: backend/src/common/util/pipelinerun.go:36:2: util.init calls pipeline.init
+      #47: backend/src/common/util/pipelinerun.go:38:2: util.init calls pipeline.init
+      #48: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which calls pipeline.init
+      #49: backend/src/common/util/pipelinerun.go:878:30: util.PipelineRunInformer.HasSynced calls pipeline.pipelineRunInformer.Informer
+      #50: backend/src/common/util/pipelinerun.go:895:42: util.PipelineRunInformer.List calls pipeline.pipelineRunInformer.Lister
+      #51: backend/src/common/util/pipelinerun.go:895:49: util.PipelineRunInformer.List calls pipeline.pipelineRunLister.List
+      #52: backend/src/common/util/pipelinerun.go:882:56: util.PipelineRunInformer.Get calls pipeline.pipelineRunLister.PipelineRuns
+      #53: backend/src/common/util/pipelinerun.go:882:71: util.PipelineRunInformer.Get calls pipeline.pipelineRunNamespaceLister.Get
+      #54: backend/src/common/util/pipelinerun.go:800:56: util.PipelineRunInterface.Create calls pipeline.pipelineRuns.Create
+      #55: backend/src/common/util/pipelinerun.go:825:40: util.PipelineRunInterface.Delete calls pipeline.pipelineRuns.Delete
+      #56: backend/src/common/util/pipelinerun.go:829:50: util.PipelineRunInterface.DeleteCollection calls pipeline.pipelineRuns.DeleteCollection
+      #57: backend/src/common/util/pipelinerun.go:833:53: util.PipelineRunInterface.Get calls pipeline.pipelineRuns.Get
+      #58: backend/src/common/util/pipelinerun.go:843:46: util.PipelineRunInterface.List calls pipeline.pipelineRuns.List
+      #59: backend/src/common/util/pipelinerun.go:858:55: util.PipelineRunInterface.Patch calls pipeline.pipelineRuns.Patch
+      #60: backend/src/common/util/pipelinerun.go:815:56: util.PipelineRunInterface.Update calls pipeline.pipelineRuns.Update
+      #61: backend/src/crd/controller/scheduledworkflow/controller.go:176:3: scheduledworkflow.Controller.Run calls wait.Until, which eventually calls pipeline.pipelineRuns.Watch
+      #62: backend/src/common/util/pipelinerun.go:769:30: util.PipelineRunClient.Execution calls pipeline.version.PipelineRuns
+      #63: backend/src/common/util/pipelinerun.go:613:22: util.PipelineRun.GenerateRetryExecution calls pipeline.PipelineRun.DeepCopy, which eventually calls pod.Template.DeepCopyInto
+      #64: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which calls pod.init
+      #65: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which eventually calls result.init
+      #66: backend/src/common/util/pipelinerun.go:36:2: util.init calls pipeline.init, which calls scheme.init
+      #67: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which calls substitution.init
+      #68: backend/src/common/util/execution_client.go:115:44: util.NewExecutionClientOrFatal calls versioned.NewForConfigOrDie, which eventually calls v1alpha1.NewForConfigAndClient
+      #69: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.PipelineResource.DeepCopyObject
+      #70: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.PipelineResourceList.DeepCopyObject
+      #71: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.PipelineResourceSpec.DeepCopyInto
+      #72: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.Run.DeepCopyObject
+      #73: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.RunList.DeepCopyObject
+      #74: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.RunStatus.DeepCopyInto
+      #75: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.StepAction.DeepCopyObject
+      #76: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.StepActionList.DeepCopyObject
+      #77: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.VerificationPolicy.DeepCopyObject
+      #78: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1alpha1.VerificationPolicyList.DeepCopyObject
+      #79: backend/src/crd/controller/viewer/main.go:71:27: viewer.main calls runtime.SchemeBuilder.AddToScheme, which calls v1alpha1.addKnownTypes
+      #80: backend/src/crd/controller/viewer/main.go:71:27: viewer.main calls runtime.SchemeBuilder.AddToScheme, which calls v1alpha1.addKnownTypes
+      #81: backend/src/common/util/execution_client.go:26:2: util.init calls versioned.init, which calls v1alpha1.init
+      #82: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which eventually calls v1alpha1.init
+      #83: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which calls v1alpha1.init
+      #84: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which eventually calls v1alpha1.init
+      #85: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which eventually calls v1alpha1.init
+      #86: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which eventually calls v1alpha1.init
+      #87: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.ClusterTask.DeepCopyObject
+      #88: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.ClusterTaskList.DeepCopyObject
+      #89: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.CustomRun.DeepCopyObject
+      #90: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.CustomRunList.DeepCopyObject
+      #91: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.CustomRunStatus.DeepCopyInto
+      #92: backend/src/common/util/execution_client.go:115:44: util.NewExecutionClientOrFatal calls versioned.NewForConfigOrDie, which eventually calls v1beta1.NewForConfigAndClient
+      #93: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.Param.DeepCopyInto
+      #94: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.Pipeline.DeepCopyObject
+      #95: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.PipelineList.DeepCopyObject
+      #96: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.PipelineRun.DeepCopyObject
+      #97: backend/src/crd/pkg/client/clientset/versioned/fake/clientset_generated.go:36:18: fake.NewSimpleClientset calls testing.tracker.Add, which eventually calls v1beta1.PipelineRun.GetName
+      #98: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.PipelineRunList.DeepCopyObject
+      #99: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.PipelineTaskMetadata.DeepCopyInto
+      #100: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.Task.DeepCopyObject
+      #101: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.TaskList.DeepCopyObject
+      #102: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.TaskRef.DeepCopyInto
+      #103: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.TaskRun.DeepCopyObject
+      #104: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.TaskRunList.DeepCopyObject
+      #105: backend/src/crd/controller/viewer/main.go:85:25: viewer.main calls manager.New, which eventually calls v1beta1.WorkspaceBinding.DeepCopyInto
+      #106: backend/src/crd/controller/viewer/main.go:71:27: viewer.main calls runtime.SchemeBuilder.AddToScheme, which calls v1beta1.addKnownTypes
+      #107: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which eventually calls v1beta1.init
+      #108: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which eventually calls v1beta1.init
+      #109: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which calls v1beta1.init
+      #110: backend/src/common/util/execution_client.go:26:2: util.init calls versioned.init, which calls v1beta1.init
+      #111: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which calls v1beta1.init
+      #112: backend/src/v2/compiler/tektoncompiler/container.go:26:2: tektoncompiler.init calls pipeline.init, which calls validate.init
+      #113: backend/src/common/util/execution_client.go:27:2: util.init calls externalversions.init, which eventually calls version.init
+      #114: backend/src/common/util/pipelinerun.go:776:44: util.PipelineRunClient.Execution calls versioned.Clientset.TektonV1
+      #115: backend/src/common/util/execution_client.go:115:44: util.NewExecutionClientOrFatal calls versioned.NewForConfigOrDie
+      #116: backend/src/common/util/execution_client.go:26:2: util.init calls versioned.init
+
+Your code is affected by 4 vulnerabilities from 2 modules and the Go standard library.
+This scan also found 0 vulnerabilities in packages you import and 2
+vulnerabilities in modules you require, but your code doesn't appear to call
+these vulnerabilities.
+Use '-show verbose' for more details.
