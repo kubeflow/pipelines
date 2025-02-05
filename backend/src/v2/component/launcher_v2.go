@@ -441,7 +441,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 		}
 
 		// Upload artifacts from local path to remote storages.
-		localDir, err := localPathForURI(outputArtifact.Uri)
+		localDir, err := LocalPathForURI(outputArtifact.Uri)
 		if err != nil {
 			glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
 		} else {
@@ -497,7 +497,13 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 			continue
 		}
 		inputArtifact := artifactList.Artifacts[0]
-		localPath, err := localPathForURI(inputArtifact.Uri)
+
+		// OCI artifacts are handled specially
+		if strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			continue
+		}
+
+		localPath, err := LocalPathForURI(inputArtifact.Uri)
 		if err != nil {
 			glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
 			continue
@@ -548,6 +554,12 @@ func fetchNonDefaultBuckets(
 		}
 		// TODO: Support multiple artifacts someday, probably through the v2 engine.
 		artifact := artifactList.Artifacts[0]
+
+		// OCI artifacts are handled specially
+		if strings.HasPrefix(artifact.Uri, "oci://") {
+			continue
+		}
+
 		// The artifact does not belong under the object store path for this run. Cases:
 		// 1. Artifact is cached from a different run, so it may still be in the default bucket, but under a different run id subpath
 		// 2. Artifact is imported from the same bucket, but from a different path (re-use the same session)
@@ -598,7 +610,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		key := fmt.Sprintf(`{{$.inputs.artifacts['%s'].uri}}`, name)
 		placeholders[key] = inputArtifact.Uri
 
-		localPath, err := localPathForURI(inputArtifact.Uri)
+		localPath, err := LocalPathForURI(inputArtifact.Uri)
 		if err != nil {
 			// Input Artifact does not have a recognized storage URI
 			continue
@@ -617,7 +629,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		outputArtifact := artifactList.Artifacts[0]
 		placeholders[fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)] = outputArtifact.Uri
 
-		localPath, err := localPathForURI(outputArtifact.Uri)
+		localPath, err := LocalPathForURI(outputArtifact.Uri)
 		if err != nil {
 			return nil, fmt.Errorf("resolve output artifact %q's local path: %w", name, err)
 		}
@@ -720,7 +732,7 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 	return executorOutput, nil
 }
 
-func localPathForURI(uri string) (string, error) {
+func LocalPathForURI(uri string) (string, error) {
 	if strings.HasPrefix(uri, "gs://") {
 		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
 	}
@@ -729,6 +741,9 @@ func localPathForURI(uri string) (string, error) {
 	}
 	if strings.HasPrefix(uri, "s3://") {
 		return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
+	}
+	if strings.HasPrefix(uri, "oci://") {
+		return "/oci/" + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "\\/"), nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
 }
@@ -747,7 +762,7 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 		}
 		outputArtifact := artifactList.Artifacts[0]
 
-		localPath, err := localPathForURI(outputArtifact.Uri)
+		localPath, err := LocalPathForURI(outputArtifact.Uri)
 		if err != nil {
 			return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
 		}

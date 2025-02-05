@@ -29,6 +29,7 @@ import pipeline_with_env
 import producer_consumer_param
 import subdagio
 import two_step_pipeline_containerized
+from modelcar_import import modelcar_import
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 5 * _MINUTE
@@ -74,6 +75,7 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=subdagio.artifact.crust),
             TestCase(
                 pipeline_func=subdagio.multiple_artifacts_namedtuple.crust),
+            TestCase(pipeline_func=modelcar_import.pipeline_modelcar_import),
         ]
 
         with ThreadPoolExecutor() as executor:

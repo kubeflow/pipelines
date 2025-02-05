@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -530,21 +531,97 @@ func initPodSpecPatch(
 		}
 	}
 
+	initContainers, volumes, volumeMounts := getOCIModelPodSpec(executorInput.GetInputs().GetArtifacts(), userEnvVar)
+
 	containerImage, err := resolvePodSpecInputRuntimeParameter(container.Image, executorInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
 	podSpec := &k8score.PodSpec{
+		InitContainers: initContainers,
 		Containers: []k8score.Container{{
-			Name:      "main", // argo task user container is always called "main"
-			Command:   launcherCmd,
-			Args:      userCmdArgs,
-			Image:     containerImage,
-			Resources: res,
-			Env:       userEnvVar,
+			Name:         "main", // argo task user container is always called "main"
+			Command:      launcherCmd,
+			Args:         userCmdArgs,
+			Image:        containerImage,
+			Resources:    res,
+			Env:          userEnvVar,
+			VolumeMounts: volumeMounts,
 		}},
+		Volumes: volumes,
 	}
 	return podSpec, nil
+}
+
+// getOCIModelPodSpec will return init containers, pod volumes, and volume mounts for the launcher pod for any input
+// artifacts that are Modelcar images in an OCI registry. If no such input artifacts exist, they returned slices are
+// nil.
+func getOCIModelPodSpec(
+	artifacts map[string]*pipelinespec.ArtifactList,
+	userEnvVar []k8score.EnvVar,
+) (
+	[]k8score.Container,
+	[]k8score.Volume,
+	[]k8score.VolumeMount,
+) {
+	var initContainers []k8score.Container
+	var volumes []k8score.Volume
+	var volumeMounts []k8score.VolumeMount
+
+	for name, artifactList := range artifacts {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+
+		// Following the convention of downloadArtifacts in the launcher to only look at the first in the list.
+		inputArtifact := artifactList.Artifacts[0]
+
+		// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
+		// be set on inputArtifact.
+		if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			continue
+		}
+
+		localPath, err := component.LocalPathForURI(inputArtifact.Uri)
+		if err != nil {
+			continue
+		}
+
+		volumeName := "oci-" + name
+
+		volumes = []k8score.Volume{
+			{
+				Name: volumeName,
+				VolumeSource: k8score.VolumeSource{
+					EmptyDir: &k8score.EmptyDirVolumeSource{},
+				},
+			},
+		}
+
+		volumeMounts = []k8score.VolumeMount{
+			{
+				Name:      volumeName,
+				MountPath: localPath,
+				SubPath:   strings.TrimPrefix(localPath, "/oci/"),
+			},
+		}
+
+		initContainers = append(initContainers, k8score.Container{
+			Name: "oci-" + name,
+			Command: []string{
+				// This assumes the Modelcar format of models being stored in /models. These models
+				// are copied to an emptyDir volume.
+				"sh", "-c", fmt.Sprintf("mkdir -p '%s' && cp -R /models/* '%s'", localPath, localPath),
+			},
+			Image: strings.TrimPrefix(inputArtifact.Uri, "oci://"),
+			// These images can be huge, so take advantage of caching by Kubernetes by not always pulling.
+			ImagePullPolicy: "IfNotPresent",
+			Env:             userEnvVar,
+			VolumeMounts:    volumeMounts,
+		})
+	}
+
+	return initContainers, volumes, volumeMounts
 }
 
 // Extends the PodSpec to include Kubernetes-specific executor config.
