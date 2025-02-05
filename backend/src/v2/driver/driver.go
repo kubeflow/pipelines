@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -549,7 +550,115 @@ func initPodSpecPatch(
 			Env:       userEnvVar,
 		}},
 	}
+
+	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), userEnvVar, podSpec)
+
 	return podSpec, nil
+}
+
+// addModelcarsToPodSpec will patch the pod spec if there are any input artifacts in the Modelcar format.
+// Much of this logic is based on KServe:
+// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L131
+func addModelcarsToPodSpec(
+	artifacts map[string]*pipelinespec.ArtifactList,
+	userEnvVar []k8score.EnvVar,
+	podSpec *k8score.PodSpec,
+) {
+	for name, artifactList := range artifacts {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+
+		// Following the convention of downloadArtifacts in the launcher to only look at the first in the list.
+		inputArtifact := artifactList.Artifacts[0]
+
+		// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
+		// be set on inputArtifact.
+		if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			continue
+		}
+
+		localPath, err := component.LocalPathForURI(inputArtifact.Uri)
+		if err != nil {
+			continue
+		}
+
+		// If there is at least one Modelcar image, then shareProcessNamespace must be enabled.
+		trueVal := true
+		podSpec.ShareProcessNamespace = &trueVal
+
+		image := strings.TrimPrefix(inputArtifact.Uri, "oci://")
+
+		podSpec.InitContainers = append(
+			podSpec.InitContainers,
+			k8score.Container{
+				Name:  "oci-prepull-" + name,
+				Image: image,
+				Command: []string{
+					"sh",
+					"-c",
+					// Check that the expected models directory exists
+					// Taken from KServe:
+					// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
+					"echo 'Pre-fetching modelcar " + image + ": ' && [ -d /models ] && " +
+						"[ \"$$(ls -A /models)\" ] && echo 'OK ... Prefetched and valid (/models exists)' || " +
+						"(echo 'NOK ... Prefetched but modelcar is invalid (/models does not exist or is empty)' && " +
+						" exit 1)",
+				},
+				Env:                      userEnvVar,
+				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+			},
+		)
+
+		volumeName := "oci-" + name
+
+		podSpec.Volumes = append(
+			podSpec.Volumes,
+			k8score.Volume{
+				Name: volumeName,
+				VolumeSource: k8score.VolumeSource{
+					EmptyDir: &k8score.EmptyDirVolumeSource{},
+				},
+			},
+		)
+
+		mountPath := strings.TrimSuffix(localPath, "/models")
+
+		emptyDirVolumeMount := k8score.VolumeMount{
+			Name:      volumeName,
+			MountPath: mountPath,
+			SubPath:   strings.TrimPrefix(mountPath, "/oci/"),
+		}
+
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
+
+		podSpec.Containers = append(
+			podSpec.Containers,
+			k8score.Container{
+				Name:            "oci-" + name,
+				Image:           image,
+				ImagePullPolicy: "IfNotPresent",
+				Env:             userEnvVar,
+				VolumeMounts:    []k8score.VolumeMount{emptyDirVolumeMount},
+				Command: []string{
+					"sh",
+					"-c",
+					// $$$$ gets escaped by YAML to $$, which is the current PID
+					// Mostly taken from KServe, but sleeps until the existence of a file that gets created by launcher
+					// on exit. This approach is taken instead of having the main container send a SIGHUP to the
+					// sleep process to avoid the need for the SYS_PTRACE capability which is not always available
+					// depending on the security context restrictions.
+					// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
+					fmt.Sprintf(
+						"ln -s /proc/$$$$/root/models \"%s\" && "+
+							"echo \"Running...\" && until [ -f \"%s/launcher-complete\" ]; do sleep 1; done",
+						localPath, mountPath,
+					),
+				},
+				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+			},
+		)
+	}
 }
 
 // Extends the PodSpec to include Kubernetes-specific executor config.

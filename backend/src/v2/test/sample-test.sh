@@ -23,6 +23,14 @@ python3 -m pip install -r ./requirements-sample-test.txt
 
 popd
 
+if [[ -n "${PULL_NUMBER}" ]]; then
+  export KFP_PACKAGE_PATH="git+https://github.com/kubeflow/pipelines@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
+else
+  export KFP_PACKAGE_PATH='git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
+fi
+
+python3 -m pip install $KFP_PACKAGE_PATH
+
 # The -u flag makes python output unbuffered, so that we can see real time log.
 # Reference: https://stackoverflow.com/a/107717
 python3 -u ./samples/v2/sample_test.py

@@ -17,9 +17,11 @@ package argocompiler
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
@@ -36,6 +38,7 @@ const (
 	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
 	DefaultDriverCommand     = "driver"
 	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
+	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
 	s3ScratchLocation        = "/s3"
@@ -99,6 +102,25 @@ func GetDriverCommand() []string {
 		driverCommand = DefaultDriverCommand
 	}
 	return strings.Split(driverCommand, " ")
+}
+
+func GetPipelineRunAsUser() *int64 {
+	runAsUserStr := os.Getenv(PipelineRunAsUserEnvVar)
+	if runAsUserStr == "" {
+		return nil
+	}
+
+	runAsUser, err := strconv.ParseInt(runAsUserStr, 10, 64)
+	if err != nil {
+		glog.Error(
+			"Failed to parse the %s environment variable with value %s as an int64: %v",
+			PipelineRunAsUserEnvVar, runAsUserStr, err,
+		)
+
+		return nil
+	}
+
+	return &runAsUser
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
