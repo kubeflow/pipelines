@@ -1,5 +1,7 @@
 ## Upcoming release
 
+* Bump image for Structured Data pipelines.
+
 ## Release 2.19.0
 
 * Add max_wait_duration to v1 GCPC custom job components/utils
