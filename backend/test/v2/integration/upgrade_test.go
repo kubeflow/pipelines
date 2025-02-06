@@ -17,7 +17,7 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -340,7 +340,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	assert.Equal(t, totalSize, 1)
 	pipelineVersion, err := s.pipelineClient.GetPipelineVersion(&params.PipelineServiceGetPipelineVersionParams{PipelineID: pipelines[0].PipelineID, PipelineVersionID: pipelineVersions[0].PipelineVersionID})
 	require.Nil(t, err)
-	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	expected_bytes, err := yaml.YAMLToJSON(bytes)
 	require.Nil(t, err)
 	actual_bytes, err := json.Marshal(pipelineVersion.PipelineSpec)

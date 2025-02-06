@@ -2347,6 +2347,40 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 	assert.Equal(t, expectedJob.ToV1(), fetchedJob.ToV1(), "CreateJob stored invalid data in database")
 }
 
+func TestCreateJobDifferentDefaultServiceAccountName_ThroughWorkflowSpecV2(t *testing.T) {
+	originalDefaultServiceAccount := viper.Get(common.DefaultPipelineRunnerServiceAccountFlag)
+
+	viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, "my-service-account")
+	defer viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, originalDefaultServiceAccount)
+
+	store, manager, job := initWithJobV2(t)
+	defer store.Close()
+	expectedJob := &model.Job{
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "j1",
+		K8SName:        "job-",
+		Namespace:      "ns1",
+		ServiceAccount: "my-service-account",
+		Enabled:        true,
+		ExperimentId:   DefaultFakeUUID,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
+		Conditions:     "STATUS_UNSPECIFIED",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"text\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
+		},
+	}
+	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
+	require.Equal(t, expectedJob.ToV1(), job.ToV1())
+	fetchedJob, err := manager.GetJob(job.UUID)
+	require.Nil(t, err)
+	require.Equal(t, expectedJob.ToV1(), fetchedJob.ToV1(), "CreateJob stored invalid data in database")
+}
+
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	store, manager, pipeline, _ := initWithPipeline(t)
 	defer store.Close()
@@ -2366,37 +2400,25 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	pv := createPipelineVersion(
-		pipeline.UUID,
-		"version_for_job",
-		"",
-		"",
-		testWorkflow.ToStringForStore(),
-		"",
-		"",
-	)
-	version, err := manager.CreatePipelineVersion(pv)
-	assert.Nil(t, err)
 
 	// The pipeline specified via pipeline id will be converted to this
 	// pipeline's default version, which will be used to create run.
 	newJob, err := manager.CreateJob(context.Background(), job)
 	expectedJob := &model.Job{
-		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		DisplayName:    "j1",
-		K8SName:        "job-",
-		Namespace:      "ns1",
-		ServiceAccount: "pipeline-runner",
+		UUID:        "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName: "j1",
+		K8SName:     "job-",
+		Namespace:   "ns1",
+		// Since there is no pipeline version or service account specified, the API server will select the service
+		// account when compiling the run, not within the ScheduledWorkflow.
+		ServiceAccount: "",
 		Enabled:        true,
-		CreatedAtInSec: 5,
-		UpdatedAtInSec: 5,
+		CreatedAtInSec: 4,
+		UpdatedAtInSec: 4,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           pipeline.UUID,
-			PipelineName:         version.Name,
-			PipelineVersionId:    version.UUID,
-			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineId: pipeline.UUID,
+			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		ExperimentId: experiment.UUID,
 	}
@@ -2512,6 +2534,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 }
 
 func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
+	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
@@ -2526,7 +2549,11 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch a template with an empty pipeline spec manifest")
+	errMsg := ""
+	if err != nil {
+		errMsg = err.Error()
+	}
+	assert.Contains(t, errMsg, "Cannot create a job with an empty pipeline ID")
 }
 
 func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {

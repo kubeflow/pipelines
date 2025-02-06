@@ -13,6 +13,17 @@ namespace = 'kubeflow'
 config.load_kube_config()
 v1 = client.CoreV1Api()
 
+def log_pods():
+    pods = v1.list_namespaced_pod(namespace=namespace)
+
+    for pod in pods.items:
+        try:
+            logging.info(
+                f"---- Pod {namespace}/{pod.metadata.name} logs ----\n"
+                + v1.read_namespaced_pod_log(pod.metadata.name, namespace)
+            )
+        except client.exceptions.ApiException:
+            continue
 
 def get_pod_statuses():
     pods = v1.list_namespaced_pod(namespace=namespace)
@@ -74,6 +85,8 @@ def check_pods(calm_time=10, timeout=600, retries_after_ready=5):
         logging.info(f"Pods are still stabilizing. Retrying in {calm_time} seconds...")
         time.sleep(calm_time)
     else:
+        log_pods()
+
         raise Exception("Pods did not stabilize within the timeout period.")
 
     logging.info("Final pod statuses:")

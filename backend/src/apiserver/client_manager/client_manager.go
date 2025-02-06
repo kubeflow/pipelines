@@ -345,6 +345,12 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		if ignoreAlreadyExistError(driverName, response.Error) != nil {
 			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
 		}
+
+		// This is a workaround because AutoMigration does not detect that the column went from not null to nullable.
+		response = db.Model(&model.Job{}).ModifyColumn("WorkflowSpecManifest", client.MYSQL_TEXT_FORMAT_NULL)
+		if response.Error != nil {
+			glog.Fatalf("Failed to make the WorkflowSpecManifest column nullable on jobs. Error: %s", response.Error)
+		}
 	default:
 		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
 	}

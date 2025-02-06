@@ -25,35 +25,35 @@ EXIT_CODE=0
 
 docker system prune -a -f
 
-docker build -q -t "${REGISTRY}/apiserver:${TAG}" -f backend/Dockerfile . && docker push "${REGISTRY}/apiserver:${TAG}" || EXIT_CODE=$?
+docker build --progress=plain -t "${REGISTRY}/apiserver:${TAG}" -f backend/Dockerfile . && docker push "${REGISTRY}/apiserver:${TAG}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Failed to build apiserver image."
   exit $EXIT_CODE
 fi
 
-docker build -q -t "${REGISTRY}/persistenceagent:${TAG}" -f backend/Dockerfile.persistenceagent . && docker push "${REGISTRY}/persistenceagent:${TAG}" || EXIT_CODE=$?
+docker build --progress=plain -t "${REGISTRY}/persistenceagent:${TAG}" -f backend/Dockerfile.persistenceagent . && docker push "${REGISTRY}/persistenceagent:${TAG}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Failed to build persistenceagent image."
   exit $EXIT_CODE
 fi
 
-docker build -q -t "${REGISTRY}/scheduledworkflow:${TAG}" -f backend/Dockerfile.scheduledworkflow . && docker push "${REGISTRY}/scheduledworkflow:${TAG}" || EXIT_CODE=$?
+docker build --progress=plain -t "${REGISTRY}/scheduledworkflow:${TAG}" -f backend/Dockerfile.scheduledworkflow . && docker push "${REGISTRY}/scheduledworkflow:${TAG}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Failed to build scheduledworkflow image."
   exit $EXIT_CODE
 fi
 
-docker build -q -t "${REGISTRY}/driver:${TAG}" -f backend/Dockerfile.driver . && docker push "${REGISTRY}/driver:${TAG}" || EXIT_CODE=$?
+docker build --progress=plain -t "${REGISTRY}/driver:${TAG}" -f backend/Dockerfile.driver . && docker push "${REGISTRY}/driver:${TAG}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Failed to build driver image."
   exit $EXIT_CODE
 fi
 
-docker build -q -t "${REGISTRY}/launcher:${TAG}" -f backend/Dockerfile.launcher . && docker push "${REGISTRY}/launcher:${TAG}" || EXIT_CODE=$?
+docker build --progress=plain -t "${REGISTRY}/launcher:${TAG}" -f backend/Dockerfile.launcher . && docker push "${REGISTRY}/launcher:${TAG}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Failed to build launcher image."

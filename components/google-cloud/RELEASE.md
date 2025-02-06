@@ -1,5 +1,9 @@
 ## Upcoming release
 
+## Release 2.19.0
+
+* Add max_wait_duration to v1 GCPC custom job components/utils
+
 ## Release 2.18.0
 * Remove default prediction column names in `v1.model_evaluation.regression_component` component to fix pipeline errors when using bigquery data source.
 * Add reservation_affinition support in `v1.create_custom_training_job_from_component`.

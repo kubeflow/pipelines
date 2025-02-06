@@ -15,6 +15,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -92,6 +93,16 @@ func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 			"Failed to create client set during K8s client initialization")
 	}
 	return clientSet, config, namespace, nil
+}
+
+func GetRpcConnectionWithTimeout(address string, timeout time.Time) (*grpc.ClientConn, error) {
+	ctx, _ := context.WithDeadline(context.Background(), timeout)
+
+	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
+	}
+	return conn, nil
 }
 
 func GetRpcConnection(address string) (*grpc.ClientConn, error) {

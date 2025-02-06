@@ -15,7 +15,7 @@ package compiler_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -87,7 +87,7 @@ func Test_AcceptTestVisitor(t *testing.T) {
 
 func load(t *testing.T, path string) *pipelinespec.PipelineJob {
 	t.Helper()
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Error(err)
 	}

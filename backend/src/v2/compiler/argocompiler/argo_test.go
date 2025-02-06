@@ -17,7 +17,7 @@ package argocompiler_test
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -80,12 +80,12 @@ func Test_argo_compiler(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				err = ioutil.WriteFile(tt.argoYAMLPath, got, 0x664)
+				err = os.WriteFile(tt.argoYAMLPath, got, 0x664)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
-			argoYAML, err := ioutil.ReadFile(tt.argoYAMLPath)
+			argoYAML, err := os.ReadFile(tt.argoYAMLPath)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -125,7 +125,7 @@ func Test_argo_compiler(t *testing.T) {
 
 func load(t *testing.T, path string, platformSpecPath string) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
 	t.Helper()
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Error(err)
 	}
@@ -136,7 +136,7 @@ func load(t *testing.T, path string, platformSpecPath string) (*pipelinespec.Pip
 
 	platformSpec := &pipelinespec.PlatformSpec{}
 	if platformSpecPath != "" {
-		content, err = ioutil.ReadFile(platformSpecPath)
+		content, err = os.ReadFile(platformSpecPath)
 		if err != nil {
 			t.Error(err)
 		}
