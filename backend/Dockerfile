@@ -24,6 +24,12 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+# Check licenses and comply with license terms.
+# First, make sure there's no forbidden license.
+RUN go-licenses check ./backend/src/apiserver
+RUN go-licenses csv ./backend/src/apiserver > /tmp/licenses.csv && \
+    diff /tmp/licenses.csv backend/third_party_licenses/apiserver.csv && \
+    go-licenses save ./backend/src/apiserver --save_path /tmp/NOTICES
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.9 as compiler
@@ -33,7 +39,7 @@ COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION v3.4.17
+ENV ARGO_VERSION v3.5.14
 RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
     gunzip argo-linux-amd64.gz && \
     chmod +x argo-linux-amd64 && \
