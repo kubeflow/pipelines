@@ -1,6 +1,6 @@
 module github.com/kubeflow/pipelines
 
-go 1.22.0
+go 1.23.1
 
 require (
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
