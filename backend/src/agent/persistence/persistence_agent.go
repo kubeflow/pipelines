@@ -32,7 +32,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -84,13 +84,13 @@ func NewPersistenceAgent(
 	}
 
 	// Set up the controller to watch both ScheduledWorkflow and Workflow resources.
-	if err = ctrl.NewControllerManagedBy(mgr).
+	_ , err = builder.ControllerManagedBy(mgr).
 		For(&util.ScheduledWorkflow{}).
-		Watches(&Workflow{},&handler.EnqueueRequestForObject{}).
-		Complete(reconciler); err != nil {
-		return nil, err
+		Owns(&Workflow{}).
+		Build(reconciler)
+	if err != nil {
+		return nil , err
 	}
-
 	return mgr, nil
 }
 
