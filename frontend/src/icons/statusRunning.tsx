@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { CSSProperties } from 'jss/css';
+import { CSSProperties } from 'react';
 
 export default class StatusRunning extends React.Component<{ style: CSSProperties }> {
   public render(): JSX.Element {

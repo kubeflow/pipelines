@@ -16,18 +16,16 @@
 
 import * as React from 'react';
 import {
-  Crosshair,
-  DiscreteColorLegend,
-  Highlight,
-  HorizontalGridLines,
-  LineSeries,
-  VerticalGridLines,
+  LineChart,
+  Line,
   XAxis,
-  XYPlot,
   YAxis,
-  // @ts-ignore
-} from 'react-vis';
-import 'react-vis/dist/style.css';
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Brush,
+} from 'recharts';
 import Viewer, { ViewerConfig } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
@@ -37,13 +35,14 @@ const css = stylesheet({
     fontSize: fontsize.medium,
     fontWeight: 'bolder',
   },
-  crosshair: {
+  tooltip: {
     backgroundColor: '#1d2744',
     borderRadius: 5,
     boxShadow: '1px 1px 5px #aaa',
     padding: 10,
+    color: 'white',
   },
-  crosshairLabel: {
+  tooltipLabel: {
     fontWeight: 'bold',
     whiteSpace: 'nowrap',
   },
@@ -88,8 +87,7 @@ interface ROCCurveProps {
 
 interface ROCCurveState {
   hoveredValues: DisplayPoint[];
-  lastDrawLocation: { left: number; right: number } | null;
-  highlightIndex: number;
+  activeSeriesIndex: number;
 }
 
 class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
@@ -98,8 +96,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
 
     this.state = {
       hoveredValues: new Array(this.props.configs.length).fill(''),
-      lastDrawLocation: null,
-      highlightIndex: -1, // -1 indicates no curve is highlighted
+      activeSeriesIndex: -1,
     };
   }
 
@@ -117,129 +114,83 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const isSmall = width < 600;
     const datasets = this.props.configs.map(d => d.data);
     const numLines = datasets.length;
-    const labels = this.props.configs.map((_, i) => `threshold (Series #${i + 1})`);
     const baseLineData = Array.from(Array(100).keys()).map(x => ({ x: x / 100, y: x / 100 }));
 
-    const { hoveredValues, lastDrawLocation, highlightIndex } = this.state;
+    const { activeSeriesIndex } = this.state;
+
+    const CustomTooltip = ({ active, payload, label }: any) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className={css.tooltip}>
+            {payload.map((entry: any, index: number) => (
+              <div key={index} className={css.tooltipLabel}>
+                {`Series #${index + 1}: (${entry.payload.x.toFixed(3)}, ${entry.payload.y.toFixed(3)})`}
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return null;
+    };
 
     return (
       <div>
-        <XYPlot
-          width={width}
-          height={height}
-          animation={!this.props.disableAnimation && !isSmall}
-          classes={{ root: css.root }}
-          onMouseLeave={() => this.setState({ hoveredValues: new Array(numLines).fill('') })}
-          xDomain={lastDrawLocation && [lastDrawLocation.left, lastDrawLocation.right]}
-        >
-          <VerticalGridLines />
-          <HorizontalGridLines />
-
-          {/* Draw the axes from the first config in case there are several */}
-          <XAxis title={'fpr'} className={css.axis} />
-          <YAxis title={'tpr'} className={css.axis} />
-
-          {/* Reference line */}
-          <LineSeries
-            color={color.disabledBg}
-            strokeWidth={1}
-            data={baseLineData}
-            strokeStyle='dashed'
-          />
-
-          {/* Lines */}
-          {datasets.map(
-            (data, i) =>
-              highlightIndex !== i && (
-                <LineSeries
-                  key={i}
-                  color={
-                    this.props.colors
-                      ? this.props.colors[i]
-                      : lineColors[i] || lineColors[lineColors.length - 1]
-                  }
-                  strokeWidth={2}
-                  data={data}
-                  onNearestX={(d: any) => this._lineHovered(i, d)}
-                  curve='curveBasis'
-                />
-              ),
-          )}
-
-          {/* Highlighted line, if present */}
-          {highlightIndex >= 0 && (
-            <LineSeries
-              key={highlightIndex}
-              color={
-                this.props.colors
-                  ? this.props.colors[highlightIndex]
-                  : lineColors[highlightIndex] || lineColors[lineColors.length - 1]
-              }
-              strokeWidth={5}
-              data={datasets[highlightIndex]}
-              onNearestX={(d: any) => this._lineHovered(highlightIndex, d)}
-              curve='curveBasis'
+        <ResponsiveContainer width="100%" height={height}>
+          <LineChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="x"
+              type="number"
+              domain={[0, 1]}
+              label={{ value: 'fpr', position: 'bottom' }}
+              fontSize={fontsize.medium}
             />
-          )}
-
-          {!isSmall && (
-            <Highlight
-              onBrushEnd={(area: any) => this.setState({ lastDrawLocation: area })}
-              enableY={false}
-              onDrag={(area: any) =>
-                this.setState({
-                  lastDrawLocation: {
-                    left: (lastDrawLocation ? lastDrawLocation.left : 0) - (area.right - area.left),
-                    right:
-                      (lastDrawLocation ? lastDrawLocation.right : 0) - (area.right - area.left),
-                  },
-                })
-              }
+            <YAxis
+              dataKey="y"
+              type="number"
+              domain={[0, 1]}
+              label={{ value: 'tpr', angle: -90, position: 'left' }}
+              fontSize={fontsize.medium}
             />
-          )}
-
-          {/* Hover effect to show labels */}
-          {!isSmall && (
-            <Crosshair values={hoveredValues}>
-              <div className={css.crosshair}>
-                {hoveredValues.map((value, i) => (
-                  <div key={i} className={css.crosshairLabel}>{`${labels[i]}: ${value.label}`}</div>
-                ))}
-              </div>
-            </Crosshair>
-          )}
-        </XYPlot>
-
-        <div className={commonCss.flex}>
-          {/* Legend */}
-          {(this.props.forceLegend || datasets.length > 1) && (
-            <div style={{ flexGrow: 1 }}>
-              <DiscreteColorLegend
-                items={datasets.map((_, i) => ({
-                  color: this.props.colors ? this.props.colors[i] : lineColors[i],
-                  title: 'Series #' + (i + 1),
-                }))}
-                orientation='horizontal'
-                onItemMouseEnter={(_: any, i: number) => {
-                  this.setState({ highlightIndex: i });
-                }}
-                onItemMouseLeave={() => {
-                  this.setState({ highlightIndex: -1 });
-                }}
+            <Tooltip content={<CustomTooltip />} />
+            {(this.props.forceLegend || datasets.length > 1) && (
+              <Legend
+                onMouseEnter={(e: any) => this.setState({ activeSeriesIndex: e.dataKey })}
+                onMouseLeave={() => this.setState({ activeSeriesIndex: -1 })}
               />
-            </div>
-          )}
+            )}
+            {!isSmall && <Brush dataKey="x" height={30} stroke="#8884d8" />}
 
-          {lastDrawLocation && <span>Click to reset zoom</span>}
-        </div>
+            {/* Reference line */}
+            <Line
+              data={baseLineData}
+              type="monotone"
+              dataKey="y"
+              stroke={color.disabledBg}
+              strokeWidth={1}
+              strokeDasharray="5 5"
+              dot={false}
+              isAnimationActive={!this.props.disableAnimation && !isSmall}
+            />
+
+            {/* Data lines */}
+            {datasets.map((data, i) => (
+              <Line
+                key={i}
+                data={data}
+                type="monotone"
+                dataKey="y"
+                name={`Series #${i + 1}`}
+                stroke={this.props.colors ? this.props.colors[i] : lineColors[i]}
+                strokeWidth={activeSeriesIndex === i ? 4 : 2}
+                dot={false}
+                isAnimationActive={!this.props.disableAnimation && !isSmall}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     );
-  }
-
-  private _lineHovered(lineIdx: number, data: any): void {
-    const hoveredValues = this.state.hoveredValues;
-    hoveredValues[lineIdx] = data;
-    this.setState({ hoveredValues });
   }
 }
 

@@ -30,7 +30,7 @@
  * limitations under the License.
  */
 
-import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
+import { createTheme } from '@material-ui/core/styles';
 import { NestedCSSProperties } from 'typestyle/lib/types';
 import { style, stylesheet, cssRaw } from 'typestyle';
 
@@ -184,33 +184,32 @@ const palette = {
   },
 };
 
-export const theme = createMuiTheme({
+export const theme = createTheme({
   overrides: {
     MuiButton: {
-      flat: {
+      root: {
+        minWidth: 0,
+        color: color.theme,
+        marginRight: 10,
+        padding: '0 8px',
+        '&$disabled': {
+          backgroundColor: 'initial',
+        },
+      },
+      text: {
         fontSize: fontsize.base,
         fontWeight: 'bold',
         minHeight: dimension.tiny,
         textTransform: 'none',
       },
-      flatPrimary: {
+      contained: {
         border: '1px solid #ddd',
         cursor: 'pointer',
         fontSize: fontsize.base,
         marginRight: 10,
         textTransform: 'none',
       },
-      flatSecondary: {
-        color: color.theme,
-      },
-      root: {
-        '&$disabled': {
-          backgroundColor: 'initial',
-        },
-        color: color.theme,
-        marginRight: 10,
-        padding: '0 8px',
-      },
+      disabled: {}, // needed for the disabled styles to work
     },
     MuiDialogActions: {
       root: {
@@ -268,8 +267,7 @@ export const theme = createMuiTheme({
   palette,
   typography: {
     fontFamily: fonts.main,
-    fontSize: (fontsize.base + ' !important') as any,
-    useNextVariants: true,
+    fontSize: 14,
   },
 });
 

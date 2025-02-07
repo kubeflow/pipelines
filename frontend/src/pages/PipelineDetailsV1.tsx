@@ -161,7 +161,8 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                               value={
                                 selectedVersion ? selectedVersion.id : pipeline.default_version!.id!
                               }
-                              onChange={event => handleVersionSelected(event.target.value)}
+                              onChange={(event: React.ChangeEvent<{ value: unknown }>, child: React.ReactNode) =>
+                                handleVersionSelected(event.target.value as string)}
                               inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
                             >
                               {versions.map((v, _) => (

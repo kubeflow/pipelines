@@ -109,7 +109,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value} enterDelay={300} placement='top-start'>
+      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
           onClick={e => e.stopPropagation()}

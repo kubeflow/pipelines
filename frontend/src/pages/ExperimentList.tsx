@@ -150,7 +150,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value} enterDelay={300} placement='top-start'>
+      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
           onClick={e => e.stopPropagation()}
