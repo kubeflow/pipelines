@@ -75,7 +75,7 @@ const (
 )
 
 var (
-	persistenceAgentFlags = flag.NewFlagSet("persistence_agent", flag.ExitOnError) 
+	persistenceAgentFlags = flag.NewFlagSet("persistence_agent",flag.ContinueOnError) 
 )
 
 func main() {
