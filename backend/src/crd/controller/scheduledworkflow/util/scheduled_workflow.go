@@ -155,7 +155,7 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	nextScheduledEpoch int64, nowEpoch int64) (commonutil.ExecutionSpec, error) {
 
 	// Creating the workflow.
-	execSpec, err := commonutil.ScheduleSpecToExecutionSpec(commonutil.CurrentExecutionType(), s.Spec.Workflow)
+	execSpec, err := commonutil.ScheduleSpecToExecutionSpec(commonutil.ArgoWorkflow, s.Spec.Workflow)
 	if err != nil {
 		return nil, err
 	}
