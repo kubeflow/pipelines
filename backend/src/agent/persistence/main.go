@@ -82,6 +82,8 @@ func main() {
 	if err := persistenceAgentFlags.Parse(os.Args[1:]); err != nil {
         log.Fatalf("Failed to parse flags: %v", err)
     }
+
+	flag.Parse()
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
