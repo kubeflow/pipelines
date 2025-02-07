@@ -43,7 +43,7 @@ type V2Spec struct {
 
 var Launcher = ""
 
-func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+func NewGenericScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
 	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
@@ -59,7 +59,10 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 			APIVersion: "kubeflow.org/v2beta1",
 			Kind:       "ScheduledWorkflow",
 		},
-		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName:    swfGeneratedName,
+			OwnerReferences: ownerReferences,
+		},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:           modelJob.Enabled,
 			MaxConcurrency:    &modelJob.MaxConcurrency,
@@ -75,7 +78,7 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 }
 
 // Converts modelJob to ScheduledWorkflow.
-func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
 
 	bytes, err := protojson.Marshal(t.spec)
@@ -136,7 +139,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 	}
 
-	scheduledWorkflow, err := NewGenericScheduledWorkflow(modelJob)
+	scheduledWorkflow, err := NewGenericScheduledWorkflow(modelJob, ownerReferences)
 	if err != nil {
 		return nil, err
 	}

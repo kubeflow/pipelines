@@ -15,7 +15,9 @@ package argocompiler
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"sort"
+	"strconv"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -557,6 +559,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		Container: &k8score.Container{
 			Image:   c.driverImage,
 			Command: c.driverCommand,
+			Env:     MLPipelineServiceEnv,
 			Args: []string{
 				"--type", inputValue(paramDriverType),
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
@@ -569,10 +572,16 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 				"--execution_id_path", outputPath(paramExecutionID),
 				"--iteration_count_path", outputPath(paramIterationCount),
 				"--condition_path", outputPath(paramCondition),
+				"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
+				"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+				"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
+				"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
+				"--ca_cert_path", common.GetCaCertPath(),
 			},
 			Resources: driverResources,
 		},
 	}
+	ConfigureCABundle(t)
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name

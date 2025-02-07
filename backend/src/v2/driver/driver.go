@@ -74,6 +74,18 @@ type Options struct {
 
 	// optional, allows to specify kubernetes-specific executor config
 	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
+
+	// set to true if ml pipeline server is serving over tls
+	MLPipelineTLSEnabled bool
+
+	MLMDServerAddress string
+
+	MLMDServerPort string
+
+	// set to true if MLMD server is serving over tls
+	MLMDTLSEnabled bool
+
+	CaCertPath string
 }
 
 // Identifying information used for error messages
@@ -340,7 +352,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
+	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.MLPipelineTLSEnabled, opts.MLMDServerAddress, opts.MLMDServerPort, opts.MLMDTLSEnabled, opts.CaCertPath)
 	if err != nil {
 		return execution, err
 	}
@@ -402,6 +414,11 @@ func initPodSpecPatch(
 	executionID int64,
 	pipelineName string,
 	runID string,
+	mlPipelineTLSEnabled bool,
+	mlmdServerAddress string,
+	mlmdServerPort string,
+	mlmdTLSEnabled bool,
+	caCertPath string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -433,10 +450,12 @@ func initPodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
-		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--mlmd_server_address", mlmdServerAddress,
+		"--mlmd_server_port", mlmdServerPort,
+		"--metadataTLSEnabled", fmt.Sprintf("%v", mlmdTLSEnabled),
+		"--mlPipelineServiceTLSEnabled",
+		fmt.Sprintf("%v", mlPipelineTLSEnabled),
+		"--ca_cert_path", caCertPath,
 		"--", // separater before user command and args
 	}
 	res := k8score.ResourceRequirements{

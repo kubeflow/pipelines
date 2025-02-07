@@ -16,8 +16,13 @@ package util
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -29,9 +34,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAddress string) error {
+func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAddress string, scheme string) error {
 	operation := func() error {
-		response, err := http.Get(fmt.Sprintf("http://%s%s/healthz", apiAddress, basePath))
+		response, err := http.Get(fmt.Sprintf("%s://%s%s/healthz", scheme, apiAddress, basePath))
 		if err != nil {
 			return err
 		}
@@ -105,8 +110,30 @@ func GetRpcConnectionWithTimeout(address string, timeout time.Time) (*grpc.Clien
 	return conn, nil
 }
 
-func GetRpcConnection(address string) (*grpc.ClientConn, error) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+func GetRpcConnection(address string, tlsEnabled bool, caCertPath string) (*grpc.ClientConn, error) {
+	creds := insecure.NewCredentials()
+	if tlsEnabled {
+		if caCertPath == "" {
+			return nil, errors.New("CA cert path is empty")
+		}
+
+		caCert, err := os.ReadFile(caCertPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "Encountered error when reading CA cert path for creating a metadata client.")
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		config := &tls.Config{
+			RootCAs: caCertPool,
+		}
+		creds = credentials.NewTLS(config)
+	}
+
+	conn, err := grpc.Dial(
+		address,
+		grpc.WithTransportCredentials(creds),
+	)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
 	}

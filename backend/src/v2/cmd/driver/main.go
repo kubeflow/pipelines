@@ -67,6 +67,10 @@ var (
 	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
+
+	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
+	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
+	caCertPath                     = flag.String("ca_cert_path", "", "The path to the CA certificate.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -146,18 +150,33 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	cacheClient, err := cacheutils.NewClient()
+	mlPipelineServiceTLSEnabled, err := strconv.ParseBool(*mlPipelineServiceTLSEnabledStr)
+	if err != nil {
+		return err
+	}
+
+	metadataTLSEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
+	if err != nil {
+		return err
+	}
+
+	cacheClient, err := cacheutils.NewClient(mlPipelineServiceTLSEnabled)
 	if err != nil {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:   *pipelineName,
-		RunID:          *runID,
-		Namespace:      namespace,
-		Component:      componentSpec,
-		Task:           taskSpec,
-		DAGExecutionID: *dagExecutionID,
-		IterationIndex: *iterationIndex,
+		PipelineName:         *pipelineName,
+		RunID:                *runID,
+		Namespace:            namespace,
+		Component:            componentSpec,
+		Task:                 taskSpec,
+		DAGExecutionID:       *dagExecutionID,
+		IterationIndex:       *iterationIndex,
+		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
+		MLMDServerAddress:    *mlmdServerAddress,
+		MLMDServerPort:       *mlmdServerPort,
+		MLMDTLSEnabled:       metadataTLSEnabled,
+		CaCertPath:           *caCertPath,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -283,5 +302,11 @@ func newMlmdClient() (*metadata.Client, error) {
 		mlmdConfig.Address = *mlmdServerAddress
 		mlmdConfig.Port = *mlmdServerPort
 	}
-	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port)
+
+	tlsEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, tlsEnabled, *caCertPath)
 }

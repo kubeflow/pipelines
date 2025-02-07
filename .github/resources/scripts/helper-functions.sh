@@ -206,6 +206,8 @@ collect_artifacts() {
 
     local log_dir=$(mktemp -d)
 
+    kubectl get events -n $kubeflow_ns > $log_dir/events.log
+
     pods_kubeflow=$(kubectl get pods -n $kubeflow_ns --no-headers -o custom-columns=NAME:.metadata.name)
 
     for pod in $pods_kubeflow; do

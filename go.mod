@@ -59,6 +59,7 @@ require (
 	k8s.io/apimachinery v0.30.1
 	k8s.io/client-go v0.30.1
 	k8s.io/code-generator v0.30.1
+	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	knative.dev/pkg v0.0.0-20231023150739-56bfe0dd9626
 	sigs.k8s.io/controller-runtime v0.18.6
 	sigs.k8s.io/yaml v1.4.0
@@ -197,18 +198,24 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiextensions-apiserver v0.30.1 // indirect
+	k8s.io/gengo v0.0.0-20221011193443-fad74ee6edd9 // indirect
 	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
-	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
 
-// Introduced through tekton dependencies
 replace (
+	github.com/containerd/containerd => github.com/containerd/containerd v1.7.13
 	github.com/kubeflow/kfp-tekton/tekton-catalog/cache => github.com/kubeflow/kfp-tekton/tekton-catalog/cache v0.0.0-20240417221339-0b894195443c
 	github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore => github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore v0.0.0-20240417221339-0b894195443c
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.12
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.27.16
+	k8s.io/code-generator => k8s.io/code-generator v0.25.9
+	k8s.io/component-bsae => k8s.io/component-base v0.27.16
+	k8s.io/kubernetes => k8s.io/kubernetes v1.11.1
+	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 )
 
 exclude github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f

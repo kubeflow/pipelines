@@ -46,6 +46,8 @@ wait_for_pods || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Not all pods running."
+  collect_artifacts kubeflow
+  collect_artifacts tekton-pipelines
   exit 1
 fi
 

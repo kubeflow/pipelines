@@ -22,6 +22,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/util/file"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -41,6 +44,14 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+func intPtr(i int64) *int64 {
+	return &i
+}
+
+func strPtr(i string) *string {
+	return &i
+}
 
 func initEnvVars() {
 	viper.Set(common.PodNamespace, "ns1")
@@ -70,6 +81,14 @@ func (m *FakeBadObjectStore) AddAsYamlFile(o interface{}, filePath string) error
 
 func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+func (m *FakeBadObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string) (string, error) {
+	return "", util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+func (m *FakeBadObjectStore) GetObjectSize(bucketConfig *objectstore.Config, secret *corev1.Secret, artifactURI string) (int64, error) {
+	return 0, util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
 func createPipelineV1(name string) *model.Pipeline {
@@ -4030,6 +4049,35 @@ func TestCreateTask(t *testing.T) {
 	storedTask, err := manager.taskStore.GetTask(DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value")
+}
+
+func TestBackwardsCompatibilityForSessionInfo(t *testing.T) {
+	_, manager, _, _, _, _ := initWithExperimentAndPipelineAndRun(t)
+
+	// First Artifact has assigned a bucket_session_info
+	artifact1 := &ml_metadata.Artifact{
+		Id:  intPtr(0),
+		Uri: strPtr("s3://test-bucket/pipeline/some-pipeline-id/task/key0"),
+	}
+
+	config1, _, err := manager.GetArtifactSessionInfo(context.Background(), artifact1)
+
+	// Assert the results
+	assert.NoError(t, err)
+	assert.NotNil(t, config1)
+
+	// Second Artifact has assigned a store_session_info
+	artifact2 := &ml_metadata.Artifact{
+		Id:  intPtr(1),
+		Uri: strPtr("s3://test-bucket/pipeline/some-pipeline-id/task/key1"),
+	}
+
+	// Call the function
+	config2, _, err := manager.GetArtifactSessionInfo(context.Background(), artifact2)
+
+	// Assert the results
+	assert.NoError(t, err)
+	assert.NotNil(t, config2)
 }
 
 var v2SpecHelloWorld = `

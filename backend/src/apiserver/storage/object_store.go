@@ -16,11 +16,15 @@ package storage
 
 import (
 	"bytes"
+	"net/url"
 	"path"
 	"regexp"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	minio "github.com/minio/minio-go/v6"
+	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -36,6 +40,8 @@ type ObjectStoreInterface interface {
 	AddAsYamlFile(o interface{}, filePath string) error
 	GetFromYamlFile(o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
+	GetSignedUrl(bucketConfig *objectstore.Config, secret *v1.Secret, expirySeconds time.Duration, artifactURI string) (string, error)
+	GetObjectSize(bucketConfig *objectstore.Config, secret *v1.Secret, artifactURI string) (int64, error)
 }
 
 // Managing pipeline using Minio.
@@ -119,6 +125,84 @@ func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error
 		return util.NewInternalServerError(err, "Failed to unmarshal file %v: %v", filePath, err.Error())
 	}
 	return nil
+}
+
+// GetSignedUrl generates a signed url for the artifact identified by artifactURI and bucketConfig.
+// The URL expires after expirySeconds. The secret contains the credentials for accessing the object
+// store for this artifact. Signed URLs are built using the "GET" method, and are only intended for
+// Artifact downloads.
+// TODO: Add support for irsa and gcs app credentials pulled from environment
+func (m *MinioObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret *v1.Secret, expirySeconds time.Duration, artifactURI string) (string, error) {
+	s3Client, err := buildClientFromConfig(bucketConfig, secret)
+	if err != nil {
+		return "", err
+	}
+
+	key, err := objectstore.ArtifactKeyFromURI(artifactURI)
+	if err != nil {
+		return "", err
+	}
+	reqParams := make(url.Values)
+	signedUrl, err := s3Client.Presign("GET", bucketConfig.BucketName, key, expirySeconds, reqParams)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to generate signed url")
+	}
+
+	return signedUrl.String(), nil
+}
+
+// GetObjectSize Retrieves the Size of the object in bytes.
+// Return zero with no error if artifact URI does not exist.
+func (m *MinioObjectStore) GetObjectSize(bucketConfig *objectstore.Config, secret *v1.Secret, artifactURI string) (int64, error) {
+	s3Client, err := buildClientFromConfig(bucketConfig, secret)
+	if err != nil {
+		return 0, err
+	}
+	key, err := objectstore.ArtifactKeyFromURI(artifactURI)
+	if err != nil {
+		return 0, err
+	}
+	objectInfo, err := s3Client.StatObject(bucketConfig.BucketName, key, minio.StatObjectOptions{})
+	if err != nil {
+		errResponse := minio.ToErrorResponse(err)
+		if errResponse.Code == "NoSuchKey" {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return objectInfo.Size, nil
+}
+
+// buildClientFromConfig returns a minio s3 client constructed via the bucket identified by bucketConfig.
+func buildClientFromConfig(bucketConfig *objectstore.Config, secret *v1.Secret) (*minio.Client, error) {
+	params, err := objectstore.StructuredS3Params(bucketConfig.SessionInfo.Params)
+	if err != nil {
+		return nil, err
+	}
+
+	accessKey := string(secret.Data[params.AccessKeyKey])
+	secretKey := string(secret.Data[params.SecretKeyKey])
+	parsedUrl, err := url.Parse(params.Endpoint)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to parse object store endpoint.")
+	}
+
+	var secure bool
+	switch parsedUrl.Scheme {
+	case "http":
+		secure = false
+	case "https":
+		secure = !params.DisableSSL
+	}
+	s3Client, err := minio.New(
+		parsedUrl.Host,
+		accessKey,
+		secretKey,
+		secure)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create s3 client.")
+	}
+	return s3Client, nil
 }
 
 func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {

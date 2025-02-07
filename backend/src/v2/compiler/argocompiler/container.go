@@ -19,9 +19,12 @@ import (
 	"os"
 	"strings"
 
+	"strconv"
+
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	k8score "k8s.io/api/core/v1"
@@ -162,6 +165,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		Container: &k8score.Container{
 			Image:   GetDriverImage(),
 			Command: GetDriverCommand(),
+			Env:     MLPipelineServiceEnv,
 			Args: []string{
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
@@ -175,10 +179,18 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
 				"--condition_path", outputPath(paramCondition),
 				"--kubernetes_config", inputValue(paramKubernetesConfig),
+				"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
+				"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+				"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
+				"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
+				"--ca_cert_path", common.GetCaCertPath(),
 			},
 			Resources: driverResources,
 		},
 	}
+
+	ConfigureCABundle(t)
+
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name
@@ -372,9 +384,10 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 				},
 			},
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     commonEnvs,
+			Env:     append(commonEnvs, MLPipelineServiceEnv...),
 		},
 	}
+	ConfigureCABundle(executor)
 	// Update pod metadata if it defined in the Kubernetes Spec
 	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
 

@@ -51,6 +51,11 @@ type LauncherV2Options struct {
 	MLMDServerPort,
 	PipelineName,
 	RunID string
+	// set to true if ml pipeline server is serving over tls
+	MLPipelineTLSEnabled bool
+	// set to true if metadata server is serving over tls
+	MetadataTLSEnabled bool
+	CaCertPath         string
 }
 
 type LauncherV2 struct {
@@ -106,11 +111,11 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
 	}
-	metadataClient, err := metadata.NewClient(opts.MLMDServerAddress, opts.MLMDServerPort)
+	metadataClient, err := metadata.NewClient(opts.MLMDServerAddress, opts.MLMDServerPort, opts.MetadataTLSEnabled, opts.CaCertPath)
 	if err != nil {
 		return nil, err
 	}
-	cacheClient, err := cacheutils.NewClient()
+	cacheClient, err := cacheutils.NewClient(opts.MLPipelineTLSEnabled)
 	if err != nil {
 		return nil, err
 	}

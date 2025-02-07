@@ -38,8 +38,7 @@ def set_image_pull_secrets(
 
     # Assuming secret_names is a list of strings
     image_pull_secret = [
-        pb.ImagePullSecret(secret_name=secret_name)
-        for secret_name in secret_names
+        pb.ImagePullSecret(secret_name=secret_name) for secret_name in secret_names
     ]
 
     msg.image_pull_secret.extend(image_pull_secret)

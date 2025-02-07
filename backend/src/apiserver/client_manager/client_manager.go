@@ -17,6 +17,8 @@ package clientmanager
 import (
 	"database/sql"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/minio/minio-go/v6"
 	"os"
 	"strings"
 	"time"
@@ -33,7 +35,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/minio/minio-go/v6"
 )
 
 const (
@@ -88,6 +89,7 @@ type ClientManager struct {
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
 	tokenReviewClient         client.TokenReviewInterface
+	metadataClient            metadata.ClientInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
@@ -150,6 +152,10 @@ func (c *ClientManager) TokenReviewClient() client.TokenReviewInterface {
 	return c.tokenReviewClient
 }
 
+func (c *ClientManager) MetadataClient() metadata.ClientInterface {
+	return c.metadataClient
+}
+
 func (c *ClientManager) LogArchive() archive.LogArchiveInterface {
 	return c.logArchive
 }
@@ -186,9 +192,9 @@ func (c *ClientManager) init() {
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
-	glog.Info("Initializing Object store client...")
+	glog.Info("Initializing Minio client...")
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
-	glog.Info("Object store client initialized successfully")
+	glog.Info("Minio client initialized successfully")
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	clientParams := util.ClientParameters{
@@ -201,6 +207,13 @@ func (c *ClientManager) init() {
 	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+
+	newClient, err := metadata.NewClient(common.GetMetadataGrpcServiceServiceHost(), common.GetMetadataGrpcServiceServicePort(), common.GetMetadataTLSEnabled(), common.GetCaCertPath())
+
+	if err != nil {
+		glog.Fatalf("Failed to create metadata client. Error: %v", err)
+	}
+	c.metadataClient = newClient
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore

@@ -1,4 +1,4 @@
-# Copyright 2023 The Kubeflow Authors
+# Copyright 2021-2024 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,38 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.22.10-alpine3.21 as builder
+# Build arguments
+ARG SOURCE_CODE=.
+ARG CI_CONTAINER_VERSION="unknown"
 
-WORKDIR /go/src/github.com/kubeflow/pipelines
 
-COPY ./go.mod ./
-COPY ./go.sum ./
-COPY ./hack/install-go-licenses.sh ./hack/
+# Use ubi8/nodejs-14 as base image
+FROM registry.access.redhat.com/ubi8/go-toolset:1.22 as builder
+
+
+## Build args to be used at this step
+ARG SOURCE_CODE
+
+## Switch to root as required for some operations
+USER root
+
+COPY ${SOURCE_CODE}/go.mod ./
+COPY ${SOURCE_CODE}/go.sum ./
 
 RUN GO111MODULE=on go mod download
-RUN ./hack/install-go-licenses.sh
 
-COPY . .
+# Copy the source
+COPY ${SOURCE_CODE}/ ./
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
 
-# Check licenses and comply with license terms.
-# First, make sure there's no forbidden license.
-RUN go-licenses check ./backend/src/v2/cmd/launcher-v2
-RUN go-licenses csv ./backend/src/v2/cmd/launcher-v2 > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv backend/third_party_licenses/launcher.csv && \
-    go-licenses save ./backend/src/v2/cmd/launcher-v2 --save_path /tmp/NOTICES
-
-FROM alpine:3.19
-
-RUN adduser -S appuser
-USER appuser
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 WORKDIR /bin
 
 COPY --from=builder /bin/launcher-v2 /bin/launcher-v2
-# Copy licenses and notices.
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-COPY --from=builder /tmp/NOTICES /third_party/NOTICES
+RUN chmod +x /bin/launcher-v2
 
-ENTRYPOINT [ "/bin/launcher-v2" ]
+ENTRYPOINT ["/bin/launcher-v2"]
+
+LABEL name="ds-pipelines-launcher" \
+      summary="DSP launcher"
