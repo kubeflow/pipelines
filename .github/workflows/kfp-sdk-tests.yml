@@ -27,5 +27,4 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Run SDK Tests
-      run: |
-        ./test/presubmit-tests-sdk.sh
+      run: make test-kfp-sdk-tests
