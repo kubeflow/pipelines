@@ -74,6 +74,7 @@ const (
 )
 
 func main() {
+	initFlags()
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
@@ -149,7 +150,7 @@ func main() {
 
 }
 
-func init() {
+func initFlags() {
 	flag.StringVar(&kubeconfig, kubeconfigFlagName, "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, masterFlagName, "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&logLevel, logLevelFlagName, "", "Defines the log level for the application.")
