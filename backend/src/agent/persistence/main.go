@@ -16,6 +16,7 @@ package main
 
 import (
 	"flag"
+	"os"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
@@ -78,8 +79,9 @@ var (
 )
 
 func main() {
-	flag.Parse()
-
+	if err := persistenceAgentFlags.Parse(os.Args[1:]); err != nil {
+        log.Fatalf("Failed to parse flags: %v", err)
+    }
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
