@@ -296,7 +296,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	if err := protojson.Unmarshal(bytes, spec); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
 	}
-	job := &pipelinespec.PipelineJob{PipelineSpec: spec}
+	job := &pipelinespec.PipelineJob{PipelineSpec: spec, DisplayName: modelRun.DisplayName}
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelRun.RuntimeConfig)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to convert to PipelineJob RuntimeConfig")
