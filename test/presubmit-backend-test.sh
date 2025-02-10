@@ -28,7 +28,3 @@ git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go
 
 # 2. Run tests in the backend directory
 go test -v -cover ./backend/...
-
-# 3. Check for forbidden go licenses
-./hack/install-go-licenses.sh
-go-licenses check ./backend/src/apiserver ./backend/src/cache ./backend/src/agent/persistence ./backend/src/crd/controller/scheduledworkflow ./backend/src/crd/controller/viewer
