@@ -9,7 +9,8 @@ This README will help you set up your coding environment in order to build and r
 
 ## Prerequisites
 Before you begin, ensure you have:
-- Go programming language installed
+- [Go installed](https://go.dev/doc/install)
+- [go-licenses tool](../hack/install-go-licenses.sh)
 - Docker or Podman installed (for building container images)
 
 Note that you may need to restart your shell after installing these resources in order for the changes to take effect.
@@ -97,7 +98,8 @@ make -C backend dev-kind-cluster
 This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
 all the pods have started.
 
-Also, note that the config in the `make` command above sets the `ml-pipeline` `Deployment` (api server) to have 0 replicas. The intent is to replace it with a locally running API server for debugging and faster development. See the following steps to run the API server locally, and connect it to the KFP backend on your Kind cluster. Note that other backend components (for example, the persistence agent) may show errors until the API server is brought up and connected to the cluster.
+> [!NOTE]
+> The config in the `make` command above sets the `ml-pipeline` `Deployment` (api server) to have 0 replicas. The intent is to replace it with a locally running API server for debugging and faster development. See the following steps to run the API server locally, and connect it to the KFP backend on your Kind cluster. Note that other backend components (for example, the persistence agent) may show errors until the API server is brought up and connected to the cluster.
 
 #### Launching the API Server With VSCode
 
