@@ -25,9 +25,6 @@ def get_param_descr(fn: Callable, param_name: str) -> str:
         fn (Callable): The function of method with a __doc__ docstring implemented.
         param_name (str): The parameter for which to extract the description.
 
-    Raises:
-        ValueError: If docstring is not found or parameter is not found in docstring.
-
     Returns:
         str: The description of the parameter.
     """
@@ -38,32 +35,27 @@ def get_param_descr(fn: Callable, param_name: str) -> str:
             f'Could not find parameter {param_name} in docstring of {fn}')
     lines = docstring.splitlines()
 
-    # collect all lines beginning after args, also get indentation space_chars
+    # Find Args section
     for i, line in enumerate(lines):
         if line.lstrip().startswith('Args:'):
             break
+    else:  # No Args section found
+        raise ValueError(f'No Args section found in docstring of {fn}')
 
     lines = lines[i + 1:]
-
-    first_already_found = False
-    return_lines = []
-
-    # allow but don't require type in docstring
     first_line_args_regex = rf'^{param_name}( \(.*\))?: '
-    for line in lines:
-        if not first_already_found and re.match(first_line_args_regex,
-                                                line.lstrip()):
-            new_line = re.sub(first_line_args_regex, '', line.strip())
-            return_lines.append(new_line)
-            first_already_found = True
-            first_indentation_level = len(line) - len(line.lstrip())
-            continue
-
-        if first_already_found:
-            indentation_level = len(line) - len(line.lstrip())
-            if indentation_level <= first_indentation_level:
-                return ' '.join(return_lines)
-            else:
-                return_lines.append(line.strip())
+    for i, line in enumerate(lines):
+        stripped = line.lstrip()
+        match = re.match(first_line_args_regex, stripped)
+        if match:
+            description = [re.sub(first_line_args_regex, '', stripped)]
+            # Collect any additional lines that are more indented
+            current_indent = len(line) - len(stripped)
+            for next_line in lines[i + 1:]:
+                next_indent = len(next_line) - len(next_line.lstrip())
+                if next_indent <= current_indent:
+                    break
+                description.append(next_line.strip())
+            return ' '.join(description)
     raise ValueError(
         f'Could not find parameter {param_name} in docstring of {fn}')
