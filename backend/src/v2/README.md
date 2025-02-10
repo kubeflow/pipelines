@@ -115,29 +115,3 @@ Instructions:
     ```
 
     Read [v2 sample test documentation](./test/README.md) for more details.
-
-### Update licenses
-
-Note, this is currently outdated instructions for v2 compatible mode. We haven't set up licensing workflow for v2 engine.
-
-Download the license tool binary from <https://github.com/Bobgy/go-licenses/releases> and put it into $PATH.
-
-Update licenses info by:
-
-```bash
-make license-launcher
-```
-
-or run the following to enable verbose output:
-
-```bash
-GO_LICENSES_FLAGS=-v4 make license-launcher
-```
-
-After the update, check generated third_party/licenses/launcher.csv file to
-make sure licenses of new dependencies are correctly identified.
-
-If something is unexpected, examine the unexpected dependencies by yourself and add
-overrides to [go-licenses.yaml](./go-licenses.yaml).
-
-For detailed documentation about the tool: <https://github.com/Bobgy/go-licenses/tree/main/v2>.
