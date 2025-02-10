@@ -10,7 +10,6 @@ This README will help you set up your coding environment in order to build and r
 ## Prerequisites
 Before you begin, ensure you have:
 - Go programming language installed
-- [go-licenses tool](../hack/install-go-licenses.sh)
 - Docker or Podman installed (for building container images)
 
 Note that you may need to restart your shell after installing these resources in order for the changes to take effect.
@@ -49,16 +48,6 @@ Change it to point to your own build, after saving and closing the file, apiserv
 
 After making changes to proto files, the Go client libraries, Python client libraries and swagger files
 need to be regenerated and checked-in. Refer to [backend/api](./api/README.md) for details.
-
-### Updating licenses info
-
-1. [Install go-licenses tool](../hack/install-go-licenses.sh) (if you haven't already) and refer to [its documentation](https://github.com/google/go-licenses) for how to use it.
-
-2. Run the tool to update all licenses:
-
-    ```bash
-    make -C backend all
-    ```
 
 ### Updating python dependencies
 
