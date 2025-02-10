@@ -100,10 +100,29 @@ func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 	return clientSet, config, namespace, nil
 }
 
-func GetRpcConnectionWithTimeout(address string, timeout time.Time) (*grpc.ClientConn, error) {
+func GetRpcConnectionWithTimeout(address string, tlsEnabled bool, caCertPath string, timeout time.Time) (*grpc.ClientConn, error) {
+	creds := insecure.NewCredentials()
+	if tlsEnabled {
+		if caCertPath == "" {
+			return nil, errors.New("CA cert path is empty")
+		}
+
+		caCert, err := os.ReadFile(caCertPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "Encountered error when reading CA cert path for creating a metadata client.")
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		config := &tls.Config{
+			RootCAs: caCertPool,
+		}
+		creds = credentials.NewTLS(config)
+	}
+
 	ctx, _ := context.WithDeadline(context.Background(), timeout)
 
-	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, address, grpc.WithTransportCredentials(creds), grpc.WithBlock())
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
 	}
