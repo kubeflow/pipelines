@@ -15,8 +15,9 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import ExpandedIcon from '@material-ui/icons/ArrowDropUp';
+import { IconButton, Tooltip } from '@mui/material';
+import CollapseIcon from '@mui/icons-material/UnfoldLess';
+import ExpandIcon from '@mui/icons-material/UnfoldMore';
 import { stylesheet, classes } from 'typestyle';
 import { color, fontsize } from '../Css';
 
@@ -48,7 +49,7 @@ class CollapseButton extends React.Component<CollapseButtonProps> {
     const sectionName = this.props.sectionName;
     return (
       <div>
-        <Button
+        <IconButton
           onClick={() => {
             collapseSections[sectionName] = !collapseSections[sectionName];
             collapseSectionsUpdate(collapseSections);
@@ -56,11 +57,13 @@ class CollapseButton extends React.Component<CollapseButtonProps> {
           title='Expand/Collapse this section'
           className={css.collapseBtn}
         >
-          <ExpandedIcon
-            className={classes(css.icon, collapseSections[sectionName] ? css.collapsed : '')}
-          />
+          {collapseSections[sectionName] ? (
+            <ExpandIcon className={classes(css.icon, css.collapsed)} />
+          ) : (
+            <CollapseIcon className={css.icon} />
+          )}
           {sectionName}
-        </Button>
+        </IconButton>
       </div>
     );
   }

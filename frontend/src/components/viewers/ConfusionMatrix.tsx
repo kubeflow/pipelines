@@ -18,6 +18,7 @@ import * as React from 'react';
 import Viewer, { ViewerConfig, PlotType } from './Viewer';
 import { color, commonCss, fontsize } from '../../Css';
 import { classes, stylesheet } from 'typestyle';
+import { Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 
 const legendNotches = 5;
 
@@ -207,17 +208,17 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
 
     return (
       <div className={classes(commonCss.flex, this._css.root)}>
-        <table>
-          <tbody>
+        <Table>
+          <TableBody>
             {!small && (
-              <tr>
-                <td className={this._css.yAxisLabel}>{yAxisLabel}</td>
-              </tr>
+              <TableRow>
+                <TableCell className={this._css.yAxisLabel}>{yAxisLabel}</TableCell>
+              </TableRow>
             )}
             {this._uiData.map((row, r) => (
-              <tr key={r}>
+              <TableRow key={r}>
                 {!small && (
-                  <td>
+                  <TableCell>
                     <div
                       className={classes(
                         this._css.ylabel,
@@ -230,10 +231,10 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                         ] /* uiData's ith's row corresponds to the reverse ordered label */
                       }
                     </div>
-                  </td>
+                  </TableCell>
                 )}
                 {row.map((cell, c) => (
-                  <td
+                  <TableCell
                     key={c}
                     className={this._css.cell}
                     style={{
@@ -258,17 +259,17 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                       }}
                     />
                     {cell}
-                  </td>
+                  </TableCell>
                 ))}
-              </tr>
+              </TableRow>
             ))}
 
             {/* Footer */}
             {!small && (
-              <tr>
-                <th className={this._css.xlabel} />
+              <TableRow>
+                <TableCell className={this._css.xlabel} />
                 {this._config.labels.map((label, i) => (
-                  <th key={i}>
+                  <TableCell key={i}>
                     <div
                       className={classes(
                         i === activeCol ? this._css.activeLabel : '',
@@ -277,13 +278,13 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                     >
                       {label}
                     </div>
-                  </th>
+                  </TableCell>
                 ))}
-                <td className={this._css.xAxisLabel}>{xAxisLabel}</td>
-              </tr>
+                <TableCell className={this._css.xAxisLabel}>{xAxisLabel}</TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
 
         {!small && (
           <div

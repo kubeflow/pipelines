@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import FormControl from '@material-ui/core/FormControl';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import Paper from '@material-ui/core/Paper';
-import Select from '@material-ui/core/Select';
-import InfoIcon from '@material-ui/icons/InfoOutlined';
+import {
+  Button,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select
+} from '@mui/material';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
 import * as React from 'react';
 import { useState } from 'react';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';

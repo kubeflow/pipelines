@@ -16,15 +16,12 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
-import { ThemeProvider } from '@material-ui/core/styles';
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { HashRouter } from 'react-router-dom';
 import { cssRule } from 'typestyle';
 import Router from './components/Router';
-import { fonts, theme } from './Css';
-import { initFeatures } from './features';
 import { Deployments, KFP_FLAGS } from './lib/Flags';
 import { GkeMetadataProvider } from './lib/GkeMetadata';
 import {
@@ -33,7 +30,8 @@ import {
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
 import { BuildInfoProvider } from './lib/BuildInfo';
-// import { ReactQueryDevtools } from 'react-query/devtools';
+import { theme } from './Css';
+import { ThemeProvider, CssBaseline } from '@mui/material/styles';
 
 // TODO: license headers
 
@@ -42,39 +40,50 @@ if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
 }
 
 cssRule('html, body, #root', {
-  background: 'white',
-  color: 'rgba(0, 0, 0, .66)',
-  display: 'flex',
-  fontFamily: fonts.main,
-  fontSize: 13,
   height: '100%',
   width: '100%',
+  margin: 0,
+  padding: 0,
 });
 
 initFeatures();
 
-export const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
+
 const app = (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider theme={theme}>
-      <BuildInfoProvider>
-        <GkeMetadataProvider>
-          <HashRouter>
+  <ThemeProvider theme={theme}>
+    <CssBaseline />
+    <HashRouter>
+      <QueryClientProvider client={queryClient}>
+        <BuildInfoProvider>
+          <GkeMetadataProvider>
             <Router />
-          </HashRouter>
-        </GkeMetadataProvider>
-      </BuildInfoProvider>
-    </ThemeProvider>
-    {/* <ReactQueryDevtools initialIsOpen={false} /> */}
-  </QueryClientProvider>
+          </GkeMetadataProvider>
+        </BuildInfoProvider>
+      </QueryClientProvider>
+    </HashRouter>
+  </ThemeProvider>
 );
-ReactDOM.render(
+
+const container = document.getElementById('root');
+if (!container) throw new Error('Failed to find the root element');
+const root = createRoot(container);
+
+root.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
-    <NamespaceContextProvider>{app}</NamespaceContextProvider>
+    <React.StrictMode>
+      <NamespaceContextProvider>{app}</NamespaceContextProvider>
+    </React.StrictMode>
   ) : (
-    // Uncomment the following for namespace switch during development.
-    // <NamespaceContext.Provider value='your-namespace'>{app}</NamespaceContext.Provider>
-    <NamespaceContext.Provider value={undefined}>{app}</NamespaceContext.Provider>
-  ),
-  document.getElementById('root'),
+    <React.StrictMode>
+      <NamespaceContext.Provider value={undefined}>{app}</NamespaceContext.Provider>
+    </React.StrictMode>
+  )
 );

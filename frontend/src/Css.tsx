@@ -14,47 +14,20 @@
  * limitations under the License.
  */
 
-import { createTheme } from '@material-ui/core/styles';
-import { style, stylesheet } from 'typestyle';
-import { NestedCSSProperties } from 'typestyle/lib/types';
-
-// Gradually migrate the css styling workflow as below:
-// 1. Navigate to tailwind.config.js file.
-// 2. Extend styling in the way tailwindcss can recognize.
-//    a. For color: Use https://material.io/resources/color.
-// 3. Compile CSS: npm run build:tailwind
+import { createTheme } from '@mui/material/styles';
+import { PaletteOptions } from '@mui/material/styles';
 
 export const color = {
-  activeBg: '#eaf1fd',
-  alert: '#f9ab00', // Google yellow 600
   background: '#fff',
-  blue: '#4285f4', // Google blue 500
-  disabledBg: '#ddd',
-  divider: '#e0e0e0',
-  errorBg: '#fbe9e7',
-  errorText: '#d50000',
-  foreground: '#000',
-  graphBg: '#f2f2f2',
-  grey: '#5f6368', // Google grey 500
-  inactive: '#5f6368',
-  lightGrey: '#eeeeee', // Google grey 200
-  lowContrast: '#80868b', // Google grey 600
-  secondaryText: 'rgba(0, 0, 0, .88)',
-  separator: '#e8e8e8',
-  strong: '#202124', // Google grey 900
-  success: '#34a853',
-  successWeak: '#e6f4ea', // Google green 50
-  terminated: '#80868b',
-  theme: '#1a73e8',
-  themeDarker: '#0049b5',
-  warningBg: '#f9f9e1',
-  warningText: '#ee8100',
-  infoBg: '#f3f4ff',
-  infoText: '#1a73e8',
-  weak: '#9aa0a6',
-  link: '#0d47a1',
-  linkLight: '#5472d3',
-  whiteSmoke: '#f3f3f3',
+  primary: '#1976d2',
+  secondary: '#dc004e',
+  success: '#4caf50',
+  error: '#f44336',
+  warning: '#ff9800',
+  info: '#2196f3',
+  textPrimary: 'rgba(0, 0, 0, 0.87)',
+  textSecondary: 'rgba(0, 0, 0, 0.54)',
+  divider: 'rgba(0, 0, 0, 0.12)',
 };
 
 export const dimension = {
@@ -68,15 +41,6 @@ export const dimension = {
   xsmall: 32,
 };
 
-// tslint:disable:object-literal-sort-keys
-export const zIndex = {
-  DROP_ZONE_OVERLAY: 1,
-  GRAPH_NODE: 1,
-  BUSY_OVERLAY: 2,
-  PIPELINE_SUMMARY_CARD: 2,
-  SIDE_PANEL: 2,
-};
-
 export const fontsize = {
   small: 12,
   base: 14,
@@ -85,108 +49,68 @@ export const fontsize = {
   title: 18,
   pageTitle: 24,
 };
-// tslint:enable:object-literal-sort-keys
-
-const baseSpacing = 24;
-export const spacing = {
-  base: baseSpacing,
-  units: (unit: number) => baseSpacing + unit * 4,
-};
 
 export const fonts = {
-  code: '"Source Code Pro", monospace',
   main: '"Google Sans", "Helvetica Neue", sans-serif',
-  secondary: '"Roboto", "Helvetica Neue", sans-serif',
+  code: '"Source Code Pro", monospace',
 };
 
-const palette = {
-  primary: {
-    dark: color.themeDarker,
-    main: color.theme,
-  },
-  secondary: {
-    main: 'rgba(0, 0, 0, .38)',
-  },
-};
+declare module '@mui/material/styles' {
+  interface Theme {
+    fonts: typeof fonts;
+  }
+  interface ThemeOptions {
+    fonts: typeof fonts;
+  }
+}
 
 export const theme = createTheme({
-  overrides: {
-    MuiButton: {
-      text: {
-        fontSize: fontsize.base,
-        fontWeight: 'bold',
-        minHeight: dimension.tiny,
-        textTransform: 'none',
-      },
-      contained: {
-        border: '1px solid #ddd',
-        cursor: 'pointer',
-        fontSize: fontsize.base,
-        marginRight: 10,
-        textTransform: 'none',
-      },
-      root: {
-        minWidth: 0,
-      },
+  palette: {
+    primary: {
+      main: color.primary,
     },
-    MuiDialogActions: {
-      root: {
-        margin: 15,
-      },
+    secondary: {
+      main: color.secondary,
     },
-    MuiDialogTitle: {
-      root: {
-        fontSize: fontsize.large,
-      },
+    error: {
+      main: color.error,
     },
-    MuiFormControlLabel: {
-      root: {
-        marginLeft: 0,
-      },
+    warning: {
+      main: color.warning,
     },
-    MuiFormLabel: {
-      filled: {
-        marginLeft: 0,
-        marginTop: 0,
-      },
-      root: {
-        '&$focused': {
-          marginLeft: 0,
-          marginTop: 0,
-        },
-        fontSize: fontsize.base,
-        marginLeft: 5,
-        marginTop: -8,
-      },
+    info: {
+      main: color.info,
     },
-    MuiIconButton: {
-      root: {
-        padding: 9,
-      },
+    success: {
+      main: color.success,
     },
-    MuiInput: {
-      input: { padding: 0 },
-      root: { padding: 0 },
+    text: {
+      primary: color.textPrimary,
+      secondary: color.textSecondary,
     },
-    MuiInputAdornment: {
-      positionEnd: {
-        paddingRight: 0,
-      },
-      root: { padding: 0 },
+    background: {
+      default: color.background,
     },
-    MuiTooltip: {
-      tooltip: {
-        backgroundColor: '#666',
-        color: '#f1f1f1',
-        fontSize: 12,
-      },
-    },
+    divider: color.divider,
   },
-  palette,
   typography: {
     fontFamily: fonts.main,
-    fontSize: 14, // base font size in pixels
+    fontSize: 13,
+    button: {
+      textTransform: 'none', // Prevents auto-capitalization of button text
+    },
   },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundColor: color.background,
+          color: color.textPrimary,
+        },
+      },
+    },
+  },
+  fonts, // Custom property
 });
 
 export const commonCss = stylesheet({
@@ -202,7 +126,7 @@ export const commonCss = stylesheet({
     position: 'absolute',
     right: 0,
     top: 0,
-    zIndex: zIndex.BUSY_OVERLAY,
+    zIndex: 2,
   },
   buttonAction: {
     $nest: {
@@ -210,10 +134,10 @@ export const commonCss = stylesheet({
         backgroundColor: color.background,
       },
       '&:hover': {
-        backgroundColor: theme.palette.primary.dark,
+        backgroundColor: theme.palette.primary.main,
       },
     },
-    backgroundColor: palette.primary.main,
+    backgroundColor: theme.palette.primary.main,
     color: 'white',
   },
   ellipsis: {
@@ -248,19 +172,19 @@ export const commonCss = stylesheet({
     paddingTop: 20,
   },
   infoIcon: {
-    color: color.lowContrast,
+    color: 'rgba(0, 0, 0, 0.38)',
     height: 16,
     width: 16,
   },
   link: {
     $nest: {
       '&:hover': {
-        color: color.linkLight,
+        color: '#5472d3',
         textDecoration: 'underline',
         cursor: 'pointer',
       },
     },
-    color: color.strong,
+    color: 'rgba(0, 0, 0, 0.87)',
     cursor: 'pointer',
     textDecoration: 'none',
   },
@@ -332,7 +256,7 @@ export const tailwindcss = {
 };
 
 export function _paddingInternal(units?: number, directions?: string): NestedCSSProperties {
-  units = units || baseSpacing;
+  units = units || 24;
   directions = directions || 'blrt';
   const rules: NestedCSSProperties = {};
   if (directions.indexOf('b') > -1) {

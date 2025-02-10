@@ -29,6 +29,7 @@ import {
 import Viewer, { ViewerConfig } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
+import { CircularProgress } from '@mui/material';
 
 const css = stylesheet({
   axis: {

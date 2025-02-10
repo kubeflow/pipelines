@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import MoreIcon from '@material-ui/icons/MoreHoriz';
+import MoreIcon from '@mui/icons-material/MoreHoriz';
 import * as dagre from 'dagre';
 import { NodeStatus, Parameter, S3Artifact, Workflow } from '../third_party/mlmd/argo_template';
 import IconWithTooltip from '../atoms/IconWithTooltip';

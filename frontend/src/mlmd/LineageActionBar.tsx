@@ -15,10 +15,10 @@
  */
 
 import * as React from 'react';
-import grey from '@material-ui/core/colors/grey';
-import Button from '@material-ui/core/Button';
-import ArrowRightAltIcon from '@material-ui/icons/ArrowRightAlt';
-import ReplayIcon from '@material-ui/icons/Replay';
+import { grey } from '@mui/material/colors';
+import { Button } from '@mui/material';
+import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
+import ReplayIcon from '@mui/icons-material/Replay';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, fonts, padding } from './Css';
 import { CSSProperties } from 'typestyle/lib/types';

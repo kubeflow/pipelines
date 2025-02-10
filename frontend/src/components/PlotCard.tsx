@@ -15,13 +15,10 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import CloseIcon from '@material-ui/icons/Close';
-import Dialog from '@material-ui/core/Dialog';
-import Paper from '@material-ui/core/Paper';
-import PopOutIcon from '@material-ui/icons/Launch';
+import { Button, Dialog, IconButton, Paper, Tooltip } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import LaunchIcon from '@mui/icons-material/Launch';
 import Separator from '../atoms/Separator';
-import Tooltip from '@material-ui/core/Tooltip';
 import ViewerContainer, { componentMap } from '../components/viewers/ViewerContainer';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { color, fontsize } from '../Css';
@@ -127,7 +124,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
                 className='popOutButton'
               >
                 <Tooltip title='Pop out'>
-                  <PopOutIcon classes={{ root: css.popoutIcon }} />
+                  <LaunchIcon classes={{ root: css.popoutIcon }} />
                 </Tooltip>
               </Button>
             </div>
@@ -141,12 +138,12 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
           onClose={() => this.setState({ fullscreenDialogOpen: false })}
         >
           <div className={css.dialogTitle}>
-            <Button
+            <IconButton
               onClick={() => this.setState({ fullscreenDialogOpen: false })}
               className={classes(css.fullscreenCloseBtn, 'fullscreenCloseButton')}
             >
               <CloseIcon />
-            </Button>
+            </IconButton>
             {componentMap[configs[0].type].prototype.getDisplayName()}
             <Separator />
             <span style={{ color: color.inactive }}>({title})</span>

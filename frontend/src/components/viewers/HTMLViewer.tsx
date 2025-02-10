@@ -18,6 +18,7 @@ import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
 import { color } from '../../Css';
 import { stylesheet } from 'typestyle';
+import { CircularProgress } from '@mui/material';
 
 export interface HTMLViewerConfig extends ViewerConfig {
   htmlContent: string;

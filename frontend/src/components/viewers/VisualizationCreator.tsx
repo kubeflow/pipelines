@@ -17,11 +17,7 @@
 import * as React from 'react';
 import 'brace';
 import BusyButton from '../../atoms/BusyButton';
-import FormControl from '@material-ui/core/FormControl';
 import Input from '../../atoms/Input';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
 import Editor from '../Editor';
 import Viewer, { ViewerConfig } from './Viewer';
 import { ApiVisualizationType } from '../../apis/visualization';
@@ -29,7 +25,14 @@ import 'brace/ext/language_tools';
 import 'brace/mode/json';
 import 'brace/mode/python';
 import 'brace/theme/github';
-import Button from '@material-ui/core/Button';
+import {
+  Button,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField
+} from '@mui/material';
 
 export interface VisualizationCreatorConfig extends ViewerConfig {
   allowCustomVisualizations?: boolean;

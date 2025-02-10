@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import AddIcon from '@material-ui/icons/Add';
-import CollapseIcon from '@material-ui/icons/UnfoldLess';
-import ExpandIcon from '@material-ui/icons/UnfoldMore';
+import AddIcon from '@mui/icons-material/Add';
+import CollapseIcon from '@mui/icons-material/UnfoldLess';
+import ExpandIcon from '@mui/icons-material/UnfoldMore';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { ToolbarActionMap } from 'src/components/Toolbar';
 import { PageProps } from 'src/pages/Page';

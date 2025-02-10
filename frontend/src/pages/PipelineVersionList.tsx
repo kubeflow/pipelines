@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@mui/material';
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';

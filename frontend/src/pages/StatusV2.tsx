@@ -15,15 +15,15 @@
  */
 
 import * as React from 'react';
-import ErrorIcon from '@material-ui/icons/Error';
-import PendingIcon from '@material-ui/icons/Schedule';
-import RunningIcon from 'src/icons/statusRunning';
-import SkippedIcon from '@material-ui/icons/SkipNext';
-import SuccessIcon from '@material-ui/icons/CheckCircle';
+import { Tooltip } from '@mui/material';
+import ErrorIcon from '@mui/icons-material/Error';
+import PendingIcon from '@mui/icons-material/Schedule';
+import RunningIcon from '@mui/icons-material/Sync';
+import SkippedIcon from '@mui/icons-material/SkipNext';
+import SuccessIcon from '@mui/icons-material/CheckCircle';
 import CachedIcon from 'src/icons/statusCached';
-import TerminatedIcon from 'src/icons/statusTerminated';
-import Tooltip from '@material-ui/core/Tooltip';
-import UnknownIcon from '@material-ui/icons/Help';
+import TerminatedIcon from '@mui/icons-material/Stop';
+import UnknownIcon from '@mui/icons-material/Help';
 import { color } from 'src/Css';
 import { logger, formatDateString } from 'src/lib/Utils';
 import { checkIfTerminatedV2 } from 'src/lib/StatusUtils';

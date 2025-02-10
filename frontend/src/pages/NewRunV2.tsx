@@ -19,10 +19,13 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  InputAdornment,
+  DialogTitle,
   FormControlLabel,
+  InputAdornment,
   Radio,
-} from '@material-ui/core';
+  TextField,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import React, { useEffect, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from 'react-query';
@@ -56,7 +59,6 @@ import {
   convertExperimentToResource,
   convertPipelineVersionToResource,
 } from 'src/lib/ResourceConverter';
-import AddIcon from '@material-ui/icons/Add';
 import { ToolbarActionMap } from '../components/Toolbar';
 import { NewExperimentFC } from './functional_components/NewExperimentFC';
 
@@ -526,7 +528,7 @@ function NewRunV2(props: NewRunV2Props) {
         )}
 
         {/* Run info inputs */}
-        <Input
+        <TextField
           label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
           required={true}
           onChange={event => setRunName(event.target.value)}
@@ -534,7 +536,7 @@ function NewRunV2(props: NewRunV2Props) {
           value={runName}
           variant='outlined'
         />
-        <Input
+        <TextField
           label='Description'
           multiline={true}
           onChange={event => setRunDescription(event.target.value)}
@@ -602,7 +604,7 @@ function NewRunV2(props: NewRunV2Props) {
             }
           />
         </div>
-        <Input
+        <TextField
           value={serviceAccount}
           onChange={event => setServiceAccount(event.target.value)}
           required={false}
@@ -752,7 +754,7 @@ function PipelineSelector(props: PipelineSelectorProps) {
 
   return (
     <>
-      <Input
+      <TextField
         value={props.pipelineName}
         required={true}
         label='Pipeline'
@@ -809,7 +811,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
 
   return (
     <>
-      <Input
+      <TextField
         value={props.pipelineVersionName}
         required={true}
         label='Pipeline Version'
@@ -921,7 +923,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
 
   return (
     <>
-      <Input
+      <TextField
         value={props.experimentName}
         required={true}
         label='Experiment'

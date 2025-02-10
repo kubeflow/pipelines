@@ -28,7 +28,7 @@ import { URLParser } from 'src/lib/URLParser';
 import { commonCss, color } from 'src/Css';
 import { formatDateString, logger, errorToMessage, getRunDurationV2 } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@mui/material';
 
 interface PipelineVersionInfo {
   displayName?: string;

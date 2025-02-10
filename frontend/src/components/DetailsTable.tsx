@@ -23,6 +23,7 @@ import { stylesheet } from 'typestyle';
 import { color, commonCss, spacing } from '../Css';
 import { KeyValue } from '../lib/StaticGraphParser';
 import Editor from './Editor';
+import { Table, TableBody, TableCell, TableRow } from '@mui/material';
 
 export const css = stylesheet({
   key: {

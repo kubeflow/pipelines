@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import TextField from '@material-ui/core/TextField';
+import { Button, InputAdornment, TextField } from '@mui/material';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { ApiParameter } from '../apis/pipeline';

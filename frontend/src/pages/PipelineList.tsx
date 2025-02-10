@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@mui/material';
 import produce from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router-dom';

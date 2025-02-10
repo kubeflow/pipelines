@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-import { Button, Switch, TableCell } from '@material-ui/core';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
+import {
+  Button,
+  Switch,
+  TableCell,
+  Table,
+  TableBody,
+  TableHead,
+  TableRow
+} from '@mui/material';
 import * as React from 'react';
 import { commonCss, padding } from 'src/Css';
 import { getFeatureList, initFeatures, saveFeatures } from 'src/features';

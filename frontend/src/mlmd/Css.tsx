@@ -30,7 +30,7 @@
  * limitations under the License.
  */
 
-import { createTheme } from '@material-ui/core/styles';
+import { createTheme } from '@mui/material/styles';
 import { NestedCSSProperties } from 'typestyle/lib/types';
 import { style, stylesheet, cssRaw } from 'typestyle';
 
@@ -107,30 +107,35 @@ cssRaw(`
 
 export const color = {
   activeBg: '#eaf1fd',
-  alert: '#f9ab00', // Google yellow 600
+  alert: '#f9ab00',
   background: '#fff',
-  blue: '#4285f4', // Google blue 500
+  blue: '#4285f4',
   disabledBg: '#ddd',
   divider: '#e0e0e0',
   errorBg: '#fbe9e7',
   errorText: '#d50000',
   foreground: '#000',
   graphBg: '#f2f2f2',
-  grey: '#5f6368', // Google grey 500
+  grey: '#5f6368',
   inactive: '#5f6368',
-  lightGrey: '#eee', // Google grey 200
-  lowContrast: '#80868b', // Google grey 600
+  lightGrey: '#eeeeee',
+  lowContrast: '#80868b',
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
-  strong: '#202124', // Google grey 900
+  strong: '#202124',
   success: '#34a853',
-  successWeak: '#e6f4ea', // Google green 50
+  successWeak: '#e6f4ea',
   terminated: '#80868b',
   theme: '#1a73e8',
-  themeDarker: '#0b59dc',
+  themeDarker: '#0049b5',
   warningBg: '#f9f9e1',
   warningText: '#ee8100',
+  infoBg: '#f3f4ff',
+  infoText: '#1a73e8',
   weak: '#9aa0a6',
+  link: '#0d47a1',
+  linkLight: '#5472d3',
+  whiteSmoke: '#f3f3f3',
 };
 
 export const dimension = {
@@ -174,100 +179,147 @@ export const fonts = {
   secondary: '"Roboto", "Helvetica Neue", sans-serif',
 };
 
-const palette = {
-  primary: {
-    dark: color.themeDarker,
-    main: color.theme,
-  },
-  secondary: {
-    main: 'rgba(0, 0, 0, .38)',
-  },
-};
-
 export const theme = createTheme({
-  overrides: {
+  palette: {
+    primary: {
+      main: color.theme,
+      dark: color.themeDarker,
+    },
+    secondary: {
+      main: 'rgba(0, 0, 0, .38)',
+    },
+    error: {
+      main: color.errorText,
+      light: color.errorBg,
+    },
+    warning: {
+      main: color.warningText,
+      light: color.warningBg,
+    },
+    info: {
+      main: color.infoText,
+      light: color.infoBg,
+    },
+    success: {
+      main: color.success,
+      light: color.successWeak,
+    },
+    grey: {
+      300: color.lightGrey,
+      500: color.grey,
+      600: color.lowContrast,
+      900: color.strong,
+    },
+    text: {
+      primary: color.foreground,
+      secondary: color.secondaryText,
+    },
+    background: {
+      default: color.background,
+      paper: color.background,
+    },
+    divider: color.divider,
+  },
+  typography: {
+    fontFamily: '"Google Sans", "Helvetica Neue", sans-serif',
+    fontSize: 14,
+    button: {
+      textTransform: 'none',
+    },
+  },
+  components: {
     MuiButton: {
-      root: {
-        minWidth: 0,
-        color: color.theme,
-        marginRight: 10,
-        padding: '0 8px',
-        '&$disabled': {
-          backgroundColor: 'initial',
+      styleOverrides: {
+        root: {
+          minWidth: 0,
+        },
+        text: {
+          fontSize: 14,
+          fontWeight: 'bold',
+          minHeight: 32,
+        },
+        contained: {
+          border: '1px solid #ddd',
+          cursor: 'pointer',
+          fontSize: 14,
+          marginRight: 10,
         },
       },
-      text: {
-        fontSize: fontsize.base,
-        fontWeight: 'bold',
-        minHeight: dimension.tiny,
-        textTransform: 'none',
-      },
-      contained: {
-        border: '1px solid #ddd',
-        cursor: 'pointer',
-        fontSize: fontsize.base,
-        marginRight: 10,
-        textTransform: 'none',
-      },
-      disabled: {}, // needed for the disabled styles to work
     },
     MuiDialogActions: {
-      root: {
-        margin: 15,
+      styleOverrides: {
+        root: {
+          margin: 15,
+        },
       },
     },
     MuiDialogTitle: {
-      root: {
-        fontSize: fontsize.large,
+      styleOverrides: {
+        root: {
+          fontSize: 18,
+        },
       },
     },
     MuiFormControlLabel: {
-      root: {
-        marginLeft: 0,
+      styleOverrides: {
+        root: {
+          marginLeft: 0,
+        },
       },
     },
     MuiFormLabel: {
-      filled: {
-        marginLeft: 0,
-        marginTop: 0,
-      },
-      root: {
-        '&$focused': {
+      styleOverrides: {
+        root: {
+          fontSize: 14,
+          marginLeft: 5,
+          marginTop: -8,
+          '&.Mui-focused': {
+            marginLeft: 0,
+            marginTop: 0,
+          },
+        },
+        filled: {
           marginLeft: 0,
           marginTop: 0,
         },
-        fontSize: fontsize.base,
-        marginLeft: 5,
-        marginTop: -8,
       },
     },
     MuiIconButton: {
-      root: {
-        padding: 9,
+      styleOverrides: {
+        root: {
+          padding: 9,
+        },
       },
     },
     MuiInput: {
-      input: { padding: 0 },
-      root: { padding: 0 },
+      styleOverrides: {
+        root: {
+          padding: 0,
+        },
+        input: {
+          padding: 0,
+        },
+      },
     },
     MuiInputAdornment: {
-      positionEnd: {
-        paddingRight: 0,
+      styleOverrides: {
+        root: {
+          padding: 0,
+        },
+        positionEnd: {
+          paddingRight: 0,
+        },
       },
-      root: { padding: 0 },
     },
     MuiTooltip: {
-      tooltip: {
-        backgroundColor: '#666',
-        color: '#f1f1f1',
-        fontSize: 12,
+      styleOverrides: {
+        tooltip: {
+          backgroundColor: '#666',
+          color: '#f1f1f1',
+          fontSize: 12,
+        },
       },
     },
-  },
-  palette,
-  typography: {
-    fontFamily: fonts.main,
-    fontSize: 14,
   },
 });
 
@@ -295,7 +347,7 @@ export const commonCss = stylesheet({
         backgroundColor: theme.palette.primary.dark,
       },
     },
-    backgroundColor: palette.primary.main,
+    backgroundColor: theme.palette.primary.main,
     color: 'white',
   },
   ellipsis: {

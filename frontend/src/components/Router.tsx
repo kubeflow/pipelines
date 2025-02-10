@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
+import { Button } from '@mui/material';
+import { Dialog } from '@mui/material';
+import { DialogActions } from '@mui/material';
+import { DialogContent } from '@mui/material';
+import { DialogTitle } from '@mui/material';
+import { Snackbar, SnackbarProps } from '@mui/material';
 import * as React from 'react';
 import { Redirect, Route, Switch } from 'react-router-dom';
 import Compare from 'src/pages/Compare';
