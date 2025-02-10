@@ -52,6 +52,10 @@ spec:
       - pipeline-with-exit-handler
       - --run_id
       - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ''
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -289,6 +293,10 @@ spec:
       - pipeline-with-exit-handler
       - --run_id
       - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ''
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
