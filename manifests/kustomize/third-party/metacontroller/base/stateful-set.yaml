@@ -41,7 +41,7 @@ spec:
             privileged: false
             allowPrivilegeEscalation: false
           name: metacontroller
-          image: 'ghcr.io/metacontroller/metacontroller:v4.11.21'
+          image: 'ghcr.io/metacontroller/metacontroller:v2.6.1'
       serviceAccountName: meta-controller-service
   # Workaround for https://github.com/kubernetes-sigs/kustomize/issues/677
   volumeClaimTemplates: []
