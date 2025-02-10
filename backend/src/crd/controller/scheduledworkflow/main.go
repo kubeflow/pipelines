@@ -56,6 +56,7 @@ const (
 )
 
 func main() {
+	initFlags()
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
@@ -148,7 +149,7 @@ func initEnv() {
 	viper.AllowEmptyEnv(true)
 }
 
-func init() {
+func initFlags() {
 	initEnv()
 
 	flag.StringVar(&logLevel, "logLevel", "", "Defines the log level for the application.")
