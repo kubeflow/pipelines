@@ -94,6 +94,52 @@ class TestOverrideCachingOptions(parameterized.TestCase):
                                 ['hello-word']['cachingOptions']['enableCache'])
                 self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
                                 ['cachingOptions']['enableCache'])
+                self.assertFalse('cacheKey' in pipeline_obj['root']['dag']
+                                 ['tasks']['hello-word']['cachingOptions'])
+                self.assertFalse('cacheKey' in pipeline_obj['root']['dag']
+                                 ['tasks']['to-lower']['cachingOptions'])
+
+    def test_override_cache_key(self):
+
+        @component
+        def hello_word(text: str) -> str:
+            return text
+
+        @component
+        def to_lower(text: str) -> str:
+            return text.lower()
+
+        @pipeline(
+            name='sample two-step pipeline',
+            description='a minimal two-step pipeline')
+        def pipeline_with_two_component(text: str = 'hi there'):
+            component_1 = hello_word(text=text).set_caching_options(True)
+            component_2 = to_lower(
+                text=component_1.output).set_caching_options(False)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
+            Compiler().compile(
+                pipeline_func=pipeline_with_two_component,
+                package_path=temp_filepath)
+
+            with open(temp_filepath, 'r') as f:
+                pipeline_obj = yaml.safe_load(f)
+                pipeline_spec = json_format.ParseDict(
+                    pipeline_obj, pipeline_spec_pb2.PipelineSpec())
+                client._override_caching_options(
+                    pipeline_spec, True, cache_key='OVERRIDE_KEY')
+                pipeline_obj = json_format.MessageToDict(pipeline_spec)
+                self.assertTrue(pipeline_obj['root']['dag']['tasks']
+                                ['hello-word']['cachingOptions']['enableCache'])
+                self.assertEqual(
+                    pipeline_obj['root']['dag']['tasks']['hello-word']
+                    ['cachingOptions']['cacheKey'], 'OVERRIDE_KEY')
+                self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
+                                ['cachingOptions']['enableCache'])
+                self.assertEqual(
+                    pipeline_obj['root']['dag']['tasks']['to-lower']
+                    ['cachingOptions']['cacheKey'], 'OVERRIDE_KEY')
 
 
 class TestExtractPipelineYAML(parameterized.TestCase):
