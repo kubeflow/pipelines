@@ -686,6 +686,7 @@ class Client:
         version_id: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
+        cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
     ) -> kfp_server_api.V2beta1Run:
         """Runs a specified pipeline.
@@ -709,6 +710,8 @@ class Client:
                 is ``True`` for all tasks by default. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
+            cache_key (optional): Customized cache key for this task.
+                If set, the cache_key will be used as the key for the task's cache.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
 
@@ -721,6 +724,7 @@ class Client:
             pipeline_id=pipeline_id,
             version_id=version_id,
             enable_caching=enable_caching,
+            cache_key=cache_key,
             pipeline_root=pipeline_root,
         )
 
@@ -806,6 +810,7 @@ class Client:
         enabled: bool = True,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
+        cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
     ) -> kfp_server_api.V2beta1RecurringRun:
         """Creates a recurring run.
@@ -850,6 +855,8 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
+            cache_key (optional): Customized cache key for this task.
+                If set, the cache_key will be used as the key for the task's cache.
             service_account: Specifies which Kubernetes service
                 account this recurring run uses.
         Returns:
@@ -862,6 +869,7 @@ class Client:
             pipeline_id=pipeline_id,
             version_id=version_id,
             enable_caching=enable_caching,
+            cache_key=cache_key,
             pipeline_root=pipeline_root,
         )
 
@@ -908,6 +916,7 @@ class Client:
         pipeline_id: Optional[str],
         version_id: Optional[str],
         enable_caching: Optional[bool],
+        cache_key: Optional[str],
         pipeline_root: Optional[str],
     ) -> _JobConfig:
         """Creates a JobConfig with spec and resource_references.
@@ -928,6 +937,8 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
+            cache_key (optional): Customized cache key for this task.
+                If set, the cache_key will be used as the key for the task's cache.
             pipeline_root: Root path of the pipeline outputs.
 
         Returns:
@@ -956,7 +967,7 @@ class Client:
             # settings.
             if enable_caching is not None:
                 _override_caching_options(pipeline_doc.pipeline_spec,
-                                          enable_caching)
+                                          enable_caching, cache_key)
             pipeline_spec = pipeline_doc.to_dict()
 
         pipeline_version_reference = None
@@ -983,6 +994,7 @@ class Client:
         namespace: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
+        cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         experiment_id: Optional[str] = None,
     ) -> RunPipelineResult:
@@ -1004,6 +1016,8 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
+            cache_key (optional): Customized cache key for this task.
+                If set, the cache_key will be used as the key for the task's cache.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
             experiment_id: ID of the experiment to add the run to. You cannot specify both experiment_id and experiment_name.
@@ -1032,6 +1046,7 @@ class Client:
                 namespace=namespace,
                 pipeline_root=pipeline_root,
                 enable_caching=enable_caching,
+                cache_key=cache_key,
                 service_account=service_account,
             )
 
@@ -1044,6 +1059,7 @@ class Client:
         namespace: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
+        cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         experiment_id: Optional[str] = None,
     ) -> RunPipelineResult:
@@ -1065,6 +1081,8 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
+            cache_key (optional): Customized cache key for this task.
+                If set, the cache_key will be used as the key for the task's cache.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
             experiment_id: ID of the experiment to add the run to. You cannot specify both experiment_id and experiment_name.
@@ -1105,6 +1123,7 @@ class Client:
             params=arguments,
             pipeline_root=pipeline_root,
             enable_caching=enable_caching,
+            cache_key=cache_key,
             service_account=service_account,
         )
         return RunPipelineResult(self, run_info)
@@ -1681,12 +1700,16 @@ def _extract_pipeline_yaml(package_file: str) -> _PipelineDoc:
 def _override_caching_options(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     enable_caching: bool,
+    cache_key: Optional[str] = None,
 ) -> None:
     """Overrides caching options.
 
     Args:
         pipeline_spec: The PipelineSpec object to update in-place.
         enable_caching: Overrides options, one of True, False.
+        cache_key: Overrides cache_key, default None, no-op.
     """
     for _, task_spec in pipeline_spec.root.dag.tasks.items():
         task_spec.caching_options.enable_cache = enable_caching
+        if cache_key:
+            task_spec.caching_options.cache_key = cache_key
