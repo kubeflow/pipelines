@@ -166,6 +166,8 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				"--type", "CONTAINER",
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 				"--run_id", runID(),
+				"--run_name", runResourceName(),
+				"--run_display_name", c.job.DisplayName,
 				"--dag_execution_id", inputValue(paramParentDagID),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
