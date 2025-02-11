@@ -40,5 +40,21 @@ jobs:
       run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
     - name: Run Samples Tests
+      id: tests
       run: |
         ./backend/src/v2/test/sample-test.sh
+      continue-on-error: true
+
+    - name: Collect failed logs
+      if: steps.tests.outcome != 'success'
+      run: | 
+        ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+        exit 1
+
+    - name: Collect test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
+        path: /tmp/tmp*/*
+
