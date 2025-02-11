@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -114,7 +115,9 @@ type Client struct {
 func NewClient() (*Client, error) {
 	cacheEndPoint := cacheDefaultEndpoint()
 	glog.Infof("Connecting to cache endpoint %s", cacheEndPoint)
-	conn, err := grpc.Dial(cacheEndPoint, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)), grpc.WithInsecure())
+	conn, err := grpc.Dial(cacheEndPoint,
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
 	}
