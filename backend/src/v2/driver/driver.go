@@ -75,6 +75,11 @@ type Options struct {
 	// optional, allows to specify kubernetes-specific executor config
 	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
 
+	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used
+	RunName string
+	// optional, required only if the {{$.pipeline_job_name}} placeholder is used
+	RunDisplayName string
+
 	// set to true if ml pipeline server is serving over tls
 	MLPipelineTLSEnabled bool
 
@@ -272,7 +277,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return nil, err
 	}
-	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd, expr)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts, mlmd, expr)
 	if err != nil {
 		return nil, err
 	}
@@ -828,7 +833,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	if err != nil {
 		return nil, err
 	}
-	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd, expr)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts, mlmd, expr)
 	if err != nil {
 		return nil, err
 	}
@@ -1053,12 +1058,16 @@ func validateNonRoot(opts Options) error {
 	return nil
 }
 
-func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, inputsSpec *pipelinespec.ComponentInputsSpec, mlmd *metadata.Client, expr *expression.Expr) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
+func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, opts Options, mlmd *metadata.Client, expr *expression.Expr) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to resolve inputs: %w", err)
 		}
 	}()
+
+	task := opts.Task
+	inputsSpec := opts.Component.GetInputDefinitions()
+
 	glog.V(4).Infof("dag: %v", dag)
 	glog.V(4).Infof("task: %v", task)
 	inputParams, _, err := dag.Execution.GetParameters()
@@ -1264,7 +1273,22 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			runtimeValue := paramSpec.GetRuntimeValue()
 			switch t := runtimeValue.Value.(type) {
 			case *pipelinespec.ValueOrRuntimeParameter_Constant:
-				inputs.ParameterValues[name] = runtimeValue.GetConstant()
+				val := runtimeValue.GetConstant()
+
+				switch val.GetStringValue() {
+				case "{{$.pipeline_job_name}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(opts.RunDisplayName)
+				case "{{$.pipeline_job_resource_name}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(opts.RunName)
+				case "{{$.pipeline_job_uuid}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(opts.RunID)
+				case "{{$.pipeline_task_name}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(task.GetTaskInfo().GetName())
+				case "{{$.pipeline_task_uuid}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(fmt.Sprintf("%d", opts.DAGExecutionID))
+				default:
+					inputs.ParameterValues[name] = val
+				}
 			default:
 				return nil, paramError(fmt.Errorf("param runtime value spec of type %T not implemented", t))
 			}

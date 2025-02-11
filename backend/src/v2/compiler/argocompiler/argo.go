@@ -351,6 +351,11 @@ func runID() string {
 	return "{{workflow.uid}}"
 }
 
+func runResourceName() string {
+	// This translates to the Argo Workflow object name.
+	return "{{workflow.name}}"
+}
+
 func workflowParameter(name string) string {
 	return fmt.Sprintf("{{workflow.parameters.%s}}", name)
 }
