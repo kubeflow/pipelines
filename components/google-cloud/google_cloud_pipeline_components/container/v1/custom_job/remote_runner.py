@@ -37,12 +37,13 @@ def create_custom_job_with_client(job_client, parent, job_spec):
   # max_wait_duration is acceptable only when strategy is FLEX_START in
   # CustomJob API. Clear max_wait_duration if strategy is not FLEX_START.
   if (
-      'scheduling' in job_spec
-      and 'stategy' in job_spec['scheduling']
-      and job_spec['scheduling']['strategy'] != 'FLEX_START'
-      and 'max_wait_duration' in job_spec['scheduling']
+      'job_spec' in job_spec
+      and 'scheduling' in job_spec['job_spec']
+      and 'strategy' in job_spec['job_spec']['scheduling']
+      and job_spec['job_spec']['scheduling']['strategy'] != 'FLEX_START'
+      and 'max_wait_duration' in job_spec['job_spec']['scheduling']
   ):
-    del job_spec['scheduling']['max_wait_duration']
+    del job_spec['job_spec']['scheduling']['max_wait_duration']
   try:
     create_custom_job_fn = job_client.create_custom_job(
         parent=parent, custom_job=job_spec
