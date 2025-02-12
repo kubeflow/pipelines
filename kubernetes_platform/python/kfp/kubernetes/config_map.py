@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+from typing import Dict, Union
 
 from google.protobuf import json_format
-from kfp.dsl import PipelineTask
+from kfp.dsl import PipelineTask, pipeline_channel
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
 
 def use_config_map_as_env(
     task: PipelineTask,
-    config_map_name: str,
+    config_map_name: Union[pipeline_channel.PipelineParameterChannel, str],
     config_map_key_to_env: Dict[str, str],
 ) -> PipelineTask:
     """Use a Kubernetes ConfigMap as an environment variable as described by the `Kubernetes documentation
@@ -45,10 +45,14 @@ def use_config_map_as_env(
             env_var=env_var,
         ) for config_map_key, env_var in config_map_key_to_env.items()
     ]
-    config_map_as_env = pb.ConfigMapAsEnv(
-        config_map_name=config_map_name,
-        key_to_env=key_to_env,
-    )
+    config_map_as_env = pb.ConfigMapAsEnv(key_to_env=key_to_env)
+
+    config_map_name_parameter = common.parse_k8s_parameter_input(config_map_name, task)
+    config_map_as_env.config_name_parameter.CopyFrom(config_map_name_parameter)
+
+    # deprecated: for backwards compatibility
+    if isinstance(config_map_name, str):
+        config_map_as_env.config_map_name = config_map_name
 
     msg.config_map_as_env.append(config_map_as_env)
 
@@ -59,7 +63,7 @@ def use_config_map_as_env(
 
 def use_config_map_as_volume(
     task: PipelineTask,
-    config_map_name: str,
+    config_map_name: Union[pipeline_channel.PipelineParameterChannel, str],
     mount_path: str,
     optional: bool = False,
 ) -> PipelineTask:
@@ -79,12 +83,18 @@ def use_config_map_as_volume(
     msg = common.get_existing_kubernetes_config_as_message(task)
 
     config_map_as_vol = pb.ConfigMapAsVolume(
-        config_map_name=config_map_name,
         mount_path=mount_path,
         optional=optional,
     )
-    msg.config_map_as_volume.append(config_map_as_vol)
 
+    config_map_name_parameter = common.parse_k8s_parameter_input(config_map_name, task)
+    config_map_as_vol.config_name_parameter.CopyFrom(config_map_name_parameter)
+
+    # deprecated: for backwards compatibility
+    if isinstance(config_map_name, str):
+        config_map_as_vol.config_map_name = config_map_name
+
+    msg.config_map_as_volume.append(config_map_as_vol)
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
     return task

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Optional, Union
 
 from google.protobuf import json_format
-from kfp.dsl import PipelineTask
+from kfp.dsl import PipelineTask, pipeline_channel
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
@@ -32,6 +32,7 @@ def add_toleration(
     value: Optional[str] = None,
     effect: Optional[Literal["NoExecute", "NoSchedule", "PreferNoSchedule"]] = None,
     toleration_seconds: Optional[int] = None,
+    toleration_json: Optional[Union[pipeline_channel.PipelineParameterChannel, dict]] = None,
 ):
     """Add a `toleration<https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/>`_. to a task.
 
@@ -61,21 +62,32 @@ def add_toleration(
             tolerates the taint. By default, it is not set, which means tolerate
             the taint forever (do not evict). Zero and negative values will be
             treated as 0 (evict immediately) by the system.
+        toleration_json:
+            a toleration provided as dict or input parameter. Takes
+            precedence over other key, operator, value, effect,
+            and toleration_seconds.
 
     Returns:
         Task object with added toleration.
     """
 
     msg = common.get_existing_kubernetes_config_as_message(task)
-    msg.tolerations.append(
-        pb.Toleration(
-            key=key,
-            operator=operator,
-            value=value,
-            effect=effect,
-            toleration_seconds=toleration_seconds,
+
+    toleration = pb.Toleration()
+    if toleration_json:
+        toleration.toleration_json.CopyFrom(
+            common.parse_k8s_parameter_input(toleration_json, task)
         )
-    )
+    else:
+        toleration = pb.Toleration(
+                key=key,
+                operator=operator,
+                value=value,
+                effect=effect,
+                toleration_seconds=toleration_seconds,
+            )
+
+    msg.tolerations.append(toleration)
     task.platform_config["kubernetes"] = json_format.MessageToDict(msg)
 
     return task

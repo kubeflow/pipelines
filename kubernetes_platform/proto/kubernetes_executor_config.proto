@@ -49,17 +49,20 @@ message EnabledSharedMemory {
 }
 
 message SecretAsVolume {
-    // Name of the Secret.
-    string secret_name = 1;
+    // Deprecated, use secret_name_parameter instead.
+    string secret_name = 1 [deprecated = true];
     // Container path to mount the Secret data.
     string mount_path = 2;
     // An optional boolean value indicating whether the Secret must be defined.
     optional bool optional = 3;
+
+    // Name of the Secret.
+    InputParameterSpec secret_name_parameter = 4;
 }
 
 message SecretAsEnv {
-    // Name of the Secret.
-    string secret_name = 1;
+    // Deprecated, use secret_name_parameter instead.
+    string secret_name = 1 [deprecated = true];
 
     message SecretKeyToEnvMap {
         // Corresponds to a key of the Secret.data field.
@@ -69,31 +72,26 @@ message SecretAsEnv {
     }
 
     repeated SecretKeyToEnvMap key_to_env = 2;
-}
 
-// Represents an upstream task's output parameter.
-message TaskOutputParameterSpec {
-    // The name of the upstream task which produces the output parameter that
-    // matches with the `output_parameter_key`.
-    string producer_task = 1;
-
-    // The key of [TaskOutputsSpec.parameters][] map of the producer task.
-    string output_parameter_key = 2;
+    // Name of the Secret.
+    InputParameterSpec secret_name_parameter = 4;
 }
 
 message PvcMount {
-    // Identifier for the PVC.
-    // Used like TaskInputsSpec.InputParameterSpec.kind.
+    // Deprecated, use pvc_name_parameter instead.
     oneof pvc_reference {
         // Output parameter from an upstream task.
-        TaskOutputParameterSpec task_output_parameter = 1;
+        TaskOutputParameterSpec task_output_parameter = 1  [deprecated = true];
         // A constant value.
-        string constant = 2;
+        string constant = 2 [deprecated = true];
         // Pass the input parameter from parent component input parameter.
-        string component_input_parameter = 3;
+        string component_input_parameter = 3 [deprecated = true];
     }
     // Container path to which the PVC should be mounted.
     string mount_path = 4;
+
+    // Name of the PVC.
+    InputParameterSpec pvc_name_parameter = 5;
 }
 
 message CreatePvc {
@@ -136,6 +134,11 @@ message NodeSelector {
     // map of label key to label value
     // corresponds to Pod.spec.nodeSelector field https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
     map<string, string> labels = 1;
+
+    // Provide a json struct of node selector
+    // Takes precedence over labels.
+    // Example: {"disk-type": "ssd", "region": "us-west"}
+    InputParameterSpec node_selector_json = 2;
 }
 
 message PodMetadata {
@@ -146,17 +149,20 @@ message PodMetadata {
 }
 
 message ConfigMapAsVolume {
-    // Name of the ConfigMap.
-    string config_map_name = 1;
+    // Deprecated, use config_name_parameter instead.
+    string config_map_name = 1 [deprecated = true];
     // Container path to mount the ConfigMap data.
     string mount_path = 2;
     // An optional boolean value indicating whether the ConfigMap must be defined.
     optional bool optional = 3;
+
+    // Name of the ConfigMap.
+    InputParameterSpec config_name_parameter = 4;
 }
 
 message ConfigMapAsEnv {
-    // Name of the ConfigMap.
-    string config_map_name = 1;
+    // Deprecated, use config_name_parameter instead.
+    string config_map_name = 1 [deprecated = true];
 
     message ConfigMapKeyToEnvMap {
         // Corresponds to a key of the ConfigMap.
@@ -166,6 +172,9 @@ message ConfigMapAsEnv {
     }
 
     repeated ConfigMapKeyToEnvMap key_to_env = 2;
+
+    // Name of the ConfigMap.
+    InputParameterSpec config_name_parameter = 3;
 }
 
 message GenericEphemeralVolume {
@@ -190,7 +199,9 @@ message GenericEphemeralVolume {
 
 message ImagePullSecret {
     // Name of the image pull secret.
-    string secret_name = 1;
+    string secret_name = 1 [deprecated = true];
+
+    InputParameterSpec secret_name_parameter = 2;
 }
 
 message FieldPathAsEnv {
@@ -207,6 +218,14 @@ message Toleration {
     string value = 3;
     string effect = 4;
     optional int64 toleration_seconds = 5;
+
+    // Provide a json struct of the toleration
+    // Takes precedence over key, operator, value, effect.
+    // Example: {"key": "key1", "operator": "Equal", "value": "value1", "effect": "NoSchedule"}
+    // The JSON must follow Kubernetes
+    // Toleration structure:
+    // https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core
+    InputParameterSpec toleration_json = 6;
 }
 
 // Matches https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselectorrequirement-v1-meta and
@@ -243,4 +262,107 @@ message EmptyDirMount {
     string mount_path = 2;
     optional string medium = 3;
     optional string size_limit = 4;
+}
+
+// The proto messages below are copied from pipeline_spec.proto
+// and should match their structure.
+
+// Represents an input parameter. The value can be taken from an upstream
+// task's output parameter (if specifying `producer_task` and
+// `output_parameter_key`, or it can be a runtime value, which can either be
+// determined at compile-time, or from a pipeline parameter.
+message InputParameterSpec {
+  // Represents an upstream task's output parameter.
+  message TaskOutputParameterSpec {
+    // The name of the upstream task which produces the output parameter that
+    // matches with the `output_parameter_key`.
+    string producer_task = 1;
+
+    // The key of [TaskOutputsSpec.parameters][] map of the producer task.
+    string output_parameter_key = 2;
+  }
+
+  // Represents an upstream task's final status. The field can only be set if
+  // the schema version is `2.0.0`. The resolved input parameter will be a
+  // json payload in string type.
+  message TaskFinalStatus {
+    // The name of the upsteram task where the final status is coming from.
+    string producer_task = 1;
+  }
+
+  oneof kind {
+    // Output parameter from an upstream task.
+    TaskOutputParameterSpec task_output_parameter = 1;
+    // A constant value or runtime parameter.
+    ValueOrRuntimeParameter runtime_value = 2;
+    // Pass the input parameter from parent component input parameter.
+    string component_input_parameter = 3;
+    // The final status of an upstream task.
+    TaskFinalStatus task_final_status = 5;
+  }
+
+  // Selector expression of Common Expression Language (CEL)
+  // that applies to the parameter found from above kind.
+  //
+  // The expression is applied to the Value type
+  // [Value][].  For example,
+  // 'size(string_value)' will return the size of the Value.string_value.
+  //
+  // After applying the selection, the parameter will be returned as a
+  // [Value][].  The type of the Value is either deferred from the input
+  // definition in the corresponding
+  // [ComponentSpec.input_definitions.parameters][], or if not found,
+  // automatically deferred as either string value or double value.
+  //
+  // In addition to the builtin functions in CEL, The value.string_value can
+  // be treated as a json string and parsed to the [google.protobuf.Value][]
+  // proto message. Then, the CEL expression provided in this field will be
+  // used to get the requested field. For examples,
+  //  - if Value.string_value is a json array of "[1.1, 2.2, 3.3]",
+  //  'parseJson(string_value)[i]' will pass the ith parameter from the list
+  //  to the current task, or
+  //  - if the Value.string_value is a json map of "{"a": 1.1, "b": 2.2,
+  //  "c": 3.3}, 'parseJson(string_value)[key]' will pass the map value from
+  //  the struct map to the current task.
+  //
+  // If unset, the value will be passed directly to the current task.
+  string parameter_expression_selector = 4;
+}
+
+// Definition for a value or reference to a runtime parameter. A
+// ValueOrRuntimeParameter instance can be either a field value that is
+// determined during compilation time, or a runtime parameter which will be
+// determined during runtime.
+message ValueOrRuntimeParameter {
+  oneof value {
+    // Constant value which is determined in compile time.
+    // Deprecated. Use [ValueOrRuntimeParameter.constant][] instead.
+    Value constant_value = 1 [deprecated = true];
+    // The runtime parameter refers to the parent component input parameter.
+    string runtime_parameter = 2;
+    // Constant value which is determined in compile time.
+    google.protobuf.Value constant = 3;
+  }
+}
+
+// Value is the value of the field.
+message Value {
+  oneof value {
+    // An integer value
+    int64 int_value = 1;
+    // A double value
+    double double_value = 2;
+    // A string value
+    string string_value = 3;
+  }
+}
+
+// Represents an upstream task's output parameter.
+message TaskOutputParameterSpec {
+    // The name of the upstream task which produces the output parameter that
+    // matches with the `output_parameter_key`.
+    string producer_task = 1;
+
+    // The key of [TaskOutputsSpec.parameters][] map of the producer task.
+    string output_parameter_key = 2;
 }
