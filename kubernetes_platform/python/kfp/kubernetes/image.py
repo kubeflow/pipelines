@@ -1,4 +1,4 @@
-# Copyright 2024 The Kubeflow Authors
+# Copyright 2025 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ def set_image_pull_secrets(
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
-    # Assuming secret_names is a list of strings
     if is_list_of_strings(secret_names) or is_list_of_parameter_channel(secret_names):
         image_pull_secret = []
         for secret_name in secret_names:
@@ -76,8 +75,10 @@ def set_image_pull_policy(task: PipelineTask, policy: str) -> PipelineTask:
 
     return task
 
+
 def is_list_of_strings(items: list) -> bool:
     return all(isinstance(item, str) for item in items)
+
 
 def is_list_of_parameter_channel(items: list) -> bool:
     return all(isinstance(item, pipeline_channel.PipelineParameterChannel) for item in items)
