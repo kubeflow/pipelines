@@ -16,7 +16,7 @@ package util
 
 import (
 	"encoding/json"
-	core "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"math"
 	"strconv"
 	"testing"
@@ -510,7 +510,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) 
 func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *testing.T) {
 	// Must run now
 	scheduledEpoch := int64(10 * hour)
-	updatedEpoch := int64(11 * hour)
+	updatedEpoch := int64(0)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -560,7 +560,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{{
 				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             core.ConditionTrue,
+				Status:             corev1.ConditionTrue,
 				LastProbeTime:      metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				LastTransitionTime: metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				Reason:             string(swfapi.ScheduledWorkflowEnabled),
@@ -591,7 +591,7 @@ func createStatus(workflowName string, scheduledEpoch int64) *swfapi.WorkflowSta
 func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *testing.T) {
 	// Must run now
 	scheduledEpoch := int64(10 * hour)
-	updatedEpoch := int64(11 * hour)
+	updatedEpoch := int64(0)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -641,7 +641,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{{
 				Type:               swfapi.ScheduledWorkflowEnabled,
-				Status:             core.ConditionTrue,
+				Status:             corev1.ConditionTrue,
 				LastProbeTime:      metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				LastTransitionTime: metav1.NewTime(time.Unix(updatedEpoch, 0).UTC()),
 				Reason:             string(swfapi.ScheduledWorkflowEnabled),

@@ -162,7 +162,7 @@ function NewRunSwitcher(props: PageProps) {
     recurringRunIsFetching ||
     pipelineIsFetching ||
     pipelineVersionIsFetching ||
-    v1TemplateStrIsFetching ||
+    (!isTemplateV2(templateString) && v1TemplateStrIsFetching) ||
     experimentIsFetching
   ) {
     return <div>Currently loading pipeline information</div>;

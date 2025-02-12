@@ -41,7 +41,8 @@ class TestV2beta1Experiment(unittest.TestCase):
                 description = '0', 
                 created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 namespace = '0', 
-                storage_state = 'STORAGE_STATE_UNSPECIFIED'
+                storage_state = 'STORAGE_STATE_UNSPECIFIED', 
+                last_run_created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f')
             )
         else :
             return V2beta1Experiment(

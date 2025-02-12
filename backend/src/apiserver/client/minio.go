@@ -52,7 +52,7 @@ func CreateMinioClient(minioServiceHost string, minioServicePort string,
 	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey)
 	minioClient, err := minio.NewWithCredentials(endpoint, cred, secure, region)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error while creating minio client: %+v", err)
+		return nil, errors.Wrapf(err, "Error while creating object store client: %+v", err)
 	}
 	return minioClient, nil
 }
@@ -74,7 +74,7 @@ func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
 	b.MaxElapsedTime = initConnectionTimeout
 	err = backoff.Retry(operation, b)
 	if err != nil {
-		glog.Fatalf("Failed to create Minio client. Error: %v", err)
+		glog.Fatalf("Failed to create object store client. Error: %v", err)
 	}
 	return minioClient
 }

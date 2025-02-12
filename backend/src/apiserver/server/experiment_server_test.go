@@ -739,7 +739,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 		DisplayName:      "exp1",
 		Description:      "",
 		CreatedAt:        &timestamp.Timestamp{Seconds: 1},
-		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 6},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 5},
 		StorageState:     apiV2beta1.Experiment_AVAILABLE,
 		Namespace:        "",
 	}
@@ -747,8 +747,8 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 		ExperimentId:     experiment2.ExperimentId,
 		DisplayName:      "exp2",
 		Description:      "",
-		CreatedAt:        &timestamp.Timestamp{Seconds: 5},
-		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 8},
+		CreatedAt:        &timestamp.Timestamp{Seconds: 4},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: 7},
 		StorageState:     apiV2beta1.Experiment_AVAILABLE,
 		Namespace:        "",
 	}

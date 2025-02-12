@@ -15,6 +15,7 @@
 package util
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -55,6 +56,26 @@ func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAd
 	return errors.Wrapf(err, "Waiting for ml pipeline API server failed after all attempts.")
 }
 
+// GetKubernetesConfig will first try an in-cluster configuration but fallback to using a kubeconfig.
+func GetKubernetesConfig() (*rest.Config, error) {
+	restConfig, errInCluster := rest.InClusterConfig()
+	if errInCluster == nil {
+		return restConfig, nil
+	}
+
+	// Fallback to using a kubeconfig
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{},
+	)
+
+	restConfig, errKubeconfig := clientConfig.ClientConfig()
+	if errKubeconfig != nil {
+		return nil, fmt.Errorf("%w; %w", errInCluster, errKubeconfig)
+	}
+
+	return restConfig, nil
+}
+
 func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 	*kubernetes.Clientset, *rest.Config, string, error,
 ) {
@@ -77,6 +98,35 @@ func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 			"Failed to create client set during K8s client initialization")
 	}
 	return clientSet, config, namespace, nil
+}
+
+func GetRpcConnectionWithTimeout(address string, tlsEnabled bool, caCertPath string, timeout time.Time) (*grpc.ClientConn, error) {
+	creds := insecure.NewCredentials()
+	if tlsEnabled {
+		if caCertPath == "" {
+			return nil, errors.New("CA cert path is empty")
+		}
+
+		caCert, err := os.ReadFile(caCertPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "Encountered error when reading CA cert path for creating a metadata client.")
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		config := &tls.Config{
+			RootCAs: caCertPool,
+		}
+		creds = credentials.NewTLS(config)
+	}
+
+	ctx, _ := context.WithDeadline(context.Background(), timeout)
+
+	conn, err := grpc.DialContext(ctx, address, grpc.WithTransportCredentials(creds), grpc.WithBlock())
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
+	}
+	return conn, nil
 }
 
 func GetRpcConnection(address string, tlsEnabled bool, caCertPath string) (*grpc.ClientConn, error) {

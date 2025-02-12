@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 )
 
 type KubernetesCoreInterface interface {
@@ -25,7 +24,7 @@ func (c *KubernetesCore) PodClient(namespace string) v1.PodInterface {
 }
 
 func createKubernetesCore(clientParams util.ClientParameters) (KubernetesCoreInterface, error) {
-	restConfig, err := rest.InClusterConfig()
+	restConfig, err := util.GetKubernetesConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to initialize kubernetes client.")
 	}

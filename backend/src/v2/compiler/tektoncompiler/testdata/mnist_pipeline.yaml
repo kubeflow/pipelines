@@ -37,7 +37,7 @@ spec:
           convert_experiment_spec_to_str(experiment_spec_json: Dict[str, str])-\u003e
           NamedTuple(''Outputs'', [(''experiment_spec_str_output'', str)]):\n    import
           json\n    output = NamedTuple(''Outputs'', [(''experiment_spec_str_output'',
-          str)])\n    return output(json.dumps(experiment_spec_json))\n\n"],"image":"python:3.7"}'
+          str)])\n    return output(json.dumps(experiment_spec_json))\n\n"],"image":"python:3.9"}'
       - name: iteration-index
         value: ""
       - name: kubernetes-config
@@ -157,7 +157,7 @@ spec:
               - configMapRef:
                   name: metadata-grpc-configmap
                   optional: true
-              image: python:3.7
+              image: python:3.9
               name: user-main
     - name: convert-katib-results
       params:
@@ -188,7 +188,7 @@ spec:
           pa[\"name\"] == \"learning_rate\":\n            best_hps.append(\"--tf-learning-rate=\"
           + pa[\"value\"])\n        elif pa[\"name\"] == \"batch_size\":\n            best_hps.append(\"--tf-batch-size=\"
           + pa[\"value\"])\n    print(\"Best Hyperparameters: {}\".format(best_hps))\n    return
-          \" \".join(best_hps)\n\n"],"image":"python:3.7"}'
+          \" \".join(best_hps)\n\n"],"image":"python:3.9"}'
       - name: iteration-index
         value: ""
       - name: kubernetes-config
@@ -321,7 +321,7 @@ spec:
               - configMapRef:
                   name: metadata-grpc-configmap
                   optional: true
-              image: python:3.7
+              image: python:3.9
               name: user-main
     - name: create-dataset
       params:
@@ -501,7 +501,7 @@ spec:
           Create an Experiment from the above parameters.\n    experiment_spec = V1beta1ExperimentSpec(\n        max_trial_count=max_trial_count,\n        max_failed_trial_count=max_failed_trial_count,\n        parallel_trial_count=parallel_trial_count,\n        objective=objective,\n        algorithm=algorithm,\n        parameters=parameters,\n        trial_template=trial_template\n    )\n\n    #
           Convert experiment_spec to Dict type.\n    experiment_spec_json = ApiClient().sanitize_for_serialization(experiment_spec)\n    output
           = NamedTuple(''Outputs'', [(''experiment_spec_json'', Dict[str, str])])\n    return
-          output(experiment_spec_json)\n\n"],"image":"python:3.8"}'
+          output(experiment_spec_json)\n\n"],"image":"python:3.9"}'
       - name: iteration-index
         value: ""
       - name: kubernetes-config
@@ -761,7 +761,7 @@ spec:
               - configMapRef:
                   name: metadata-grpc-configmap
                   optional: true
-              image: python:3.8
+              image: python:3.9
               name: user-main
     - name: create-tfjob-task
       params:
@@ -812,7 +812,7 @@ spec:
           [\n                          \"python /opt/model.py --tf-export-dir=/mnt/export
           --tf-train-steps={} {}\".format(training_steps, best_hps) \n                        ],\n                    }\n                ],\n            }\n        }\n    }\n\n    output
           = NamedTuple(''Outputs'', [(''chief_spec'', Dict[str, str]), (''worker_spec'',
-          Dict[str, str])])\n    return output(tfjob_chief_spec, tfjob_worker_spec)\n\n"],"image":"python:3.7"}'
+          Dict[str, str])])\n    return output(tfjob_chief_spec, tfjob_worker_spec)\n\n"],"image":"python:3.9"}'
       - name: iteration-index
         value: ""
       - name: kubernetes-config
@@ -962,7 +962,7 @@ spec:
               - configMapRef:
                   name: metadata-grpc-configmap
                   optional: true
-              image: python:3.7
+              image: python:3.9
               name: user-main
     - name: convert-inference-service-to-artifact
       params:
@@ -987,7 +987,7 @@ spec:
           kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
           convert_inference_service_to_artifact(inferenceservice_yaml: Dict[str, str],
           inferenceservice_artifact: Output[Artifact]):\n    import json\n    with
-          open(inferenceservice_artifact.path, ''w'') as f:\n        f.write(json.dumps(inferenceservice_yaml))\n\n"],"image":"python:3.7"}'
+          open(inferenceservice_artifact.path, ''w'') as f:\n        f.write(json.dumps(inferenceservice_yaml))\n\n"],"image":"python:3.9"}'
       - name: iteration-index
         value: ""
       - name: kubernetes-config
@@ -1107,7 +1107,7 @@ spec:
               - configMapRef:
                   name: metadata-grpc-configmap
                   optional: true
-              image: python:3.7
+              image: python:3.9
               name: user-main
     - name: create-serving-task
       params:
@@ -1138,7 +1138,7 @@ spec:
           {\n            \"sidecar.istio.io/inject\": \"false\"\n          }\n        },\n        \"spec\":{\n          \"predictor\":{\n            \"tensorflow\":
           {\n              \"storageUri\": \"pvc://{}/\".format(model_volume_name)\n            }\n          }\n        }\n    }\n\n    output
           = NamedTuple(''Outputs'', [(''inferenceservice_yaml'', Dict[str, str])])\n    return
-          output(inference_service)\n\n"],"image":"python:3.7"}'
+          output(inference_service)\n\n"],"image":"python:3.9"}'
       - name: iteration-index
         value: ""
       - name: kubernetes-config
@@ -1277,7 +1277,7 @@ spec:
               - configMapRef:
                   name: metadata-grpc-configmap
                   optional: true
-              image: python:3.7
+              image: python:3.9
               name: user-main
     - name: serving-launcher
       params:

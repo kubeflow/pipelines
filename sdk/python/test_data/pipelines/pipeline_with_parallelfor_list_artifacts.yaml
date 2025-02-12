@@ -257,7 +257,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -274,7 +274,7 @@ deploymentSpec:
           \ *\n\ndef make_artifact(data: str) -> Artifact:\n    artifact = Artifact(uri=dsl.get_uri(),\
           \ metadata={'length': len(data)})\n    with open(artifact.path, 'w') as\
           \ f:\n        f.write(data)\n    return artifact\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-make-dataset:
       container:
         args:
@@ -287,7 +287,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -304,7 +304,7 @@ deploymentSpec:
           \ *\n\ndef make_dataset(data: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
           \ metadata={'length': len(data)})\n    with open(dataset.path, 'w') as f:\n\
           \        f.write(data)\n    return dataset\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-artifact-name:
       container:
         args:
@@ -317,7 +317,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -333,7 +333,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
           \    return artifact.name\n\n"
-        image: python:3.7
+        image: python:3.9
     exec-print-artifact-name-2:
       container:
         args:
@@ -346,7 +346,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.6.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -362,7 +362,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
           \    return artifact.name\n\n"
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: pipeline-parallelfor-artifacts
 root:
@@ -417,4 +417,4 @@ root:
         taskInfo:
           name: make-datasets
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.6.0
+sdkVersion: kfp-2.7.0

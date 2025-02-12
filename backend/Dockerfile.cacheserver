@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Dockerfile for building the source code of cache_server
-FROM golang:1.21.7-alpine3.19 as builder
+FROM golang:1.22.10-alpine3.21 as builder
 
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc musl-dev
@@ -22,21 +22,12 @@ WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
 COPY ./go.sum ./
-COPY ./hack/install-go-licenses.sh ./hack/
 
 RUN GO111MODULE=on go mod download
-RUN ./hack/install-go-licenses.sh
 
 COPY . .
 
 RUN GO111MODULE=on go build -o /bin/cache_server backend/src/cache/*.go
-
-# Check licenses and comply with license terms.
-# First, make sure there's no forbidden license.
-RUN go-licenses check ./backend/src/cache
-RUN go-licenses csv ./backend/src/cache > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv backend/third_party_licenses/cache_server.csv && \
-    go-licenses save ./backend/src/cache --save_path /tmp/NOTICES
 
 FROM alpine:3.19
 
@@ -46,8 +37,5 @@ USER appuser
 WORKDIR /bin
 
 COPY --from=builder /bin/cache_server /bin/cache_server
-# Copy licenses and notices.
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 
 ENTRYPOINT [ "/bin/cache_server" ]

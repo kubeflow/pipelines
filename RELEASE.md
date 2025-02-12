@@ -169,7 +169,7 @@ Do the following things before a release:
 
 1. Verify cloudbuild and postsubmit tests are passing: visit <https://github.com/kubeflow/pipelines/commits/master> for master branch.
 
-![How to very cloudbuild and postsubmit status](release-status-check.png)
+![How to very cloudbuild and postsubmit status](images/release-status-check.png)
 
 If not, contact the KFP team to determine if the failure(s) would block the release. You can also retry the failed job by opening the detail page of prow job, and click the refresh button next ot the job title.
 
@@ -185,6 +185,35 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     - `1.1.0`
     - ...
     Set the version by using `VERSION=<version-value>`. Contact @chensun if you are not sure what next version should be.
+
+1. Release `driver` and `launcher` images
+
+   First build and push `driver` and `launcher` images:
+
+   ```bash
+   pushd ./backend
+
+   export IMG_TAG_DRIVER=gcr.io/ml-pipeline/kfp-driver
+   make license_driver image_driver
+   docker push $IMG_TAG_DRIVER
+
+   export IMG_TAG_LAUNCHER=gcr.io/ml-pipeline/kfp-launcher
+   make license_launcher image_launcher
+   docker push $IMG_TAG_LAUNCHER
+
+   popd
+   ```
+
+   If there are changes to the licenses files, make a Pull Request and merge the changes. (e.g. https://github.com/kubeflow/pipelines/pull/11177/)
+
+   Once the images are pushed, update the hard-coded hash in the code: [`DefaultLauncherImage`](https://github.com/kubeflow/pipelines/blob/4c955f4780839702dc4924f8f4e7c90aa251b826/backend/src/v2/compiler/argocompiler/container.go#L33) and [`DefaultDriverImage`](https://github.com/kubeflow/pipelines/blob/4c955f4780839702dc4924f8f4e7c90aa251b826/backend/src/v2/compiler/argocompiler/container.go#L35). Make a Pull Request and merge the change (e.g.: https://github.com/kubeflow/pipelines/pull/11178)
+
+   Pull the changes:
+
+   ```bash
+   git checkout $BRANCH
+   git pull upstream $BRANCH
+   ```
 
 1. Update all version refs in release branch by
 
@@ -206,7 +235,7 @@ in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more detai
 on Google Cloud Build" and then "Retry".
 
     NOTE: you can find your latest release commit in <https://github.com/kubeflow/pipelines/commits/master> and select your release branch.
-    ![How to very cloudbuild and postsubmit status](release-status-check.png)
+    ![How to very cloudbuild and postsubmit status](images/release-status-check.png)
 
 1. Select the `release-on-tag` cloudbuild job that copies built images and artifacts to
 public image registry and gcs bucket. This job should have already failed because
@@ -217,9 +246,9 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     It will create a build with "Branch: $BRANCH" instead of "TAG: $VERSION".
     Open "View more details on Google Cloud Build", and rerun from there.
 
-    ![Retry release-on-tag from the Google Cloud Build details page](retry-release-on-tag.png)
+    ![Retry release-on-tag from the Google Cloud Build details page](images/retry-release-on-tag.png)
 
-    ![Verify that you're retrying the right build](verify-retry-the-right-build.png)
+    ![Verify that you're retrying the right build](images/verify-retry-the-right-build.png)
 
     TODO: we should have an automation KFP cluster, and the waiting and submiting
     `release-on-tag` cloudbuild task should happen automatically.
@@ -237,7 +266,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     cd backend/api/v2beta1/python_http_client
     rm -r dist
     python3 setup.py --quiet sdist
-    python3 -m twine upload --username kubeflow-pipelines dist/*
+    python3 -m twine upload dist/*
     ```
 
 1. Release `kfp` python packages to PyPI. (Note: Please skip this step for backend release, this step will be handled by SDK release.)
@@ -245,7 +274,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     ```bash
     pip3 install twine --user
     gsutil cp gs://ml-pipeline/release/$VERSION/kfp.tar.gz kfp-$VERSION.tar.gz
-    python3 -m twine upload --username kubeflow-pipelines kfp-$VERSION.tar.gz
+    python3 -m twine upload kfp-$VERSION.tar.gz
     ```
 
     !!! The file name must contain the version. See <https://github.com/kubeflow/pipelines/issues/1292>
@@ -262,7 +291,7 @@ fill in the description. Detailed steps:
        <pre>
        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
-       Install python SDK (python 3.7 above) by running:
+       Install python SDK (python 3.9 above) by running:
 
        ```bash
        python3 -m pip install kfp kfp-server-api --upgrade
@@ -277,7 +306,7 @@ fill in the description. Detailed steps:
        <pre>
         To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
 
-        Install kfp-server-api package (python 3.7 above) by running:
+        Install kfp-server-api package (python 3.9 above) by running:
 
         ```bash
         python3 -m pip install kfp-server-api==$VERSION --upgrade
@@ -320,8 +349,6 @@ Update master branch to the same version and include latest changelog:
    ```
 
    and create a PR to update the version, e.g. <https://github.com/kubeflow/website/pull/1942>.
-
-1. Follow [Upgrade KFP](https://github.com/kubeflow/testing/tree/master/test-infra/kfp) instruction to upgrade KFP manifests in test-infra.
 
 ## Release Process Development
 

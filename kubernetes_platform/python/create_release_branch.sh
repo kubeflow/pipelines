@@ -48,6 +48,12 @@ else
     mv $PKG_ROOT/docs/.readthedocs.yml $REPO_ROOT/.readthedocs.yml
     rm $REPO_ROOT/kubernetes_platform/.gitignore
 
+    git add $PKG_ROOT/docs/.readthedocs.yml
+    git add $REPO_ROOT/.readthedocs.yml
+    git add $REPO_ROOT/kubernetes_platform/.gitignore
+    git add $REPO_ROOT/*_pb2.py
 
-    echo "\nNext steps:\n\tPush branch using 'git push --set-upstream upstream $BRANCH_NAME'"
+    echo "Next steps:"
+    echo "1. Inspect and commit the modified files."
+    echo "2. Push branch using 'git push --set-upstream upstream $BRANCH_NAME'"
 fi

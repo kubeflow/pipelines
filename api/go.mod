@@ -1,6 +1,6 @@
 module github.com/kubeflow/pipelines/api
 
-go 1.16
+go 1.21
 
 require (
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1
