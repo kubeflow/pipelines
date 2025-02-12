@@ -634,8 +634,6 @@ github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-kfptask v0.0.0-202404172213
 github.com/kubeflow/kfp-tekton/tekton-catalog/tekton-kfptask v0.0.0-20240417221339-0b894195443c/go.mod h1:PGwbV4v8F6E8RXuvtJ9qpnIiESpK8LL3JDSsGo6nT+o=
 github.com/kubeflow/pipelines/api v0.0.0-20250102152816-873e9dedd766 h1:ZXz+Ki+hxez8vsr5hWHsjYWpa9V/dkp3iI4XTtMBH7A=
 github.com/kubeflow/pipelines/api v0.0.0-20250102152816-873e9dedd766/go.mod h1:puPWVUzB1VCb8lVq4g06IR2rIXuSpejDTd/FkSr6nvc=
-github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240725205754-d911c8b73b49 h1:Xf1qun8x4ZJj/nLZpUSIaphDK04NKeV7WME31qIC8Xo=
-github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240725205754-d911c8b73b49/go.mod h1:UhJrmpVSWawsAsSr1OzZfsEZTvQce+GvGwcZ58ULEhM=
 github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20240416215826-da804407ad31 h1:t1G2SexX+SwtYiaFrwH1lzGRSiXYMjd2QDT9842Ytpc=
 github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20240416215826-da804407ad31/go.mod h1:gh5+EFvuVywvSOYxqT0N91VKuPtScUke/F66RT0NJ80=
 github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 h1:SOEGU9fKiNWd/HOJuq6+3iTQz8KNCLtVX6idSoTLdUw=

@@ -19,6 +19,7 @@ WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
 COPY ./go.sum ./
+COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
 
 RUN GO111MODULE=on go mod download
 

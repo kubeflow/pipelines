@@ -230,6 +230,7 @@ require (
 replace (
 	github.com/kubeflow/kfp-tekton/tekton-catalog/cache => github.com/kubeflow/kfp-tekton/tekton-catalog/cache v0.0.0-20240417221339-0b894195443c
 	github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore => github.com/kubeflow/kfp-tekton/tekton-catalog/objectstore v0.0.0-20240417221339-0b894195443c
+	github.com/kubeflow/pipelines/kubernetes_platform => ./kubernetes_platform
 )
 
 exclude github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f
