@@ -33,8 +33,7 @@ type PipelineSpec struct {
 	PipelineSpecManifest string `gorm:"column:PipelineSpecManifest; size:33554432;"`
 
 	// Argo workflow YAML definition. This is the Argo Spec converted from Pipeline YAML.
-	// This is deprecated. Use the pipeline ID, pipeline version ID, or pipeline spec manifest.
-	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; size:33554432;"`
+	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; not null; size:33554432;"`
 
 	// Store parameters key-value pairs as serialized string.
 	// This field is only used for V1 API. For V2, use the `Parameters` field in RuntimeConfig.

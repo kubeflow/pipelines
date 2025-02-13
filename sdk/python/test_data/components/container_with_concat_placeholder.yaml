@@ -31,7 +31,7 @@ deploymentSpec:
         command:
         - my_program
         - '{"Concat": ["prefix-", "{{$.inputs.parameters[''text1'']}}", "{{$.outputs.artifacts[''text2''].uri}}"]}'
-        image: python:3.9
+        image: python:3.7
 pipelineInfo:
   name: container-with-concat-placeholder
 root:
@@ -73,4 +73,4 @@ root:
       output_path:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.1.3

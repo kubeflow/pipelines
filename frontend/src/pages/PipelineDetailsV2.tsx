@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { MouseEvent as ReactMouseEvent, useState } from 'react';
-import { FlowElement } from 'react-flow-renderer';
+import React, { useState } from 'react';
+import { Elements, FlowElement } from 'react-flow-renderer';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
@@ -25,7 +25,6 @@ import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
-import { Edge, Node } from 'react-flow-renderer/dist/types';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
 
@@ -58,6 +57,16 @@ function PipelineDetailsV2({
     setSubDagLayers(l);
   };
 
+  const onSelectionChange = (elements: Elements<FlowElementDataBase> | null) => {
+    if (!elements || elements?.length === 0) {
+      setSelectedNode(null);
+      return;
+    }
+    if (elements && elements.length === 1) {
+      setSelectedNode(elements[0]);
+    }
+  };
+
   const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
     if (element && element.data && element.data.label) {
       return element.data.label;
@@ -75,9 +84,7 @@ function PipelineDetailsV2({
             layers={layers}
             onLayersUpdate={layerChange}
             elements={pipelineFlowElements}
-            onElementClick={(event: ReactMouseEvent, element: Node | Edge) =>
-              setSelectedNode(element)
-            }
+            onSelectionChange={onSelectionChange}
             setFlowElements={() => {}}
           ></DagCanvas>
           <PipelineVersionCard
@@ -91,7 +98,7 @@ function PipelineDetailsV2({
               <SidePanel
                 isOpen={!!selectedNode}
                 title={getNodeName(selectedNode)}
-                onClose={() => setSelectedNode(null)}
+                onClose={() => onSelectionChange(null)}
                 defaultWidth={'50%'}
               >
                 <div className={commonCss.page}>

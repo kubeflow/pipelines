@@ -18,7 +18,7 @@ ARG CI_CONTAINER_VERSION="unknown"
 
 
 # Use ubi8/nodejs-14 as base image
-FROM registry.access.redhat.com/ubi8/go-toolset:1.22 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.21 as builder
 
 
 ## Build args to be used at this step

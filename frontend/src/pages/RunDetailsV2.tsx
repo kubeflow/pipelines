@@ -13,8 +13,8 @@
 // limitations under the License.
 
 import * as React from 'react';
-import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
-import { FlowElement } from 'react-flow-renderer';
+import { useEffect, useState } from 'react';
+import { Elements, FlowElement } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
@@ -51,7 +51,6 @@ import { classes } from 'typestyle';
 import { RunDetailsProps } from './RunDetails';
 import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
-import { Edge, Node } from 'react-flow-renderer/dist/types';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
@@ -141,12 +140,18 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     );
   }
 
-  const onElementSelection = (event: ReactMouseEvent, element: Node | Edge) => {
-    setSelectedNode(element);
-    if (data) {
-      setSelectedNodeMlmdInfo(
-        getNodeMlmdInfo(element, data.executions, data.events, data.artifacts),
-      );
+  const onSelectionChange = (elements: Elements<FlowElementDataBase> | null) => {
+    if (!elements || elements?.length === 0) {
+      setSelectedNode(null);
+      return;
+    }
+    if (elements && elements.length === 1) {
+      setSelectedNode(elements[0]);
+      if (data) {
+        setSelectedNodeMlmdInfo(
+          getNodeMlmdInfo(elements[0], data.executions, data.events, data.artifacts),
+        );
+      }
     }
   };
 
@@ -193,7 +198,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               layers={layers}
               onLayersUpdate={layerChange}
               elements={dynamicFlowElements}
-              onElementClick={onElementSelection}
+              onSelectionChange={onSelectionChange}
               setFlowElements={elems => setFlowElements(elems)}
             ></DagCanvas>
 
@@ -202,7 +207,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               <SidePanel
                 isOpen={!!selectedNode}
                 title={getNodeName(selectedNode)}
-                onClose={() => setSelectedNode(null)}
+                onClose={() => onSelectionChange(null)}
                 defaultWidth={'50%'}
               >
                 <RuntimeNodeDetailsV2

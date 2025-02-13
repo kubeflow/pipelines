@@ -1,0 +1,144 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "10", "name": "my_pipe_param", "type": "Integer"}],
+      "name": "my-pipeline"}'
+  generateName: my-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: my_pipe_param
+      value: '10'
+  entrypoint: my-pipeline
+  serviceAccountName: pipeline-runner
+  templates:
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: loop-item-param-1-subvar-a
+            value: '{{inputs.parameters.loop-item-param-1-subvar-a}}'
+          - name: loop-item-param-3
+            value: '{{item}}'
+          - name: my_pipe_param
+            value: '{{inputs.parameters.my_pipe_param}}'
+        name: for-loop-4
+        template: for-loop-4
+        withItems:
+        - 100
+        - 200
+        - 300
+      - arguments:
+          parameters:
+          - name: loop-item-param-1-subvar-a
+            value: '{{inputs.parameters.loop-item-param-1-subvar-a}}'
+          - name: my_pipe_param
+            value: '{{inputs.parameters.my_pipe_param}}'
+        name: my-in-coop1
+        template: my-in-coop1
+      - arguments:
+          parameters:
+          - name: loop-item-param-1-subvar-b
+            value: '{{inputs.parameters.loop-item-param-1-subvar-b}}'
+        name: my-in-coop2
+        template: my-in-coop2
+    inputs:
+      parameters:
+      - name: loop-item-param-1-subvar-a
+      - name: loop-item-param-1-subvar-b
+      - name: my_pipe_param
+    name: for-loop-2
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: loop-item-param-1-subvar-a
+            value: '{{inputs.parameters.loop-item-param-1-subvar-a}}'
+          - name: loop-item-param-3
+            value: '{{inputs.parameters.loop-item-param-3}}'
+          - name: my_pipe_param
+            value: '{{inputs.parameters.my_pipe_param}}'
+        name: my-inner-inner-coop
+        template: my-inner-inner-coop
+    inputs:
+      parameters:
+      - name: loop-item-param-1-subvar-a
+      - name: loop-item-param-3
+      - name: my_pipe_param
+    name: for-loop-4
+  - container:
+      args:
+      - echo op1 {{inputs.parameters.loop-item-param-1-subvar-a}} {{inputs.parameters.my_pipe_param}}
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - name: loop-item-param-1-subvar-a
+      - name: my_pipe_param
+    name: my-in-coop1
+  - container:
+      args:
+      - echo op2 {{inputs.parameters.loop-item-param-1-subvar-b}}
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - name: loop-item-param-1-subvar-b
+    name: my-in-coop2
+  - container:
+      args:
+      - echo op1 {{inputs.parameters.loop-item-param-1-subvar-a}} {{inputs.parameters.loop-item-param-3}}
+        {{inputs.parameters.my_pipe_param}}
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - name: loop-item-param-1-subvar-a
+      - name: loop-item-param-3
+      - name: my_pipe_param
+    name: my-inner-inner-coop
+  - container:
+      args:
+      - echo {{inputs.parameters.my_pipe_param}}
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - name: my_pipe_param
+    name: my-out-cop
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: loop-item-param-1-subvar-a
+            value: '{{item.a}}'
+          - name: loop-item-param-1-subvar-b
+            value: '{{item.b}}'
+          - name: my_pipe_param
+            value: '{{inputs.parameters.my_pipe_param}}'
+        name: for-loop-2
+        template: for-loop-2
+        withItems:
+        - a: 1
+          b: 2
+        - a: 10
+          b: 20
+      - arguments:
+          parameters:
+          - name: my_pipe_param
+            value: '{{inputs.parameters.my_pipe_param}}'
+        name: my-out-cop
+        template: my-out-cop
+    inputs:
+      parameters:
+      - name: my_pipe_param
+    name: my-pipeline

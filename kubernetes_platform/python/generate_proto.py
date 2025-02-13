@@ -65,7 +65,6 @@ def generate_proto(source: str) -> None:
         protoc_command = [
             PROTOC,
             f'-I={PROTO_DIR}',
-            f'--experimental_allow_proto3_optional',
             f'--python_out={PKG_DIR}',
             source,
         ]

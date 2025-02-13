@@ -16,6 +16,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/golang/glog"
@@ -91,7 +92,7 @@ func init() {
 }
 
 func loadJob(path string) (*pipelinespec.PipelineJob, error) {
-	bytes, err := os.ReadFile(path)
+	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func loadJob(path string) (*pipelinespec.PipelineJob, error) {
 }
 
 func loadSpec(path string) (*pipelinespec.PipelineJob, error) {
-	bytes, err := os.ReadFile(path)
+	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

@@ -15,7 +15,7 @@
 package server
 
 import (
-	"os"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -377,7 +377,7 @@ func TestValidateRunMetric_InvalidNodeIDs(t *testing.T) {
 }
 
 func loadYaml(t *testing.T, path string) string {
-	res, err := os.ReadFile(path)
+	res, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Error(err)
 	}

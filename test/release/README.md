@@ -35,7 +35,7 @@ The script `./release.sh` is a wrapper
 
 The script `./bump-version-docker.sh`
 
-1. Runs `./bump-version-in-place.sh` in ghcr.io/kubeflow/kfp-release:$VERSION image.
+1. Runs `./bump-version-in-place.sh` in gcr.io/ml-pipeline-test/release:latest image.
 
 The script `./bump-version-in-place.sh` does the following:
 

@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pprint import pprint
 import unittest
-
-import kfp
-from kfp.samples.test.utils import KfpMlmdClient
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TestCase
+from pprint import pprint
 import kfp_server_api
-from ml_metadata.proto import Execution
+import kfp.deprecated.dsl as dsl
 
 from .lightweight_python_functions_v2_pipeline import pipeline
+from kfp.samples.test.utils import run_pipeline_func, TestCase, KfpMlmdClient
+from ml_metadata.proto import Execution
 
 
 def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
@@ -124,5 +121,5 @@ run_pipeline_func([
     TestCase(
         pipeline_func=pipeline,
         verify_func=verify,
-    ),
+        mode=dsl.PipelineExecutionMode.V2_ENGINE),
 ])

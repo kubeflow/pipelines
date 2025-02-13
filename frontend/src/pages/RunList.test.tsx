@@ -40,7 +40,7 @@ describe('RunList', () => {
   const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
   const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
   const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-  const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
+  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
@@ -97,7 +97,7 @@ describe('RunList', () => {
     );
 
     getPipelineVersionSpy.mockImplementation(() => ({ display_name: 'some pipeline version' }));
-    listExperimentsSpy.mockImplementation(() => ({ display_name: 'some experiment' }));
+    getExperimentSpy.mockImplementation(() => ({ display_name: 'some experiment' }));
   }
 
   function getMountedInstance(): RunList {
@@ -111,13 +111,13 @@ describe('RunList', () => {
   }
 
   beforeEach(() => {
-    formatDateStringSpy.mockImplementation((date?: Date | string) => {
+    formatDateStringSpy.mockImplementation((date?: Date) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
     onErrorSpy.mockClear();
     listRunsSpy.mockClear();
     getRunSpy.mockClear();
-    listExperimentsSpy.mockClear();
+    getExperimentSpy.mockClear();
   });
 
   afterEach(async () => {
@@ -302,7 +302,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    TestUtils.makeErrorResponseOnce(listExperimentsSpy, 'bad stuff happened');
+    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'bad stuff happened');
     const props = generateProps();
 
     render(
@@ -312,7 +312,7 @@ describe('RunList', () => {
     );
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
-      expect(listExperimentsSpy).toHaveBeenCalled();
+      expect(getExperimentSpy).toHaveBeenCalled();
     });
 
     screen.findByText('Failed to get associated experiment: bad stuff happened');
@@ -324,7 +324,7 @@ describe('RunList', () => {
       'bad stuff happened',
     );
     const props = generateProps();
-    props.runIdListMask = ['testrun1'];
+    props.runIdListMask = ['testrun1', 'testrun2'];
     render(
       <CommonTestWrapper>
         <RunList {...props} />
@@ -333,7 +333,7 @@ describe('RunList', () => {
     await waitFor(() => {
       // won't call listRuns if specific run id is provided
       expect(listRunsSpy).toHaveBeenCalledTimes(0);
-      expect(getRunSpy).toHaveBeenCalledTimes(1);
+      expect(getRunSpy).toHaveBeenCalledTimes(2);
     });
 
     screen.findByText('Failed to get associated experiment: bad stuff happened');
@@ -488,14 +488,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    listExperimentsSpy.mockImplementationOnce(() => ({
-      experiments: [
-        {
-          experiment_id: 'test-experiment-id',
-          display_name: 'test experiment',
-        },
-      ],
-    }));
+    getExperimentSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
     const props = generateProps();
     render(
       <CommonTestWrapper>
@@ -504,7 +497,7 @@ describe('RunList', () => {
     );
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
-      expect(listExperimentsSpy).toHaveBeenCalled();
+      expect(getExperimentSpy).toHaveBeenCalled();
     });
 
     screen.getByText('test experiment');
@@ -514,7 +507,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    listExperimentsSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
+    getExperimentSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
     const props = generateProps();
     props.hideExperimentColumn = true;
     render(
@@ -524,7 +517,7 @@ describe('RunList', () => {
     );
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
-      expect(listExperimentsSpy).toHaveBeenCalledTimes(0);
+      expect(getExperimentSpy).toHaveBeenCalledTimes(0);
     });
 
     expect(screen.queryByText('test experiment')).toBeNull();

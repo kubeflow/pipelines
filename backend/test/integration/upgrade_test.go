@@ -16,7 +16,7 @@ package integration
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -90,7 +90,7 @@ func (s *UpgradeTests) SetupSuite() {
 	}
 
 	if !*isDevMode {
-		err := test.WaitForReady(*initializeTimeout)
+		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %v", err)
 		}
@@ -318,7 +318,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetTemplate(&pipelineParams.PipelineServiceGetTemplateParams{ID: pipelines[0].ID})
 	require.Nil(t, err)
-	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
+	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
 	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)

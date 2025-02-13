@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+	"io/ioutil"
 	"strings"
 )
 
@@ -76,7 +77,7 @@ func ExtractTgz(tgzContent string) (map[string]string, error) {
 		if hdr == nil {
 			continue
 		}
-		fileContent, err := io.ReadAll(tr)
+		fileContent, err := ioutil.ReadAll(tr)
 		if err != nil {
 			return nil, err
 		}

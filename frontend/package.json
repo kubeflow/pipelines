@@ -92,6 +92,7 @@
     "test:server:coverage": "cd ./server && npm test -- --coverage && cd ..",
     "test:coverage": "npm test -- --coverage && npm run test:server:coverage",
     "test:ci": "export CI=true && npm run format:check && npm run lint && npm run test:coverage",
+    "test:ci:prow": "npm set unsafe-perm true && npm ci && npm run test:ci && ./scripts/report-coveralls.sh",
     "storybook": "start-storybook -p 6006 -s public",
     "build:storybook": "build-storybook -s public"
   },

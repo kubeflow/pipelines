@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from pprint import pprint
 import unittest
-
-from kfp.samples.test.utils import KfpMlmdClient
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TestCase
+import kfp.deprecated as kfp
 import kfp_server_api
+import os
 from minio import Minio
 
 from .lightweight_python_functions_v2_with_outputs import pipeline
+from kfp.samples.test.utils import KfpMlmdClient, run_pipeline_func, TestCase
 
 
 def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
@@ -54,5 +52,8 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
 
 
 run_pipeline_func([
-    TestCase(pipeline_func=pipeline,),
+    TestCase(
+        pipeline_func=pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
+    ),
 ])

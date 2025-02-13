@@ -1,0 +1,85 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"name": "my-pipeline"}'
+  generateName: my-pipeline-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: my-pipeline
+  serviceAccountName: pipeline-runner
+  templates:
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: my-out-cop0-out-loop-item-subvar-a
+            value: '{{inputs.parameters.my-out-cop0-out-loop-item-subvar-a}}'
+        name: my-in-cop1
+        template: my-in-cop1
+    inputs:
+      parameters:
+      - name: my-out-cop0-out-loop-item-subvar-a
+    name: for-loop-1
+  - container:
+      args:
+      - 'echo do output op1 item.a: {{inputs.parameters.my-out-cop0-out-loop-item-subvar-a}}'
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - name: my-out-cop0-out-loop-item-subvar-a
+    name: my-in-cop1
+  - container:
+      args:
+      - 'python -c "import json; import sys; json.dump([{''a'': 1, ''b'': 2}, {''a'':
+        10, ''b'': 20}], open(''/tmp/out.json'', ''w''))"'
+      command:
+      - sh
+      - -c
+      image: python:alpine3.6
+    name: my-out-cop0
+    outputs:
+      artifacts:
+      - name: my-out-cop0-out
+        path: /tmp/out.json
+      parameters:
+      - name: my-out-cop0-out
+        valueFrom:
+          path: /tmp/out.json
+  - container:
+      args:
+      - 'echo do output op2, outp: {{inputs.parameters.my-out-cop0-out}}'
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - name: my-out-cop0-out
+    name: my-out-cop2
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: my-out-cop0-out-loop-item-subvar-a
+            value: '{{item.a}}'
+        dependencies:
+        - my-out-cop0
+        name: for-loop-1
+        template: for-loop-1
+        withParam: '{{tasks.my-out-cop0.outputs.parameters.my-out-cop0-out}}'
+      - name: my-out-cop0
+        template: my-out-cop0
+      - arguments:
+          parameters:
+          - name: my-out-cop0-out
+            value: '{{tasks.my-out-cop0.outputs.parameters.my-out-cop0-out}}'
+        dependencies:
+        - my-out-cop0
+        name: my-out-cop2
+        template: my-out-cop2
+    name: my-pipeline

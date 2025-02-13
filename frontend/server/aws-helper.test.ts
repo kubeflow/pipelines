@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import fetch from 'node-fetch';
-import { awsInstanceProfileCredentials, isAWSS3Endpoint } from './aws-helper';
+import { awsInstanceProfileCredentials, isS3Endpoint } from './aws-helper';
 
 // mock node-fetch module
 jest.mock('node-fetch');
@@ -107,30 +107,30 @@ describe('awsInstanceProfileCredentials', () => {
 
 describe('isS3Endpoint', () => {
   it('checks a valid s3 endpoint', () => {
-    expect(isAWSS3Endpoint('s3.amazonaws.com')).toBe(true);
+    expect(isS3Endpoint('s3.amazonaws.com')).toBe(true);
   });
 
   it('checks a valid s3 regional endpoint', () => {
-    expect(isAWSS3Endpoint('s3.dualstack.us-east-1.amazonaws.com')).toBe(true);
+    expect(isS3Endpoint('s3.dualstack.us-east-1.amazonaws.com')).toBe(true);
   });
 
   it('checks a valid s3 cn endpoint', () => {
-    expect(isAWSS3Endpoint('s3.cn-north-1.amazonaws.com.cn')).toBe(true);
+    expect(isS3Endpoint('s3.cn-north-1.amazonaws.com.cn')).toBe(true);
   });
 
   it('checks a valid s3 fips GovCloud endpoint', () => {
-    expect(isAWSS3Endpoint('s3-fips.us-gov-west-1.amazonaws.com')).toBe(true);
+    expect(isS3Endpoint('s3-fips.us-gov-west-1.amazonaws.com')).toBe(true);
   });
 
   it('checks a valid s3 PrivateLink endpoint', () => {
-    expect(isAWSS3Endpoint('vpce-1a2b3c4d-5e6f.s3.us-east-1.vpce.amazonaws.com')).toBe(true);
+    expect(isS3Endpoint('vpce-1a2b3c4d-5e6f.s3.us-east-1.vpce.amazonaws.com')).toBe(true);
   });
 
   it('checks an invalid s3 endpoint', () => {
-    expect(isAWSS3Endpoint('amazonaws.com')).toBe(false);
+    expect(isS3Endpoint('amazonaws.com')).toBe(false);
   });
 
   it('checks non-s3 endpoint', () => {
-    expect(isAWSS3Endpoint('minio.kubeflow')).toBe(false);
+    expect(isS3Endpoint('minio.kubeflow')).toBe(false);
   });
 });

@@ -31,7 +31,7 @@ if [[ -z "$TAG_NAME" ]]; then
 fi
 
 pushd "${REPO_ROOT}"
-RELEASE_IMAGE=${RELEASE_IMAGE:-ghcr.io/kubeflow/kfp-release:1.0}
+RELEASE_IMAGE=${RELEASE_IMAGE:-gcr.io/ml-pipeline-test/release@sha256:ed1a4dbe536e7e161ad0d846b5681aacc0e0e7f285985cb1808c5c8987bcfeb0}
 docker run -it --rm \
   --user $(id -u):$(id -g) \
   --mount type=bind,source="$(pwd)",target=/go/src/github.com/kubeflow/pipelines \

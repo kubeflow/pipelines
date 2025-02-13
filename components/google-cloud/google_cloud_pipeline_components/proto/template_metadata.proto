@@ -247,7 +247,7 @@ message ValidationItems {
 // Describes the details for Google Cloud Storage Validation.
 message GoogleCloudStorageValidation {
   // Required. URI of the GCS object. Use placeholder to specify the dynamic
-  // value like bucket name. For Example:
+  // value like bucket name. Example:
   // "gs://{{$.parameter.bucket}}/file_name"
   string gcs_uri = 1;
   // Required. Whether the gcs_uri is input or output.
@@ -265,9 +265,6 @@ message GoogleCloudStorageValidation {
   // of the component/pipeline). If the value doesn't exist or is empty,
   // overriding won't happen.
   string override_placeholder = 4;
-
-  // Optional. List of GCS URIs.
-  repeated string gcs_uris = 5;
 }
 
 // Describes the details for Google Cloud Project Quota Validation.
@@ -282,10 +279,6 @@ message GoogleCloudProjectQuotaValidation {
     // A double precision floating point value.
     double double_value = 3;
   }
-  // Not implemented yet, project region is used instead.
-  // Optional. Region of the quota. Example: "us-central1"
-  // If not specified, the default region (project region) will be used.
-  string region = 4;
 }
 
 // Describes the details for Google Cloud Service Account Validation.
@@ -310,9 +303,9 @@ message GoogleCloudServiceAccountValidation {
   // Example: "aiplatform.metadataStores.get"
   repeated string permissions = 3;
 
-  // Optional. Roles suggestions for users to grant to SA. We will ***not***
-  // verify if the SA has the role granted or not. The role names will occur in
-  // preflight validations' error message as an action item for users.
+  // Optional. Roles need to be granted for the service account.
+  // The role names will occur in preflight validations' error message
+  // as an action item for users.
   repeated string role_names = 4;
 }
 

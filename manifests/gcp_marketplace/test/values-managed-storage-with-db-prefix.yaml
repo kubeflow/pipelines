@@ -1,0 +1,9 @@
+gcpDefaultConfigName: "gcp-default-config"
+
+managedstorage:
+  enabled: true
+  cloudsqlInstanceConnectionName: 'myproject:us-central1:myinstance'
+  gcsBucketName: 'mybucket'
+  databaseNamePrefix: 'my_kfp'
+  dbUsername: 'root'
+  dbPassword: '1234'

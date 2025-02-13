@@ -14,8 +14,6 @@
 
 IMG = gcr.io/ml-pipeline-test/image-builder
 
-CONTAINER_ENGINE ?= docker
-
 # List any changed  files. We only include files in the notebooks directory.
 # because that is the code in the docker image.
 # In particular we exclude changes to the ksonnet configs.
@@ -33,9 +31,9 @@ all: build
 # To build without the cache set the environment variable
 # export DOCKER_BUILD_OPTS=--no-cache
 build:
-	${CONTAINER_ENGINE} build ${DOCKER_BUILD_OPTS} -t $(IMG):$(TAG) . \
+	docker build ${DOCKER_BUILD_OPTS} -t $(IMG):$(TAG) . \
            --label=git-verions=$(GIT_VERSION)
-	${CONTAINER_ENGINE} tag $(IMG):$(TAG) $(IMG):latest
+	docker tag $(IMG):$(TAG) $(IMG):latest
 	echo Built $(IMG):$(TAG)
 	echo Built $(IMG):latest
 
@@ -43,7 +41,7 @@ build:
 # first.
 push: build
 	gcloud auth configure-docker
-	${CONTAINER_ENGINE} push $(IMG):$(TAG)
+	docker push $(IMG):$(TAG)
 	echo Pushed $(IMG):$(TAG)
 
 push-latest: push

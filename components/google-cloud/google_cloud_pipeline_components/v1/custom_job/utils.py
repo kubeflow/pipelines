@@ -18,7 +18,6 @@ import textwrap
 from typing import Callable, Dict, List, Optional
 import warnings
 
-from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.v1.custom_job import component
 from kfp import components
 import yaml
@@ -69,13 +68,7 @@ def create_custom_training_job_from_component(
     nfs_mounts: Optional[List[Dict[str, str]]] = None,
     base_output_directory: str = '',
     labels: Optional[Dict[str, str]] = None,
-    persistent_resource_id: str = _placeholders.PERSISTENT_RESOURCE_ID_PLACEHOLDER,
     env: Optional[List[Dict[str, str]]] = None,
-    strategy: str = 'STANDARD',
-    max_wait_duration: str = '86400s',
-    reservation_affinity_type: Optional[str] = None,
-    reservation_affinity_key: Optional[str] = None,
-    reservation_affinity_values: Optional[List[str]] = None,
 ) -> Callable:
   # fmt: off
   """Convert a KFP component into Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
@@ -102,13 +95,7 @@ def create_custom_training_job_from_component(
     nfs_mounts: A list of [NfsMount](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount) resource specs in Json dict format. For more details about mounting NFS for CustomJob, see [Mount an NFS share for custom training](https://cloud.google.com/vertex-ai/docs/training/train-nfs-share).
     base_output_directory: The Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).
     labels: The labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).
-    persistent_resource_id: The ID of the PersistentResource in the same Project and Location which to run. The default value is a placeholder that will be resolved to the PipelineJob [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)'s persistent resource id at runtime. However, if the PipelineJob doesn't set Persistent Resource as the job level runtime, the placedholder will be resolved to an empty string and the custom job will be run on demand. If the value is set explicitly, the custom job will runs in the specified persistent resource, in this case, please note the network and CMEK configs on the job should be consistent with those on the PersistentResource, otherwise, the job will be rejected.
     env: Environment variables to be passed to the container. Takes the form `[{'name': '...', 'value': '...'}]`. Maximum limit is 100.
-    startegy: The strategy to use for the custom training job. The default is 'STANDARD'. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
-    max_wait_duration: The maximum time to wait for the custom training job to be scheduled only if the scheduling strategy is set to FLEX_START. If set to 0, the job will wait indefinitely. The default is 24 hours. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
-    reservation_affinity_type: The type of [reservation affinity](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#reservationaffinity). Valid values are "NO_RESERVATION", "ANY_RESERVATION", "SPECIFIC_RESERVATION".
-    reservation_affinity_key: Corresponds to the label key of a reservation resource. To target a SPECIFIC_RESERVATION by name, use compute.googleapis.com/reservation-name as the key and specify the name of your reservation as its value.
-    reservation_affinity_values: Corresponds to the label values of a reservation resource. This must be the full resource name of the reservation.
 
    Returns:
     A KFP component with CustomJob specification applied.
@@ -174,20 +161,6 @@ def create_custom_training_job_from_component(
   if accelerator_type:
     worker_pool_spec['machine_spec']['accelerator_type'] = accelerator_type
     worker_pool_spec['machine_spec']['accelerator_count'] = accelerator_count
-
-  if reservation_affinity_type is not None:
-    worker_pool_spec['machine_spec']['reservation_affinity'] = {
-        'reservation_affinity_type': reservation_affinity_type,
-    }
-    if reservation_affinity_key is not None:
-      worker_pool_spec['machine_spec']['reservation_affinity'][
-          'key'
-      ] = reservation_affinity_key
-    if reservation_affinity_values is not None:
-      worker_pool_spec['machine_spec']['reservation_affinity'][
-          'values'
-      ] = reservation_affinity_values
-
   if boot_disk_type:
     worker_pool_spec['disk_spec'] = {
         'boot_disk_type': boot_disk_type,
@@ -218,8 +191,6 @@ def create_custom_training_job_from_component(
       'worker_pool_specs': worker_pool_specs,
       'timeout': timeout,
       'restart_job_on_worker_restart': restart_job_on_worker_restart,
-      'strategy': strategy,
-      'max_wait_duration': max_wait_duration,
       'service_account': service_account,
       'tensorboard': tensorboard,
       'enable_web_access': enable_web_access,
@@ -228,7 +199,6 @@ def create_custom_training_job_from_component(
       'base_output_directory': base_output_directory,
       'labels': labels or {},
       'encryption_spec_key_name': encryption_spec_key_name,
-      'persistent_resource_id': persistent_resource_id,
   }
 
   for param_name, default_value in custom_job_param_defaults.items():

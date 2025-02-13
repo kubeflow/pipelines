@@ -68,7 +68,6 @@ from typing import TypeVar
 # hack: constants and custom type generics have to be defined here to be captured by autodoc and autodocsumm used in ./docs/conf.py
 PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
 """A placeholder used to obtain a pipeline job name within a task at pipeline runtime.
-    In Kubeflow Pipelines, this maps to the pipeline run display name.
 
     Example:
       ::
@@ -83,8 +82,6 @@ PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
 
 PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER = '{{$.pipeline_job_resource_name}}'
 """A placeholder used to obtain a pipeline job resource name within a task at pipeline runtime.
-    In Kubeflow Pipelines, this maps to the pipeline run name in the underlying pipeline engine (e.g. an Argo Workflow
-    object name).
 
     Example:
       ::
@@ -99,7 +96,6 @@ PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER = '{{$.pipeline_job_resource_name}}'
 
 PIPELINE_JOB_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'
 """A placeholder used to obtain a pipeline job ID within a task at pipeline runtime.
-    In Kubeflow Pipelines, this maps to the pipeline run UUID.
 
     Example:
       ::
@@ -114,7 +110,6 @@ PIPELINE_JOB_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'
 
 PIPELINE_TASK_NAME_PLACEHOLDER = '{{$.pipeline_task_name}}'
 """A placeholder used to obtain a task name within a task at pipeline runtime.
-    In Kubeflow Pipelines, this maps to the component name.
 
     Example:
       ::
@@ -129,7 +124,6 @@ PIPELINE_TASK_NAME_PLACEHOLDER = '{{$.pipeline_task_name}}'
 
 PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
 """A placeholder used to obtain a task ID within a task at pipeline runtime.
-    In Kubeflow Pipelines, this maps to the component's ML Metadata (MLMD) execution ID.
 
     Example:
       ::
@@ -270,7 +264,6 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.for_loop import Collected
     from kfp.dsl.importer_node import importer
     from kfp.dsl.pipeline_channel import OneOf
-    from kfp.dsl.pipeline_config import PipelineConfig
     from kfp.dsl.pipeline_context import pipeline
     from kfp.dsl.pipeline_task import PipelineTask
     from kfp.dsl.placeholders import ConcatPlaceholder
@@ -299,5 +292,4 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
         'IfPresentPlaceholder',
         'ConcatPlaceholder',
         'PipelineTask',
-        'PipelineConfig',
     ])

@@ -204,7 +204,7 @@ pipelineSpec:
             \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
             \ or tails randomly.\"\"\"\n    import random\n    result = random.choice(['heads',\
             \ 'tails'])\n    print(result)\n    return result\n\n"
-          image: python:3.9
+          image: python:3.7
       exec-get-random-int-op:
         container:
           args:
@@ -233,7 +233,7 @@ pipelineSpec:
             \"\"Generate a random number between minimum and maximum (inclusive).\"\"\
             \"\n    import random\n    result = random.randint(minimum, maximum)\n \
             \   print(result)\n    return result\n\n"
-          image: python:3.9
+          image: python:3.7
       exec-print-op:
         container:
           args:
@@ -260,7 +260,7 @@ pipelineSpec:
           - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
             \ *\n\ndef print_op(message: str):\n    \"\"\"Print a message.\"\"\"\n \
             \   print(message)\n\n"
-          image: python:3.9
+          image: python:3.7
       exec-print-op-2:
         container:
           args:
@@ -287,7 +287,7 @@ pipelineSpec:
           - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
             \ *\n\ndef print_op(message: str):\n    \"\"\"Print a message.\"\"\"\n \
             \   print(message)\n\n"
-          image: python:3.9
+          image: python:3.7
   pipelineInfo:
     description: Shows how to use dsl.Condition(), dsl.ParallelFor, and dsl.ExitHandler().
     name: tutorial-control-flows

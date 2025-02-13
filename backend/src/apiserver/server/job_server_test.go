@@ -148,11 +148,10 @@ func TestCreateJob_WrongInput(t *testing.T) {
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 						StartTime: &timestamp.Timestamp{Seconds: 1},
 						Cron:      "1 * * * *",
-					}},
-				},
+					}}},
 				ResourceReferences: validReference,
 			},
-			"Failed to create a recurring run: Cannot create a job with an empty pipeline ID",
+			"Failed to fetch a template with an empty pipeline spec manifest",
 		},
 		{
 			"invalid pipeline spec",
@@ -173,8 +172,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 					{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID}, Relationship: apiv1beta1.Relationship_OWNER},
 				},
 			},
-			"Failed to fetch a pipeline version from pipeline not_exist_pipeline: Failed to get the latest " +
-				"pipeline version as pipeline was not found: ResourceNotFoundError: Pipeline not_exist_pipeline not found",
+			"Failed to get the latest pipeline version as pipeline was not found: ResourceNotFoundError: Pipeline not_exist_pipeline not found",
 		},
 		{
 			"invalid cron",
@@ -216,7 +214,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 					{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID}, Relationship: apiv1beta1.Relationship_OWNER},
 				},
 			},
-			"Max concurrency of a recurring run must be at least 1 and at most 10. Received 0",
+			"Max concurrency of a recurring run must be at leas 1 and at most 10. Received 0",
 		},
 		{
 			"negative interval seconds",
@@ -242,11 +240,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 	for _, tt := range tests {
 		got, err := server.CreateJob(context.Background(), &apiv1beta1.CreateJobRequest{Job: tt.arg})
 		assert.NotNil(t, err)
-		errMsg := ""
-		if err != nil {
-			errMsg = err.Error()
-		}
-		assert.Contains(t, errMsg, tt.errMsg)
+		assert.Contains(t, err.Error(), tt.errMsg)
 		assert.Nil(t, got)
 	}
 }

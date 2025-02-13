@@ -19,10 +19,8 @@ import {
   getPodLogsStreamFromK8s,
   getPodLogsStreamFromWorkflow,
   toGetPodLogsStream,
-  getKeyFormatFromArtifactRepositories,
 } from './workflow-helper';
-import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap } from './k8s-helper';
-import { V1ConfigMap, V1ObjectMeta } from '@kubernetes/client-node';
+import { getK8sSecret, getArgoWorkflow, getPodLogs } from './k8s-helper';
 
 jest.mock('minio');
 jest.mock('./k8s-helper');
@@ -41,49 +39,40 @@ describe('workflow-helper', () => {
   describe('composePodLogsStreamHandler', () => {
     it('returns the stream from the default handler if there is no errors.', async () => {
       const defaultStream = new PassThrough();
-      const defaultHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const defaultHandler = jest.fn((_podName: string, _namespace?: string) =>
         Promise.resolve(defaultStream),
       );
-      const stream = await composePodLogsStreamHandler(defaultHandler)(
-        'podName',
-        '2024-08-13',
-        'namespace',
-      );
-      expect(defaultHandler).toBeCalledWith('podName', '2024-08-13', 'namespace');
+      const stream = await composePodLogsStreamHandler(defaultHandler)('podName', 'namespace');
+      expect(defaultHandler).toBeCalledWith('podName', 'namespace');
       expect(stream).toBe(defaultStream);
     });
 
     it('returns the stream from the fallback handler if there is any error.', async () => {
       const fallbackStream = new PassThrough();
-      const defaultHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const defaultHandler = jest.fn((_podName: string, _namespace?: string) =>
         Promise.reject('unknown error'),
       );
-      const fallbackHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const fallbackHandler = jest.fn((_podName: string, _namespace?: string) =>
         Promise.resolve(fallbackStream),
       );
       const stream = await composePodLogsStreamHandler(defaultHandler, fallbackHandler)(
         'podName',
-        '2024-08-13',
         'namespace',
       );
-      expect(defaultHandler).toBeCalledWith('podName', '2024-08-13', 'namespace');
-      expect(fallbackHandler).toBeCalledWith('podName', '2024-08-13', 'namespace');
+      expect(defaultHandler).toBeCalledWith('podName', 'namespace');
+      expect(fallbackHandler).toBeCalledWith('podName', 'namespace');
       expect(stream).toBe(fallbackStream);
     });
 
     it('throws error if both handler and fallback fails.', async () => {
-      const defaultHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const defaultHandler = jest.fn((_podName: string, _namespace?: string) =>
         Promise.reject('unknown error for default'),
       );
-      const fallbackHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const fallbackHandler = jest.fn((_podName: string, _namespace?: string) =>
         Promise.reject('unknown error for fallback'),
       );
       await expect(
-        composePodLogsStreamHandler(defaultHandler, fallbackHandler)(
-          'podName',
-          '2024-08-13',
-          'namespace',
-        ),
+        composePodLogsStreamHandler(defaultHandler, fallbackHandler)('podName', 'namespace'),
       ).rejects.toEqual('unknown error for fallback');
     });
   });
@@ -93,7 +82,7 @@ describe('workflow-helper', () => {
       const mockedGetPodLogs: jest.Mock = getPodLogs as any;
       mockedGetPodLogs.mockResolvedValueOnce('pod logs');
 
-      const stream = await getPodLogsStreamFromK8s('podName', '', 'namespace');
+      const stream = await getPodLogsStreamFromK8s('podName', 'namespace');
       expect(mockedGetPodLogs).toBeCalledWith('podName', 'namespace', 'main');
       expect(stream.read().toString()).toBe('pod logs');
     });
@@ -112,69 +101,24 @@ describe('workflow-helper', () => {
         client,
         key: 'folder/key',
       };
-      const createRequest = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const createRequest = jest.fn((_podName: string, _namespace?: string) =>
         Promise.resolve(configs),
       );
-      const stream = await toGetPodLogsStream(createRequest)('podName', '2024-08-13', 'namespace');
+      const stream = await toGetPodLogsStream(createRequest)('podName', 'namespace');
       expect(mockedClientGetObject).toBeCalledWith('bucket', 'folder/key');
-    });
-  });
-
-  describe('getKeyFormatFromArtifactRepositories', () => {
-    it('returns a keyFormat string from the artifact-repositories configmap.', async () => {
-      const artifactRepositories = {
-        'artifact-repositories':
-          'archiveLogs: true\n' +
-          's3:\n' +
-          '  accessKeySecret:\n' +
-          '    key: accesskey\n' +
-          '    name: mlpipeline-minio-artifact\n' +
-          '  bucket: mlpipeline\n' +
-          '  endpoint: minio-service.kubeflow:9000\n' +
-          '  insecure: true\n' +
-          '  keyFormat: foo\n' +
-          '  secretKeySecret:\n' +
-          '    key: secretkey\n' +
-          '    name: mlpipeline-minio-artifact',
-      };
-
-      const mockedConfigMap: V1ConfigMap = {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        metadata: new V1ObjectMeta(),
-        data: artifactRepositories,
-        binaryData: {},
-      };
-
-      const mockedGetConfigMap: jest.Mock = getConfigMap as any;
-      mockedGetConfigMap.mockResolvedValueOnce([mockedConfigMap, undefined]);
-      const res = await getKeyFormatFromArtifactRepositories('');
-      expect(mockedGetConfigMap).toBeCalledTimes(1);
-      expect(res).toEqual('foo');
     });
   });
 
   describe('createPodLogsMinioRequestConfig', () => {
     it('returns a MinioRequestConfig factory with the provided minioClientOptions, bucket, and prefix.', async () => {
       const mockedClient: jest.Mock = MinioClient as any;
-      const requestFunc = await createPodLogsMinioRequestConfig(
-        minioConfig,
-        'bucket',
-        'artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}',
-        true,
-      );
-      const request = await requestFunc(
-        'workflow-name-system-container-impl-foo',
-        '2024-08-13',
-        'namespace',
-      );
+      const requestFunc = await createPodLogsMinioRequestConfig(minioConfig, 'bucket', 'prefix');
+      const request = await requestFunc('workflow-name-abc', 'namespace');
 
       expect(mockedClient).toBeCalledWith(minioConfig);
       expect(request.client).toBeInstanceOf(MinioClient);
       expect(request.bucket).toBe('bucket');
-      expect(request.key).toBe(
-        'artifacts/workflow-name/2024/08/13/workflow-name-system-container-impl-foo/main.log',
-      );
+      expect(request.key).toBe('prefix/workflow-name/workflow-name-abc/main.log');
     });
   });
 
@@ -184,28 +128,31 @@ describe('workflow-helper', () => {
         apiVersion: 'argoproj.io/v1alpha1',
         kind: 'Workflow',
         status: {
-          artifactRepositoryRef: {
-            artifactRepository: {
-              archiveLogs: true,
-              s3: {
-                accessKeySecret: { key: 'accessKey', name: 'accessKeyName' },
-                bucket: 'bucket',
-                endpoint: 'minio-service.kubeflow',
-                insecure: true,
-                key:
-                  'prefix/workflow-name/workflow-name-system-container-impl-abc/some-artifact.csv',
-                secretKeySecret: { key: 'secretKey', name: 'secretKeyName' },
-              },
-            },
-          },
           nodes: {
             'workflow-name-abc': {
               outputs: {
                 artifacts: [
                   {
-                    name: 'main-logs',
+                    name: 'some-artifact.csv',
                     s3: {
-                      key: 'prefix/workflow-name/workflow-name-system-container-impl-abc/main.log',
+                      accessKeySecret: { key: 'accessKey', name: 'accessKeyName' },
+                      bucket: 'bucket',
+                      endpoint: 'minio-service.kubeflow',
+                      insecure: true,
+                      key: 'prefix/workflow-name/workflow-name-abc/some-artifact.csv',
+                      secretKeySecret: { key: 'secretKey', name: 'secretKeyName' },
+                    },
+                  },
+                  {
+                    archiveLogs: true,
+                    name: 'main.log',
+                    s3: {
+                      accessKeySecret: { key: 'accessKey', name: 'accessKeyName' },
+                      bucket: 'bucket',
+                      endpoint: 'minio-service.kubeflow',
+                      insecure: true,
+                      key: 'prefix/workflow-name/workflow-name-abc/main.log',
+                      secretKeySecret: { key: 'secretKey', name: 'secretKeyName' },
                     },
                   },
                 ],
@@ -227,10 +174,7 @@ describe('workflow-helper', () => {
       mockedClientGetObject.mockResolvedValueOnce(objStream);
       objStream.end('some fake logs.');
 
-      const stream = await getPodLogsStreamFromWorkflow(
-        'workflow-name-system-container-impl-abc',
-        '2024-07-09',
-      );
+      const stream = await getPodLogsStreamFromWorkflow('workflow-name-abc');
 
       expect(mockedGetArgoWorkflow).toBeCalledWith('workflow-name');
 
@@ -249,7 +193,7 @@ describe('workflow-helper', () => {
       expect(mockedClientGetObject).toBeCalledTimes(1);
       expect(mockedClientGetObject).toBeCalledWith(
         'bucket',
-        'prefix/workflow-name/workflow-name-system-container-impl-abc/main.log',
+        'prefix/workflow-name/workflow-name-abc/main.log',
       );
     });
   });

@@ -586,7 +586,7 @@ def extract_pipeline_channels_from_string(
 
 
 def extract_pipeline_channels_from_any(
-    payload: Union[PipelineChannel, str, int, float, bool, list, tuple, dict]
+    payload: Union[PipelineChannel, str, list, tuple, dict]
 ) -> List[PipelineChannel]:
     """Recursively extract PipelineChannels from any object or list of objects.
 

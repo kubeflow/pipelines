@@ -19,7 +19,7 @@ from kfp.dsl import OutputPath
 @container_component
 def container_io(text: str, output_path: OutputPath(str)):
     return ContainerSpec(
-        image='python:3.9',
+        image='python:3.7',
         command=['my_program', text],
         args=['--output_path', output_path])
 

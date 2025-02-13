@@ -97,7 +97,6 @@ rules:
   - workflows/finalizers
   - workfloweventbindings
   - workflowtemplates
-  - workflowtaskresults
 
 ---
 

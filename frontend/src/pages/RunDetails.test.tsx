@@ -1165,7 +1165,6 @@ describe('RunDetails', () => {
         'test-run-id',
         'workflow1-template1-node1',
         'ns',
-        '',
       );
       expect(tree).toMatchSnapshot();
     });
@@ -1256,7 +1255,6 @@ describe('RunDetails', () => {
         'test-run-id',
         'workflow1-template1-node1',
         'username',
-        '',
       );
     });
 

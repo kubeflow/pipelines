@@ -43,7 +43,7 @@ else
     echo "Created package."
 
     echo "Testing install"
-    pip install $TARGET_TAR_FILE --break-system-packages
+    pip install $TARGET_TAR_FILE
     INSTALLED_VERSION=$(pip list | grep kfp-kubernetes | awk '{print $2}')
     if [[ "$INSTALLED_VERSION" != "$KFP_KUBERNETES_VERSION" ]]
     then

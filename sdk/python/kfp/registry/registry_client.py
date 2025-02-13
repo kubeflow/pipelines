@@ -189,9 +189,7 @@ class RegistryClient:
             return auth
         elif self._is_ar_host():
             auth, _ = google.auth.default()
-            auth_scopes = self._config.get('auth_scopes')
-            auth_scopes = auth_scopes.split(',') if auth_scopes else None
-            return credentials.with_scopes_if_required(auth, auth_scopes)
+            return auth
         elif auth_file:
             if os.path.exists(auth_file):
                 # Fetch auth token using the locally stored credentials.

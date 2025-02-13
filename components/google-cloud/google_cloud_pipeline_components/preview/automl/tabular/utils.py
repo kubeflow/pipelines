@@ -1053,7 +1053,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
     Tuple of pipeline_definition_path and parameter_values.
   """
 
-  return get_automl_tabular_pipeline_and_parameters(  # pytype: disable=wrong-arg-types
+  return get_automl_tabular_pipeline_and_parameters(
       project=project,
       location=location,
       root_dir=root_dir,

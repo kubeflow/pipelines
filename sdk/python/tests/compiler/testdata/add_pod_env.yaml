@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Test adding pod env", "name": "Test adding pod env"}'
+  generateName: test-adding-pod-env-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: test-adding-pod-env
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - echo $KFP_POD_NAME
+      command:
+      - sh
+      - -c
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: KFP_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: WORKFLOW_ID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['workflows.argoproj.io/workflow']
+      - name: KFP_RUN_ID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['pipeline/runid']
+      - name: ENABLE_CACHING
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['pipelines.kubeflow.org/enable_caching']
+      image: library/bash
+    metadata:
+      labels:
+        add-pod-env: 'true'
+    name: echo
+  - dag:
+      tasks:
+      - name: echo
+        template: echo
+    name: test-adding-pod-env

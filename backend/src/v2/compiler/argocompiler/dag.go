@@ -41,6 +41,15 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 	if err != nil {
 		return err
 	}
+	dag := &wfapi.Template{
+		Name: c.templateName(name),
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramParentDagID},
+			},
+		},
+		DAG: &wfapi.DAGTemplate{},
+	}
 	tasks := dagSpec.GetTasks()
 	// Iterate through tasks in deterministic order to facilitate testing.
 	// Note, order doesn't affect compiler with real effect right now.
@@ -51,10 +60,6 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
-
-	taskToExitTemplate := map[string]string{}
-
-	// First process exit tasks since those need to be set as lifecycle hooks on the exit handler sub DAG.
 	for _, taskName := range keys {
 		kfpTask := dagSpec.GetTasks()[taskName]
 		if kfpTask.GetParameterIterator() != nil && kfpTask.GetArtifactIterator() != nil {
@@ -63,81 +68,14 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		if kfpTask.GetArtifactIterator() != nil {
 			return fmt.Errorf("artifact iterator not implemented yet")
 		}
-
-		if kfpTask.GetTriggerPolicy().GetStrategy().String() != "ALL_UPSTREAM_TASKS_COMPLETED" {
-			// Skip tasks that aren't exit tasks.
-			continue
-		}
-
 		tasks, err := c.task(taskName, kfpTask, taskInputs{
 			parentDagID: inputParameter(paramParentDagID),
 		})
 		if err != nil {
 			return err
 		}
-
-		// Generate the template name in the format of "exit-hook-<DAG name>-<task name>"
-		// (e.g. exit-hook-root-print-op).
-		name := fmt.Sprintf("exit-hook-%s-%s", name, taskName)
-
-		deps := kfpTask.GetDependentTasks()
-
-		for _, dep := range deps {
-			taskToExitTemplate[dep] = name
-		}
-
-		exitDag := &wfapi.Template{
-			Name: name,
-			Inputs: wfapi.Inputs{
-				Parameters: []wfapi.Parameter{
-					{Name: paramParentDagID},
-				},
-			},
-			DAG: &wfapi.DAGTemplate{
-				Tasks: tasks,
-			},
-		}
-
-		_, err = c.addTemplate(exitDag, name)
-		if err != nil {
-			return fmt.Errorf("DAG: %w", err)
-		}
-	}
-
-	dag := &wfapi.Template{
-		Name: c.templateName(name),
-		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramParentDagID},
-			},
-		},
-		DAG: &wfapi.DAGTemplate{},
-	}
-
-	for _, taskName := range keys {
-		kfpTask := dagSpec.GetTasks()[taskName]
-		if kfpTask.GetTriggerPolicy().GetStrategy().String() == "ALL_UPSTREAM_TASKS_COMPLETED" {
-			// Skip already processed exit tasks.
-			continue
-		}
-
-		exitTemplate := taskToExitTemplate[taskName]
-
-		tasks, err := c.task(
-			taskName, kfpTask, taskInputs{parentDagID: inputParameter(paramParentDagID), exitTemplate: exitTemplate},
-		)
-		if err != nil {
-			return err
-		}
 		dag.DAG.Tasks = append(dag.DAG.Tasks, tasks...)
 	}
-
-	// The compilation should fail before this point, but add it as an extra precaution to guard against an orphaned
-	// exit task.
-	if len(dag.DAG.Tasks) == 0 {
-		return fmt.Errorf("DAG %s must contain one or more non-exit tasks", name)
-	}
-
 	_, err = c.addTemplate(dag, name)
 	if err != nil {
 		return fmt.Errorf("DAG: %w", err)
@@ -180,19 +118,14 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 type dagInputs struct {
 	// placeholder for parent DAG execution ID
 	parentDagID string
-	// if provided along with exitTemplate, this will be provided as the parent-dag-id input to the Argo Workflow exit
-	// lifecycle hook.
-	hookParentDagID string
-	// this will be provided as the parent-dag-id input to the Argo Workflow exit lifecycle hook.
-	exitTemplate string
-	condition    string
+	condition   string
 }
 
 // dagTask generates task for a DAG component.
 // name: task name
 // componentName: DAG component name
 func (c *workflowCompiler) dagTask(name string, componentName string, inputs dagInputs) *wfapi.DAGTask {
-	task := &wfapi.DAGTask{
+	return &wfapi.DAGTask{
 		Name:     name,
 		Template: c.templateName(componentName),
 		Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
@@ -200,17 +133,11 @@ func (c *workflowCompiler) dagTask(name string, componentName string, inputs dag
 			{Name: paramCondition, Value: wfapi.AnyStringPtr(inputs.condition)},
 		}},
 	}
-
-	addExitTask(task, inputs.exitTemplate, inputs.hookParentDagID)
-
-	return task
 }
 
 type taskInputs struct {
 	parentDagID    string
 	iterationIndex string
-	// if provided, this will be the template the Argo Workflow exit lifecycle hook will execute.
-	exitTemplate string
 }
 
 // parentDagID: placeholder for parent DAG execution ID
@@ -252,15 +179,12 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			return nil, err
 		}
 		// iterations belong to a sub-DAG, no need to add dependent tasks
-		// Also skip adding dependencies when it's an exit hook
-		if inputs.iterationIndex == "" && task.GetTriggerPolicy().GetStrategy().String() != "ALL_UPSTREAM_TASKS_COMPLETED" {
+		if inputs.iterationIndex == "" {
 			driver.Depends = depends(task.GetDependentTasks())
 		}
 		dag := c.dagTask(name, componentName, dagInputs{
-			parentDagID:     driverOutputs.executionID,
-			exitTemplate:    inputs.exitTemplate,
-			hookParentDagID: inputs.parentDagID,
-			condition:       driverOutputs.condition,
+			parentDagID: driverOutputs.executionID,
+			condition:   driverOutputs.condition,
 		})
 		dag.Depends = depends([]string{driverTaskName})
 		if task.GetTriggerPolicy().GetCondition() != "" {
@@ -293,11 +217,13 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				driverOutputs.condition = ""
 			}
 			// iterations belong to a sub-DAG, no need to add dependent tasks
-			// Also skip adding dependencies when it's an exit hook
-			if inputs.iterationIndex == "" && task.GetTriggerPolicy().GetStrategy().String() != "ALL_UPSTREAM_TASKS_COMPLETED" {
+			if inputs.iterationIndex == "" {
 				driver.Depends = depends(task.GetDependentTasks())
 			}
-
+			// Handle exit handler dependency
+			if task.GetTriggerPolicy().GetStrategy().String() == "ALL_UPSTREAM_TASKS_COMPLETED" {
+				driver.Depends = depends_exit_handler(task.GetDependentTasks())
+			}
 			// When using a dummy image, this means this task is for Kubernetes configs.
 			// In this case skip executor(launcher).
 			if dummyImages[e.Container.GetImage()] {
@@ -305,11 +231,9 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				return []wfapi.DAGTask{*driver}, nil
 			}
 			executor := c.containerExecutorTask(name, containerExecutorInputs{
-				podSpecPatch:    driverOutputs.podSpecPatch,
-				cachedDecision:  driverOutputs.cached,
-				condition:       driverOutputs.condition,
-				exitTemplate:    inputs.exitTemplate,
-				hookParentDagID: inputs.parentDagID,
+				podSpecPatch:   driverOutputs.podSpecPatch,
+				cachedDecision: driverOutputs.cached,
+				condition:      driverOutputs.condition,
 			}, task.GetComponentRef().GetName())
 			executor.Depends = depends([]string{driverTaskName})
 			return []wfapi.DAGTask{*driver, *executor}, nil
@@ -343,62 +267,10 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 		}
 	}()
 	componentName := task.GetComponentRef().GetName()
-	// Set up Loop Control Template
-	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJson, parentDagID)
-	if err != nil {
-		return nil, err
-	}
-	loopTmpl := &wfapi.Template{
-		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramParentDagID},
-			},
-		},
-		DAG: &wfapi.DAGTemplate{
-			Tasks: iteratorTasks,
-		},
-	}
-	parallelismLimit := int64(task.GetIteratorPolicy().GetParallelismLimit())
-	if parallelismLimit > 0 {
-		loopTmpl.Parallelism = &parallelismLimit
-	}
-
-	loopTmplName, err := c.addTemplate(loopTmpl, fmt.Sprintf("%s-%s-iterator", componentName, name))
-	if err != nil {
-		return nil, err
-	}
-
-	tasks = []wfapi.DAGTask{
-		{
-			Name:     name + "-loop",
-			Template: loopTmplName,
-			Depends:  depends(task.GetDependentTasks()),
-			Arguments: wfapi.Arguments{
-				Parameters: []wfapi.Parameter{
-					{
-						Name:  paramParentDagID,
-						Value: wfapi.AnyStringPtr(parentDagID),
-					},
-				},
-			},
-		},
-	}
-	return tasks, nil
-}
-
-func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("iterationItem task: %w", err)
-		}
-	}()
-	componentName := task.GetComponentRef().GetName()
 	componentSpecPlaceholder, err := c.useComponentSpec(componentName)
 	if err != nil {
 		return nil, err
 	}
-
-	// Set up Iteration (Single  Task) Template
 	driverArgoName := name + "-driver"
 	driverInputs := dagDriverInputs{
 		component:   componentSpecPlaceholder,
@@ -409,10 +281,10 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 	if err != nil {
 		return nil, err
 	}
-
+	driver.Depends = depends(task.GetDependentTasks())
 	iterationCount := intstr.FromString(driverOutputs.iterationCount)
 	iterationTasks, err := c.task(
-		"iteration-item",
+		"iteration",
 		task,
 		taskInputs{
 			parentDagID:    inputParameter(paramParentDagID),
@@ -441,8 +313,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 	if task.GetTriggerPolicy().GetCondition() != "" {
 		when = driverOutputs.condition + " != false"
 	}
-
-	iteratorTasks := []wfapi.DAGTask{
+	tasks = []wfapi.DAGTask{
 		*driver,
 		{
 			Name:     name + "-iterations",
@@ -461,7 +332,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 			WithSequence: &wfapi.Sequence{Count: &iterationCount},
 		},
 	}
-	return iteratorTasks, nil
+	return tasks, nil
 }
 
 type dagDriverOutputs struct {
@@ -558,14 +429,12 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		},
 		Container: &k8score.Container{
 			Image:   c.driverImage,
-			Command: c.driverCommand,
+			Command: []string{"driver"},
 			Env:     MLPipelineServiceEnv,
 			Args: []string{
 				"--type", inputValue(paramDriverType),
 				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 				"--run_id", runID(),
-				"--run_name", runResourceName(),
-				"--run_display_name", c.job.DisplayName,
 				"--dag_execution_id", inputValue(paramParentDagID),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
@@ -656,6 +525,27 @@ func depends(deps []string) string {
 		}
 		builder.WriteString(dep)
 		builder.WriteString(".Succeeded")
+	}
+	return builder.String()
+}
+
+// Exit handler task happens no matter the state of the upstream tasks
+func depends_exit_handler(deps []string) string {
+	if len(deps) == 0 {
+		return ""
+	}
+	var builder strings.Builder
+	for index, dep := range deps {
+		if index > 0 {
+			builder.WriteString(" || ")
+		}
+		for inner_index, task_status := range []string{".Succeeded", ".Skipped", ".Failed", ".Errored"} {
+			if inner_index > 0 {
+				builder.WriteString(" || ")
+			}
+			builder.WriteString(dep)
+			builder.WriteString(task_status)
+		}
 	}
 	return builder.String()
 }

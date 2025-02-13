@@ -49,7 +49,7 @@ type V2beta1Run struct {
 	// This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.
 	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
 
-	// Reference to a pipeline containing pipeline_id and optionally the pipeline_version_id.
+	// Reference to a pipeline version containing pipeline_id and pipeline_version_id.
 	PipelineVersionReference *V2beta1PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
 
 	// ID of the recurring run that triggered this run.

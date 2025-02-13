@@ -17,7 +17,7 @@ package argocompiler_test
 import (
 	"flag"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -48,11 +48,6 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/importer.yaml",
 		},
 		{
-			jobPath:          "../testdata/multiple_parallel_loops.json",
-			platformSpecPath: "",
-			argoYAMLPath:     "testdata/multiple_parallel_loops.yaml",
-		},
-		{
 			jobPath:          "../testdata/create_mount_delete_dynamic_pvc.json",
 			platformSpecPath: "../testdata/create_mount_delete_dynamic_pvc_platform.json",
 			argoYAMLPath:     "testdata/create_mount_delete_dynamic_pvc.yaml",
@@ -61,11 +56,6 @@ func Test_argo_compiler(t *testing.T) {
 			jobPath:          "../testdata/hello_world.json",
 			platformSpecPath: "../testdata/create_pod_metadata.json",
 			argoYAMLPath:     "testdata/create_pod_metadata.yaml",
-		},
-		{
-			jobPath:          "../testdata/exit_handler.json",
-			platformSpecPath: "",
-			argoYAMLPath:     "testdata/exit_handler.yaml",
 		},
 	}
 	for _, tt := range tests {
@@ -80,12 +70,12 @@ func Test_argo_compiler(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				err = os.WriteFile(tt.argoYAMLPath, got, 0x664)
+				err = ioutil.WriteFile(tt.argoYAMLPath, got, 0x664)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
-			argoYAML, err := os.ReadFile(tt.argoYAMLPath)
+			argoYAML, err := ioutil.ReadFile(tt.argoYAMLPath)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -125,7 +115,7 @@ func Test_argo_compiler(t *testing.T) {
 
 func load(t *testing.T, path string, platformSpecPath string) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
 	t.Helper()
-	content, err := os.ReadFile(path)
+	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Error(err)
 	}
@@ -136,7 +126,7 @@ func load(t *testing.T, path string, platformSpecPath string) (*pipelinespec.Pip
 
 	platformSpec := &pipelinespec.PlatformSpec{}
 	if platformSpecPath != "" {
-		content, err = os.ReadFile(platformSpecPath)
+		content, err = ioutil.ReadFile(platformSpecPath)
 		if err != nil {
 			t.Error(err)
 		}

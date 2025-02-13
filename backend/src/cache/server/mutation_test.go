@@ -52,7 +52,7 @@ var (
 					Command: []string{"python"},
 					Env: []corev1.EnvVar{{
 						Name:  ArgoWorkflowTemplateEnvKey,
-						Value: `{"name": "Does not matter","container":{"command":["echo", "Hello"],"image":"python:3.9"}}`,
+						Value: `{"name": "Does not matter","container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 					}},
 				},
 			},
@@ -169,9 +169,9 @@ func TestMutatePodIfCached(t *testing.T) {
 
 func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 	executionCache := &model.ExecutionCache{
-		ExecutionCacheKey: "1933d178a14bc415466cfd1b3ca2100af975e8c59e1ff9d502fcf18eb5cbd7f7",
+		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.9"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -188,9 +188,9 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 
 func TestDefaultImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
-		ExecutionCacheKey: "1933d178a14bc415466cfd1b3ca2100af975e8c59e1ff9d502fcf18eb5cbd7f7",
+		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.9"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -198,7 +198,7 @@ func TestDefaultImage(t *testing.T) {
 	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
 	assert.Nil(t, err)
 	container := patchOperation[0].Value.([]corev1.Container)[0]
-	require.Equal(t, "registry.k8s.io/busybox", container.Image)
+	require.Equal(t, "gcr.io/google-containers/busybox", container.Image)
 }
 
 func TestSetImage(t *testing.T) {
@@ -209,7 +209,7 @@ func TestSetImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.9"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -226,7 +226,7 @@ func TestCacheNodeRestriction(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.9"},"nodeSelector":{"disktype":"ssd"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"},"nodeSelector":{"disktype":"ssd"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -239,9 +239,9 @@ func TestCacheNodeRestriction(t *testing.T) {
 
 func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	executionCache := &model.ExecutionCache{
-		ExecutionCacheKey: "c81988503d55a5817d79bd972017d95c37f72b024e522b4d79787d9f599c0725",
+		ExecutionCacheKey: "5a20e3f2e74863b363291953082d9812a58e25f7117bface1c76d40ef0ee88fc",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"python:3.9"},"outputs":"anything"}`,
+		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"python:3.7"},"outputs":"anything"}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -253,7 +253,7 @@ func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 			"name": "Does not matter",
 			"metadata": "anything",
 			"container": {
-				"image": "python:3.9",
+				"image": "python:3.7",
 				"command": ["echo", "Hello"]
 			},
 			"outputs": "anything",

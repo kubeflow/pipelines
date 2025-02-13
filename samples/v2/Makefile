@@ -16,12 +16,12 @@
 .PHONY: all
 all:
 	@for f in $$(find . -name "*.py"); do \
-		compiled="$${f%.*}_pipeline.yaml"; \
+		compiled="$${f%.*}_pipeline.json"; \
 		echo "compiling $${f} to $${compiled}"; \
-		kfp dsl compile --py "$${f}" --output $${compiled}""; \
+		dsl-compile-v2 --py "$${f}" --out $${compiled}""; \
 	done
 
 # clean up all genereated pipeline job JSON files
 .PHONY: clean
 clean:
-	@find . -name "*.yaml" -exec rm {} \;
+	@find . -name "*.json" -exec rm {} \;

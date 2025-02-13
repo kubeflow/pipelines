@@ -10,7 +10,7 @@ deploymentSpec:
         command:
         - echo
         - hello world
-        image: python:3.9
+        image: python:3.7
 pipelineInfo:
   name: container-no-input
 root:
@@ -24,4 +24,4 @@ root:
         taskInfo:
           name: container-no-input
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.1.3

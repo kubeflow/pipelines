@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import fetch from 'node-fetch';
-import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs';
+import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import { Client as MinioClient } from 'minio';
-import { PreviewStream, findFileOnPodVolume, parseJSONString } from '../utils';
+import { PreviewStream, findFileOnPodVolume } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
@@ -24,9 +24,6 @@ import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
 
 import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker';
-import { getK8sSecret } from '../k8s-helper';
-import { StorageOptions } from '@google-cloud/storage/build/src/storage';
-import { CredentialBody } from 'google-auth-library/build/src/auth/credentials';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -41,31 +38,6 @@ interface ArtifactsQueryStrings {
   key: string;
   /** return only the first x characters or bytes. */
   peek?: number;
-  /** optional provider info to use to query object store */
-  providerInfo?: string;
-  namespace?: string;
-}
-
-export interface S3ProviderInfo {
-  Provider: string;
-  Params: {
-    fromEnv: string;
-    secretName?: string;
-    accessKeyKey?: string;
-    secretKeyKey?: string;
-    region?: string;
-    endpoint?: string;
-    disableSSL?: string;
-  };
-}
-
-export interface GCSProviderInfo {
-  Provider: string;
-  Params: {
-    fromEnv: string;
-    secretName?: string;
-    tokenKey?: string;
-  };
 }
 
 /**
@@ -80,7 +52,6 @@ export function getArtifactsHandler({
   artifactsConfigs,
   useParameter,
   tryExtract,
-  options,
 }: {
   artifactsConfigs: {
     aws: AWSConfigs;
@@ -90,18 +61,13 @@ export function getArtifactsHandler({
   };
   tryExtract: boolean;
   useParameter: boolean;
-  options: UIConfigs;
 }): Handler {
   const { aws, http, minio, allowedDomain } = artifactsConfigs;
   return async (req, res) => {
     const source = useParameter ? req.params.source : req.query.source;
     const bucket = useParameter ? req.params.bucket : req.query.bucket;
     const key = useParameter ? req.params[0] : req.query.key;
-    const {
-      peek = 0,
-      providerInfo = '',
-      namespace = options.server.serverNamespace,
-    } = req.query as Partial<ArtifactsQueryStrings>;
+    const { peek = 0 } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
       return;
@@ -115,23 +81,16 @@ export function getArtifactsHandler({
       return;
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
-
-    let client: MinioClient;
     switch (source) {
       case 'gcs':
-        await getGCSArtifactHandler({ bucket, key }, peek, providerInfo, namespace)(req, res);
+        getGCSArtifactHandler({ bucket, key }, peek)(req, res);
         break;
+
       case 'minio':
-        try {
-          client = await createMinioClient(minio, 'minio', providerInfo, namespace);
-        } catch (e) {
-          res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
-          return;
-        }
-        await getMinioArtifactHandler(
+        getMinioArtifactHandler(
           {
             bucket,
-            client,
+            client: new MinioClient(minio),
             key,
             tryExtract,
           },
@@ -139,30 +98,26 @@ export function getArtifactsHandler({
         )(req, res);
         break;
       case 's3':
-        try {
-          client = await createMinioClient(aws, 's3', providerInfo, namespace);
-        } catch (e) {
-          res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
-          return;
-        }
-        await getMinioArtifactHandler(
+        getMinioArtifactHandler(
           {
             bucket,
-            client,
+            client: await createMinioClient(aws),
             key,
           },
           peek,
         )(req, res);
         break;
+
       case 'http':
       case 'https':
-        await getHttpArtifactsHandler(
+        getHttpArtifactsHandler(
           allowedDomain,
           getHttpUrl(source, http.baseUrl || '', bucket, key),
           http.auth,
           peek,
         )(req, res);
         break;
+
       case 'volume':
         await getVolumeArtifactsHandler(
           {
@@ -172,6 +127,7 @@ export function getArtifactsHandler({
           peek,
         )(req, res);
         break;
+
       default:
         res.status(500).send('Unknown storage source');
         return;
@@ -240,57 +196,16 @@ function getMinioArtifactHandler(
   };
 }
 
-async function parseGCSProviderInfo(
-  providerInfo: GCSProviderInfo,
-  namespace: string,
-): Promise<StorageOptions> {
-  if (!providerInfo.Params.tokenKey || !providerInfo.Params.secretName) {
-    throw new Error(
-      'Provider info with fromEnv:false supplied with incomplete secret credential info.',
-    );
-  }
-  let configGCS: StorageOptions;
-  try {
-    const tokenString = await getK8sSecret(
-      providerInfo.Params.secretName,
-      providerInfo.Params.tokenKey,
-      namespace,
-    );
-    const credentials = parseJSONString<CredentialBody>(tokenString);
-    configGCS = { credentials };
-    configGCS.scopes = 'https://www.googleapis.com/auth/devstorage.read_write';
-    return configGCS;
-  } catch (err) {
-    throw new Error('Failed to parse GCS Provider config. Error: ' + err);
-  }
-}
-
-function getGCSArtifactHandler(
-  options: { key: string; bucket: string },
-  peek: number = 0,
-  providerInfoString?: string,
-  namespace?: string,
-) {
+function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: number = 0) {
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
     try {
-      let storageOptions: StorageOptions | undefined;
-      if (providerInfoString) {
-        const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
-        if (providerInfo && providerInfo.Params.fromEnv === 'false') {
-          if (!namespace) {
-            res.status(500).send('Failed to parse provider info. Reason: No namespace provided');
-          } else {
-            storageOptions = await parseGCSProviderInfo(providerInfo, namespace);
-          }
-        }
-      }
       // Read all files that match the key pattern, which can include wildcards '*'.
       // The way this works is we list all paths whose prefix is the substring
       // of the pattern until the first wildcard, then we create a regular
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
-      const storage = new Storage(storageOptions);
+      const storage = new Storage();
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
       const files = await storage.bucket(bucket).getFiles({ prefix });
       const matchingFiles = files[0].filter(f => {

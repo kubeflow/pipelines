@@ -1869,13 +1869,10 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	case *apiv2beta1.RecurringRun:
 		pipelineId = apiJob.GetPipelineVersionReference().GetPipelineId()
 		pipelineVersionId = apiJob.GetPipelineVersionReference().GetPipelineVersionId()
-
-		if apiJob.GetPipelineSpec() != nil {
-			if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
-				pipelineSpec = spec
-			} else {
-				return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
-			}
+		if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
+			pipelineSpec = spec
+		} else {
+			return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
 		}
 
 		cfg, err := toModelRuntimeConfig(apiJob.GetRuntimeConfig())
@@ -1917,7 +1914,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		return nil, util.NewUnknownApiVersionError("RecurringRun", j)
 	}
 	if maxConcur > 10 || maxConcur < 1 {
-		return nil, util.NewInvalidInputError("Max concurrency of a recurring run must be at least 1 and at most 10. Received %v", maxConcur)
+		return nil, util.NewInvalidInputError("Max concurrency of a recurring run must be at leas 1 and at most 10. Received %v", maxConcur)
 	}
 	if trigger != nil && trigger.CronSchedule.Cron != nil {
 		if _, err := cron.Parse(*trigger.CronSchedule.Cron); err != nil {
@@ -1936,7 +1933,6 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	} else if pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("pipelines/%v", pipelineVersionId)
 	}
-
 	status := model.StatusStateUnspecified
 	if isEnabled {
 		status = model.StatusStateEnabled

@@ -411,7 +411,7 @@ type Run_PipelineSpec struct {
 }
 
 type Run_PipelineVersionReference struct {
-	// Reference to a pipeline containing pipeline_id and optionally the pipeline_version_id.
+	// Reference to a pipeline version containing pipeline_id and pipeline_version_id.
 	PipelineVersionReference *PipelineVersionReference `protobuf:"bytes,18,opt,name=pipeline_version_reference,json=pipelineVersionReference,proto3,oneof"`
 }
 
@@ -429,7 +429,7 @@ type PipelineVersionReference struct {
 
 	// Input. Required. Unique ID of the parent pipeline.
 	PipelineId string `protobuf:"bytes,1,opt,name=pipeline_id,json=pipelineId,proto3" json:"pipeline_id,omitempty"`
-	// Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
+	// Input. Required. Unique ID of an existing pipeline version.
 	PipelineVersionId string `protobuf:"bytes,2,opt,name=pipeline_version_id,json=pipelineVersionId,proto3" json:"pipeline_version_id,omitempty"`
 }
 

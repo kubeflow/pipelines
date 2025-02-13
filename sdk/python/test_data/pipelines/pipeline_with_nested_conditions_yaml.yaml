@@ -251,7 +251,7 @@ deploymentSpec:
         command:
         - sh
         - -c
-        image: python:alpine3.9
+        image: python:alpine3.6
     exec-generate-random-number:
       container:
         args:
@@ -263,7 +263,7 @@ deploymentSpec:
         command:
         - sh
         - -c
-        image: python:alpine3.9
+        image: python:alpine3.6
     exec-generate-random-number-2:
       container:
         args:
@@ -275,31 +275,31 @@ deploymentSpec:
         command:
         - sh
         - -c
-        image: python:alpine3.9
+        image: python:alpine3.6
     exec-print:
       container:
         command:
         - echo
         - '{{$.inputs.parameters[''msg'']}}'
-        image: python:alpine3.9
+        image: python:alpine3.6
     exec-print-2:
       container:
         command:
         - echo
         - '{{$.inputs.parameters[''msg'']}}'
-        image: python:alpine3.9
+        image: python:alpine3.6
     exec-print-3:
       container:
         command:
         - echo
         - '{{$.inputs.parameters[''msg'']}}'
-        image: python:alpine3.9
+        image: python:alpine3.6
     exec-print-4:
       container:
         command:
         - echo
         - '{{$.inputs.parameters[''msg'']}}'
-        image: python:alpine3.9
+        image: python:alpine3.6
 pipelineInfo:
   description: Shows how to use dsl.Condition().
   displayName: Conditional execution pipeline.
@@ -347,4 +347,4 @@ root:
         taskInfo:
           name: flip-coin
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.0.0-rc.2

@@ -39,7 +39,7 @@ type Saver interface {
 }
 
 type EventHandler interface {
-	AddEventHandler(handler cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error)
+	AddEventHandler(handler cache.ResourceEventHandler)
 }
 
 // PersistenceWorker is a generic worker to persist objects from a queue.
@@ -62,8 +62,7 @@ func NewPersistenceWorker(
 	name string,
 	eventHandler util.ExecutionInformerEventHandler,
 	enforceRequeueDelays bool,
-	saver Saver,
-) (*PersistenceWorker, error) {
+	saver Saver) *PersistenceWorker {
 	worker := &PersistenceWorker{
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), name),
@@ -75,18 +74,15 @@ func NewPersistenceWorker(
 	log.Info("Setting up event handlers")
 
 	// Set up an event handler for when the Scheduled Workflow changes
-	_, err := eventHandler.AddEventHandler(&cache.ResourceEventHandlerFuncs{
+	eventHandler.AddEventHandler(&cache.ResourceEventHandlerFuncs{
 		AddFunc: worker.enqueue,
 		UpdateFunc: func(old, new interface{}) {
 			worker.enqueue(new)
 		},
 		DeleteFunc: worker.enqueueForDelete,
 	})
-	if err != nil {
-		return nil, err
-	}
 
-	return worker, nil
+	return worker
 }
 
 func (p *PersistenceWorker) Shutdown() {

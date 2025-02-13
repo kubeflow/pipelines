@@ -16,17 +16,7 @@ spec:
     spec:
       containers:
       - name: server
-        securityContext:
-          allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
-          capabilities:
-            drop:
-            - ALL
-        image: ghcr.io/kubeflow/kfp-cache-server:dummy
+        image: gcr.io/ml-pipeline/cache-server:dummy
         env:
           - name: DEFAULT_CACHE_STALENESS
             valueFrom:

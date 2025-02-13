@@ -19,7 +19,7 @@ package config
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"strconv"
 	"strings"
 
@@ -85,7 +85,7 @@ func (c *Config) DefaultPipelineRoot() string {
 func InPodNamespace() (string, error) {
 	// The path is available in Pods.
 	// https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/#directly-accessing-the-rest-api
-	ns, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	ns, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		return "", fmt.Errorf("failed to get namespace in Pod: %w", err)
 	}
@@ -94,7 +94,7 @@ func InPodNamespace() (string, error) {
 
 // InPodName gets the pod name from inside a Kubernetes Pod.
 func InPodName() (string, error) {
-	podName, err := os.ReadFile("/etc/hostname")
+	podName, err := ioutil.ReadFile("/etc/hostname")
 	if err != nil {
 		return "", fmt.Errorf("failed to get pod name in Pod: %w", err)
 	}
@@ -103,10 +103,11 @@ func InPodName() (string, error) {
 }
 
 func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, error) {
-	provider, err := objectstore.ParseProviderFromPath(path)
+	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
 	}
+	provider := strings.TrimSuffix(bucketConfig.Scheme, "://")
 	bucketProviders, err := c.getBucketProviders()
 	if err != nil {
 		return objectstore.SessionInfo{}, err

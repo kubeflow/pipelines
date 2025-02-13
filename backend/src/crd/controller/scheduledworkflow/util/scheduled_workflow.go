@@ -17,12 +17,11 @@ package util
 import (
 	"fmt"
 	"hash/fnv"
+	core "k8s.io/api/core/v1"
 	"math"
 	"sort"
 	"strconv"
 	"time"
-
-	corev1 "k8s.io/api/core/v1"
 
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -272,10 +271,7 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, submitted bool,
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus, location *time.Location) {
 
-	// updatedEpoch contains current time but using current time causes the
-	// SWF to fail to be reconciled by the controller. Set LastProbeTime and
-	// LastTransitionTime to 0 to avoid the irreconcilable status updates.
-	updatedTime := metav1.NewTime(time.Unix(0, 0).UTC())
+	updatedTime := metav1.NewTime(time.Unix(updatedEpoch, 0).UTC())
 
 	conditionType, status, message := s.getStatusAndMessage(len(active))
 
@@ -339,7 +335,7 @@ func (s *ScheduledWorkflow) updateNextTriggeredTime(epoch int64) {
 
 func (s *ScheduledWorkflow) getStatusAndMessage(activeCount int) (
 	conditionType swfapi.ScheduledWorkflowConditionType,
-	status corev1.ConditionStatus, message string) {
+	status core.ConditionStatus, message string) {
 	// Schedule messages
 	const (
 		ScheduleEnabledMessage   = "The schedule is enabled."
@@ -350,15 +346,15 @@ func (s *ScheduledWorkflow) getStatusAndMessage(activeCount int) (
 
 	if s.isOneOffRun() {
 		if s.hasRunAtLeastOnce() && activeCount == 0 {
-			return swfapi.ScheduledWorkflowSucceeded, corev1.ConditionTrue, ScheduleSucceededMessage
+			return swfapi.ScheduledWorkflowSucceeded, core.ConditionTrue, ScheduleSucceededMessage
 		} else {
-			return swfapi.ScheduledWorkflowRunning, corev1.ConditionTrue, ScheduleRunningMessage
+			return swfapi.ScheduledWorkflowRunning, core.ConditionTrue, ScheduleRunningMessage
 		}
 	} else {
 		if s.enabled() {
-			return swfapi.ScheduledWorkflowEnabled, corev1.ConditionTrue, ScheduleEnabledMessage
+			return swfapi.ScheduledWorkflowEnabled, core.ConditionTrue, ScheduleEnabledMessage
 		} else {
-			return swfapi.ScheduledWorkflowDisabled, corev1.ConditionTrue, ScheduleDisabledMessage
+			return swfapi.ScheduledWorkflowDisabled, core.ConditionTrue, ScheduleDisabledMessage
 		}
 	}
 }

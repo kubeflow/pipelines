@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.9-slim
+FROM python:3.7-slim
 
 WORKDIR /workdir
 COPY backend/src/v2/test/requirements.txt backend/src/v2/test/

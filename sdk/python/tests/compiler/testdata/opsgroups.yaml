@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: opsgroups-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.0.0, pipelines.kubeflow.org/pipeline_compilation_time: '2020-08-13T11:25:18.232372',
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "message 1", "name":
+      "text1", "optional": true}, {"default": "message 2", "name": "text2", "optional":
+      true}], "name": "Execution order pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.0.0}
+spec:
+  entrypoint: opsgroups-pipeline
+  templates:
+  - name: echo1-task1
+    container:
+      args: [echo "$0", '{{inputs.parameters.text1}}']
+      command: [sh, -c]
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - {name: text1}
+  - name: echo2-task1
+    container:
+      args: [echo "$0", '{{inputs.parameters.text2}}']
+      command: [sh, -c]
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - {name: text2}
+  - name: graph-echo1-graph-component-1
+    inputs:
+      parameters:
+      - {name: text1}
+    dag:
+      tasks:
+      - name: echo1-task1
+        template: echo1-task1
+        arguments:
+          parameters:
+          - {name: text1, value: '{{inputs.parameters.text1}}'}
+  - name: graph-echo2-graph-component-2
+    inputs:
+      parameters:
+      - {name: text2}
+    dag:
+      tasks:
+      - name: echo2-task1
+        template: echo2-task1
+        arguments:
+          parameters:
+          - {name: text2, value: '{{inputs.parameters.text2}}'}
+  - name: opsgroups-pipeline
+    inputs:
+      parameters:
+      - {name: text1}
+      - {name: text2}
+    dag:
+      tasks:
+      - name: graph-echo1-graph-component-1
+        template: graph-echo1-graph-component-1
+        arguments:
+          parameters:
+          - {name: text1, value: '{{inputs.parameters.text1}}'}
+      - name: graph-echo2-graph-component-2
+        template: graph-echo2-graph-component-2
+        dependencies: [graph-echo1-graph-component-1]
+        arguments:
+          parameters:
+          - {name: text2, value: '{{inputs.parameters.text2}}'}
+  arguments:
+    parameters:
+    - {name: text1, value: message 1}
+    - {name: text2, value: message 2}
+  serviceAccountName: pipeline-runner

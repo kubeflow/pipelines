@@ -15,7 +15,7 @@
 package integration
 
 import (
-	"os"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -54,7 +54,7 @@ func (s *PipelineApiTest) SetupTest() {
 	}
 
 	if !*isDevMode {
-		err := test.WaitForReady(*initializeTimeout)
+		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
@@ -232,14 +232,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: argumentYAMLPipeline.ID})
 	require.Nil(t, err)
-	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
+	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
 	expected, _ := pipelinetemplate.New(bytes)
 	assert.Equal(t, expected, template)
 
 	template, err = s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
-	bytes, err = os.ReadFile("../resources/v2-hello-world.yaml")
+	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
 	expected, _ = pipelinetemplate.New(bytes)
 	assert.Equal(t, expected, template)

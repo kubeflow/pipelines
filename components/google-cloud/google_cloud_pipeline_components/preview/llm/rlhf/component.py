@@ -107,8 +107,6 @@ def rlhf_pipeline(
       evaluation_dataset=eval_dataset,
       tensorboard_resource_id=tensorboard_resource_id,
       upload_location=location,
-      model_display_name=model_display_name,
-      deploy_model=deploy_model,
   ).set_display_name('Preprocess Inputs')
   num_microbatches = preprocess_metadata.outputs['metadata_num_microbatches']
 
@@ -206,9 +204,12 @@ def rlhf_pipeline(
       has_inference_dataset == True,  # pylint: disable=singleton-comparison
       name='Perform Inference',
   ):
-    with kfp.dsl.If(
-        rl_model_pipeline.outputs['output_model_path'] != '',
-        name='CheckModel Checkpoint Exists',
+    has_model_checkpoint = function_based.value_exists(
+        value=rl_model_pipeline.outputs['output_model_path']
+    ).set_display_name('Resolve Model Checkpoint')
+    with kfp.dsl.Condition(
+        has_model_checkpoint.output == True,  # pylint: disable=singleton-comparison
+        name='Test Model Checkpoint Exists',
     ):
       component.infer_pipeline(
           project=project,
@@ -229,11 +230,8 @@ def rlhf_pipeline(
       policy_model_reference=preprocess_metadata.outputs[
           'metadata_large_model_reference'
       ],
-      model_display_name=preprocess_metadata.outputs[
-          'metadata_model_display_name'
-      ],
-      deploy_model=preprocess_metadata.outputs['metadata_deploy_model'],
-      upload_model=preprocess_metadata.outputs['metadata_upload_model'],
+      model_display_name=model_display_name,
+      deploy_model=deploy_model,
       encryption_spec_key_name=encryption_spec_key_name,
       upload_location=location,
       regional_endpoint=preprocess_metadata.outputs['metadata_upload_location'],

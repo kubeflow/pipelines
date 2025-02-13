@@ -1,0 +1,110 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../../../manifests/kustomize/base/installs/generic
+- ../../../../manifests/kustomize/base/metadata/base
+- ../../../../manifests/kustomize/third-party/tekton/installs/cluster
+- ../../../../manifests/kustomize/third-party/tekton-custom-task
+- ../../../../manifests/kustomize/third-party/minio/base
+- ../../../../manifests/kustomize/third-party/mysql/base
+
+# Identifier for application manager to apply ownerReference.
+# The ownerReference ensures the resources get garbage collected
+# when application is deleted.
+
+images:
+- name: gcr.io/ml-pipeline/api-server
+  newName: kind-registry:5000/apiserver
+  newTag: latest
+- name: gcr.io/ml-pipeline/persistenceagent
+  newName: kind-registry:5000/persistenceagent
+  newTag: latest
+- name: gcr.io/ml-pipeline/scheduledworkflow
+  newName: kind-registry:5000/scheduledworkflow
+  newTag: latest
+- name: '*/aipipeline/tekton-exithandler-controller'
+  newTag: latest
+- name: '*/aipipeline/tekton-exithandler-webhook'
+  newTag: latest
+- name: '*/aipipeline/tekton-kfptask-controller'
+  newTag: latest
+- name: '*/aipipeline/tekton-kfptask-webhook'
+  newTag: latest
+
+labels:
+- includeSelectors: true
+  pairs:
+    application-crd-id: kubeflow-pipelines
+
+patches:
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ml-pipeline
+    spec:
+      template:
+        spec:
+          containers:
+            - name: ml-pipeline-api-server
+              env:
+              - name: EXECUTIONTYPE
+                value: PipelineRun
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ml-pipeline-persistenceagent
+    spec:
+      template:
+        spec:
+          containers:
+            - name: ml-pipeline-persistenceagent
+              env:
+              - name: EXECUTIONTYPE
+                value: PipelineRun
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ml-pipeline-scheduledworkflow
+    spec:
+      template:
+        spec:
+          containers:
+            - name: ml-pipeline-scheduledworkflow
+              env:
+              - name: EXECUTIONTYPE
+                value: PipelineRun
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ml-pipeline-ui
+    spec:
+      template:
+        spec:
+          containers:
+            - name: ml-pipeline-ui
+              env:
+              - name: POD_LOG_CONTAINER_NAME
+                value: step-user-main
+- patch: |-
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: mysql-pv-claim
+    spec:
+      resources:
+        requests:
+          storage: 5Gi
+- patch: |-
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: minio-pvc
+    spec:
+      resources:
+        requests:
+          storage: 5Gi

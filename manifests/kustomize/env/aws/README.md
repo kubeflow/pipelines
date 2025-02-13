@@ -38,13 +38,13 @@ Follow this [doc](https://awslabs.github.io/kubeflow-manifests/docs/deployment/r
 5. Install
 
 ```
-kustomize build ../../cluster-scoped-resources | kubectl apply -f -
+kubectl apply -k ../../cluster-scoped-resources
 # If upper one action got failed, e.x. you used wrong value, try delete, fix and apply again
 # kubectl delete -k ../../cluster-scoped-resources
 
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
 
-kustomize build ./ | kubectl apply -f -
+kubectl apply -k ./
 # If upper one action got failed, e.x. you used wrong value, try delete, fix and apply again
 # kubectl delete -k ./
 

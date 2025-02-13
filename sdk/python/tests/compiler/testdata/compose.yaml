@@ -1,0 +1,110 @@
+# Copyright 2018 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Download and Get Most Frequent Word and Save to GCS", "inputs": [{"name": "url"}, {"name": "outputpath"}], "name": "Download and Save Most Frequent"}'
+  generateName: download-and-save-most-frequent-
+spec:
+  arguments:
+    parameters:
+    - name: url
+    - name: outputpath
+  entrypoint: download-and-save-most-frequent
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - gsutil cat {{inputs.parameters.url}} | tee /tmp/results.txt
+      command:
+      - sh
+      - -c
+      image: google/cloud-sdk
+    inputs:
+      parameters:
+      - name: url
+    name: download
+    outputs:
+      artifacts:
+      - name: download-downloaded
+        path: /tmp/results.txt
+      parameters:
+      - name: download-downloaded
+        valueFrom:
+          path: /tmp/results.txt
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: url
+            value: '{{inputs.parameters.url}}'
+        name: download
+        template: download
+      - arguments:
+          parameters:
+          - name: download-downloaded
+            value: '{{tasks.download.outputs.parameters.download-downloaded}}'
+        dependencies:
+        - download
+        name: get-frequent
+        template: get-frequent
+      - arguments:
+          parameters:
+          - name: get-frequent-word
+            value: '{{tasks.get-frequent.outputs.parameters.get-frequent-word}}'
+          - name: outputpath
+            value: '{{inputs.parameters.outputpath}}'
+        dependencies:
+        - get-frequent
+        name: save
+        template: save
+    inputs:
+      parameters:
+      - name: outputpath
+      - name: url
+    name: download-and-save-most-frequent
+  - container:
+      args:
+      - python -c "from collections import Counter; words = Counter('{{inputs.parameters.download-downloaded}}'.split());
+        print(max(words, key=words.get))" | tee /tmp/message.txt
+      command:
+      - sh
+      - -c
+      image: python:3.5-jessie
+    inputs:
+      parameters:
+      - name: download-downloaded
+    name: get-frequent
+    outputs:
+      artifacts:
+      - name: get-frequent-word
+        path: /tmp/message.txt
+      parameters:
+      - name: get-frequent-word
+        valueFrom:
+          path: /tmp/message.txt
+  - container:
+      args:
+      - echo {{inputs.parameters.get-frequent-word}} | tee /tmp/results.txt | gsutil
+        cp /tmp/results.txt {{inputs.parameters.outputpath}}
+      command:
+      - sh
+      - -c
+      image: google/cloud-sdk
+    inputs:
+      parameters:
+      - name: get-frequent-word
+      - name: outputpath
+    name: save

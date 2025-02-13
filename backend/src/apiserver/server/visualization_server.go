@@ -18,7 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -120,7 +120,7 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 		return nil, fmt.Errorf(resp.Status)
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse visualization response")
 	}

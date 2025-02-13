@@ -1365,7 +1365,7 @@ describe('NewRun', () => {
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          additionalInfo: 'Unexpected token \'o\', "not JSON" is not valid JSON',
+          additionalInfo: 'Unexpected token o in JSON at position 1',
           message:
             "Error: failed to parse the embedded pipeline's spec: not JSON. Click Details for more information.",
           mode: 'error',

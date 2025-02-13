@@ -18,7 +18,7 @@ type V2beta1PipelineVersionReference struct {
 	// Input. Required. Unique ID of the parent pipeline.
 	PipelineID string `json:"pipeline_id,omitempty"`
 
-	// Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
+	// Input. Required. Unique ID of an existing pipeline version.
 	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
 }
 

@@ -36,8 +36,7 @@ class PySampleChecker(object):
                  result,
                  experiment_name,
                  host,
-                 namespace='kubeflow',
-                 expected_result='succeeded'):
+                 namespace='kubeflow'):
         """Util class for checking python sample test running results.
 
         :param testname: test name.
@@ -46,7 +45,6 @@ class PySampleChecker(object):
         :param result: The path of the test result that will be exported.
         :param host: The hostname of KFP API endpoint.
         :param namespace: namespace of the deployed pipeline system. Default: kubeflow
-        :param expected_result: the expected status for the run, default is succeeded.
         :param experiment_name: Name of the experiment to monitor
         """
         self._testname = testname
@@ -67,7 +65,6 @@ class PySampleChecker(object):
         self._job_name = None
         self._test_args = None
         self._run_id = None
-        self._expected_result = expected_result
 
     def run(self):
         """Run compiled KFP pipeline."""
@@ -124,7 +121,8 @@ class PySampleChecker(object):
                 yamlerr))
         except OSError as ose:
             print(
-                f'Config file "{config_file}" not found, using default args: {raw_args}')
+                'Config file with the same name not found, use default args:{}'
+                .format(ose))
         else:
             if 'arguments' in raw_args.keys() and raw_args['arguments']:
                 self._test_args.update(raw_args['arguments'])
@@ -155,17 +153,27 @@ class PySampleChecker(object):
         """Check pipeline run results."""
         if self._run_pipeline:
             ###### Monitor Job ######
-            start_time = datetime.now()
-            response = self._client.wait_for_run_completion(self._run_id, self._test_timeout)
-            succ = (response.state.lower() == self._expected_result)
-            end_time = datetime.now()
-            elapsed_time = (end_time - start_time).seconds
-            utils.add_junit_test(self._test_cases, 'job completion', succ,
-                                 'waiting for job completion failure',
-                                 elapsed_time)
-            print(f'Pipeline {"worked" if succ else "Failed"}. Elapsed time: {elapsed_time}s')
+            try:
+                start_time = datetime.now()
+                response = self._client.wait_for_run_completion(
+                    self._run_id, self._test_timeout)
+                succ = (response.state.lower() == 'succeeded')
+                end_time = datetime.now()
+                elapsed_time = (end_time - start_time).seconds
+                utils.add_junit_test(self._test_cases, 'job completion', succ,
+                                     'waiting for job completion failure',
+                                     elapsed_time)
+            finally:
+                # TODO(chensun): print log for debugging
+                pass
 
-            ###### Delete Job ######
-            #TODO: add deletion when the backend API offers the interface.
+            if not succ:
+                utils.write_junit_xml(self._test_name, self._result,
+                                      self._test_cases)
+                exit(1)
 
-            assert succ
+        ###### Delete Job ######
+        #TODO: add deletion when the backend API offers the interface.
+
+        ###### Write out the test result in junit xml ######
+        utils.write_junit_xml(self._test_name, self._result, self._test_cases)

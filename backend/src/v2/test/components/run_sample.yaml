@@ -24,7 +24,7 @@ inputs:
 - {name: backend_compiler, type: Binary}
 implementation:
   container:
-    image: python:3.9-alpine
+    image: python:3.7-alpine
     command:
     - sh
     - -exc

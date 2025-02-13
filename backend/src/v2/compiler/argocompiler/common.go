@@ -139,7 +139,7 @@ func ConfigureCABundle(tmpl *wfapi.Template) {
 			Value: sslCertDir,
 		})
 		volume := k8score.Volume{
-			Name: volumeNameCABundle,
+			Name: volumeNameCABUndle,
 			VolumeSource: k8score.VolumeSource{
 				ConfigMap: &k8score.ConfigMapVolumeSource{
 					LocalObjectReference: k8score.LocalObjectReference{
@@ -152,28 +152,12 @@ func ConfigureCABundle(tmpl *wfapi.Template) {
 		tmpl.Volumes = append(tmpl.Volumes, volume)
 
 		volumeMount := k8score.VolumeMount{
-			Name:      volumeNameCABundle,
+			Name:      volumeNameCABUndle,
 			MountPath: caFile,
 			SubPath:   caBundleCfgMapKey,
 		}
 
 		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, volumeMount)
 
-	}
-}
-
-// addExitTask adds an exit lifecycle hook to a task if exitTemplate is not empty.
-func addExitTask(task *wfapi.DAGTask, exitTemplate string, parentDagID string) {
-	if exitTemplate == "" {
-		return
-	}
-
-	task.Hooks = wfapi.LifecycleHooks{
-		wfapi.ExitLifecycleEvent: wfapi.LifecycleHook{
-			Template: exitTemplate,
-			Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
-				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(parentDagID)},
-			}},
-		},
 	}
 }

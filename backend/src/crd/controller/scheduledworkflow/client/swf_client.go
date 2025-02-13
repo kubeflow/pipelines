@@ -40,8 +40,8 @@ func NewScheduledWorkflowClient(clientSet swfclientset.Interface,
 }
 
 // AddEventHandler adds an event handler.
-func (p *ScheduledWorkflowClient) AddEventHandler(funcs *cache.ResourceEventHandlerFuncs) (cache.ResourceEventHandlerRegistration, error) {
-	return p.informer.Informer().AddEventHandler(funcs)
+func (p *ScheduledWorkflowClient) AddEventHandler(funcs *cache.ResourceEventHandlerFuncs) {
+	p.informer.Informer().AddEventHandler(funcs)
 }
 
 // HasSynced returns true if the shared informer's store has synced.

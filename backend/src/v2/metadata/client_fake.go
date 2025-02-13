@@ -23,10 +23,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
-
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -82,15 +81,10 @@ func (c *FakeClient) GetPipelineFromExecution(ctx context.Context, id int64) (*P
 	return nil, nil
 }
 
-func (c *FakeClient) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline, filter bool) (executionsMap map[string]*Execution, err error) {
+func (c *FakeClient) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline) (executionsMap map[string]*Execution, err error) {
 	return nil, nil
 }
-func (c *FakeClient) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) (err error) {
-	return nil
-}
-func (c *FakeClient) PutDAGExecutionState(ctx context.Context, executionID int64, state pb.Execution_State) (err error) {
-	return nil
-}
+
 func (c *FakeClient) GetEventsByArtifactIDs(ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
 	return nil, nil
 }
@@ -207,9 +201,9 @@ func (c *FakeClient) createDummyData() {
 		Name: strPtr("ctx-0"),
 		Type: strPtr("1"),
 		CustomProperties: map[string]*pb.Value{
-			"pipeline_root":       StringValue("s3://test-bucket"),
-			"bucket_session_info": StringValue(string(bucketSessionInfo)),
-			"namespace":           StringValue("test-namespace"),
+			"pipeline_root":       stringValue("s3://test-bucket"),
+			"bucket_session_info": stringValue(string(bucketSessionInfo)),
+			"namespace":           stringValue("test-namespace"),
 		},
 	}
 	ctx2 := &pb.Context{
@@ -217,9 +211,9 @@ func (c *FakeClient) createDummyData() {
 		Name: strPtr("ctx-1"),
 		Type: strPtr("1"),
 		CustomProperties: map[string]*pb.Value{
-			"pipeline_root":      StringValue("s3://test-bucket"),
-			"store_session_info": StringValue(string(storeSessionInfo2)),
-			"namespace":          StringValue("test-namespace"),
+			"pipeline_root":      stringValue("s3://test-bucket"),
+			"store_session_info": stringValue(string(storeSessionInfo2)),
+			"namespace":          stringValue("test-namespace"),
 		},
 	}
 	c.contexts = []*pb.Context{ctx1, ctx2}

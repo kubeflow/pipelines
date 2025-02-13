@@ -66,15 +66,6 @@ export function loadJSON<T>(filepath?: string, defaultValue?: T): T | undefined 
   }
 }
 
-export function parseJSONString<T>(str: string) {
-  try {
-    const jsonValue: T = JSON.parse(str);
-    return jsonValue;
-  } catch (e) {
-    return undefined;
-  }
-}
-
 /**
  * find final file path in pod:
  * 1. check volume and volume mount exist in pod
