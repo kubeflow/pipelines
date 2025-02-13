@@ -23,7 +23,8 @@ ENV GOBIN=/go/bin
 
 # Install protoc.
 RUN apt-get update -y && apt-get install -y jq sed unzip
-RUN curl -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+RUN ARCH=$(uname -m); \
+    && curl -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${ARCH}.zip
 RUN unzip -o protoc.zip -d /usr/ bin/protoc
 RUN unzip -o protoc.zip -d /usr/ 'include/*'
 RUN rm -f protoc.zip
@@ -41,8 +42,26 @@ RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway@la
 RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger@latest
 
 # Download go-swagger binary.
-RUN curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_amd64"
-RUN chmod +x swagger_linux_amd64 && mv swagger_linux_amd64 /usr/bin/swagger
+#building go-swagger binary for s390x and ppc64le since pre built binaries are not available for these platforms
+RUN /bin/sh -c ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        ARCH="amd64" && \
+        curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_${ARCH}" && \
+        chmod +x swagger_linux_${ARCH} && \
+        mv swagger_linux_${ARCH} /usr/bin/swagger; \
+    else \
+        dir=$(mktemp -d) && \
+        git clone https://github.com/go-swagger/go-swagger "$dir" && \
+        cd "$dir" && \
+        git checkout v${GO_SWAGGER_VERSION} && \
+        LDFLAGS="-s -w -X github.com/$GITHUB_REPOSITORY/cmd/swagger/commands.Commit=${GITHUB_SHA}"; \
+        LDFLAGS="$LDFLAGS -X github.com/$GITHUB_REPOSITORY/cmd/swagger/commands.Version=${GITHUB_REF_NAME-dev}"; \
+        out="swagger_linux_$ARCH"; \
+        GOOS=linux GOARCH=$ARCH CGO_ENABLED=0 go build -ldflags "$LDFLAGS" -o "./dist/bin/$out" ./cmd/swagger; \
+        mv "./dist/bin/$out" /usr/bin/swagger && \
+        cd / && \
+        rm -rf "$dir"; \
+    fi
 
 # Need protobuf source code for -I in protoc command.
 RUN mkdir golang && cd golang && git clone --depth 1 --branch $GOLANG_PROTOBUF_VERSION https://github.com/golang/protobuf.git
