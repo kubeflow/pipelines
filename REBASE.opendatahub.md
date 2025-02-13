@@ -98,6 +98,8 @@ Create a PR with the result of the previous tasks with the following description
 
 ## Data Science Pipelines Operator repository
 
+Update https://github.com/opendatahub-io/data-science-pipelines-operator/blob/64c1d81f61cfd10f5cdbfb1f6222ada222441592/config/component_metadata.yaml#L3 with the new KFP version.
+
 ### Apply the DataSciencePipelinesApplication CustomResource from the opendatahub-io/data-science-pipelines Pull-Request
 
 With the Pull-Request opened in opendatahub-io/data-science-pipelines repository, you can get a DataSciencePipelinesApplication (DSPA)  CustomResource with the resulting image builds from the bot comment like this.
