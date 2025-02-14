@@ -15,11 +15,22 @@
 
 source_root=$(pwd)
 
+
+# Download and install protoc binary
+PROTOC_ZIP=protoc-3.19.6-linux-x86_64.zip
+curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.19.6/$PROTOC_ZIP
+sudo unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
+sudo unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
+rm -f $PROTOC_ZIP
+
+protoc --version
+
 # Create a virtual environment and activate it
 python3 -m venv venv
 source venv/bin/activate
 
 python3 -m pip install --upgrade pip
+python3 -m pip install wheel
 python3 -m pip install setuptools
 python3 -m pip install coveralls==1.9.2
 python3 -m pip install $(grep 'absl-py==' sdk/python/requirements-dev.txt)
@@ -27,8 +38,14 @@ python3 -m pip install $(grep 'docker==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest-xdist==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest-cov==' sdk/python/requirements-dev.txt)
-python3 -m pip install --upgrade protobuf
+python3 -m pip uninstall protobuf
+python3 -m pip install protobuf
+python3 -m pip install grpcio grpcio-tools
+python3 -m pip install api/v2alpha1/python
 
+pushd api && make clean-python python && popd
+
+python3 -m pip install api/v2alpha1/python
 python3 -m pip install sdk/python
 
 pytest sdk/python/kfp --cov=kfp
