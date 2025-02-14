@@ -18,13 +18,12 @@ package objectstore
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/golang/glog"
 	"os"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/golang/glog"
 )
 
 // The endpoint uses Kubernetes service DNS name with namespace:
@@ -54,12 +53,11 @@ type S3Params struct {
 	FromEnv    bool
 	SecretName string
 	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
-	AccessKeyKey   string
-	SecretKeyKey   string
-	Region         string
-	Endpoint       string
-	DisableSSL     bool
-	ForcePathStyle bool
+	AccessKeyKey string
+	SecretKeyKey string
+	Region       string
+	Endpoint     string
+	DisableSSL   bool
 }
 
 func (b *Config) bucketURL() string {
@@ -153,16 +151,6 @@ func ParseBucketConfigForArtifactURI(uri string) (*Config, error) {
 	}, nil
 }
 
-// ParseProviderFromPath prases the uri and returns the scheme, which is
-// used as the Provider string
-func ParseProviderFromPath(uri string) (string, error) {
-	bucketConfig, err := ParseBucketPathToConfig(uri)
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(bucketConfig.Scheme, "://"), nil
-}
-
 func MinioDefaultEndpoint() string {
 	// Discover minio-service in the same namespace by env var.
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
@@ -222,15 +210,6 @@ func StructuredS3Params(p map[string]string) (*S3Params, error) {
 			return nil, err
 		}
 		sparams.DisableSSL = boolVal
-	}
-	if val, ok := p["forcePathStyle"]; ok {
-		boolVal, err := strconv.ParseBool(val)
-		if err != nil {
-			return nil, err
-		}
-		sparams.ForcePathStyle = boolVal
-	} else {
-		sparams.ForcePathStyle = true
 	}
 	return sparams, nil
 }

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.0
+PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator:latest
 
 .PHONY: all
 all: golang python
@@ -25,7 +25,7 @@ clean: clean-go clean-python
 golang: proto/*.proto
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
-		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
+		--mount type=bind,source="$$(pwd)/..",target=/go/src/github.com/kubeflow/pipelines \
 		$(PREBUILT_REMOTE_IMAGE)  \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform && make generate-go-in-container'
 
@@ -35,15 +35,10 @@ clean-go:
 	rm -rf kubernetes_platform/go
 
 
-# Build and locally install Python package.
+# Generate Python package.
 .PHONY: python
 python: proto/kubernetes_executor_config.proto
 	python3 python/generate_proto.py && cd python && python3 setup.py bdist_wheel
-
-# Build and locally install Python package using editable mode for development.
-.PHONY: python-dev
-python-dev: proto/kubernetes_executor_config.proto
-	python3 python/generate_proto.py && cd python && pip install -e .[dev]
 
 # Delete all generated Python packages
 .PHONY: clean-python

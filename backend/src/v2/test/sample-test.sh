@@ -15,14 +15,18 @@
 # limitations under the License.
 
 set -ex
+source_root=$(pwd)
 
-pushd ./backend/src/v2/test
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+cd "${DIR}"
+source "${DIR}/scripts/ci-env.sh"
 
+# Install required packages from commit
 python3 -m pip install --upgrade pip
-python3 -m pip install -r ./requirements-sample-test.txt
 
-popd
+# TODO: remove deprecated dependency
+python3 -m pip install -r $source_root/sdk/python/requirements-deprecated.txt
+python3 -m pip install $source_root/sdk/python
 
-# The -u flag makes python output unbuffered, so that we can see real time log.
-# Reference: https://stackoverflow.com/a/107717
-python3 -u ./samples/v2/sample_test.py
+# Run sample test
+ENV_PATH=kfp-ci.env make

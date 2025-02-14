@@ -17,7 +17,7 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -53,7 +53,7 @@ func (s *RunApiTestSuite) SetupTest() {
 	}
 
 	if !*isDevMode {
-		err := test.WaitForReady(*initializeTimeout)
+		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
@@ -166,7 +166,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter run by uploading workflow manifest ---------- */
-	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	pipeline_spec := &structpb.Struct{}
 	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
@@ -389,7 +389,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentId string) {
 
 	// Compare the pipeline spec first.
-	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	// pipeline_spec := &structpb.Struct{}
 	// err = yaml.Unmarshal(argParamsBytes, pipeline_spec)

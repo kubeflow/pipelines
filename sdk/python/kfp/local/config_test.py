@@ -70,7 +70,7 @@ class LocalRunnerConfigTest(unittest.TestCase):
     def test_validate_fail(self):
         with self.assertRaisesRegex(
                 RuntimeError,
-                r"Local environment not initialized. Please run 'kfp\.local\.init\(\)' before executing tasks locally\."
+                f"Local environment not initialized. Please run 'kfp\.local\.init\(\)' before executing tasks locally\."
         ):
             config.LocalExecutionConfig.validate()
 

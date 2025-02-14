@@ -1,0 +1,1 @@
+Text from a file with hard-coded artifact value

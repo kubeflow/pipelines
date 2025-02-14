@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
@@ -76,7 +76,7 @@ func (s *JobApiTestSuite) SetupTest() {
 	}
 
 	if !*isDevMode {
-		err := test.WaitForReady(*initializeTimeout)
+		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
@@ -209,7 +209,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	// Make sure the job is created at least 1 second later than the first one,
 	// because sort by created_at has precision of 1 second.
 	time.Sleep(1 * time.Second)
-	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)

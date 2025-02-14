@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-REMOTE=ghcr.io/kubeflow/kfp-release:1.0
-
-CONTAINER_ENGINE ?= docker
+REMOTE=gcr.io/ml-pipeline-test/release@sha256:ed1a4dbe536e7e161ad0d846b5681aacc0e0e7f285985cb1808c5c8987bcfeb0
 
 .PHONY: release
 release:
@@ -35,7 +33,7 @@ release-in-place:
 # Build a release image locally using docker.
 .PHONY: build
 build:
-	${CONTAINER_ENGINE} build -t $(REMOTE) - < Dockerfile.release
+	docker build -t $(REMOTE) - < Dockerfile.release
 
 # Push locally built release image to remote container registry,
 # so that others can use the new image next time.
@@ -43,9 +41,9 @@ build:
 push: build
 	# Only some maintainers have access to push,
 	# contact @chensun @zijianjoy if you have any needs.
-	${CONTAINER_ENGINE} push $(REMOTE)
+	docker push $(REMOTE)
 
 # Run the docker image interactively in shell as current user.
 .PHONY: dev
 dev:
-	${CONTAINER_ENGINE} run -it -u $$(id -u):$$(id -g) $(REMOTE) /bin/bash
+	docker run -it -u $$(id -u):$$(id -g) $(REMOTE) /bin/bash

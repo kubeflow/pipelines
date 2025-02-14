@@ -29,6 +29,7 @@ from kfp import dsl
 
 _PIPELINE_NAME = 'evaluation-llm-text-generation-pipeline'
 
+
 @dsl.pipeline(name=_PIPELINE_NAME)
 def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-default-value
     project: str,
@@ -37,7 +38,6 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     batch_predict_gcs_destination_output_uri: str,
     model_name: str = 'publishers/google/models/text-bison@002',
     evaluation_task: str = 'text-generation',
-    role_field_name: str = 'role',
     input_field_name: str = 'input_text',
     target_field_name: str = 'output_text',
     batch_predict_instances_format: str = 'jsonl',
@@ -76,7 +76,6 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
     batch_predict_gcs_destination_output_uri: Required. The Google Cloud Storage location of the directory where the eval pipeline output is to be written to.
     model_name: The Model name used to run evaluation. Must be a publisher Model or a managed Model sharing the same ancestor location. Starting this job has no impact on any existing deployments of the Model and their resources.
     evaluation_task: The task that the large language model will be evaluated on. The evaluation component computes a set of metrics relevant to that specific task. Currently supported tasks are: `summarization`, `question-answering`, `text-generation`.
-    role_field_name: The field name of the role for input eval dataset instances that contains the input prompts to the LLM.
     input_field_name: The field name of the input eval dataset instances that contains the input prompts to the LLM.
     target_field_name: The field name of the eval dataset instance that contains an example reference text response. Alternatively referred to as the ground truth (or ground_truth_column) field. If not set, defaulted to `output_text`.
     batch_predict_instances_format: The format in which instances are given, must be one of the Model's supportedInputStorageFormats. Only "jsonl" is currently supported. For more details about this input config, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.
@@ -125,9 +124,6 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
       location=location,
       gcs_source_uris=batch_predict_gcs_source_uris,
       input_field_name=input_field_name,
-      role_field_name=role_field_name,
-      target_field_name=target_field_name,
-      model_name=model_name,
       machine_type=machine_type,
       service_account=service_account,
       network=network,
@@ -151,9 +147,8 @@ def evaluation_llm_text_generation_pipeline(  # pylint: disable=dangerous-defaul
   eval_task = LLMEvaluationTextGenerationOp(
       project=project,
       location=location,
-      model_name=model_name,
       evaluation_task=evaluation_task,
-      target_field_name=target_field_name,
+      target_field_name=f'instance.{target_field_name}',
       predictions_format=batch_predict_predictions_format,
       enable_row_based_metrics=enable_row_based_metrics,
       joined_predictions_gcs_source=batch_predict_task.outputs[

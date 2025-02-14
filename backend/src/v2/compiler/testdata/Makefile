@@ -1,6 +1,5 @@
-REPO_ROOT=../../../../..
+REPO_ROOT=../../..
 V2_SAMPLES=$(REPO_ROOT)/samples/v2
-CORE_SAMPLES=$(REPO_ROOT)/samples/core
 
 # Bobgy: I decided to commit compiled samples into the repo, because they are
 # used by compiler unit tests. Even if there are updates to v2 DSL compiler
@@ -15,9 +14,8 @@ CORE_SAMPLES=$(REPO_ROOT)/samples/core
 # Add more samples here when needed
 .PHONY: update
 update:
-	dsl-compile-v2 --py "$(V2_SAMPLES)/hello_world.py" --output "hello_world.json"
-	dsl-compile-v2 --py "$(V2_SAMPLES)/producer_consumer_param.py" --output "producer_consumer_param.json"
-	dsl-compile-v2 --py "$(CORE_SAMPLES)/exit_handler/exit_handler.py" --output "exit_handler.json"
+	dsl-compile-v2 --py "$(V2_SAMPLES)/hello_world.py" --out "hello_world.json"
+	dsl-compile-v2 --py "$(V2_SAMPLES)/producer_consumer_param.py" --out "producer_consumer_param.json"
 	# currently commented, because v2 compiler generates duplicate component definitions
 	# the commited component_used_twice.json file is hand edited.
-	# dsl-compile-v2 --py "component_used_twice.py" --output "component_used_twice.json"
+	# dsl-compile-v2 --py "component_used_twice.py" --out "component_used_twice.json"

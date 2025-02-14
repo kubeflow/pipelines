@@ -52,7 +52,6 @@ def online_evaluation_pairwise(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,
     encryption_spec_key_name: str = '',
-    autorater_prompt_parameters: Dict[str, Dict[str, str]] = {},
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   """Evaluate two models using an autorater.
 
@@ -74,8 +73,6 @@ def online_evaluation_pairwise(
     encryption_spec_key_name: Customer-managed encryption key options. If this
       is set, then all resources created by the component will be encrypted with
       the provided encryption key.
-    autorater_prompt_parameters: Map of autorater prompt template parameters to
-      columns or templates.
 
   Returns:
     judgments: Individual judgments used to calculate the win rates.
@@ -115,11 +112,6 @@ def online_evaluation_pairwise(
               '--executor_input={{$.json_escape[1]}}',
               f'--kms_key_name={encryption_spec_key_name}',
               f'--metadata_path={metadata}',
-              (
-                  '--autorater_prompt_parameters='
-                  "{{$.inputs.parameters['autorater_prompt_parameters']"
-                  '.json_escape[0]}}'
-              ),
           ],
           encryption_spec_key_name=encryption_spec_key_name,
       ),

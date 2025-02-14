@@ -22,21 +22,10 @@ import (
 	client "github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 )
-
-type FakeResourceEventHandlerRegistration struct{}
-
-func (h *FakeResourceEventHandlerRegistration) HasSynced() bool {
-	return true
-}
-
-func NewFakeResourceEventHandlerRegistration() *FakeResourceEventHandlerRegistration {
-	return &FakeResourceEventHandlerRegistration{}
-}
 
 type FakeEventHandler struct {
 	handler cache.ResourceEventHandler
@@ -46,9 +35,8 @@ func NewFakeEventHandler() *FakeEventHandler {
 	return &FakeEventHandler{}
 }
 
-func (h *FakeEventHandler) AddEventHandler(handler cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error) {
+func (h *FakeEventHandler) AddEventHandler(handler cache.ResourceEventHandler) {
 	h.handler = handler
-	return NewFakeResourceEventHandlerRegistration(), nil
 }
 
 func TestPersistenceWorker_Success(t *testing.T) {
@@ -69,16 +57,15 @@ func TestPersistenceWorker_Success(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker, err := NewPersistenceWorker(
+	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
-	require.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow, true)
+	eventHandler.handler.OnAdd(workflow)
 	worker.processNextWorkItem()
 	assert.Equal(t, workflow, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 0, worker.Len())
@@ -100,16 +87,15 @@ func TestPersistenceWorker_NotFoundError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker, err := NewPersistenceWorker(
+	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
-	require.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow, true)
+	eventHandler.handler.OnAdd(workflow)
 	worker.processNextWorkItem()
 	assert.Nil(t, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 0, worker.Len())
@@ -132,16 +118,15 @@ func TestPersistenceWorker_GetWorklowError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker, err := NewPersistenceWorker(
+	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
-	require.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow, true)
+	eventHandler.handler.OnAdd(workflow)
 	worker.processNextWorkItem()
 	assert.Nil(t, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 1, worker.Len())
@@ -167,16 +152,15 @@ func TestPersistenceWorker_ReportWorkflowRetryableError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker, err := NewPersistenceWorker(
+	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
-	require.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow, true)
+	eventHandler.handler.OnAdd(workflow)
 	worker.processNextWorkItem()
 	assert.Nil(t, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 1, worker.Len())
@@ -201,16 +185,15 @@ func TestPersistenceWorker_ReportWorkflowNonRetryableError(t *testing.T) {
 	// Set up peristence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
-	worker, err := NewPersistenceWorker(
+	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
 		"PERSISTENCE_WORKER",
 		eventHandler,
 		false,
 		saver)
-	require.NoError(t, err)
 
 	// Test
-	eventHandler.handler.OnAdd(workflow, true)
+	eventHandler.handler.OnAdd(workflow)
 	worker.processNextWorkItem()
 	assert.Nil(t, pipelineClient.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
 	assert.Equal(t, 0, worker.Len())

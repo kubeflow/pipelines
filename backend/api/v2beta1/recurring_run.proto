@@ -89,7 +89,7 @@ message RecurringRun {
   string description = 3;
 
   // Required input field. Specifies the source of the pipeline spec for this 
-  // recurring run. Can be either a pipeline id, pipeline version id, or a pipeline spec.
+  // recurring run. Can be either a pipeline version id, or a pipeline spec.
   oneof pipeline_source {
     // This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.
     string pipeline_version_id = 4 [deprecated=true];

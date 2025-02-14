@@ -2,9 +2,7 @@ package component
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
@@ -227,10 +225,6 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 
 	state := pb.Artifact_LIVE
 
-	provider, err := objectstore.ParseProviderFromPath(artifactUri)
-	if err != nil {
-		return nil, fmt.Errorf("No Provider scheme found in artifact Uri: %s", artifactUri)
-	}
 	artifact = &pb.Artifact{
 		TypeId:           &artifactTypeId,
 		State:            &state,
@@ -247,20 +241,6 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 			artifact.CustomProperties[k] = value
 		}
 	}
-
-	// Assume all imported artifacts will rely on execution environment for store provider session info
-	storeSessionInfo := objectstore.SessionInfo{
-		Provider: provider,
-		Params: map[string]string{
-			"fromEnv": "true",
-		},
-	}
-	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
-	if err != nil {
-		return nil, err
-	}
-	storeSessionInfoStr := string(storeSessionInfoJSON)
-	artifact.CustomProperties["store_session_info"] = metadata.StringValue(storeSessionInfoStr)
 	return artifact, nil
 }
 

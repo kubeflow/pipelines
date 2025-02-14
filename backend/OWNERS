@@ -1,9 +1,7 @@
 approvers:
-  - rimolive
-  - hbelmiro
+  - chensun
+  - Tomcli
 reviewers:
-  - hbelmiro
-  - HumairAK
+  - chensun
+  - Tomcli
   - rimolive
-  - mprahl
-  - gmfrasca

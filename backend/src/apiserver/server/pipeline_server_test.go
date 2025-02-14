@@ -17,7 +17,7 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -614,7 +614,7 @@ func getMockServer(t *testing.T) *httptest.Server {
 		// Send response to be tested
 		file, err := os.Open("test" + req.URL.String())
 		assert.Nil(t, err)
-		bytes, err := io.ReadAll(file)
+		bytes, err := ioutil.ReadAll(file)
 		assert.Nil(t, err)
 
 		rw.WriteHeader(http.StatusOK)

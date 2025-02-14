@@ -19,7 +19,6 @@ import {
   V1DeleteOptions,
   V1Pod,
   V1EventList,
-  V1ConfigMap,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
@@ -278,25 +277,6 @@ export async function getPod(
   }
 }
 
-/**
- * Retrieves a configmap.
- * @param configMapName name of the configmap
- * @param configMapNamespace namespace of the configmap
- */
-export async function getConfigMap(
-  configMapName: string,
-  configMapNamespace: string,
-): Promise<[V1ConfigMap, undefined] | [undefined, K8sError]> {
-  try {
-    const { body } = await k8sV1Client.readNamespacedConfigMap(configMapName, configMapNamespace);
-    return [body, undefined];
-  } catch (error) {
-    const { message, additionalInfo } = await parseError(error);
-    const userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}: ${message}`;
-    return [undefined, { message: userMessage, additionalInfo }];
-  }
-}
-
 // Golang style result type including an error.
 export type Result<T, E = K8sError> = [T, undefined] | [undefined, E];
 export async function listPodEvents(
@@ -353,20 +333,13 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
  * Retrieves k8s secret by key and decode from base64.
  * @param name name of the secret
  * @param key key in the secret
- * @param providedNamespace use this namespace when provided, otherwise default to server's namespace
  */
-export async function getK8sSecret(name: string, key: string, providedNamespace?: string) {
-  let namespace = serverNamespace;
-
-  if (providedNamespace) {
-    namespace = providedNamespace;
-  }
-
-  if (!namespace) {
+export async function getK8sSecret(name: string, key: string) {
+  if (!serverNamespace) {
     throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
-  const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
+  const k8sSecret = await k8sV1Client.readNamespacedSecret(name, serverNamespace);
   const secretb64 = k8sSecret.body.data[key];
   const buff = new Buffer(secretb64, 'base64');
   return buff.toString('ascii');

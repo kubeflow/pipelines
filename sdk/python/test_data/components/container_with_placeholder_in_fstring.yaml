@@ -27,7 +27,7 @@ deploymentSpec:
         - my_program
         - prefix-{{$.inputs.parameters['text1']}}
         - '{{$.outputs.artifacts[''output_artifact''].uri}}/0'
-        image: python:3.9
+        image: python:3.7
 pipelineInfo:
   name: container-with-placeholder-in-fstring
 root:
@@ -63,4 +63,4 @@ root:
           schemaTitle: system.Artifact
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.1.3

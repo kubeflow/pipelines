@@ -25,7 +25,7 @@ deploymentSpec:
         command:
         - my_program
         - '{{$.inputs.parameters[''text'']}}'
-        image: python:3.9
+        image: python:3.7
 pipelineInfo:
   name: container-io
 root:
@@ -57,4 +57,4 @@ root:
       output_path:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.1.3

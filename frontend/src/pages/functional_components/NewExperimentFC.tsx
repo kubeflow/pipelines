@@ -42,7 +42,6 @@ const css = stylesheet({
 
 interface ExperimentProps {
   namespace?: string;
-  onCancel?: () => void;
 }
 
 type NewExperimentFCProps = ExperimentProps & PageProps;
@@ -137,9 +136,6 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     });
   };
 
-  const onCancel = () =>
-    props.onCancel ? props.onCancel() : props.history.push(RoutePage.EXPERIMENTS);
-
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
       <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
@@ -177,7 +173,10 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
             title={'Next'}
             onClick={createExperiment}
           />
-          <Button id='cancelNewExperimentBtn' onClick={onCancel}>
+          <Button
+            id='cancelNewExperimentBtn'
+            onClick={() => props.history.push(RoutePage.EXPERIMENTS)}
+          >
             Cancel
           </Button>
           <div className={css.errorMessage}>

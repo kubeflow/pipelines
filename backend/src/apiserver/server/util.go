@@ -22,6 +22,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"io"
+	"io/ioutil"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -107,7 +108,7 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 		}
 	}
 
-	decompressedFile, err := io.ReadAll(tarReader)
+	decompressedFile, err := ioutil.ReadAll(tarReader)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the tarball file")
 	}
@@ -140,7 +141,7 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Failed to read the content")
 	}
-	decompressedFile, err := io.ReadAll(rc)
+	decompressedFile, err := ioutil.ReadAll(rc)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the zip file")
 	}

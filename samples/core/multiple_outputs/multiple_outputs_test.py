@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.samples.test.utils import relative_path
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TestCase
+import kfp as kfp
+from kfp.samples.test.utils import TestCase, relative_path, run_pipeline_func
 
 run_pipeline_func([
-    TestCase(pipeline_file=relative_path(__file__, 'multiple_outputs.ipynb')),
+    TestCase(
+        pipeline_file=relative_path(__file__, 'multiple_outputs.ipynb'),
+        mode=kfp.dsl.PipelineExecutionMode.V2_LEGACY,
+    ),
 ])

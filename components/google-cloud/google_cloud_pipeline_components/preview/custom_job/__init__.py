@@ -17,15 +17,6 @@
 customized worker and cloud configurations.
 """
 # fmt: on
-import warnings
-
-warnings.warn(
-    (
-        '`preview.custom_job` is deprecated and will be removed in a future '
-        'version. Please use `v1.custom_job` instead.'
-    ),
-    category=DeprecationWarning,
-)
 
 from google_cloud_pipeline_components.preview.custom_job.component import custom_training_job as CustomTrainingJobOp
 from google_cloud_pipeline_components.preview.custom_job.utils import create_custom_training_job_from_component

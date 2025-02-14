@@ -18,9 +18,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -96,7 +96,7 @@ func UploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 	}
 
 	// localPath is a directory.
-	files, err := os.ReadDir(localPath)
+	files, err := ioutil.ReadDir(localPath)
 	if err != nil {
 		return fmt.Errorf("unable to list local directory %q: %w", localPath, err)
 	}
@@ -267,17 +267,16 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	config.Credentials = creds
 	config.Region = aws.String(params.Region)
 	config.DisableSSL = aws.Bool(params.DisableSSL)
-	config.S3ForcePathStyle = aws.Bool(params.ForcePathStyle)
+	config.S3ForcePathStyle = aws.Bool(true)
 
 	// AWS Specific:
 	// Path-style S3 endpoints, which are commonly used, may fall into either of two subdomains:
-	// 1) [https://]s3.amazonaws.com
+	// 1) s3.amazonaws.com
 	// 2) s3.<AWS Region>.amazonaws.com
 	// for (1) the endpoint is not required, thus we skip it, otherwise the writer will fail to close due to region mismatch.
 	// https://aws.amazon.com/blogs/infrastructure-and-automation/best-practices-for-using-amazon-s3-endpoints-in-aws-cloudformation-templates/
 	// https://docs.aws.amazon.com/sdk-for-go/api/aws/session/
-	awsEndpoint, _ := regexp.MatchString(`^(https://)?s3.amazonaws.com`, strings.ToLower(params.Endpoint))
-	if !awsEndpoint {
+	if strings.ToLower(params.Endpoint) != "s3.amazonaws.com" {
 		config.Endpoint = aws.String(params.Endpoint)
 	}
 

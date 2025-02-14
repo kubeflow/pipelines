@@ -36,7 +36,7 @@ def model_evaluation_regression(
     ground_truth_format: str = 'jsonl',
     ground_truth_gcs_source: List[str] = [],
     ground_truth_bigquery_source: str = '',
-    prediction_score_column: str = '',
+    prediction_score_column: str = 'prediction.value',
     dataflow_service_account: str = '',
     dataflow_disk_size_gb: int = 50,
     dataflow_machine_type: str = 'n1-standard-4',

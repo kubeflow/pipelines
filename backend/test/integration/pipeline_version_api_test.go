@@ -15,7 +15,7 @@
 package integration
 
 import (
-	"os"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -52,7 +52,7 @@ func (s *PipelineVersionApiTest) SetupTest() {
 	}
 
 	if !*isDevMode {
-		err := test.WaitForReady(*initializeTimeout)
+		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
@@ -325,7 +325,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetPipelineVersionTemplate(&params.PipelineServiceGetPipelineVersionTemplateParams{VersionID: argumentYAMLPipelineVersion.ID})
 	require.Nil(t, err)
-	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
+	bytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
 	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)
@@ -358,7 +358,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetPipelineVersionTemplate(&params.PipelineServiceGetPipelineVersionTemplateParams{VersionID: v2Version.ID})
 	require.Nil(t, err)
-	bytes, err := os.ReadFile("../resources/v2-hello-world.yaml")
+	bytes, err := ioutil.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
 	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)

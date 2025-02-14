@@ -14,7 +14,7 @@
 
 # Based on KFP backend api client generator dockerfile
 # Keep in sync with the version used in backend/api/Makefile
-FROM ghcr.io/kubeflow/kfp-api-generator:1.0
+FROM gcr.io/ml-pipeline-test/api-generator@sha256:41fd3e60ba40430a4c3d87e03be817c5f63b2dfed23059ec9d6bca62ce0cc39c
 
 # install nvm & node 12
 # Reference: https://stackoverflow.com/a/28390848

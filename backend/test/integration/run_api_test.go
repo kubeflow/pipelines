@@ -16,7 +16,7 @@ package integration
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -58,7 +58,7 @@ func (s *RunApiTestSuite) SetupTest() {
 	}
 
 	if !*isDevMode {
-		err := test.WaitForReady(*initializeTimeout)
+		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
@@ -176,7 +176,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter run by uploading workflow manifest ---------- */
-	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)
@@ -433,7 +433,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 }
 
 func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string) {
-	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)

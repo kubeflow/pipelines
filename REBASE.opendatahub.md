@@ -34,17 +34,17 @@ TAG=2.2.0
 git checkout -b rebase-$TAG $TAG
 ```
 
-Merge opendatahub(master) branch into the `rebase-\$TAG` branch.
+Merge opendatahub(master) branch into the `rebase-\$TAG` branch with merge strategy ours. It discards all changes from the other branch (opendatahub/master) and create a merge commit. This leaves the content of your branch unchanged, and when you next merge with the other branch, Git will only consider changes made from this point forward. (Do not confuse this with ours conflict resolution strategy for recursive merge strategy, -X option.)
 
 ```
 git merge opendatahub/master
 ```
 
-This action will need to resolve some conflicts manually. Some recommendations when working in this task are:
+This action will need to resolve some conflicts manually. Some recommentations when working in this task are:
 
 * Dockerfiles are not expected to have any merge conflicts. We should have our dsp images stored in a separate path from the kfp ones.
 * Any changes in generated files (go.mod, go.sum, package.json, package-lock.json) should always prioritize upstream changes.
-* In case of changes in backend code that diverges completely between kfp and dsp, you should use `git blame` to find the author(s) of the changes and work together to fix the conflicts. Do not try to fix by yourself, you are not alone in this.
+* In case of changes in backend code that diverges completelly between kfp and dsp, you should use `git blame` to find the author(s) of the changes and work together to fix the conflicts. Do not try to fix by yourself, you are not alone in this.
 
 After resolving all conflicts, remember to run a pre-flight check before going to the next task.
 

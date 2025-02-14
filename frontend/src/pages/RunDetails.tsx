@@ -101,7 +101,6 @@ interface SelectedNodeDetails {
 
 // exported only for testing
 export interface RunDetailsInternalProps {
-  isLoading?: boolean;
   runId?: string;
   gkeMetadata: GkeMetadata;
 }
@@ -238,10 +237,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    if (this.props.isLoading) {
-      return <div>Currently loading run information</div>;
-    }
-
     const {
       allArtifactConfigs,
       allowCustomVisualizations,
@@ -1067,7 +1062,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     try {
       const nodeName = getNodeNameFromNodeId(this.state.workflow!, selectedNodeDetails.id);
-      selectedNodeDetails.logs = await Apis.getPodLogs(runId, nodeName, namespace, '');
+      selectedNodeDetails.logs = await Apis.getPodLogs(runId, nodeName, namespace);
     } catch (err) {
       let errMsg = await errorToMessage(err);
       logsBannerMessage = 'Failed to retrieve pod logs.';

@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -225,7 +226,7 @@ func main() {
 	}
 
 	var r ResourceSpec
-	yamlFile, err := os.ReadFile(*resourceSpec)
+	yamlFile, err := ioutil.ReadFile(*resourceSpec)
 	if err != nil {
 		log.Fatalf("Error reading yaml file")
 	}

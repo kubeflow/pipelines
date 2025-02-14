@@ -2,6 +2,7 @@ package api_server
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -37,7 +38,7 @@ var SATokenVolumeProjectionAuth runtime.ClientAuthInfoWriter = runtime.ClientAut
 			projectedPath = saDefaultTokenPath
 		}
 
-		content, err := os.ReadFile(projectedPath)
+		content, err := ioutil.ReadFile(projectedPath)
 		if err != nil {
 			return fmt.Errorf("Failed to read projected SA token at %s: %w", projectedPath, err)
 		}

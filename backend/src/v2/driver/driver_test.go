@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"google.golang.org/protobuf/types/known/structpb"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -51,7 +50,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - nvidia.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.7",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -90,7 +89,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - amd.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.7",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -129,7 +128,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v3",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.7",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -168,7 +167,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v2",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.7",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -207,7 +206,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - custom string",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.7",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -258,141 +257,6 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			}
 		})
 	}
-}
-
-func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
-		Args:    []string{"--function_to_execute", "add"},
-		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
-		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
-			ResourceCpuRequest:    "{{$.inputs.parameters['pipelinechannel--cpu_request']}}",
-			ResourceCpuLimit:      "{{$.inputs.parameters['pipelinechannel--cpu_limit']}}",
-			ResourceMemoryRequest: "{{$.inputs.parameters['pipelinechannel--memory_request']}}",
-			ResourceMemoryLimit:   "{{$.inputs.parameters['pipelinechannel--memory_limit']}}",
-			Accelerator: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig{
-				ResourceType:  "{{$.inputs.parameters['pipelinechannel--accelerator_type']}}",
-				ResourceCount: "{{$.inputs.parameters['pipelinechannel--accelerator_count']}}",
-			},
-		},
-	}
-	componentSpec := &pipelinespec.ComponentSpec{}
-	executorInput := &pipelinespec.ExecutorInput{
-		Inputs: &pipelinespec.ExecutorInput_Inputs{
-			ParameterValues: map[string]*structpb.Value{
-				"cpu_request": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "{{$.inputs.parameters['pipelinechannel--cpu_request']}}",
-					},
-				},
-				"pipelinechannel--cpu_request": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "200m",
-					},
-				},
-				"cpu_limit": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "{{$.inputs.parameters['pipelinechannel--cpu_limit']}}",
-					},
-				},
-				"pipelinechannel--cpu_limit": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "400m",
-					},
-				},
-				"memory_request": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "{{$.inputs.parameters['pipelinechannel--memory_request']}}",
-					},
-				},
-				"pipelinechannel--memory_request": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "100Mi",
-					},
-				},
-				"memory_limit": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "{{$.inputs.parameters['pipelinechannel--memory_limit']}}",
-					},
-				},
-				"pipelinechannel--memory_limit": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "500Mi",
-					},
-				},
-				"accelerator_type": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "{{$.inputs.parameters['pipelinechannel--accelerator_type']}}",
-					},
-				},
-				"pipelinechannel--accelerator_type": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "nvidia.com/gpu",
-					},
-				},
-				"accelerator_count": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "{{$.inputs.parameters['pipelinechannel--accelerator_count']}}",
-					},
-				},
-				"pipelinechannel--accelerator_count": {
-					Kind: &structpb.Value_StringValue{
-						StringValue: "1",
-					},
-				},
-			},
-		},
-	}
-
-	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
-		false, "unused-mlmd-server-address", "unused-mlmd-server-port",
-		false, "unused-ca-cert-path",
-	)
-	assert.Nil(t, err)
-	assert.Len(t, podSpec.Containers, 1)
-
-	res := podSpec.Containers[0].Resources
-	assert.Equal(t, k8sres.MustParse("200m"), res.Requests[k8score.ResourceCPU])
-	assert.Equal(t, k8sres.MustParse("400m"), res.Limits[k8score.ResourceCPU])
-	assert.Equal(t, k8sres.MustParse("100Mi"), res.Requests[k8score.ResourceMemory])
-	assert.Equal(t, k8sres.MustParse("500Mi"), res.Limits[k8score.ResourceMemory])
-	assert.Equal(t, k8sres.MustParse("1"), res.Limits[k8score.ResourceName("nvidia.com/gpu")])
-}
-
-func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
-		Args:    []string{"--function_to_execute", "add"},
-		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
-		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
-			CpuRequest:            200,
-			CpuLimit:              400,
-			ResourceMemoryRequest: "100Mi",
-			ResourceMemoryLimit:   "500Mi",
-			Accelerator: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig{
-				Type:  "nvidia.com/gpu",
-				Count: 1,
-			},
-		},
-	}
-	componentSpec := &pipelinespec.ComponentSpec{}
-	executorInput := &pipelinespec.ExecutorInput{}
-
-	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
-		false, "unused-mlmd-server-address", "unused-mlmd-server-port",
-		false, "unused-ca-cert-path",
-	)
-	assert.Nil(t, err)
-	assert.Len(t, podSpec.Containers, 1)
-
-	res := podSpec.Containers[0].Resources
-	assert.Equal(t, k8sres.MustParse("200"), res.Requests[k8score.ResourceCPU])
-	assert.Equal(t, k8sres.MustParse("400"), res.Limits[k8score.ResourceCPU])
-	assert.Equal(t, k8sres.MustParse("100Mi"), res.Requests[k8score.ResourceMemory])
-	assert.Equal(t, k8sres.MustParse("500Mi"), res.Limits[k8score.ResourceMemory])
-	assert.Equal(t, k8sres.MustParse("1"), res.Limits[k8score.ResourceName("nvidia.com/gpu")])
 }
 
 func Test_makeVolumeMountPatch(t *testing.T) {
@@ -471,7 +335,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - with requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.7",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -507,7 +371,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - zero requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.7",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -1027,165 +891,6 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 	}
 }
 
-func Test_extendPodSpecPatch_EmptyVolumeMount(t *testing.T) {
-	medium := "Memory"
-	sizeLimit := "1Gi"
-	var sizeLimitResource *k8sres.Quantity
-	r := k8sres.MustParse(sizeLimit)
-	sizeLimitResource = &r
-
-	tests := []struct {
-		name       string
-		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
-		podSpec    *k8score.PodSpec
-		expected   *k8score.PodSpec
-	}{
-		{
-			"Valid - emptydir mount with no medium or size limit",
-			&kubernetesplatform.KubernetesExecutorConfig{
-				EmptyDirMounts: []*kubernetesplatform.EmptyDirMount{
-					{
-						VolumeName: "emptydir1",
-						MountPath:  "/data/path",
-					},
-				},
-			},
-			&k8score.PodSpec{
-				Containers: []k8score.Container{
-					{
-						Name: "main",
-					},
-				},
-			},
-			&k8score.PodSpec{
-				Containers: []k8score.Container{
-					{
-						Name: "main",
-						VolumeMounts: []k8score.VolumeMount{
-							{
-								Name:      "emptydir1",
-								MountPath: "/data/path",
-							},
-						},
-					},
-				},
-				Volumes: []k8score.Volume{
-					{
-						Name: "emptydir1",
-						VolumeSource: k8score.VolumeSource{
-							EmptyDir: &k8score.EmptyDirVolumeSource{},
-						},
-					},
-				},
-			},
-		},
-		{
-			"Valid - emptydir mount with medium and size limit",
-			&kubernetesplatform.KubernetesExecutorConfig{
-				EmptyDirMounts: []*kubernetesplatform.EmptyDirMount{
-					{
-						VolumeName: "emptydir1",
-						MountPath:  "/data/path",
-						Medium:     &medium,
-						SizeLimit:  &sizeLimit,
-					},
-				},
-			},
-			&k8score.PodSpec{
-				Containers: []k8score.Container{
-					{
-						Name: "main",
-					},
-				},
-			},
-			&k8score.PodSpec{
-				Containers: []k8score.Container{
-					{
-						Name: "main",
-						VolumeMounts: []k8score.VolumeMount{
-							{
-								Name:      "emptydir1",
-								MountPath: "/data/path",
-							},
-						},
-					},
-				},
-				Volumes: []k8score.Volume{
-					{
-						Name: "emptydir1",
-						VolumeSource: k8score.VolumeSource{
-							EmptyDir: &k8score.EmptyDirVolumeSource{
-								Medium:    k8score.StorageMedium(medium),
-								SizeLimit: sizeLimitResource,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			"Valid - multiple emptydir mounts",
-			&kubernetesplatform.KubernetesExecutorConfig{
-				EmptyDirMounts: []*kubernetesplatform.EmptyDirMount{
-					{
-						VolumeName: "emptydir1",
-						MountPath:  "/data/path",
-					},
-					{
-						VolumeName: "emptydir2",
-						MountPath:  "/data/path2",
-					},
-				},
-			},
-			&k8score.PodSpec{
-				Containers: []k8score.Container{
-					{
-						Name: "main",
-					},
-				},
-			},
-			&k8score.PodSpec{
-				Containers: []k8score.Container{
-					{
-						Name: "main",
-						VolumeMounts: []k8score.VolumeMount{
-							{
-								Name:      "emptydir1",
-								MountPath: "/data/path",
-							},
-							{
-								Name:      "emptydir2",
-								MountPath: "/data/path2",
-							},
-						},
-					},
-				},
-				Volumes: []k8score.Volume{
-					{
-						Name: "emptydir1",
-						VolumeSource: k8score.VolumeSource{
-							EmptyDir: &k8score.EmptyDirVolumeSource{},
-						},
-					},
-					{
-						Name: "emptydir2",
-						VolumeSource: k8score.VolumeSource{
-							EmptyDir: &k8score.EmptyDirVolumeSource{},
-						},
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := extendPodSpecPatch(tt.podSpec, tt.k8sExecCfg, nil, nil)
-			assert.Nil(t, err)
-			assert.Equal(t, tt.expected, tt.podSpec)
-		})
-	}
-}
-
 func Test_extendPodSpecPatch_ImagePullSecrets(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -1619,7 +1324,7 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 								VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
 									Spec: k8score.PersistentVolumeClaimSpec{
 										AccessModes: []k8score.PersistentVolumeAccessMode{k8score.ReadWriteOnce},
-										Resources: k8score.VolumeResourceRequirements{
+										Resources: k8score.ResourceRequirements{
 											Requests: k8score.ResourceList{
 												k8score.ResourceStorage: k8sres.MustParse("5Gi"),
 											},
@@ -1709,7 +1414,7 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 								VolumeClaimTemplate: &k8score.PersistentVolumeClaimTemplate{
 									Spec: k8score.PersistentVolumeClaimSpec{
 										AccessModes: []k8score.PersistentVolumeAccessMode{k8score.ReadWriteOnce},
-										Resources: k8score.VolumeResourceRequirements{
+										Resources: k8score.ResourceRequirements{
 											Requests: k8score.ResourceList{
 												k8score.ResourceStorage: k8sres.MustParse("5Gi"),
 											},
@@ -1734,7 +1439,7 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 									},
 									Spec: k8score.PersistentVolumeClaimSpec{
 										AccessModes: []k8score.PersistentVolumeAccessMode{k8score.ReadWriteOnce},
-										Resources: k8score.VolumeResourceRequirements{
+										Resources: k8score.ResourceRequirements{
 											Requests: k8score.ResourceList{
 												k8score.ResourceStorage: k8sres.MustParse("10Gi"),
 											},

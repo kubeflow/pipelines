@@ -274,14 +274,13 @@ func Test_createS3BucketSession(t *testing.T) {
 			sessionInfo: &SessionInfo{
 				Provider: "s3",
 				Params: map[string]string{
-					"region":         "us-east-1",
-					"endpoint":       "s3.amazonaws.com",
-					"disableSSL":     "false",
-					"fromEnv":        "false",
-					"secretName":     "s3-provider-secret",
-					"accessKeyKey":   "test_access_key",
-					"secretKeyKey":   "test_secret_key",
-					"forcePathStyle": "true",
+					"region":       "us-east-1",
+					"endpoint":     "s3.amazonaws.com",
+					"disableSSL":   "false",
+					"fromEnv":      "false",
+					"secretName":   "s3-provider-secret",
+					"accessKeyKey": "test_access_key",
+					"secretKeyKey": "test_secret_key",
 				},
 			},
 			sessionSecret: &corev1.Secret{

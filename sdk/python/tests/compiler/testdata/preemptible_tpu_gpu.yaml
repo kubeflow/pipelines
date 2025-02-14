@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use dsl.Condition.", "name": "pipeline flip coin"}'
+  generateName: pipeline-flip-coin-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: pipeline-flip-coin
+  serviceAccountName: pipeline-runner
+  templates:
+    - affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+                - key: cloud.google.com/gke-preemptible
+                  operator: In
+                  values:
+                    - 'true'
+            weight: 50
+      container:
+        args:
+          - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
+            'tails'; print(result)" | tee /tmp/output
+        command:
+          - sh
+          - -c
+        image: python:alpine3.6
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+      name: flip
+      outputs:
+        artifacts:
+          - name: flip-output
+            path: /tmp/output
+      retryStrategy:
+        limit: 5
+      tolerations:
+        - effect: NoSchedule
+          key: preemptible
+          operator: Equal
+          value: 'true'
+    - dag:
+        tasks:
+          - name: flip
+            template: flip
+      name: pipeline-flip-coin

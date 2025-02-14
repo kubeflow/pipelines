@@ -1,0 +1,788 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: parallelfor-item-argument-resolving-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.2, pipelines.kubeflow.org/pipeline_compilation_time: '2021-09-03T06:17:22.369925',
+    pipelines.kubeflow.org/pipeline_spec: '{"name": "Parallelfor item argument resolving"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.2}
+spec:
+  entrypoint: parallelfor-item-argument-resolving
+  templates:
+  - name: consume
+    container:
+      args: [--param1, '{{inputs.parameters.produce-list-of-strings-Output}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: produce-list-of-strings-Output}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.produce-list-of-strings-Output}}"}'}
+  - name: consume-2
+    container:
+      args: [--param1, '{{inputs.parameters.produce-list-of-strings-Output-loop-item}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: produce-list-of-strings-Output-loop-item}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.produce-list-of-strings-Output-loop-item}}"}'}
+  - name: consume-3
+    container:
+      args: [--param1, '{{inputs.parameters.produce-str-Output}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: produce-str-Output}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.produce-str-Output}}"}'}
+  - name: consume-4
+    container:
+      args: [--param1, '{{inputs.parameters.produce-list-of-ints-Output}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: produce-list-of-ints-Output}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.produce-list-of-ints-Output}}"}'}
+  - name: consume-5
+    container:
+      args: [--param1, '{{inputs.parameters.produce-list-of-ints-Output-loop-item}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: produce-list-of-ints-Output-loop-item}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.produce-list-of-ints-Output-loop-item}}"}'}
+  - name: consume-6
+    container:
+      args: [--param1, '{{inputs.parameters.produce-list-of-dicts-Output}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: produce-list-of-dicts-Output}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.produce-list-of-dicts-Output}}"}'}
+  - name: consume-7
+    container:
+      args: [--param1, '{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}"}'}
+  - name: consume-8
+    container:
+      args: [--param1, '[{"a": 1, "b": 2}, {"a": 10, "b": 20}]']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "[{\"a\": 1, \"b\": 2}, {\"a\": 10, \"b\": 20}]"}'}
+  - name: consume-9
+    container:
+      args: [--param1, '{{inputs.parameters.loop-item-param-4}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def consume(param1):
+            print(param1)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Consume', description='')
+        _parser.add_argument("--param1", dest="param1", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = consume(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: loop-item-param-4}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
+          "{{inputs.parameters.loop-item-param-4}}"}'}
+  - name: for-loop-1
+    inputs:
+      parameters:
+      - {name: produce-list-of-strings-Output}
+      - {name: produce-list-of-strings-Output-loop-item}
+      - {name: produce-str-Output}
+    dag:
+      tasks:
+      - name: consume
+        template: consume
+        arguments:
+          parameters:
+          - {name: produce-list-of-strings-Output, value: '{{inputs.parameters.produce-list-of-strings-Output}}'}
+      - name: consume-2
+        template: consume-2
+        arguments:
+          parameters:
+          - {name: produce-list-of-strings-Output-loop-item, value: '{{inputs.parameters.produce-list-of-strings-Output-loop-item}}'}
+      - name: consume-3
+        template: consume-3
+        arguments:
+          parameters:
+          - {name: produce-str-Output, value: '{{inputs.parameters.produce-str-Output}}'}
+  - name: for-loop-2
+    inputs:
+      parameters:
+      - {name: produce-list-of-ints-Output}
+      - {name: produce-list-of-ints-Output-loop-item}
+    dag:
+      tasks:
+      - name: consume-4
+        template: consume-4
+        arguments:
+          parameters:
+          - {name: produce-list-of-ints-Output, value: '{{inputs.parameters.produce-list-of-ints-Output}}'}
+      - name: consume-5
+        template: consume-5
+        arguments:
+          parameters:
+          - {name: produce-list-of-ints-Output-loop-item, value: '{{inputs.parameters.produce-list-of-ints-Output-loop-item}}'}
+  - name: for-loop-3
+    inputs:
+      parameters:
+      - {name: produce-list-of-dicts-Output}
+      - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa}
+    dag:
+      tasks:
+      - name: consume-6
+        template: consume-6
+        arguments:
+          parameters:
+          - {name: produce-list-of-dicts-Output, value: '{{inputs.parameters.produce-list-of-dicts-Output}}'}
+      - name: consume-7
+        template: consume-7
+        arguments:
+          parameters:
+          - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa, value: '{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}'}
+  - name: for-loop-5
+    inputs:
+      parameters:
+      - {name: loop-item-param-4}
+    dag:
+      tasks:
+      - {name: consume-8, template: consume-8}
+      - name: consume-9
+        template: consume-9
+        arguments:
+          parameters:
+          - {name: loop-item-param-4, value: '{{inputs.parameters.loop-item-param-4}}'}
+  - name: parallelfor-item-argument-resolving
+    dag:
+      tasks:
+      - name: for-loop-1
+        template: for-loop-1
+        dependencies: [produce-list-of-strings, produce-str]
+        arguments:
+          parameters:
+          - {name: produce-list-of-strings-Output, value: '{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-Output}}'}
+          - {name: produce-list-of-strings-Output-loop-item, value: '{{item}}'}
+          - {name: produce-str-Output, value: '{{tasks.produce-str.outputs.parameters.produce-str-Output}}'}
+        withParam: '{{tasks.produce-list-of-strings.outputs.parameters.produce-list-of-strings-Output}}'
+      - name: for-loop-2
+        template: for-loop-2
+        dependencies: [produce-list-of-ints]
+        arguments:
+          parameters:
+          - {name: produce-list-of-ints-Output, value: '{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-Output}}'}
+          - {name: produce-list-of-ints-Output-loop-item, value: '{{item}}'}
+        withParam: '{{tasks.produce-list-of-ints.outputs.parameters.produce-list-of-ints-Output}}'
+      - name: for-loop-3
+        template: for-loop-3
+        dependencies: [produce-list-of-dicts]
+        arguments:
+          parameters:
+          - {name: produce-list-of-dicts-Output, value: '{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-Output}}'}
+          - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa, value: '{{item.aaa}}'}
+        withParam: '{{tasks.produce-list-of-dicts.outputs.parameters.produce-list-of-dicts-Output}}'
+      - name: for-loop-5
+        template: for-loop-5
+        arguments:
+          parameters:
+          - {name: loop-item-param-4, value: '{{item}}'}
+        withItems:
+        - {a: 1, b: 2}
+        - {a: 10, b: 20}
+      - {name: produce-list-of-dicts, template: produce-list-of-dicts}
+      - {name: produce-list-of-ints, template: produce-list-of-ints}
+      - {name: produce-list-of-strings, template: produce-list-of-strings}
+      - {name: produce-str, template: produce-str}
+  - name: produce-list-of-dicts
+    container:
+      args: ['----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def produce_list_of_dicts():
+            return [{"aaa": "aaa1", "bbb": "bbb1"}, {"aaa": "aaa2", "bbb": "bbb2"}]
+
+        def _serialize_json(obj) -> str:
+            if isinstance(obj, str):
+                return obj
+            import json
+
+            def default_serializer(obj):
+                if hasattr(obj, 'to_struct'):
+                    return obj.to_struct()
+                else:
+                    raise TypeError(
+                        "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                        % obj.__class__.__name__)
+
+            return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Produce list of dicts', description='')
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = produce_list_of_dicts(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_json,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    outputs:
+      parameters:
+      - name: produce-list-of-dicts-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: produce-list-of-dicts-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
+          "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def produce_list_of_dicts():\n    return
+          [{\"aaa\": \"aaa1\", \"bbb\": \"bbb1\"}, {\"aaa\": \"aaa2\", \"bbb\": \"bbb2\"}]\n\ndef
+          _serialize_json(obj) -> str:\n    if isinstance(obj, str):\n        return
+          obj\n    import json\n\n    def default_serializer(obj):\n        if hasattr(obj,
+          ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
+          TypeError(\n                \"Object of type ''%s'' is not JSON serializable
+          and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return
+          json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Produce list of dicts'', description='''')\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_list_of_dicts(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "name": "Produce list of dicts", "outputs": [{"name":
+          "Output", "type": "JsonArray"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+  - name: produce-list-of-ints
+    container:
+      args: ['----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def produce_list_of_ints():
+            return [1234567890, 987654321]
+
+        def _serialize_json(obj) -> str:
+            if isinstance(obj, str):
+                return obj
+            import json
+
+            def default_serializer(obj):
+                if hasattr(obj, 'to_struct'):
+                    return obj.to_struct()
+                else:
+                    raise TypeError(
+                        "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                        % obj.__class__.__name__)
+
+            return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Produce list of ints', description='')
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = produce_list_of_ints(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_json,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    outputs:
+      parameters:
+      - name: produce-list-of-ints-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: produce-list-of-ints-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
+          "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def produce_list_of_ints():\n    return
+          [1234567890, 987654321]\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj,
+          str):\n        return obj\n    import json\n\n    def default_serializer(obj):\n        if
+          hasattr(obj, ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
+          TypeError(\n                \"Object of type ''%s'' is not JSON serializable
+          and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return
+          json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Produce list of ints'', description='''')\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_list_of_ints(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "name": "Produce list of ints", "outputs": [{"name":
+          "Output", "type": "JsonArray"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+  - name: produce-list-of-strings
+    container:
+      args: ['----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def produce_list_of_strings():
+            return ["a", "z"]
+
+        def _serialize_json(obj) -> str:
+            if isinstance(obj, str):
+                return obj
+            import json
+
+            def default_serializer(obj):
+                if hasattr(obj, 'to_struct'):
+                    return obj.to_struct()
+                else:
+                    raise TypeError(
+                        "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                        % obj.__class__.__name__)
+
+            return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Produce list of strings', description='')
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = produce_list_of_strings(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_json,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    outputs:
+      parameters:
+      - name: produce-list-of-strings-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: produce-list-of-strings-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
+          "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def produce_list_of_strings():\n    return
+          [\"a\", \"z\"]\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj,
+          str):\n        return obj\n    import json\n\n    def default_serializer(obj):\n        if
+          hasattr(obj, ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
+          TypeError(\n                \"Object of type ''%s'' is not JSON serializable
+          and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return
+          json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Produce list of strings'', description='''')\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_list_of_strings(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "name": "Produce list of strings", "outputs": [{"name":
+          "Output", "type": "JsonArray"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+  - name: produce-str
+    container:
+      args: ['----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def produce_str():
+            return "Hello"
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(
+                    str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Produce str', description='')
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = produce_str(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    outputs:
+      parameters:
+      - name: produce-str-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: produce-str-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
+          "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def produce_str():\n    return \"Hello\"\n\ndef
+          _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value,
+          str):\n        raise TypeError(''Value \"{}\" has type \"{}\" instead of
+          str.''.format(\n            str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Produce
+          str'', description='''')\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\",
+          type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = produce_str(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "name": "Produce str", "outputs": [{"name": "Output",
+          "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner

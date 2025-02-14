@@ -16,7 +16,7 @@ package template
 
 import (
 	"encoding/json"
-	"os"
+	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
@@ -258,7 +258,7 @@ func TestModelToCRDTrigger_Cron(t *testing.T) {
 }
 
 func loadYaml(t *testing.T, path string) string {
-	res, err := os.ReadFile(path)
+	res, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Error(err)
 	}

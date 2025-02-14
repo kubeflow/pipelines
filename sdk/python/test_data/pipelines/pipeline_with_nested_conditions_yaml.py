@@ -25,7 +25,7 @@ def random_num_op(low, high):
       - {name: output, type: Integer}
       implementation:
         container:
-          image: python:alpine3.9
+          image: python:alpine3.6
           command:
           - sh
           - -c
@@ -43,7 +43,7 @@ flip_coin_op = components.load_component_from_text("""
       - {name: output, type: String}
       implementation:
         container:
-          image: python:alpine3.9
+          image: python:alpine3.6
           command:
           - sh
           - -c
@@ -58,7 +58,7 @@ print_op = components.load_component_from_text("""
       - {name: msg, type: String}
       implementation:
         container:
-          image: python:alpine3.9
+          image: python:alpine3.6
           command:
           - echo
           - {inputValue: msg}

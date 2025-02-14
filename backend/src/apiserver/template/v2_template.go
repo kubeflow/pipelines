@@ -41,41 +41,9 @@ type V2Spec struct {
 	platformSpec *pipelinespec.PlatformSpec
 }
 
-var Launcher = ""
-
-func NewGenericScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
-	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
-	if err != nil {
-		return nil, util.Wrap(err, "Create job failed")
-	}
-
-	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
-	if err != nil {
-		return nil, util.Wrap(err, "converting model trigger to crd trigger failed")
-	}
-
-	return &scheduledworkflow.ScheduledWorkflow{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kubeflow.org/v2beta1",
-			Kind:       "ScheduledWorkflow",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    swfGeneratedName,
-			OwnerReferences: ownerReferences,
-		},
-		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled:           modelJob.Enabled,
-			MaxConcurrency:    &modelJob.MaxConcurrency,
-			Trigger:           crdTrigger,
-			NoCatchup:         util.BoolPointer(modelJob.NoCatchup),
-			ExperimentId:      modelJob.ExperimentId,
-			PipelineId:        modelJob.PipelineId,
-			PipelineName:      modelJob.PipelineName,
-			PipelineVersionId: modelJob.PipelineVersionId,
-			ServiceAccount:    modelJob.ServiceAccount,
-		},
-	}, nil
-}
+var (
+	Launcher = ""
+)
 
 // Converts modelJob to ScheduledWorkflow.
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
@@ -134,23 +102,44 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 	}
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	parameters, err := StringMapToCRDParameters(modelJob.RuntimeConfig.Parameters)
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
+	if err != nil {
+		return nil, util.Wrap(err, "Create job failed")
+	}
+	parameters, err := stringMapToCRDParameters(modelJob.RuntimeConfig.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 	}
-
-	scheduledWorkflow, err := NewGenericScheduledWorkflow(modelJob, ownerReferences)
+	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "converting model trigger to crd trigger failed")
 	}
 
-	scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
-		Parameters: parameters,
-		Spec:       executionSpec.ToStringForSchedule(),
+	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName:    swfGeneratedName,
+			OwnerReferences: ownerReferences,
+		},
+		Spec: scheduledworkflow.ScheduledWorkflowSpec{
+			Enabled:        modelJob.Enabled,
+			MaxConcurrency: &modelJob.MaxConcurrency,
+			Trigger:        crdTrigger,
+			Workflow: &scheduledworkflow.WorkflowResource{
+				Parameters: parameters,
+				Spec:       executionSpec.ToStringForSchedule(),
+			},
+			NoCatchup:         util.BoolPointer(modelJob.NoCatchup),
+			ExperimentId:      modelJob.ExperimentId,
+			PipelineId:        modelJob.PipelineId,
+			PipelineName:      modelJob.PipelineName,
+			PipelineVersionId: modelJob.PipelineVersionId,
+			ServiceAccount:    executionSpec.ServiceAccount(),
+		},
 	}
-
-	scheduledWorkflow.Spec.ServiceAccount = executionSpec.ServiceAccount()
-
 	return scheduledWorkflow, nil
 }
 
@@ -299,7 +288,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	if err := protojson.Unmarshal(bytes, spec); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to parse pipeline spec")
 	}
-	job := &pipelinespec.PipelineJob{PipelineSpec: spec, DisplayName: modelRun.DisplayName}
+	job := &pipelinespec.PipelineJob{PipelineSpec: spec}
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelRun.RuntimeConfig)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to convert to PipelineJob RuntimeConfig")

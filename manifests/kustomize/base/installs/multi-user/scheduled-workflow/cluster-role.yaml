@@ -16,12 +16,6 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - pipelines.kubeflow.org
-  resources:
-  - runs
-  verbs:
-  - create
-- apiGroups:
   - kubeflow.org
   resources:
   - scheduledworkflows

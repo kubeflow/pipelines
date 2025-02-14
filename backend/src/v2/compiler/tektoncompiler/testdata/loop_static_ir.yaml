@@ -101,7 +101,7 @@ pipelineSpec:
           - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
             \ *\n\ndef concat_op(a: str, b: str) -> str:\n    print(a + b)\n    return\
             \ a + b\n\n"
-          image: python:3.9
+          image: python:3.7
       exec-print-op:
         container:
           args:
@@ -128,7 +128,7 @@ pipelineSpec:
           - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
             \ *\n\ndef print_op(text: str) -> str:\n    print(text)\n    return text\n\
             \n"
-          image: python:3.9
+          image: python:3.7
       exec-print-op-2:
         container:
           args:
@@ -155,7 +155,7 @@ pipelineSpec:
           - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
             \ *\n\ndef print_op(text: str) -> str:\n    print(text)\n    return text\n\
             \n"
-          image: python:3.9
+          image: python:3.7
   pipelineInfo:
     name: pipeline-with-loop-static
   root:

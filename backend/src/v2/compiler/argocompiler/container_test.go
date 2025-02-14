@@ -15,86 +15,12 @@
 package argocompiler
 
 import (
-	"os"
 	"testing"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestAddContainerExecutorTemplate(t *testing.T) {
-	tests := []struct {
-		name                  string
-		configMapName         string
-		configMapKey          string
-		mountPath             string
-		expectedVolumeName    string
-		expectedConfigMapName string
-		expectedMountPath     string
-	}{
-		{
-			name:                  "Test with valid settings",
-			configMapName:         "kube-root-ca.crt",
-			configMapKey:          "ca.crt",
-			mountPath:             "/etc/ssl/custom",
-			expectedVolumeName:    "ca-bundle",
-			expectedConfigMapName: "kube-root-ca.crt",
-			expectedMountPath:     "/etc/ssl/custom/ca.crt",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("EXECUTOR_CABUNDLE_CONFIGMAP_NAME", tt.configMapName)
-			os.Setenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY", tt.configMapKey)
-			os.Setenv("EXECUTOR_CABUNDLE_MOUNTPATH", tt.mountPath)
-
-			c := &workflowCompiler{
-				templates: make(map[string]*wfapi.Template),
-				wf: &wfapi.Workflow{
-					Spec: wfapi.WorkflowSpec{
-						Templates: []wfapi.Template{},
-					},
-				},
-			}
-
-			c.addContainerExecutorTemplate("test-ref")
-			assert.NotEmpty(t, "system-container-impl", "Template name should not be empty")
-
-			executorTemplate, exists := c.templates["system-container-impl"]
-			assert.True(t, exists, "Template should exist with the returned name")
-			assert.NotNil(t, executorTemplate, "Executor template should not be nil")
-
-			foundVolume := false
-			for _, volume := range executorTemplate.Volumes {
-				if volume.Name == tt.expectedVolumeName {
-					foundVolume = true
-					assert.Equal(t, tt.expectedConfigMapName, volume.VolumeSource.ConfigMap.Name, "ConfigMap name should match")
-					break
-				}
-			}
-			assert.True(t, foundVolume, "CA bundle volume should be included in the template")
-
-			foundVolumeMount := false
-			if executorTemplate.Container != nil {
-				for _, mount := range executorTemplate.Container.VolumeMounts {
-					if mount.Name == tt.expectedVolumeName && mount.MountPath == tt.expectedMountPath {
-						foundVolumeMount = true
-						break
-					}
-				}
-			}
-			assert.True(t, foundVolumeMount, "CA bundle volume mount should be included in the container")
-		})
-	}
-	defer func() {
-		os.Unsetenv("EXECUTOR_CABUNDLE_CONFIGMAP_NAME")
-		os.Unsetenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY")
-		os.Unsetenv("EXECUTOR_CABUNDLE_MOUNTPATH")
-	}()
-
-}
 
 func Test_extendPodMetadata(t *testing.T) {
 	tests := []struct {

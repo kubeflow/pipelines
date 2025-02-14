@@ -1,0 +1,123 @@
+# Copyright 2019 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"apiVersion": |-
+  argoproj.io/v1alpha1
+"kind": |-
+  Workflow
+"metadata":
+  "annotations":
+    "pipelines.kubeflow.org/pipeline_spec": |-
+      {"description": "Test pipeline to verify functions of par loop.", "name": "Loop over lightweight output"}
+  "generateName": |-
+    loop-over-lightweight-output-
+"spec":
+  "arguments":
+    "parameters": []
+  "entrypoint": |-
+    loop-over-lightweight-output
+  "serviceAccountName": |-
+    pipeline-runner
+  "templates":
+    - "container":
+        "args": []
+        "command":
+          - |-
+            echo
+          - |-
+            {{inputs.parameters.produce-list-data_list-loop-item}}
+        "image": |-
+          busybox
+      "inputs":
+        "parameters":
+          - "name": |-
+              produce-list-data_list-loop-item
+      "metadata":
+        "annotations":
+          "pipelines.kubeflow.org/component_spec": |-
+            {"inputs": [{"name": "data"}], "name": "Consume data"}
+      "name": |-
+        consume-data
+    - "dag":
+        "tasks":
+          - "arguments":
+              "parameters":
+                - "name": |-
+                    produce-list-data_list-loop-item
+                  "value": |-
+                    {{inputs.parameters.produce-list-data_list-loop-item}}
+            "name": |-
+              consume-data
+            "template": |-
+              consume-data
+      "inputs":
+        "parameters":
+          - "name": |-
+              produce-list-data_list-loop-item
+      "name": |-
+        for-loop-1
+    - "dag":
+        "tasks":
+          - "arguments":
+              "parameters":
+                - "name": |-
+                    produce-list-data_list-loop-item
+                  "value": |-
+                    {{item}}
+            "dependencies":
+              - |-
+                produce-list
+            "name": |-
+              for-loop-1
+            "template": |-
+              for-loop-1
+            "withParam": |-
+              {{tasks.produce-list.outputs.parameters.produce-list-data_list}}
+          - "name": |-
+              produce-list
+            "template": |-
+              produce-list
+      "name": |-
+        loop-over-lightweight-output
+    - "container":
+        "args": []
+        "command":
+          - |-
+            sh
+          - |-
+            -c
+          - |-
+            echo "[1, 2, 3]" > "$0"
+          - |-
+            /tmp/outputs/data_list/data
+        "image": |-
+          busybox
+      "metadata":
+        "annotations":
+          "pipelines.kubeflow.org/component_spec": |-
+            {"name": "Produce list", "outputs": [{"name": "data_list"}]}
+      "name": |-
+        produce-list
+      "outputs":
+        "artifacts":
+          - "name": |-
+              produce-list-data_list
+            "path": |-
+              /tmp/outputs/data_list/data
+        "parameters":
+          - "name": |-
+              produce-list-data_list
+            "valueFrom":
+              "path": |-
+                /tmp/outputs/data_list/data

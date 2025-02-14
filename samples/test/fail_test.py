@@ -1,4 +1,4 @@
-o  # Copyright 2021 The Kubeflow Authors
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,19 +14,13 @@ o  # Copyright 2021 The Kubeflow Authors
 """Fail pipeline."""
 
 from __future__ import annotations
-
 import unittest
-
-import kfp
-from kfp.samples.test.utils import KfpTask
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TaskInputs
-from kfp.samples.test.utils import TaskOutputs
-from kfp.samples.test.utils import TestCase
+import kfp.deprecated as kfp
 import kfp_server_api
 from ml_metadata.proto import Execution
-
+from .fail import fail_pipeline
 from .fail_v2 import fail_pipeline as fail_v2_pipeline
+from kfp.samples.test.utils import TaskInputs, TaskOutputs, run_pipeline_func, TestCase, KfpTask
 
 
 def verify(run, **kwargs):
@@ -56,5 +50,9 @@ run_pipeline_func([
     TestCase(
         pipeline_func=fail_v2_pipeline,
         verify_func=verify_v2,
-    ),
+        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE),
+    TestCase(
+        pipeline_func=fail_pipeline,
+        verify_func=verify,
+        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY),
 ])

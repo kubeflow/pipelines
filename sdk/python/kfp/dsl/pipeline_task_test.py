@@ -145,40 +145,42 @@ class PipelineTaskTest(parameterized.TestCase):
     @parameterized.parameters(
         {
             'cpu': '123',
-            'expected_cpu': '123',
+            'expected_cpu_number': 123,
         },
         {
             'cpu': '123m',
-            'expected_cpu': '123m',
+            'expected_cpu_number': 0.123,
         },
         {
             'cpu': '123.0',
-            'expected_cpu': '123.0',
+            'expected_cpu_number': 123,
         },
         {
             'cpu': '123.0m',
-            'expected_cpu': '123.0m',
+            'expected_cpu_number': 0.123,
         },
     )
-    def test_set_valid_cpu_request_limit(self, cpu: str, expected_cpu: str):
+    def test_set_valid_cpu_request_limit(self, cpu: str,
+                                         expected_cpu_number: float):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
         task.set_cpu_request(cpu)
-        self.assertEqual(expected_cpu,
+        self.assertEqual(expected_cpu_number,
                          task.container_spec.resources.cpu_request)
         task.set_cpu_limit(cpu)
-        self.assertEqual(expected_cpu, task.container_spec.resources.cpu_limit)
+        self.assertEqual(expected_cpu_number,
+                         task.container_spec.resources.cpu_limit)
 
     @parameterized.parameters(
         {
-            'gpu_limit': '1',
-            'expected_gpu_number': '1',
+            'gpu_limit': '123',
+            'expected_gpu_number': 123,
         },)
     def test_set_valid_gpu_limit(self, gpu_limit: str,
-                                 expected_gpu_number: str):
+                                 expected_gpu_number: int):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
@@ -208,19 +210,15 @@ class PipelineTaskTest(parameterized.TestCase):
 
     @parameterized.parameters(
         {
-            'limit': '1',
-            'expected_limit': '1',
+            'limit': '123',
+            'expected': 123,
         },
         {
-            'limit': 1,
-            'expected_limit': '1',
-        },
-        {
-            'limit': 16,
-            'expected_limit': '16',
+            'limit': 123,
+            'expected': 123,
         },
     )
-    def test_set_accelerator_limit(self, limit, expected_limit):
+    def test_set_accelerator_limit(self, limit, expected):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
@@ -228,74 +226,74 @@ class PipelineTaskTest(parameterized.TestCase):
         )
 
         task.set_accelerator_limit(limit)
-        self.assertEqual(expected_limit,
+        self.assertEqual(expected,
                          task.container_spec.resources.accelerator_count)
 
     @parameterized.parameters(
         {
             'memory': '1E',
-            'expected_memory': '1E',
+            'expected_memory_number': 1000000000,
         },
         {
             'memory': '15Ei',
-            'expected_memory': '15Ei',
+            'expected_memory_number': 17293822569.102703,
         },
         {
             'memory': '2P',
-            'expected_memory': '2P',
+            'expected_memory_number': 2000000,
         },
         {
             'memory': '25Pi',
-            'expected_memory': '25Pi',
+            'expected_memory_number': 28147497.6710656,
         },
         {
             'memory': '3T',
-            'expected_memory': '3T',
+            'expected_memory_number': 3000,
         },
         {
             'memory': '35Ti',
-            'expected_memory': '35Ti',
+            'expected_memory_number': 38482.90697216,
         },
         {
             'memory': '4G',
-            'expected_memory': '4G',
+            'expected_memory_number': 4,
         },
         {
             'memory': '45Gi',
-            'expected_memory': '45Gi',
+            'expected_memory_number': 48.31838208,
         },
         {
             'memory': '5M',
-            'expected_memory': '5M',
+            'expected_memory_number': 0.005,
         },
         {
             'memory': '55Mi',
-            'expected_memory': '55Mi',
+            'expected_memory_number': 0.05767168,
         },
         {
             'memory': '6K',
-            'expected_memory': '6K',
+            'expected_memory_number': 0.000006,
         },
         {
             'memory': '65Ki',
-            'expected_memory': '65Ki',
+            'expected_memory_number': 0.00006656,
         },
         {
             'memory': '7000',
-            'expected_memory': '7000',
+            'expected_memory_number': 0.000007,
         },
     )
-    def test_set_memory_limit(self, memory: str, expected_memory: str):
+    def test_set_memory_limit(self, memory: str, expected_memory_number: int):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
                 V2_YAML),
             args={'input1': 'value'},
         )
         task.set_memory_request(memory)
-        self.assertEqual(expected_memory,
+        self.assertEqual(expected_memory_number,
                          task.container_spec.resources.memory_request)
         task.set_memory_limit(memory)
-        self.assertEqual(expected_memory,
+        self.assertEqual(expected_memory_number,
                          task.container_spec.resources.memory_limit)
 
     def test_set_accelerator_type_with_type_only(self):
@@ -307,7 +305,7 @@ class PipelineTaskTest(parameterized.TestCase):
         task.set_accelerator_type('NVIDIA_TESLA_K80')
         self.assertEqual(
             structures.ResourceSpec(
-                accelerator_type='NVIDIA_TESLA_K80', accelerator_count='1'),
+                accelerator_type='NVIDIA_TESLA_K80', accelerator_count=1),
             task.container_spec.resources)
 
     def test_set_accelerator_type_with_accelerator_count(self):
@@ -316,10 +314,10 @@ class PipelineTaskTest(parameterized.TestCase):
                 V2_YAML),
             args={'input1': 'value'},
         )
-        task.set_accelerator_limit('4').set_accelerator_type('TPU_V3')
+        task.set_accelerator_limit('5').set_accelerator_type('TPU_V3')
         self.assertEqual(
             structures.ResourceSpec(
-                accelerator_type='TPU_V3', accelerator_count='4'),
+                accelerator_type='TPU_V3', accelerator_count=5),
             task.container_spec.resources)
 
     def test_set_env_variable(self):

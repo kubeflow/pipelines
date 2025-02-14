@@ -15,7 +15,6 @@
 package storage
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"testing"
 	"time"
 
@@ -27,6 +26,7 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -773,7 +773,7 @@ func TestUpdateJob_Success(t *testing.T) {
 			Conditions: []swfapi.ScheduledWorkflowCondition{
 				{
 					Type:               swfapi.ScheduledWorkflowEnabled,
-					Status:             corev1.ConditionTrue,
+					Status:             core.ConditionTrue,
 					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
 					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
 					Reason:             string(swfapi.ScheduledWorkflowEnabled),

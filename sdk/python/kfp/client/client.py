@@ -105,7 +105,7 @@ class Client:
         host: Host name to use to talk to Kubeflow Pipelines. If not set,
             the in-cluster service DNS name will be used, which only works if
             the current environment is a pod in the same cluster (such as a
-            Jupyter instance spawned by Kubeflow's JupyterHub). (`More information on connecting. <https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/>`_)
+            Jupyter instance spawned by Kubeflow's JupyterHub). (`More information on connecting. <https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/>`_)
         client_id: Client ID used by Identity-Aware Proxy.
         namespace: Kubernetes namespace to use. Used for multi-user deployments. For single-user deployments, this should be left as ``None``.
         other_client_id: Client ID used to obtain the auth codes and refresh
@@ -421,7 +421,7 @@ class Client:
                 )
 
             try:
-                return self._healthz_api.healthz_service_get_healthz()
+                return self._healthz_api.get_healthz()
             # ApiException, including network errors, is the only type that may
             # recover after retry.
             except kfp_server_api.ApiException:
@@ -474,8 +474,7 @@ class Client:
                 description=description,
                 namespace=namespace,
             )
-            experiment = self._experiment_api.experiment_service_create_experiment(
-                body=experiment)
+            experiment = self._experiment_api.create_experiment(body=experiment)
 
         link = f'{self._get_url_prefix()}/#/experiments/details/{experiment.experiment_id}'
         if auth.is_ipython():
@@ -503,8 +502,7 @@ class Client:
                 'stringValue': name,
             }]
         })
-        result = self._pipelines_api.pipeline_service_list_pipelines(
-            filter=pipeline_filter)
+        result = self._pipelines_api.list_pipelines(filter=pipeline_filter)
         if result.pipelines is None:
             return None
         if len(result.pipelines) == 1:
@@ -547,7 +545,7 @@ class Client:
             ``V2beta1ListExperimentsResponse`` object.
         """
         namespace = namespace or self.get_user_namespace()
-        return self._experiment_api.experiment_service_list_experiments(
+        return self._experiment_api.list_experiments(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -579,7 +577,7 @@ class Client:
             raise ValueError(
                 'Either experiment_id or experiment_name is required.')
         if experiment_id is not None:
-            return self._experiment_api.experiment_service_get_experiment(
+            return self._experiment_api.get_experiment(
                 experiment_id=experiment_id)
         experiment_filter = json.dumps({
             'predicates': [{
@@ -589,10 +587,10 @@ class Client:
             }]
         })
         if namespace is not None:
-            result = self._experiment_api.experiment_service_list_experiments(
+            result = self._experiment_api.list_experiments(
                 filter=experiment_filter, namespace=namespace)
         else:
-            result = self._experiment_api.experiment_service_list_experiments(
+            result = self._experiment_api.list_experiments(
                 filter=experiment_filter)
         if not result.experiments:
             raise ValueError(
@@ -611,7 +609,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._experiment_api.experiment_service_archive_experiment(
+        return self._experiment_api.archive_experiment(
             experiment_id=experiment_id)
 
     def unarchive_experiment(self, experiment_id: str) -> dict:
@@ -623,7 +621,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._experiment_api.experiment_service_unarchive_experiment(
+        return self._experiment_api.unarchive_experiment(
             experiment_id=experiment_id)
 
     def delete_experiment(self, experiment_id: str) -> dict:
@@ -635,7 +633,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._experiment_api.experiment_service_delete_experiment(
+        return self._experiment_api.delete_experiment(
             experiment_id=experiment_id)
 
     def list_pipelines(
@@ -668,7 +666,7 @@ class Client:
         Returns:
             ``V2beta1ListPipelinesResponse`` object.
         """
-        return self._pipelines_api.pipeline_service_list_pipelines(
+        return self._pipelines_api.list_pipelines(
             namespace=namespace,
             page_token=page_token,
             page_size=page_size,
@@ -686,7 +684,6 @@ class Client:
         version_id: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
-        cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
     ) -> kfp_server_api.V2beta1Run:
         """Runs a specified pipeline.
@@ -710,8 +707,6 @@ class Client:
                 is ``True`` for all tasks by default. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
 
@@ -724,7 +719,6 @@ class Client:
             pipeline_id=pipeline_id,
             version_id=version_id,
             enable_caching=enable_caching,
-            cache_key=cache_key,
             pipeline_root=pipeline_root,
         )
 
@@ -736,7 +730,7 @@ class Client:
             runtime_config=job_config.runtime_config,
             service_account=service_account)
 
-        response = self._run_api.run_service_create_run(body=run_body)
+        response = self._run_api.create_run(body=run_body)
 
         link = f'{self._get_url_prefix()}/#/runs/details/{response.run_id}'
         if auth.is_ipython():
@@ -757,7 +751,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.run_service_archive_run(run_id=run_id)
+        return self._run_api.archive_run(run_id=run_id)
 
     def unarchive_run(self, run_id: str) -> dict:
         """Restores an archived run.
@@ -768,7 +762,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.run_service_unarchive_run(run_id=run_id)
+        return self._run_api.unarchive_run(run_id=run_id)
 
     def delete_run(self, run_id: str) -> dict:
         """Deletes a run.
@@ -779,7 +773,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.run_service_delete_run(run_id=run_id)
+        return self._run_api.delete_run(run_id=run_id)
 
     def terminate_run(self, run_id: str) -> dict:
         """Terminates a run.
@@ -790,7 +784,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.run_service_terminate_run(run_id=run_id)
+        return self._run_api.terminate_run(run_id=run_id)
 
     def create_recurring_run(
         self,
@@ -810,7 +804,6 @@ class Client:
         enabled: bool = True,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
-        cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
     ) -> kfp_server_api.V2beta1RecurringRun:
         """Creates a recurring run.
@@ -855,8 +848,6 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
             service_account: Specifies which Kubernetes service
                 account this recurring run uses.
         Returns:
@@ -869,7 +860,6 @@ class Client:
             pipeline_id=pipeline_id,
             version_id=version_id,
             enable_caching=enable_caching,
-            cache_key=cache_key,
             pipeline_root=pipeline_root,
         )
 
@@ -906,8 +896,7 @@ class Client:
             trigger=trigger,
             max_concurrency=max_concurrency,
             service_account=service_account)
-        return self._recurring_run_api.recurring_run_service_create_recurring_run(
-            body=job_body)
+        return self._recurring_run_api.create_recurring_run(body=job_body)
 
     def _create_job_config(
         self,
@@ -916,7 +905,6 @@ class Client:
         pipeline_id: Optional[str],
         version_id: Optional[str],
         enable_caching: Optional[bool],
-        cache_key: Optional[str],
         pipeline_root: Optional[str],
     ) -> _JobConfig:
         """Creates a JobConfig with spec and resource_references.
@@ -937,8 +925,6 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
             pipeline_root: Root path of the pipeline outputs.
 
         Returns:
@@ -967,7 +953,7 @@ class Client:
             # settings.
             if enable_caching is not None:
                 _override_caching_options(pipeline_doc.pipeline_spec,
-                                          enable_caching, cache_key)
+                                          enable_caching)
             pipeline_spec = pipeline_doc.to_dict()
 
         pipeline_version_reference = None
@@ -994,7 +980,6 @@ class Client:
         namespace: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
-        cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         experiment_id: Optional[str] = None,
     ) -> RunPipelineResult:
@@ -1016,8 +1001,6 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
             experiment_id: ID of the experiment to add the run to. You cannot specify both experiment_id and experiment_name.
@@ -1046,7 +1029,6 @@ class Client:
                 namespace=namespace,
                 pipeline_root=pipeline_root,
                 enable_caching=enable_caching,
-                cache_key=cache_key,
                 service_account=service_account,
             )
 
@@ -1059,7 +1041,6 @@ class Client:
         namespace: Optional[str] = None,
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
-        cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         experiment_id: Optional[str] = None,
     ) -> RunPipelineResult:
@@ -1081,8 +1062,6 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
             experiment_id: ID of the experiment to add the run to. You cannot specify both experiment_id and experiment_name.
@@ -1123,7 +1102,6 @@ class Client:
             params=arguments,
             pipeline_root=pipeline_root,
             enable_caching=enable_caching,
-            cache_key=cache_key,
             service_account=service_account,
         )
         return RunPipelineResult(self, run_info)
@@ -1153,7 +1131,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._recurring_run_api.recurring_run_service_delete_recurring_run(
+        return self._recurring_run_api.delete_recurring_run(
             recurring_run_id=recurring_run_id)
 
     def disable_job(self, job_id: str) -> dict:
@@ -1181,7 +1159,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._recurring_run_api.recurring_run_service_disable_recurring_run(
+        return self._recurring_run_api.disable_recurring_run(
             recurring_run_id=recurring_run_id)
 
     def enable_job(self, job_id: str) -> dict:
@@ -1209,7 +1187,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._recurring_run_api.recurring_run_service_enable_recurring_run(
+        return self._recurring_run_api.enable_recurring_run(
             recurring_run_id=recurring_run_id)
 
     def list_runs(
@@ -1247,7 +1225,7 @@ class Client:
         """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
-            return self._run_api.run_service_list_runs(
+            return self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1255,7 +1233,7 @@ class Client:
                 filter=filter)
 
         elif namespace is not None:
-            return self._run_api.run_service_list_runs(
+            return self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1263,7 +1241,7 @@ class Client:
                 filter=filter)
 
         else:
-            return self._run_api.run_service_list_runs(
+            return self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1303,7 +1281,7 @@ class Client:
             ``V2beta1ListRecurringRunsResponse`` object.
         """
         if experiment_id is not None:
-            return self._recurring_run_api.recurring_run_service_list_recurring_runs(
+            return self._recurring_run_api.list_recurring_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1311,7 +1289,7 @@ class Client:
                 filter=filter)
 
         elif namespace is not None:
-            return self._recurring_run_api.recurring_run_service_list_recurring_runs(
+            return self._recurring_run_api.list_recurring_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1319,7 +1297,7 @@ class Client:
                 filter=filter)
 
         else:
-            return self._recurring_run_api.recurring_run_service_list_recurring_runs(
+            return self._recurring_run_api.list_recurring_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1346,7 +1324,7 @@ class Client:
                 stacklevel=2)
             recurring_run_id = recurring_run_id or job_id
 
-        return self._recurring_run_api.recurring_run_service_get_recurring_run(
+        return self._recurring_run_api.get_recurring_run(
             recurring_run_id=recurring_run_id)
 
     def get_run(self, run_id: str) -> kfp_server_api.V2beta1Run:
@@ -1358,7 +1336,7 @@ class Client:
         Returns:
             ``V2beta1Run`` object.
         """
-        return self._run_api.run_service_get_run(run_id=run_id)
+        return self._run_api.get_run(run_id=run_id)
 
     def wait_for_run_completion(
         self,
@@ -1384,8 +1362,7 @@ class Client:
         finish_states = ['succeeded', 'failed', 'skipped', 'error']
         while True:
             try:
-                get_run_response = self._run_api.run_service_get_run(
-                    run_id=run_id)
+                get_run_response = self._run_api.get_run(run_id=run_id)
                 is_valid_token = True
             except kfp_server_api.ApiException as api_ex:
                 # if the token is valid but receiving 401 Unauthorized error
@@ -1503,8 +1480,7 @@ class Client:
         Returns:
             ``V2beta1Pipeline`` object.
         """
-        return self._pipelines_api.pipeline_service_get_pipeline(
-            pipeline_id=pipeline_id)
+        return self._pipelines_api.get_pipeline(pipeline_id=pipeline_id)
 
     def delete_pipeline(self, pipeline_id: str) -> dict:
         """Deletes a pipeline.
@@ -1515,8 +1491,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._pipelines_api.pipeline_service_delete_pipeline(
-            pipeline_id=pipeline_id)
+        return self._pipelines_api.delete_pipeline(pipeline_id=pipeline_id)
 
     def list_pipeline_versions(
         self,
@@ -1550,7 +1525,7 @@ class Client:
             ``V2beta1ListPipelineVersionsResponse`` object.
         """
 
-        return self._pipelines_api.pipeline_service_list_pipeline_versions(
+        return self._pipelines_api.list_pipeline_versions(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -1571,7 +1546,7 @@ class Client:
         Returns:
             ``V2beta1PipelineVersion`` object.
         """
-        return self._pipelines_api.pipeline_service_get_pipeline_version(
+        return self._pipelines_api.get_pipeline_version(
             pipeline_id=pipeline_id,
             pipeline_version_id=pipeline_version_id,
         )
@@ -1590,7 +1565,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._pipelines_api.pipeline_service_delete_pipeline_version(
+        return self._pipelines_api.delete_pipeline_version(
             pipeline_id=pipeline_id,
             pipeline_version_id=pipeline_version_id,
         )
@@ -1700,16 +1675,12 @@ def _extract_pipeline_yaml(package_file: str) -> _PipelineDoc:
 def _override_caching_options(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     enable_caching: bool,
-    cache_key: Optional[str] = None,
 ) -> None:
     """Overrides caching options.
 
     Args:
         pipeline_spec: The PipelineSpec object to update in-place.
         enable_caching: Overrides options, one of True, False.
-        cache_key: Overrides cache_key, default None, no-op.
     """
     for _, task_spec in pipeline_spec.root.dag.tasks.items():
         task_spec.caching_options.enable_cache = enable_caching
-        if cache_key:
-            task_spec.caching_options.cache_key = cache_key

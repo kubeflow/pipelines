@@ -168,7 +168,7 @@ message Run {
     // Pipeline spec.
     google.protobuf.Struct pipeline_spec = 7;
 
-    // Reference to a pipeline containing pipeline_id and optionally the pipeline_version_id.
+    // Reference to a pipeline version containing pipeline_id and pipeline_version_id.
     PipelineVersionReference pipeline_version_reference = 18;
   }
  
@@ -213,7 +213,7 @@ message PipelineVersionReference {
   // Input. Required. Unique ID of the parent pipeline.
   string pipeline_id = 1;
 
-  // Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
+  // Input. Required. Unique ID of an existing pipeline version.
   string pipeline_version_id = 2;
 }
 

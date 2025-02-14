@@ -16,20 +16,10 @@ spec:
     spec:
       containers:
       - name: main
-        image: ghcr.io/kubeflow/kfp-metadata-writer:dummy
+        image: gcr.io/ml-pipeline/metadata-writer:dummy
         env:
         - name: NAMESPACE_TO_WATCH
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        securityContext:
-          allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
-          capabilities:
-            drop:
-            - ALL
       serviceAccountName: kubeflow-pipelines-metadata-writer
