@@ -3514,7 +3514,7 @@ func (*TaskInputsSpec_InputArtifactSpec_ComponentInputArtifact) isTaskInputsSpec
 
 // Represents an input parameter. The value can be taken from an upstream
 // task's output parameter (if specifying `producer_task` and
-// `output_parameter_key`, or it can be a runtime value, which can either be
+// `output_parameter_key`), or it can be a runtime value, which can either be
 // determined at compile-time, or from a pipeline parameter.
 type TaskInputsSpec_InputParameterSpec struct {
 	state         protoimpl.MessageState
@@ -3784,13 +3784,13 @@ func (x *TaskInputsSpec_InputParameterSpec_TaskOutputParameterSpec) GetOutputPar
 
 // Represents an upstream task's final status. The field can only be set if
 // the schema version is `2.0.0`. The resolved input parameter will be a
-// json payload in string type.
+// JSON payload in string type.
 type TaskInputsSpec_InputParameterSpec_TaskFinalStatus struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// The name of the upsteram task where the final status is coming from.
+	// The name of the upstream task where the final status is coming from.
 	ProducerTask string `protobuf:"bytes,1,opt,name=producer_task,json=producerTask,proto3" json:"producer_task,omitempty"`
 }
 
