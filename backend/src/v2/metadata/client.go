@@ -686,7 +686,7 @@ func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, 
 
 // UpdateDAGExecutionState checks all the statuses of the tasks in the given DAG, based on that it will update the DAG to the corresponding status if necessary.
 func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) error {
-	tasks, err := c.GetExecutionsInDAG(ctx, dag, pipeline, true)
+	tasks, err := c.GetExecutionsInDAG(ctx, dag, pipeline, false)
 	if err != nil {
 		return err
 	}
