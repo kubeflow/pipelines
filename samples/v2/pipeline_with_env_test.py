@@ -17,11 +17,14 @@ from __future__ import annotations
 
 import unittest
 
-import kfp.deprecated as kfp
+from kfp.samples.test.utils import KfpTask
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TaskInputs
+from kfp.samples.test.utils import TaskOutputs
+from kfp.samples.test.utils import TestCase
 import kfp_server_api
 from ml_metadata.proto import Execution
 
-from kfp.samples.test.utils import KfpTask, TaskInputs, TaskOutputs, TestCase, run_pipeline_func
 from .pipeline_with_env import pipeline_with_env
 
 
@@ -35,20 +38,15 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                     name='print-env-op',
                     type='system.ContainerExecution',
                     state=Execution.State.COMPLETE,
-                    inputs=TaskInputs(
-                        parameters={}, artifacts=[]),
-                    outputs=TaskOutputs(
-                        parameters={}, artifacts=[])),
+                    inputs=TaskInputs(parameters={}, artifacts=[]),
+                    outputs=TaskOutputs(parameters={}, artifacts=[])),
             'check-env':
                 KfpTask(
                     name='check-env',
                     type='system.ContainerExecution',
                     state=Execution.State.COMPLETE,
-                    inputs=TaskInputs(
-                        parameters={}, artifacts=[]),
-                    outputs=TaskOutputs(
-                        parameters={}, artifacts=[])),
-
+                    inputs=TaskInputs(parameters={}, artifacts=[]),
+                    outputs=TaskOutputs(parameters={}, artifacts=[])),
         },
         tasks,
     )
@@ -59,6 +57,5 @@ if __name__ == '__main__':
         TestCase(
             pipeline_func=pipeline_with_env,
             verify_func=verify,
-            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         ),
     ])

@@ -44,8 +44,8 @@ func NewWorkflowClient(clientSet commonutil.ExecutionClient,
 }
 
 // AddEventHandler adds an event handler.
-func (p *WorkflowClient) AddEventHandler(funcs *cache.ResourceEventHandlerFuncs) {
-	p.informer.AddEventHandler(funcs)
+func (p *WorkflowClient) AddEventHandler(funcs *cache.ResourceEventHandlerFuncs) (cache.ResourceEventHandlerRegistration, error) {
+	return p.informer.AddEventHandler(funcs)
 }
 
 // HasSynced returns true if the shared informer's store has synced.

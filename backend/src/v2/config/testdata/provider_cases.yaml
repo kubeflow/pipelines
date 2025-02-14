@@ -95,6 +95,7 @@ cases:
           endpoint: s3.amazonaws.com
           region: us-east-1
           disableSSL: false
+          forcePathStyle: false
           credentials:
             fromEnv: false
             secretRef:
@@ -123,6 +124,7 @@ cases:
             endpoint: s3.us-east-2.amazonaws.com
             region: us-east-2
             disableSSL: false
+            forcePathStyle: false
             credentials:
               fromEnv: false
               secretRef:

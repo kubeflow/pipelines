@@ -2,6 +2,11 @@
 
 Contains protos, non-proto Python library code, and tools for generating Go and Python proto library code.
 
+## Dependencies
+You need to have `protoc` installed. You can find the releases [here](https://github.com/protocolbuffers/protobuf/releases).
+
+If you get an error `ImportError: cannot import name 'runtime_version' from 'google.protobuf'` when trying to import kfp-kubernetes that you've built with protoc, you're using a protoc that's too new. Version 21.12 is known to work for compiling the python protos. Version 27.1 is known to produce this error.
+
 ## Generate Python proto code (alongside non-proto library code)
 Python proto code should be updated prior to releasing the package. For this reason, bumping the version number is included in the instructions.
 

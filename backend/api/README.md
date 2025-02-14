@@ -12,7 +12,7 @@ Tools needed:
 Set the environment variable `API_VERSION` to the version that you want to generate. We use `v1beta1` as example here.
 
 ```bash
-export API_VERSION="v1beta1"
+export API_VERSION="v2beta1"
 ```
 
 ## Compiling `.proto` files to Go client and swagger definitions
@@ -81,7 +81,9 @@ API definitions in this folder are used to generate [`v1beta1`](https://www.kube
 
 API generator image is defined in [Dockerfile](`./Dockerfile`). If you need to update the container, follow these steps:
 
-1. Update the [Dockerfile](`./Dockerfile`) and build the image by running `docker build -t gcr.io/ml-pipeline-test/api-generator:latest .`
-1. Push the new container by running `docker push gcr.io/ml-pipeline-test/api-generator:latest` (requires to be [authenticated](https://cloud.google.com/container-registry/docs/advanced-authentication)).
+1. Login to GHCR container registry: `echo "<PAT>" | docker login ghcr.io -u <USERNAME> --password-stdin` 
+   * Replace `<PAT>` with a GitHub Personal Access Token (PAT) with the write:packages and `read:packages` scopes, as well as `delete:packages` if needed. 
+1. Update the [Dockerfile](`./Dockerfile`) and build the image by running `docker build -t ghcr.io/kubeflow/kfp-api-generator:$VERSION .`
+1. Push the new container by running `docker push ghcr.io/kubeflow/kfp-api-generator:$VERSION` (requires to be [authenticated](https://cloud.google.com/container-registry/docs/advanced-authentication)).
 1. Update the `PREBUILT_REMOTE_IMAGE` variable in the [Makefile](./Makefile) to point to your new image.
-1. Similarly, push a new version of the release tools image to `gcr.io/ml-pipeline-test/release:latest` and run `make push` in [test/release/Makefile](../../test/release/Makefile).
+1. Similarly, push a new version of the release tools image to `ghcr.io/kubeflow/kfp-release:$VERSION` and run `make push` in [test/release/Makefile](../../test/release/Makefile).

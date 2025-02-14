@@ -1,0 +1,102 @@
+name: PR Commands
+on:
+  issue_comment:
+    types:
+      - created
+env:
+  DEFAULT_BRANCH: master
+jobs:
+  process-command:
+    runs-on: ubuntu-latest
+    # Fail early if the command is not recognized
+    if: contains(github.event.comment.body, '/ok-to-test')
+    outputs:
+      PR_SHA: ${{ steps.fetch-pr-sha.outputs.PR_SHA }}
+    steps:
+      - name: Checkout Main Branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.DEFAULT_BRANCH }}
+      - name: Check if the author is a member or Owner
+        id: check-condition
+        run: |
+          echo "slash_command=${{github.event.comment.body}}" >> $GITHUB_ENV
+          if [[ "${{ github.event.comment.author_association }}" == "MEMBER" || "${{ github.event.comment.author_association }}" == "OWNER" ]]; then
+            echo "condition_met=true" >> $GITHUB_ENV
+          else
+            echo "User does not have permission to trigger this command."
+            echo "condition_met=false" >> $GITHUB_ENV
+          fi
+
+      - name: Leave a Comment on Precondition Fail
+        if: env.condition_met == 'false'
+        env:
+          message: 🚫 This command cannot be processed. Only organization members or owners can use the commands.
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"
+          echo ${message}
+          exit 1
+
+      - name: Check if comment is on a pull request
+        id: check-pr
+        run: |
+          if [[ -z "${{ github.event.issue.pull_request }}" ]]; then
+            echo "Comment is not on a pull request."
+            exit 1
+          fi
+          echo "PR_URL=${{ github.event.issue.pull_request.url }}" >> $GITHUB_ENV
+
+      - name: Fetch pull request sha
+        id: fetch-pr-sha
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL="${PR_URL}"
+          PR_DATA=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "$PR_URL")
+          PR_SHA=$(echo "$PR_DATA" | jq -r '.head.sha')
+          echo "PR_SHA=$PR_SHA" >> $GITHUB_OUTPUT
+
+  # Add other commands as separate jobs
+  approve:
+    runs-on: ubuntu-latest
+    needs: process-command
+    if: contains(github.event.comment.body, '/ok-to-test')
+    steps:
+      - name: Checkout Main Branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.DEFAULT_BRANCH }}
+      - name: Approve Runs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_SHA: ${{ needs.process-command.outputs.PR_SHA }}
+        run: |
+          runs=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?head_sha=${{ env.PR_SHA }}" | \
+            jq -r '.workflow_runs[] | select(.conclusion == "action_required") | .id')
+        
+          if [[ -z "$runs" ]]; then
+            echo "No workflow runs found for the given head SHA."
+            exit 1
+          fi
+
+          echo "Found workflow runs requiring approval: $runs"
+          # Approve each workflow run
+          for run_id in $runs; do
+            curl -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id/approve"
+            echo "Approved workflow run: $run_id"
+          done
+          msg="Approvals successfully granted for pending runs."
+          echo "output_msg=${msg}" >> $GITHUB_ENV
+
+      - name: Leave a Comment
+        env:
+          message: ${{ env.output_msg }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"
+

@@ -29,7 +29,7 @@ exports[`ResourceSelector displays resource selector 1`] = `
     emptyMessage="Test - Sorry, no resources."
     filterLabel="test filter label"
     initialSortColumn="created_at"
-    isCalledByV1={true}
+    isCalledByV1={false}
     reload={[Function]}
     rows={
       Array [

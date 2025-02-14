@@ -24,6 +24,7 @@ import click
 from kfp import compiler
 from kfp.dsl import base_component
 from kfp.dsl import graph_component
+from kfp.dsl.pipeline_context import Pipeline
 
 
 def is_pipeline_func(func: Callable) -> bool:
@@ -133,14 +134,23 @@ def parse_parameters(parameters: Optional[str]) -> Dict:
     is_flag=True,
     default=False,
     help='Whether to disable type checking.')
+@click.option(
+    '--disable-execution-caching-by-default',
+    is_flag=True,
+    default=False,
+    envvar='KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT',
+    help='Whether to disable execution caching by default.')
 def compile_(
     py: str,
     output: str,
     function_name: Optional[str] = None,
     pipeline_parameters: Optional[str] = None,
     disable_type_check: bool = False,
+    disable_execution_caching_by_default: bool = False,
 ) -> None:
     """Compiles a pipeline or component written in a .py file."""
+
+    Pipeline._execution_caching_default = not disable_execution_caching_by_default
     pipeline_func = collect_pipeline_or_component_func(
         python_file=py, function_name=function_name)
     parsed_parameters = parse_parameters(parameters=pipeline_parameters)

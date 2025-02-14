@@ -30,7 +30,7 @@ class TestContainerComponentDecorator(unittest.TestCase):
         def hello_world() -> dsl.ContainerSpec:
             """Hello world component."""
             return dsl.ContainerSpec(
-                image='python3.7',
+                image='python3.9',
                 command=['echo', 'hello world'],
                 args=[],
             )
@@ -47,7 +47,7 @@ class TestContainerComponentDecorator(unittest.TestCase):
             text_output_path: dsl.OutputPath(str)) -> dsl.ContainerSpec:
             """Hello world component with input and output."""
             return dsl.ContainerSpec(
-                image='python:3.7',
+                image='python:3.9',
                 command=['echo'],
                 args=['--text', text, '--output_path', text_output_path])
 

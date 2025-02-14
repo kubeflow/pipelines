@@ -188,7 +188,7 @@ describe('UIServer apis', () => {
             ? Promise.resolve({ ok: true, text: () => Promise.resolve('test-cluster') })
             : Promise.reject('Unexpected request'),
         );
-        app = new UIServer(loadConfigs(argv, {}));
+        app = new UIServer(loadConfigs(argv, { DISABLE_GKE_METADATA: 'false' }));
 
         const request = requests(app.start());
         request
@@ -202,7 +202,7 @@ describe('UIServer apis', () => {
             ? Promise.resolve({ ok: false, text: () => Promise.resolve('404 not found') })
             : Promise.reject('Unexpected request'),
         );
-        app = new UIServer(loadConfigs(argv, {}));
+        app = new UIServer(loadConfigs(argv, { DISABLE_GKE_METADATA: 'false' }));
 
         const request = requests(app.start());
         request.get('/system/cluster-name').expect(500, 'Failed fetching GKE cluster name', done);
@@ -225,7 +225,7 @@ describe('UIServer apis', () => {
             ? Promise.resolve({ ok: true, text: () => Promise.resolve('test-project') })
             : Promise.reject('Unexpected request'),
         );
-        app = new UIServer(loadConfigs(argv, {}));
+        app = new UIServer(loadConfigs(argv, { DISABLE_GKE_METADATA: 'false' }));
 
         const request = requests(app.start());
         request.get('/system/project-id').expect(200, 'test-project', done);
@@ -236,7 +236,7 @@ describe('UIServer apis', () => {
             ? Promise.resolve({ ok: false, text: () => Promise.resolve('404 not found') })
             : Promise.reject('Unexpected request'),
         );
-        app = new UIServer(loadConfigs(argv, {}));
+        app = new UIServer(loadConfigs(argv, { DISABLE_GKE_METADATA: 'false' }));
 
         const request = requests(app.start());
         request.get('/system/project-id').expect(500, 'Failed fetching GKE project id', done);

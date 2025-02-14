@@ -106,12 +106,6 @@ func TestUploadPipeline(t *testing.T) {
 				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
 			}
 
-			// Verify stored in object store
-			objStore := clientManager.ObjectStore()
-			template, err := objStore.GetFile(objStore.GetPipelineKey(DefaultFakeUUID))
-			assert.Nil(t, err)
-			assert.NotNil(t, template)
-
 			opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 			assert.Nil(t, err)
 
@@ -159,11 +153,6 @@ func TestUploadPipeline(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 			assert.Contains(t, response.Body.String(), `"created_at":"1970-01-01T00:00:03Z"`)
 
-			// Verify stored in object store
-			objStore = clientManager.ObjectStore()
-			template, err = objStore.GetFile(objStore.GetPipelineKey(fakeVersionUUID))
-			assert.Nil(t, err)
-			assert.NotNil(t, template)
 			opts, err = list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 			assert.Nil(t, err)
 
@@ -256,7 +245,7 @@ func TestUploadPipelineV2_NameValidation(t *testing.T) {
 	}
 	for _, test := range tt {
 		t.Run(test.name, func(t *testing.T) {
-			clientManager, server := setupClientManagerAndServer()
+			_, server := setupClientManagerAndServer()
 			bytesBuffer, writer := setupWriter("")
 			setWriterWithBuffer("uploadfile", "hello-world.yaml", string(test.spec), writer)
 			response := uploadPipeline("/apis/v2beta1/pipelines/upload",
@@ -284,12 +273,6 @@ func TestUploadPipelineV2_NameValidation(t *testing.T) {
 				// Verify v1 API returns v1 object while v2 API returns v2 object.
 				assert.Equal(t, "", parsedResponse.ID)
 				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
-
-				// Verify stored in object store
-				objStore := clientManager.ObjectStore()
-				template, err := objStore.GetFile(objStore.GetPipelineKey(DefaultFakeUUID))
-				assert.Nil(t, err)
-				assert.NotNil(t, template)
 			}
 		})
 	}
@@ -305,12 +288,6 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 
 	// Verify time format is RFC3339
 	assert.Contains(t, response.Body.String(), `"created_at":"1970-01-01T00:00:01Z"`)
-
-	// Verify stored in object store
-	objStore := clientManager.ObjectStore()
-	template, err := objStore.GetFile(objStore.GetPipelineKey(DefaultFakeUUID))
-	assert.Nil(t, err)
-	assert.NotNil(t, template)
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
@@ -359,11 +336,6 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	assert.Equal(t, 200, response.Code)
 	assert.Contains(t, response.Body.String(), `"created_at":"1970-01-01T00:00:03Z"`)
 
-	// Verify stored in object store
-	objStore = clientManager.ObjectStore()
-	template, err = objStore.GetFile(objStore.GetPipelineKey(fakeVersionUUID))
-	assert.Nil(t, err)
-	assert.NotNil(t, template)
 	opts, err = list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
 	assert.Nil(t, err)
 	// Verify metadata in db
@@ -414,12 +386,6 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
-	// Verify stored in object store
-	objStore := clientManager.ObjectStore()
-	template, err := objStore.GetFile(objStore.GetPipelineKey(DefaultFakeUUID))
-	assert.Nil(t, err)
-	assert.NotNil(t, template)
-
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
 	// Verify metadata in db
@@ -467,11 +433,6 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
-	// Verify stored in object store
-	objStore := clientManager.ObjectStore()
-	template, err := objStore.GetFile(objStore.GetPipelineKey(DefaultFakeUUID))
-	assert.Nil(t, err)
-	assert.NotNil(t, template)
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
 
@@ -667,7 +628,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: hello-world
 root:
@@ -724,7 +685,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: hello-world
 root:
@@ -765,7 +726,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: hello-world-
 root:
@@ -790,7 +751,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: hEllo-world
 root:
@@ -815,7 +776,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: more than  128 characters more than  128 characters more than  128 characters more than  128 characters more than  128 characters
 root:
@@ -840,7 +801,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.7
+        image: python:3.9
 pipelineInfo:
   name: hello-worl.d
 root:

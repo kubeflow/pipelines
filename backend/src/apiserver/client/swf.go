@@ -25,7 +25,6 @@ import (
 	swfclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
@@ -46,7 +45,7 @@ func (swfClient *SwfClient) ScheduledWorkflow(namespace string) v1beta1.Schedule
 func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) *SwfClient {
 	var swfClient v1beta1.ScheduledworkflowV1beta1Interface
 	operation := func() error {
-		restConfig, err := rest.InClusterConfig()
+		restConfig, err := util.GetKubernetesConfig()
 		if err != nil {
 			return err
 		}

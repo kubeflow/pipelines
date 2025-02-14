@@ -15,7 +15,12 @@
 
 source_root=$(pwd)
 
+# Create a virtual environment and activate it
+python3 -m venv venv
+source venv/bin/activate
+
 python3 -m pip install --upgrade pip
+python3 -m pip install setuptools
 python3 -m pip install coveralls==1.9.2
 python3 -m pip install $(grep 'absl-py==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'docker==' sdk/python/requirements-dev.txt)
@@ -26,8 +31,7 @@ python3 -m pip install --upgrade protobuf
 
 python3 -m pip install sdk/python
 
-# TODO: remove deprecated dependency; then remove --ignore arg
-pytest sdk/python/kfp --ignore=sdk/python/kfp/deprecated --cov=kfp
+pytest sdk/python/kfp --cov=kfp
 
 set +x
 # export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)
@@ -37,3 +41,6 @@ export COVERALLS_SERVICE_NAME="prow"
 export COVERALLS_SERVICE_JOB_ID=$PROW_JOB_ID
 export CI_PULL_REQUEST="$REPO_BASE/pull/$PULL_NUMBER"
 # coveralls
+
+# Deactivate the virtual environment
+deactivate

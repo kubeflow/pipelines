@@ -74,7 +74,7 @@ class TestConditionDeprecated(unittest.TestCase):
         def my_pipeline(string: str):
             with self.assertWarnsRegex(
                     DeprecationWarning,
-                    'dsl\.Condition is deprecated\. Please use dsl\.If instead\.'
+                    r'dsl\.Condition is deprecated\. Please use dsl\.If instead\.'
             ):
                 with dsl.Condition(string == 'text'):
                     foo()

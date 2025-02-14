@@ -15,7 +15,6 @@
 package test
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -37,9 +36,9 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-func WaitForReady(namespace string, initializeTimeout time.Duration) error {
+func WaitForReady(initializeTimeout time.Duration) error {
 	operation := func() error {
-		response, err := http.Get(fmt.Sprintf("http://ml-pipeline.%s.svc.cluster.local:8888/apis/v2beta1/healthz", namespace))
+		response, err := http.Get("http://localhost:8888/apis/v2beta1/healthz")
 		if err != nil {
 			return err
 		}

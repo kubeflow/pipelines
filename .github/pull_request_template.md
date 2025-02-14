@@ -2,6 +2,7 @@
 
 
 **Checklist:**
+- [ ] You have [signed off your commits](https://www.kubeflow.org/docs/about/contributing/#sign-off-your-commits)
 - [ ] The title for your pull request (PR) should follow our title convention. [Learn more about the pull request title convention used in this repository](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md#pull-request-title-convention). 
 <!--
    PR titles examples:

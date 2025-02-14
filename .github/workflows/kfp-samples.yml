@@ -1,0 +1,44 @@
+name: KFP Samples
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths:
+      - '.github/resources/**'
+      - '.github/workflows/kfp-samples.yml'
+      - '.github/workflows/kubeflow-pipelines-integration-v2.yml'
+      - 'backend/**'
+      - 'samples/**'
+      - 'samples/core/dataflow/**'
+      - 'samples/core/parameterized_tfx_oss/**'
+
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+    name: KFP Samples - K8s ${{ matrix.k8s_version }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Create KFP cluster
+      uses: ./.github/actions/kfp-cluster
+      with:
+        k8s_version: ${{ matrix.k8s_version }}
+
+    - name: Forward API port
+      run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+    - name: Run Samples Tests
+      run: |
+        ./backend/src/v2/test/sample-test.sh

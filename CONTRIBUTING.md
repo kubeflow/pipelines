@@ -181,6 +181,12 @@ usually have different reviewers.
 If you are not sure, or the PR doesn't fit into above scopes. You can either
 omit the scope because it's optional, or propose an additional scope here.
 
+## Adding Architectural Decision Records 
+
+When a change requires a significant change to the underlying system, it should be preceded with an Architectural Decision Record (ADR).
+
+KFP ADRs are found in the `adrs` folder at the root of this repo. Read more about the process [here](adrs/README.md).
+
 ## Community Guidelines
 
 This project follows

@@ -14,20 +14,24 @@
 """Definition for Pipeline."""
 
 import functools
+import os
 from typing import Callable, Optional
 
 from kfp.dsl import component_factory
+from kfp.dsl import pipeline_config
 from kfp.dsl import pipeline_task
 from kfp.dsl import tasks_group
 from kfp.dsl import utils
 
 
-def pipeline(func: Optional[Callable] = None,
-             *,
-             name: Optional[str] = None,
-             description: Optional[str] = None,
-             pipeline_root: Optional[str] = None,
-             display_name: Optional[str] = None) -> Callable:
+def pipeline(
+        func: Optional[Callable] = None,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        pipeline_root: Optional[str] = None,
+        display_name: Optional[str] = None,
+        pipeline_config: pipeline_config.PipelineConfig = None) -> Callable:
     """Decorator used to construct a pipeline.
 
     Example
@@ -49,6 +53,7 @@ def pipeline(func: Optional[Callable] = None,
         pipeline_root: The root directory from which to read input and output
             parameters and artifacts.
         display_name: A human-readable name for the pipeline.
+        pipeline_config: Pipeline-level config options.
     """
     if func is None:
         return functools.partial(
@@ -57,6 +62,7 @@ def pipeline(func: Optional[Callable] = None,
             description=description,
             pipeline_root=pipeline_root,
             display_name=display_name,
+            pipeline_config=pipeline_config,
         )
 
     if pipeline_root:
@@ -67,6 +73,7 @@ def pipeline(func: Optional[Callable] = None,
         name=name,
         description=description,
         display_name=display_name,
+        pipeline_config=pipeline_config,
     )
 
 
@@ -100,6 +107,19 @@ class Pipeline:
     def get_default_pipeline():
         """Gets the default pipeline."""
         return Pipeline._default_pipeline
+
+    # _execution_caching_default can be disabled via the click option --disable-execution-caching-by-default
+    # or the env var KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT.
+    # align with click's treatment of env vars for boolean flags.
+    # per click doc, "1", "true", "t", "yes", "y", and "on" are all converted to True
+    _execution_caching_default = not str(
+        os.getenv('KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT')).strip().lower(
+        ) in {'1', 'true', 't', 'yes', 'y', 'on'}
+
+    @staticmethod
+    def get_execution_caching_default():
+        """Gets the default execution caching."""
+        return Pipeline._execution_caching_default
 
     def __init__(self, name: str):
         """Creates a new instance of Pipeline.

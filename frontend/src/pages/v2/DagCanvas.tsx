@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import React, { MouseEvent as ReactMouseEvent } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -27,21 +27,22 @@ import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
 import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
+import { Edge, Node } from 'react-flow-renderer/dist/types';
 
 export interface DagCanvasProps {
   elements: Elements<FlowElementDataBase>;
   setFlowElements: (elements: Elements<any>) => void;
-  onSelectionChange: (elements: Elements<any> | null) => void;
   layers: string[];
   onLayersUpdate: (layers: string[]) => void;
+  onElementClick: (event: ReactMouseEvent, element: Node | Edge) => void;
 }
 
 export default function DagCanvas({
   elements,
   layers,
   onLayersUpdate,
-  onSelectionChange,
   setFlowElements,
+  onElementClick,
 }: DagCanvasProps) {
   const onLoad = (reactFlowInstance: OnLoadParams) => {
     reactFlowInstance.fitView();
@@ -71,7 +72,7 @@ export default function DagCanvas({
             onLoad={onLoad}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
-            onSelectionChange={onSelectionChange}
+            onElementClick={onElementClick}
             onNodeDragStop={(event, node) => {
               setFlowElements(
                 elements.map(value => {
