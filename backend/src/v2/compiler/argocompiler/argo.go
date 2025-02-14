@@ -16,6 +16,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -63,7 +64,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	if err != nil {
 		return nil, err
 	}
-	// fill root component default paramters to PipelineJob
+	// fill root component default parameters to PipelineJob
 	specParams := spec.GetRoot().GetInputDefinitions().GetParameters()
 	for name, param := range specParams {
 		_, ok := job.RuntimeConfig.ParameterValues[name]
@@ -108,7 +109,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 					"pipelines.kubeflow.org/v2_component": "true",
 				},
 			},
-			ServiceAccountName: "pipeline-runner",
+			ServiceAccountName: common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
 			Entrypoint:         tmplEntrypoint,
 		},
 	}

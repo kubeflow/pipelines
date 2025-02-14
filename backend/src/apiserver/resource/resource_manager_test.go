@@ -2401,6 +2401,40 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 	assert.Equal(t, expectedJob.ToV1(), fetchedJob.ToV1(), "CreateJob stored invalid data in database")
 }
 
+func TestCreateJobDifferentDefaultServiceAccountName_ThroughWorkflowSpecV2(t *testing.T) {
+	originalDefaultServiceAccount := viper.Get(common.DefaultPipelineRunnerServiceAccountFlag)
+
+	viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, "my-service-account")
+	defer viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, originalDefaultServiceAccount)
+
+	store, manager, job := initWithJobV2(t)
+	defer store.Close()
+	expectedJob := &model.Job{
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "j1",
+		K8SName:        "job-",
+		Namespace:      "ns1",
+		ServiceAccount: "my-service-account",
+		Enabled:        true,
+		ExperimentId:   DefaultFakeUUID,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
+		Conditions:     "STATUS_UNSPECIFIED",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"text\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
+		},
+	}
+	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
+	require.Equal(t, expectedJob.ToV1(), job.ToV1())
+	fetchedJob, err := manager.GetJob(job.UUID)
+	require.Nil(t, err)
+	require.Equal(t, expectedJob.ToV1(), fetchedJob.ToV1(), "CreateJob stored invalid data in database")
+}
+
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	store, manager, pipeline, _ := initWithPipeline(t)
 	defer store.Close()
@@ -3198,6 +3232,35 @@ func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.
 	}
 	expectedJob.Conditions = "STATUS_UNSPECIFIED"
 	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
+}
+
+func TestReconcileSwfCrs(t *testing.T) {
+	store, manager, job := initWithJobV2(t)
+	defer store.Close()
+
+	fetchedJob, err := manager.GetJob(job.UUID)
+	require.Nil(t, err)
+	require.NotNil(t, fetchedJob)
+
+	swfClient := store.SwfClient().ScheduledWorkflow("ns1")
+
+	options := v1.GetOptions{}
+	ctx := context.Background()
+
+	swf, err := swfClient.Get(ctx, "job-", options)
+	require.Nil(t, err)
+
+	// emulates an invalid/outdated spec
+	swf.Spec.Workflow.Spec = nil
+	swf, err = swfClient.Update(ctx, swf)
+	require.Nil(t, swf.Spec.Workflow.Spec)
+
+	err = manager.ReconcileSwfCrs(ctx)
+	require.Nil(t, err)
+
+	swf, err = swfClient.Get(ctx, "job-", options)
+	require.Nil(t, err)
+	require.NotNil(t, swf.Spec.Workflow.Spec)
 }
 
 func TestReportScheduledWorkflowResource_Error(t *testing.T) {
