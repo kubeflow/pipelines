@@ -24,6 +24,7 @@ def use_secret_as_env(
     task: PipelineTask,
     secret_name: str,
     secret_key_to_env: Dict[str, str],
+    optional: bool = False,
 ) -> PipelineTask:
     """Use a Kubernetes Secret as an environment variable as described by the `Kubernetes documentation
     https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-environment-variables `_.
@@ -48,6 +49,7 @@ def use_secret_as_env(
     secret_as_env = pb.SecretAsEnv(
         secret_name=secret_name,
         key_to_env=key_to_env,
+        optional=optional,
     )
 
     msg.secret_as_env.append(secret_as_env)
