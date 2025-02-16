@@ -11,6 +11,7 @@ on:
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
       - 'backend/src/v2/compiler/**'
+      - 'test/sdk-execution-tests/sdk_execution_tests.py'
 
 jobs:
   sdk-execution-tests:
@@ -43,7 +44,7 @@ jobs:
         run: sudo apt-get install protobuf-compiler -y
 
       - name: Install setuptools
-        run: | 
+        run: |
           pip3 install setuptools
           pip3 freeze
 
