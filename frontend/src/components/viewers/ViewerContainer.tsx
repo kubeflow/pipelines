@@ -15,6 +15,7 @@
  */
 
 import React, { ComponentType } from 'react';
+import { CircularProgress } from '@mui/material';
 import ConfusionMatrix from './ConfusionMatrix';
 import HTMLViewer from './HTMLViewer';
 import MarkdownViewer from './MarkdownViewer';

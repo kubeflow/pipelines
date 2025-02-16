@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import {
+  Button,
+  FormControlLabel,
+  InputAdornment,
+  Radio,
+  TextField
+} from '@mui/material';
+import type { TextFieldProps } from '@mui/material';
 import * as React from 'react';
 import Dropzone from 'react-dropzone';
 import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
