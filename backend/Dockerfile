@@ -44,7 +44,6 @@ WORKDIR /bin
 
 COPY --from=builder /opt/app-root/src/backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
-COPY --from=builder /opt/app-root/src/backend/src/apiserver/sample_pipelines /pipelines
 
 RUN chmod +x /bin/apiserver
 
