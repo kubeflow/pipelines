@@ -1,4 +1,4 @@
-# Copyright 2024 The Kubeflow Authors
+# Copyright 2025 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import List, Union
 
 from google.protobuf import json_format
-from kfp.dsl import PipelineTask
+from kfp.dsl import PipelineTask, pipeline_channel
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
 
 def set_image_pull_secrets(
     task: PipelineTask,
-    secret_names: List[str],
+    secret_names: Union[List[str], List[pipeline_channel.PipelineParameterChannel]],
 ) -> PipelineTask:
     """Set image pull secrets for a Kubernetes task.
 
@@ -36,11 +36,17 @@ def set_image_pull_secrets(
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
-    # Assuming secret_names is a list of strings
-    image_pull_secret = [
-        pb.ImagePullSecret(secret_name=secret_name)
-        for secret_name in secret_names
-    ]
+    if is_list_of_strings(secret_names) or is_list_of_parameter_channel(secret_names):
+        image_pull_secret = []
+        for secret_name in secret_names:
+            secret_name_parameter = common.parse_k8s_parameter_input(secret_name, task)
+            image_pull_secret_pb = pb.ImagePullSecret(secret_name_parameter=secret_name_parameter)
+            if isinstance(secret_name, str):
+                image_pull_secret_pb.secret_name = secret_name
+            image_pull_secret.append(image_pull_secret_pb)
+    else:
+        raise ValueError("secret_names must be a list of strings or "
+                         "a list of pipeline input parameters.")
 
     msg.image_pull_secret.extend(image_pull_secret)
 
@@ -68,3 +74,11 @@ def set_image_pull_policy(task: PipelineTask, policy: str) -> PipelineTask:
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
     return task
+
+
+def is_list_of_strings(items: list) -> bool:
+    return all(isinstance(item, str) for item in items)
+
+
+def is_list_of_parameter_channel(items: list) -> bool:
+    return all(isinstance(item, pipeline_channel.PipelineParameterChannel) for item in items)

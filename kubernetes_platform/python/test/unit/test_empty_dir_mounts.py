@@ -122,7 +122,8 @@ class TestEmptyDirMounts:
                                     'volumeName': 'emptydir-vol-1'
                                 }],
                                 'imagePullSecret': [{
-                                    'secretName': 'secret-name'
+                                    'secretName': 'secret-name',
+                                    'secretNameParameter': {'runtimeValue': {'constant': 'secret-name'}},
                                 }]
                             }
                         }

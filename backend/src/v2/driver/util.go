@@ -15,8 +15,15 @@
 package driver
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	"regexp"
 )
 
@@ -75,4 +82,116 @@ func resolvePodSpecInputRuntimeParameter(parameterValue string, executorInput *p
 		}
 	}
 	return parameterValue, nil
+}
+
+// resolveK8sParameter resolves a k8s JSON and unmarshal it
+// to the provided k8s resource.
+//
+// Parameters:
+//   - k8sParamSpec: An input parameter spec that resolve to a valid structpb.Value
+//   - inputParams: InputParams that contain resolution context for k8sParamSpec
+func resolveK8sParameter(
+	ctx context.Context,
+	opts Options,
+	dag *metadata.DAG,
+	pipeline *metadata.Pipeline,
+	mlmd *metadata.Client,
+	k8sParamSpec *kubernetesplatform.InputParameterSpec,
+	inputParams map[string]*structpb.Value,
+) (*structpb.Value, error) {
+	pipelineParamSpec := &pipelinespec.TaskInputsSpec_InputParameterSpec{}
+	err := k8sToPipelineInputParamSpec(k8sParamSpec, pipelineParamSpec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert input parameter spec to pipeline spec: %v", err)
+	}
+	resolvedParameter, err := resolveInputParameter(ctx, dag, pipeline,
+		opts, mlmd, pipelineParamSpec, inputParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve input parameter name: %w", err)
+	}
+	return resolvedParameter, nil
+}
+
+// resolveK8sJsonParameter resolves a k8s JSON and unmarshal it
+// to the provided k8s resource.
+//
+// Parameters:
+//   - k8sParamSpec: An input parameter spec that resolve to a valid JSON
+//   - inputParams: InputParams that contain resolution context for k8sParamSpec
+//   - res: The k8s resource to unmarshal the json to
+func resolveK8sJsonParameter[k8sResource any](
+	ctx context.Context,
+	opts Options,
+	dag *metadata.DAG,
+	pipeline *metadata.Pipeline,
+	mlmd *metadata.Client,
+	k8sParamSpec *kubernetesplatform.InputParameterSpec,
+	inputParams map[string]*structpb.Value,
+	res *k8sResource,
+) error {
+	resolvedParam, err := resolveK8sParameter(ctx, opts, dag, pipeline, mlmd,
+		k8sParamSpec, inputParams)
+	if err != nil {
+		return fmt.Errorf("failed to resolve k8s parameter: %w", err)
+	}
+	paramJSON, err := resolvedParam.GetStructValue().MarshalJSON()
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(paramJSON, &res)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal k8s Resource json "+
+			"ensure that k8s Resource json correctly adheres to its respective k8s spec: %w", err)
+	}
+	return nil
+}
+
+// k8sToPipelineInputParamSpec converts a given kubernetes platform
+// input parameter spec to it's the pipeline spec equivalent.
+// both src and dst should follow the same structure.
+//
+// Parameters:
+//   - src the InputParameterSpec to be converted
+//   - dst the destination target for the PipelineSpec InputParameterSpec
+func k8sToPipelineInputParamSpec(src *kubernetesplatform.InputParameterSpec, dst *pipelinespec.TaskInputsSpec_InputParameterSpec) error {
+	data, err := protojson.Marshal(proto.MessageV2(src))
+	if err != nil {
+		return err
+	}
+	return protojson.Unmarshal(data, proto.MessageV2(dst))
+}
+
+// inputParamConstant convert and return value as a RuntimeValue
+func inputParamConstant(value string) *kubernetesplatform.InputParameterSpec {
+	return &kubernetesplatform.InputParameterSpec{
+		Kind: &kubernetesplatform.InputParameterSpec_RuntimeValue{
+			RuntimeValue: &kubernetesplatform.ValueOrRuntimeParameter{
+				Value: &kubernetesplatform.ValueOrRuntimeParameter_Constant{
+					Constant: structpb.NewStringValue(value),
+				},
+			},
+		},
+	}
+}
+
+// inputParamComponent convert and return value as a ComponentInputParameter
+func inputParamComponent(value string) *kubernetesplatform.InputParameterSpec {
+	return &kubernetesplatform.InputParameterSpec{
+		Kind: &kubernetesplatform.InputParameterSpec_ComponentInputParameter{
+			ComponentInputParameter: value,
+		},
+	}
+}
+
+// inputParamTaskOutput convert and return producerTask & outputParamKey
+// as a TaskOutputParameter.
+func inputParamTaskOutput(producerTask, outputParamKey string) *kubernetesplatform.InputParameterSpec {
+	return &kubernetesplatform.InputParameterSpec{
+		Kind: &kubernetesplatform.InputParameterSpec_TaskOutputParameter{
+			TaskOutputParameter: &kubernetesplatform.InputParameterSpec_TaskOutputParameterSpec{
+				ProducerTask:       producerTask,
+				OutputParameterKey: outputParamKey,
+			},
+		},
+	}
 }
