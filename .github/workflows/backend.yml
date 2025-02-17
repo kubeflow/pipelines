@@ -51,6 +51,7 @@ jobs:
         run: |
           . .venv/bin/activate
           TEST_SCRIPT="test-flip-coin.sh" ./.github/resources/scripts/e2e-test.sh
+          exit 1
         continue-on-error: true
 
       - name: "static loop test"

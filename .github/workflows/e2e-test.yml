@@ -48,8 +48,9 @@ jobs:
 
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
-        run: ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-        continue-on-error: true
+        run: |
+          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
 
       - name: Collect test results
         if: always()
@@ -57,10 +58,6 @@ jobs:
         with:
           name: kfp-initialization-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
-        
-      - name: Fail test
-        if: steps.tests.outcome != 'success'
-        run: exit 1
 
   initialization-tests-v2:
     runs-on: ubuntu-latest
@@ -93,8 +90,9 @@ jobs:
 
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
-        run: ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-        continue-on-error: true
+        run: |
+          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
 
       - name: Collect test results
         if: always()
@@ -102,10 +100,6 @@ jobs:
         with:
           name: kfp-initialization-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
-
-      - name: Fail test
-        if: steps.tests.outcome != 'success'
-        run: exit 1
 
   api-integration-tests-v1:
     runs-on: ubuntu-latest
@@ -141,8 +135,9 @@ jobs:
 
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
-        run: ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-        continue-on-error: true
+        run: |
+          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
 
       - name: Collect test results
         if: always()
@@ -150,10 +145,6 @@ jobs:
         with:
           name: kfp-api-integration-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
-      
-      - name: Fail test
-        if: steps.tests.outcome != 'success'
-        run: exit 1
 
   api-integration-tests-v2:
     runs-on: ubuntu-latest
@@ -186,8 +177,9 @@ jobs:
 
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
-        run: ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-        continue-on-error: true
+        run: |
+          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
 
       - name: Collect test results
         if: always()
@@ -195,10 +187,6 @@ jobs:
         with:
           name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
-      
-      - name: Fail test
-        if: steps.tests.outcome != 'success'
-        run: exit 1
 
   frontend-integration-test:
     runs-on: ubuntu-latest
@@ -238,8 +226,9 @@ jobs:
 
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
-        run: ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-        continue-on-error: true
+        run: |
+          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
 
       - name: Collect test results
         if: always()
@@ -248,10 +237,6 @@ jobs:
           name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
       
-      - name: Fail test
-        if: steps.tests.outcome != 'success'
-        run: exit 1
-
   basic-sample-tests:
     runs-on: ubuntu-latest
     strategy:
