@@ -90,6 +90,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
         onChange={[Function]}
       />
       <n
+        accept=".yaml,.yml,.zip,.tar.gz"
         disableClick={true}
         disablePreview={false}
         disabled={true}
