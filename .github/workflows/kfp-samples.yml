@@ -36,11 +36,18 @@ jobs:
       with:
         k8s_version: ${{ matrix.k8s_version }}
 
+    - name: Build and upload the sample Modelcar image to Kind
+      run: |
+        docker build -f samples/v2/modelcar_import/Dockerfile -t registry.domain.local/modelcar:test .
+        kind --name kfp load docker-image registry.domain.local/modelcar:test
+
     - name: Forward API port
       run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
     - name: Run Samples Tests
       id: tests
+      env:
+        PULL_NUMBER: ${{ github.event.pull_request.number }}
       run: |
         ./backend/src/v2/test/sample-test.sh
       continue-on-error: true

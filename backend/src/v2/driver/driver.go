@@ -18,7 +18,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -549,7 +551,135 @@ func initPodSpecPatch(
 			Env:       userEnvVar,
 		}},
 	}
+
+	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), userEnvVar, podSpec)
+
 	return podSpec, nil
+}
+
+// addModelcarsToPodSpec will patch the pod spec if there are any input artifacts in the Modelcar format.
+// Much of this logic is based on KServe:
+// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L131
+func addModelcarsToPodSpec(
+	artifacts map[string]*pipelinespec.ArtifactList,
+	userEnvVar []k8score.EnvVar,
+	podSpec *k8score.PodSpec,
+) {
+	// We need to add Modelcar containers and volumes in a deterministic order so that we can have stable naming of
+	// containers and volumes. The approach taken is sorting by input artifact name and then leveraging the index
+	// as a suffix to Modelcar containers and volumes added to the pod spec. The artifact name cannot be directly used
+	// as it may not be a compatible Kubernetes object name.
+	modelcarArtifacts := map[string]*pipelinespec.RuntimeArtifact{}
+	modelcarArtifactNames := []string{}
+
+	for name, artifactList := range artifacts {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+
+		// Following the convention of downloadArtifacts in the launcher to only look at the first in the list.
+		inputArtifact := artifactList.Artifacts[0]
+
+		// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
+		// be set on inputArtifact.
+		if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			continue
+		}
+
+		modelcarArtifacts[name] = inputArtifact
+		modelcarArtifactNames = append(modelcarArtifactNames, name)
+	}
+
+	slices.Sort(modelcarArtifactNames)
+
+	for i, name := range modelcarArtifactNames {
+		inputArtifact := modelcarArtifacts[name]
+
+		localPath, err := component.LocalPathForURI(inputArtifact.Uri)
+		if err != nil {
+			continue
+		}
+
+		// If there is at least one Modelcar image, then shareProcessNamespace must be enabled.
+		trueVal := true
+		podSpec.ShareProcessNamespace = &trueVal
+
+		image := strings.TrimPrefix(inputArtifact.Uri, "oci://")
+
+		podSpec.InitContainers = append(
+			podSpec.InitContainers,
+			k8score.Container{
+				Name:  fmt.Sprintf("oci-prepull-%d", i),
+				Image: image,
+				Command: []string{
+					"sh",
+					"-c",
+					// Check that the expected models directory exists
+					// Taken from KServe:
+					// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
+					"echo 'Pre-fetching modelcar " + image + ": ' && [ -d /models ] && " +
+						"[ \"$$(ls -A /models)\" ] && echo 'OK ... Prefetched and valid (/models exists)' || " +
+						"(echo 'NOK ... Prefetched but modelcar is invalid (/models does not exist or is empty)' && " +
+						" exit 1)",
+				},
+				Env:                      userEnvVar,
+				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+			},
+		)
+
+		volumeName := fmt.Sprintf("oci-%d", i)
+
+		podSpec.Volumes = append(
+			podSpec.Volumes,
+			k8score.Volume{
+				Name: volumeName,
+				VolumeSource: k8score.VolumeSource{
+					EmptyDir: &k8score.EmptyDirVolumeSource{},
+				},
+			},
+		)
+
+		mountPath := strings.TrimSuffix(localPath, "/models")
+
+		emptyDirVolumeMount := k8score.VolumeMount{
+			Name:      volumeName,
+			MountPath: mountPath,
+			SubPath:   strings.TrimPrefix(mountPath, "/oci/"),
+		}
+
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
+
+		podSpec.Containers = append(
+			podSpec.Containers,
+			k8score.Container{
+				Name:            fmt.Sprintf("oci-%d", i),
+				Image:           image,
+				ImagePullPolicy: "IfNotPresent",
+				Env:             userEnvVar,
+				VolumeMounts:    []k8score.VolumeMount{emptyDirVolumeMount},
+				Command: []string{
+					"sh",
+					"-c",
+					// $$$$ gets escaped by YAML to $$, which is the current PID
+					// This container will sleep until the main container finishes execution and
+					// communicates its exit via a file creation, at which point this container
+					// will then also exit.
+					// This approach is taken instead of having the main container send a SIGHUP to the
+					// sleep process to avoid the need for the SYS_PTRACE capability which is not always available
+					// depending on the security context restrictions.
+					// This approach is inspired by KServe:
+					// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
+					fmt.Sprintf(
+						"ln -s /proc/$$$$/root/models \"%s\" && "+
+							"echo \"Running Modelcar container...\" && "+
+							"until [ -f \"%s/launcher-complete\" ]; do sleep 1; done",
+						localPath, mountPath,
+					),
+				},
+				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+			},
+		)
+	}
 }
 
 // Extends the PodSpec to include Kubernetes-specific executor config.
