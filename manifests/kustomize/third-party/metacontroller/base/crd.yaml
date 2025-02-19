@@ -3,7 +3,8 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "api-approved.kubernetes.io": "unapproved, request not yet submitted"
+    api-approved.kubernetes.io: unapproved, request not yet submitted
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: compositecontrollers.metacontroller.k8s.io
 spec:
   group: metacontroller.k8s.io
@@ -20,12 +21,17 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: CompositeController
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -41,6 +47,12 @@ spec:
                     updateStrategy:
                       properties:
                         method:
+                          enum:
+                          - OnDelete
+                          - Recreate
+                          - InPlace
+                          - RollingRecreate
+                          - RollingInPlace
                           type: string
                         statusChecks:
                           properties:
@@ -70,9 +82,34 @@ spec:
                 properties:
                   customize:
                     properties:
+                      version:
+                        default: v1
+                        enum:
+                        - v1
+                        - v2
+                        type: string
                       webhook:
                         properties:
+                          etag:
+                            properties:
+                              cacheCleanupSeconds:
+                                format: int32
+                                type: integer
+                              cacheTimeoutSeconds:
+                                format: int32
+                                type: integer
+                              enabled:
+                                type: boolean
+                            type: object
                           path:
+                            type: string
+                          responseUnMarshallMode:
+                            description: Sets the json unmarshall mode. One of the
+                              'loose' or 'strict'. In 'strict' mode additional checks
+                              are performed to detect unknown and duplicated fields.
+                            enum:
+                            - loose
+                            - strict
                             type: string
                           service:
                             properties:
@@ -90,6 +127,7 @@ spec:
                             - namespace
                             type: object
                           timeout:
+                            format: duration
                             type: string
                           url:
                             type: string
@@ -97,9 +135,34 @@ spec:
                     type: object
                   finalize:
                     properties:
+                      version:
+                        default: v1
+                        enum:
+                        - v1
+                        - v2
+                        type: string
                       webhook:
                         properties:
+                          etag:
+                            properties:
+                              cacheCleanupSeconds:
+                                format: int32
+                                type: integer
+                              cacheTimeoutSeconds:
+                                format: int32
+                                type: integer
+                              enabled:
+                                type: boolean
+                            type: object
                           path:
+                            type: string
+                          responseUnMarshallMode:
+                            description: Sets the json unmarshall mode. One of the
+                              'loose' or 'strict'. In 'strict' mode additional checks
+                              are performed to detect unknown and duplicated fields.
+                            enum:
+                            - loose
+                            - strict
                             type: string
                           service:
                             properties:
@@ -117,6 +180,7 @@ spec:
                             - namespace
                             type: object
                           timeout:
+                            format: duration
                             type: string
                           url:
                             type: string
@@ -124,9 +188,34 @@ spec:
                     type: object
                   postUpdateChild:
                     properties:
+                      version:
+                        default: v1
+                        enum:
+                        - v1
+                        - v2
+                        type: string
                       webhook:
                         properties:
+                          etag:
+                            properties:
+                              cacheCleanupSeconds:
+                                format: int32
+                                type: integer
+                              cacheTimeoutSeconds:
+                                format: int32
+                                type: integer
+                              enabled:
+                                type: boolean
+                            type: object
                           path:
+                            type: string
+                          responseUnMarshallMode:
+                            description: Sets the json unmarshall mode. One of the
+                              'loose' or 'strict'. In 'strict' mode additional checks
+                              are performed to detect unknown and duplicated fields.
+                            enum:
+                            - loose
+                            - strict
                             type: string
                           service:
                             properties:
@@ -144,6 +233,7 @@ spec:
                             - namespace
                             type: object
                           timeout:
+                            format: duration
                             type: string
                           url:
                             type: string
@@ -151,9 +241,34 @@ spec:
                     type: object
                   preUpdateChild:
                     properties:
+                      version:
+                        default: v1
+                        enum:
+                        - v1
+                        - v2
+                        type: string
                       webhook:
                         properties:
+                          etag:
+                            properties:
+                              cacheCleanupSeconds:
+                                format: int32
+                                type: integer
+                              cacheTimeoutSeconds:
+                                format: int32
+                                type: integer
+                              enabled:
+                                type: boolean
+                            type: object
                           path:
+                            type: string
+                          responseUnMarshallMode:
+                            description: Sets the json unmarshall mode. One of the
+                              'loose' or 'strict'. In 'strict' mode additional checks
+                              are performed to detect unknown and duplicated fields.
+                            enum:
+                            - loose
+                            - strict
                             type: string
                           service:
                             properties:
@@ -171,6 +286,7 @@ spec:
                             - namespace
                             type: object
                           timeout:
+                            format: duration
                             type: string
                           url:
                             type: string
@@ -178,9 +294,34 @@ spec:
                     type: object
                   sync:
                     properties:
+                      version:
+                        default: v1
+                        enum:
+                        - v1
+                        - v2
+                        type: string
                       webhook:
                         properties:
+                          etag:
+                            properties:
+                              cacheCleanupSeconds:
+                                format: int32
+                                type: integer
+                              cacheTimeoutSeconds:
+                                format: int32
+                                type: integer
+                              enabled:
+                                type: boolean
+                            type: object
                           path:
+                            type: string
+                          responseUnMarshallMode:
+                            description: Sets the json unmarshall mode. One of the
+                              'loose' or 'strict'. In 'strict' mode additional checks
+                              are performed to detect unknown and duplicated fields.
+                            enum:
+                            - loose
+                            - strict
                             type: string
                           service:
                             properties:
@@ -198,6 +339,7 @@ spec:
                             - namespace
                             type: object
                           timeout:
+                            format: duration
                             type: string
                           url:
                             type: string
@@ -208,6 +350,54 @@ spec:
                 properties:
                   apiVersion:
                     type: string
+                  labelSelector:
+                    description: A label selector is a label query over a set of resources.
+                      The result of matchLabels and matchExpressions are ANDed. An
+                      empty label selector matches all objects. A null label selector
+                      matches no objects.
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        items:
+                          description: A label selector requirement is a selector
+                            that contains values, a key, and an operator that relates
+                            the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: operator represents a key's relationship
+                                to a set of values. Valid operators are In, NotIn,
+                                Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: values is an array of string values. If
+                                the operator is In or NotIn, the values array must
+                                be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced
+                                during a strategic merge patch.
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: matchLabels is a map of {key,value} pairs. A
+                          single {key,value} in the matchLabels map is equivalent
+                          to an element of matchExpressions, whose key field is "key",
+                          the operator is "In", and the values array contains only
+                          "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                    x-kubernetes-map-type: atomic
                   resource:
                     type: string
                   revisionHistory:
@@ -237,19 +427,13 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "api-approved.kubernetes.io": "unapproved, request not yet submitted"
+    api-approved.kubernetes.io: unapproved, request not yet submitted
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: controllerrevisions.metacontroller.k8s.io
 spec:
   group: metacontroller.k8s.io
@@ -263,9 +447,12 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: ControllerRevision
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           children:
             items:
@@ -285,12 +472,15 @@ spec:
               type: object
             type: array
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
           parentPatch:
             type: object
+            x-kubernetes-preserve-unknown-fields: true
         required:
         - metadata
         - parentPatch
@@ -299,19 +489,13 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "api-approved.kubernetes.io": "unapproved, request not yet submitted"
+    api-approved.kubernetes.io: unapproved, request not yet submitted
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: decoratorcontrollers.metacontroller.k8s.io
 spec:
   group: metacontroller.k8s.io
@@ -328,12 +512,17 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: DecoratorController
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -349,6 +538,12 @@ spec:
                     updateStrategy:
                       properties:
                         method:
+                          enum:
+                          - OnDelete
+                          - Recreate
+                          - InPlace
+                          - RollingRecreate
+                          - RollingInPlace
                           type: string
                       type: object
                   required:
@@ -360,9 +555,34 @@ spec:
                 properties:
                   customize:
                     properties:
+                      version:
+                        default: v1
+                        enum:
+                        - v1
+                        - v2
+                        type: string
                       webhook:
                         properties:
+                          etag:
+                            properties:
+                              cacheCleanupSeconds:
+                                format: int32
+                                type: integer
+                              cacheTimeoutSeconds:
+                                format: int32
+                                type: integer
+                              enabled:
+                                type: boolean
+                            type: object
                           path:
+                            type: string
+                          responseUnMarshallMode:
+                            description: Sets the json unmarshall mode. One of the
+                              'loose' or 'strict'. In 'strict' mode additional checks
+                              are performed to detect unknown and duplicated fields.
+                            enum:
+                            - loose
+                            - strict
                             type: string
                           service:
                             properties:
@@ -380,6 +600,7 @@ spec:
                             - namespace
                             type: object
                           timeout:
+                            format: duration
                             type: string
                           url:
                             type: string
@@ -387,9 +608,34 @@ spec:
                     type: object
                   finalize:
                     properties:
+                      version:
+                        default: v1
+                        enum:
+                        - v1
+                        - v2
+                        type: string
                       webhook:
                         properties:
+                          etag:
+                            properties:
+                              cacheCleanupSeconds:
+                                format: int32
+                                type: integer
+                              cacheTimeoutSeconds:
+                                format: int32
+                                type: integer
+                              enabled:
+                                type: boolean
+                            type: object
                           path:
+                            type: string
+                          responseUnMarshallMode:
+                            description: Sets the json unmarshall mode. One of the
+                              'loose' or 'strict'. In 'strict' mode additional checks
+                              are performed to detect unknown and duplicated fields.
+                            enum:
+                            - loose
+                            - strict
                             type: string
                           service:
                             properties:
@@ -407,6 +653,7 @@ spec:
                             - namespace
                             type: object
                           timeout:
+                            format: duration
                             type: string
                           url:
                             type: string
@@ -414,9 +661,34 @@ spec:
                     type: object
                   sync:
                     properties:
+                      version:
+                        default: v1
+                        enum:
+                        - v1
+                        - v2
+                        type: string
                       webhook:
                         properties:
+                          etag:
+                            properties:
+                              cacheCleanupSeconds:
+                                format: int32
+                                type: integer
+                              cacheTimeoutSeconds:
+                                format: int32
+                                type: integer
+                              enabled:
+                                type: boolean
+                            type: object
                           path:
+                            type: string
+                          responseUnMarshallMode:
+                            description: Sets the json unmarshall mode. One of the
+                              'loose' or 'strict'. In 'strict' mode additional checks
+                              are performed to detect unknown and duplicated fields.
+                            enum:
+                            - loose
+                            - strict
                             type: string
                           service:
                             properties:
@@ -434,6 +706,7 @@ spec:
                             - namespace
                             type: object
                           timeout:
+                            format: duration
                             type: string
                           url:
                             type: string
@@ -451,16 +724,25 @@ spec:
                           type: object
                         matchExpressions:
                           items:
-                            description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                            description: A label selector requirement is a selector
+                              that contains values, a key, and an operator that relates
+                              the key and values.
                             properties:
                               key:
-                                description: key is the label key that the selector applies to.
+                                description: key is the label key that the selector
+                                  applies to.
                                 type: string
                               operator:
-                                description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                                description: operator represents a key's relationship
+                                  to a set of values. Valid operators are In, NotIn,
+                                  Exists and DoesNotExist.
                                 type: string
                               values:
-                                description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                                description: values is an array of string values.
+                                  If the operator is In or NotIn, the values array
+                                  must be non-empty. If the operator is Exists or
+                                  DoesNotExist, the values array must be empty. This
+                                  array is replaced during a strategic merge patch.
                                 items:
                                   type: string
                                 type: array
@@ -473,21 +755,34 @@ spec:
                     apiVersion:
                       type: string
                     labelSelector:
-                      description: A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.
+                      description: A label selector is a label query over a set of
+                        resources. The result of matchLabels and matchExpressions
+                        are ANDed. An empty label selector matches all objects. A
+                        null label selector matches no objects.
                       properties:
                         matchExpressions:
-                          description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
                           items:
-                            description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                            description: A label selector requirement is a selector
+                              that contains values, a key, and an operator that relates
+                              the key and values.
                             properties:
                               key:
-                                description: key is the label key that the selector applies to.
+                                description: key is the label key that the selector
+                                  applies to.
                                 type: string
                               operator:
-                                description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                                description: operator represents a key's relationship
+                                  to a set of values. Valid operators are In, NotIn,
+                                  Exists and DoesNotExist.
                                 type: string
                               values:
-                                description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                                description: values is an array of string values.
+                                  If the operator is In or NotIn, the values array
+                                  must be non-empty. If the operator is Exists or
+                                  DoesNotExist, the values array must be empty. This
+                                  array is replaced during a strategic merge patch.
                                 items:
                                   type: string
                                 type: array
@@ -499,9 +794,14 @@ spec:
                         matchLabels:
                           additionalProperties:
                             type: string
-                          description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          description: matchLabels is a map of {key,value} pairs.
+                            A single {key,value} in the matchLabels map is equivalent
+                            to an element of matchExpressions, whose key field is
+                            "key", the operator is "In", and the values array contains
+                            only "value". The requirements are ANDed.
                           type: object
                       type: object
+                      x-kubernetes-map-type: atomic
                     resource:
                       type: string
                   required:
@@ -525,9 +825,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
