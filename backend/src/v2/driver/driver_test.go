@@ -391,6 +391,54 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	assert.Equal(t, k8sres.MustParse("1"), res.Limits[k8score.ResourceName("nvidia.com/gpu")])
 }
 
+func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.9",
+		Args:    []string{"--function_to_execute", "add"},
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"my-model": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri: "oci://registry.domain.local/my-model:latest",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	podSpec, err := initPodSpecPatch(
+		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
+	)
+	assert.Nil(t, err)
+
+	assert.Len(t, podSpec.InitContainers, 1)
+	assert.Equal(t, podSpec.InitContainers[0].Name, "oci-prepull-0")
+	assert.Equal(t, podSpec.InitContainers[0].Image, "registry.domain.local/my-model:latest")
+
+	assert.Len(t, podSpec.Volumes, 1)
+	assert.Equal(t, podSpec.Volumes[0].Name, "oci-0")
+	assert.NotNil(t, podSpec.Volumes[0].EmptyDir)
+
+	assert.Len(t, podSpec.Containers, 2)
+	assert.Len(t, podSpec.Containers[0].VolumeMounts, 1)
+	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].Name, "oci-0")
+	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].MountPath, "/oci/registry.domain.local\\/my-model:latest")
+	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].SubPath, "registry.domain.local\\/my-model:latest")
+
+	assert.Equal(t, podSpec.Containers[1].Name, "oci-0")
+	assert.Equal(t, podSpec.Containers[1].Image, "registry.domain.local/my-model:latest")
+	assert.Len(t, podSpec.Containers[1].VolumeMounts, 1)
+	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].Name, "oci-0")
+	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].MountPath, "/oci/registry.domain.local\\/my-model:latest")
+	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].SubPath, "registry.domain.local\\/my-model:latest")
+}
+
 func Test_makeVolumeMountPatch(t *testing.T) {
 	type args struct {
 		pvcMount []*kubernetesplatform.PvcMount

@@ -36,6 +36,7 @@ func Test_argo_compiler(t *testing.T) {
 		jobPath          string // path of input PipelineJob to compile
 		platformSpecPath string // path of possible input PlatformSpec to compile
 		argoYAMLPath     string // path of expected output argo workflow YAML
+		envVars          map[string]string
 	}{
 		{
 			jobPath:          "../testdata/hello_world.json",
@@ -67,9 +68,33 @@ func Test_argo_compiler(t *testing.T) {
 			platformSpecPath: "",
 			argoYAMLPath:     "testdata/exit_handler.yaml",
 		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/hello_world_run_as_user.yaml",
+			envVars:          map[string]string{"PIPELINE_RUN_AS_USER": "1001"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
+			prevEnvVars := map[string]string{}
+
+			for envVarName, envVarValue := range tt.envVars {
+				prevEnvVars[envVarName] = os.Getenv(envVarName)
+
+				os.Setenv(envVarName, envVarValue)
+			}
+
+			defer func() {
+				for envVarName, envVarValue := range prevEnvVars {
+					if envVarValue == "" {
+						os.Unsetenv(envVarName)
+					} else {
+						os.Setenv(envVarName, envVarValue)
+					}
+				}
+			}()
+
 			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
 			if *update {
 				wf, err := argocompiler.Compile(job, platformSpec, nil)
