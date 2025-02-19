@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { CircularProgress } from '@material-ui/core';
+import { CircularProgress } from '@mui/material';
 import React, { Component } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
@@ -53,11 +53,38 @@ interface ExecutionDetailsState {
   artifactTypeMap?: Map<number, ArtifactType>;
 }
 
+interface ArtifactData {
+  name?: string;
+  uri?: string;
+  typeId?: number;
+}
+
 export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
   public state: ExecutionDetailsState = {};
 
   private get id(): number {
     return parseInt(this.props.match.params[RouteParams.ID], 10);
+  }
+
+  private getArtifactRows(artifacts: Artifact[]): JSX.Element[] {
+    return artifacts.map(artifact => {
+      const id = artifact.getId();
+      const data: ArtifactData = {
+        name: artifact.getName(),
+        uri: artifact.getUri(),
+        typeId: artifact.getTypeId()
+      };
+      const type = data.typeId ? this.state.artifactTypeMap.get(data.typeId) : null;
+      return (
+        <ArtifactRow
+          key={id}
+          id={id}
+          name={data.name || ''}
+          type={type ? type.getName() : undefined}
+          uri={data.uri}
+        />
+      );
+    });
   }
 
   public render(): JSX.Element {
@@ -280,13 +307,6 @@ function parseEventsByType(
   return events;
 }
 
-interface ArtifactInfo {
-  id: number;
-  name: string;
-  typeId?: number;
-  uri: string;
-}
-
 interface SectionIOProps {
   title: string;
   events: Event[];
@@ -294,7 +314,7 @@ interface SectionIOProps {
 }
 class SectionIO extends Component<
   SectionIOProps,
-  { artifactDataMap: { [id: number]: ArtifactInfo } }
+  { artifactDataMap: { [id: number]: ArtifactData } }
 > {
   constructor(props: any) {
     super(props);

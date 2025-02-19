@@ -30,7 +30,7 @@ import {
 } from 'src/components/viewers/MetricsVisualizations';
 import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
-import CircularProgress from '@material-ui/core/CircularProgress';
+import { CircularProgress } from '@mui/material';
 import Banner from 'src/components/Banner';
 import { SelectedArtifact } from 'src/pages/CompareV2';
 import { useQuery } from 'react-query';
