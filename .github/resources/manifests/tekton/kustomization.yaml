@@ -108,3 +108,7 @@ patches:
       resources:
         requests:
           storage: 5Gi
+
+
+patchesStrategicMerge:
+  - overlays/apiserver-env.yaml

@@ -40,3 +40,14 @@ do
 done
 
 yq w -i "${MANIFEST_DIR}/base/installs/generic/pipeline-install-config.yaml" data.appVersion "$TAG_NAME"
+
+## Driver & Launcher images are added as environment variables
+API_SERVER_MANIFEST="${MANIFEST_DIR}/base/pipeline/ml-pipeline-apiserver-deployment.yaml"
+
+yq w -i ${API_SERVER_MANIFEST} \
+  "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_LAUNCHER_IMAGE).value" \
+  "ghcr.io/kubeflow/kfp-launcher:${TAG_NAME}"
+
+yq w -i ${API_SERVER_MANIFEST} \
+  "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_DRIVER_IMAGE).value" \
+  "ghcr.io/kubeflow/kfp-driver:${TAG_NAME}"
