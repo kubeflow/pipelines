@@ -17,9 +17,11 @@ __version__ = '1.4.0'
 __all__ = [
     'add_ephemeral_volume',
     'add_node_selector',
+    'add_node_selector_json',
     'add_pod_annotation',
     'add_pod_label',
     'add_toleration',
+    'add_toleration_json',
     'CreatePVC',
     'DeletePVC',
     'empty_dir_mount',
@@ -41,12 +43,14 @@ from kfp.kubernetes.field import use_field_path_as_env
 from kfp.kubernetes.image import set_image_pull_policy
 from kfp.kubernetes.image import set_image_pull_secrets
 from kfp.kubernetes.node_selector import add_node_selector
+from kfp.kubernetes.node_selector import add_node_selector_json
 from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
 from kfp.kubernetes.timeout import set_timeout
 from kfp.kubernetes.toleration import add_toleration
+from kfp.kubernetes.toleration import add_toleration_json
 from kfp.kubernetes.volume import add_ephemeral_volume
 from kfp.kubernetes.volume import CreatePVC
 from kfp.kubernetes.volume import DeletePVC

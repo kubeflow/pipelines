@@ -1,2 +1,1 @@
 ../../../../sdk/python
-kfp[kubernetes]

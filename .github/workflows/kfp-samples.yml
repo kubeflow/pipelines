@@ -41,6 +41,8 @@ jobs:
 
     - name: Run Samples Tests
       id: tests
+      env:
+        PULL_NUMBER: ${{ github.event.pull_request.number }}
       run: |
         ./backend/src/v2/test/sample-test.sh
       continue-on-error: true
@@ -57,4 +59,3 @@ jobs:
       with:
         name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
         path: /tmp/tmp*/*
-

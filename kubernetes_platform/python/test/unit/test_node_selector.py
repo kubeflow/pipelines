@@ -113,6 +113,7 @@ class TestNodeSelector:
                                 },
                                 'secretAsVolume': [{
                                     'secretName': 'my-secret',
+                                    'secretNameParameter': {'runtimeValue': {'constant': 'my-secret'}},
                                     'mountPath': '/mnt/my_vol',
                                     'optional': False
                                 }]
@@ -123,7 +124,177 @@ class TestNodeSelector:
             }
         }
 
+class TestNodeSelectorJSON:
+
+    def test_component_pipeline_input_one(self):
+        # checks that a pipeline input for
+        # tasks is supported
+        @dsl.pipeline
+        def my_pipeline(selector_input: str):
+            task = comp()
+            kubernetes.add_node_selector_json(
+                task,
+                node_selector_json=selector_input,
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'nodeSelector': {
+                                    'nodeSelectorJson': {
+                                        'componentInputParameter': 'selector_input'
+                                    },
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_component_pipeline_input_two(self):
+        # checks that multiple pipeline inputs for
+        # different tasks are supported. And confirm
+        # that applying node selector json multiple
+        # times overwrites the previous.
+        @dsl.pipeline
+        def my_pipeline(selector_input_1: str, selector_input_2: str):
+            t1 = comp()
+            kubernetes.add_node_selector_json(
+                t1,
+                node_selector_json=selector_input_1,
+            )
+
+            t2 = comp()
+            kubernetes.add_node_selector_json(
+                t2,
+                node_selector_json=selector_input_1,
+            )
+            # This should overwrite the previous selector json
+            kubernetes.add_node_selector_json(
+                t2,
+                node_selector_json=selector_input_2,
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'nodeSelector': {
+                                    'nodeSelectorJson': {
+                                        'componentInputParameter': 'selector_input_1'
+                                    },
+                                }
+                            },
+                            'exec-comp-2': {
+                                'nodeSelector': {
+                                    'nodeSelectorJson': {
+                                        'componentInputParameter': 'selector_input_2'
+                                    },
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_component_upstream_input_one(self):
+        # checks that upstream task input parameters
+        # are supported
+        @dsl.pipeline
+        def my_pipeline():
+            t1 = comp()
+            t2 = comp_with_output()
+            kubernetes.add_node_selector_json(
+                t1,
+                node_selector_json=t2.output,
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'nodeSelector': {
+                                    'nodeSelectorJson': {
+                                        'taskOutputParameter': {
+                                            'outputParameterKey': 'Output',
+                                            'producerTask': 'comp-with-output'
+                                        }
+                                    },
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_component_upstream_input_two(self):
+        # checks that multiple upstream task input
+        # parameters are supported
+        @dsl.pipeline
+        def my_pipeline(selector_input: str):
+            t1 = comp()
+            t2 = comp_with_output()
+            kubernetes.add_node_selector_json(
+                t1,
+                node_selector_json=t2.output,
+            )
+            t3 = comp()
+            t4 = comp_with_output()
+            kubernetes.add_node_selector_json(
+                t3,
+                node_selector_json=t4.output,
+            )
+            # overwrites the previous
+            t5 = comp_with_output()
+            kubernetes.add_node_selector_json(
+                t3,
+                node_selector_json=t5.output,
+            )
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'nodeSelector': {
+                                    'nodeSelectorJson': {
+                                        'taskOutputParameter': {
+                                            'outputParameterKey': 'Output',
+                                            'producerTask': 'comp-with-output'
+                                        }
+                                    },
+                                }
+                            },
+                            'exec-comp-2': {
+                                'nodeSelector': {
+                                    'nodeSelectorJson': {
+                                        'taskOutputParameter': {
+                                            'outputParameterKey': 'Output',
+                                            'producerTask': 'comp-with-output-3'
+                                        }
+                                    },
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 @dsl.component
 def comp():
+    pass
+
+@dsl.component()
+def comp_with_output() -> str:
     pass
