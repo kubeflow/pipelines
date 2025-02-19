@@ -147,7 +147,8 @@ type ExecutionConfig struct {
 	PodName, PodUID, Namespace                string
 
 	// DAGExecution custom properties
-	IterationCount *int // Number of iterations for an iterator DAG.
+	IterationCount *int                                      // Number of iterations for an iterator DAG.
+	TotalDagTasks  map[string]*pipelinespec.PipelineTaskSpec // Number of tasks inside the DAG
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -526,6 +527,7 @@ const (
 	keyParentDagID           = "parent_dag_id" // Parent DAG Execution ID.
 	keyIterationIndex        = "iteration_index"
 	keyIterationCount        = "iteration_count"
+	keyTotalDagTasks         = "total_dag_tasks"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -620,6 +622,15 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		}
 		e.CustomProperties[keyArtifactProducerTask] = StringValue(string(b))
 	}
+	if config.TotalDagTasks != nil {
+		b, err := json.Marshal(config.TotalDagTasks)
+		if err != nil {
+			return nil, err
+		}
+		e.CustomProperties[keyTotalDagTasks] = &pb.Value{
+			Value: &pb.Value_StringValue{StringValue: string(b)},
+		}
+	}
 
 	req := &pb.PutExecutionRequest{
 		Execution: e,
@@ -690,11 +701,16 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	if err != nil {
 		return err
 	}
+
+	totalDagTasks, err := GetTotalDagTaskCount(dag.Execution)
+	if err != nil {
+		glog.Errorf("Failed to get total DAG tasks count: %v", err)
+		totalDagTasks = 0
+	}
 	glog.V(4).Infof("tasks: %v", tasks)
 	glog.V(4).Infof("Checking Tasks' State")
 	completedTasks := 0
 	failedTasks := 0
-	totalTasks := len(tasks)
 	for _, task := range tasks {
 		taskState := task.GetExecution().LastKnownState.String()
 		glog.V(4).Infof("task: %s", task.TaskName())
@@ -712,10 +728,10 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	}
 	glog.V(4).Infof("completedTasks: %d", completedTasks)
 	glog.V(4).Infof("failedTasks: %d", failedTasks)
-	glog.V(4).Infof("totalTasks: %d", totalTasks)
+	glog.V(4).Infof("totalTasks: %d", totalDagTasks)
 
 	glog.Infof("Attempting to update DAG state")
-	if completedTasks == totalTasks {
+	if completedTasks == totalDagTasks {
 		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_COMPLETE)
 	} else if failedTasks > 0 {
 		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_FAILED)
@@ -1263,4 +1279,17 @@ func (c *Client) getContextByID(ctx context.Context, id int64) (*pb.Context, err
 		return nil, fmt.Errorf("getContext(id=%v): got nil context", id)
 	}
 	return contexts[0], nil
+}
+
+func GetTotalDagTaskCount(dagExecution *Execution) (int, error) {
+	totalDagTasksProp := dagExecution.execution.CustomProperties["total_dag_tasks"]
+	if totalDagTasksProp != nil {
+		totalDagTasksJSON := totalDagTasksProp.GetStringValue()
+		var totalDagTasks map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(totalDagTasksJSON), &totalDagTasks); err != nil {
+			return 0, fmt.Errorf("failed to unmarshal total_dag_tasks: %w", err)
+		}
+		return len(totalDagTasks), nil
+	}
+	return 0, fmt.Errorf("total_dag_tasks property not found")
 }
