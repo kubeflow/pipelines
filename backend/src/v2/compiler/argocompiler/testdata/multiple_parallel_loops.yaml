@@ -1,6 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  creationTimestamp: null
   generateName: my-pipeline-
 spec:
   arguments:
