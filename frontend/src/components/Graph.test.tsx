@@ -18,8 +18,8 @@ import * as dagre from 'dagre';
 import * as React from 'react';
 import { shallow, mount } from 'enzyme';
 import EnhancedGraph, { Graph } from './Graph';
-import SuccessIcon from '@material-ui/icons/CheckCircle';
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@mui/material';
+import SuccessIcon from '@mui/icons-material/CheckCircle';
 
 function newGraph(): dagre.graphlib.Graph {
   const graph = new dagre.graphlib.Graph();
