@@ -369,7 +369,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 
 	tasks = []wfapi.DAGTask{
 		{
-			Name:     name + "-loop",
+			Name:     name,
 			Template: loopTmplName,
 			Depends:  depends(task.GetDependentTasks()),
 			Arguments: wfapi.Arguments{

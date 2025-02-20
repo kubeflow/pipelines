@@ -1662,7 +1662,7 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) error {
 	if taskOutput.GetOutputArtifactKey() == "" {
 		cfg.err(fmt.Errorf("output artifact key is empty"))
 	}
-	tasks, err := cfg.mlmd.GetExecutionsInDAG(cfg.ctx, cfg.dag, cfg.pipeline, false)
+	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
 	if err != nil {
 		cfg.err(err)
 	}
