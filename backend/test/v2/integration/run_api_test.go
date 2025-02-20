@@ -302,7 +302,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, runs[0].StorageState)
 
 	/* ---------- Upload long-running pipeline YAML ---------- */
-	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", upload_params.NewUploadPipelineParamsWithTimeout(350))
+	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", upload_params.NewUploadPipelineParamsWithTimeout(10*time.Second))
 	assert.Nil(t, err)
 
 	/* ---------- Upload a long-running pipeline version YAML under longRunningPipeline ---------- */
