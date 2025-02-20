@@ -29,8 +29,8 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Install dependencies
-      run: pip install yapf
+    - name: Install requirements
+      run: make setup-sdk-yapf
 
     - name: Run YAPF SDK Tests
-      run: ./test/presubmit-yapf-sdk.sh
+      run: make test-sdk-yapf

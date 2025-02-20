@@ -19,8 +19,8 @@ runs:
 
     - name: Build images
       shell: bash
-      run: ./.github/resources/scripts/build-images.sh
+      run: make build-images
 
     - name: Deploy KFP
       shell: bash
-      run: ./.github/resources/scripts/deploy-kfp.sh
+      run: make deploy-kfp

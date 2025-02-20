@@ -71,7 +71,7 @@ Tests are automatically triggered on GitHub when:
 
 GitHub Actions workflows are defined in the `.github/workflows/` directory.
 
-### Reproducing CI Steps Locally
+### Reproducing CI Steps Locally with Make Commands
 
 To replicate the steps locally:
 
@@ -80,9 +80,13 @@ To replicate the steps locally:
     `git clone https://github.com/kubeflow/pipelines.git
     cd pipelines`
 
-2.  Follow the steps outlined in the **Running Tests Locally with Kind** section.
+2.  Follow the steps outlined in the **Running Tests Locally with Kind** section. Once prerequisites are installed the kind cluster can be created using make command `create-kind-cluster`.
 
 3.  To mimic the GitHub Actions environment, export any required environment variables found in the workflow files.
+
+4.  Install the necessary dependencies for the test by running the command `make setup-{test_name}`. The make commands for setting up dependencies are defined in the `Makefile.setup.mk` file.
+
+5.  Execute the test using command `make {test_name}` , all the test that can be run using Make commands are mentioned in `Makefile`. 
 
 * * * * *
 

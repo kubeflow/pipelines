@@ -16,4 +16,4 @@ jobs:
         uses: actions/checkout@v4    
 
       - name: Run tests
-        run: ./manifests/kustomize/hack/presubmit.sh 
+        run: make test-kubeflow-pipelines-manifests
