@@ -979,6 +979,10 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	ecfg.OutputArtifacts = opts.Component.GetDag().GetOutputs().GetArtifacts()
 	glog.V(4).Info("outputArtifacts: ", ecfg.OutputArtifacts)
 
+	totalDagTasks := len(opts.Component.GetDag().GetTasks())
+	ecfg.TotalDagTasks = &totalDagTasks
+	glog.V(4).Info("totalDagTasks: ", *ecfg.TotalDagTasks)
+
 	if opts.Task.GetArtifactIterator() != nil {
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
 	}
