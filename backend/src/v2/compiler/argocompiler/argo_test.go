@@ -74,6 +74,12 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/hello_world_run_as_user.yaml",
 			envVars:          map[string]string{"PIPELINE_RUN_AS_USER": "1001"},
 		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/hello_world_log_level.yaml",
+			envVars:          map[string]string{"PIPELINE_LOG_LEVEL": "3"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {

@@ -552,7 +552,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--iteration_count_path", outputPath(paramIterationCount),
 		"--condition_path", outputPath(paramCondition),
 	}
-	if value, ok := os.LookupEnv(DriverLogLevelEnvVar); ok {
+	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
 

@@ -161,15 +161,16 @@ func drive() (err error) {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:   *pipelineName,
-		RunID:          *runID,
-		RunName:        *runName,
-		RunDisplayName: *runDisplayName,
-		Namespace:      namespace,
-		Component:      componentSpec,
-		Task:           taskSpec,
-		DAGExecutionID: *dagExecutionID,
-		IterationIndex: *iterationIndex,
+		PipelineName:     *pipelineName,
+		RunID:            *runID,
+		RunName:          *runName,
+		RunDisplayName:   *runDisplayName,
+		Namespace:        namespace,
+		Component:        componentSpec,
+		Task:             taskSpec,
+		DAGExecutionID:   *dagExecutionID,
+		IterationIndex:   *iterationIndex,
+		PipelineLogLevel: *logLevel,
 	}
 	var execution *driver.Execution
 	var driverErr error

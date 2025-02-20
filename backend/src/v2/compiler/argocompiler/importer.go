@@ -82,7 +82,7 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 	}
-	if value, ok := os.LookupEnv(LauncherLogLevelEnvVar); ok {
+	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
 	importerTemplate := &wfapi.Template{
