@@ -74,6 +74,12 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/hello_world_run_as_user.yaml",
 			envVars:          map[string]string{"PIPELINE_RUN_AS_USER": "1001"},
 		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/hello_world_log_level.yaml",
+			envVars:          map[string]string{"PIPELINE_LOG_LEVEL": "3"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
@@ -122,14 +128,14 @@ func Test_argo_compiler(t *testing.T) {
 			// mask the driver launcher image hash to maintain test stability
 			for _, template := range wf.Spec.Templates {
 				if template.Container != nil && strings.Contains(template.Container.Image, "kfp-driver") {
-					template.Container.Image = "gcr.io/ml-pipeline/kfp-driver"
+					template.Container.Image = "ghcr.io/kubeflow/kfp-driver"
 				}
 				if template.Container != nil && strings.Contains(template.Container.Image, "kfp-launcher") {
-					template.Container.Image = "gcr.io/ml-pipeline/kfp-launcher"
+					template.Container.Image = "ghcr.io/kubeflow/kfp-launcher"
 				}
 				for i := range template.InitContainers {
 					if strings.Contains(template.InitContainers[i].Image, "kfp-launcher") {
-						template.InitContainers[i].Image = "gcr.io/ml-pipeline/kfp-launcher"
+						template.InitContainers[i].Image = "ghcr.io/kubeflow/kfp-launcher"
 					}
 				}
 			}

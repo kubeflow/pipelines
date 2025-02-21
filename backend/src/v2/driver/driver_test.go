@@ -33,12 +33,13 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
 	type args struct {
-		container     *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
-		componentSpec *pipelinespec.ComponentSpec
-		executorInput *pipelinespec.ExecutorInput
-		executionID   int64
-		pipelineName  string
-		runID         string
+		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+		componentSpec    *pipelinespec.ComponentSpec
+		executorInput    *pipelinespec.ExecutorInput
+		executionID      int64
+		pipelineName     string
+		runID            string
+		pipelineLogLevel string
 	}
 	tests := []struct {
 		name    string
@@ -81,6 +82,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"nvidia.com/gpu":"1"`,
 			false,
@@ -120,6 +122,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"amd.com/gpu":"1"`,
 			false,
@@ -159,6 +162,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"cloud-tpus.google.com/v3":"1"`,
 			false,
@@ -198,6 +202,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"cloud-tpus.google.com/v2":"1"`,
 			false,
@@ -237,6 +242,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"custom.example.com/accelerator-v1":"1"`,
 			false,
@@ -245,7 +251,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID)
+			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, tt.args.pipelineLogLevel)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
 				assert.NotNil(t, err)
@@ -345,7 +351,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 	}
 
 	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
+		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "1",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -378,7 +384,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	executorInput := &pipelinespec.ExecutorInput{}
 
 	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
+		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "1",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -413,7 +419,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	}
 
 	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
+		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "1",
 	)
 	assert.Nil(t, err)
 
@@ -498,12 +504,13 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
 	type args struct {
-		container     *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
-		componentSpec *pipelinespec.ComponentSpec
-		executorInput *pipelinespec.ExecutorInput
-		executionID   int64
-		pipelineName  string
-		runID         string
+		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+		componentSpec    *pipelinespec.ComponentSpec
+		executorInput    *pipelinespec.ExecutorInput
+		executionID      int64
+		pipelineName     string
+		runID            string
+		pipelineLogLevel string
 	}
 	tests := []struct {
 		name    string
@@ -543,6 +550,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"resources":{"limits":{"cpu":"2","memory":"1500M"},"requests":{"cpu":"1","memory":"650M"}}`,
 			"",
@@ -579,6 +587,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"resources":{"limits":{"cpu":"2","memory":"1500M"}}`,
 			`"requests"`,
@@ -586,7 +595,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID)
+			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, tt.args.pipelineLogLevel)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
 			podSpecString, err := json.Marshal(podSpec)

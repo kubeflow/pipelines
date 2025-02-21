@@ -24,8 +24,6 @@ spec:
     labels:
       pipelines.kubeflow.org/v2_component: "true"
   serviceAccountName: pipeline-runner
-  securityContext:
-    runAsUser: 1001
   templates:
   - container:
       args:
@@ -38,7 +36,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -57,6 +55,8 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
+      - --log_level
+      - "3"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -150,6 +150,8 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
+      - --log_level
+      - "3"
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher
@@ -226,7 +228,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -243,6 +245,8 @@ spec:
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
+      - --log_level
+      - "3"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver

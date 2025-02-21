@@ -81,6 +81,8 @@ type Options struct {
 	RunName string
 	// optional, required only if the {{$.pipeline_job_name}} placeholder is used
 	RunDisplayName string
+
+	PipelineLogLevel string
 }
 
 // Identifying information used for error messages
@@ -347,7 +349,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
+	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.PipelineLogLevel)
 	if err != nil {
 		return execution, err
 	}
@@ -409,6 +411,7 @@ func initPodSpecPatch(
 	executionID int64,
 	pipelineName string,
 	runID string,
+	pipelineLogLevel string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -444,8 +447,12 @@ func initPodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
-		"--", // separater before user command and args
 	}
+	if pipelineLogLevel != "1" {
+		// Add log level to user code launcher if not default (set to 1)
+		launcherCmd = append(launcherCmd, "--log_level", pipelineLogLevel)
+	}
+	launcherCmd = append(launcherCmd, "--") // separater before user command and args
 	res := k8score.ResourceRequirements{
 		Limits:   map[k8score.ResourceName]k8sres.Quantity{},
 		Requests: map[k8score.ResourceName]k8sres.Quantity{},

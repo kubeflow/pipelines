@@ -59,7 +59,7 @@ spec:
       - configMapRef:
           name: metadata-grpc-configmap
           optional: true
-      image: gcr.io/ml-pipeline/kfp-launcher
+      image: ghcr.io/kubeflow/kfp-launcher
       name: ""
       resources:
         limits:
@@ -127,7 +127,7 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver
+      image: ghcr.io/kubeflow/kfp-driver
       name: ""
       resources:
         limits:
