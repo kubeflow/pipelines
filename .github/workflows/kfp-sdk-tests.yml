@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - 'sdk/**'
+      - 'common/**'
       - 'test/presubmit-tests-sdk.sh'
       - '.github/workflows/kfp-sdk-tests.yml'
 
@@ -25,6 +26,10 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Install protoc
+      run: |
+        sudo apt-get install protobuf-compiler -y
 
     - name: Run SDK Tests
       run: |

@@ -9,6 +9,7 @@ on:
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
       - 'kubernetes_platform/**'
+      - 'common/**'
       - 'test/presubmit-test-kfp-kubernetes-library.sh'
 
 jobs:

@@ -10,6 +10,7 @@ on:
       - '.github/resources/**'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
+      - 'common/**'
       - 'backend/src/v2/compiler/**'
 
 jobs:

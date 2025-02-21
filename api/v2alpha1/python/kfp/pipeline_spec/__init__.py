@@ -11,3 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+import sys
+
+# Ensure Python can find the protobuf-generated modules
+# This is needed in order to resolve common proto python module
+# that is generated via generate_proto.py
+package_dir = os.path.dirname(os.path.abspath(__file__))
+if package_dir not in sys.path:
+    sys.path.append(package_dir)

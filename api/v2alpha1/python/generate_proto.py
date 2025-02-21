@@ -23,6 +23,10 @@ except ImportError:
 
 PROTO_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
+PROJECT_DIR = os.path.dirname(os.path.dirname(PROTO_DIR))
+COMMON_PROTO_DIR = os.path.join(PROJECT_DIR, 'common')
+COMMON_PROTO_SOURCE = os.path.join(COMMON_PROTO_DIR, 'common.proto')
+
 PKG_DIR = os.path.realpath(
     os.path.join(os.path.dirname(__file__), "kfp", "pipeline_spec"))
 
@@ -62,8 +66,11 @@ def generate_proto(source):
 
         protoc_command = [
             PROTOC,
-            "-I%s" % PROTO_DIR,
-            "--python_out=%s" % PKG_DIR, source
+            f'-I={COMMON_PROTO_DIR}',
+            f"-I={PROTO_DIR}",
+            f"--python_out={PKG_DIR}",
+            COMMON_PROTO_SOURCE,
+            source
         ]
         if subprocess.call(protoc_command) != 0:
             sys.exit(-1)

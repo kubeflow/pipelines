@@ -1,0 +1,119 @@
+// Copyright 2025 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package kfp_common;
+
+import "google/protobuf/struct.proto";
+
+// Represents an input parameter. The value can be taken from an upstream
+// task's output parameter (if specifying `producer_task` and
+// `output_parameter_key`, or it can be a runtime value, which can either be
+// determined at compile-time, or from a pipeline parameter.
+message InputParameterSpec {
+  // Represents an upstream task's output parameter.
+  message TaskOutputParameterSpec {
+    // The name of the upstream task which produces the output parameter that
+    // matches with the `output_parameter_key`.
+    string producer_task = 1;
+
+    // The key of [TaskOutputsSpec.parameters][] map of the producer task.
+    string output_parameter_key = 2;
+  }
+
+  // Represents an upstream task's final status. The field can only be set if
+  // the schema version is `2.0.0`. The resolved input parameter will be a
+  // json payload in string type.
+  message TaskFinalStatus {
+    // The name of the upsteram task where the final status is coming from.
+    string producer_task = 1;
+  }
+
+  oneof kind {
+    // Output parameter from an upstream task.
+    TaskOutputParameterSpec task_output_parameter = 1;
+    // A constant value or runtime parameter.
+    ValueOrRuntimeParameter runtime_value = 2;
+    // Pass the input parameter from parent component input parameter.
+    string component_input_parameter = 3;
+    // The final status of an upstream task.
+    TaskFinalStatus task_final_status = 5;
+  }
+
+  // Selector expression of Common Expression Language (CEL)
+  // that applies to the parameter found from above kind.
+  //
+  // The expression is applied to the Value type
+  // [Value][].  For example,
+  // 'size(string_value)' will return the size of the Value.string_value.
+  //
+  // After applying the selection, the parameter will be returned as a
+  // [Value][].  The type of the Value is either deferred from the input
+  // definition in the corresponding
+  // [ComponentSpec.input_definitions.parameters][], or if not found,
+  // automatically deferred as either string value or double value.
+  //
+  // In addition to the builtin functions in CEL, The value.string_value can
+  // be treated as a json string and parsed to the [google.protobuf.Value][]
+  // proto message. Then, the CEL expression provided in this field will be
+  // used to get the requested field. For examples,
+  //  - if Value.string_value is a json array of "[1.1, 2.2, 3.3]",
+  //  'parseJson(string_value)[i]' will pass the ith parameter from the list
+  //  to the current task, or
+  //  - if the Value.string_value is a json map of "{"a": 1.1, "b": 2.2,
+  //  "c": 3.3}, 'parseJson(string_value)[key]' will pass the map value from
+  //  the struct map to the current task.
+  //
+  // If unset, the value will be passed directly to the current task.
+  string parameter_expression_selector = 4;
+}
+
+// Definition for a value or reference to a runtime parameter. A
+// ValueOrRuntimeParameter instance can be either a field value that is
+// determined during compilation time, or a runtime parameter which will be
+// determined during runtime.
+message ValueOrRuntimeParameter {
+  oneof value {
+    // Constant value which is determined in compile time.
+    // Deprecated. Use [ValueOrRuntimeParameter.constant][] instead.
+    Value constant_value = 1 [deprecated = true];
+    // The runtime parameter refers to the parent component input parameter.
+    string runtime_parameter = 2;
+    // Constant value which is determined in compile time.
+    google.protobuf.Value constant = 3;
+  }
+}
+
+// Value is the value of the field.
+message Value {
+  oneof value {
+    // An integer value
+    int64 int_value = 1;
+    // A double value
+    double double_value = 2;
+    // A string value
+    string string_value = 3;
+  }
+}
+
+// Represents an upstream task's output parameter.
+message TaskOutputParameterSpec {
+    // The name of the upstream task which produces the output parameter that
+    // matches with the `output_parameter_key`.
+    string producer_task = 1;
+
+    // The key of [TaskOutputsSpec.parameters][] map of the producer task.
+    string output_parameter_key = 2;
+}

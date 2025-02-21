@@ -4820,7 +4820,7 @@ class TestDslOneOf(unittest.TestCase):
         self.assertEqual(
             roll_die_pipeline.pipeline_spec.root.dag.tasks['print-and-return-3']
             .inputs.parameters['text'].task_output_parameter,
-            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec
+            pipeline_spec_pb2.common__pb2.InputParameterSpec
             .TaskOutputParameterSpec(
                 producer_task='condition-branches-1',
                 output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',
@@ -4883,7 +4883,7 @@ class TestDslOneOf(unittest.TestCase):
             flip_coin_pipeline.pipeline_spec.root.dag
             .tasks['print-and-return-3'].inputs.parameters['text']
             .task_output_parameter,
-            pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec
+            pipeline_spec_pb2.common__pb2.InputParameterSpec
             .TaskOutputParameterSpec(
                 producer_task='condition-branches-1',
                 output_parameter_key='pipelinechannel--condition-branches-1-oneof-1',

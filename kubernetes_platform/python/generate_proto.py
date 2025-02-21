@@ -22,7 +22,9 @@ except ImportError:
     from shutil import which as find_executable
 
 PLATFORM_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
-
+PROJECT_DIR = os.path.dirname(PLATFORM_DIR)
+COMMON_PROTO_DIR = os.path.join(PROJECT_DIR, 'common')
+COMMON_PROTO_SOURCE = os.path.join(COMMON_PROTO_DIR, 'common.proto')
 PROTO_DIR = os.path.join(PLATFORM_DIR, 'proto')
 
 PKG_DIR = os.path.realpath(
@@ -64,9 +66,11 @@ def generate_proto(source: str) -> None:
 
         protoc_command = [
             PROTOC,
+            f'-I={COMMON_PROTO_DIR}',
             f'-I={PROTO_DIR}',
             f'--experimental_allow_proto3_optional',
             f'--python_out={PKG_DIR}',
+            COMMON_PROTO_SOURCE,
             source,
         ]
 
