@@ -120,7 +120,12 @@ function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEn
 function generateInputValidationErrMsg(
   parametersInRealType: any,
   paramType: ParameterType_ParameterTypeEnum,
+  isOptional: boolean = false,
 ) {
+  // If the parameter is optional then don't report error on undefined.
+  if (parametersInRealType === undefined && isOptional) {
+    return null;
+  }
   let errorMessage;
   switch (parametersInRealType) {
     case undefined:
@@ -318,6 +323,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     errorMessages[k] = generateInputValidationErrMsg(
                       parametersInRealType[k],
                       specParameters[k].parameterType,
+                      specParameters[k].isOptional,
                     );
                     setErrorMessages(errorMessages);
 
