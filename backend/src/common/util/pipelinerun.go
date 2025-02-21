@@ -24,7 +24,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -664,7 +663,7 @@ func collectTaskRunMetricsOrNil(
 	// ReportRunMetricsRequest as a workaround to hold user's metrics, which is a superset of what
 	// user can provide.
 	reportMetricsRequest := new(api.ReportRunMetricsRequest)
-	err = jsonpb.UnmarshalString(metricsJSON, reportMetricsRequest)
+	err = UnmarshalString(metricsJSON, reportMetricsRequest)
 	if err != nil {
 		// User writes invalid metrics JSON.
 		// TODO(#1426): report the error back to api server to notify user
