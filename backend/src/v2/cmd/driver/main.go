@@ -69,13 +69,21 @@ var (
 	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
+	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
 
 func main() {
 	flag.Parse()
-	err := drive()
+
+	glog.Infof("Setting log level to: '%s'", *logLevel)
+	err := flag.Set("v", *logLevel)
+	if err != nil {
+		glog.Warningf("Failed to set log level: %s", err.Error())
+	}
+
+	err = drive()
 	if err != nil {
 		glog.Exitf("%v", err)
 	}
@@ -153,15 +161,16 @@ func drive() (err error) {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:   *pipelineName,
-		RunID:          *runID,
-		RunName:        *runName,
-		RunDisplayName: *runDisplayName,
-		Namespace:      namespace,
-		Component:      componentSpec,
-		Task:           taskSpec,
-		DAGExecutionID: *dagExecutionID,
-		IterationIndex: *iterationIndex,
+		PipelineName:     *pipelineName,
+		RunID:            *runID,
+		RunName:          *runName,
+		RunDisplayName:   *runDisplayName,
+		Namespace:        namespace,
+		Component:        componentSpec,
+		Task:             taskSpec,
+		DAGExecutionID:   *dagExecutionID,
+		IterationIndex:   *iterationIndex,
+		PipelineLogLevel: *logLevel,
 	}
 	var execution *driver.Execution
 	var driverErr error
