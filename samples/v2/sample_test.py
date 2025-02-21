@@ -28,6 +28,8 @@ import pipeline_container_no_input
 import pipeline_with_env
 import producer_consumer_param
 import subdagio
+import parallel_consume_upstream
+import parallel_after_dependency
 import two_step_pipeline_containerized
 
 _MINUTE = 60  # seconds
@@ -74,6 +76,8 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=subdagio.artifact.crust),
             TestCase(
                 pipeline_func=subdagio.multiple_artifacts_namedtuple.crust),
+            TestCase(pipeline_func=parallel_consume_upstream.loop_consume_upstream),
+            TestCase(pipeline_func=parallel_after_dependency.loop_with_after_dependency_set),
         ]
 
         with ThreadPoolExecutor() as executor:
