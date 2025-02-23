@@ -33,43 +33,14 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
 
-      - name: Forward API port
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
-      - name: apt-get update
-        run: sudo apt-get update
-
-      - name: Install protobuf-compiler
-        run: sudo apt-get install protobuf-compiler -y
-
-      - name: Install setuptools
-        run: |
-          pip3 install setuptools
-          pip3 freeze
-
-      - name: Install Wheel
-        run: pip3 install wheel==0.42.0
-
-      - name: Install protobuf
-        run: pip3 install protobuf==4.25.3
-
-      - name: Generate API proto files
-        working-directory: ./api
-        run: make clean python
-
-      - name: Install kfp-pipeline-spec from source
-        run: |
-          python3 -m pip install api/v2alpha1/python
-
       - name: Install requirements
-        run: pip install -r ./test/sdk-execution-tests/requirements.txt
+        run: make setup-sdk-execution
 
-      - name: Run tests
+        # Same as sdk-component requirements
+      - name: Forward API port and run tests
         id: tests
         run: |
-          export KFP_ENDPOINT="http://localhost:8888"
-          export TIMEOUT_SECONDS=2700
-          pytest ./test/sdk-execution-tests/sdk_execution_tests.py --asyncio-task-timeout $TIMEOUT_SECONDS
+          make test-sdk-execution
         continue-on-error: true
 
       - name: Collect failed logs
