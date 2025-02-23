@@ -1,13 +1,20 @@
 name: Validate Generated Files
 on:
+  push:
+    branches:
+      - master
   pull_request:
     paths:
-      - 'backend/api/**/*.proto'
       - '.github/workflows/validate-generated-files.yml'
+      - 'backend/api/**/*.proto'
       - 'backend/api/**/go_http_client/**'
       - 'backend/api/**/go_client/**'
       - 'backend/api/**/python_http_client/**'
       - 'backend/api/**/swagger/**'
+      - 'api/**/*.proto'
+      - 'api/**/*.go'
+      - 'kubernetes_platform/**/*.proto'
+      - 'kubernetes_platform/**/*.go'
 
 jobs:
   validate-generated-files:
