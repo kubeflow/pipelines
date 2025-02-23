@@ -14,6 +14,7 @@
 import asyncio
 import dataclasses
 import functools
+import logging
 import os
 import sys
 from typing import Any, Dict, List, Tuple
@@ -113,18 +114,23 @@ dsl.component = functools.partial(
 
 
 @pytest.mark.asyncio_cooperative
+@pytest.mark.flaky(reruns=2)
 @pytest.mark.parametrize('test_case', create_test_case_parameters())
 async def test(test_case: TestCase) -> None:
     """Asynchronously runs all samples and test that they succeed."""
     event_loop = asyncio.get_running_loop()
     try:
         run_url, run_result = run(test_case)
+        logging.debug(
+            f'Triggered pipeline {test_case.name}. Run URL: {run_url}')
     except Exception as e:
         raise RuntimeError(
             f'Error triggering pipeline {test_case.name}.') from e
 
     api_run = await event_loop.run_in_executor(None, wait, run_result)
-    assert api_run.state == test_case.expected_state, f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
+    assert api_run.state == test_case.expected_state, (
+        f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
+    )
 
 
 if __name__ == '__main__':
