@@ -54,7 +54,7 @@ import { getArtifactTypes, getExecutionTypes } from './LineageApi';
 import { getExecutionTypeName, getTypeName } from './Utils';
 import { Api } from './Api';
 import { LineageResource } from './LineageTypes';
-import CircularProgress from '@material-ui/core/CircularProgress';
+import { CircularProgress } from '@mui/material';
 import { ArtifactHelpers } from './MlmdUtils';
 
 const isInputEvent = (event: Event) =>

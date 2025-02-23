@@ -16,28 +16,37 @@
 
 import AceEditor from 'react-ace';
 
+// Extend the AceEditor types to include the internal editor object
+interface ExtendedAceEditor extends AceEditor {
+  editor: any; // Using any here as the Ace editor types are complex
+}
+
 // Modified AceEditor that supports HTML within provided placeholder. This is
 // important because it allows for the usage of multi-line placeholders.
 class Editor extends AceEditor {
   public updatePlaceholder(): void {
-    const editor = this.editor;
+    const editor = (this as ExtendedAceEditor).editor;
     const { placeholder } = this.props;
 
     const showPlaceholder = !editor.session.getValue().length;
-    let node = editor.renderer.placeholderNode;
+    let node = editor.renderer.placeholderNode as HTMLDivElement | null;
+    
     if (!showPlaceholder && node) {
-      editor.renderer.scroller.removeChild(editor.renderer.placeholderNode);
+      if (editor.renderer.scroller.contains(node)) {
+        editor.renderer.scroller.removeChild(node);
+      }
       editor.renderer.placeholderNode = null;
     } else if (showPlaceholder && !node) {
-      node = editor.renderer.placeholderNode = document.createElement('div');
+      node = document.createElement('div');
       node.innerHTML = placeholder || '';
       node.className = 'ace_comment ace_placeholder';
       node.style.padding = '0 9px';
       node.style.position = 'absolute';
       node.style.zIndex = '3';
+      editor.renderer.placeholderNode = node;
       editor.renderer.scroller.appendChild(node);
     } else if (showPlaceholder && node) {
-      node.innerHTML = placeholder;
+      node.innerHTML = placeholder || '';
     }
   }
 }
