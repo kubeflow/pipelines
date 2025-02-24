@@ -44,7 +44,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef identity(value: str) -> str:\n    return value\n\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: identity
 root:

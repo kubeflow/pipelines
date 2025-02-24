@@ -60,7 +60,7 @@ deploymentSpec:
         env:
         - name: ENV1
           value: val1
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: pipeline-with-env
 root:

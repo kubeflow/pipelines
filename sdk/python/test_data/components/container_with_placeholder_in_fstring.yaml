@@ -27,7 +27,7 @@ deploymentSpec:
         - my_program
         - prefix-{{$.inputs.parameters['text1']}}
         - '{{$.outputs.artifacts[''output_artifact''].uri}}/0'
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: container-with-placeholder-in-fstring
 root:

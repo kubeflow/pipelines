@@ -454,7 +454,7 @@ class TestContainerSpecImplementation(unittest.TestCase):
 
     def test_from_container_dict_no_placeholders(self):
         expected_container_spec = structures.ContainerSpecImplementation(
-            image='public.ecr.aws/docker/library/python:3.12',
+            image='public.ecr.aws/docker/library/python:3.10',
             command=['sh', '-c', 'dummy'],
             args=['--executor_input', '{{$}}', '--function_to_execute', 'func'],
             env={'ENV1': 'val1'},
@@ -465,7 +465,7 @@ class TestContainerSpecImplementation(unittest.TestCase):
                 '--executor_input', '{{$}}', '--function_to_execute', 'func'
             ],
             'command': ['sh', '-c', 'dummy'],
-            'image': 'public.ecr.aws/docker/library/python:3.12',
+            'image': 'public.ecr.aws/docker/library/python:3.10',
             'env': {
                 'ENV1': 'val1'
             },

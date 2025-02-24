@@ -52,7 +52,7 @@ var (
 					Command: []string{"python"},
 					Env: []corev1.EnvVar{{
 						Name:  ArgoWorkflowTemplateEnvKey,
-						Value: `{"name": "Does not matter","container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.12"}}`,
+						Value: `{"name": "Does not matter","container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.10"}}`,
 					}},
 				},
 			},
@@ -171,7 +171,7 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "1933d178a14bc415466cfd1b3ca2100af975e8c59e1ff9d502fcf18eb5cbd7f7",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.12"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.10"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -190,7 +190,7 @@ func TestDefaultImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "1933d178a14bc415466cfd1b3ca2100af975e8c59e1ff9d502fcf18eb5cbd7f7",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.12"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.10"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -209,7 +209,7 @@ func TestSetImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.12"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.10"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -226,7 +226,7 @@ func TestCacheNodeRestriction(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.12"},"nodeSelector":{"disktype":"ssd"}}`,
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.10"},"nodeSelector":{"disktype":"ssd"}}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -241,7 +241,7 @@ func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "c81988503d55a5817d79bd972017d95c37f72b024e522b4d79787d9f599c0725",
 		ExecutionOutput:   "testOutput",
-		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.12"},"outputs":"anything"}`,
+		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"public.ecr.aws/docker/library/python:3.10"},"outputs":"anything"}`,
 		MaxCacheStaleness: -1,
 	}
 	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
@@ -253,7 +253,7 @@ func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 			"name": "Does not matter",
 			"metadata": "anything",
 			"container": {
-				"image": "public.ecr.aws/docker/library/python:3.12",
+				"image": "public.ecr.aws/docker/library/python:3.10",
 				"command": ["echo", "Hello"]
 			},
 			"outputs": "anything",

@@ -46,13 +46,13 @@ deploymentSpec:
         - '{{$.inputs.parameters[''user_input'']}}'
         - 'pipeline status:'
         - '{{$.inputs.parameters[''status'']}}'
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
     exec-print-op:
       container:
         command:
         - echo
         - '{{$.inputs.parameters[''message'']}}'
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: pipeline-with-task-final-status-yaml
 root:

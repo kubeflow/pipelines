@@ -48,7 +48,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef concat_message(message1: str, message2: str) -> str:\n    return\
           \ message1 + message2\n\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: concat-message
 root:

@@ -35,7 +35,7 @@ class TestComponentDecorator(unittest.TestCase):
 
     def test_as_decorator_syntactic_sugar_some_args(self):
 
-        @component(base_image='public.ecr.aws/docker/library/python:3.12')
+        @component(base_image='public.ecr.aws/docker/library/python:3.10')
         def hello_world(text: str) -> str:
             """Hello world component."""
             return text
@@ -52,7 +52,7 @@ class TestComponentDecorator(unittest.TestCase):
 
     def test_some_args(self):
 
-        @component(base_image='public.ecr.aws/docker/library/python:3.12')
+        @component(base_image='public.ecr.aws/docker/library/python:3.10')
         def comp(text: str) -> str:
             return text
 

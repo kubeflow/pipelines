@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM public.ecr.aws/docker/library/python:3.12-slim
+FROM public.ecr.aws/docker/library/python:3.10-slim
 
 WORKDIR /workdir
 COPY backend/src/v2/test/requirements.txt backend/src/v2/test/

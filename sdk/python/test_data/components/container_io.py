@@ -19,7 +19,7 @@ from kfp.dsl import OutputPath
 @container_component
 def container_io(text: str, output_path: OutputPath(str)):
     return ContainerSpec(
-        image='public.ecr.aws/docker/library/python:3.12',
+        image='public.ecr.aws/docker/library/python:3.10',
         command=['my_program', text],
         args=['--output_path', output_path])
 

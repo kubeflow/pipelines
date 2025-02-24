@@ -18,7 +18,7 @@ from kfp.dsl import ContainerSpec
 @container_component
 def container_no_input():
     return ContainerSpec(
-        image='public.ecr.aws/docker/library/python:3.12',
+        image='public.ecr.aws/docker/library/python:3.10',
         command=['echo', 'hello world'],
         args=[],
     )

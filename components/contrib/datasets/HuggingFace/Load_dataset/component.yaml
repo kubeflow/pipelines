@@ -10,7 +10,7 @@ outputs:
 - {name: splits, type: JsonArray}
 implementation:
   container:
-    image: public.ecr.aws/docker/library/python:3.12
+    image: public.ecr.aws/docker/library/python:3.10
     command:
     - sh
     - -c

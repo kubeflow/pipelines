@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye
+FROM public.ecr.aws/docker/library/python:3.10-slim-bullseye
 RUN apt-get update && apt-get install -y gcc python3-dev
 
 COPY requirements.txt .

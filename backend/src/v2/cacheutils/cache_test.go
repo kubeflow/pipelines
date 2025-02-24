@@ -92,7 +92,7 @@ func TestGenerateCacheKey(t *testing.T) {
 				"output_parameter_two": "INT",
 			},
 			cmdArgs: []string{"sh", "ec", "test"},
-			image:   "public.ecr.aws/docker/library/python:3.12",
+			image:   "public.ecr.aws/docker/library/python:3.10",
 			want: &cachekey.CacheKey{
 				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
 					"dataset_one": {ArtifactNames: []string{"1"}},
@@ -126,7 +126,7 @@ func TestGenerateCacheKey(t *testing.T) {
 				},
 				ContainerSpec: &cachekey.ContainerSpec{
 					CmdArgs: []string{"sh", "ec", "test"},
-					Image:   "public.ecr.aws/docker/library/python:3.12",
+					Image:   "public.ecr.aws/docker/library/python:3.10",
 				},
 			},
 
@@ -186,7 +186,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 		},
 		ContainerSpec: &cachekey.ContainerSpec{
 			CmdArgs: []string{"sh", "ec", "test"},
-			Image:   "public.ecr.aws/docker/library/python:3.12",
+			Image:   "public.ecr.aws/docker/library/python:3.10",
 		},
 	}
 	tests := []struct {
@@ -230,7 +230,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 				},
 				ContainerSpec: &cachekey.ContainerSpec{
 					CmdArgs: []string{"sh", "ec", "test"},
-					Image:   "public.ecr.aws/docker/library/python:3.12",
+					Image:   "public.ecr.aws/docker/library/python:3.10",
 				},
 			},
 			wantEqual:   true,
@@ -246,7 +246,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 				},
 				ContainerSpec: &cachekey.ContainerSpec{
 					CmdArgs: []string{"sh", "ec", "run"},
-					Image:   "public.ecr.aws/docker/library/python:3.12",
+					Image:   "public.ecr.aws/docker/library/python:3.10",
 				},
 			},
 			wantEqual:   false,

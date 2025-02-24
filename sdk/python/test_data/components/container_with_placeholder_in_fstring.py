@@ -24,7 +24,7 @@ def container_with_placeholder_in_fstring(
     text1: str = 'text!',
 ):
     return ContainerSpec(
-        image='public.ecr.aws/docker/library/python:3.12',
+        image='public.ecr.aws/docker/library/python:3.10',
         command=[
             'my_program',
             f'prefix-{text1}',

@@ -253,7 +253,7 @@ deploymentSpec:
           \    try:\n        os.makedirs(os.path.dirname(output_file))\n    except\
           \ OSError:\n        pass\n    with open(output_file, 'w') as f:\n      \
           \  f.write(_output_serializers[idx](_outputs[idx]))\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
     exec-xgboost-predict:
       container:
         args:
@@ -304,7 +304,7 @@ deploymentSpec:
           _parser.add_argument(\"--predictions\", dest=\"predictions_path\", type=_make_parent_dirs_and_return_path,\
           \ required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
           \n_outputs = xgboost_predict(**_parsed_args)\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
     exec-xgboost-predict-2:
       container:
         args:
@@ -358,7 +358,7 @@ deploymentSpec:
           predictions_path\", type=_make_parent_dirs_and_return_path, required=True,\
           \ default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
           \n_outputs = xgboost_predict(**_parsed_args)\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
     exec-xgboost-predict-3:
       container:
         args:
@@ -412,7 +412,7 @@ deploymentSpec:
           predictions_path\", type=_make_parent_dirs_and_return_path, required=True,\
           \ default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
           \n_outputs = xgboost_predict(**_parsed_args)\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
     exec-xgboost-predict-4:
       container:
         args:
@@ -463,7 +463,7 @@ deploymentSpec:
           _parser.add_argument(\"--predictions\", dest=\"predictions_path\", type=_make_parent_dirs_and_return_path,\
           \ required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
           \n_outputs = xgboost_predict(**_parsed_args)\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
     exec-xgboost-train:
       container:
         args:
@@ -571,7 +571,7 @@ deploymentSpec:
           , dest=\"model_config_path\", type=_make_parent_dirs_and_return_path, required=True,\
           \ default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
           \n_outputs = xgboost_train(**_parsed_args)\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
     exec-xgboost-train-2:
       container:
         args:
@@ -679,7 +679,7 @@ deploymentSpec:
           , dest=\"model_config_path\", type=_make_parent_dirs_and_return_path, required=True,\
           \ default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
           \n_outputs = xgboost_train(**_parsed_args)\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: xgboost-sample-pipeline
 root:

@@ -26,7 +26,7 @@ def split_dataset_huggingface(
 if __name__ == '__main__':
     split_dataset_op = create_component_from_func(
         split_dataset_huggingface,
-        base_image='public.ecr.aws/docker/library/python:3.12',
+        base_image='public.ecr.aws/docker/library/python:3.10',
         packages_to_install=['datasets==1.6.2'],
         annotations={
             'author': 'Alexey Volkov <alexey.volkov@ark-kun.com>',

@@ -628,7 +628,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: hello-world
 root:
@@ -685,7 +685,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: hello-world
 root:
@@ -726,7 +726,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: hello-world-
 root:
@@ -751,7 +751,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: hEllo-world
 root:
@@ -776,7 +776,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: more than  128 characters more than  128 characters more than  128 characters more than  128 characters more than  128 characters
 root:
@@ -801,7 +801,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: hello-worl.d
 root:

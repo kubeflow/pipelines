@@ -40,7 +40,7 @@ if __name__ == '__main__':
     from kfp.components import create_component_from_func
     run_component_or_pipeline_op = create_component_from_func(
         run_component_or_pipeline,
-        base_image='public.ecr.aws/docker/library/python:3.12',
+        base_image='public.ecr.aws/docker/library/python:3.10',
         packages_to_install=['kfp==1.4.0'],
         output_component_file='component.yaml',
         annotations={

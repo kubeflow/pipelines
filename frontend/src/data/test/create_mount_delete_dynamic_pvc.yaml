@@ -76,7 +76,7 @@ deploymentSpec:
           \ *\n\ndef consumer() -> str:\n    with open('/data/file.txt', 'r') as file:\n\
           \        content = file.read()\n    print(content)\n    return content\n\
           \n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
     exec-createpvc:
       container:
         image: argostub/createpvc
@@ -111,7 +111,7 @@ deploymentSpec:
           \        file.write('Hello world')\n    with open('/data/file.txt', 'r')\
           \ as file:\n        content = file.read()\n    print(content)\n    return\
           \ content\n\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: my-pipeline
 root:

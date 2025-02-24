@@ -10,7 +10,7 @@ deploymentSpec:
         command:
         - echo
         - hello world
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: v2-container-component-no-input
 root:

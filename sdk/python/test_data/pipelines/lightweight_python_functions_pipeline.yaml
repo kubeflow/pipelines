@@ -119,7 +119,7 @@ deploymentSpec:
           \ 'w') as f:\n        f.write(json.dumps(input_dict_parameter))\n\n    with\
           \ open(output_list_parameter_path, 'w') as f:\n        f.write(json.dumps(input_list_parameter))\n\
           \n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
     exec-train:
       container:
         args:
@@ -170,7 +170,7 @@ deploymentSpec:
           \ {i}\\n{line}\\n=====\\n')\n\n    # model is an instance of Model artifact,\
           \ which has a .metadata dictionary\n    # to store arbitrary metadata for\
           \ the output artifact.\n    model.metadata['accuracy'] = 0.9\n\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 pipelineInfo:
   name: my-test-pipeline-beta
 root:

@@ -6,7 +6,7 @@ deploymentSpec:
   executors:
     exec-preprocess:
       container:
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
         args:
         - --executor_input
         - '{{$}}'
@@ -105,7 +105,7 @@ deploymentSpec:
           \ Model artifact, which has a .metadata dictionary\n    # to store arbitrary\
           \ metadata for the output artifact.\n    model.metadata['accuracy'] = 0.9\n\
           \n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: public.ecr.aws/docker/library/python:3.10
 components:
   comp-preprocess:
     inputDefinitions:

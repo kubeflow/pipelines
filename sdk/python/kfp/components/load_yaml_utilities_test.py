@@ -121,7 +121,7 @@ class LoadYamlTests(unittest.TestCase):
         self.assertEqual(component.name, 'identity')
         self.assertEqual(
             component.component_spec.implementation.container.image,
-            'public.ecr.aws/docker/library/python:3.12')
+            'public.ecr.aws/docker/library/python:3.10')
 
 
 if __name__ == '__main__':
