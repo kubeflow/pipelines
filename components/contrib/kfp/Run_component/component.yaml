@@ -13,7 +13,7 @@ outputs:
 - {name: run_object, type: JsonObject}
 implementation:
   container:
-    image: python:3.9
+    image: public.ecr.aws/docker/library/python:3.12
     command:
     - sh
     - -c

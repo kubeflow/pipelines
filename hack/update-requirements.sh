@@ -16,7 +16,7 @@
 # Usage: ./update_requirements.sh <requirements.in >requirements.txt
 
 set -euo pipefail
-IMAGE=${1:-"python:3.9"}
+IMAGE=${1:-"public.ecr.aws/docker/library/python:3.12"}
 docker run -i --rm  --entrypoint "" "$IMAGE" sh -c '
   python3 -m pip install pip setuptools --quiet --upgrade
   python3 -m pip install pip-tools==6.14.0 --quiet

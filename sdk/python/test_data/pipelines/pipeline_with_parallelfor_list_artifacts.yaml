@@ -274,7 +274,7 @@ deploymentSpec:
           \ *\n\ndef make_artifact(data: str) -> Artifact:\n    artifact = Artifact(uri=dsl.get_uri(),\
           \ metadata={'length': len(data)})\n    with open(artifact.path, 'w') as\
           \ f:\n        f.write(data)\n    return artifact\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-make-dataset:
       container:
         args:
@@ -304,7 +304,7 @@ deploymentSpec:
           \ *\n\ndef make_dataset(data: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
           \ metadata={'length': len(data)})\n    with open(dataset.path, 'w') as f:\n\
           \        f.write(data)\n    return dataset\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-artifact-name:
       container:
         args:
@@ -333,7 +333,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
           \    return artifact.name\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-artifact-name-2:
       container:
         args:
@@ -362,7 +362,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
           \    return artifact.name\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
   name: pipeline-parallelfor-artifacts
 root:

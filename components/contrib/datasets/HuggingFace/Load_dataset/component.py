@@ -20,7 +20,7 @@ def load_dataset_using_huggingface(
 if __name__ == '__main__':
     load_dataset_op = create_component_from_func(
         load_dataset_using_huggingface,
-        base_image='python:3.9',
+        base_image='public.ecr.aws/docker/library/python:3.12',
         packages_to_install=['datasets==1.6.2'],
         annotations={
             'author': 'Alexey Volkov <alexey.volkov@ark-kun.com>',

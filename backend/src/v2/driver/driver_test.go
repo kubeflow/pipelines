@@ -52,7 +52,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - nvidia.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "public.ecr.aws/docker/library/python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -92,7 +92,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - amd.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "public.ecr.aws/docker/library/python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -132,7 +132,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v3",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "public.ecr.aws/docker/library/python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -172,7 +172,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v2",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "public.ecr.aws/docker/library/python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -212,7 +212,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - custom string",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "public.ecr.aws/docker/library/python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -268,7 +268,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 
 func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
+		Image:   "public.ecr.aws/docker/library/python:3.12",
 		Args:    []string{"--function_to_execute", "add"},
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -366,7 +366,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 
 func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
+		Image:   "public.ecr.aws/docker/library/python:3.12",
 		Args:    []string{"--function_to_execute", "add"},
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -399,7 +399,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 
 func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
+		Image:   "public.ecr.aws/docker/library/python:3.12",
 		Args:    []string{"--function_to_execute", "add"},
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 	}
@@ -522,7 +522,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - with requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "public.ecr.aws/docker/library/python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -559,7 +559,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - zero requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "public.ecr.aws/docker/library/python:3.12",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{

@@ -164,7 +164,7 @@ deploymentSpec:
           \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
           \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
           \ 1) == 0 else 'tails'\n    return result\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-flip-coin-op-2:
       container:
         args:
@@ -194,7 +194,7 @@ deploymentSpec:
           \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
           \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
           \ 1) == 0 else 'tails'\n    return result\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-flip-coin-op-3:
       container:
         args:
@@ -224,7 +224,7 @@ deploymentSpec:
           \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
           \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
           \ 1) == 0 else 'tails'\n    return result\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-flip-coin-op-4:
       container:
         args:
@@ -254,7 +254,7 @@ deploymentSpec:
           \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
           \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
           \ 1) == 0 else 'tails'\n    return result\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-op:
       container:
         args:
@@ -283,7 +283,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
           \n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-op-2:
       container:
         args:
@@ -312,7 +312,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
           \n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-op-3:
       container:
         args:
@@ -341,7 +341,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
           \n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-op-4:
       container:
         args:
@@ -370,7 +370,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
           \n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
   name: nested-conditions-pipeline
 root:

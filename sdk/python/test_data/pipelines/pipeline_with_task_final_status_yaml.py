@@ -24,7 +24,7 @@ inputs:
 - {name: status, type: PipelineTaskFinalStatus}
 implementation:
   container:
-    image: python:3.9
+    image: public.ecr.aws/docker/library/python:3.12
     command:
     - echo
     - "user input:"
@@ -39,7 +39,7 @@ inputs:
 - {name: message, type: String}
 implementation:
   container:
-    image: python:3.9
+    image: public.ecr.aws/docker/library/python:3.12
     command:
     - echo
     - {inputValue: message}

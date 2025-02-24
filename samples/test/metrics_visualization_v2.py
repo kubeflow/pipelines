@@ -24,7 +24,7 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 @component(
     packages_to_install=['scikit-learn'],
-    base_image='python:3.9',
+    base_image='public.ecr.aws/docker/library/python:3.12',
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
 def digit_classification(metrics: Output[Metrics]):
@@ -68,7 +68,7 @@ def digit_classification(metrics: Output[Metrics]):
 
 @component(
     packages_to_install=['scikit-learn'],
-    base_image='python:3.9',
+    base_image='public.ecr.aws/docker/library/python:3.12',
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
 def wine_classification(metrics: Output[ClassificationMetrics]):
@@ -99,7 +99,7 @@ def wine_classification(metrics: Output[ClassificationMetrics]):
 
 @component(
     packages_to_install=['scikit-learn'],
-    base_image='python:3.9',
+    base_image='public.ecr.aws/docker/library/python:3.12',
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
 def iris_sgdclassifier(test_samples_fraction: float,

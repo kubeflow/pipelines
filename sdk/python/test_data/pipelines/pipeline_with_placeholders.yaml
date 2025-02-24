@@ -70,7 +70,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-op-2:
       container:
         args:
@@ -98,7 +98,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-op-3:
       container:
         args:
@@ -126,7 +126,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-op-4:
       container:
         args:
@@ -154,7 +154,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-op-5:
       container:
         args:
@@ -182,7 +182,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
   name: pipeline-with-placeholders
 root:

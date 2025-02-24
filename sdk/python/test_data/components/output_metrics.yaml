@@ -44,7 +44,7 @@ deploymentSpec:
           \ that outputs metrics with a random accuracy.\"\"\"\n    import random\n\
           \    result = random.randint(0, 100)\n    metrics.log_metric('accuracy',\
           \ result)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
   name: output-metrics
 root:
