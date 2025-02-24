@@ -19,7 +19,7 @@ def get_current_namespace():
     return current_namespace
 
 
-@dsl.component(packages_to_install=['kubernetes<31,>=8.0.0', 'kubeflow-training>=1.8.0', 'retrying>=1.3.3'], base_image="python:3.11")
+@dsl.component(packages_to_install=['kubernetes<31,>=8.0.0', 'kubeflow-training>=1.8.0', 'retrying>=1.3.3'], base_image="public.ecr.aws/docker/library/python:3.11")
 def pytorch_job_launcher(
     name: str,
     kind: str = "PyTorchJob",

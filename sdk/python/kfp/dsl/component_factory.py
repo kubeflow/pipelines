@@ -570,7 +570,7 @@ def create_component_from_func(
     if base_image is None:
         base_image = _DEFAULT_BASE_IMAGE
         warnings.warn(
-            ("The default base_image used by the @dsl.component decorator will switch from 'public.ecr.aws/docker/library/python:3.12' to 'python:3.10' on Oct 1, 2025. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.10."
+            ("The default base_image used by the @dsl.component decorator will switch from 'public.ecr.aws/docker/library/python:3.12' to 'public.ecr.aws/docker/library/python:3.10' on Oct 1, 2025. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.10."
             ),
             FutureWarning,
             stacklevel=2,

@@ -1,4 +1,4 @@
-FROM python:3.13-slim as base
+FROM public.ecr.aws/docker/library/python:3.13-slim as base
 
 USER 0
 

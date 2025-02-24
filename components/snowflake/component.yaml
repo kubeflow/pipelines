@@ -93,7 +93,7 @@ deploymentSpec:
           \    \"\"\")\n    _ = result.fetchall()\n    if output_gcs_path.endswith(\"\
           /\"):\n        return output_gcs_path + \"data_0_0_0.csv\"\n    else:\n\
           \        return output_gcs_path\n\n"
-        image: python:3.11
+        image: public.ecr.aws/docker/library/python:3.11
 pipelineInfo:
   name: snowflake-unload-op
 root:

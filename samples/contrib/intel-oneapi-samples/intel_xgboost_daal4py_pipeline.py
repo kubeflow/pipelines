@@ -3,7 +3,7 @@ from kfp import compiler
 from kfp.dsl import (Input, Output, Dataset, Model, Metrics, ClassificationMetrics)
 
 @dsl.component(
-        base_image="python:3.10", 
+        base_image="public.ecr.aws/docker/library/python:3.10", 
         packages_to_install=["numpy", "pandas", "loguru"])
 def load_data(
     data_url: str, 
@@ -119,7 +119,7 @@ def load_data(
     data.to_csv(credit_risk_dataset.path, index = None)
 
 @dsl.component(
-        base_image="python:3.10", 
+        base_image="public.ecr.aws/docker/library/python:3.10", 
         packages_to_install=["pandas", "scikit-learn", "loguru"])
 def create_train_test_set(
     data: Input[Dataset],
@@ -174,7 +174,7 @@ def create_train_test_set(
     y_test.to_csv(y_test_data.path, index = False, header = None)
 
 @dsl.component(
-        base_image="python:3.10", 
+        base_image="public.ecr.aws/docker/library/python:3.10", 
         packages_to_install=["pandas", "scikit-learn"])
 def preprocess_features(
     x_train: Input[Dataset],
@@ -252,7 +252,7 @@ def preprocess_features(
     X_test.to_csv(x_test_processed.path, index = False, header = None)
 
 @dsl.component(
-        base_image="python:3.10", 
+        base_image="public.ecr.aws/docker/library/python:3.10", 
         packages_to_install=["pandas", "xgboost", "joblib", "loguru"])
 def train_xgboost_model(
     x_train: Input[Dataset],
@@ -308,7 +308,7 @@ def train_xgboost_model(
         joblib.dump(clf, file_writer) 
 
 @dsl.component(
-        base_image="python:3.10", 
+        base_image="public.ecr.aws/docker/library/python:3.10", 
         packages_to_install=["daal4py", "joblib", "loguru"])
 def convert_xgboost_to_daal4py(
     xgb_model: Input[Model],
@@ -343,7 +343,7 @@ def convert_xgboost_to_daal4py(
         joblib.dump(daal_model, file_writer)
 
 @dsl.component(
-        base_image="python:3.10", 
+        base_image="public.ecr.aws/docker/library/python:3.10", 
         packages_to_install=["daal4py", "pandas", "scikit-learn",
                              "scikit-learn-intelex", "joblib"])
 def daal4py_inference(
@@ -419,7 +419,7 @@ def daal4py_inference(
     predictions.to_csv(prediction_data.path, index = False)
 
 @dsl.component(
-        base_image="python:3.10", 
+        base_image="public.ecr.aws/docker/library/python:3.10", 
         packages_to_install=["numpy", "pandas", "scikit-learn",
                              "scikit-learn-intelex"])
 def plot_roc_curve(
