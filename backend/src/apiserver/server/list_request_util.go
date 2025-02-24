@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/protobuf/jsonpb"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -148,13 +147,13 @@ func parseAPIFilter(encoded string, apiVersion string) (interface{}, error) {
 	switch apiVersion {
 	case "v2beta1":
 		f := &apiv2beta1.Filter{}
-		if err := jsonpb.UnmarshalString(decoded, f); err != nil {
+		if err := util.UnmarshalString(decoded, f); err != nil {
 			return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 		}
 		return f, nil
 	case "v1beta1":
 		f := &apiv1beta1.Filter{}
-		if err := jsonpb.UnmarshalString(decoded, f); err != nil {
+		if err := util.UnmarshalString(decoded, f); err != nil {
 			return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 		}
 		return f, nil
