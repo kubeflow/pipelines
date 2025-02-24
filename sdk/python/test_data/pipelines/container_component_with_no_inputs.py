@@ -19,7 +19,7 @@ from kfp import dsl
 @dsl.container_component
 def hello_world_container():
     return dsl.ContainerSpec(
-        image='python:3.9',
+        image='public.ecr.aws/docker/library/python:3.12',
         command=['echo', 'hello world'],
         args=[],
     )

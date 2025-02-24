@@ -24,7 +24,7 @@ def container_with_if_placeholder(output_path: OutputPath(str),
                                   dataset: Output[Dataset],
                                   optional_input: str = 'default'):
     return ContainerSpec(
-        image='python:3.9',
+        image='public.ecr.aws/docker/library/python:3.12',
         command=[
             'my_program',
             IfPresentPlaceholder(

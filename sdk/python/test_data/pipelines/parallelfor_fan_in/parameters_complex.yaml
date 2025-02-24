@@ -240,7 +240,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add_two_numbers(x: List[int], y: List[int]) -> int:\n    return\
           \ sum(x) + sum(y)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-double:
       container:
         args:
@@ -268,7 +268,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-double-2:
       container:
         args:
@@ -296,7 +296,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-nested-add:
       container:
         args:
@@ -325,7 +325,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
           \    return sum(itertools.chain(*nums))\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-nested-add-2:
       container:
         args:
@@ -354,7 +354,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
           \    return sum(itertools.chain(*nums))\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-simple-add:
       container:
         args:
@@ -382,7 +382,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-simple-add-2:
       container:
         args:
@@ -410,7 +410,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
   name: math-pipeline
 root:

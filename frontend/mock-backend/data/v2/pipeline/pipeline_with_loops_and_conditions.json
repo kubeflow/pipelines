@@ -929,7 +929,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef args_generator_op() -> list:\n    return [\n        {\n            'A_a': '1',\n            'B_b': ['2', '20'],\n        },\n        {\n            'A_a': '10',\n            'B_b': ['22', '222'],\n        },\n    ]\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-args-generator-op-2": {
@@ -949,7 +949,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef args_generator_op() -> list:\n    return [\n        {\n            'A_a': '1',\n            'B_b': ['2', '20'],\n        },\n        {\n            'A_a': '10',\n            'B_b': ['22', '222'],\n        },\n    ]\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-flip-coin-op": {
@@ -969,7 +969,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0, 1) == 0 else 'tails'\n    return result\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-struct": {
@@ -989,7 +989,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_struct(struct: dict):\n    print(struct)\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-text": {
@@ -1009,7 +1009,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg: {msg}, msg2: {msg2}')\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-text-2": {
@@ -1029,7 +1029,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg: {msg}, msg2: {msg2}')\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-text-3": {
@@ -1049,7 +1049,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg: {msg}, msg2: {msg2}')\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-text-4": {
@@ -1069,7 +1069,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg: {msg}, msg2: {msg2}')\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-text-5": {
@@ -1089,7 +1089,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg: {msg}, msg2: {msg2}')\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-text-6": {
@@ -1109,7 +1109,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg: {msg}, msg2: {msg2}')\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-text-7": {
@@ -1129,7 +1129,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg: {msg}, msg2: {msg2}')\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-text-8": {
@@ -1149,7 +1149,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg: {msg}, msg2: {msg2}')\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       },
       "exec-print-text-9": {
@@ -1169,7 +1169,7 @@
             "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg: {msg}, msg2: {msg2}')\n\n"
           ],
-          "image": "python:3.9"
+          "image": "public.ecr.aws/docker/library/python:3.12"
         }
       }
     }

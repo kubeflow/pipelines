@@ -51,7 +51,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef fail_op(message: str) -> str:\n    \"\"\"Fails.\"\"\"\n    import\
           \ sys\n    print(message)\n    sys.exit(1)\n    return message\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-print-op:
       container:
         args:
@@ -80,7 +80,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str = 'default'):\n    \"\"\"Prints a message.\"\
           \"\"\n    print(message)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
   name: my-pipeline
 root:

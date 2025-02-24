@@ -148,7 +148,7 @@ deploymentSpec:
           \ trained using data: {data}'\n\n    from collections import namedtuple\n\
           \    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar,\
           \ model)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
     exec-train-2:
       container:
         args:
@@ -182,7 +182,7 @@ deploymentSpec:
           \ trained using data: {data}'\n\n    from collections import namedtuple\n\
           \    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar,\
           \ model)\n\n"
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
   name: pipeline-with-importer
 root:

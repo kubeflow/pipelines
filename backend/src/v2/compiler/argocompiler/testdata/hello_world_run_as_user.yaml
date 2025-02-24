@@ -14,7 +14,7 @@ spec:
         hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser
         = argparse.ArgumentParser(prog=''Hello world'', description='''')\n_parser.add_argument(\"--text\",
         dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
-        = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"image":"python:3.9"}'
+        = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"image":"public.ecr.aws/docker/library/python:3.12"}'
     - name: components-root
       value: '{"dag":{"tasks":{"hello-world":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}}},"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
   entrypoint: entrypoint

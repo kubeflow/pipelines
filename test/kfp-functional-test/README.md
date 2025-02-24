@@ -65,13 +65,13 @@ dependencies. To update dependencies:
    
     Using Docker:
     ```bash
-    docker run -it -v $(pwd):/tmp/src -w /tmp/src python:3.9-slim\
+    docker run -it -v $(pwd):/tmp/src -w /tmp/src public.ecr.aws/docker/library/python:3.12-slim\
     /tmp/src/test/kfp-functional-test/kfp-functional-test.sh --host "http://localhost:8080"
     ```
 
     Using Podman:
     ```bash
-    podman run -it -v $(pwd):/tmp/src:Z -w /tmp/src python:3.9-slim \
+    podman run -it -v $(pwd):/tmp/src:Z -w /tmp/src public.ecr.aws/docker/library/python:3.12-slim \
     /tmp/src/test/kfp-functional-test/kfp-functional-test.sh --host "http://localhost:8080"
     ```
 

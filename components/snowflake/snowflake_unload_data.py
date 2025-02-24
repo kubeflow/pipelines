@@ -6,7 +6,7 @@ from kfp import compiler
 from kfp.dsl import component
 
 @component(
-    base_image="python:3.11",
+    base_image="public.ecr.aws/docker/library/python:3.11",
     packages_to_install=["snowflake-connector-python:3.12.3"]
 )
 def snowflake_unload_op(
