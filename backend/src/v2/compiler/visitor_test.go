@@ -15,10 +15,10 @@ package compiler_test
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"os"
 	"testing"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
@@ -93,7 +93,7 @@ func load(t *testing.T, path string) *pipelinespec.PipelineJob {
 	}
 	json := string(content)
 	job := &pipelinespec.PipelineJob{}
-	if err := jsonpb.UnmarshalString(json, job); err != nil {
+	if err := util.UnmarshalString(json, job); err != nil {
 		t.Errorf("Failed to parse pipeline job, error: %s, job: %v", err, json)
 	}
 	return job
