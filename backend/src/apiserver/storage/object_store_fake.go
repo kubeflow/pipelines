@@ -15,9 +15,11 @@
 package storage
 
 import (
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
-	"k8s.io/api/core/v1"
+	"net/url"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	v1 "k8s.io/api/core/v1"
 )
 
 type fakeMinioObjectStore struct {
@@ -48,7 +50,13 @@ func (m *fakeMinioObjectStore) GetFromYamlFile(o interface{}, filePath string) e
 	return m.minioObjectStore.GetFromYamlFile(o, filePath)
 }
 
-func (m *fakeMinioObjectStore) GetSignedUrl(*objectstore.Config, *v1.Secret, time.Duration, string) (string, error) {
+func (m *fakeMinioObjectStore) GetSignedUrl(
+	bucketConfig *objectstore.Config, secret *v1.Secret, expiry time.Duration,
+	uri string, queryParams url.Values) (string, error) {
+
+	if queryParams.Get("response-content-disposition") == "inline" {
+		return "dummy-render-url", nil
+	}
 	return "dummy-signed-url", nil
 }
 

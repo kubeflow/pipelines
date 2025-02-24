@@ -40,7 +40,7 @@ type ObjectStoreInterface interface {
 	AddAsYamlFile(o interface{}, filePath string) error
 	GetFromYamlFile(o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
-	GetSignedUrl(bucketConfig *objectstore.Config, secret *v1.Secret, expirySeconds time.Duration, artifactURI string) (string, error)
+	GetSignedUrl(bucketConfig *objectstore.Config, secret *v1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error)
 	GetObjectSize(bucketConfig *objectstore.Config, secret *v1.Secret, artifactURI string) (int64, error)
 }
 
@@ -132,7 +132,7 @@ func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error
 // store for this artifact. Signed URLs are built using the "GET" method, and are only intended for
 // Artifact downloads.
 // TODO: Add support for irsa and gcs app credentials pulled from environment
-func (m *MinioObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret *v1.Secret, expirySeconds time.Duration, artifactURI string) (string, error) {
+func (m *MinioObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret *v1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error) {
 	s3Client, err := buildClientFromConfig(bucketConfig, secret)
 	if err != nil {
 		return "", err
@@ -142,8 +142,11 @@ func (m *MinioObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret
 	if err != nil {
 		return "", err
 	}
-	reqParams := make(url.Values)
-	signedUrl, err := s3Client.Presign("GET", bucketConfig.BucketName, key, expirySeconds, reqParams)
+	if queryParams == nil {
+		queryParams = make(url.Values)
+	}
+
+	signedUrl, err := s3Client.Presign("GET", bucketConfig.BucketName, key, expirySeconds, queryParams)
 	if err != nil {
 		return "", util.Wrap(err, "Failed to generate signed url")
 	}

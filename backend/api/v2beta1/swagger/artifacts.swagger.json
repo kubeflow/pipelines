@@ -107,14 +107,15 @@
           },
           {
             "name": "view",
-            "description": "Optional. Set to \"DOWNLOAD\" to included a signed URL with\nan expiry (default 15 seconds, unless configured other wise).\nThis URL can be used to download the Artifact directly from\nthe Artifact's storage provider. Set to \"BASIC\" to exclude\nthe download_url from server responses, thus preventing the\ncreation of any signed url.\nDefaults to BASIC.\n\n - ARTIFACT_VIEW_UNSPECIFIED: Not specified, equivalent to BASIC.\n - BASIC: Server responses excludes download_url\n - DOWNLOAD: Server responses include download_url",
+            "description": "Optional. Set to \"DOWNLOAD\" to included a signed URL with\nan expiry (default 15 seconds, unless configured other wise).\nThis URL can be used to download the Artifact directly from\nthe Artifact's storage provider. Set to \"BASIC\" to exclude\nthe download_url from server responses, thus preventing the\ncreation of any signed url.\nDefaults to BASIC.\n\n - ARTIFACT_VIEW_UNSPECIFIED: Not specified, equivalent to BASIC.\n - BASIC: Server responses excludes download_url\n - DOWNLOAD: Server responses include download_url\n - RENDER: Server response includes a signed URL,\nallowing in-browser rendering or preview of the artifact.",
             "in": "query",
             "required": false,
             "type": "string",
             "enum": [
               "ARTIFACT_VIEW_UNSPECIFIED",
               "BASIC",
-              "DOWNLOAD"
+              "DOWNLOAD",
+              "RENDER"
             ],
             "default": "ARTIFACT_VIEW_UNSPECIFIED"
           }
@@ -131,10 +132,11 @@
       "enum": [
         "ARTIFACT_VIEW_UNSPECIFIED",
         "BASIC",
-        "DOWNLOAD"
+        "DOWNLOAD",
+        "RENDER"
       ],
       "default": "ARTIFACT_VIEW_UNSPECIFIED",
-      "title": "- ARTIFACT_VIEW_UNSPECIFIED: Not specified, equivalent to BASIC.\n - BASIC: Server responses excludes download_url\n - DOWNLOAD: Server responses include download_url"
+      "description": " - ARTIFACT_VIEW_UNSPECIFIED: Not specified, equivalent to BASIC.\n - BASIC: Server responses excludes download_url\n - DOWNLOAD: Server responses include download_url\n - RENDER: Server response includes a signed URL,\nallowing in-browser rendering or preview of the artifact."
     },
     "ListArtifactRequestField": {
       "type": "string",
@@ -253,6 +255,10 @@
         "error": {
           "$ref": "#/definitions/googlerpcStatus",
           "description": "In case any error happens retrieving an artifact field, only artifact ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful when calling ListArtifacts."
+        },
+        "render_url": {
+          "type": "string",
+          "description": "Optional Output. Specifies a signed URL that can be used to\nrender this Artifact directly from its store."
         }
       }
     },
