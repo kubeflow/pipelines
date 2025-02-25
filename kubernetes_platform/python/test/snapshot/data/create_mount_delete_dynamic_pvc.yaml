@@ -113,7 +113,7 @@ deploymentSpec:
           \ *\n\ndef consumer() -> str:\n    with open('/data/file.txt', 'r') as file:\n\
           \        content = file.read()\n    print(content)\n    return content\n\
           \n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-createpvc:
       container:
         image: argostub/createpvc
