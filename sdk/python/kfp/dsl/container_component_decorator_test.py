@@ -47,7 +47,7 @@ class TestContainerComponentDecorator(unittest.TestCase):
             text_output_path: dsl.OutputPath(str)) -> dsl.ContainerSpec:
             """Hello world component with input and output."""
             return dsl.ContainerSpec(
-                image='public.ecr.aws/docker/library/python:3.10',
+                image='python:3.9',
                 command=['echo'],
                 args=['--text', text, '--output_path', text_output_path])
 

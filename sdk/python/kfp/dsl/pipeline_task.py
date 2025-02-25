@@ -646,7 +646,7 @@ class PipelineTask:
         precedence over @component(base_image=...)
 
         Args:
-            name: The name of the image, e.g. "public.ecr.aws/docker/library/python:3.10-alpine".
+            name: The name of the image, e.g. "python:3.9-alpine".
 
         Returns:
             Self return to allow chained setting calls.
