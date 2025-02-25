@@ -59,7 +59,7 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 				},
 			}
 
-			c.addContainerExecutorTemplate("test-ref")
+			c.addContainerExecutorTemplate("test-ref", "comp-test-ref")
 			assert.NotEmpty(t, "system-container-impl", "Template name should not be empty")
 
 			executorTemplate, exists := c.templates["system-container-impl"]
