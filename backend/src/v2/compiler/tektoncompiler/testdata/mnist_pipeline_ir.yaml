@@ -224,7 +224,7 @@ pipelineSpec:
             \ str])-> NamedTuple('Outputs', [('experiment_spec_str_output', str)]):\n\
             \    import json\n    output = NamedTuple('Outputs', [('experiment_spec_str_output',\
             \ str)])\n    return output(json.dumps(experiment_spec_json))\n\n"
-          image: public.ecr.aws/docker/library/python:3.10
+          image: python:3.9
       exec-convert-inference-service-to-artifact:
         container:
           args:
@@ -253,7 +253,7 @@ pipelineSpec:
             \ Dict[str, str], inferenceservice_artifact: Output[Artifact]):\n    import\
             \ json\n    with open(inferenceservice_artifact.path, 'w') as f:\n     \
             \   f.write(json.dumps(inferenceservice_yaml))\n\n"
-          image: public.ecr.aws/docker/library/python:3.10
+          image: python:3.9
       exec-convert-katib-results:
         container:
           args:
@@ -289,7 +289,7 @@ pipelineSpec:
             batch_size\":\n            best_hps.append(\"--tf-batch-size=\" + pa[\"\
             value\"])\n    print(\"Best Hyperparameters: {}\".format(best_hps))\n  \
             \  return \" \".join(best_hps)\n\n"
-          image: public.ecr.aws/docker/library/python:3.10
+          image: python:3.9
       exec-create-dataset:
         container:
           args:
@@ -409,7 +409,7 @@ pipelineSpec:
             \ = ApiClient().sanitize_for_serialization(experiment_spec)\n    output\
             \ = NamedTuple('Outputs', [('experiment_spec_json', Dict[str, str])])\n\
             \    return output(experiment_spec_json)\n\n"
-          image: public.ecr.aws/docker/library/python:3.10
+          image: python:3.9
       exec-create-serving-task:
         container:
           args:
@@ -446,7 +446,7 @@ pipelineSpec:
             .format(model_volume_name)\n            }\n          }\n        }\n    }\n\
             \n    output = NamedTuple('Outputs', [('inferenceservice_yaml', Dict[str,\
             \ str])])\n    return output(inference_service)\n\n"
-          image: public.ecr.aws/docker/library/python:3.10
+          image: python:3.9
       exec-create-tfjob-task:
         container:
           args:
@@ -513,7 +513,7 @@ pipelineSpec:
             \          ],\n            }\n        }\n    }\n\n    output = NamedTuple('Outputs',\
             \ [('chief_spec', Dict[str, str]), ('worker_spec', Dict[str, str])])\n \
             \   return output(tfjob_chief_spec, tfjob_worker_spec)\n\n"
-          image: public.ecr.aws/docker/library/python:3.10
+          image: python:3.9
       exec-serving-launcher:
         container:
           args:

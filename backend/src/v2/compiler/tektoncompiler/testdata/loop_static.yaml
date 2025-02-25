@@ -78,7 +78,7 @@ spec:
                   -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
                   kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import
                   *\n\ndef concat_op(a: str, b: str) -\u003e str:\n    print(a + b)\n    return
-                  a + b\n\n"],"image":"public.ecr.aws/docker/library/python:3.10"}'
+                  a + b\n\n"],"image":"python:3.9"}'
               - name: iteration-index
                 value: ""
               - name: kubernetes-config
@@ -195,7 +195,7 @@ spec:
                       - configMapRef:
                           name: metadata-grpc-configmap
                           optional: true
-                      image: public.ecr.aws/docker/library/python:3.10
+                      image: python:3.9
                       name: user-main
             - name: print-op-2
               params:
@@ -219,7 +219,7 @@ spec:
                   -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
                   kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import
                   *\n\ndef print_op(text: str) -\u003e str:\n    print(text)\n    return
-                  text\n\n"],"image":"public.ecr.aws/docker/library/python:3.10"}'
+                  text\n\n"],"image":"python:3.9"}'
               - name: iteration-index
                 value: ""
               - name: kubernetes-config
@@ -338,7 +338,7 @@ spec:
                       - configMapRef:
                           name: metadata-grpc-configmap
                           optional: true
-                      image: public.ecr.aws/docker/library/python:3.10
+                      image: python:3.9
                       name: user-main
     - name: for-loop-2-dag-driver
       params:
@@ -406,7 +406,7 @@ spec:
           \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\npython3 -m
           kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
           kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-          print_op(text: str) -\u003e str:\n    print(text)\n    return text\n\n"],"image":"public.ecr.aws/docker/library/python:3.10"}'
+          print_op(text: str) -\u003e str:\n    print(text)\n    return text\n\n"],"image":"python:3.9"}'
       - name: iteration-index
         value: ""
       - name: kubernetes-config
@@ -523,7 +523,7 @@ spec:
               - configMapRef:
                   name: metadata-grpc-configmap
                   optional: true
-              image: public.ecr.aws/docker/library/python:3.10
+              image: python:3.9
               name: user-main
     - name: root-system-dag-driver
       params:
