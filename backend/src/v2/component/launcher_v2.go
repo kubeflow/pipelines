@@ -484,7 +484,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 		localDir, err := LocalPathForURI(outputArtifact.Uri)
 		if err != nil {
 			glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
-		} else {
+		} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
 			blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
 			if err != nil {
 				return nil, fmt.Errorf("failed to upload output artifact %q: %w", name, err)

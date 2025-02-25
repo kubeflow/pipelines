@@ -24,6 +24,10 @@ from kfp.dsl import component
 # normally need to specify `kfp_package_path` in their component definitions.
 _KFP_PACKAGE_PATH = os.getenv("KFP_PACKAGE_PATH")
 
+@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+def build_model_car(model: dsl.Output[dsl.Model]):
+    # Simulate pushing the Modelcar to an OCI registry
+    model.uri = "oci://registry.domain.local/org/repo:v1.0"
 
 @dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
 def get_model_files_list(input_model: dsl.Input[dsl.Model]) -> str:
@@ -59,7 +63,7 @@ def get_model_files_list(input_model: dsl.Input[dsl.Model]) -> str:
 
 
 @dsl.pipeline(name="pipeline-with-modelcar-model")
-def pipeline_modelcar_import(
+def pipeline_modelcar_test(
     model_uri: str = "oci://registry.domain.local/modelcar:test",
 ):
     model_source_oci_task = dsl.importer(
@@ -68,8 +72,10 @@ def pipeline_modelcar_import(
 
     get_model_files_list(input_model=model_source_oci_task.output).set_caching_options(False)
 
+    build_model_car().set_caching_options(False)
+
 
 if __name__ == "__main__":
     compiler.Compiler().compile(
-        pipeline_func=pipeline_modelcar_import, package_path=__file__ + ".yaml"
+        pipeline_func=pipeline_modelcar_test, package_path=__file__ + ".yaml"
     )

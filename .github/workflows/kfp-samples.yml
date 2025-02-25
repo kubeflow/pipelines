@@ -38,7 +38,7 @@ jobs:
 
     - name: Build and upload the sample Modelcar image to Kind
       run: |
-        docker build -f samples/v2/modelcar_import/Dockerfile -t registry.domain.local/modelcar:test .
+        docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
         kind --name kfp load docker-image registry.domain.local/modelcar:test
 
     - name: Forward API port
