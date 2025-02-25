@@ -261,7 +261,7 @@ deploymentSpec:
           \ random.randint(0, 2)\n\n    if val == 0:\n        return 'heads'\n   \
           \ elif val == 1:\n        return 'tails'\n    else:\n        return 'draw'\n\
           \n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-and-return:
       container:
         args:
@@ -290,7 +290,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-and-return-2:
       container:
         args:
@@ -319,7 +319,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-and-return-3:
       container:
         args:
@@ -348,7 +348,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
           \ text\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-special-print-and-return:
       container:
         args:
@@ -378,7 +378,7 @@ deploymentSpec:
           \ *\n\ndef special_print_and_return(text: str, output_key: dsl.OutputPath(str)):\n\
           \    print('Got the special state:', text)\n    with open(output_key, 'w')\
           \ as f:\n        f.write(text)\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
 pipelineInfo:
   name: outer-pipeline
 root:

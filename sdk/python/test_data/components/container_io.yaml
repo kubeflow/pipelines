@@ -25,7 +25,7 @@ deploymentSpec:
         command:
         - my_program
         - '{{$.inputs.parameters[''text'']}}'
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
 pipelineInfo:
   name: container-io
 root:

@@ -31,7 +31,7 @@ deploymentSpec:
         command:
         - my_program
         - '{"Concat": ["prefix-", "{{$.inputs.parameters[''text1'']}}", "{{$.outputs.artifacts[''text2''].uri}}"]}'
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
 pipelineInfo:
   name: container-with-concat-placeholder
 root:

@@ -37,7 +37,7 @@ deploymentSpec:
         - --dataset
         - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.outputs.artifacts[''dataset''].uri}}"],
           "Else": ["bye"]}}'
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
 pipelineInfo:
   name: container-with-if-placeholder
 root:

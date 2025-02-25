@@ -187,7 +187,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef args_generator_op() -> List[Dict[str, str]]:\n    return [{'A_a':\
           \ '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-struct:
       container:
         args:
@@ -215,7 +215,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_struct(struct: Dict):\n    print(struct)\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-struct-2:
       container:
         args:
@@ -243,7 +243,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_struct(struct: Dict):\n    print(struct)\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-text:
       container:
         args:
@@ -271,7 +271,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-text-2:
       container:
         args:
@@ -299,7 +299,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-text-3:
       container:
         args:
@@ -327,7 +327,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-text-4:
       container:
         args:
@@ -355,7 +355,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-print-text-5:
       container:
         args:
@@ -383,7 +383,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
 pipelineInfo:
   name: pipeline-with-loops
 root:

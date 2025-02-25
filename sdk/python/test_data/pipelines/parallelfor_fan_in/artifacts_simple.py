@@ -28,7 +28,7 @@ def add(in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]):
 def add_container(in_datasets: Input[List[Dataset]],
                   out_dataset: Output[Dataset]):
     return dsl.ContainerSpec(
-        image='public.ecr.aws/docker/library/python:3.10',
+        image='python:3.9',
         command=['python', '-c'],
         args=[
             textwrap.dedent("""

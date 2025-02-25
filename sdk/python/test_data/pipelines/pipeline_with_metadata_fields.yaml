@@ -84,7 +84,7 @@ deploymentSpec:
           \ as f:\n        content_b = f.read()\n\n    concatenated_string = content_a\
           \ + content_b\n    with open(out_dataset.path, 'w') as f:\n        f.write(concatenated_string)\n\
           \n    return concatenated_string\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
     exec-str-to-dataset:
       container:
         args:
@@ -115,7 +115,7 @@ deploymentSpec:
           \"\"Convert string to dataset.\n\n    Args:\n        string: The string.\n\
           \n    Returns:\n        dataset: The dataset.\n    \"\"\"\n    with open(dataset.path,\
           \ 'w') as f:\n        f.write(string)\n\n"
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
 pipelineInfo:
   description: A pipeline that joins string to in_dataset.
   displayName: Concatenation pipeline

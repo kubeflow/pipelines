@@ -10,7 +10,7 @@ deploymentSpec:
         command:
         - echo
         - hello world
-        image: public.ecr.aws/docker/library/python:3.10
+        image: python:3.9
 pipelineInfo:
   name: container-no-input
 root:
