@@ -48,10 +48,10 @@ class TestUtils(unittest.TestCase):
   def test_file_injection(self):
     """Test file_injection function."""
     subs = {
-        'gcr\.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+':'gcr.io/ml-pipeline/LOCAL_CONFUSION_MATRIX_IMAGE',
-        'gcr\.io/ml-pipeline/ml-pipeline-dataproc-analyze:\w+':'gcr.io/ml-pipeline/DATAPROC_ANALYZE_IMAGE',
-        'gcr\.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\w+':'gcr.io/ml-pipeline/DATAPROC_CREATE_IMAGE',
-        'gcr\.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\w+':'gcr.io/ml-pipeline/DATAPROC_DELETE_IMAGE',
+        r'gcr\.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+':'gcr.io/ml-pipeline/LOCAL_CONFUSION_MATRIX_IMAGE',
+        r'gcr\.io/ml-pipeline/ml-pipeline-dataproc-analyze:\w+':'gcr.io/ml-pipeline/DATAPROC_ANALYZE_IMAGE',
+        r'gcr\.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\w+':'gcr.io/ml-pipeline/DATAPROC_CREATE_IMAGE',
+        r'gcr\.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\w+':'gcr.io/ml-pipeline/DATAPROC_DELETE_IMAGE',
     }
     utils.file_injection(
         os.path.join(_WORK_DIR, 'test_file_injection.yaml'),

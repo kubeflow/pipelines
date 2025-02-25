@@ -28,7 +28,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -45,7 +44,7 @@ type ExecutionClient interface {
 // ExecutionInformerEventHandler only has AddEventHandler function
 // ExecutionInformer has all functions we need in current code base
 type ExecutionInformerEventHandler interface {
-	AddEventHandler(funcs cache.ResourceEventHandler)
+	AddEventHandler(funcs cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error)
 }
 type ExecutionInformer interface {
 	ExecutionInformerEventHandler
@@ -87,7 +86,7 @@ func NewExecutionClientOrFatal(execType ExecutionType, initConnectionTimeout tim
 	case ArgoWorkflow:
 		var argoProjClient *argoclient.Clientset
 		operation := func() error {
-			restConfig, err := rest.InClusterConfig()
+			restConfig, err := GetKubernetesConfig()
 			if err != nil {
 				return errors.Wrap(err, "Failed to initialize the RestConfig")
 			}
@@ -106,8 +105,8 @@ func NewExecutionClientOrFatal(execType ExecutionType, initConnectionTimeout tim
 		return &WorkflowClient{client: argoProjClient}
 	case TektonPipelineRun:
 		var prClient *prclientset.Clientset
-		var operation = func() error {
-			restConfig, err := rest.InClusterConfig()
+		operation := func() error {
+			restConfig, err := GetKubernetesConfig()
 			if err != nil {
 				return errors.Wrap(err, "Failed to initialize the RestConfig")
 			}
@@ -139,7 +138,7 @@ func NewExecutionInformerOrFatal(execType ExecutionType, namespace string,
 	case ArgoWorkflow:
 		var argoInformer argoinformer.SharedInformerFactory
 		operation := func() error {
-			restConfig, err := rest.InClusterConfig()
+			restConfig, err := GetKubernetesConfig()
 			if err != nil {
 				return errors.Wrap(err, "Failed to initialize the RestConfig")
 			}
@@ -167,8 +166,8 @@ func NewExecutionInformerOrFatal(execType ExecutionType, namespace string,
 	case TektonPipelineRun:
 		var prInformer prinformer.SharedInformerFactory
 		var prClient *prclientset.Clientset
-		var operation = func() error {
-			restConfig, err := rest.InClusterConfig()
+		operation := func() error {
+			restConfig, err := GetKubernetesConfig()
 			if err != nil {
 				return errors.Wrap(err, "Failed to initialize the RestConfig")
 			}

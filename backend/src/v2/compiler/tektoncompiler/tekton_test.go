@@ -17,7 +17,7 @@ package tektoncompiler_test
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"sort"
 	"testing"
 
@@ -69,12 +69,12 @@ func Test_tekton_compiler(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				err = ioutil.WriteFile(tt.tektonYAMLPath, got, 0664)
+				err = os.WriteFile(tt.tektonYAMLPath, got, 0664)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
-			tektonYAML, err := ioutil.ReadFile(tt.tektonYAMLPath)
+			tektonYAML, err := os.ReadFile(tt.tektonYAMLPath)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -194,12 +194,12 @@ func testCompile(t *testing.T, test testInputs) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = ioutil.WriteFile(test.tektonYAMLPath, got, 0644)
+			err = os.WriteFile(test.tektonYAMLPath, got, 0644)
 			if err != nil {
 				t.Fatal(err)
 			}
 		}
-		tektonYAML, err := ioutil.ReadFile(test.tektonYAMLPath)
+		tektonYAML, err := os.ReadFile(test.tektonYAMLPath)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -221,7 +221,7 @@ func testCompile(t *testing.T, test testInputs) {
 
 func load(t *testing.T, path string, platformSpecPath string, fileType string) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
 	t.Helper()
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Error(err)
 	}
@@ -238,7 +238,7 @@ func load(t *testing.T, path string, platformSpecPath string, fileType string) (
 
 	platformSpec := &pipelinespec.PlatformSpec{}
 	if platformSpecPath != "" {
-		content, err = ioutil.ReadFile(platformSpecPath)
+		content, err = os.ReadFile(platformSpecPath)
 		if err != nil {
 			t.Error(err)
 		}

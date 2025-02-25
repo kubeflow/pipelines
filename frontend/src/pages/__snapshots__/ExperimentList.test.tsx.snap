@@ -21,6 +21,7 @@ exports[`ExperimentList renders a list of one experiment 1`] = `
           "customRenderer": [Function],
           "flex": 1,
           "label": "Last 5 runs",
+          "sortKey": "last_run_created_at",
         },
       ]
     }
@@ -70,6 +71,7 @@ exports[`ExperimentList renders a list of one experiment with error 1`] = `
           "customRenderer": [Function],
           "flex": 1,
           "label": "Last 5 runs",
+          "sortKey": "last_run_created_at",
         },
       ]
     }
@@ -106,6 +108,7 @@ exports[`ExperimentList renders a list of one experiment with no description 1`]
           "customRenderer": [Function],
           "flex": 1,
           "label": "Last 5 runs",
+          "sortKey": "last_run_created_at",
         },
       ]
     }
@@ -142,6 +145,7 @@ exports[`ExperimentList renders an empty list with empty state message 1`] = `
           "customRenderer": [Function],
           "flex": 1,
           "label": "Last 5 runs",
+          "sortKey": "last_run_created_at",
         },
       ]
     }

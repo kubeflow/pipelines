@@ -169,7 +169,7 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 // Assumes that the serialized parameters will take a form of
 // map[string]*structpb.Value, which works for runtimeConfig.Parameters  such as
 // {"param1":"value1","param2":"value2"}.
-func stringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, error) {
+func StringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, error) {
 	var swParams []scheduledworkflow.Parameter
 	var parameters map[string]*structpb.Value
 	if modelParams == "" {

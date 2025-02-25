@@ -24,6 +24,7 @@ import { stylesheet } from 'typestyle';
 import Banner from './Banner';
 import { ValueComponentProps } from './DetailsTable';
 import { logger } from 'src/lib/Utils';
+import { URIToSessionInfo } from './tabs/InputOutputTab';
 
 const css = stylesheet({
   root: {
@@ -50,6 +51,7 @@ const css = stylesheet({
 
 export interface ArtifactPreviewProps extends ValueComponentProps<string> {
   namespace?: string;
+  sessionMap?: URIToSessionInfo;
   maxbytes?: number;
   maxlines?: number;
 }
@@ -60,12 +62,16 @@ export interface ArtifactPreviewProps extends ValueComponentProps<string> {
 const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   value,
   namespace,
+  sessionMap,
   maxbytes = 255,
   maxlines = 20,
 }) => {
   let storage: StoragePath | undefined;
+  let providerInfo: string | undefined;
+
   if (value) {
     try {
+      providerInfo = sessionMap?.get(value);
       storage = WorkflowParser.parseStoragePath(value);
     } catch (error) {
       logger.error(error);
@@ -74,7 +80,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
 
   const { isSuccess, isError, data, error } = useQuery<string, Error>(
     ['artifact_preview', { value, namespace, maxbytes, maxlines }],
-    () => getPreview(storage, namespace, maxbytes, maxlines),
+    () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
     { staleTime: Infinity },
   );
 
@@ -125,6 +131,7 @@ export default ArtifactPreview;
 
 async function getPreview(
   storagePath: StoragePath | undefined,
+  providerInfo: string | undefined,
   namespace: string | undefined,
   maxbytes: number,
   maxlines?: number,
@@ -133,7 +140,12 @@ async function getPreview(
     return ``;
   }
   // TODO how to handle binary data (can probably use magic number to id common mime types)
-  let data = await Apis.readFile(storagePath, namespace, maxbytes + 1);
+  let data = await Apis.readFile({
+    path: storagePath,
+    providerInfo: providerInfo,
+    namespace: namespace,
+    peek: maxbytes + 1,
+  });
   // is preview === data and no maxlines
   if (data.length <= maxbytes && (!maxlines || data.split('\n').length < maxlines)) {
     return data;

@@ -17,7 +17,7 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -53,7 +53,7 @@ func (s *RunApiTestSuite) SetupTest() {
 	}
 
 	if !*isDevMode {
-		err := test.WaitForReady(*namespace, *initializeTimeout)
+		err := test.WaitForReady(*initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
@@ -166,7 +166,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter run by uploading workflow manifest ---------- */
-	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	pipeline_spec := &structpb.Struct{}
 	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
@@ -302,7 +302,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, runs[0].StorageState)
 
 	/* ---------- Upload long-running pipeline YAML ---------- */
-	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", upload_params.NewUploadPipelineParamsWithTimeout(350))
+	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", upload_params.NewUploadPipelineParamsWithTimeout(10*time.Second))
 	assert.Nil(t, err)
 
 	/* ---------- Upload a long-running pipeline version YAML under longRunningPipeline ---------- */
@@ -389,7 +389,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentId string) {
 
 	// Compare the pipeline spec first.
-	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	// pipeline_spec := &structpb.Struct{}
 	// err = yaml.Unmarshal(argParamsBytes, pipeline_spec)

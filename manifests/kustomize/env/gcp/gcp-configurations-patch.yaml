@@ -20,3 +20,17 @@ spec:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: gcsProjectId
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline-ui
+spec:
+  template:
+    spec:
+      containers:
+        - name: ml-pipeline-ui
+          env:
+            - name: DISABLE_GKE_METADATA
+              value: 'false'

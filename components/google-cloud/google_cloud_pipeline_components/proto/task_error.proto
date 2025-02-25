@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package task_error;
+
+// The message allows the 1st party clients of Vertex Pipline to specify
+// arbitary error messages they want to catch during the execution of the
+// pipeline.
+message TaskError {
+  // The primary error message.
+  string error_message = 1;
+}

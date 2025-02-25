@@ -46,12 +46,17 @@ def rlhf_preprocessor(
     metadata_refined_image_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     metadata_num_microbatches: dsl.OutputPath(int),  # pytype: disable=invalid-annotation
     metadata_upload_location: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    metadata_deploy_model: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
+    metadata_model_display_name: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    metadata_upload_model: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
     use_experimental_image: bool = False,
     evaluation_dataset: str = '',
     tensorboard_resource_id: str = '',
     input_reference_model_path: str = '',
     image_uri: str = utils.get_default_image_uri('refined_cpu', ''),
     upload_location: str = '',
+    model_display_name: str = '',
+    deploy_model: bool = True,
 ) -> dsl.ContainerSpec:  # pylint: disable=g-doc-args
   # fmt: off
   """Preprocess RLHF pipeline inputs.
@@ -73,6 +78,8 @@ def rlhf_preprocessor(
     metadata_reward_model_path: The model checkpoint path for the reward model.
     image_uri: Docker image URI to use for the custom job.
     upload_location: Region where the model will be uploaded.
+    model_display_name: Display name of the model.
+    deploy_model: Whether to deploy the model.
 
   Returns:
     gcp_resources: GCP resources that can be used to track the custom job.
@@ -86,6 +93,9 @@ def rlhf_preprocessor(
     metadata_num_microbatches: Number of microbatches to break the total batch
       size into during training.
     metadata_upload_location: Regional endpoint.
+    metadata_deploy_model: Whether to deploy the model.
+    metadata_model_display_name: Display name of the model.
+    metadata_upload_model: Whether to upload the model.
   """
   # fmt: on
   return gcpc_utils.build_serverless_customjob_container_spec(
@@ -109,6 +119,8 @@ def rlhf_preprocessor(
               f'--tag={tag}',
               f'--use_experimental_image={use_experimental_image}',
               f'--upload_location={upload_location}',
+              f'--deploy_model={deploy_model}',
+              f'--model_display_name={model_display_name}',
               f'--has_tensorboard_id_path={has_tensorboard_id}',
               f'--has_inference_dataset_path={has_inference_dataset}',
               f'--metadata_candidate_columns_string_path={metadata_candidate_columns_string}',
@@ -123,6 +135,9 @@ def rlhf_preprocessor(
               f'--metadata_refined_image_uri_path={metadata_refined_image_uri}',
               f'--metadata_num_microbatches_path={metadata_num_microbatches}',
               f'--metadata_upload_location_path={metadata_upload_location}',
+              f'--metadata_deploy_model_path={metadata_deploy_model}',
+              f'--metadata_model_display_name_path={metadata_model_display_name}',
+              f'--metadata_upload_model_path={metadata_upload_model}',
           ],
       ),
       gcp_resources=gcp_resources,

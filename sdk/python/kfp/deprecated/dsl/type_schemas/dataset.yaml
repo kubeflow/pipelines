@@ -1,7 +1,0 @@
-title: system.Dataset
-type: object
-properties:
-  payload_format:
-    type: string
-  container_format:
-    type: string

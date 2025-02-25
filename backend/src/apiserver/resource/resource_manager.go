@@ -417,13 +417,6 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version")
 	}
 
-	// TODO(gkcalat): consider removing this after v2beta1 GA if we adopt storing PipelineSpec in DB.
-	// Store the pipeline file
-	err = r.objectStore.AddFile(tmpl.Bytes(), r.objectStore.GetPipelineKey(newVersion.UUID))
-	if err != nil {
-		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to error saving PipelineSpec to ObjectStore")
-	}
-
 	newPipeline.Status = model.PipelineReady
 	err = r.pipelineStore.UpdatePipelineStatus(
 		newPipeline.UUID,
@@ -605,6 +598,12 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		default:
+		}
+
+		// If the pipeline isn't pinned, skip it. The runs API is used directly by the ScheduledWorkflow controller
+		// in this case with just the pipeline ID and optionally the pipeline version ID.
+		if jobs[i].PipelineSpec.PipelineSpecManifest == "" && jobs[i].PipelineSpec.WorkflowSpecManifest == "" {
+			continue
 		}
 
 		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
@@ -1058,13 +1057,6 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
-	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
-	// Update the job.PipelineSpec if an existing pipeline version is used.
-	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
-	}
-
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {
@@ -1076,12 +1068,63 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 	job.Namespace = k8sNamespace
 
-	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
-	// Convert modelJob into scheduledWorkflow.
-	scheduledWorkflow, err := tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+	var manifest string
+	var scheduledWorkflow *scheduledworkflow.ScheduledWorkflow
+	var tmpl template.Template
+
+	// If the pipeline version or pipeline spec is provided, this means the user wants to pin to a specific pipeline.
+	// Otherwise, always let the ScheduledWorkflow controller pick the latest.
+	if job.PipelineVersionId != "" || job.PipelineSpecManifest != "" || job.WorkflowSpecManifest != "" {
+		var err error
+		// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
+		// Update the job.PipelineSpec if an existing pipeline version is used.
+		tmpl, manifest, err = r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
+		}
+
+		// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
+		// Convert modelJob into scheduledWorkflow.
+		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+		}
+	} else if job.PipelineId == "" {
+		return nil, errors.New("Cannot create a job with an empty pipeline ID")
+	} else {
+		// Validate the input parameters on the latest pipeline version. The latest pipeline version is not stored
+		// in the ScheduledWorkflow. It's just to help the user with up front validation at recurring run creation
+		// time.
+		manifest, err := r.GetPipelineLatestTemplate(job.PipelineId)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
+		}
+
+		tmpl, err := template.New(manifest)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
+		}
+
+		_, err = tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
+		}
+
+		scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job, r.getOwnerReferences())
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+		}
+
+		parameters, err := template.StringMapToCRDParameters(job.RuntimeConfig.Parameters)
+		if err != nil {
+			return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
+		}
+
+		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
+			Parameters: parameters, PipelineRoot: job.PipelineRoot,
+		}
 	}
+
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -1097,6 +1140,11 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	for _, modelRef := range job.ResourceReferences {
 		modelRef.ResourceUUID = string(swf.UID)
 	}
+
+	if tmpl == nil {
+		return r.jobStore.CreateJob(job)
+	}
+
 	if tmpl.GetTemplateType() == template.V1 {
 		// Get the service account
 		serviceAccount := ""
@@ -1653,13 +1701,6 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		return nil, util.Wrap(err, "Failed to create pipeline version in PipelineStore")
 	}
 
-	// TODO(gkcalat): consider removing this after v2beta1 GA if we adopt storing PipelineSpec in DB.
-	// Store the pipeline file
-	err = r.objectStore.AddFile(tmpl.Bytes(), r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)))
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline version due to error saving PipelineSpec to ObjectStore")
-	}
-
 	// After pipeline version being created in DB and pipeline file being
 	// saved in minio server, set this pipeline version to status ready.
 	version.Status = model.PipelineVersionReady
@@ -1716,7 +1757,7 @@ func (r *ResourceManager) ListPipelineVersions(pipelineId string, opts *list.Opt
 // Deletes a pipeline version and the corresponding PipelineSpec.
 func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error {
 	// Check if pipeline version exists
-	pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId)
+	_, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete pipeline version with id %v as it was not found", pipelineVersionId)
 	}
@@ -1737,41 +1778,7 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	// either using async deletion in order for this method to be non-blocking
 	// or or exploring other performance optimization tools provided by gcs.
 	//
-	// TODO(gkcalat): consider removing this if we switch to storing PipelineSpec in DB.
-	// DeleteObject always responds with http '204' even for
-	// objects which do not exist. The err below will be nil.
-	//
-	// Delete based on pipeline spec URI
-	pipelineSpecRemoved := false
-	var osErr error
-	err = r.objectStore.DeleteFile(pipelineVersion.PipelineSpecURI)
-	if err != nil {
-		glog.Errorf("%v", util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v with URI %v", pipelineVersionId, pipelineVersion.PipelineSpecURI))
-		osErr = util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v with URI %v", pipelineVersionId, pipelineVersion.PipelineSpecURI)
-	} else {
-		pipelineSpecRemoved = true
-	}
-	// Delete based on pipeline version id
-	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersionId)))
-	if err != nil {
-		glog.Errorf("%v", util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v", pipelineVersionId))
-		err = util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v", pipelineVersionId)
-		osErr = util.Wrap(osErr, err.Error())
-	} else {
-		pipelineSpecRemoved = true
-	}
-	// Delete based on pipeline id
-	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
-	if err != nil {
-		glog.Errorf("%v", util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v using pipeline id %v", pipelineVersionId, pipelineVersion.PipelineId))
-		err = util.Wrapf(err, "Failed to delete pipeline spec for pipeline version id %v using pipeline id %v", pipelineVersionId, pipelineVersion.PipelineId)
-		osErr = util.Wrap(osErr, err.Error())
-	} else {
-		pipelineSpecRemoved = true
-	}
-	if !pipelineSpecRemoved {
-		return util.Wrap(osErr, "Failed to delete a pipeline spec")
-	}
+
 	// Delete the DB entry
 	err = r.pipelineStore.DeletePipelineVersion(pipelineVersionId)
 	if err != nil {

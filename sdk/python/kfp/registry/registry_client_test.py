@@ -55,14 +55,10 @@ class RegistryClientTest(parameterized.TestCase):
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(''))
         expected_config = {
-            'host':
-                host,
-            'upload_url':
-                host,
-            'download_version_url':
-                f'{host}/{{package_name}}/{{version}}',
-            'download_tag_url':
-                f'{host}/{{package_name}}/{{tag}}',
+            'host': host,
+            'upload_url': host,
+            'download_version_url': f'{host}/{{package_name}}/{{version}}',
+            'download_tag_url': f'{host}/{{package_name}}/{{tag}}',
             'get_package_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
@@ -114,7 +110,8 @@ class RegistryClientTest(parameterized.TestCase):
                            '/repo/packages/{package_name}/tags/{tag}'),
             'version_format':
                 ('projects/proj/locations/us-central1/repositories'
-                 '/repo/packages/{package_name}/versions/{version}')
+                 '/repo/packages/{package_name}/versions/{version}'),
+            'auth_scopes': 'https://www.googleapis.com/auth/cloud-platform'
         }
         self.assertEqual(self._mock_open.call_args_list[0][0],
                          (_KFP_CONFIG_FILE, 'r'))

@@ -104,4 +104,4 @@ root:
         taskInfo:
           name: print-text-3
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-rc.2
+sdkVersion: kfp-2.7.0

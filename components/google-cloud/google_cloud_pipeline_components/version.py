@@ -13,4 +13,4 @@
 # limitations under the License.
 """Google Cloud Pipeline Components version."""
 
-__version__ = "2.14.0"
+__version__ = "2.18.0"

@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -47,6 +46,8 @@ var (
 	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
 	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
 	runID             = flag.String("run_id", "", "pipeline run uid")
+	runName           = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
+	runDisplayName    = flag.String("run_display_name", "", "pipeline run display name")
 	componentSpecJson = flag.String("component", "{}", "component spec")
 	taskSpecJson      = flag.String("task", "", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
@@ -168,6 +169,8 @@ func drive() (err error) {
 	options := driver.Options{
 		PipelineName:         *pipelineName,
 		RunID:                *runID,
+		RunName:              *runName,
+		RunDisplayName:       *runDisplayName,
 		Namespace:            namespace,
 		Component:            componentSpec,
 		Task:                 taskSpec,
@@ -294,7 +297,7 @@ func writeFile(path string, data []byte) (err error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, data, 0o644)
+	return os.WriteFile(path, data, 0o644)
 }
 
 func newMlmdClient() (*metadata.Client, error) {

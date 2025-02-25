@@ -37,6 +37,15 @@ message KubernetesExecutorConfig {
     repeated GenericEphemeralVolume generic_ephemeral_volume = 13;
     repeated NodeAffinityTerm node_affinity = 14;
     repeated PodAffinityTerm pod_affinity = 15;
+    EnabledSharedMemory enabled_shared_memory = 16;
+    repeated EmptyDirMount empty_dir_mounts = 17;
+}
+
+message EnabledSharedMemory {
+    // Name of the Shared Memory Volume.
+    string volume_name = 1;
+    // Size of the Shared Memory.
+    string size = 2;
 }
 
 message SecretAsVolume {
@@ -215,7 +224,6 @@ message NodeAffinityTerm {
     optional int32 weight = 3;
 } 
 
-
 message PodAffinityTerm {
     repeated SelectorRequirement match_pod_expressions = 1;
     map<string,string> match_pod_labels = 2;
@@ -227,4 +235,12 @@ message PodAffinityTerm {
     optional int32 weight = 7;
     //Flag indicating if it is a podaffinity or podantiaffinity
     optional bool anti = 8;
+}
+
+message EmptyDirMount {
+    // https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#emptydirvolumesource-v1-core
+    string volume_name = 1;
+    string mount_path = 2;
+    optional string medium = 3;
+    optional string size_limit = 4;
 }

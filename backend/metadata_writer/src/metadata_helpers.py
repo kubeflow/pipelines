@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import json
 import os
 import sys
-import ml_metadata
 from time import sleep
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store import metadata_store
@@ -169,7 +169,6 @@ def create_context_with_type(
     return context
 
 
-import functools
 @functools.lru_cache(maxsize=128)
 def get_context_by_name(
     store,

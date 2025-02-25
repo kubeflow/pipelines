@@ -37,6 +37,7 @@ def pipeline(
     policy_model_reference: str,
     model_display_name: Optional[str] = None,
     deploy_model: bool = True,
+    upload_model: bool = True,
     encryption_spec_key_name: str = '',
     upload_location: str = _placeholders.LOCATION_PLACEHOLDER,
     regional_endpoint: str = '',
@@ -59,40 +60,25 @@ def pipeline(
     endpoint_resource_name: Path the Online Prediction Endpoint. This will be an empty string if the model was not deployed.
   """
   # fmt: on
-  display_name = (
-      function_based.resolve_model_display_name(
-          large_model_reference=large_model_reference,
-          model_display_name=model_display_name,
-      )
-      .set_caching_options(False)
-      .set_display_name('Resolve Model Display Name')
-  )
-
-  upload_model = function_based.resolve_upload_model(
-      large_model_reference=policy_model_reference,
-  ).set_display_name('Resolve Upload Model')
   upload_task = upload_llm_model.refined_upload_llm_model(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
       location=upload_location,
       regional_endpoint=regional_endpoint,
       artifact_uri=output_adapter_path,
-      model_display_name=display_name.output,
+      model_display_name=model_display_name,
       model_reference_name=large_model_reference,
-      upload_model=upload_model.output,
+      upload_model=upload_model,
       encryption_spec_key_name=encryption_spec_key_name,
       tune_type='rlhf',
   ).set_display_name('Upload Model')
-  deploy_model = function_based.resolve_deploy_model(
-      deploy_model=deploy_model,
-      large_model_reference=policy_model_reference,
-  ).set_display_name('Resolve Deploy Model')
+
   deploy_task = deploy_llm_model.deploy_llm_model(
       project=_placeholders.PROJECT_ID_PLACEHOLDER,
       location=upload_location,
       model_resource_name=upload_task.outputs['model_resource_name'],
-      display_name=display_name.output,
+      display_name=model_display_name,
       regional_endpoint=regional_endpoint,
-      deploy_model=deploy_model.output,
+      deploy_model=deploy_model,
       encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Deploy Model')
   return PipelineOutput(

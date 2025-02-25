@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp 
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TestCase
+
 from .loop_parallelism import pipeline
-from kfp.samples.test.utils import run_pipeline_func, TestCase
 
 run_pipeline_func([
-    TestCase(
-        pipeline_func=pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
-    ),
+    TestCase(pipeline_func=pipeline),
 ])
