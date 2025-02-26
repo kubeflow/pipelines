@@ -1095,7 +1095,7 @@ type PipelineTaskSpec struct {
 	// t2.outputs.parameters = { 'p': 'v2' }
 	// t2.outputs.artifacts = { 'a': [a2] }
 	// parent_task.outputs.parameters = { 'p': '["v1", "v2"]' }
-	// parent_task.outputs.aritfacts = { 'a': [a1, a2] }
+	// parent_task.outputs.artifacts = { 'a': [a1, a2] }
 	//
 	// Types that are assignable to Iterator:
 	//
@@ -3650,7 +3650,7 @@ type TaskInputsSpec_InputParameterSpec_ComponentInputParameter struct {
 }
 
 type TaskInputsSpec_InputParameterSpec_TaskFinalStatus_ struct {
-	// The final status of an uptream task.
+	// The final status of an upstream task.
 	TaskFinalStatus *TaskInputsSpec_InputParameterSpec_TaskFinalStatus `protobuf:"bytes,5,opt,name=task_final_status,json=taskFinalStatus,proto3,oneof"`
 }
 
@@ -3790,7 +3790,7 @@ type TaskInputsSpec_InputParameterSpec_TaskFinalStatus struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// The name of the upsteram task where the final status is coming from.
+	// The name of the upstream task where the final status is coming from.
 	ProducerTask string `protobuf:"bytes,1,opt,name=producer_task,json=producerTask,proto3" json:"producer_task,omitempty"`
 }
 
@@ -4261,7 +4261,7 @@ func (x *ArtifactIteratorSpec_ItemsSpec) GetInputArtifact() string {
 	return ""
 }
 
-// Specifies the spec to decribe the parameter items to iterate.
+// Specifies the spec to describe the parameter items to iterate.
 type ParameterIteratorSpec_ItemsSpec struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
