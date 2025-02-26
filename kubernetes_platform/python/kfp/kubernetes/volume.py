@@ -32,6 +32,7 @@ def CreatePVC(
     storage_class_name: Optional[str] = '',
     volume_name: Optional[str] = None,
     annotations: Optional[Dict[str, str]] = None,
+    data_source: Optional[Dict[str, str]] = None,
 ):
     """Create a PersistentVolumeClaim, which can be used by downstream tasks.
     See `PersistentVolume <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes>`_ and `PersistentVolumeClaim <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims>`_ documentation for more information about
@@ -54,6 +55,7 @@ def CreatePVC(
             provisioned PersistentVolumeClaim. Used for statically
             specified PV only. Corresponds to `PersistentVolumeClaim.spec.volumeName <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
         annotations: Annotations for the PVC's metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+        data_source: Data source to use for the PVC's creation. Corresponds to `PersistentVolumeClaim.spec.dataSource <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#beta-level>`_.
 
     Returns:
         ``name: str`` \n\t\t\tName of the generated PVC.
