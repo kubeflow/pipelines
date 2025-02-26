@@ -176,6 +176,7 @@ type ExecutionConfig struct {
 
 	// DAGExecution custom properties
 	IterationCount *int // Number of iterations for an iterator DAG.
+	TotalDagTasks  *int // Number of tasks inside the DAG
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -554,6 +555,7 @@ const (
 	keyParentDagID           = "parent_dag_id" // Parent DAG Execution ID.
 	keyIterationIndex        = "iteration_index"
 	keyIterationCount        = "iteration_count"
+	keyTotalDagTasks         = "total_dag_tasks"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -648,6 +650,9 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		}
 		e.CustomProperties[keyArtifactProducerTask] = StringValue(string(b))
 	}
+	if config.TotalDagTasks != nil {
+		e.CustomProperties[keyTotalDagTasks] = intValue(int64(*config.TotalDagTasks))
+	}
 
 	req := &pb.PutExecutionRequest{
 		Execution: e,
@@ -718,11 +723,13 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	if err != nil {
 		return err
 	}
+
+	totalDagTasks := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+
 	glog.V(4).Infof("tasks: %v", tasks)
 	glog.V(4).Infof("Checking Tasks' State")
 	completedTasks := 0
 	failedTasks := 0
-	totalTasks := len(tasks)
 	for _, task := range tasks {
 		taskState := task.GetExecution().LastKnownState.String()
 		glog.V(4).Infof("task: %s", task.TaskName())
@@ -740,10 +747,10 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	}
 	glog.V(4).Infof("completedTasks: %d", completedTasks)
 	glog.V(4).Infof("failedTasks: %d", failedTasks)
-	glog.V(4).Infof("totalTasks: %d", totalTasks)
+	glog.V(4).Infof("totalTasks: %d", totalDagTasks)
 
 	glog.Infof("Attempting to update DAG state")
-	if completedTasks == totalTasks {
+	if completedTasks == int(totalDagTasks) {
 		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_COMPLETE)
 	} else if failedTasks > 0 {
 		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_FAILED)

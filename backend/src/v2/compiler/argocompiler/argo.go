@@ -120,6 +120,12 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Entrypoint:         tmplEntrypoint,
 		},
 	}
+
+	runAsUser := GetPipelineRunAsUser()
+	if runAsUser != nil {
+		wf.Spec.SecurityContext = &k8score.PodSecurityContext{RunAsUser: runAsUser}
+	}
+
 	c := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),

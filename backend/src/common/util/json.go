@@ -15,9 +15,12 @@
 package util
 
 import (
-	"encoding/json"
+	"github.com/golang/protobuf/jsonpb"
 
+	"encoding/json"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/proto"
+	"strings"
 )
 
 func UnmarshalJsonOrFail(data string, v interface{}) {
@@ -62,4 +65,11 @@ func UnmarshalJsonWithError(data interface{}, v *interface{}) error {
 		return Wrapf(err, "Failed to unmarshal the object: %+v", v)
 	}
 	return nil
+}
+
+// UnmarshalString unmarshals a JSON object from s into m.
+// Allows unknown fields
+func UnmarshalString(s string, m proto.Message) error {
+	unmarshaler := jsonpb.Unmarshaler{AllowUnknownFields: true}
+	return unmarshaler.Unmarshal(strings.NewReader(s), m)
 }

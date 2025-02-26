@@ -2,35 +2,21 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   creationTimestamp: null
-  generateName: my-pipeline-
+  generateName: hello-world-
 spec:
   arguments:
     parameters:
-    - name: kubernetes-comp-comp
-      value: '{"pvcMount":[{"mountPath":"/data","taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-b34273359995b3746ecf1bb58ac4bd6c54d47b6fdc35b013bb7962946f322a19
-      value: '{"executorLabel":"exec-comp"}'
-    - name: implementations-b34273359995b3746ecf1bb58ac4bd6c54d47b6fdc35b013bb7962946f322a19
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","comp"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet     --no-warn-script-location ''kfp==2.0.0-beta.16''
-        \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d) printf
-        \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\" python3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"
-        ","\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import
-        *\n\ndef comp():\n    pass\n\n"],"image":"python:3.9"}'
-    - name: kubernetes-comp-comp-2
-      value: '{"pvcMount":[{"mountPath":"/reused_data","taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
-      value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"parameterType":"LIST"},"annotations":{"isOptional":true,"parameterType":"STRUCT"},"pvc_name":{"isOptional":true,"parameterType":"STRING"},"pvc_name_suffix":{"isOptional":true,"parameterType":"STRING"},"size":{"parameterType":"STRING"},"storage_class_name":{"defaultValue":"","isOptional":true,"parameterType":"STRING"},"volume_name":{"isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"name":{"parameterType":"STRING"}}}}'
-    - name: implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
-      value: '{"image":"argostub/createpvc"}'
-    - name: components-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725
-      value: '{"executorLabel":"exec-deletepvc","inputDefinitions":{"parameters":{"pvc_name":{"parameterType":"STRING"}}}}'
-    - name: implementations-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725
-      value: '{"image":"argostub/deletepvc"}'
+    - name: components-203fce8adabe0cfa7da54b9d3ff79c772136c926974659b51c378727c7ccdfb7
+      value: '{"executorLabel":"exec-hello-world","inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
+    - name: implementations-203fce8adabe0cfa7da54b9d3ff79c772136c926974659b51c378727c7ccdfb7
+      value: '{"args":["--text","{{$.inputs.parameters[''text'']}}"],"command":["sh","-ec","program_path=$(mktemp)\nprintf
+        \"%s\" \"$0\" \u003e \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n","def
+        hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser
+        = argparse.ArgumentParser(prog=''Hello world'', description='''')\n_parser.add_argument(\"--text\",
+        dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+        = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"],"image":"python:3.9"}'
     - name: components-root
-      value: '{"dag":{"tasks":{"comp":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp"},"dependentTasks":["createpvc"],"taskInfo":{"name":"comp"}},"comp-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp-2"},"dependentTasks":["comp","createpvc"],"taskInfo":{"name":"comp-2"}},"createpvc":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Gi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}},"deletepvc":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["comp-2","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}}}}}'
+      value: '{"dag":{"tasks":{"hello-world":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}}},"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -44,13 +30,13 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - my-pipeline
+      - namespace/n1/pipeline/hello-world
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -79,15 +65,17 @@ spec:
       - "false"
       - "--ca_cert_path"
       - ""
+      - --log_level
+      - "3"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
-      name: ""
       env:
         - name: ML_PIPELINE_SERVICE_HOST
           value: ml-pipeline.kubeflow.svc.cluster.local
         - name: ML_PIPELINE_SERVICE_PORT_GRPC
           value: '8887'
+      name: ""
       resources:
         limits:
           cpu: 500m
@@ -181,6 +169,8 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
+      - --log_level
+      - "3"
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher
@@ -221,78 +211,25 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b34273359995b3746ecf1bb58ac4bd6c54d47b6fdc35b013bb7962946f322a19}}'
+            value: '{{workflow.parameters.components-203fce8adabe0cfa7da54b9d3ff79c772136c926974659b51c378727c7ccdfb7}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp"},"dependentTasks":["createpvc"],"taskInfo":{"name":"comp"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b34273359995b3746ecf1bb58ac4bd6c54d47b6fdc35b013bb7962946f322a19}}'
+            value: '{{workflow.parameters.implementations-203fce8adabe0cfa7da54b9d3ff79c772136c926974659b51c378727c7ccdfb7}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-          - name: kubernetes-config
-            value: '{{workflow.parameters.kubernetes-comp-comp}}'
-        depends: createpvc.Succeeded
-        name: comp-driver
+        name: hello-world-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.comp-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.hello-world-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.comp-driver.outputs.parameters.cached-decision}}'
-        depends: comp-driver.Succeeded
-        name: comp
+            value: '{{tasks.hello-world-driver.outputs.parameters.cached-decision}}'
+        depends: hello-world-driver.Succeeded
+        name: hello-world
         template: system-container-executor
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-b34273359995b3746ecf1bb58ac4bd6c54d47b6fdc35b013bb7962946f322a19}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp-2"},"dependentTasks":["comp","createpvc"],"taskInfo":{"name":"comp-2"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-b34273359995b3746ecf1bb58ac4bd6c54d47b6fdc35b013bb7962946f322a19}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: kubernetes-config
-            value: '{{workflow.parameters.kubernetes-comp-comp-2}}'
-        depends: comp.Succeeded && createpvc.Succeeded
-        name: comp-2-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.comp-2-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.comp-2-driver.outputs.parameters.cached-decision}}'
-        depends: comp-2-driver.Succeeded
-        name: comp-2
-        template: system-container-executor
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Gi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-        name: createpvc
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["comp-2","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-        depends: comp-2.Succeeded && createpvc.Succeeded
-        name: deletepvc
-        template: system-container-driver
     inputs:
       parameters:
       - name: parent-dag-id
@@ -304,13 +241,13 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - my-pipeline
+      - namespace/n1/pipeline/hello-world
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -337,15 +274,17 @@ spec:
       - "false"
       - "--ca_cert_path"
       - ""
-      command:
-      - driver
-      image: ghcr.io/kubeflow/kfp-driver
-      name: ""
+      - --log_level
+      - "3"
       env:
         - name: ML_PIPELINE_SERVICE_HOST
           value: ml-pipeline.kubeflow.svc.cluster.local
         - name: ML_PIPELINE_SERVICE_PORT_GRPC
           value: '8887'
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver
+      name: ""
       resources:
         limits:
           cpu: 500m
@@ -388,7 +327,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
-            value: '{}'
+            value: '{"parameters":{"text":{"stringValue":"hi there"}}}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver
