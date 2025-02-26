@@ -2,6 +2,7 @@ approvers:
   - chensun
   - rimolive
   - hbelmiro
+  - mprahl
 reviewers:
   - chensun
   - hbelmiro
@@ -9,3 +10,5 @@ reviewers:
   - rimolive
   - mprahl
   - gmfrasca
+  - droctothorpe
+  - zazulam
