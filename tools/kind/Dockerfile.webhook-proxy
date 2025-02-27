@@ -1,0 +1,10 @@
+# This Dockerfile creates a containerized NGINX reverse proxy for handling webhook requests.
+# It enables HTTPS communication and forwards requests to the API Server in KIND cluster using a self-signed SSL certificate for secure traffic.
+FROM registry.access.redhat.com/ubi9/nginx-124
+
+EXPOSE 9443
+
+ADD webhook-proxy-nginx.conf "${NGINX_CONF_PATH}"
+
+# Run script uses standard ways to run the application
+CMD ["nginx", "-g", "daemon off;"]

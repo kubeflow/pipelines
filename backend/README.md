@@ -288,6 +288,14 @@ without a breakpoint so that Delve will continue execution until the Driver pod 
 point, you can set a break point, port forward, and connect to the remote debug session to debug that specific Driver
 pod.
 
+### Using a Webhook Proxy for Local Development in a Kind Cluster
+
+The Kubeflow Pipelines API server typically runs over HTTPS when deployed in a Kubernetes cluster. However, during local development, it operates over HTTP, which Kubernetes admission webhooks do not support (they require HTTPS). This incompatibility prevents webhooks from functioning correctly in a local Kind cluster.
+
+To resolve this, a webhook proxy acts as a bridge, allowing webhooks to communicate with the API server even when it runs over HTTP. 
+
+This is used by default when using the `dev-kind-cluster` Make target.
+
 ### Deleting the Kind Cluster
 
 Run the following to delete the cluster (once you are finished):

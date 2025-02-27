@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-pipeline-reverse-proxy
+  namespace: kubeflow
+spec:
+  ports:
+    - name: https
+      port: 9443
+      protocol: TCP
+      targetPort: 9443
+  selector:
+    app: reverse-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reverse-webhook
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reverse-webhook
+  template:
+    metadata:
+      labels:
+        app: reverse-webhook
+    spec:
+      containers:
+        - name: nginx
+          image: domain.local/kfp/webhook-proxy:latest
+          imagePullPolicy: Never
+          ports:
+            - name: https
+              protocol: TCP
+              containerPort: 9443
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: kfp-api-webhook-cert
