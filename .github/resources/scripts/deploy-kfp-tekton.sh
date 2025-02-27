@@ -32,6 +32,17 @@ then
   exit $EXIT_CODE
 fi
 
+#Install cert-manager
+make -C ./backend install-cert-manager || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Failed to deploy cert-manager."
+  exit $EXIT_CODE
+fi
+
+# Apply webhook configurations
+kubectl apply -k "manifests/kustomize/env/cert-manager/base/webhook/"
+
 # Deploy manifest
 TEST_MANIFESTS=".github/resources/manifests/tekton"
 kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?

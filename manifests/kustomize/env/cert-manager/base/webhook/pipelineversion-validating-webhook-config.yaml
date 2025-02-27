@@ -1,0 +1,29 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: pipelineversions.pipelines.kubeflow.org
+  annotations:
+    cert-manager.io/inject-ca-from: $(kfp-namespace)/kfp-api-webhook-cert
+webhooks:
+  - name: pipelineversions.pipelines.kubeflow.org
+    rules:
+      - operations:
+          - CREATE
+          - UPDATE
+        apiGroups:
+          - pipelines.kubeflow.org
+        apiVersions:
+          - v2beta1
+        resources:
+          - pipelineversions
+        scope: Namespaced
+    admissionReviewVersions:
+      - v1
+    sideEffects: None
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: ml-pipeline
+        namespace: $(kfp-namespace)
+        path: /webhooks/validate-pipelineversion
+        port: 8443

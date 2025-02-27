@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -116,4 +117,23 @@ func ValidatePipelineName(pipelineName string) error {
 		return util.NewInvalidInputError("pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters")
 	}
 	return nil
+}
+
+func ParseLogLevel(logLevel string) (zapcore.Level, error) {
+	switch logLevel {
+	case "debug":
+		return zapcore.DebugLevel, nil
+	case "info":
+		return zapcore.InfoLevel, nil
+	case "warn":
+		return zapcore.WarnLevel, nil
+	case "error":
+		return zapcore.ErrorLevel, nil
+	case "panic":
+		return zapcore.PanicLevel, nil
+	case "fatal":
+		return zapcore.FatalLevel, nil
+	default:
+		return zapcore.Level(0), fmt.Errorf("could not translate log level to ZAP levels: %s", logLevel)
+	}
 }
