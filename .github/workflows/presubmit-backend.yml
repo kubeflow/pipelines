@@ -10,6 +10,7 @@ on:
     paths:
       - 'backend/**'
       - 'test/presubmit-backend-test.sh'
+      - '.github/workflows/presubmit-backend.yml'
 
 jobs:
   backend-tests:
@@ -25,4 +26,4 @@ jobs:
         go-version-file: go.mod
 
     - name: Run Backend Tests
-      run: ./test/presubmit-backend-test.sh
+      run: make test-presubmit-backend

@@ -28,4 +28,4 @@ jobs:
       - name: Run KFP Runtime Code Tests
         run: |
           export PULL_NUMBER="${{ github.event.inputs.pull_number || github.event.pull_request.number }}"
-          ./test/presubmit-test-kfp-runtime-code.sh
+          make test-kfp-sdk-runtime-tests
