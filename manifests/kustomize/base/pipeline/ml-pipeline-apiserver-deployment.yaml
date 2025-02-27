@@ -112,6 +112,8 @@ spec:
             secretKeyRef:
               name: mlpipeline-minio-artifact
               key: secretkey
+        - name: GLOBAL_KUBERNETES_WEBHOOK_MODE
+          value: "false"        
         image: ghcr.io/kubeflow/kfp-api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
@@ -120,6 +122,8 @@ spec:
           containerPort: 8888
         - name: grpc
           containerPort: 8887
+        - name: webhook
+          containerPort: 9443
         readinessProbe:
           exec:
             command:
@@ -173,4 +177,12 @@ spec:
           requests:
             cpu: 250m
             memory: 500Mi
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: webhook-serving-secret      
       serviceAccountName: ml-pipeline
