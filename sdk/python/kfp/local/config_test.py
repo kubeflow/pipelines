@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for config.py."""
+
 import os
 import unittest
 from unittest import mock
@@ -70,7 +71,7 @@ class LocalRunnerConfigTest(unittest.TestCase):
     def test_validate_fail(self):
         with self.assertRaisesRegex(
                 RuntimeError,
-                r"Local environment not initialized. Please run 'kfp\.local\.init\(\)' before executing tasks locally\."
+                r"Local environment not initialized. Please run 'kfp\.local\.init\(\)' before executing tasks locally\.",
         ):
             config.LocalExecutionConfig.validate()
 
@@ -116,7 +117,7 @@ class TestInitCalls(unittest.TestCase):
         """Test config instance attributes with multiple init() calls."""
         with self.assertRaisesRegex(
                 ValueError,
-                r'Got unknown runner foo of type str\. Runner should be one of the following types: SubprocessRunner\.'
+                r'Got unknown runner foo of type str\. Runner should be one of the following types: SubprocessRunner\.',
         ):
             local.init(runner='foo')
 
@@ -127,7 +128,7 @@ class TestDockerRunner(unittest.TestCase):
         with mock.patch.dict('sys.modules', {'docker': None}):
             with self.assertRaisesRegex(
                     ImportError,
-                    r"Package 'docker' must be installed to use 'DockerRunner'\. Install it using 'pip install docker'\."
+                    r"Package 'docker' must be installed to use 'DockerRunner'\. Install it using 'pip install docker'\.",
             ):
                 local.DockerRunner()
 
