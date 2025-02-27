@@ -34,6 +34,7 @@ resources:
   - container-builder-sa.yaml
   - viewer-sa.yaml
   - kfp-launcher-configmap.yaml
+  - ../../crds
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
     newTag: 2.4.0
