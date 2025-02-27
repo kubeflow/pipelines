@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: profile-controller
-        image: python:3.9
+        image: public.ecr.aws/docker/library/python:3.12
         command: ["python", "/hooks/sync.py"]
         envFrom:
         - configMapRef:
