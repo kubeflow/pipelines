@@ -63,7 +63,7 @@ import {
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
-import CircularProgress from '@material-ui/core/CircularProgress';
+import { CircularProgress } from '@mui/material';
 import { lineColors } from 'src/components/viewers/ROCCurve';
 import Hr from 'src/atoms/Hr';
 

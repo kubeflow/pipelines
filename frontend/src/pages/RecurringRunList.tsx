@@ -22,7 +22,7 @@ import { Link, RouteComponentProps } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss, color } from 'src/Css';
 import { formatDateString, errorToMessage } from 'src/lib/Utils';
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@mui/material';
 import {
   V2beta1RecurringRun,
   V2beta1RecurringRunStatus,
