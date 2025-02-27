@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../base/crds
+  - ../../platform-agnostic
+  - ../base/webhook
+
+patches:
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: webhook-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+    target:
+      kind: Deployment
+      name: ml-pipeline
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: webhook-certs
+          secret:
+            secretName: kfp-api-webhook-cert
+    target:
+      kind: Deployment
+      name: ml-pipeline
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: "--webhookTLSCertPath=/etc/webhook/certs/cert.pem"
+    target:
+      kind: Deployment
+      name: ml-pipeline
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: "--webhookTLSKeyPath=/etc/webhook/certs/key.pem"
+    target:
+      kind: Deployment
+      name: ml-pipeline
+  - patch: |-
+      - op: add
+        path: /spec/ports/-
+        value:
+          name: webhook
+          port: 8443
+          protocol: TCP
+          targetPort: 8443
+    target:
+      kind: Service
+      name: ml-pipeline
