@@ -289,3 +289,21 @@ def pipeline():
     task = simple_task()
     kubernetes.set_image_pull_policy(task, "Always")
 ```
+
+### ImagePullSecrets: Set secrets to authenticate image pulls
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.container_component
+def hello():
+    return dsl.ContainerSpec(
+        image='some-private-image:tag',
+        command=['echo', 'hello']
+    )
+
+@dsl.pipeline
+def pipeline():
+    task = hello()
+    kubernetes.set_image_pull_secrets(task, ['secret-name'])
+```
