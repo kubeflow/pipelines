@@ -58,11 +58,14 @@ spec:
           seccompProfile:
             type: RuntimeDefault
           runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
+          runAsUser: 999
+          runAsGroup: 999
+          fsGroup: 999
+          fsGroupChangePolicy: OnRootMismatch
           capabilities:
             drop:
             - ALL
+               securityContext:
         volumeMounts:
         - mountPath: /var/lib/mysql
           name: mysql-persistent-storage
