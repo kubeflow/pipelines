@@ -65,7 +65,6 @@ spec:
           capabilities:
             drop:
             - ALL
-               securityContext:
         volumeMounts:
         - mountPath: /var/lib/mysql
           name: mysql-persistent-storage
