@@ -290,7 +290,7 @@ def pipeline():
     kubernetes.set_image_pull_policy(task, "Always")
 ```
 
-### ImagePullSecrets: Set secrets to pull private images
+### ImagePullSecrets: Set secrets to authenticate image pulls
 ```python
 from kfp import dsl
 from kfp import kubernetes
