@@ -8,6 +8,8 @@
 
 ## Bug fixes and other changes
 
+* Depends on `kfp-server-api>=2.1.0,<2.5.0` [\#11685](https://github.com/kubeflow/pipelines/pull/11685)`
+
 ## Documentation updates
 
 # 2.12.0
