@@ -19,19 +19,11 @@ WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
 COPY ./go.sum ./
-COPY ./hack/install-go-licenses.sh ./hack/
 
 RUN GO111MODULE=on go mod download
-RUN ./hack/install-go-licenses.sh
 
 COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
-# Check licenses and comply with license terms.
-# First, make sure there's no forbidden license.
-RUN go-licenses check ./backend/src/apiserver
-RUN go-licenses csv ./backend/src/apiserver > /tmp/licenses.csv && \
-  diff /tmp/licenses.csv backend/third_party_licenses/apiserver.csv && \
-  go-licenses save ./backend/src/apiserver --save_path /tmp/NOTICES
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.9 as compiler
@@ -73,9 +65,6 @@ WORKDIR /bin
 COPY backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
 
-# Copy licenses and notices.
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver
 
