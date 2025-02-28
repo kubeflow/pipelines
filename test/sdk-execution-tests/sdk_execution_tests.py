@@ -103,7 +103,7 @@ def get_kfp_package_path() -> str:
     if os.environ.get('PULL_NUMBER') is not None:
         path = f'git+https://github.com/{repo_name}.git@refs/pull/{os.environ["PULL_NUMBER"]}/merge#subdirectory=sdk/python'
     else:
-        path = 'git+https://github.com/{repo_name}.git@master#subdirectory=sdk/python'
+        path = f'git+https://github.com/{repo_name}.git@master#subdirectory=sdk/python'
     print(f'Using the following KFP package path for tests: {path}')
     return path
 

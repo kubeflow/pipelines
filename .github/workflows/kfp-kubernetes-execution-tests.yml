@@ -74,6 +74,9 @@ jobs:
 
       - name: Run tests
         id: test
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           export KFP_ENDPOINT="http://localhost:8888"
           export TIMEOUT_SECONDS=2700
