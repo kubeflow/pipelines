@@ -23,4 +23,4 @@ jobs:
           python-version: 3.9
 
       - name: Run SDK upgrade tests
-        run: ./test/presubmit-test-sdk-upgrade.sh
+        run: make test-sdk-upgrade

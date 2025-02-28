@@ -1,3 +1,9 @@
+SHELL := /bin/bash
+
+.PHONY: setup-python
+setup-python:
+	python3 -m venv .venv && \
+	source .venv/bin/activate
 
 # Check diff for generated files
 .PHONY: check-diff
@@ -11,3 +17,8 @@ check-diff:
 		git diff; \
 		exit 1; \
 	fi'
+
+.PHONY: test-sdk-upgrade
+test-sdk-upgrade:
+	$(MAKE) setup-python && \
+	./test/presubmit-test-sdk-upgrade.sh
