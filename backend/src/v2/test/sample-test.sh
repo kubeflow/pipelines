@@ -23,10 +23,12 @@ python3 -m pip install -r ./requirements-sample-test.txt
 
 popd
 
+REPO_NAME="${REPO_NAME:-kubeflow/pipelines}"
+
 if [[ -n "${PULL_NUMBER}" ]]; then
-  export KFP_PACKAGE_PATH="git+https://github.com/kubeflow/pipelines@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
 else
-  export KFP_PACKAGE_PATH='git+https://github.com/kubeflow/pipelines#egg=kfp&subdirectory=sdk/python'
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
 fi
 
 python3 -m pip install $KFP_PACKAGE_PATH
