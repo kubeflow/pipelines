@@ -66,10 +66,13 @@ jobs:
 
       - name: Run tests
         id: tests
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           export KFP_ENDPOINT="http://localhost:8888"
           export TIMEOUT_SECONDS=2700
-          pytest ./test/sdk-execution-tests/sdk_execution_tests.py --asyncio-task-timeout $TIMEOUT_SECONDS
+          pytest -v -n 5 ./test/sdk-execution-tests/sdk_execution_tests.py
         continue-on-error: true
 
       - name: Collect failed logs
