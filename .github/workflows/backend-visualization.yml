@@ -23,4 +23,4 @@ jobs:
           python-version: '3.9'
 
       - name: Run tests
-        run: ./test/presubmit-backend-visualization.sh
+        run: make test-backend-visualization-test
