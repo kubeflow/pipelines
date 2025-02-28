@@ -18,6 +18,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/golang/protobuf/jsonpb"
 	"sort"
 	"strings"
 	"time"
@@ -663,7 +664,7 @@ func collectTaskRunMetricsOrNil(
 	// ReportRunMetricsRequest as a workaround to hold user's metrics, which is a superset of what
 	// user can provide.
 	reportMetricsRequest := new(api.ReportRunMetricsRequest)
-	err = UnmarshalString(metricsJSON, reportMetricsRequest)
+	err = jsonpb.UnmarshalString(metricsJSON, reportMetricsRequest)
 	if err != nil {
 		// User writes invalid metrics JSON.
 		// TODO(#1426): report the error back to api server to notify user

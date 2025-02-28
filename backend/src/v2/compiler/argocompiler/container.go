@@ -20,10 +20,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
@@ -431,7 +430,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 
 	if kubernetesConfigParam != nil {
 		k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := util.UnmarshalString(string(*kubernetesConfigParam.Value), k8sExecCfg); err == nil {
+		if err := jsonpb.UnmarshalString(string(*kubernetesConfigParam.Value), k8sExecCfg); err == nil {
 			extendPodMetadata(&executor.Metadata, k8sExecCfg)
 		}
 	}

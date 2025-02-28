@@ -34,6 +34,17 @@ __all__ = [
     'use_secret_as_volume',
 ]
 
+
+import os
+import sys
+
+# Ensure Python can find the protobuf-generated modules
+# This is needed in order to resolve common proto python module
+# that is generated via generate_proto.py
+package_dir = os.path.dirname(os.path.abspath(__file__))
+if package_dir not in sys.path:
+    sys.path.append(package_dir)
+
 from kfp.kubernetes.config_map import use_config_map_as_env
 from kfp.kubernetes.config_map import use_config_map_as_volume
 from kfp.kubernetes.empty_dir import empty_dir_mount
