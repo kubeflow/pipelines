@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import asyncio
 import dataclasses
 import functools
 import os
@@ -100,10 +99,11 @@ def run(test_case: TestCase) -> Tuple[str, client.client.RunPipelineResult]:
 
 
 def get_kfp_package_path() -> str:
+    repo_name = os.environ.get('REPO_NAME', 'kubeflow/pipelines')
     if os.environ.get('PULL_NUMBER') is not None:
-        path = f'git+https://github.com/kubeflow/pipelines.git@refs/pull/{os.environ.get("PULL_NUMBER")}/merge#subdirectory=sdk/python'
+        path = f'git+https://github.com/{repo_name}.git@refs/pull/{os.environ["PULL_NUMBER"]}/merge#subdirectory=sdk/python'
     else:
-        path = 'git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python'
+        path = f'git+https://github.com/{repo_name}.git@master#subdirectory=sdk/python'
     print(f'Using the following KFP package path for tests: {path}')
     return path
 
@@ -112,18 +112,15 @@ dsl.component = functools.partial(
     dsl.component, kfp_package_path=get_kfp_package_path())
 
 
-@pytest.mark.asyncio_cooperative
 @pytest.mark.parametrize('test_case', create_test_case_parameters())
-async def test(test_case: TestCase) -> None:
-    """Asynchronously runs all samples and test that they succeed."""
-    event_loop = asyncio.get_running_loop()
+def test(test_case: TestCase) -> None:
     try:
         run_url, run_result = run(test_case)
     except Exception as e:
         raise RuntimeError(
             f'Error triggering pipeline {test_case.name}.') from e
 
-    api_run = await event_loop.run_in_executor(None, wait, run_result)
+    api_run = wait(run_result)
     assert api_run.state == test_case.expected_state, f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
 
 

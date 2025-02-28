@@ -43,7 +43,7 @@ jobs:
         run: sudo apt-get install protobuf-compiler -y
 
       - name: Install setuptools
-        run: | 
+        run: |
           pip3 install setuptools
           pip3 freeze
 
@@ -73,7 +73,25 @@ jobs:
         run: pip install -r ./test/kfp-kubernetes-execution-tests/requirements.txt
 
       - name: Run tests
+        id: test
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           export KFP_ENDPOINT="http://localhost:8888"
           export TIMEOUT_SECONDS=2700
           pytest ./test/kfp-kubernetes-execution-tests/sdk_execution_tests.py --asyncio-task-timeout $TIMEOUT_SECONDS
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: steps.test.outcome != 'success'
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-execution-tests-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*

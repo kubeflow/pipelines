@@ -42,6 +42,7 @@ var (
 	podUID                         = flag.String("pod_uid", "", "Kubernetes Pod UID.")
 	mlmdServerAddress              = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
 	mlmdServerPort                 = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
+	logLevel                       = flag.String("log_level", "1", "The verbosity level to log.")
 	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
 	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
 	caCertPath                     = flag.String("ca_cert_path", "", "The path to the CA certificate.")
@@ -57,6 +58,12 @@ func main() {
 func run() error {
 	flag.Parse()
 	ctx := context.Background()
+
+	glog.Infof("Setting log level to: '%s'", *logLevel)
+	err := flag.Set("v", *logLevel)
+	if err != nil {
+		glog.Warningf("Failed to set log level: %s", err.Error())
+	}
 
 	if *copy != "" {
 		// copy is used to copy this binary to a shared volume
@@ -121,7 +128,6 @@ func run() error {
 
 	}
 	return fmt.Errorf("unsupported executor type %s", *executorType)
-
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.

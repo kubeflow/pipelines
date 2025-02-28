@@ -36,7 +36,8 @@ pytest sdk/python/kfp --cov=kfp
 set +x
 # export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)
 set -x
-REPO_BASE="https://github.com/kubeflow/pipelines"
+REPO_NAME="${REPO_NAME:-kubeflow/pipelines}"
+REPO_BASE="https://github.com/${REPO_NAME}"
 export COVERALLS_SERVICE_NAME="prow"
 export COVERALLS_SERVICE_JOB_ID=$PROW_JOB_ID
 export CI_PULL_REQUEST="$REPO_BASE/pull/$PULL_NUMBER"

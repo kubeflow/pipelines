@@ -134,7 +134,8 @@ status:
 	assert.Nil(t, err)
 	newWf, nodes, err := workflow.GenerateRetryExecution()
 
-	newWfString, err := yaml.Marshal(newWf)
+	newWfYaml, err := yaml.Marshal(newWf)
+	actualNewWfString := string(newWfYaml)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"resubmit-hl9ft-random-fail-3879090716"}, nodes)
 
@@ -189,6 +190,9 @@ spec:
     name: random-fail
     outputs: {}
 status:
+  conditions:
+  - status: "False"
+    type: Completed
   finishedAt: null
   nodes:
     resubmit-hl9ft:
@@ -202,10 +206,8 @@ status:
       startedAt: "2021-05-26T09:14:07Z"
       templateName: rand-fail-dag
       type: DAG
-    resubmit-hl9ft-random-fail-3929423573:
+    resubmit-hl9ft-3929423573:
       boundaryID: resubmit-hl9ft
-      children:
-      - resubmit-hl9ft-3879090716
       displayName: A
       finishedAt: "2021-05-26T09:14:11Z"
       id: resubmit-hl9ft-3929423573
@@ -218,5 +220,5 @@ status:
   startedAt: "2021-05-26T09:14:07Z"
 `
 
-	assert.Equal(t, expectedNewWfString, string(newWfString))
+	assert.Equal(t, expectedNewWfString, actualNewWfString)
 }

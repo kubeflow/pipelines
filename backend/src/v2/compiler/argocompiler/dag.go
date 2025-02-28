@@ -15,13 +15,14 @@ package argocompiler
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -370,7 +371,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 
 	tasks = []wfapi.DAGTask{
 		{
-			Name:     name + "-loop",
+			Name:     name,
 			Template: loopTmplName,
 			Depends:  depends(task.GetDependentTasks()),
 			Arguments: wfapi.Arguments{
@@ -537,6 +538,31 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	if ok {
 		return name
 	}
+
+	args := []string{
+		"--type", inputValue(paramDriverType),
+		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
+		"--run_id", runID(),
+		"--run_name", runResourceName(),
+		"--run_display_name", c.job.DisplayName,
+		"--dag_execution_id", inputValue(paramParentDagID),
+		"--component", inputValue(paramComponent),
+		"--task", inputValue(paramTask),
+		"--runtime_config", inputValue(paramRuntimeConfig),
+		"--iteration_index", inputValue(paramIterationIndex),
+		"--execution_id_path", outputPath(paramExecutionID),
+		"--iteration_count_path", outputPath(paramIterationCount),
+		"--condition_path", outputPath(paramCondition),
+		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
+		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
+		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
+		"--ca_cert_path", common.GetCaCertPath(),
+	}
+	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
+
 	t := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -557,29 +583,10 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:   c.driverImage,
-			Command: c.driverCommand,
-			Env:     MLPipelineServiceEnv,
-			Args: []string{
-				"--type", inputValue(paramDriverType),
-				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-				"--run_id", runID(),
-				"--run_name", runResourceName(),
-				"--run_display_name", c.job.DisplayName,
-				"--dag_execution_id", inputValue(paramParentDagID),
-				"--component", inputValue(paramComponent),
-				"--task", inputValue(paramTask),
-				"--runtime_config", inputValue(paramRuntimeConfig),
-				"--iteration_index", inputValue(paramIterationIndex),
-				"--execution_id_path", outputPath(paramExecutionID),
-				"--iteration_count_path", outputPath(paramIterationCount),
-				"--condition_path", outputPath(paramCondition),
-				"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
-				"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
-				"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
-				"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
-				"--ca_cert_path", common.GetCaCertPath(),
-			},
+			Image:     c.driverImage,
+			Command:   c.driverCommand,
+			Env:       MLPipelineServiceEnv,
+			Args:      args,
 			Resources: driverResources,
 		},
 	}

@@ -1,10 +1,54 @@
 package main
 
 import (
+	"github.com/golang/protobuf/proto"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
+
+func strPtr(s string) *string {
+	return &s
+}
+
+func TestSpecParsing(t *testing.T) {
+	tt := []struct {
+		name     string
+		input    *string
+		expected *kubernetesplatform.KubernetesExecutorConfig
+		wantErr  bool
+	}{
+		{
+			"Valid - test kubecfg value parse.",
+			strPtr("{\"imagePullSecret\":[{\"secret_name\":\"value1\"}]}"),
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullSecret: []*kubernetesplatform.ImagePullSecret{
+					{SecretName: "value1"},
+				},
+			},
+			false,
+		},
+		{
+			"Valid - test kubecfg value ignores unknown field.",
+			strPtr("{\"imagePullSecret\":[{\"secret_name\":\"value1\"}], \"unknown_field\": \"something\"}"),
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullSecret: []*kubernetesplatform.ImagePullSecret{
+					{SecretName: "value1"},
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Logf("Running test case: %s", tc.name)
+		cfg, err := parseExecConfigJson(tc.input)
+		assert.Equal(t, tc.wantErr, err != nil)
+		assert.True(t, proto.Equal(tc.expected, cfg))
+	}
+}
 
 func Test_handleExecutionContainer(t *testing.T) {
 	execution := &driver.Execution{}

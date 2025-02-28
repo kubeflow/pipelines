@@ -81,7 +81,7 @@ spec:
       - ""
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver
+      image: ghcr.io/kubeflow/kfp-driver
       name: ""
       env:
         - name: ML_PIPELINE_SERVICE_HOST
@@ -178,11 +178,12 @@ spec:
       - mountPath: /.config
         name: dot-config-scratch
     initContainers:
-    - command:
-      - launcher-v2
+    - args:
       - --copy
       - /kfp-launcher/launch
-      image: gcr.io/ml-pipeline/kfp-launcher
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher
       name: kfp-launcher
       resources:
         limits:
@@ -338,7 +339,7 @@ spec:
       - ""
       command:
       - driver
-      image: gcr.io/ml-pipeline/kfp-driver
+      image: ghcr.io/kubeflow/kfp-driver
       name: ""
       env:
         - name: ML_PIPELINE_SERVICE_HOST

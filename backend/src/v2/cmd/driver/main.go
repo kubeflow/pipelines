@@ -23,15 +23,16 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
-	"github.com/kubeflow/pipelines/backend/src/v2/driver"
-	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 )
 
 const (
@@ -69,6 +70,7 @@ var (
 	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
+	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
 
 	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
 	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
@@ -79,7 +81,14 @@ var (
 
 func main() {
 	flag.Parse()
-	err := drive()
+
+	glog.Infof("Setting log level to: '%s'", *logLevel)
+	err := flag.Set("v", *logLevel)
+	if err != nil {
+		glog.Warningf("Failed to set log level: %s", err.Error())
+	}
+
+	err = drive()
 	if err != nil {
 		glog.Exitf("%v", err)
 	}
@@ -112,37 +121,33 @@ func drive() (err error) {
 	}
 	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJson))
 	componentSpec := &pipelinespec.ComponentSpec{}
-	if err := jsonpb.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
+	if err := util.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, prettyPrint(*componentSpecJson))
 	}
 	var taskSpec *pipelinespec.PipelineTaskSpec
 	if *taskSpecJson != "" {
 		glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJson))
 		taskSpec = &pipelinespec.PipelineTaskSpec{}
-		if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
+		if err := util.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
 			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, taskSpecJson)
 		}
 	}
 	glog.Infof("input ContainerSpec:%s\n", prettyPrint(*containerSpecJson))
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}
-	if err := jsonpb.UnmarshalString(*containerSpecJson, containerSpec); err != nil {
+	if err := util.UnmarshalString(*containerSpecJson, containerSpec); err != nil {
 		return fmt.Errorf("failed to unmarshal container spec, error: %w\ncontainerSpec: %v", err, containerSpecJson)
 	}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	if *runtimeConfigJson != "" {
 		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJson))
 		runtimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
-		if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
+		if err := util.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
 			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJson)
 		}
 	}
-	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
-	if *k8sExecConfigJson != "" {
-		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*k8sExecConfigJson))
-		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := jsonpb.UnmarshalString(*k8sExecConfigJson, k8sExecCfg); err != nil {
-			return fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, k8sExecConfigJson)
-		}
+	k8sExecCfg, err := parseExecConfigJson(k8sExecConfigJson)
+	if err != nil {
+		return err
 	}
 	namespace, err := config.InPodNamespace()
 	if err != nil {
@@ -176,6 +181,7 @@ func drive() (err error) {
 		Task:                 taskSpec,
 		DAGExecutionID:       *dagExecutionID,
 		IterationIndex:       *iterationIndex,
+		PipelineLogLevel:     *logLevel,
 		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
 		MLMDServerAddress:    *mlmdServerAddress,
 		MLMDServerPort:       *mlmdServerPort,
@@ -214,9 +220,22 @@ func drive() (err error) {
 		IterationCount: *iterationCountPath,
 		CachedDecision: *cachedDecisionPath,
 		Condition:      *conditionPath,
-		PodSpecPatch:   *podSpecPatchPath}
+		PodSpecPatch:   *podSpecPatchPath,
+	}
 
 	return handleExecution(execution, *driverType, executionPaths)
+}
+
+func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
+	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+	if *k8sExecConfigJson != "" {
+		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*k8sExecConfigJson))
+		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
+		if err := util.UnmarshalString(*k8sExecConfigJson, k8sExecCfg); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, k8sExecConfigJson)
+		}
+	}
+	return k8sExecCfg, nil
 }
 
 func handleExecution(execution *driver.Execution, driverType string, executionPaths *ExecutionPaths) error {

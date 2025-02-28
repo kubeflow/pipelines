@@ -91,7 +91,7 @@ spec:
           value: "ml-pipeline.kubeflow.svc.cluster.local"
         - name: ML_PIPELINE_SERVICE_PORT_GRPC
           value: "8887"
-      image: gcr.io/ml-pipeline/kfp-driver
+      image: ghcr.io/kubeflow/kfp-driver
       name: ""
       resources:
         limits:
@@ -183,11 +183,12 @@ spec:
       - mountPath: /.config
         name: dot-config-scratch
     initContainers:
-    - command:
-      - launcher-v2
+    - args:
       - --copy
       - /kfp-launcher/launch
-      image: gcr.io/ml-pipeline/kfp-launcher
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher
       name: kfp-launcher
       resources:
         limits:
@@ -349,7 +350,7 @@ spec:
           value: "ml-pipeline.kubeflow.svc.cluster.local"
         - name: ML_PIPELINE_SERVICE_PORT_GRPC
           value: "8887"
-      image: gcr.io/ml-pipeline/kfp-driver
+      image: ghcr.io/kubeflow/kfp-driver
       name: ""
       resources:
         limits:

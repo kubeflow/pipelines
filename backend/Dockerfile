@@ -29,6 +29,8 @@ RUN dnf install -y cmake clang openssl
 
 COPY ${SOURCE_CODE}/go.mod ./
 COPY ${SOURCE_CODE}/go.sum ./
+COPY ${SOURCE_CODE}/kubernetes_platform/go.mod ./kubernetes_platform/go.mod
+COPY ${SOURCE_CODE}/api/go.mod ./api/go.mod
 
 RUN GO111MODULE=on go mod download
 

@@ -33,12 +33,13 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
 	type args struct {
-		container     *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
-		componentSpec *pipelinespec.ComponentSpec
-		executorInput *pipelinespec.ExecutorInput
-		executionID   int64
-		pipelineName  string
-		runID         string
+		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+		componentSpec    *pipelinespec.ComponentSpec
+		executorInput    *pipelinespec.ExecutorInput
+		executionID      int64
+		pipelineName     string
+		runID            string
+		pipelineLogLevel string
 	}
 	tests := []struct {
 		name    string
@@ -81,6 +82,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"nvidia.com/gpu":"1"`,
 			false,
@@ -120,6 +122,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"amd.com/gpu":"1"`,
 			false,
@@ -159,6 +162,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"cloud-tpus.google.com/v3":"1"`,
 			false,
@@ -198,6 +202,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"cloud-tpus.google.com/v2":"1"`,
 			false,
@@ -237,6 +242,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"custom.example.com/accelerator-v1":"1"`,
 			false,
@@ -245,7 +251,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, false, "unused-mlmd-server-address", "unused-mlmd-server-port", false, "unused-ca-cert-path")
+			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, tt.args.pipelineLogLevel, false, "unused-mlmd-server-address", "unused-mlmd-server-port", false, "unused-ca-cert-path")
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
 				assert.NotNil(t, err)
@@ -345,7 +351,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 	}
 
 	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
+		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "1",
 		false, "unused-mlmd-server-address", "unused-mlmd-server-port",
 		false, "unused-ca-cert-path",
 	)
@@ -380,7 +386,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	executorInput := &pipelinespec.ExecutorInput{}
 
 	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300",
+		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "1",
 		false, "unused-mlmd-server-address", "unused-mlmd-server-port",
 		false, "unused-ca-cert-path",
 	)
@@ -393,6 +399,55 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	assert.Equal(t, k8sres.MustParse("100Mi"), res.Requests[k8score.ResourceMemory])
 	assert.Equal(t, k8sres.MustParse("500Mi"), res.Limits[k8score.ResourceMemory])
 	assert.Equal(t, k8sres.MustParse("1"), res.Limits[k8score.ResourceName("nvidia.com/gpu")])
+}
+
+func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.9",
+		Args:    []string{"--function_to_execute", "add"},
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"my-model": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri: "oci://registry.domain.local/my-model:latest",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	podSpec, err := initPodSpecPatch(
+		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "1",
+		false, "unused-mlmd-server-address", "unused-mlmd-server-port", false, "unused-ca-cert-path",
+	)
+	assert.Nil(t, err)
+
+	assert.Len(t, podSpec.InitContainers, 1)
+	assert.Equal(t, podSpec.InitContainers[0].Name, "oci-prepull-0")
+	assert.Equal(t, podSpec.InitContainers[0].Image, "registry.domain.local/my-model:latest")
+
+	assert.Len(t, podSpec.Volumes, 1)
+	assert.Equal(t, podSpec.Volumes[0].Name, "oci-0")
+	assert.NotNil(t, podSpec.Volumes[0].EmptyDir)
+
+	assert.Len(t, podSpec.Containers, 2)
+	assert.Len(t, podSpec.Containers[0].VolumeMounts, 1)
+	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].Name, "oci-0")
+	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].MountPath, "/oci/registry.domain.local\\/my-model:latest")
+	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].SubPath, "registry.domain.local\\/my-model:latest")
+
+	assert.Equal(t, podSpec.Containers[1].Name, "oci-0")
+	assert.Equal(t, podSpec.Containers[1].Image, "registry.domain.local/my-model:latest")
+	assert.Len(t, podSpec.Containers[1].VolumeMounts, 1)
+	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].Name, "oci-0")
+	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].MountPath, "/oci/registry.domain.local\\/my-model:latest")
+	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].SubPath, "registry.domain.local\\/my-model:latest")
 }
 
 func Test_makeVolumeMountPatch(t *testing.T) {
@@ -454,12 +509,13 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
 	type args struct {
-		container     *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
-		componentSpec *pipelinespec.ComponentSpec
-		executorInput *pipelinespec.ExecutorInput
-		executionID   int64
-		pipelineName  string
-		runID         string
+		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+		componentSpec    *pipelinespec.ComponentSpec
+		executorInput    *pipelinespec.ExecutorInput
+		executionID      int64
+		pipelineName     string
+		runID            string
+		pipelineLogLevel string
 	}
 	tests := []struct {
 		name    string
@@ -499,6 +555,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"resources":{"limits":{"cpu":"2","memory":"1500M"},"requests":{"cpu":"1","memory":"650M"}}`,
 			"",
@@ -535,6 +592,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				1,
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
 			},
 			`"resources":{"limits":{"cpu":"2","memory":"1500M"}}`,
 			`"requests"`,
@@ -542,7 +600,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, false, "unused-mlmd-server-address", "unused-mlmd-server-port", false, "unused-ca-cert-path")
+			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, tt.args.pipelineLogLevel, false, "unused-mlmd-server-address", "unused-mlmd-server-port", false, "unused-ca-cert-path")
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
 			podSpecString, err := json.Marshal(podSpec)

@@ -10,6 +10,26 @@
 
 ## Documentation updates
 
+# 2.12.0
+
+## Features
+
+* Add support for placeholders in resource limits [\#11501](https://github.com/kubeflow/pipelines/pull/11501)
+* Introduce cache_key to sdk [\#11466](https://github.com/kubeflow/pipelines/pull/11466)
+* Add support for importing models stored in the Modelcar format (sidecar) [\#11606](https://github.com/kubeflow/pipelines/pull/11606)
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* dsl.component docstring typo [\#11547](https://github.com/kubeflow/pipelines/pull/11547)
+* Update broken api-connect link [\#11521](https://github.com/kubeflow/pipelines/pull/11521)
+* Fix kfp-sdk-test for different python versions [\#11559](https://github.com/kubeflow/pipelines/pull/11559)
+
+## Documentation updates
+
 # 2.11.0
 
 ## Features

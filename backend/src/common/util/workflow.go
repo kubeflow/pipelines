@@ -207,6 +207,7 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 	delete(newWF.Labels, LabelKeyWorkflowPersistedFinalState)
 	newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string(workflowapi.NodeRunning)
 	newWF.Status.Phase = workflowapi.WorkflowRunning
+	newWF.Status.Conditions.UpsertCondition(workflowapi.Condition{Status: metav1.ConditionFalse, Type: workflowapi.ConditionTypeCompleted})
 	newWF.Status.Message = ""
 	newWF.Status.FinishedAt = metav1.Time{}
 	if newWF.Spec.ActiveDeadlineSeconds != nil && *newWF.Spec.ActiveDeadlineSeconds == 0 {
@@ -223,8 +224,7 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 		switch node.Phase {
 		case workflowapi.NodeSucceeded, workflowapi.NodeSkipped:
 			if !strings.HasPrefix(node.Name, onExitNodeName) {
-				nodeName := RetrievePodName(*newWF, node)
-				newWF.Status.Nodes[nodeName] = node
+				newWF.Status.Nodes[node.ID] = node
 				continue
 			}
 		case workflowapi.NodeError, workflowapi.NodeFailed, workflowapi.NodeOmitted:
@@ -233,8 +233,7 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 				newNode.Phase = workflowapi.NodeRunning
 				newNode.Message = ""
 				newNode.FinishedAt = metav1.Time{}
-				nodeName := RetrievePodName(*newWF, *newNode)
-				newWF.Status.Nodes[nodeName] = *newNode
+				newWF.Status.Nodes[node.ID] = *newNode
 				continue
 			}
 			// do not add this status to the node. pretend as if this node never existed.
@@ -247,6 +246,23 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 		if node.Type == workflowapi.NodeTypePod {
 			podsToDelete = append(podsToDelete, oldNodeID)
 		}
+	}
+	for _, node := range newWF.Status.Nodes {
+		var children []string
+		for _, child := range node.Children {
+			if _, ok := newWF.Status.Nodes[child]; ok {
+				children = append(children, child)
+			}
+		}
+		var outboundNodes []string
+		for _, outboundNode := range node.OutboundNodes {
+			if _, ok := newWF.Status.Nodes[outboundNode]; ok {
+				outboundNodes = append(outboundNodes, outboundNode)
+			}
+		}
+		node.Children = children
+		node.OutboundNodes = outboundNodes
+		newWF.Status.Nodes[node.ID] = node
 	}
 	return NewWorkflow(newWF), podsToDelete, nil
 }

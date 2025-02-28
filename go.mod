@@ -241,4 +241,10 @@ replace (
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 )
 
+// These dependencies are managed relative to project root
+replace (
+	github.com/kubeflow/pipelines/api => ./api
+	github.com/kubeflow/pipelines/kubernetes_platform => ./kubernetes_platform
+)
+
 exclude github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f
