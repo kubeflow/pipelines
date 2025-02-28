@@ -23,13 +23,10 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '22'
+  
+    - name: Setup frontend test
+      run: make setup-frontend-test
 
-    - name: Clean npm cache
-      run: npm cache clean --force
-
-    - name: Install dependencies
-      run: cd ./frontend && npm ci
-
-    - name: Run Frontend Tests
-      run: cd ./frontend && npm run test:ci
+    - name: Run Frontend test
+      run: make test-frontend
 
