@@ -16,11 +16,11 @@ package argocompiler
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"os"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -380,7 +380,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 
 	if kubernetesConfigParam != nil {
 		k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := util.UnmarshalString(string(*kubernetesConfigParam.Value), k8sExecCfg); err == nil {
+		if err := jsonpb.UnmarshalString(string(*kubernetesConfigParam.Value), k8sExecCfg); err == nil {
 			extendPodMetadata(&executor.Metadata, k8sExecCfg)
 		}
 	}
