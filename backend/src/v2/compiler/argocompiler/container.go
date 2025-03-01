@@ -488,14 +488,6 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 	return nameContainerExecutor
 }
 
-func (c *workflowCompiler) findTaskSpecByName(name string) *pipelinespec.PipelineTaskSpec {
-	if c.spec == nil || c.spec.Root == nil || c.spec.Root.GetDag() == nil {
-		return nil
-	}
-	rootDag := c.spec.Root.GetDag()
-	return rootDag.Tasks[name]
-}
-
 func (c *workflowCompiler) getTaskRetryPolicySpec(name string) *pipelinespec.PipelineTaskSpec_RetryPolicy {
 	if c.spec == nil || c.spec.Root == nil || c.spec.Root.GetDag() == nil {
 		return nil
