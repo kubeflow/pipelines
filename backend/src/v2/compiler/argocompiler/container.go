@@ -32,9 +32,9 @@ import (
 const (
 	volumeNameKFPLauncher    = "kfp-launcher"
 	volumeNameCABundle       = "ca-bundle"
-	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:2.4.0"
+	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:2.4.1"
 	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
-	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:2.4.0"
+	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:2.4.1"
 	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
 	DefaultDriverCommand     = "driver"
 	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
