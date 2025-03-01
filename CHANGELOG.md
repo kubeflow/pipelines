@@ -1,5 +1,13 @@
 # Changelog
 
+### [2.4.1](https://github.com/kubeflow/pipelines/compare/2.4.0...2.4.1) (2025-03-01)
+
+
+### Other Pull Requests
+
+* update driver/launcher images for 2.4.1 ([6e64e4d](https://github.com/kubeflow/pipelines/commit/6e64e4d553ff49a1de4c1840490ab9ca337d08cc))
+* Cherry Pick Commits for 2.4.1 ([\#11716](https://github.com/kubeflow/pipelines/issues/11716)) ([78fab71](https://github.com/kubeflow/pipelines/commit/78fab71ef1831ae6659c7834bf78d56daa55623d))
+
 ## [2.4.0](https://github.com/kubeflow/pipelines/compare/2.3.0...2.4.0) (2025-01-16)
 
 
