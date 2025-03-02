@@ -1,0 +1,62 @@
+name: Scheduled/Recurring Run Integration Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  sdk-execution-tests:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+    name: Scheduled/Recurring Run Integration Test ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Forward API port
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: apt-get update
+        run: sudo apt-get update
+
+      - name: Install tools
+        run: |
+          pip3 install kfp
+
+      - name: Run tests
+        id: tests
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          export KFP_ENDPOINT="http://localhost:8888"
+          python3 ./test/scripts/recurring_run.py
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: steps.tests.outcome != 'success'
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recurring-run-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
