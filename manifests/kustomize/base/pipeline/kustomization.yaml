@@ -25,9 +25,6 @@ resources:
   - ml-pipeline-viewer-crd-rolebinding.yaml
   - ml-pipeline-viewer-crd-deployment.yaml
   - ml-pipeline-viewer-crd-sa.yaml
-  - ml-pipeline-visualization-deployment.yaml
-  - ml-pipeline-visualization-sa.yaml
-  - ml-pipeline-visualization-service.yaml
   - pipeline-runner-role.yaml
   - pipeline-runner-rolebinding.yaml
   - pipeline-runner-sa.yaml
@@ -44,6 +41,4 @@ images:
   - name: ghcr.io/kubeflow/kfp-frontend
     newTag: 2.4.0
   - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
-    newTag: 2.4.0
-  - name: ghcr.io/kubeflow/kfp-visualization-server
     newTag: 2.4.0
