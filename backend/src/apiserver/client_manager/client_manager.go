@@ -15,6 +15,7 @@
 package clientmanager
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -33,7 +34,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/minio/minio-go/v6"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -71,6 +76,18 @@ const (
 	clientBurst = "ClientBurst"
 )
 
+var scheme *runtime.Scheme
+
+func init() {
+	scheme = runtime.NewScheme()
+
+	err := k8sapi.AddToScheme(scheme)
+	if err != nil {
+		// Panic is okay here because it means there's a code issue and so the package shouldn't initialize.
+		panic(fmt.Sprintf("Failed to initialize the Kubernetes API scheme: %v", err))
+	}
+}
+
 // Container for all service clients.
 type ClientManager struct {
 	db                        *storage.DB
@@ -92,10 +109,15 @@ type ClientManager struct {
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []auth.Authenticator
+	controllerClient          ctrlclient.Client
 }
 
 func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
 	return c.taskStore
+}
+
+func (c *ClientManager) ControllerClient() ctrlclient.Client {
+	return c.controllerClient
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -166,7 +188,7 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 	return c.authenticators
 }
 
-func (c *ClientManager) init() {
+func (c *ClientManager) init(useKubernetesStorage bool) {
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
 	db := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
@@ -178,12 +200,59 @@ func (c *ClientManager) init() {
 	// UUID generator
 	c.uuid = util.NewUUIDGenerator()
 
+	var controllerClient ctrlclient.Client
+
+	var pipelineStoreForRef storage.PipelineStoreInterface
+
+	if useKubernetesStorage {
+		restConfig, err := util.GetKubernetesConfig()
+		if err != nil {
+			panic(fmt.Sprintf("Failed to initialize the RestConfig: %v", err))
+		}
+
+		var cacheConfig map[string]cache.Config
+
+		if !common.IsMultiUserMode() && common.GetPodNamespace() != "" {
+			cacheConfig = map[string]cache.Config{common.GetPodNamespace(): {}}
+		}
+
+		k8sAPICache, err := cache.New(restConfig,
+			cache.Options{
+				DefaultNamespaces: cacheConfig,
+				Scheme:            scheme,
+			},
+		)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to generate a cache to the cluster: %v", err))
+		}
+
+		go func() {
+			err := k8sAPICache.Start(context.Background())
+			if err != nil {
+				panic(fmt.Sprintf("Failed to start the cache to the cluster: %v", err))
+			}
+		}()
+
+		controllerClient, err = ctrlclient.New(
+			restConfig, ctrlclient.Options{Scheme: scheme, Cache: &ctrlclient.CacheOptions{Reader: k8sAPICache}},
+		)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to initialize the client: %v", err))
+		}
+
+		c.controllerClient = controllerClient
+
+		c.pipelineStore = storage.NewPipelineStoreKubernetes(controllerClient)
+		pipelineStoreForRef = c.pipelineStore
+	} else {
+		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
+	}
+
 	c.db = db
 	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid)
-	c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
-	c.jobStore = storage.NewJobStore(db, c.time)
+	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef)
 	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid)
-	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
+	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	glog.Info("Initializing Object store client...")
@@ -531,9 +600,9 @@ func initLogArchive() (logArchive archive.LogArchiveInterface) {
 }
 
 // NewClientManager creates and Init a new instance of ClientManager.
-func NewClientManager() ClientManager {
+func NewClientManager(useKubernetesStorage bool) ClientManager {
 	clientManager := ClientManager{}
-	clientManager.init()
+	clientManager.init(useKubernetesStorage)
 
 	return clientManager
 }

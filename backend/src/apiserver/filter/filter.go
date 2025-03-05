@@ -19,12 +19,14 @@ package filter
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/ptypes"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
 
 // Internal representation of a predicate.
@@ -205,6 +207,32 @@ func replaceMapKeys(m map[string][]interface{}, keyMap map[string]string, prefix
 		delete(m, k)
 	}
 	return nil
+}
+
+func (f *Filter) FilterK8sPipelines(pipeline v2beta1.Pipeline) bool {
+	// TODO: For now k8s pipelines filter will only work on substrings
+	for k := range f.substring {
+		for _, v := range f.substring[k] {
+			if strings.Contains(fmt.Sprint(pipeline.GetField(k)), fmt.Sprint(v)) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (f *Filter) FilterK8sPipelineVersions(pipelineVersion v2beta1.PipelineVersion) bool {
+	// TODO: For now k8s pipelines filter will only work on substrings
+	for k := range f.substring {
+		for _, v := range f.substring[k] {
+			if strings.Contains(fmt.Sprint(pipelineVersion.GetField(k)), fmt.Sprint(v)) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied

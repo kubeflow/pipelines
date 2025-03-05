@@ -1,0 +1,65 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base/crds
+  - ../../base/installs/generic
+  - ../../base/metadata/base
+  - ../../third-party/argo/installs/namespace
+  - ../../third-party/minio/base
+  - ../../third-party/mysql/base
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: ml-pipeline
+      spec:
+        template:
+          spec:
+            containers:
+              - name: ml-pipeline-api-server
+                command:
+                  - /bin/apiserver
+                args:
+                  - '--config=/config'
+                  - '--sampleconfig=/config/sample_config.json'
+                  - '-logtostderr=true'
+                  - '--logLevel=debug'
+                  - '--store-in-kubernetes=true'
+  - patch: |
+      - op: add
+        path: "/rules/-"
+        value:
+        - verbs:
+            - create
+            - get
+            - list
+            - watch
+            - update
+            - patch
+            - delete
+          apiGroups:
+            - pipelines.kubeflow.org
+          resources:
+            - pipelines
+            - pipelines/status
+        - verbs:
+            - create
+            - get
+            - list
+            - watch
+            - update
+            - patch
+            - delete
+          apiGroups:
+            - pipelines.kubeflow.org
+          resources:
+            - pipelineversions
+            - pipelineversions/status
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: Role
+      name: ml-pipeline
