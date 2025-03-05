@@ -199,7 +199,10 @@ export function getNodeNameFromNodeId(workflow: Workflow, nodeId: string): strin
   if (!workflow || !nodeId) {
     return '';
   }
-  if (workflow.apiVersion === 'v1') {
+
+  const podNamesAnnotation =
+    workflow.metadata.annotations?.['workflows.argoproj.io/pod-name-format'];
+  if (workflow.apiVersion === 'v1' || podNamesAnnotation === 'v1') {
     return nodeId;
   }
 
