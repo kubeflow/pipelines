@@ -91,3 +91,6 @@ kubeconfig_dev-pipelines-api
 
 # Ignore debug Driver Dockerfile produced from `make -C backend image_driver_debug`
 backend/Dockerfile.driver-debug
+
+# Ignore Patch File
+*.patch

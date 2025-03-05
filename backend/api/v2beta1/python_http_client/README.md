@@ -134,7 +134,6 @@ Class | Method | HTTP request | Description
 *RunServiceApi* | [**run_service_retry_run**](docs/RunServiceApi.md#run_service_retry_run) | **POST** /apis/v2beta1/runs/{run_id}:retry | Re-initiates a failed or terminated run.
 *RunServiceApi* | [**run_service_terminate_run**](docs/RunServiceApi.md#run_service_terminate_run) | **POST** /apis/v2beta1/runs/{run_id}:terminate | Terminates an active run.
 *RunServiceApi* | [**run_service_unarchive_run**](docs/RunServiceApi.md#run_service_unarchive_run) | **POST** /apis/v2beta1/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
-*VisualizationServiceApi* | [**visualization_service_create_visualization_v1**](docs/VisualizationServiceApi.md#visualization_service_create_visualization_v1) | **POST** /apis/v2beta1/visualizations/{namespace} | 
 
 
 ## Documentation For Models
@@ -181,8 +180,6 @@ Class | Method | HTTP request | Description
  - [V2beta1RuntimeStatus](docs/V2beta1RuntimeStatus.md)
  - [V2beta1Trigger](docs/V2beta1Trigger.md)
  - [V2beta1Url](docs/V2beta1Url.md)
- - [V2beta1Visualization](docs/V2beta1Visualization.md)
- - [V2beta1VisualizationType](docs/V2beta1VisualizationType.md)
 
 
 ## Documentation For Authorization

@@ -56,11 +56,6 @@ docker tag gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA gcr.io/$PROJECT_ID
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/proxyagent:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/proxyagent:$MM_VER
 
-docker tag gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/visualizationserver:$SEM_VER
-docker tag gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/visualizationserver:$MM_VER
-docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/visualizationserver:$SEM_VER
-docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/visualizationserver:$MM_VER
-
 docker tag gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadatawriter:$SEM_VER
 docker tag gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadatawriter:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadatawriter:$SEM_VER
