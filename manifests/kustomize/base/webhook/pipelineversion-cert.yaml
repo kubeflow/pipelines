@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: webhook-pipelineversion-cert
+spec:
+  commonName: webhook-pipelineversion-cert
+  isCA: true
+  dnsNames:
+  - ml-pipeline
+  - ml-pipeline.kubeflow
+  - ml-pipeline.kubeflow.svc
+  issuerRef:
+    kind: Issuer
+    name: pipelineversion-webhook-selfsigned-issuer
+  secretName: webhook-serving-secret
