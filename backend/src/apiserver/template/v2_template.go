@@ -376,7 +376,7 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 				requiredParamNames = append(requiredParamNames, name)
 			}
 			return util.NewInvalidInputError(
-				"pipeline requiring input has no paramater(s) provided. Need parameter(s): %s",
+				"pipeline requiring input has no parameter(s) provided. Need parameter(s): %s",
 				strings.Join(requiredParamNames, ", "),
 			)
 		} else {

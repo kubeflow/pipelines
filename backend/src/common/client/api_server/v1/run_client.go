@@ -101,9 +101,9 @@ func (c *RunClient) Create(parameters *params.RunServiceCreateRunV1Params) (*mod
 	err = yaml.Unmarshal([]byte(response.Payload.PipelineRuntime.WorkflowManifest), &workflow)
 	if err != nil {
 		return nil, nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to unmarshal reponse. Params: %+v. Response: %s", parameters,
+			fmt.Sprintf("Failed to unmarshal response. Params: %+v. Response: %s", parameters,
 				response.Payload.PipelineRuntime.WorkflowManifest),
-			fmt.Sprintf("Failed to unmarshal reponse"))
+			fmt.Sprintf("Failed to unmarshal response"))
 	}
 
 	return response.Payload, &workflow, nil
@@ -135,9 +135,9 @@ func (c *RunClient) Get(parameters *params.RunServiceGetRunV1Params) (*model.API
 	err = yaml.Unmarshal([]byte(response.Payload.PipelineRuntime.WorkflowManifest), &workflow)
 	if err != nil {
 		return nil, nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to unmarshal reponse. Params: %+v. Response: %s", parameters,
+			fmt.Sprintf("Failed to unmarshal response. Params: %+v. Response: %s", parameters,
 				response.Payload.PipelineRuntime.WorkflowManifest),
-			fmt.Sprintf("Failed to unmarshal reponse"))
+			fmt.Sprintf("Failed to unmarshal response"))
 	}
 
 	return response.Payload, &workflow, nil
