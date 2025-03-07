@@ -18,6 +18,7 @@ import * as React from 'react';
 import { logger } from '../lib/Utils';
 import { stylesheet, classes } from 'typestyle';
 import { color } from '../Css';
+import { Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 
 const borderStyle = `1px solid ${color.divider}`;
 
@@ -84,50 +85,50 @@ class CompareTable extends React.PureComponent<CompareTableProps> {
     }
 
     return (
-      <table className={css.root}>
-        <tbody>
+      <Table className={css.root}>
+        <TableBody>
           {xParentLabels && xParentLabelsLength === xLabels.length && (
-            <tr className={css.row}>
-              <td className={css.labelCell} />
+            <TableRow className={css.row}>
+              <TableCell className={css.labelCell} />
               {/* X parent labels row */}
               {xParentLabels.map((parentLabel, i) => (
-                <td
+                <TableCell
                   key={i}
                   className={classes(css.cell, css.labelCell)}
                   title={parentLabel.label}
                   colSpan={parentLabel.colSpan}
                 >
                   {parentLabel.label}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           )}
-          <tr className={css.row}>
-            <td className={css.labelCell} />
+          <TableRow className={css.row}>
+            <TableCell className={css.labelCell} />
             {/* X labels row */}
             {xLabels.map((label, i) => (
-              <td key={i} className={classes(css.cell, css.labelCell)} title={label}>
+              <TableCell key={i} className={classes(css.cell, css.labelCell)} title={label}>
                 {label}
-              </td>
+              </TableCell>
             ))}
-          </tr>
+          </TableRow>
           {rows.map((row, i) => (
-            <tr key={i} className={css.row}>
+            <TableRow key={i} className={css.row}>
               {/* Y label */}
-              <td className={classes(css.cell, css.labelCell)} title={yLabels[i]}>
+              <TableCell className={classes(css.cell, css.labelCell)} title={yLabels[i]}>
                 {yLabels[i]}
-              </td>
+              </TableCell>
 
               {/* Row cells */}
               {row.map((cell, j) => (
-                <td key={j} className={css.cell} title={cell}>
+                <TableCell key={j} className={css.cell} title={cell}>
                   {cell}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     );
   }
 }
