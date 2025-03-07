@@ -18,7 +18,7 @@ spec:
           - configMapRef:
               name: metadata-grpc-configmap
           args: ["--grpc_port=$(METADATA_GRPC_SERVICE_PORT)",
-                 "--mysql_config_host=$(MLMD_DB_HOST)",
+                 "--mysql_config_host=MLMD_DB_HOST_PLACEHOLDER",
                  "--mysql_config_database=$(MYSQL_DATABASE)",
                  "--mysql_config_port=$(MYSQL_PORT)",
                  "--mysql_config_user=$(MYSQL_USER_NAME)",
