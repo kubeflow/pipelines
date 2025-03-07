@@ -15,7 +15,8 @@ import inspect
 import json
 import os
 import re
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import (Any, Callable, Dict, get_args, get_origin, List, Optional,
+                    Union)
 import warnings
 
 from kfp import dsl
@@ -371,15 +372,21 @@ def create_artifact_instance(
     schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
     artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
         schema_title, fallback_artifact_cls)
-    return artifact_cls._from_executor_fields(
-        uri=runtime_artifact.get('uri', ''),
-        name=runtime_artifact.get('name', ''),
-        metadata=runtime_artifact.get('metadata', {}),
-    ) if hasattr(artifact_cls, '_from_executor_fields') else artifact_cls(
-        uri=runtime_artifact.get('uri', ''),
-        name=runtime_artifact.get('name', ''),
-        metadata=runtime_artifact.get('metadata', {}),
-    )
+
+    if get_origin(artifact_cls) is list or get_origin(artifact_cls) is List:
+        artifact_cls = get_args(artifact_cls)[0]
+
+    if hasattr(artifact_cls, '_from_executor_fields'):
+        return artifact_cls._from_executor_fields(
+            uri=runtime_artifact.get('uri', ''),
+            name=runtime_artifact.get('name', ''),
+            metadata=runtime_artifact.get('metadata', {}))
+    else:
+        return artifact_cls(
+            uri=runtime_artifact.get('uri', ''),
+            name=runtime_artifact.get('name', ''),
+            metadata=runtime_artifact.get('metadata', {}),
+        )
 
 
 def get_short_type_name(type_name: str) -> str:
