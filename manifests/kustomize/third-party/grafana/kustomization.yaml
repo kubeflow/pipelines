@@ -7,5 +7,5 @@ resources:
 - grafana-sa.yaml
 - grafana-rolebinding.yaml
 images:
-  - name: grafana/grafana
-    newTag: 5.3.4
+- name: grafana/grafana
+  newTag: 5.3.4

@@ -7,12 +7,12 @@ kind: Kustomization
 # * this separates cluster-scoped resources to its own folder.
 
 resources:
-  - ../../base
-  - ../../upstream/manifests/namespace-install/workflow-controller-rbac
+- ../../base
+- ../../upstream/manifests/namespace-install/workflow-controller-rbac
 patches:
-  - path: workflow-controller-deployment-patch.json
-    target:
-      group: apps
-      kind: Deployment
-      name: workflow-controller
-      version: v1
+- path: workflow-controller-deployment-patch.json
+  target:
+    group: apps
+    kind: Deployment
+    name: workflow-controller
+    version: v1
