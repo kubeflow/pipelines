@@ -24,42 +24,6 @@ replacements:
       name: ml-pipeline
       version: v1
 - source:
-    fieldPath: data.appName
-    kind: ConfigMap
-    name: pipeline-install-config
-    version: v1
-  targets:
-  - fieldPaths:
-    - data.appName
-    select:
-      kind: ConfigMap
-      name: kfp-launcher
-      version: v1
-- source:
-    fieldPath: data.appVersion
-    kind: ConfigMap
-    name: pipeline-install-config
-    version: v1
-  targets:
-  - fieldPaths:
-    - data.appVersion
-    select:
-      kind: ConfigMap
-      name: kfp-launcher
-      version: v1
-- source:
-    fieldPath: data.bucketName
-    kind: ConfigMap
-    name: pipeline-install-config
-    version: v1
-  targets:
-  - fieldPaths:
-    - data.bucketName
-    select:
-      kind: ConfigMap
-      name: kfp-launcher
-      version: v1
-- source:
     fieldPath: data.defaultPipelineRoot
     kind: ConfigMap
     name: pipeline-install-config
