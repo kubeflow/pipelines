@@ -4,3 +4,6 @@ metadata:
   name: kfp-launcher
 data:
   defaultPipelineRoot: kfp-default-pipeline-root_PLACEHOLDER
+  appName: kfp-app-name_PLACEHOLDER
+  appVersion: kfp-app-version_PLACEHOLDER
+  bucketName: kfp-artifact-bucket-name_PLACEHOLDER
