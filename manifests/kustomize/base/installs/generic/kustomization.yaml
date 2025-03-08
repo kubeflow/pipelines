@@ -2,46 +2,46 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: kubeflow
 resources:
-  - ../../pipeline
-  - ../../cache
-  - ../../cache-deployer
-  - pipeline-install-config.yaml
-  - mysql-secret.yaml
+- ../../pipeline
+- ../../cache
+- ../../cache-deployer
+- pipeline-install-config.yaml
+- mysql-secret.yaml
 vars:
-  - name: kfp-namespace
-    objref:
-      kind: Deployment
-      apiVersion: apps/v1
-      name: ml-pipeline
-    fieldref:
-      fieldpath: metadata.namespace
-  - name: kfp-app-name
-    objref:
-      kind: ConfigMap
-      name: pipeline-install-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.appName
-  - name: kfp-app-version
-    objref:
-      kind: ConfigMap
-      name: pipeline-install-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.appVersion
-  - name: kfp-artifact-bucket-name
-    objref:
-      kind: ConfigMap
-      name: pipeline-install-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.bucketName
-  - name: kfp-default-pipeline-root
-    objref:
-      kind: ConfigMap
-      name: pipeline-install-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.defaultPipelineRoot
+- fieldref:
+    fieldPath: metadata.namespace
+  name: kfp-namespace
+  objref:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-pipeline
+- fieldref:
+    fieldPath: data.appName
+  name: kfp-app-name
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+- fieldref:
+    fieldPath: data.appVersion
+  name: kfp-app-version
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+- fieldref:
+    fieldPath: data.bucketName
+  name: kfp-artifact-bucket-name
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+- fieldref:
+    fieldPath: data.defaultPipelineRoot
+  name: kfp-default-pipeline-root
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
 configurations:
-  - params.yaml
+- params.yaml

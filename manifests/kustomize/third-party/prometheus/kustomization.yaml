@@ -8,4 +8,4 @@ resources:
 - prometheus-service.yaml
 - prometheus-deployment.yaml
 images:
-  - name: prom/prometheus
+- name: prom/prometheus
