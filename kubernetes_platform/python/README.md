@@ -166,7 +166,7 @@ def my_pipeline():
         pvc_name_suffix='-my-pvc',
         access_modes=['ReadWriteOnce'],
         size='5Gi',
-        storage_class_name='standard',
+        storage_class_name='standard', # optional - do not specify to use the default storage class
     )
 
     task1 = make_data()

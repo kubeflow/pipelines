@@ -150,7 +150,7 @@
 * **kubernetes_platform:** fix api-generator docker mount for SELinux ([\#10890](https://github.com/kubeflow/pipelines/issues/10890)) ([e69078b](https://github.com/kubeflow/pipelines/commit/e69078b2b65c0e34fd56499bbe34da882dc6e009))
 * **manifests:** Move metacontroller to the top in kustmization.yaml ([\#10669](https://github.com/kubeflow/pipelines/issues/10669)) ([4e9fe75](https://github.com/kubeflow/pipelines/commit/4e9fe75d4564bbcdde7cd358298361e94d4a20be))
 * **sdk:** Throw 'exit_task cannot depend on any other tasks.' error when an ExitHandler has a parameter dependent on other task ([\#11005](https://github.com/kubeflow/pipelines/issues/11005)) ([08185e7](https://github.com/kubeflow/pipelines/commit/08185e71717ef628be3cbe2cdeb1fd55b25581d4))
-
+* **sdk/backend**: Use the cluster's default storage class when creating a PVC with an empty storage class ([\#11396](http://github.com/kubeflow/pipelines/issues/11396))
 
 ### Other Pull Requests
 
