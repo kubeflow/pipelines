@@ -41,10 +41,9 @@ const baseLinkButton: React.CSSProperties = {
   padding: 0,
 };
 const baseBreadcrumb = {
-  ...baseLinkButton,
   fontFamily: fonts.secondary,
   fontWeight: 500,
-};
+} as const;
 const actionBarCss = stylesheet({
   actionButton: {
     color: color.strong,
