@@ -2,7 +2,11 @@ package component
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
@@ -241,6 +245,38 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 			artifact.CustomProperties[k] = value
 		}
 	}
+
+	if strings.HasPrefix(artifactUri, "oci://") {
+		artifactType, err := metadata.SchemaToArtifactType(schema)
+		if err != nil {
+			return nil, fmt.Errorf("converting schema to artifact type failed: %w", err)
+		}
+
+		if *artifactType.Name != "system.Model" {
+			return nil, fmt.Errorf("the %s artifact type does not support OCI registries", *artifactType.Name)
+		}
+
+		return artifact, nil
+	}
+
+	provider, err := objectstore.ParseProviderFromPath(artifactUri)
+	if err != nil {
+		return nil, fmt.Errorf("no provider scheme found in artifact URI: %s", artifactUri)
+	}
+
+	// Assume all imported artifacts will rely on execution environment for store provider session info
+	storeSessionInfo := objectstore.SessionInfo{
+		Provider: provider,
+		Params: map[string]string{
+			"fromEnv": "true",
+		},
+	}
+	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
+	if err != nil {
+		return nil, err
+	}
+	storeSessionInfoStr := string(storeSessionInfoJSON)
+	artifact.CustomProperties["store_session_info"] = metadata.StringValue(storeSessionInfoStr)
 	return artifact, nil
 }
 

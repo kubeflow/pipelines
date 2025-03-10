@@ -18,7 +18,7 @@ ARG CI_CONTAINER_VERSION="unknown"
 
 
 # Use ubi8/nodejs-14 as base image
-FROM registry.access.redhat.com/ubi8/go-toolset:1.21 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.22 as builder
 
 
 ## Build args to be used at this step
@@ -29,6 +29,8 @@ USER root
 
 COPY ${SOURCE_CODE}/go.mod ./
 COPY ${SOURCE_CODE}/go.sum ./
+COPY ${SOURCE_CODE}/kubernetes_platform/go.mod ./kubernetes_platform/go.mod
+COPY ${SOURCE_CODE}/api/go.mod ./api/go.mod
 
 RUN GO111MODULE=on go mod download
 

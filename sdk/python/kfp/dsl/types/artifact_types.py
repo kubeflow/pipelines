@@ -20,10 +20,12 @@ import warnings
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
 _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
 _S3_LOCAL_MOUNT_PREFIX = '/s3/'
+_OCI_LOCAL_MOUNT_PREFIX = '/oci/'
 
 GCS_REMOTE_PREFIX = 'gs://'
 MINIO_REMOTE_PREFIX = 'minio://'
 S3_REMOTE_PREFIX = 's3://'
+OCI_REMOTE_PREFIX = 'oci://'
 
 
 class Artifact:
@@ -94,6 +96,10 @@ class Artifact:
                                                            ):]
         elif self.uri.startswith(S3_REMOTE_PREFIX):
             return _S3_LOCAL_MOUNT_PREFIX + self.uri[len(S3_REMOTE_PREFIX):]
+
+        elif self.uri.startswith(OCI_REMOTE_PREFIX):
+            escaped_uri = self.uri[len(OCI_REMOTE_PREFIX):].replace('/', '\\/')
+            return _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
         # uri == path for local execution
         return self.uri
 
@@ -108,6 +114,13 @@ def convert_local_path_to_remote_path(path: str) -> str:
         return MINIO_REMOTE_PREFIX + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
         return S3_REMOTE_PREFIX + path[len(_S3_LOCAL_MOUNT_PREFIX):]
+    elif path.startswith(_OCI_LOCAL_MOUNT_PREFIX):
+        remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('\\/', '/')
+        if remote_path.endswith("/models"):
+            remote_path = remote_path[:-len("/models")]
+
+        return OCI_REMOTE_PREFIX + remote_path
+
     return path
 
 
@@ -127,6 +140,15 @@ class Model(Artifact):
 
     def _get_framework(self) -> str:
         return self.metadata.get('framework', '')
+
+    @property
+    def path(self) -> str:
+        if self.uri.startswith("oci://"):
+            # Modelcar container images are expected to have the model files stored in /models
+            # https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
+            return self._get_path() + "/models"
+
+        return self._get_path()
 
     @framework.setter
     def framework(self, framework: str) -> None:

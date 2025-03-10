@@ -17,11 +17,14 @@ from __future__ import annotations
 
 import unittest
 
-import kfp.deprecated as kfp
+from kfp.samples.test.utils import KfpTask
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TaskInputs
+from kfp.samples.test.utils import TaskOutputs
+from kfp.samples.test.utils import TestCase
 import kfp_server_api
 from ml_metadata.proto import Execution
 
-from kfp.samples.test.utils import KfpTask, TaskInputs, TaskOutputs, TestCase, run_pipeline_func
 from .hello_world import pipeline_hello_world
 
 
@@ -49,6 +52,5 @@ if __name__ == '__main__':
         TestCase(
             pipeline_func=pipeline_hello_world,
             verify_func=verify,
-            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         ),
     ])

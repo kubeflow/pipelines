@@ -15,7 +15,7 @@
 # Build arguments
 ARG SOURCE_CODE=.
 
-FROM registry.access.redhat.com/ubi8/go-toolset:1.21 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.22 as builder
 
 USER root
 # Downloading Argo CLI so that the samples are validated
@@ -29,6 +29,8 @@ RUN dnf install -y cmake clang openssl
 
 COPY ${SOURCE_CODE}/go.mod ./
 COPY ${SOURCE_CODE}/go.sum ./
+COPY ${SOURCE_CODE}/kubernetes_platform/go.mod ./kubernetes_platform/go.mod
+COPY ${SOURCE_CODE}/api/go.mod ./api/go.mod
 
 RUN GO111MODULE=on go mod download
 
@@ -44,7 +46,6 @@ WORKDIR /bin
 
 COPY --from=builder /opt/app-root/src/backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
-COPY --from=builder /opt/app-root/src/backend/src/apiserver/sample_pipelines /pipelines
 
 RUN chmod +x /bin/apiserver
 

@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated as kfp
+import kfp
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TestCase
+
 from .placeholder_concat import pipeline_with_concat_placeholder
-from kfp.samples.test.utils import run_pipeline_func, TestCase
 
 
 def verify(run, run_id: str, **kwargs):
@@ -27,6 +29,5 @@ run_pipeline_func([
     TestCase(
         pipeline_func=pipeline_with_concat_placeholder,
         verify_func=verify,
-        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
     ),
 ])

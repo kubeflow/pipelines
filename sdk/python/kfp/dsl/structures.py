@@ -239,12 +239,12 @@ class ResourceSpec:
             container.
         accelerator_count (optional): the number of accelerators attached.
     """
-    cpu_request: Optional[float] = None
-    cpu_limit: Optional[float] = None
-    memory_request: Optional[float] = None
-    memory_limit: Optional[float] = None
+    cpu_request: Optional[str] = None
+    cpu_limit: Optional[str] = None
+    memory_request: Optional[str] = None
+    memory_limit: Optional[str] = None
     accelerator_type: Optional[str] = None
-    accelerator_count: Optional[int] = None
+    accelerator_count: Optional[str] = None
 
 
 @dataclasses.dataclass
@@ -409,6 +409,8 @@ class TaskSpec:
             from the [items][] collection.
         enable_caching (optional): whether or not to enable caching for the task.
             Default is True.
+        cache_key (optional): Customized cache key for this task.
+            Default is None.
         display_name (optional): the display name of the task. If not specified,
             the task name will be used as the display name.
     """
@@ -421,6 +423,7 @@ class TaskSpec:
     iterator_items: Optional[Any] = None
     iterator_item_input: Optional[str] = None
     enable_caching: bool = True
+    cache_key: Optional[str] = None
     display_name: Optional[str] = None
     retry_policy: Optional[RetryPolicy] = None
 

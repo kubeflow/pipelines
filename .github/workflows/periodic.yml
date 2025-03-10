@@ -1,0 +1,48 @@
+name: Periodic Functional Tests
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Run every day at midnight
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+    name: Periodic Functional Tests - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Port forward kfp apiserver
+        run: |
+          nohup kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
+
+      - name: Run Functional Tests
+        id: tests
+        run: |
+          log_dir=$(mktemp -d)
+          ./test/kfp-functional-test/kfp-functional-test.sh > $log_dir/periodic_tests.txt
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: steps.tests.outcome != 'success'
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: periodic-functional-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*

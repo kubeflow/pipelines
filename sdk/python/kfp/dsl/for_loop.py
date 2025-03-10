@@ -44,7 +44,7 @@ def _get_loop_item_type(type_name: str) -> Optional[str]:
     Returns:
         The collection item type or None if no match found.
     """
-    match = re.match('(typing\.)?(?:\w+)(?:\[(?P<item_type>.+)\])', type_name)
+    match = re.match(r'(typing\.)?(?:\w+)(?:\[(?P<item_type>.+)\])', type_name)
     return match['item_type'].lstrip().rstrip() if match else None
 
 
@@ -64,7 +64,7 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
         The dictionary value type or None if no match found.
     """
     match = re.match(
-        '(typing\.)?(?:\w+)(?:\[\s*(?:\w+)\s*,\s*(?P<value_type>.+)\])',
+        r'(typing\.)?(?:\w+)(?:\[\s*(?:\w+)\s*,\s*(?P<value_type>.+)\])',
         type_name)
     return match['value_type'].lstrip().rstrip() if match else None
 

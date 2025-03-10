@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubeflow Authors
+# Copyright 2022-2024 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,4 +18,4 @@ from kfp.cli import compile_
 
 @click.group(commands={'compile': compile_.compile_})
 def dsl():
-    """Command group for compiling DSL to IR."""
+    """Command group for compiling DSL to Pipeline Spec."""

@@ -88,7 +88,7 @@ describe('OutputArtifactLoader', () => {
       fileToRead = JSON.stringify({ outputs: [metadata] });
       await OutputArtifactLoader.load(storagePath, 'ns1');
       expect(readFileSpy).toHaveBeenCalledTimes(2);
-      expect(readFileSpy.mock.calls.map(([metadata, namespace]) => namespace))
+      expect(readFileSpy.mock.calls.map(([{ path, namespace }]) => namespace))
         .toMatchInlineSnapshot(`
         Array [
           "ns1",

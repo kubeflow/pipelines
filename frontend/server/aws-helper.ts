@@ -51,7 +51,7 @@ async function getIAMInstanceProfile(): Promise<string | undefined> {
  *
  * @param endpoint minio endpoint to check.
  */
-export function isS3Endpoint(endpoint: string = ''): boolean {
+export function isAWSS3Endpoint(endpoint: string = ''): boolean {
   return !!endpoint.match(/s3.{0,}\.amazonaws\.com\.?.{0,}/i);
 }
 

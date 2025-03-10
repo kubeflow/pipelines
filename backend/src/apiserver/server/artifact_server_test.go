@@ -16,12 +16,13 @@ package server
 
 import (
 	"context"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"strings"
 	"testing"
 	"time"
+
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestGetArtifacts(t *testing.T) {
@@ -74,6 +75,27 @@ func TestGetArtifacts(t *testing.T) {
 				ArtifactSize:    123,
 				CreatedAt:       timestamppb.New(time.Unix(2, 0)),
 				LastUpdatedAt:   timestamppb.New(time.Unix(2, 0)),
+			},
+		},
+		{
+			name: "Fetch artifact 2",
+			artifactRequest: &apiv2beta1.GetArtifactRequest{
+				ArtifactId: "0",
+				View:       apiv2beta1.GetArtifactRequest_RENDER,
+			},
+			expectedArtifact: &apiv2beta1.Artifact{
+				ArtifactId:      "0",
+				StorageProvider: "s3",
+				StoragePath:     "pipeline/some-pipeline-id/task/key0",
+				Uri:             "s3://test-bucket/pipeline/some-pipeline-id/task/key0",
+				DownloadUrl:     "",
+				RenderUrl:       "dummy-render-url", // defined in object_store_fake
+				Namespace:       "test-namespace",
+				ArtifactType:    "1",
+				ArtifactSize:    123,
+
+				CreatedAt:     timestamppb.New(time.Unix(1, 0)),
+				LastUpdatedAt: timestamppb.New(time.Unix(1, 0)),
 			},
 		},
 		{

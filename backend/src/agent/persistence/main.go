@@ -143,11 +143,14 @@ func main() {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
 
-	controller := NewPersistenceAgent(
+	controller, err := NewPersistenceAgent(
 		swfInformerFactory,
 		execInformer,
 		pipelineClient,
 		util.NewRealTime())
+	if err != nil {
+		log.Fatalf("Failed to instantiate the controller: %v", err)
+	}
 
 	go swfInformerFactory.Start(stopCh)
 	go execInformer.InformerFactoryStart(stopCh)

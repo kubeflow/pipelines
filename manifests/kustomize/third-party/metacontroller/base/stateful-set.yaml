@@ -25,11 +25,21 @@ spec:
             requests:
               cpu: 100m
               memory: 256Mi
-          command:
-            - /usr/bin/metacontroller
-            - --zap-log-level=4
-            - '--discovery-interval=3600s' # less insane than 10 seconds
+          command: ["/usr/bin/metacontroller"]
+          args:
+          - --zap-log-level=4
+          - --discovery-interval=3600s
+          livenessProbe:
+            httpGet:
+              port: 8081
+              path: /healthz
+          readinessProbe:
+            httpGet:
+              port: 8081
+              path: /readyz
           securityContext:
+            seccompProfile: 
+              type: RuntimeDefault
             capabilities:
               drop:
               - ALL
@@ -39,7 +49,7 @@ spec:
             privileged: false
             allowPrivilegeEscalation: false
           name: metacontroller
-          image: 'docker.io/metacontrollerio/metacontroller:v2.0.4'
+          image: 'ghcr.io/metacontroller/metacontroller:v4.11.22'
       serviceAccountName: meta-controller-service
   # Workaround for https://github.com/kubernetes-sigs/kustomize/issues/677
   volumeClaimTemplates: []

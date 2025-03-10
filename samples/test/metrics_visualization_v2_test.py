@@ -13,14 +13,18 @@
 # limitations under the License.
 
 from __future__ import annotations
+
 import unittest
 import unittest.mock as mock
-import kfp.deprecated as kfp
+
+import kfp
+from kfp.samples.test.utils import KfpTask
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TestCase
 import kfp_server_api
+from ml_metadata.proto import Execution
 
 from .metrics_visualization_v2 import metrics_visualization_pipeline
-from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
-from ml_metadata.proto import Execution
 
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
@@ -209,5 +213,5 @@ run_pipeline_func([
     TestCase(
         pipeline_func=metrics_visualization_pipeline,
         verify_func=verify,
-        mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE),
+    ),
 ])

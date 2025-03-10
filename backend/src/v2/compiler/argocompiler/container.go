@@ -15,11 +15,13 @@
 package argocompiler
 
 import (
+	"fmt"
 	"os"
-
 	"strconv"
+	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -30,11 +32,15 @@ import (
 
 const (
 	volumeNameKFPLauncher    = "kfp-launcher"
-	volumeNameCABUndle       = "ca-bundle"
-	DefaultLauncherImage     = "gcr.io/ml-pipeline/kfp-launcher@sha256:80cf120abd125db84fa547640fd6386c4b2a26936e0c2b04a7d3634991a850a4"
+	volumeNameCABundle       = "ca-bundle"
+	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:2.4.0"
 	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
-	DefaultDriverImage       = "gcr.io/ml-pipeline/kfp-driver@sha256:8e60086b04d92b657898a310ca9757631d58547e76bbbb8bfc376d654bef1707"
+	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:2.4.0"
 	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
+	DefaultDriverCommand     = "driver"
+	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
+	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
+	PipelineLogLevelEnvVar   = "PIPELINE_LOG_LEVEL"
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
 	s3ScratchLocation        = "/s3"
@@ -92,6 +98,33 @@ func GetDriverImage() string {
 	return driverImage
 }
 
+func GetDriverCommand() []string {
+	driverCommand := os.Getenv(DriverCommandEnvVar)
+	if driverCommand == "" {
+		driverCommand = DefaultDriverCommand
+	}
+	return strings.Split(driverCommand, " ")
+}
+
+func GetPipelineRunAsUser() *int64 {
+	runAsUserStr := os.Getenv(PipelineRunAsUserEnvVar)
+	if runAsUserStr == "" {
+		return nil
+	}
+
+	runAsUser, err := strconv.ParseInt(runAsUserStr, 10, 64)
+	if err != nil {
+		glog.Error(
+			"Failed to parse the %s environment variable with value %s as an int64: %v",
+			PipelineRunAsUserEnvVar, runAsUserStr, err,
+		)
+
+		return nil
+	}
+
+	return &runAsUser
+}
+
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
@@ -131,6 +164,32 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if ok {
 		return name
 	}
+
+	args := []string{
+		"--type", "CONTAINER",
+		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
+		"--run_id", runID(),
+		"--run_name", runResourceName(),
+		"--run_display_name", c.job.DisplayName,
+		"--dag_execution_id", inputValue(paramParentDagID),
+		"--component", inputValue(paramComponent),
+		"--task", inputValue(paramTask),
+		"--container", inputValue(paramContainer),
+		"--iteration_index", inputValue(paramIterationIndex),
+		"--cached_decision_path", outputPath(paramCachedDecision),
+		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
+		"--condition_path", outputPath(paramCondition),
+		"--kubernetes_config", inputValue(paramKubernetesConfig),
+		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
+		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
+		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
+		"--ca_cert_path", common.GetCaCertPath(),
+	}
+	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
+
 	t := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -151,28 +210,10 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:   GetDriverImage(),
-			Command: []string{"driver"},
-			Env:     MLPipelineServiceEnv,
-			Args: []string{
-				"--type", "CONTAINER",
-				"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-				"--run_id", runID(),
-				"--dag_execution_id", inputValue(paramParentDagID),
-				"--component", inputValue(paramComponent),
-				"--task", inputValue(paramTask),
-				"--container", inputValue(paramContainer),
-				"--iteration_index", inputValue(paramIterationIndex),
-				"--cached_decision_path", outputPath(paramCachedDecision),
-				"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
-				"--condition_path", outputPath(paramCondition),
-				"--kubernetes_config", inputValue(paramKubernetesConfig),
-				"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
-				"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
-				"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
-				"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
-				"--ca_cert_path", common.GetCaCertPath(),
-			},
+			Image:     c.driverImage,
+			Command:   c.driverCommand,
+			Env:       MLPipelineServiceEnv,
+			Args:      args,
 			Resources: driverResources,
 		},
 	}
@@ -191,6 +232,10 @@ type containerExecutorInputs struct {
 	cachedDecision string
 	// if false, the container will be skipped.
 	condition string
+	// if provided, this will be the template the Argo Workflow exit lifecycle hook will execute.
+	exitTemplate string
+	// this will be provided as the parent-dag-id input to the Argo Workflow exit lifecycle hook.
+	hookParentDagID string
 }
 
 // containerExecutorTask returns an argo workflows DAGTask.
@@ -202,7 +247,7 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 	if inputs.condition != "" {
 		when = inputs.condition + " != false"
 	}
-	return &wfapi.DAGTask{
+	task := &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addContainerExecutorTemplate(refName),
 		When:     when,
@@ -213,6 +258,10 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 			},
 		},
 	}
+
+	addExitTask(task, inputs.exitTemplate, inputs.hookParentDagID)
+
+	return task
 }
 
 // addContainerExecutorTemplate adds a generic container executor template for
@@ -255,6 +304,13 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 		},
 	}
 	c.templates[nameContainerExecutor] = container
+
+	args := []string{
+		"--copy", component.KFPLauncherPath,
+	}
+	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
+		args = append(args, "--log_level", value)
+	}
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,
 		Inputs: wfapi.Inputs{
@@ -313,8 +369,9 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
-				Image:   GetLauncherImage(),
-				Command: []string{"launcher-v2", "--copy", component.KFPLauncherPath},
+				Image:   c.launcherImage,
+				Command: []string{"launcher-v2"},
+				Args:    args,
 				VolumeMounts: []k8score.VolumeMount{
 					{
 						Name:      volumeNameKFPLauncher,
@@ -369,11 +426,66 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 	}
 	ConfigureCABundle(executor)
 	// Update pod metadata if it defined in the Kubernetes Spec
-	if kubernetesConfigString, ok := c.wf.Annotations[annotationKubernetesSpec+refName]; ok {
+	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
+
+	if kubernetesConfigParam != nil {
 		k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := jsonpb.UnmarshalString(kubernetesConfigString, k8sExecCfg); err == nil {
+		if err := jsonpb.UnmarshalString(string(*kubernetesConfigParam.Value), k8sExecCfg); err == nil {
 			extendPodMetadata(&executor.Metadata, k8sExecCfg)
 		}
+	}
+	caBundleCfgMapName := os.Getenv("EXECUTOR_CABUNDLE_CONFIGMAP_NAME")
+	caBundleCfgMapKey := os.Getenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY")
+	caBundleMountPath := os.Getenv("EXECUTOR_CABUNDLE_MOUNTPATH")
+	if caBundleCfgMapName != "" && caBundleCfgMapKey != "" {
+		caFile := fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCfgMapKey)
+		certDirectories := []string{
+			caBundleMountPath,
+			"/etc/ssl/certs",
+			"/etc/pki/tls/certs",
+		}
+		// Add to REQUESTS_CA_BUNDLE for python request library.
+		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
+			Name:  "REQUESTS_CA_BUNDLE",
+			Value: caFile,
+		})
+		// For AWS utilities like cli, and packages.
+		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
+			Name:  "AWS_CA_BUNDLE",
+			Value: caFile,
+		})
+		// OpenSSL default cert file env variable.
+		// https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
+		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
+			Name:  "SSL_CERT_FILE",
+			Value: caFile,
+		})
+		sslCertDir := strings.Join(certDirectories, ":")
+		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
+			Name:  "SSL_CERT_DIR",
+			Value: sslCertDir,
+		})
+		volume := k8score.Volume{
+			Name: volumeNameCABundle,
+			VolumeSource: k8score.VolumeSource{
+				ConfigMap: &k8score.ConfigMapVolumeSource{
+					LocalObjectReference: k8score.LocalObjectReference{
+						Name: caBundleCfgMapName,
+					},
+				},
+			},
+		}
+
+		executor.Volumes = append(executor.Volumes, volume)
+
+		volumeMount := k8score.VolumeMount{
+			Name:      volumeNameCABundle,
+			MountPath: caFile,
+			SubPath:   caBundleCfgMapKey,
+		}
+
+		executor.Container.VolumeMounts = append(executor.Container.VolumeMounts, volumeMount)
+
 	}
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)

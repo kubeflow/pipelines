@@ -18,13 +18,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/golang/protobuf/jsonpb"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -794,7 +794,7 @@ type PipelineRunInterface struct {
 func (pri *PipelineRunInterface) Create(ctx context.Context, execution ExecutionSpec, opts metav1.CreateOptions) (ExecutionSpec, error) {
 	pipelinerun, ok := execution.(*PipelineRun)
 	if !ok {
-		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Argo Workflow")
+		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Tekton")
 	}
 
 	revPipelineRun, err := pri.pipelinerunInterface.Create(ctx, pipelinerun.PipelineRun, opts)
@@ -809,7 +809,7 @@ func (pri *PipelineRunInterface) Create(ctx context.Context, execution Execution
 func (pri *PipelineRunInterface) Update(ctx context.Context, execution ExecutionSpec, opts metav1.UpdateOptions) (ExecutionSpec, error) {
 	pipelinerun, ok := execution.(*PipelineRun)
 	if !ok {
-		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Argo Workflow")
+		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Tekton")
 	}
 
 	revPipelineRun, err := pri.pipelinerunInterface.Update(ctx, pipelinerun.PipelineRun, opts)
@@ -870,8 +870,8 @@ type PipelineRunInformer struct {
 	factory   prsinformers.SharedInformerFactory
 }
 
-func (pri *PipelineRunInformer) AddEventHandler(funcs cache.ResourceEventHandler) {
-	pri.informer.Informer().AddEventHandler(funcs)
+func (pri *PipelineRunInformer) AddEventHandler(funcs cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error) {
+	return pri.informer.Informer().AddEventHandler(funcs)
 }
 
 func (pri *PipelineRunInformer) HasSynced() func() bool {

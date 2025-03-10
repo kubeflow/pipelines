@@ -1,6 +1,6 @@
 module github.com/kubeflow/pipelines/test/tools/project-cleaner
 
-go 1.21
+go 1.22
 
 require (
 	cloud.google.com/go v0.89.0
@@ -20,5 +20,5 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.39.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 )

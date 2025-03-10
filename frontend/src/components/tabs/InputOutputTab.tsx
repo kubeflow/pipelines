@@ -28,6 +28,7 @@ import {
   getArtifactTypeName,
   getArtifactTypes,
   getLinkedArtifactsByExecution,
+  getStoreSessionInfoFromArtifact,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
@@ -37,7 +38,17 @@ import DetailsTable from '../DetailsTable';
 import { RoutePageFactory } from '../Router';
 import { ExecutionTitle } from './ExecutionTitle';
 
-type ParamList = Array<KeyValue<string>>;
+export type ParamList = Array<KeyValue<string>>;
+export type URIToSessionInfo = Map<string, string | undefined>;
+export interface ArtifactParamsWithSessionInfo {
+  params: ParamList;
+  sessionMap: URIToSessionInfo;
+}
+
+export interface ArtifactLocation {
+  uri: string;
+  store_session_info: string | undefined;
+}
 
 export interface IOTabProps {
   execution: Execution;
@@ -69,17 +80,28 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
   // Restructs artifacts and parameters for visualization.
   const inputParams = extractInputFromExecution(execution);
   const outputParams = extractOutputFromExecution(execution);
-  let inputArtifacts: ParamList = [];
-  let outputArtifacts: ParamList = [];
+  let inputArtifactsWithSessionInfo: ArtifactParamsWithSessionInfo | undefined;
+  let outputArtifactsWithSessionInfo: ArtifactParamsWithSessionInfo | undefined;
   if (isSuccess && linkedArtifacts) {
-    inputArtifacts = getArtifactParamList(
+    inputArtifactsWithSessionInfo = getArtifactParamList(
       filterEventWithInputArtifact(linkedArtifacts),
       artifactTypeNames,
     );
-    outputArtifacts = getArtifactParamList(
+    outputArtifactsWithSessionInfo = getArtifactParamList(
       filterEventWithOutputArtifact(linkedArtifacts),
       artifactTypeNames,
     );
+  }
+
+  let inputArtifacts: ParamList = [];
+  let outputArtifacts: ParamList = [];
+
+  if (inputArtifactsWithSessionInfo) {
+    inputArtifacts = inputArtifactsWithSessionInfo.params;
+  }
+
+  if (outputArtifactsWithSessionInfo) {
+    outputArtifacts = outputArtifactsWithSessionInfo.params;
   }
 
   let isIoEmpty = false;
@@ -129,6 +151,7 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
                 valueComponent={ArtifactPreview}
                 valueComponentProps={{
                   namespace: namespace,
+                  sessionMap: inputArtifactsWithSessionInfo?.sessionMap,
                 }}
               />
             </div>
@@ -153,6 +176,7 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
                 valueComponent={ArtifactPreview}
                 valueComponentProps={{
                   namespace: namespace,
+                  sessionMap: outputArtifactsWithSessionInfo?.sessionMap,
                 }}
               />
             </div>
@@ -191,8 +215,10 @@ function extractParamFromExecution(execution: Execution, name: string): KeyValue
 export function getArtifactParamList(
   inputArtifacts: LinkedArtifact[],
   artifactTypeNames: string[],
-): ParamList {
-  return Object.values(inputArtifacts).map((linkedArtifact, index) => {
+): ArtifactParamsWithSessionInfo {
+  let sessMap: URIToSessionInfo = new Map<string, string | undefined>();
+
+  let params = Object.values(inputArtifacts).map((linkedArtifact, index) => {
     let key = getArtifactName(linkedArtifact);
     if (
       key &&
@@ -209,6 +235,13 @@ export function getArtifactParamList(
     ) : (
       key
     );
-    return [artifactElement, linkedArtifact.artifact.getUri()];
+
+    const uri = linkedArtifact.artifact.getUri();
+    const sessInfo = getStoreSessionInfoFromArtifact(linkedArtifact);
+    sessMap.set(uri, sessInfo);
+
+    return [artifactElement, uri];
   });
+
+  return { params: params, sessionMap: sessMap };
 }

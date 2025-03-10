@@ -16,7 +16,7 @@ package v1beta1
 
 import (
 	"github.com/kubeflow/pipelines/backend/src/common"
-	core "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -108,10 +108,14 @@ type WorkflowResource struct {
 
 	Parameters []Parameter `json:"parameters,omitempty"`
 
+	PipelineRoot string `json:"pipelineRoot,omitempty"`
+
 	// Specification of the workflow to start.
 	// Use interface{} for backward compatibility
 	// TODO: change it to string and avoid type casting
 	//       after several releases
+	// This is deprecated. In a future release, this will be ignored and this will be compiled by the API server
+	// at runtime.
 	Spec interface{} `json:"spec,omitempty"`
 }
 
@@ -198,7 +202,7 @@ type ScheduledWorkflowCondition struct {
 	// Type of job condition.
 	Type ScheduledWorkflowConditionType `json:"type,omitempty"`
 	// Status of the condition, one of True, False, Unknown.
-	Status core.ConditionStatus `json:"status,omitempty"`
+	Status corev1.ConditionStatus `json:"status,omitempty"`
 	// Last time the condition was checked.
 	// +optional
 	LastProbeTime metav1.Time `json:"lastHeartbeatTime,omitempty"`

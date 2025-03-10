@@ -55,6 +55,10 @@ message GetArtifactRequest {
 
     // Server responses include download_url
     DOWNLOAD = 2;
+
+    // Server response includes a signed URL,
+    // allowing in-browser rendering or preview of the artifact.
+    RENDER = 3;
   }
 
   // Optional. Set to "DOWNLOAD" to included a signed URL with
@@ -137,4 +141,7 @@ message Artifact {
   // and the error message is returned. Client has the flexibility of choosing
   // how to handle the error. This is especially useful when calling ListArtifacts.
   google.rpc.Status error = 11;
+  // Optional Output. Specifies a signed URL that can be used to
+  // render this Artifact directly from its store.
+  string render_url = 12;
 }

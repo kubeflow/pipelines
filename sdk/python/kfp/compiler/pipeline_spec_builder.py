@@ -28,6 +28,7 @@ from kfp.compiler import compiler_utils
 from kfp.dsl import component_factory
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
+from kfp.dsl import pipeline_config
 from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
 from kfp.dsl import placeholders
@@ -123,10 +124,24 @@ def build_task_spec_for_task(
         utils.sanitize_component_name(task.name))
     pipeline_task_spec.caching_options.enable_cache = (
         task._task_spec.enable_caching)
+    if task._task_spec.cache_key:
+        pipeline_task_spec.caching_options.cache_key = (
+            task._task_spec.cache_key)
 
     if task._task_spec.retry_policy is not None:
         pipeline_task_spec.retry_policy.CopyFrom(
             task._task_spec.retry_policy.to_proto())
+
+    # Inject resource fields into inputs
+    if task.container_spec and task.container_spec.resources:
+        for key, val in task.container_spec.resources.__dict__.items():
+            if val and pipeline_channel.extract_pipeline_channels_from_any(val):
+                task.inputs[key] = val
+
+    if task.container_spec and task.container_spec.image:
+        val = task.container_spec.image
+        if val and pipeline_channel.extract_pipeline_channels_from_any(val):
+            task.inputs['base_image'] = val
 
     for input_name, input_value in task.inputs.items():
         # Since LoopParameterArgument and LoopArtifactArgument and LoopArgumentVariable are narrower
@@ -238,12 +253,14 @@ def build_task_spec_for_task(
                     input_name].component_input_parameter = (
                         component_input_parameter)
 
-        elif isinstance(input_value, str):
-            # Handle extra input due to string concat
+        elif isinstance(input_value, (str, int, float, bool, dict, list)):
             pipeline_channels = (
                 pipeline_channel.extract_pipeline_channels_from_any(input_value)
             )
             for channel in pipeline_channels:
+                # NOTE: case like this   p3 = print_and_return_str(s='Project = {}'.format(project))
+                # triggers this code
+
                 # value contains PipelineChannel placeholders which needs to be
                 # replaced. And the input needs to be added to the task spec.
 
@@ -265,8 +282,14 @@ def build_task_spec_for_task(
 
                 additional_input_placeholder = placeholders.InputValuePlaceholder(
                     additional_input_name)._to_string()
-                input_value = input_value.replace(channel.pattern,
-                                                  additional_input_placeholder)
+
+                if isinstance(input_value, str):
+                    input_value = input_value.replace(
+                        channel.pattern, additional_input_placeholder)
+                else:
+                    input_value = compiler_utils.recursive_replace_placeholders(
+                        input_value, channel.pattern,
+                        additional_input_placeholder)
 
                 if channel.task_name:
                     # Value is produced by an upstream task.
@@ -298,11 +321,6 @@ def build_task_spec_for_task(
                     pipeline_task_spec.inputs.parameters[
                         additional_input_name].component_input_parameter = (
                             component_input_parameter)
-
-            pipeline_task_spec.inputs.parameters[
-                input_name].runtime_value.constant.string_value = input_value
-
-        elif isinstance(input_value, (str, int, float, bool, dict, list)):
 
             pipeline_task_spec.inputs.parameters[
                 input_name].runtime_value.constant.CopyFrom(
@@ -604,9 +622,27 @@ def build_container_spec_for_task(
     Returns:
         A PipelineContainerSpec object for the task.
     """
+
+    def convert_to_placeholder(input_value: str) -> str:
+        """Checks if input is a pipeline channel and if so, converts to
+        compiler injected input name."""
+        pipeline_channels = (
+            pipeline_channel.extract_pipeline_channels_from_any(input_value))
+        if pipeline_channels:
+            assert len(pipeline_channels) == 1
+            channel = pipeline_channels[0]
+            additional_input_name = (
+                compiler_utils.additional_input_name_for_pipeline_channel(
+                    channel))
+            additional_input_placeholder = placeholders.InputValuePlaceholder(
+                additional_input_name)._to_string()
+            input_value = input_value.replace(channel.pattern,
+                                              additional_input_placeholder)
+        return input_value
+
     container_spec = (
         pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
-            image=task.container_spec.image,
+            image=convert_to_placeholder(task.container_spec.image),
             command=task.container_spec.command,
             args=task.container_spec.args,
             env=[
@@ -617,23 +653,25 @@ def build_container_spec_for_task(
 
     if task.container_spec.resources is not None:
         if task.container_spec.resources.cpu_request is not None:
-            container_spec.resources.cpu_request = (
+            container_spec.resources.resource_cpu_request = convert_to_placeholder(
                 task.container_spec.resources.cpu_request)
         if task.container_spec.resources.cpu_limit is not None:
-            container_spec.resources.cpu_limit = (
+            container_spec.resources.resource_cpu_limit = convert_to_placeholder(
                 task.container_spec.resources.cpu_limit)
         if task.container_spec.resources.memory_request is not None:
-            container_spec.resources.memory_request = (
+            container_spec.resources.resource_memory_request = convert_to_placeholder(
                 task.container_spec.resources.memory_request)
         if task.container_spec.resources.memory_limit is not None:
-            container_spec.resources.memory_limit = (
+            container_spec.resources.resource_memory_limit = convert_to_placeholder(
                 task.container_spec.resources.memory_limit)
         if task.container_spec.resources.accelerator_count is not None:
             container_spec.resources.accelerator.CopyFrom(
                 pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
                 .ResourceSpec.AcceleratorConfig(
-                    type=task.container_spec.resources.accelerator_type,
-                    count=task.container_spec.resources.accelerator_count,
+                    resource_type=convert_to_placeholder(
+                        task.container_spec.resources.accelerator_type),
+                    resource_count=convert_to_placeholder(
+                        task.container_spec.resources.accelerator_count),
                 ))
 
     return container_spec
@@ -1098,67 +1136,6 @@ def build_task_spec_for_group(
     return pipeline_task_spec
 
 
-def populate_metrics_in_dag_outputs(
-    tasks: List[pipeline_task.PipelineTask],
-    task_name_to_parent_groups: Mapping[str,
-                                        List[compiler_utils.GroupOrTaskType]],
-    task_name_to_component_spec: Mapping[str, pipeline_spec_pb2.ComponentSpec],
-    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-) -> None:
-    """Populates metrics artifacts in DAG outputs.
-
-    Args:
-        tasks: The list of tasks that may produce metrics outputs.
-        task_name_to_parent_groups: The dict of task name to parent groups.
-            Key is the task's name. Value is a list of ancestor groups including
-            the task itself. The list of a given op is sorted in a way that the
-            farthest group is the first and the task itself is the last.
-        task_name_to_component_spec: The dict of task name to ComponentSpec.
-        pipeline_spec: The pipeline_spec to update in-place.
-    """
-    for task in tasks:
-        component_spec = task_name_to_component_spec[task.name]
-
-        # Get the tuple of (component_name, task_name) of all its parent groups.
-        parent_components_and_tasks = [('_root', '')]
-        # skip the op itself and the root group which cannot be retrived via name.
-        for group_name in task_name_to_parent_groups[task.name][1:-1]:
-            parent_components_and_tasks.append(
-                (utils.sanitize_component_name(group_name),
-                 utils.sanitize_task_name(group_name)))
-        # Reverse the order to make the farthest group in the end.
-        parent_components_and_tasks.reverse()
-
-        for output_name, artifact_spec in \
-            component_spec.output_definitions.artifacts.items():
-
-            if artifact_spec.artifact_type.WhichOneof(
-                    'kind'
-            ) == 'schema_title' and artifact_spec.artifact_type.schema_title in [
-                    artifact_types.Metrics.schema_title,
-                    artifact_types.ClassificationMetrics.schema_title,
-            ]:
-                unique_output_name = f'{task.name}-{output_name}'
-
-                sub_task_name = task.name
-                sub_task_output = output_name
-                for component_name, task_name in parent_components_and_tasks:
-                    group_component_spec = (
-                        pipeline_spec.root if component_name == '_root' else
-                        pipeline_spec.components[component_name])
-                    group_component_spec.output_definitions.artifacts[
-                        unique_output_name].CopyFrom(artifact_spec)
-                    group_component_spec.dag.outputs.artifacts[
-                        unique_output_name].artifact_selectors.append(
-                            pipeline_spec_pb2.DagOutputsSpec
-                            .ArtifactSelectorSpec(
-                                producer_subtask=sub_task_name,
-                                output_artifact_key=sub_task_output,
-                            ))
-                    sub_task_name = task_name
-                    sub_task_output = unique_output_name
-
-
 def modify_pipeline_spec_with_override(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     pipeline_name: Optional[str],
@@ -1460,14 +1437,6 @@ def build_spec_by_group(
 
     pipeline_spec.deployment_spec.update(
         json_format.MessageToDict(deployment_config))
-
-    # Surface metrics outputs to the top.
-    populate_metrics_in_dag_outputs(
-        tasks=group.tasks,
-        task_name_to_parent_groups=task_name_to_parent_groups,
-        task_name_to_component_spec=task_name_to_component_spec,
-        pipeline_spec=pipeline_spec,
-    )
 
 
 def modify_task_for_ignore_upstream_failure(
@@ -1840,13 +1809,16 @@ def validate_pipeline_outputs_dict(
                     f'Pipeline outputs may only be returned from the top level of the pipeline function scope. Got pipeline output from within the control flow group dsl.{channel.task.parent_task_group.__class__.__name__}.'
                 )
         else:
-            raise ValueError(f'Got unknown pipeline output: {channel}.')
+            raise ValueError(
+                f'Got unknown pipeline output, {channel}, of type {type(channel)}.'
+            )
 
 
 def create_pipeline_spec(
     pipeline: pipeline_context.Pipeline,
     component_spec: structures.ComponentSpec,
     pipeline_outputs: Optional[Any] = None,
+    pipeline_config: pipeline_config.PipelineConfig = None,
 ) -> Tuple[pipeline_spec_pb2.PipelineSpec, pipeline_spec_pb2.PlatformSpec]:
     """Creates a pipeline spec object.
 
@@ -1854,6 +1826,7 @@ def create_pipeline_spec(
         pipeline: The instantiated pipeline object.
         component_spec: The component spec structures.
         pipeline_outputs: The pipeline outputs via return.
+        pipeline_config: The pipeline config object.
 
     Returns:
         A PipelineSpec proto representing the compiled pipeline.
@@ -1915,6 +1888,10 @@ def create_pipeline_spec(
     )
 
     platform_spec = pipeline_spec_pb2.PlatformSpec()
+    if pipeline_config is not None:
+        _merge_pipeline_config(
+            pipelineConfig=pipeline_config, platformSpec=platform_spec)
+
     for group in all_groups:
         build_spec_by_group(
             pipeline_spec=pipeline_spec,
@@ -1974,13 +1951,20 @@ def convert_pipeline_outputs_to_dict(
     output name to PipelineChannel."""
     if pipeline_outputs is None:
         return {}
+    elif isinstance(pipeline_outputs, dict):
+        # This condition is required to support the case where a nested pipeline
+        # returns a namedtuple but its output is converted into a dict by
+        # earlier invocations of this function (a few lines down).
+        return pipeline_outputs
     elif isinstance(pipeline_outputs, pipeline_channel.PipelineChannel):
         return {component_factory.SINGLE_OUTPUT_NAME: pipeline_outputs}
     elif isinstance(pipeline_outputs, tuple) and hasattr(
             pipeline_outputs, '_asdict'):
         return dict(pipeline_outputs._asdict())
     else:
-        raise ValueError(f'Got unknown pipeline output: {pipeline_outputs}')
+        raise ValueError(
+            f'Got unknown pipeline output, {pipeline_outputs}, of type {type(pipeline_outputs)}.'
+        )
 
 
 def write_pipeline_spec_to_file(
@@ -2028,6 +2012,17 @@ def write_pipeline_spec_to_file(
     else:
         raise ValueError(
             f'The output path {package_path} should end with ".yaml".')
+
+
+def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
+                           platformSpec: pipeline_spec_pb2.PlatformSpec):
+    # TODO: add pipeline config options (ttl, semaphore, etc.) to the dict
+    # json_format.ParseDict(
+    #     {'pipelineConfig': {
+    #         '<some pipeline config option>': pipelineConfig.<get that value>,
+    #     }}, platformSpec.platforms['kubernetes'])
+
+    return platformSpec
 
 
 def extract_comments_from_pipeline_spec(pipeline_spec: dict,

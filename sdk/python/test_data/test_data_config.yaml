@@ -80,15 +80,13 @@ pipelines:
           "first_number": 1,
           "second_number": 2,
         }
-    - module: xgboost_sample_pipeline
-      name: xgboost_pipeline
-      execute: false
     - module: pipeline_with_metrics_outputs
       name: my_pipeline
       execute: true
     - module: pipeline_with_exit_handler
       name: my_pipeline
       execute: true
+      expected_state: FAILED
     - module: pipeline_with_env
       name: my_pipeline
       execute: true
@@ -117,6 +115,7 @@ pipelines:
     - module: pipeline_with_multiple_exit_handlers
       name: my_pipeline
       execute: true
+      expected_state: FAILED
     - module: pipeline_with_parallelfor_parallelism
       name: my_pipeline
       execute: false

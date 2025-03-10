@@ -13,12 +13,12 @@
 # limitations under the License.
 """GCP launcher for custom jobs based on the AI Platform SDK."""
 
+import json
+
 from google.api_core import retry
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
-
-import json
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 
 _CUSTOM_JOB_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 LABELS_PAYLOAD_KEY = 'labels'
@@ -34,6 +34,16 @@ def insert_system_labels_into_payload(payload):
 
 def create_custom_job_with_client(job_client, parent, job_spec):
   create_custom_job_fn = None
+  # max_wait_duration is acceptable only when strategy is FLEX_START in
+  # CustomJob API. Clear max_wait_duration if strategy is not FLEX_START.
+  if (
+      'job_spec' in job_spec
+      and 'scheduling' in job_spec['job_spec']
+      and 'strategy' in job_spec['job_spec']['scheduling']
+      and job_spec['job_spec']['scheduling']['strategy'] != 'FLEX_START'
+      and 'max_wait_duration' in job_spec['job_spec']['scheduling']
+  ):
+    del job_spec['job_spec']['scheduling']['max_wait_duration']
   try:
     create_custom_job_fn = job_client.create_custom_job(
         parent=parent, custom_job=job_spec

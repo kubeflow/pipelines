@@ -7,7 +7,113 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.12.0
+
+## Features
+
+* Add support for placeholders in resource limits [\#11501](https://github.com/kubeflow/pipelines/pull/11501)
+* Introduce cache_key to sdk [\#11466](https://github.com/kubeflow/pipelines/pull/11466)
+* Add support for importing models stored in the Modelcar format (sidecar) [\#11606](https://github.com/kubeflow/pipelines/pull/11606)
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* dsl.component docstring typo [\#11547](https://github.com/kubeflow/pipelines/pull/11547)
+* Update broken api-connect link [\#11521](https://github.com/kubeflow/pipelines/pull/11521)
+* Fix kfp-sdk-test for different python versions [\#11559](https://github.com/kubeflow/pipelines/pull/11559)
+
+## Documentation updates
+
+# 2.11.0
+
+## Features
+* Expose `--existing-token` flag in `kfp` CLI to allow users to provide an existing token for authentication. [\#11400](https://github.com/kubeflow/pipelines/pull/11400)
+* Add the ability to parameterize container images for tasks within pipelines [\#11404](https://github.com/kubeflow/pipelines/pull/11404)
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Add error handling for image build/push failures in KFP SDK. [\#11164](https://github.com/kubeflow/pipelines/pull/11356)
+* Backport fixes in kubeflow/pipelines#11075. [\#11392])(https://github.com/kubeflow/pipelines/pull/11392)
+* Depends on `kfp-pipeline-spec==0.6.0`. [\#11447](https://github.com/kubeflow/pipelines/pull/11447)
+
+## Documentation updates
+
+# 2.10.1
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+* Remove `kfp.deprecated` module [\#11366](https://github.com/kubeflow/pipelines/pull/11366)
+
+## Bug fixes and other changes
+* Support Python 3.13. [\#11372](https://github.com/kubeflow/pipelines/pull/11372)
+* Fix accelerator type setting [\#11373](https://github.com/kubeflow/pipelines/pull/11373)
+* Depends on `kfp-pipeline-spec==0.5.0`.
+
+## Documentation updates
+
+# 2.10.0
+
+## Features
+* Support dynamic machine type parameters in pipeline task setters. [\#11097](https://github.com/kubeflow/pipelines/pull/11097)
+* Add a new `use_venv` field to the component decorator, enabling the component to run inside a virtual environment. [\#11326](https://github.com/kubeflow/pipelines/pull/11326)
+* Add PipelineConfig to DSL to re-implement pipeline-level config [\#11112](https://github.com/kubeflow/pipelines/pull/11112)
+* Allow disabling default caching via a CLI flag and env var [\#11222](https://github.com/kubeflow/pipelines/pull/11222)
+
+## Breaking changes
+* Deprecate the metrics artifact auto-populating feature. [\#11362](https://github.com/kubeflow/pipelines/pull/11362)
+
+## Deprecations
+* Set Python 3.9 as the Minimum Supported Version [\#11159](https://github.com/kubeflow/pipelines/pull/11159)
+
+## Bug fixes and other changes
+* Fix invalid escape sequences [\#11147](https://github.com/kubeflow/pipelines/pull/11147)
+* Fix nested pipeline returns. [\#11196](https://github.com/kubeflow/pipelines/pull/11196)
+
+## Documentation updates
+
+# 2.9.0
+
+## Features
+* Kfp support for pip trusted host [#11151](https://github.com/kubeflow/pipelines/pull/11151)
+
+## Breaking changes
+
+* Pin kfp-pipeline-spec==0.4.0, kfp-server-api>=2.1.0,<2.4.0 [#11192](https://github.com/kubeflow/pipelines/pull/11192)
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* Loosening kubernetes dependency constraint [#11079](https://github.com/kubeflow/pipelines/pull/11079)
+* Throw 'exit_task cannot depend on any other tasks.' error when an ExitHandler has a parameter dependent on other task [#11005](https://github.com/kubeflow/pipelines/pull/11005)
+
+## Documentation updates
+
+# 2.8.0
+
+## Features
+* Support dynamic machine type parameters in CustomTrainingJobOp. [\#10883](https://github.com/kubeflow/pipelines/pull/10883)
+
+## Breaking changes
+* Drop support for Python 3.7 since it has reached end-of-life. [\#10750](https://github.com/kubeflow/pipelines/pull/10750)
+
+## Deprecations
+
+## Bug fixes and other changes
 * Throw compilation error when trying to iterate over a single parameter with ParallelFor [\#10494](https://github.com/kubeflow/pipelines/pull/10494)
+* Add required auth scopes to RegistryClient for GCP service accounts credentials [#10819](https://github.com/kubeflow/pipelines/pull/10819)
 
 ## Documentation updates
 * Make full version dropdown visible on all KFP SDK docs versions [\#10577](https://github.com/kubeflow/pipelines/pull/10577)

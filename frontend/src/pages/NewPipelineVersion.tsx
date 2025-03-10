@@ -363,6 +363,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               style={{ position: 'relative' }}
               ref={this._dropzoneRef}
               inputProps={{ tabIndex: -1 }}
+              accept='.yaml,.yml,.zip,.tar.gz'
               disabled={importMethod === ImportMethod.URL}
             >
               {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}

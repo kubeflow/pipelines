@@ -77,12 +77,12 @@ setuptools.setup(
         ],
     },
     include_package_data=True,
-    python_requires=">=3.8.0,<3.12.0",
+    python_requires=">=3.8.0",
     install_requires=[
         # Pin google-api-core version for the bug fixing in 1.31.5
         # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
         "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
-        "kfp>=2.6.0,<=2.7.0",
+        "kfp>=2.6.0,<2.11.0",
         "google-cloud-aiplatform>=1.14.0,<2",
         "Jinja2>=3.1.2,<4",
     ],
@@ -108,6 +108,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Software Development",

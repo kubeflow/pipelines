@@ -1,12 +1,8 @@
+kfp==2.8.0
 junit-xml
 minio
-black==21.7b0 
-papermill~=2.2
+black
+papermill
 fire
 yamale
 kubernetes
-
-google-cloud-bigquery<3
-google-cloud-storage<2
-# TODO: remove deprecated dependency
--r sdk/python/requirements-deprecated.txt

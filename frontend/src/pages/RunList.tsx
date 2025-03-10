@@ -19,6 +19,7 @@ import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/Cu
 import Metric from 'src/components/Metric';
 import { MetricMetadata, ExperimentInfo } from 'src/lib/RunUtils';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
@@ -405,6 +406,26 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   }
 
   private async _setColumns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
+    let experimentsResponse: V2beta1ListExperimentsResponse;
+    let experimentsGetError: string;
+    try {
+      if (!this.props.namespaceMask) {
+        // Single-user mode.
+        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments();
+      } else {
+        // Multi-user mode.
+        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments(
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          this.props.namespaceMask,
+        );
+      }
+    } catch (error) {
+      experimentsGetError = 'Failed to get associated experiment: ' + (await errorToMessage(error));
+    }
+
     return Promise.all(
       displayRuns.map(async displayRun => {
         this._setRecurringRun(displayRun);
@@ -412,7 +433,23 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         await this._getAndSetPipelineVersionNames(displayRun);
 
         if (!this.props.hideExperimentColumn) {
-          await this._getAndSetExperimentNames(displayRun);
+          const experimentId = displayRun.run.experiment_id;
+
+          if (experimentId) {
+            const experiment = experimentsResponse?.experiments?.find(
+              e => e.experiment_id === displayRun.run.experiment_id,
+            );
+            // If matching experiment id not found (typically because it has been deleted), set display name to "-".
+            const displayName = experiment?.display_name || '-';
+            if (experimentsGetError) {
+              displayRun.error = experimentsGetError;
+            } else {
+              displayRun.experiment = {
+                displayName: displayName,
+                id: experimentId,
+              };
+            }
+          }
         }
         return displayRun;
       }),
@@ -476,30 +513,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       displayRun.pipelineVersion = displayRun.recurringRun?.id
         ? { usePlaceholder: true, recurringRunId: displayRun.recurringRun.id }
         : { usePlaceholder: true };
-    }
-  }
-
-  /**
-   * For the given DisplayRun, get its ApiRun and retrieve that ApiRun's Experiment ID if it has
-   * one, then use that Experiment ID to fetch its associated Experiment and attach that
-   * Experiment's name to the DisplayRun. If the ApiRun has no Experiment ID, then the corresponding
-   * DisplayRun will show '-'.
-   */
-  private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
-    const experimentId = displayRun.run.experiment_id;
-    if (experimentId) {
-      let experimentName;
-      try {
-        const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
-        experimentName = experiment.display_name || '';
-      } catch (err) {
-        displayRun.error = 'Failed to get associated experiment: ' + (await errorToMessage(err));
-        return;
-      }
-      displayRun.experiment = {
-        displayName: experimentName,
-        id: experimentId,
-      };
     }
   }
 }

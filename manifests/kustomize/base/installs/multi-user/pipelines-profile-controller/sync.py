@@ -36,9 +36,9 @@ def get_settings_from_env(controller_port=None,
     Settings are pulled from the all-caps version of the setting name.  The
     following defaults are used if those environment variables are not set
     to enable backwards compatibility with previous versions of this script:
-        visualization_server_image: gcr.io/ml-pipeline/visualization-server
+        visualization_server_image: ghcr.io/kubeflow/kfp-visualization-server
         visualization_server_tag: value of KFP_VERSION environment variable
-        frontend_image: gcr.io/ml-pipeline/frontend
+        frontend_image: ghcr.io/kubeflow/kfp-frontend
         frontend_tag: value of KFP_VERSION environment variable
         disable_istio_sidecar: Required (no default)
         minio_access_key: Required (no default)
@@ -51,11 +51,11 @@ def get_settings_from_env(controller_port=None,
 
     settings["visualization_server_image"] = \
         visualization_server_image or \
-        os.environ.get("VISUALIZATION_SERVER_IMAGE", "gcr.io/ml-pipeline/visualization-server")
+        os.environ.get("VISUALIZATION_SERVER_IMAGE", "ghcr.io/kubeflow/kfp-visualization-server")
 
     settings["frontend_image"] = \
         frontend_image or \
-        os.environ.get("FRONTEND_IMAGE", "gcr.io/ml-pipeline/frontend")
+        os.environ.get("FRONTEND_IMAGE", "ghcr.io/kubeflow/kfp-frontend")
 
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
@@ -99,15 +99,14 @@ def server_factory(visualization_server_image,
     Returns an HTTPServer populated with Handler with customized settings
     """
     class Controller(BaseHTTPRequestHandler):
-        def sync(self, parent, children):
+        def sync(self, parent, attachments):
             # parent is a namespace
             namespace = parent.get("metadata", {}).get("name")
-
             pipeline_enabled = parent.get("metadata", {}).get(
                 "labels", {}).get("pipelines.kubeflow.org/enabled")
 
             if pipeline_enabled != "true":
-                return {"status": {}, "children": []}
+                return {"status": {}, "attachments": []}
 
             desired_configmap_count = 1
             desired_resources = []
@@ -129,16 +128,16 @@ def server_factory(visualization_server_image,
             # Compute status based on observed state.
             desired_status = {
                 "kubeflow-pipelines-ready":
-                    len(children["Secret.v1"]) == 1 and
-                    len(children["ConfigMap.v1"]) == desired_configmap_count and
-                    len(children["Deployment.apps/v1"]) == 2 and
-                    len(children["Service.v1"]) == 2 and
-                    len(children["DestinationRule.networking.istio.io/v1alpha3"]) == 1 and
-                    len(children["AuthorizationPolicy.security.istio.io/v1beta1"]) == 1 and
+                    len(attachments["Secret.v1"]) == 1 and
+                    len(attachments["ConfigMap.v1"]) == desired_configmap_count and
+                    len(attachments["Deployment.apps/v1"]) == 2 and
+                    len(attachments["Service.v1"]) == 2 and
+                    len(attachments["DestinationRule.networking.istio.io/v1alpha3"]) == 1 and
+                    len(attachments["AuthorizationPolicy.security.istio.io/v1beta1"]) == 1 and
                     "True" or "False"
             }
 
-            # Generate the desired child object(s).
+            # Generate the desired attachment object(s).
             desired_resources += [
                 {
                     "apiVersion": "v1",
@@ -376,13 +375,13 @@ def server_factory(visualization_server_image,
                 },
             })
 
-            return {"status": desired_status, "children": desired_resources}
+            return {"status": desired_status, "attachments": desired_resources}
 
         def do_POST(self):
             # Serve the sync() function as a JSON webhook.
             observed = json.loads(
                 self.rfile.read(int(self.headers.get("content-length"))))
-            desired = self.sync(observed["parent"], observed["children"])
+            desired = self.sync(observed["object"], observed["attachments"])
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")

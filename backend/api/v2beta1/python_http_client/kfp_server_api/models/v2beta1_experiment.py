@@ -38,7 +38,8 @@ class V2beta1Experiment(object):
         'description': 'str',
         'created_at': 'datetime',
         'namespace': 'str',
-        'storage_state': 'V2beta1ExperimentStorageState'
+        'storage_state': 'V2beta1ExperimentStorageState',
+        'last_run_created_at': 'datetime'
     }
 
     attribute_map = {
@@ -47,10 +48,11 @@ class V2beta1Experiment(object):
         'description': 'description',
         'created_at': 'created_at',
         'namespace': 'namespace',
-        'storage_state': 'storage_state'
+        'storage_state': 'storage_state',
+        'last_run_created_at': 'last_run_created_at'
     }
 
-    def __init__(self, experiment_id=None, display_name=None, description=None, created_at=None, namespace=None, storage_state=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, display_name=None, description=None, created_at=None, namespace=None, storage_state=None, last_run_created_at=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Experiment - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -62,6 +64,7 @@ class V2beta1Experiment(object):
         self._created_at = None
         self._namespace = None
         self._storage_state = None
+        self._last_run_created_at = None
         self.discriminator = None
 
         if experiment_id is not None:
@@ -76,6 +79,8 @@ class V2beta1Experiment(object):
             self.namespace = namespace
         if storage_state is not None:
             self.storage_state = storage_state
+        if last_run_created_at is not None:
+            self.last_run_created_at = last_run_created_at
 
     @property
     def experiment_id(self):
@@ -212,6 +217,29 @@ class V2beta1Experiment(object):
         """
 
         self._storage_state = storage_state
+
+    @property
+    def last_run_created_at(self):
+        """Gets the last_run_created_at of this V2beta1Experiment.  # noqa: E501
+
+        Output. The creation time of the last run in this experiment.  # noqa: E501
+
+        :return: The last_run_created_at of this V2beta1Experiment.  # noqa: E501
+        :rtype: datetime
+        """
+        return self._last_run_created_at
+
+    @last_run_created_at.setter
+    def last_run_created_at(self, last_run_created_at):
+        """Sets the last_run_created_at of this V2beta1Experiment.
+
+        Output. The creation time of the last run in this experiment.  # noqa: E501
+
+        :param last_run_created_at: The last_run_created_at of this V2beta1Experiment.  # noqa: E501
+        :type last_run_created_at: datetime
+        """
+
+        self._last_run_created_at = last_run_created_at
 
     def to_dict(self):
         """Returns the model properties as a dict"""
