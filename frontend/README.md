@@ -1,10 +1,26 @@
-# Kubeflow Pipelines Management Frontend
+# Kubeflow Pipelines Frontend
 
-## Tools you need
+## Node setup
 
-You need `node v22` and `npm`.
-Recommend installing `node` and `npm` using https://github.com/nvm-sh/nvm. After installing nvm,
-you can install `node v22` by `nvm install 22`.
+Install the node version specified in the [.nvmrc](.nvmrc) file. You
+can use [nvm](https://github.com/nvm-sh/nvm) or
+[fnm](https://github.com/Schniz/fnm) to manage your node installations; fnm is
+basically a faster version of nvm implemented in Rust. Installation instructions
+are available at their corresponding GitHub repositories.
+
+### fnm
+
+```bash
+fnm install 22.14.0
+fnm use 22.14.0
+```
+
+### nvm
+
+```bash
+nvm install 22.14.0
+nvm use 22.14.0
+```
 
 ## Manage dev environment with npm
 
@@ -55,7 +71,7 @@ development.
 Run `npm run mock:api` to start a mock backend api server handler so it can
 serve basic api calls with mock data.
 
-If you want to port real MLMD store to be used for mock backend scenario, you can run the following command. Note that a mock MLMD store doesn't exist yet. 
+If you want to port real MLMD store to be used for mock backend scenario, you can run the following command. Note that a mock MLMD store doesn't exist yet.
 
 ```
 kubectl port-forward svc/metadata-envoy-service 9090:9090
@@ -144,7 +160,7 @@ If you made any changes to protos (see backend/README), you'll need to
 regenerate the Typescript client library from swagger. We use
 swagger-codegen-cli@2.4.7, which you can get
 [here](https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/).
-Make sure to add the jar file to $PATH with the name swagger-codegen-cli.jar, then run `npm run apis` for 
+Make sure to add the jar file to $PATH with the name swagger-codegen-cli.jar, then run `npm run apis` for
 v1 api or `npm run apis:v2beta1` for v2 api.
 ```
 // add jar file to $PATH
@@ -176,7 +192,7 @@ If a file in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/m
 
 * Add `protoc` ([download](https://github.com/protocolbuffers/protobuf/releases)) to your system
   PATH
-  
+
   ```bash
   # Example:
   apt install -y protobuf-compiler=3.15.8
@@ -233,15 +249,15 @@ See explaination it does below:
 
 Prerequisite: Add `protoc` ([download](https://github.com/protocolbuffers/protobuf/releases)) to your system PATH
 
-Compile pipeline_spec.proto to Typed classes in TypeScript, 
+Compile pipeline_spec.proto to Typed classes in TypeScript,
 so it can convert a payload stream to a PipelineSpec object during runtime.
 
 You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
 
-The plugin tool for convertion we currently use is [ts-proto](https://github.com/stephenh/ts-proto). We previously use 
-[protobuf.js](https://github.com/protobufjs/protobuf.js) but it doesn't natively support Protobuf.Value processing. 
+The plugin tool for convertion we currently use is [ts-proto](https://github.com/stephenh/ts-proto). We previously use
+[protobuf.js](https://github.com/protobufjs/protobuf.js) but it doesn't natively support Protobuf.Value processing.
 
-You can checkout the generated TypeScript interfaces in [frontend/src/generated/pipeline_spec/pipeline_spec.ts](/frontend/src/generated/pipeline_spec/pipeline_spec.ts) 
+You can checkout the generated TypeScript interfaces in [frontend/src/generated/pipeline_spec/pipeline_spec.ts](/frontend/src/generated/pipeline_spec/pipeline_spec.ts)
 
 <!-- ARCHIVE: We switched to use ts-proto for now.
 ### Encode plain object to buffer using protobuf.js
@@ -265,7 +281,7 @@ npm run build:platform-spec:kubernetes-platform
 
 ## Large features development
 
-To accommodate KFP v2 development, we create a `frontend feature flag` capability which hides features under development behind a flag. Only when developer explicitly enables these flags, they can see those features. To control the visiblity of these features, check out a webpage similar to pattern http://localhost:3000/#/frontend_features. 
+To accommodate KFP v2 development, we create a `frontend feature flag` capability which hides features under development behind a flag. Only when developer explicitly enables these flags, they can see those features. To control the visiblity of these features, check out a webpage similar to pattern http://localhost:3000/#/frontend_features.
 
 To manage feature flags default values, visit [frontend/src/feature.ts](frontend/src/feature.ts) for `const features`. To apply the default feature flags locally in your browser, run `localStorage.setItem('flags', "")` in browser console.
 
