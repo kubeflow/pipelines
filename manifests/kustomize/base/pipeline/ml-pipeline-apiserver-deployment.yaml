@@ -33,6 +33,8 @@ spec:
               fieldPath: metadata.namespace
         - name: OBJECTSTORECONFIG_SECURE
           value: "false"
+        - name: SEMAPHORE_CONFIGMAP_NAME
+          value: "semaphore-config"
         - name: OBJECTSTORECONFIG_BUCKETNAME
           valueFrom:
             configMapKeyRef:
