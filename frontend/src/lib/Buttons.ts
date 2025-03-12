@@ -777,14 +777,14 @@ export default class Buttons {
       `pipeline versions`,
     );
     const andMessage = pipelineMessage !== `` && pipelineVersionMessage !== `` ? ` and ` : ``;
-  
+
     // Create warning message about cascading deletion
-    let warningMessage = "";
+    let warningMessage = '';
     if (selectedIds.length > 0) {
       warningMessage = `Deleting ${pipelineMessage} will also delete all its versions. `;
     }
     warningMessage += `Are you sure you want to delete ${pipelineMessage}${andMessage}${pipelineVersionMessage}?`;
-  
+
     this._props.updateDialog({
       buttons: [
         {
@@ -819,7 +819,7 @@ export default class Buttons {
       title: `Delete ${pipelineMessage}${andMessage}${pipelineVersionMessage}?`,
     });
   }
-  
+
   private async _deletePipelinesAndPipelineVersions(
     confirmed: boolean,
     selectedIds: string[],
@@ -829,11 +829,11 @@ export default class Buttons {
     if (!confirmed) {
       return;
     }
-  
+
     // Fetch all versions for selected pipelines
     const pipelinesWithVersions = new Map<string, string[]>();
     const errorMessages: string[] = [];
-    
+
     for (const pipelineId of selectedIds) {
       try {
         const versions = await Apis.pipelineServiceApiV2.listPipelineVersions(pipelineId);
@@ -842,17 +842,19 @@ export default class Buttons {
         pipelinesWithVersions.set(pipelineId, filteredVersionIds);
       } catch (err) {
         const errorMessage = await errorToMessage(err);
-        errorMessages.push(`Failed to fetch versions for pipeline: ${pipelineId} with error: "${errorMessage}"`);
+        errorMessages.push(
+          `Failed to fetch versions for pipeline: ${pipelineId} with error: "${errorMessage}"`,
+        );
       }
     }
-  
+
     // Delete each pipeline's versions first, then the pipeline itself
     const unsuccessfulIds: string[] = [];
     const successfulPipelineIds: Set<string> = new Set<string>();
-  
+
     for (const [pipelineId, versionIds] of pipelinesWithVersions.entries()) {
       let allVersionsDeleted = true;
-      
+
       if (versionIds.length > 0) {
         for (const versionId of versionIds) {
           try {
@@ -860,18 +862,18 @@ export default class Buttons {
           } catch (err) {
             const errorMessage = await errorToMessage(err);
             // Ignore "not found" errors as the version is already gone
-            if (errorMessage.includes("not found")) {
-              continue
+            if (errorMessage.includes('not found')) {
+              continue;
             } else {
               allVersionsDeleted = false;
               errorMessages.push(
-                `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`
+                `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`,
               );
             }
           }
         }
       }
-      
+
       // Delete pipeline if all versions were deleted
       if (allVersionsDeleted) {
         try {
@@ -880,61 +882,67 @@ export default class Buttons {
         } catch (err) {
           unsuccessfulIds.push(pipelineId);
           const errorMessage = await errorToMessage(err);
-          errorMessages.push(`Failed to delete pipeline: ${pipelineId} with error: "${errorMessage}"`);
+          errorMessages.push(
+            `Failed to delete pipeline: ${pipelineId} with error: "${errorMessage}"`,
+          );
         }
       } else {
         unsuccessfulIds.push(pipelineId);
         errorMessages.push(
-          `Cannot delete pipeline: ${pipelineId} because not all versions were deleted successfully`
+          `Cannot delete pipeline: ${pipelineId} because not all versions were deleted successfully`,
         );
       }
     }
-    
+
     // Delete individually selected versions
     const unsuccessfulVersionIds: { [pipelineId: string]: string[] } = {};
-    
+
     for (const pipelineId in selectedVersionIds) {
       if (pipelinesWithVersions.has(pipelineId)) {
         continue;
       }
-      
+
       unsuccessfulVersionIds[pipelineId] = [];
       for (const versionId of selectedVersionIds[pipelineId]) {
         try {
           await Apis.pipelineServiceApiV2.deletePipelineVersion(pipelineId, versionId);
         } catch (err) {
           const errorMessage = await errorToMessage(err);
-          if (!errorMessage.includes("not found")) {
+          if (!errorMessage.includes('not found')) {
             unsuccessfulVersionIds[pipelineId].push(versionId);
             errorMessages.push(
-              `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`
+              `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`,
             );
           }
         }
       }
-      
+
       if (unsuccessfulVersionIds[pipelineId].length === 0) {
         delete unsuccessfulVersionIds[pipelineId];
       }
     }
-    
+
     const successfulPipelinesCount = successfulPipelineIds.size;
     const selectedVersionIdsCt = this._deepCountDictionary(selectedVersionIds);
     const unsuccessfulVersionIdsCt = this._deepCountDictionary(unsuccessfulVersionIds);
     const successfulVersionsCount = selectedVersionIdsCt - unsuccessfulVersionIdsCt;
-    
+
     // Display success message
     if (successfulPipelinesCount > 0 || successfulVersionsCount > 0) {
       const pipelineMessage = this._nouns(successfulPipelinesCount, `pipeline`, `pipelines`);
-      const versionMessage = this._nouns(successfulVersionsCount, `pipeline version`, `pipeline versions`);
+      const versionMessage = this._nouns(
+        successfulVersionsCount,
+        `pipeline version`,
+        `pipeline versions`,
+      );
       const andMessage = pipelineMessage !== `` && versionMessage !== `` ? ` and ` : ``;
-      
+
       this._props.updateSnackbar({
         message: `Deletion succeeded for ${pipelineMessage}${andMessage}${versionMessage}`,
         open: true,
       });
     }
-    
+
     // Show error dialog if needed
     if (errorMessages.length > 0) {
       this._props.updateDialog({
@@ -943,7 +951,7 @@ export default class Buttons {
         title: `Failed to delete some pipelines and/or pipeline versions`,
       });
     }
-    
+
     // Update selection state
     if (successfulPipelineIds.size > 0) {
       callback(undefined, []);
@@ -955,9 +963,9 @@ export default class Buttons {
         callback(pipelineId, []);
       }
     }
-    
+
     // Refresh the UI
-    this._refresh();  
+    this._refresh();
   }
 
   private _nouns(count: number, singularNoun: string, pluralNoun: string): string {
