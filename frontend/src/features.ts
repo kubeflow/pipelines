@@ -79,30 +79,29 @@ export function saveFeatures(f: Feature[]) {
   }
 }
 
-function storageAvailable(type: string) {
-  var storage;
+function storageAvailable(type: 'localStorage' | 'sessionStorage'): boolean {
+  let storage: Storage;
   try {
     storage = window[type];
-    var x = '__storage_test__';
+    const x = '__storage_test__';
     storage.setItem(x, x);
     storage.removeItem(x);
     return true;
   } catch (e) {
-    return (
-      e instanceof DOMException &&
-      // everything except Firefox
-      (e.code === 22 ||
-        // Firefox
-        e.code === 1014 ||
-        // test name field too, because code might not be present
-        // everything except Firefox
-        e.name === 'QuotaExceededError' ||
-        // Firefox
-        e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
-      // acknowledge QuotaExceededError only if there's something already stored
-      storage &&
-      storage.length !== 0
-    );
+    if (!(e instanceof DOMException)) {
+      return false;
+    }
+    
+    // Check for various storage-related error codes
+    const isStorageError = 
+      e.code === 22 || // Chrome
+      e.code === 1014 || // Firefox
+      // test name field too, because code might not be present
+      e.name === 'QuotaExceededError' || // Chrome
+      e.name === 'NS_ERROR_DOM_QUOTA_REACHED'; // Firefox
+      
+    // Return true only if there's a storage error AND there's something already stored
+    return isStorageError && storage !== undefined && storage.length !== 0;
   }
 }
 

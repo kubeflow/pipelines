@@ -355,8 +355,8 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 <Separator />
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
                   <Button
-                    variant='fab'
-                    mini={true}
+                    variant='contained'
+                    size='small'
                     key={i}
                     onClick={() => this._toggleDay(i)}
                     color={selectedDays[i] ? 'primary' : 'secondary'}

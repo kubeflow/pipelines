@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import CircularProgress from '@material-ui/core/CircularProgress';
-import InfoIcon from '@material-ui/icons/InfoOutlined';
+import { CircularProgress } from '@mui/material';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { flatten } from 'lodash';
 import * as React from 'react';
 import { Link, Redirect } from 'react-router-dom';
@@ -967,8 +967,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         ),
       ),
     );
-    const allArtifactConfigs = flatten(configLists);
-
+    const allArtifactConfigs = flatten(configLists) as AnnotatedConfig[];
     this.setStateSafe({ allArtifactConfigs });
   }
 
@@ -1311,7 +1310,11 @@ const VisualizationsTabContent: React.FC<{
             const title = componentMap[config.type].prototype.getDisplayName();
             return (
               <div key={i} className={padding(20, 'lrt')}>
-                <PlotCard configs={[config]} title={title} maxDimension={500} />
+                <PlotCard
+                  configs={[config]}
+                  title={title}
+                  maxDimension={500}
+                />
                 <Hr />
               </div>
             );

@@ -67,7 +67,8 @@ export function PipelineVersionCard({
                       aria-label='version_selector'
                       data-testid='version_selector'
                       value={selectedVersion!.pipeline_version_id}
-                      onChange={event => handleVersionSelected(event.target.value)}
+                      onChange={(event: React.ChangeEvent<{ value: unknown }>) =>
+                        handleVersionSelected(event.target.value as string)}
                       inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
                     >
                       {versions.map((v, _) => (
