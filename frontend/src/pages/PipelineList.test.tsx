@@ -389,38 +389,38 @@ describe('PipelineList', () => {
     await TestUtils.flushPromises();
     tree.update();
     expect(tree.state()).toHaveProperty('selectedIds', []);
-});
+  });
 
-it('calls delete API for all selected pipelines after delete dialog is confirmed', async () => {
-  listPipelineVersionsSpy.mockImplementation(() => ({
-    pipeline_versions: [],
-  }));
-  tree = await mountWithNPipelines(5);
-  tree
-    .find('.tableRow')
-    .at(0)
-    .simulate('click');
-  tree
-    .find('.tableRow')
-    .at(1)
-    .simulate('click');
-  tree
-    .find('.tableRow')
-    .at(4)
-    .simulate('click');
-  const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
-    ButtonKeys.DELETE_RUN
-  ];
-  await deleteBtn!.action();
-  const call = updateDialogSpy.mock.calls[0][0];
-  const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
-  await confirmBtn.onClick();
-  await TestUtils.flushPromises();
-  expect(deletePipelineSpy).toHaveBeenCalledTimes(3);
-  expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0');
-  expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id1');
-  expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id4');
-});
+  it('calls delete API for all selected pipelines after delete dialog is confirmed', async () => {
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      pipeline_versions: [],
+    }));
+    tree = await mountWithNPipelines(5);
+    tree
+      .find('.tableRow')
+      .at(0)
+      .simulate('click');
+    tree
+      .find('.tableRow')
+      .at(1)
+      .simulate('click');
+    tree
+      .find('.tableRow')
+      .at(4)
+      .simulate('click');
+    const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
+      ButtonKeys.DELETE_RUN
+    ];
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
+    await TestUtils.flushPromises();
+    expect(deletePipelineSpy).toHaveBeenCalledTimes(3);
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0');
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id1');
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id4');
+  });
 
   it('shows snackbar confirmation after pipeline is deleted', async () => {
     listPipelineVersionsSpy.mockImplementation(() => ({
