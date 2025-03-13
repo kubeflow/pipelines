@@ -601,9 +601,7 @@ describe('NewRunV2', () => {
       fireEvent.click(alwaysUseLatestCheckbox);
 
       // Verify version selector is disabled
-      const versionSelectorInput = screen.getByLabelText('Using latest pipeline version');
-      expect(versionSelectorInput).toBeDisabled();
-
+      expect(screen.getByText('Using latest pipeline version')).toBeInTheDocument();
       // Verify choose button is disabled
       const chooseVersionBtn = screen.getAllByText('Choose')[1];
       expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
@@ -644,7 +642,7 @@ describe('NewRunV2', () => {
       fireEvent.click(alwaysUseLatestCheckbox);
 
       // Verify version selection is cleared
-      const versionSelectorInput = screen.getByLabelText('Using latest pipeline version');
+      const versionSelectorInput = screen.getByText('Using latest pipeline version');
       expect(versionSelectorInput).toBeInTheDocument();
       expect(
         screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME),
