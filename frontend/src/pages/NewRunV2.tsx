@@ -205,14 +205,7 @@ function NewRunV2(props: NewRunV2Props) {
       ? !cloneOrigin.recurringRun.no_catchup
       : true;
   const [needCatchup, setNeedCatchup] = useState(initialCatchup);
-  const [useLatestVersion, setUseLatestVersion] = useState(() => {
-    const saved = localStorage.getItem('useLatestPipelineVersion');
-    return saved === 'true';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('useLatestPipelineVersion', useLatestVersion.toString());
-  }, [useLatestVersion]);
+  const [useLatestVersion, setUseLatestVersion] = useState(false);
 
   useEffect(() => {
     if (useLatestVersion) {
@@ -847,7 +840,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
       <Input
         value={props.pipelineVersionName}
         required={true}
-        label='Pipeline Version'
+        label={props.disabled ? 'Using latest pipeline version' : 'Pipeline Version *'}
         disabled={true}
         variant='outlined'
         InputProps={{
