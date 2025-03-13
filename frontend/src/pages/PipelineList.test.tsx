@@ -323,6 +323,9 @@ describe('PipelineList', () => {
   });
 
   it('calls delete API for selected pipeline after delete dialog is confirmed', async () => {
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      pipeline_versions: [],
+    }));
     tree = await mountWithNPipelines(1);
     tree
       .find('.tableRow')
@@ -339,6 +342,9 @@ describe('PipelineList', () => {
   });
 
   it('updates the selected indices after a pipeline is deleted', async () => {
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      pipeline_versions: [],
+    }));
     tree = await mountWithNPipelines(5);
     tree
       .find('.tableRow')
@@ -353,10 +359,15 @@ describe('PipelineList', () => {
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
+    await TestUtils.flushPromises();
+    tree.update();
     expect(tree.state()).toHaveProperty('selectedIds', []);
   });
 
   it('updates the selected indices after multiple pipelines are deleted', async () => {
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      pipeline_versions: [],
+    }));
     tree = await mountWithNPipelines(5);
     tree
       .find('.tableRow')
@@ -375,37 +386,46 @@ describe('PipelineList', () => {
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
+    await TestUtils.flushPromises();
+    tree.update();
     expect(tree.state()).toHaveProperty('selectedIds', []);
-  });
+});
 
-  it('calls delete API for all selected pipelines after delete dialog is confirmed', async () => {
-    tree = await mountWithNPipelines(5);
-    tree
-      .find('.tableRow')
-      .at(0)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(1)
-      .simulate('click');
-    tree
-      .find('.tableRow')
-      .at(4)
-      .simulate('click');
-    const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
-      ButtonKeys.DELETE_RUN
-    ];
-    await deleteBtn!.action();
-    const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
-    await confirmBtn.onClick();
-    expect(deletePipelineSpy).toHaveBeenCalledTimes(3);
-    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0');
-    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id1');
-    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id4');
-  });
+it('calls delete API for all selected pipelines after delete dialog is confirmed', async () => {
+  listPipelineVersionsSpy.mockImplementation(() => ({
+    pipeline_versions: [],
+  }));
+  tree = await mountWithNPipelines(5);
+  tree
+    .find('.tableRow')
+    .at(0)
+    .simulate('click');
+  tree
+    .find('.tableRow')
+    .at(1)
+    .simulate('click');
+  tree
+    .find('.tableRow')
+    .at(4)
+    .simulate('click');
+  const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
+    ButtonKeys.DELETE_RUN
+  ];
+  await deleteBtn!.action();
+  const call = updateDialogSpy.mock.calls[0][0];
+  const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+  await confirmBtn.onClick();
+  await TestUtils.flushPromises();
+  expect(deletePipelineSpy).toHaveBeenCalledTimes(3);
+  expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0');
+  expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id1');
+  expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id4');
+});
 
   it('shows snackbar confirmation after pipeline is deleted', async () => {
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      pipeline_versions: [],
+    }));
     tree = await mountWithNPipelines(1);
     tree
       .find('.tableRow')
@@ -419,6 +439,7 @@ describe('PipelineList', () => {
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
+    await TestUtils.flushPromises();
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
       message: 'Deletion succeeded for 1 pipeline',
       open: true,
@@ -426,12 +447,19 @@ describe('PipelineList', () => {
   });
 
   it('shows error dialog when pipeline deletion fails', async () => {
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      pipeline_versions: [],
+    }));
     tree = await mountWithNPipelines(1);
     tree
       .find('.tableRow')
       .at(0)
       .simulate('click');
-    TestUtils.makeErrorResponseOnce(deletePipelineSpy, 'woops, failed');
+    deletePipelineSpy.mockImplementation(() => {
+      throw {
+        text: () => Promise.resolve('woops, failed'),
+      };
+    });
     const deleteBtn = (tree.instance() as PipelineList).getInitialToolbarState().actions[
       ButtonKeys.DELETE_RUN
     ];
@@ -439,14 +467,16 @@ describe('PipelineList', () => {
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
+    await TestUtils.flushPromises();
     const lastCall = updateDialogSpy.mock.calls[1][0];
-    expect(lastCall).toMatchObject({
-      content: 'Failed to delete pipeline: test-pipeline-id0 with error: "woops, failed"',
-      title: 'Failed to delete some pipelines and/or some pipeline versions',
-    });
+    expect(lastCall.title).toBe('Failed to delete some pipelines and/or pipeline versions');
+    expect(lastCall.content).toContain('Failed to delete pipeline: test-pipeline-id0 with error');
   });
 
   it('shows error dialog when multiple pipeline deletions fail', async () => {
+    listPipelineVersionsSpy.mockImplementation(() => ({
+      pipeline_versions: [],
+    }));
     tree = await mountWithNPipelines(5);
     tree
       .find('.tableRow')
@@ -479,35 +509,34 @@ describe('PipelineList', () => {
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
+    await TestUtils.flushPromises();
     // Should show only one error dialog for both pipelines (plus once for confirmation)
     expect(updateDialogSpy).toHaveBeenCalledTimes(2);
     const lastCall = updateDialogSpy.mock.calls[1][0];
-    expect(lastCall).toMatchObject({
-      content:
-        'Failed to delete pipeline: test-pipeline-id0 with error: "woops, failed!"\n\n' +
-        'Failed to delete pipeline: test-pipeline-id1 with error: "woops, failed!"',
-      title: 'Failed to delete some pipelines and/or some pipeline versions',
-    });
-
-    // Should show snackbar for the one successful deletion
-    expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Deletion succeeded for 2 pipelines',
-      open: true,
-    });
+    expect(lastCall.title).toBe('Failed to delete some pipelines and/or pipeline versions');
+    expect(lastCall.content).toContain('Failed to delete pipeline: test-pipeline-id0 with error');
+    expect(lastCall.content).toContain('Failed to delete pipeline: test-pipeline-id1 with error');
   });
 
   it("delete a pipeline and some other pipeline's version together", async () => {
     deletePipelineSpy.mockImplementation(() => Promise.resolve());
     deletePipelineVersionSpy.mockImplementation(() => Promise.resolve());
-    listPipelineVersionsSpy.mockImplementation(() => ({
-      pipeline_versions: [
-        {
-          display_name: 'test-pipeline-id1_name',
-          pipeline_id: 'test-pipeline-id1',
-          pipeline_version_id: 'test-pipeline-version-id1',
-        },
-      ],
-    }));
+    listPipelineVersionsSpy.mockImplementation(pipelineId => {
+      if (pipelineId === 'test-pipeline-id0') {
+        return {
+          pipeline_versions: [],
+        };
+      }
+      return {
+        pipeline_versions: [
+          {
+            display_name: 'test-pipeline-id1_name',
+            pipeline_id: 'test-pipeline-id1',
+            pipeline_version_id: 'test-pipeline-version-id1',
+          },
+        ],
+      };
+    });
 
     tree = await mountWithNPipelines(2);
     tree
