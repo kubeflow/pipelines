@@ -325,135 +325,172 @@ describe('NewRunV2', () => {
       content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
     );
   });
+});
+it('Submit run ', async () => {
+  const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+  getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+  const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+  getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
-  it('Submit run ', async () => {
-    const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-    getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-    const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-    getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+  render(
+    <CommonTestWrapper>
+      <NewRunV2
+        {...generatePropsNewRun()}
+        existingRunId={null}
+        existingRun={undefined}
+        existingRecurringRunId={null}
+        existingRecurringRun={undefined}
+        existingPipeline={ORIGINAL_TEST_PIPELINE}
+        handlePipelineIdChange={jest.fn()}
+        existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+        handlePipelineVersionIdChange={jest.fn()}
+        templateString={v2XGYamlTemplateString}
+        chosenExperiment={undefined}
+      />
+    </CommonTestWrapper>,
+  );
 
+  const startButton = await screen.findByText('Start');
+  expect(startButton.closest('button')?.disabled).toEqual(false);
+});
+
+it('allows updating the run name (start a new run)', async () => {
+  // TODO(jlyaoyuli): create a new test file for NewRunSwitcher and move the following test to it.
+  const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+  getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+  const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+  getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+
+  render(
+    <CommonTestWrapper>
+      <NewRunV2
+        {...generatePropsNewRun()}
+        existingRunId={null}
+        existingRun={undefined}
+        existingRecurringRunId={null}
+        existingRecurringRun={undefined}
+        existingPipeline={ORIGINAL_TEST_PIPELINE}
+        handlePipelineIdChange={jest.fn()}
+        existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+        handlePipelineVersionIdChange={jest.fn()}
+        templateString={v2XGYamlTemplateString}
+        chosenExperiment={undefined}
+      />
+    </CommonTestWrapper>,
+  );
+
+  const runNameInput = await screen.findByDisplayValue((content, _) =>
+    content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
+  );
+  fireEvent.change(runNameInput, { target: { value: 'Run with custom name' } });
+  expect(runNameInput.closest('input')?.value).toBe('Run with custom name');
+});
+
+describe('redirect to different new run page', () => {
+  it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
     render(
       <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={jest.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={jest.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
+        <NewRunSwitcher {...generatePropsNoPipelineDef(null)} />
       </CommonTestWrapper>,
     );
 
-    const startButton = await screen.findByText('Start');
-    expect(startButton.closest('button')?.disabled).toEqual(false);
+    const chooseVersionBtn = screen.getAllByText('Choose')[1];
+    // choose button for pipeline version is diabled if no pipeline is selected
+    expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+
+    screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+    screen.getByText('A pipeline must be selected');
   });
 
-  it('allows updating the run name (start a new run)', async () => {
-    // TODO(jlyaoyuli): create a new test file for NewRunSwitcher and move the following test to it.
-    const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-    getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-    const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-    getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
-
-    render(
-      <CommonTestWrapper>
-        <NewRunV2
-          {...generatePropsNewRun()}
-          existingRunId={null}
-          existingRun={undefined}
-          existingRecurringRunId={null}
-          existingRecurringRun={undefined}
-          existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={jest.fn()}
-          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={jest.fn()}
-          templateString={v2XGYamlTemplateString}
-          chosenExperiment={undefined}
-        />
-      </CommonTestWrapper>,
-    );
-
-    const runNameInput = await screen.findByDisplayValue((content, _) =>
-      content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
-    );
-    fireEvent.change(runNameInput, { target: { value: 'Run with custom name' } });
-    expect(runNameInput.closest('input')?.value).toBe('Run with custom name');
-  });
-
-  describe('redirect to different new run page', () => {
-    it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsNoPipelineDef(null)} />
-        </CommonTestWrapper>,
-      );
-
-      const chooseVersionBtn = screen.getAllByText('Choose')[1];
-      // choose button for pipeline version is diabled if no pipeline is selected
-      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
-
-      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
-      screen.getByText('A pipeline must be selected');
-    });
-
-    it(
-      'shows experiment name in new run v2 if experiment is selected' +
-        '(enter from experiment details)',
-      async () => {
-        const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-        getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
-
-        render(
-          <CommonTestWrapper>
-            <NewRunSwitcher {...generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id)} />
-          </CommonTestWrapper>,
-        );
-
-        await waitFor(() => {
-          expect(getExperimentSpy).toHaveBeenCalled();
-        });
-
-        screen.getByDisplayValue(NEW_EXPERIMENT.display_name);
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
-      },
-    );
-
-    it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
-      jest
-        .spyOn(features, 'isFeatureEnabled')
-        .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
-      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+  it(
+    'shows experiment name in new run v2 if experiment is selected' +
+      '(enter from experiment details)',
+    async () => {
+      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+      getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
 
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsNewRun()} />
+          <NewRunSwitcher {...generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id)} />
         </CommonTestWrapper>,
       );
 
       await waitFor(() => {
-        expect(getPipelineSpy).toHaveBeenCalled();
-        expect(getPipelineVersionSpy).toHaveBeenCalled();
+        expect(getExperimentSpy).toHaveBeenCalled();
       });
 
+      screen.getByDisplayValue(NEW_EXPERIMENT.display_name);
       screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+    },
+  );
+
+  it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
+    jest
+      .spyOn(features, 'isFeatureEnabled')
+      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+    const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+    getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+    const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+    getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+
+    render(
+      <CommonTestWrapper>
+        <NewRunSwitcher {...generatePropsNewRun()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(getPipelineSpy).toHaveBeenCalled();
+      expect(getPipelineVersionSpy).toHaveBeenCalled();
     });
 
-    it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
-      const TEST_PIPELINE_VERSION_NOT_V2SPEC: V2beta1PipelineVersion = {
+    screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+  });
+
+  it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
+    const TEST_PIPELINE_VERSION_NOT_V2SPEC: V2beta1PipelineVersion = {
+      description: '',
+      display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+      pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+      pipeline_version_id: 'test-not-v2-spec-version-id',
+      pipeline_spec: { spec: { arguments: { parameters: [{ name: 'output' }] } } },
+    };
+
+    jest
+      .spyOn(features, 'isFeatureEnabled')
+      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+    const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+    const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+    getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+    const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+    getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_NOT_V2SPEC);
+
+    render(
+      <CommonTestWrapper>
+        <NewRunSwitcher
+          {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-not-v2-spec-version-id')}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(getPipelineV2Spy).toHaveBeenCalled();
+      expect(getPipelineVersionSpy).toHaveBeenCalled();
+    });
+
+    expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+  });
+
+  it(
+    'directs to new run v1 if pipeline_spec is not existing in pipeline_version ' +
+      'and it is not v2 template in getPipelineVersionTemplate() response',
+    async () => {
+      const TEST_PIPELINE_VERSION_WITHOUT_SPEC: V2beta1PipelineVersion = {
         description: '',
         display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
         pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-        pipeline_version_id: 'test-not-v2-spec-version-id',
-        pipeline_spec: { spec: { arguments: { parameters: [{ name: 'output' }] } } },
+        pipeline_version_id: 'test-no-spec-version-id',
+        pipeline_spec: undefined,
       };
 
       jest
@@ -463,12 +500,17 @@ describe('NewRunV2', () => {
       const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
       const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_NOT_V2SPEC);
+      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
+      const getV1PipelineVersionTemplateSpy = jest.spyOn(
+        Apis.pipelineServiceApi,
+        'getPipelineVersionTemplate',
+      );
+      getV1PipelineVersionTemplateSpy.mockResolvedValue({ template: 'test template' });
 
       render(
         <CommonTestWrapper>
           <NewRunSwitcher
-            {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-not-v2-spec-version-id')}
+            {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-no-spec-version-id')}
           />
         </CommonTestWrapper>,
       );
@@ -479,94 +521,52 @@ describe('NewRunV2', () => {
       });
 
       expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
-    });
+    },
+  );
 
-    it(
-      'directs to new run v1 if pipeline_spec is not existing in pipeline_version ' +
-        'and it is not v2 template in getPipelineVersionTemplate() response',
-      async () => {
-        const TEST_PIPELINE_VERSION_WITHOUT_SPEC: V2beta1PipelineVersion = {
-          description: '',
-          display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-          pipeline_version_id: 'test-no-spec-version-id',
-          pipeline_spec: undefined,
-        };
+  it(
+    'directs to new run v2 if pipeline_spec is not existing in pipeline_version ' +
+      'and it is v2 template in getPipelineVersionTemplate() response',
+    async () => {
+      const TEST_PIPELINE_VERSION_WITHOUT_SPEC: V2beta1PipelineVersion = {
+        description: '',
+        display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+        pipeline_version_id: 'test-no-spec-version-id',
+        pipeline_spec: undefined,
+      };
 
-        jest
-          .spyOn(features, 'isFeatureEnabled')
-          .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
-        const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-        const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-        const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
-        const getV1PipelineVersionTemplateSpy = jest.spyOn(
-          Apis.pipelineServiceApi,
-          'getPipelineVersionTemplate',
-        );
-        getV1PipelineVersionTemplateSpy.mockResolvedValue({ template: 'test template' });
+      jest
+        .spyOn(features, 'isFeatureEnabled')
+        .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+      const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
+      const getV1PipelineVersionTemplateSpy = jest.spyOn(
+        Apis.pipelineServiceApi,
+        'getPipelineVersionTemplate',
+      );
+      getV1PipelineVersionTemplateSpy.mockResolvedValue({ template: v2XGYamlTemplateString });
 
-        render(
-          <CommonTestWrapper>
-            <NewRunSwitcher
-              {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-no-spec-version-id')}
-            />
-          </CommonTestWrapper>,
-        );
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher
+            {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-no-spec-version-id')}
+          />
+        </CommonTestWrapper>,
+      );
 
-        await waitFor(() => {
-          expect(getPipelineV2Spy).toHaveBeenCalled();
-          expect(getPipelineVersionSpy).toHaveBeenCalled();
-        });
+      await waitFor(() => {
+        expect(getPipelineV2Spy).toHaveBeenCalled();
+        expect(getPipelineVersionSpy).toHaveBeenCalled();
+      });
 
-        expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
-      },
-    );
-
-    it(
-      'directs to new run v2 if pipeline_spec is not existing in pipeline_version ' +
-        'and it is v2 template in getPipelineVersionTemplate() response',
-      async () => {
-        const TEST_PIPELINE_VERSION_WITHOUT_SPEC: V2beta1PipelineVersion = {
-          description: '',
-          display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-          pipeline_version_id: 'test-no-spec-version-id',
-          pipeline_spec: undefined,
-        };
-
-        jest
-          .spyOn(features, 'isFeatureEnabled')
-          .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
-        const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-        const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-        const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
-        const getV1PipelineVersionTemplateSpy = jest.spyOn(
-          Apis.pipelineServiceApi,
-          'getPipelineVersionTemplate',
-        );
-        getV1PipelineVersionTemplateSpy.mockResolvedValue({ template: v2XGYamlTemplateString });
-
-        render(
-          <CommonTestWrapper>
-            <NewRunSwitcher
-              {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-no-spec-version-id')}
-            />
-          </CommonTestWrapper>,
-        );
-
-        await waitFor(() => {
-          expect(getPipelineV2Spy).toHaveBeenCalled();
-          expect(getPipelineVersionSpy).toHaveBeenCalled();
-        });
-
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
-      },
-    );
-  });
+      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+    },
+  );
+});
 
   describe('"Always Use Latest" checkbox functionality', () => {
     it('should disable version selector and show status text when checked', async () => {
@@ -576,23 +576,23 @@ describe('NewRunV2', () => {
       const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+    render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={jest.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={jest.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
 
       // Find and check the "Always Use Latest" checkbox
       const alwaysUseLatestCheckbox = screen.getByLabelText(
@@ -614,23 +614,23 @@ describe('NewRunV2', () => {
       const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
+    render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={jest.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={jest.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
 
       // Verify version is initially set
       await screen.findByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME);
