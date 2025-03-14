@@ -169,7 +169,7 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 // Assumes that the serialized parameters will take a form of
 // map[string]*structpb.Value, which works for runtimeConfig.Parameters  such as
 // {"param1":"value1","param2":"value2"}.
-func stringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, error) {
+func StringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter, error) {
 	var swParams []scheduledworkflow.Parameter
 	var parameters map[string]*structpb.Value
 	if modelParams == "" {
@@ -232,7 +232,7 @@ func modelToParametersMap(modelParameters string) (map[string]string, error) {
 func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, error) {
 	crdTrigger := scheduledworkflow.Trigger{}
 	// CronSchedule and PeriodicSchedule can have at most one being non-empty
-	if modelTrigger.CronSchedule != (model.CronSchedule{}) {
+	if !modelTrigger.CronSchedule.IsEmpty() {
 		// Check if CronSchedule is non-empty
 		crdCronSchedule := scheduledworkflow.CronSchedule{}
 		if modelTrigger.Cron != nil {
@@ -247,7 +247,7 @@ func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, e
 			crdCronSchedule.EndTime = &endTime
 		}
 		crdTrigger.CronSchedule = &crdCronSchedule
-	} else if modelTrigger.PeriodicSchedule != (model.PeriodicSchedule{}) {
+	} else if !modelTrigger.PeriodicSchedule.IsEmpty() {
 		// Check if PeriodicSchedule is non-empty
 		crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
 		if modelTrigger.IntervalSecond != nil {

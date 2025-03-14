@@ -108,12 +108,20 @@ export class Apis {
   /**
    * Get pod logs
    */
-  public static getPodLogs(runId: string, podName: string, podNamespace: string): Promise<string> {
+  public static getPodLogs(
+    runId: string,
+    podName: string,
+    podNamespace: string,
+    createdAt: string,
+  ): Promise<string> {
     let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}&runid=${encodeURIComponent(
       runId,
     )}`;
     if (podNamespace) {
       query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
+    }
+    if (createdAt) {
+      query += `&createdat=${encodeURIComponent(createdAt)}`;
     }
     return this._fetch(query);
   }
@@ -578,6 +586,7 @@ export enum ExperimentSortKeys {
   CREATED_AT = 'created_at',
   ID = 'id',
   NAME = 'name',
+  LAST_RUN_CREATED_AT = 'last_run_created_at',
 }
 
 // Valid sortKeys as specified by the backend.

@@ -16,7 +16,12 @@
 from kfp import dsl
 
 
-@dsl.component(packages_to_install=['google-cloud-aiplatform[tensorboard]'])
+@dsl.component(
+    packages_to_install=[
+        'google-cloud-aiplatform[tensorboard]',
+        'protobuf==3.20.*',
+    ]
+)
 def upload_decomposition_plots(
     project: str,
     location: str,

@@ -113,12 +113,13 @@ func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
 		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"])
 	}
 	return &apiv2beta1.Experiment{
-		ExperimentId: experiment.UUID,
-		DisplayName:  experiment.Name,
-		Description:  experiment.Description,
-		CreatedAt:    &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
-		Namespace:    experiment.Namespace,
-		StorageState: storageState,
+		ExperimentId:     experiment.UUID,
+		DisplayName:      experiment.Name,
+		Description:      experiment.Description,
+		CreatedAt:        &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
+		LastRunCreatedAt: &timestamp.Timestamp{Seconds: experiment.LastRunCreatedAtInSec},
+		Namespace:        experiment.Namespace,
+		StorageState:     storageState,
 	}
 }
 
@@ -1868,10 +1869,13 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	case *apiv2beta1.RecurringRun:
 		pipelineId = apiJob.GetPipelineVersionReference().GetPipelineId()
 		pipelineVersionId = apiJob.GetPipelineVersionReference().GetPipelineVersionId()
-		if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
-			pipelineSpec = spec
-		} else {
-			return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
+
+		if apiJob.GetPipelineSpec() != nil {
+			if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
+				pipelineSpec = spec
+			} else {
+				return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
+			}
 		}
 
 		cfg, err := toModelRuntimeConfig(apiJob.GetRuntimeConfig())
@@ -1913,7 +1917,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		return nil, util.NewUnknownApiVersionError("RecurringRun", j)
 	}
 	if maxConcur > 10 || maxConcur < 1 {
-		return nil, util.NewInvalidInputError("Max concurrency of a recurring run must be at leas 1 and at most 10. Received %v", maxConcur)
+		return nil, util.NewInvalidInputError("Max concurrency of a recurring run must be at least 1 and at most 10. Received %v", maxConcur)
 	}
 	if trigger != nil && trigger.CronSchedule.Cron != nil {
 		if _, err := cron.Parse(*trigger.CronSchedule.Cron); err != nil {
@@ -1932,6 +1936,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	} else if pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("pipelines/%v", pipelineVersionId)
 	}
+
 	status := model.StatusStateUnspecified
 	if isEnabled {
 		status = model.StatusStateEnabled

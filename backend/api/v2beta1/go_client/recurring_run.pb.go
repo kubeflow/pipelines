@@ -159,7 +159,7 @@ type RecurringRun struct {
 	// Optional input field. Describes the purpose of the recurring run.
 	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// Required input field. Specifies the source of the pipeline spec for this
-	// recurring run. Can be either a pipeline version id, or a pipeline spec.
+	// recurring run. Can be either a pipeline id, pipeline version id, or a pipeline spec.
 	//
 	// Types that are assignable to PipelineSource:
 	//

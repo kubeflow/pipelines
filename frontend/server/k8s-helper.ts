@@ -13,12 +13,12 @@
 // limitations under the License.
 
 import {
-  Core_v1Api,
-  Custom_objectsApi,
+  CoreV1Api,
+  CustomObjectsApi,
   KubeConfig,
-  V1DeleteOptions,
   V1Pod,
   V1EventList,
+  V1ConfigMap,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
@@ -54,8 +54,8 @@ if (fs.existsSync(namespaceFilePath)) {
 const kc = new KubeConfig();
 // This loads kubectl config when not in cluster.
 kc.loadFromDefault();
-const k8sV1Client = kc.makeApiClient(Core_v1Api);
-const k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
+const k8sV1Client = kc.makeApiClient(CoreV1Api);
+const k8sV1CustomObjectClient = kc.makeApiClient(CustomObjectsApi);
 
 function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
@@ -202,7 +202,6 @@ export async function deleteTensorboardInstance(logdir: string, namespace: strin
   }
 
   const viewerName = getNameOfViewerResource(logdir);
-  const deleteOption = new V1DeleteOptions();
 
   await k8sV1CustomObjectClient.deleteNamespacedCustomObject(
     viewerGroup,
@@ -210,7 +209,6 @@ export async function deleteTensorboardInstance(logdir: string, namespace: strin
     namespace,
     viewerPlural,
     viewerName,
-    deleteOption,
   );
 }
 
@@ -277,6 +275,25 @@ export async function getPod(
   }
 }
 
+/**
+ * Retrieves a configmap.
+ * @param configMapName name of the configmap
+ * @param configMapNamespace namespace of the configmap
+ */
+export async function getConfigMap(
+  configMapName: string,
+  configMapNamespace: string,
+): Promise<[V1ConfigMap, undefined] | [undefined, K8sError]> {
+  try {
+    const { body } = await k8sV1Client.readNamespacedConfigMap(configMapName, configMapNamespace);
+    return [body, undefined];
+  } catch (error) {
+    const { message, additionalInfo } = await parseError(error);
+    const userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}: ${message}`;
+    return [undefined, { message: userMessage, additionalInfo }];
+  }
+}
+
 // Golang style result type including an error.
 export type Result<T, E = K8sError> = [T, undefined] | [undefined, E];
 export async function listPodEvents(
@@ -326,7 +343,7 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
   if (res.response.statusCode >= 400) {
     throw new Error(`Unable to query workflow:${workflowName}: Access denied.`);
   }
-  return res.body;
+  return res.body as PartialArgoWorkflow;
 }
 
 /**
@@ -347,7 +364,7 @@ export async function getK8sSecret(name: string, key: string, providedNamespace?
   }
 
   const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
-  const secretb64 = k8sSecret.body.data[key];
+  const secretb64 = k8sSecret.body.data?.[key] || '';
   const buff = new Buffer(secretb64, 'base64');
   return buff.toString('ascii');
 }

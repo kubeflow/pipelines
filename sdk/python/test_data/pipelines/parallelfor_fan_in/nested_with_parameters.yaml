@@ -166,7 +166,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add(nums: List[List[int]]) -> int:\n    import itertools\n  \
           \  return sum(itertools.chain(*nums))\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-add-two-nums:
       container:
         args:
@@ -194,7 +194,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add_two_nums(x: int, y: int) -> int:\n    return x + y\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-double:
       container:
         args:
@@ -222,7 +222,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-double-2:
       container:
         args:
@@ -250,7 +250,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
-        image: python:3.8
+        image: python:3.9
 pipelineInfo:
   name: math-pipeline
 root:

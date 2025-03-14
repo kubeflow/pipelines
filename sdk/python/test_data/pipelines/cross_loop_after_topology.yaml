@@ -233,7 +233,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str):\n    print(message)\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op-2:
       container:
         args:
@@ -261,7 +261,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str):\n    print(message)\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op-3:
       container:
         args:
@@ -289,7 +289,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str):\n    print(message)\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op-4:
       container:
         args:
@@ -317,7 +317,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str):\n    print(message)\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op-5:
       container:
         args:
@@ -345,7 +345,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str):\n    print(message)\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op-6:
       container:
         args:
@@ -373,7 +373,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str):\n    print(message)\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op-7:
       container:
         args:
@@ -401,7 +401,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str):\n    print(message)\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-op-8:
       container:
         args:
@@ -429,7 +429,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str):\n    print(message)\n\n"
-        image: python:3.8
+        image: python:3.9
 pipelineInfo:
   name: my-pipeline
 root:

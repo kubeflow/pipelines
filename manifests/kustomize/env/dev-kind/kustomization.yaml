@@ -1,0 +1,130 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base/application
+  - ./forward-local-api-endpoint.yaml
+  - ../platform-agnostic
+
+# !!! If you want to customize the namespace,
+# please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
+namespace: kubeflow
+
+patches:
+- patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: ml-pipeline-ui
+      namespace: kubeflow
+    spec:
+      ports:
+        - $patch: replace
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 3000
+          nodePort: 30300
+      type: NodePort
+- patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: mysql
+      namespace: kubeflow
+    spec:
+      ports:
+        - $patch: replace
+        - port: 3306
+          protocol: TCP
+          targetPort: 3306
+          nodePort: 30330
+      type: NodePort
+- patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: metadata-grpc-service
+      namespace: kubeflow
+    spec:
+      ports:
+        - $patch: replace
+        - port: 8080
+          protocol: TCP
+          targetPort: 8080
+          nodePort: 30808
+      type: NodePort
+- patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: minio-service
+      namespace: kubeflow
+    spec:
+      ports:
+        - $patch: replace
+        - port: 9000
+          protocol: TCP
+          targetPort: 9000
+          nodePort: 30900
+      type: NodePort
+- patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: ml-pipeline-visualizationserver
+      namespace: kubeflow
+    spec:
+      ports:
+        - $patch: replace
+        - port: 8888
+          protocol: TCP
+          targetPort: 8888
+          nodePort: 30889
+      type: NodePort
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ml-pipeline
+      namespace: kubeflow
+    spec:
+      replicas: 0
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ml-pipeline-ui
+      namespace: kubeflow
+    spec:
+      template:
+        spec:
+          containers:
+            - name: ml-pipeline-ui
+              env:
+                - name: ML_PIPELINE_SERVICE_HOST
+                  value: ml-pipeline
+                - name: ML_PIPELINE_SERVICE_PORT
+                  value: "8888"
+                - name: DISABLE_GKE_METADATA
+                  value: "true"
+- patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: ml-pipeline
+      namespace: kubeflow
+    spec:
+      clusterIP: None
+      ports:
+      - $patch: replace
+      - name: http
+        port: 8888
+        protocol: TCP
+        targetPort: 8888
+      - name: grpc
+        port: 8887
+        protocol: TCP
+        targetPort: 8887
+      selector:
+        $patch: delete

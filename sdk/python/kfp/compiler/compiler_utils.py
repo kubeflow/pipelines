@@ -18,6 +18,7 @@ import copy
 from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 from kfp import dsl
+from kfp.dsl import constants
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context

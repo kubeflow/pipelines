@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -87,7 +86,6 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal executor input: %w", err)
 	}
-	glog.Infof("input ComponentSpec:%s\n", prettyPrint(componentSpecJSON))
 	component := &pipelinespec.ComponentSpec{}
 	err = protojson.Unmarshal([]byte(componentSpecJSON), component)
 	if err != nil {
@@ -129,12 +127,51 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	}, nil
 }
 
+// stopWaitingArtifacts will create empty files to tell Modelcar sidecar containers to stop. Any errors encountered are
+// logged since this is meant as a deferred function at the end of the launcher's execution.
+func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
+	for _, artifactList := range artifacts {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+
+		// Following the convention of downloadArtifacts in the launcher to only look at the first in the list.
+		inputArtifact := artifactList.Artifacts[0]
+
+		// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
+		// be set on inputArtifact.
+		if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			continue
+		}
+
+		localPath, err := LocalPathForURI(inputArtifact.Uri)
+		if err != nil {
+			continue
+		}
+
+		glog.Infof("Stopping Modelcar container for artifact %s", inputArtifact.Uri)
+
+		launcherCompleteFile := strings.TrimSuffix(localPath, "/models") + "/launcher-complete"
+		_, err = os.Create(launcherCompleteFile)
+		if err != nil {
+			glog.Errorf(
+				"Failed to stop the artifact %s by creating %s: %v", inputArtifact.Uri, launcherCompleteFile, err,
+			)
+
+			continue
+		}
+	}
+}
+
 func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to execute component: %w", err)
 		}
 	}()
+
+	defer stopWaitingArtifacts(l.executorInput.GetInputs().GetArtifacts())
+
 	// publish execution regardless the task succeeds or not
 	var execution *metadata.Execution
 	var executorOutput *pipelinespec.ExecutorOutput
@@ -149,6 +186,17 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			}
 		}
 		glog.Infof("publish success.")
+		// At the end of the current task, we check the statuses of all tasks in
+		// the current DAG and update the DAG's status accordingly.
+		dag, err := l.metadataClient.GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
+		if err != nil {
+			glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
+		}
+		pipeline, _ := l.metadataClient.GetPipelineFromExecution(ctx, execution.GetID())
+		err = l.metadataClient.UpdateDAGExecutionsState(ctx, dag, pipeline)
+		if err != nil {
+			glog.Errorf("failed to update DAG state: %s", err.Error())
+		}
 	}()
 	executedStartedTime := time.Now().Unix()
 	execution, err = l.prePublish(ctx)
@@ -355,7 +403,7 @@ func collectOutputParameters(executorInput *pipelinespec.ExecutorInput, executor
 		msg := func(err error) error {
 			return fmt.Errorf("failed to read output parameter name=%q type=%q path=%q: %w", name, paramSpec.GetParameterType(), param.GetOutputFile(), err)
 		}
-		b, err := ioutil.ReadFile(param.GetOutputFile())
+		b, err := os.ReadFile(param.GetOutputFile())
 		if err != nil {
 			return msg(err)
 		}
@@ -392,6 +440,7 @@ func execute(
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
 	}
+
 	if err := prepareOutputFolders(executorInput); err != nil {
 		return nil, err
 	}
@@ -432,10 +481,10 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 		}
 
 		// Upload artifacts from local path to remote storages.
-		localDir, err := localPathForURI(outputArtifact.Uri)
+		localDir, err := LocalPathForURI(outputArtifact.Uri)
 		if err != nil {
 			glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
-		} else {
+		} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
 			blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
 			if err != nil {
 				return nil, fmt.Errorf("failed to upload output artifact %q: %w", name, err)
@@ -468,6 +517,31 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 	return outputArtifacts, nil
 }
 
+// waitForModelcar assumes the Modelcar has already been validated by the init container on the launcher
+// pod. This waits for the Modelcar as a sidecar container to be ready.
+func waitForModelcar(artifactURI string, localPath string) error {
+	glog.Infof("Waiting for the Modelcar %s to be available", artifactURI)
+
+	for {
+		_, err := os.Stat(localPath)
+		if err == nil {
+			glog.Infof("The Modelcar is now available at %s", localPath)
+
+			return nil
+		}
+
+		if !os.IsNotExist(err) {
+			return fmt.Errorf(
+				"failed to see if the artifact %s was ready at %s; ensure the main container and Modelcar "+
+					"container have the same UID (can be set with the PIPELINE_RUN_AS_USER environment variable on "+
+					"the API server): %v",
+				artifactURI, localPath, err)
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
 func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, defaultBucket *blob.Bucket, defaultBucketConfig *objectstore.Config, namespace string, k8sClient kubernetes.Interface) error {
 	// Read input artifact metadata.
 	nonDefaultBuckets, err := fetchNonDefaultBuckets(ctx, executorInput.GetInputs().GetArtifacts(), defaultBucketConfig, namespace, k8sClient)
@@ -482,17 +556,31 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 	if err != nil {
 		return fmt.Errorf("failed to fetch non default buckets: %w", err)
 	}
+
 	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
 		// TODO(neuromage): Support concat-based placholders for arguments.
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
 		inputArtifact := artifactList.Artifacts[0]
-		localPath, err := localPathForURI(inputArtifact.Uri)
+
+		localPath, err := LocalPathForURI(inputArtifact.Uri)
 		if err != nil {
 			glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
+
 			continue
 		}
+
+		// OCI artifacts are accessed via shared storage of a Modelcar
+		if strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			err := waitForModelcar(inputArtifact.Uri, localPath)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
 		// Copy artifact to local storage.
 		copyErr := func(err error) error {
 			return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", name, inputArtifact.Uri, err)
@@ -539,6 +627,12 @@ func fetchNonDefaultBuckets(
 		}
 		// TODO: Support multiple artifacts someday, probably through the v2 engine.
 		artifact := artifactList.Artifacts[0]
+
+		// OCI artifacts are accessed via shared storage of a Modelcar
+		if strings.HasPrefix(artifact.Uri, "oci://") {
+			continue
+		}
+
 		// The artifact does not belong under the object store path for this run. Cases:
 		// 1. Artifact is cached from a different run, so it may still be in the default bucket, but under a different run id subpath
 		// 2. Artifact is imported from the same bucket, but from a different path (re-use the same session)
@@ -589,7 +683,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		key := fmt.Sprintf(`{{$.inputs.artifacts['%s'].uri}}`, name)
 		placeholders[key] = inputArtifact.Uri
 
-		localPath, err := localPathForURI(inputArtifact.Uri)
+		localPath, err := LocalPathForURI(inputArtifact.Uri)
 		if err != nil {
 			// Input Artifact does not have a recognized storage URI
 			continue
@@ -608,7 +702,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		outputArtifact := artifactList.Artifacts[0]
 		placeholders[fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)] = outputArtifact.Uri
 
-		localPath, err := localPathForURI(outputArtifact.Uri)
+		localPath, err := LocalPathForURI(outputArtifact.Uri)
 		if err != nil {
 			return nil, fmt.Errorf("resolve output artifact %q's local path: %w", name, err)
 		}
@@ -698,7 +792,7 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 		}
 	}
 
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read output metadata file %q: %w", path, err)
 	}
@@ -711,7 +805,7 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 	return executorOutput, nil
 }
 
-func localPathForURI(uri string) (string, error) {
+func LocalPathForURI(uri string) (string, error) {
 	if strings.HasPrefix(uri, "gs://") {
 		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
 	}
@@ -720,6 +814,9 @@ func localPathForURI(uri string) (string, error) {
 	}
 	if strings.HasPrefix(uri, "s3://") {
 		return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
+	}
+	if strings.HasPrefix(uri, "oci://") {
+		return "/oci/" + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "\\/") + "/models", nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
 }
@@ -738,7 +835,7 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 		}
 		outputArtifact := artifactList.Artifacts[0]
 
-		localPath, err := localPathForURI(outputArtifact.Uri)
+		localPath, err := LocalPathForURI(outputArtifact.Uri)
 		if err != nil {
 			return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
 		}

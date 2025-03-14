@@ -620,7 +620,7 @@ deploymentSpec:
           \       'A_a': '1',\n            'B_b': ['2', '20'],\n        },\n     \
           \   {\n            'A_a': '10',\n            'B_b': ['22', '222'],\n   \
           \     },\n    ]\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-args-generator-op-2:
       container:
         args:
@@ -651,7 +651,7 @@ deploymentSpec:
           \       'A_a': '1',\n            'B_b': ['2', '20'],\n        },\n     \
           \   {\n            'A_a': '10',\n            'B_b': ['22', '222'],\n   \
           \     },\n    ]\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-flip-coin-op:
       container:
         args:
@@ -681,7 +681,7 @@ deploymentSpec:
           \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
           \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
           \ 1) == 0 else 'tails'\n    return result\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-struct:
       container:
         args:
@@ -709,7 +709,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_struct(struct: dict):\n    print(struct)\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-text:
       container:
         args:
@@ -738,7 +738,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
           \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-text-2:
       container:
         args:
@@ -767,7 +767,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
           \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-text-3:
       container:
         args:
@@ -796,7 +796,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
           \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-text-4:
       container:
         args:
@@ -825,7 +825,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
           \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-text-5:
       container:
         args:
@@ -854,7 +854,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
           \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-text-6:
       container:
         args:
@@ -883,7 +883,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
           \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-text-7:
       container:
         args:
@@ -912,7 +912,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
           \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-text-8:
       container:
         args:
@@ -941,7 +941,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
           \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-print-text-9:
       container:
         args:
@@ -970,7 +970,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
           \ {msg}, msg2: {msg2}')\n\n"
-        image: python:3.8
+        image: python:3.9
 pipelineInfo:
   name: pipeline-with-loops-and-conditions-multi-layers
 root:

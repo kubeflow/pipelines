@@ -38,8 +38,8 @@ func NewScheduledWorkflowClient(informer v1beta1.ScheduledWorkflowInformer) *Sch
 }
 
 // AddEventHandler adds an event handler.
-func (c *ScheduledWorkflowClient) AddEventHandler(funcs *cache.ResourceEventHandlerFuncs) {
-	c.informer.Informer().AddEventHandler(funcs)
+func (c *ScheduledWorkflowClient) AddEventHandler(funcs *cache.ResourceEventHandlerFuncs) (cache.ResourceEventHandlerRegistration, error) {
+	return c.informer.Informer().AddEventHandler(funcs)
 }
 
 // HasSynced returns true if the shared informer's store has synced.

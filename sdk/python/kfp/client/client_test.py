@@ -94,6 +94,52 @@ class TestOverrideCachingOptions(parameterized.TestCase):
                                 ['hello-word']['cachingOptions']['enableCache'])
                 self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
                                 ['cachingOptions']['enableCache'])
+                self.assertFalse('cacheKey' in pipeline_obj['root']['dag']
+                                 ['tasks']['hello-word']['cachingOptions'])
+                self.assertFalse('cacheKey' in pipeline_obj['root']['dag']
+                                 ['tasks']['to-lower']['cachingOptions'])
+
+    def test_override_cache_key(self):
+
+        @component
+        def hello_word(text: str) -> str:
+            return text
+
+        @component
+        def to_lower(text: str) -> str:
+            return text.lower()
+
+        @pipeline(
+            name='sample two-step pipeline',
+            description='a minimal two-step pipeline')
+        def pipeline_with_two_component(text: str = 'hi there'):
+            component_1 = hello_word(text=text).set_caching_options(True)
+            component_2 = to_lower(
+                text=component_1.output).set_caching_options(False)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
+            Compiler().compile(
+                pipeline_func=pipeline_with_two_component,
+                package_path=temp_filepath)
+
+            with open(temp_filepath, 'r') as f:
+                pipeline_obj = yaml.safe_load(f)
+                pipeline_spec = json_format.ParseDict(
+                    pipeline_obj, pipeline_spec_pb2.PipelineSpec())
+                client._override_caching_options(
+                    pipeline_spec, True, cache_key='OVERRIDE_KEY')
+                pipeline_obj = json_format.MessageToDict(pipeline_spec)
+                self.assertTrue(pipeline_obj['root']['dag']['tasks']
+                                ['hello-word']['cachingOptions']['enableCache'])
+                self.assertEqual(
+                    pipeline_obj['root']['dag']['tasks']['hello-word']
+                    ['cachingOptions']['cacheKey'], 'OVERRIDE_KEY')
+                self.assertTrue(pipeline_obj['root']['dag']['tasks']['to-lower']
+                                ['cachingOptions']['enableCache'])
+                self.assertEqual(
+                    pipeline_obj['root']['dag']['tasks']['to-lower']
+                    ['cachingOptions']['cacheKey'], 'OVERRIDE_KEY')
 
 
 class TestExtractPipelineYAML(parameterized.TestCase):
@@ -198,14 +244,15 @@ class TestClient(parameterized.TestCase):
         with self.assertRaises(kfp_server_api.ApiException):
             with patch.object(
                     self.client._run_api,
-                    'get_run',
+                    'run_service_get_run',
                     side_effect=kfp_server_api.ApiException) as mock_get_run:
                 self.client.wait_for_run_completion(
                     run_id='foo', timeout=1, sleep_duration=0)
                 mock_get_run.assert_called_once()
 
     def test_wait_for_run_completion_expired_access_token(self):
-        with patch.object(self.client._run_api, 'get_run') as mock_get_run:
+        with patch.object(self.client._run_api,
+                          'run_service_get_run') as mock_get_run:
             # We need to iterate through multiple side effects in order to test this logic.
             mock_get_run.side_effect = [
                 Mock(state='unknown state'),
@@ -221,7 +268,8 @@ class TestClient(parameterized.TestCase):
                 mock_refresh_api_client_token.assert_called_once()
 
     def test_wait_for_run_completion_valid_token(self):
-        with patch.object(self.client._run_api, 'get_run') as mock_get_run:
+        with patch.object(self.client._run_api,
+                          'run_service_get_run') as mock_get_run:
             mock_get_run.return_value = Mock(state='succeeded')
             response = self.client.wait_for_run_completion(
                 run_id='foo', timeout=1, sleep_duration=0)
@@ -230,7 +278,8 @@ class TestClient(parameterized.TestCase):
 
     def test_wait_for_run_completion_run_timeout_should_raise_error(self):
         with self.assertRaises(TimeoutError):
-            with patch.object(self.client._run_api, 'get_run') as mock_get_run:
+            with patch.object(self.client._run_api,
+                              'run_service_get_run') as mock_get_run:
                 mock_get_run.return_value = Mock(run=Mock(status='foo'))
                 self.client.wait_for_run_completion(
                     run_id='foo', timeout=1, sleep_duration=0)
@@ -242,7 +291,7 @@ class TestClient(parameterized.TestCase):
         with self.assertRaises(ValueError):
             self.client.create_experiment(name='foo', namespace='ns1')
             mock_get_experiment.assert_called_once_with(
-                name='foo', namespace='ns1')
+                name='foo', onamespace='ns1')
 
     @patch('kfp.Client.get_experiment', return_value=Mock(id='foo'))
     @patch('kfp.Client._get_url_prefix', return_value='/pipeline')
@@ -265,7 +314,7 @@ class TestClient(parameterized.TestCase):
         # is created.
         with patch.object(
                 self.client._experiment_api,
-                'create_experiment',
+                'experiment_service_create_experiment',
                 return_value=Mock(
                     experiment_id='foo')) as mock_create_experiment:
             self.client.create_experiment(name='foo')
@@ -285,7 +334,7 @@ class TestClient(parameterized.TestCase):
         with self.assertRaises(ValueError):
             with patch.object(
                     self.client._experiment_api,
-                    'list_experiments',
+                    'experiment_service_list_experiments',
                     return_value=Mock(
                         experiments=None)) as mock_list_experiments:
                 self.client.get_experiment(experiment_name='foo')
@@ -298,7 +347,7 @@ class TestClient(parameterized.TestCase):
         with self.assertRaises(ValueError):
             with patch.object(
                     self.client._experiment_api,
-                    'list_experiments',
+                    'experiment_service_list_experiments',
                     return_value=Mock(
                         experiments=['foo', 'foo'])) as mock_list_experiments:
                 self.client.get_experiment(experiment_name='foo')
@@ -306,27 +355,30 @@ class TestClient(parameterized.TestCase):
                 mock_get_user_namespace.assert_called_once()
 
     def test_get_experiment_with_experiment_id(self):
-        with patch.object(self.client._experiment_api,
-                          'get_experiment') as mock_get_experiment:
+        with patch.object(
+                self.client._experiment_api,
+                'experiment_service_get_experiment') as mock_get_experiment:
             self.client.get_experiment(experiment_id='foo')
             mock_get_experiment.assert_called_once_with(experiment_id='foo')
 
     def test_get_experiment_with_experiment_name_and_namespace(self):
-        with patch.object(self.client._experiment_api,
-                          'list_experiments') as mock_list_experiments:
+        with patch.object(
+                self.client._experiment_api,
+                'experiment_service_list_experiments') as mock_list_experiments:
             self.client.get_experiment(experiment_name='foo', namespace='ns1')
             mock_list_experiments.assert_called_once()
 
     @patch('kfp.Client.get_user_namespace', return_value=None)
     def test_get_experiment_with_experiment_name_and_no_namespace(
             self, mock_get_user_namespace):
-        with patch.object(self.client._experiment_api,
-                          'list_experiments') as mock_list_experiments:
+        with patch.object(
+                self.client._experiment_api,
+                'experiment_service_list_experiments') as mock_list_experiments:
             self.client.get_experiment(experiment_name='foo')
             mock_list_experiments.assert_called_once()
             mock_get_user_namespace.assert_called_once()
 
-    @patch('kfp_server_api.HealthzServiceApi.get_healthz')
+    @patch('kfp_server_api.HealthzServiceApi.healthz_service_get_healthz')
     def test_get_kfp_healthz(self, mock_get_kfp_healthz):
         mock_get_kfp_healthz.return_value = json.dumps([{'foo': 'bar'}])
         response = self.client.get_kfp_healthz()
@@ -334,7 +386,7 @@ class TestClient(parameterized.TestCase):
         assert (response == mock_get_kfp_healthz.return_value)
 
     @patch(
-        'kfp_server_api.HealthzServiceApi.get_healthz',
+        'kfp_server_api.HealthzServiceApi.healthz_service_get_healthz',
         side_effect=kfp_server_api.ApiException)
     def test_get_kfp_healthz_should_raise_error(self, mock_get_kfp_healthz):
         with self.assertRaises(TimeoutError):

@@ -70,8 +70,7 @@ const protoMap = new Map<string, string>([
 ]);
 
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
-  // TBD (jlyaoyuli): Currently, empty string is not allowed.
-  if (paramStr === '') {
+  if (paramStr === '' && paramType !== ParameterType_ParameterTypeEnum.STRING) {
     return undefined;
   }
   switch (paramType) {
@@ -121,7 +120,12 @@ function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEn
 function generateInputValidationErrMsg(
   parametersInRealType: any,
   paramType: ParameterType_ParameterTypeEnum,
+  isOptional: boolean = false,
 ) {
+  // If the parameter is optional then don't report error on undefined.
+  if (parametersInRealType === undefined && isOptional) {
+    return null;
+  }
   let errorMessage;
   switch (parametersInRealType) {
     case undefined:
@@ -206,7 +210,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     let allParamtersWithDefault = true;
     let errMsg: string[] = [];
     Object.keys(specParameters).forEach(key => {
-      if (specParameters[key].defaultValue) {
+      if (specParameters[key].defaultValue !== undefined) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
         // Convert default value to string type first to avoid error from convertInput
         runtimeParametersWithDefault[key] = convertNonUserInputParamToString(
@@ -319,6 +323,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     errorMessages[k] = generateInputValidationErrMsg(
                       parametersInRealType[k],
                       specParameters[k].parameterType,
+                      specParameters[k].isOptional,
                     );
                     setErrorMessages(errorMessages);
 

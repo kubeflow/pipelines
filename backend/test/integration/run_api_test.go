@@ -16,7 +16,7 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -176,7 +176,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter run by uploading workflow manifest ---------- */
-	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)
@@ -317,7 +317,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, string(runs[0].StorageState), api.Run_STORAGESTATE_ARCHIVED.String())
 
 	/* ---------- Upload long-running pipeline YAML ---------- */
-	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", uploadParams.NewUploadPipelineParamsWithTimeout(350))
+	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", uploadParams.NewUploadPipelineParamsWithTimeout(10*time.Second))
 	assert.Nil(t, err)
 
 	/* ---------- Upload a long-running pipeline version YAML under longRunningPipeline ---------- */
@@ -433,7 +433,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 }
 
 func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string) {
-	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)

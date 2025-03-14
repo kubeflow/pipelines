@@ -143,6 +143,7 @@ function createUIServer(options: UIConfigs) {
       artifactsConfigs: options.artifacts,
       useParameter: false,
       tryExtract: true,
+      options: options,
     }),
   );
   // /artifacts/ endpoint downloads the artifact as is, it does not try to unzip or untar.
@@ -158,6 +159,7 @@ function createUIServer(options: UIConfigs) {
       artifactsConfigs: options.artifacts,
       useParameter: true,
       tryExtract: false,
+      options: options,
     }),
   );
 

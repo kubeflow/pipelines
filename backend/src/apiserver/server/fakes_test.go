@@ -271,8 +271,9 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	resourceManager = resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	_, err = resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
-			Name:       "pipeline_version",
-			PipelineId: DefaultFakeUUID,
+			Name:         "pipeline_version",
+			PipelineId:   DefaultFakeUUID,
+			PipelineSpec: "apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
 		},
 	)
 	assert.Nil(t, err)
@@ -302,8 +303,9 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	resourceManager = resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	_, err = resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
-			Name:       "another_pipeline_version",
-			PipelineId: NonDefaultFakeUUID,
+			Name:         "another_pipeline_version",
+			PipelineId:   NonDefaultFakeUUID,
+			PipelineSpec: "apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
 		},
 	)
 	assert.Nil(t, err)

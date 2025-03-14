@@ -184,8 +184,11 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds error when source is s3, and creds are sourced from Provider Configs, but no namespace is provided', done => {
+    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', done => {
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
+      mockedGetK8sSecret.mockResolvedValue('somevalue');
+      const mockedMinioClient: jest.Mock = minio.Client as any;
+      const namespace = 'kubeflow';
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
       const request = requests(app.start());
@@ -203,18 +206,90 @@ describe('/artifacts', () => {
       };
       request
         .get(
-          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt$&providerInfo=${JSON.stringify(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
-        .expect(
-          500,
-          'Failed to initialize Minio Client for S3 Provider: Error: Artifact Store provider given, but no namespace provided.',
-          err => {
-            expect(mockedGetK8sSecret).toBeCalledTimes(0);
-            done(err);
-          },
-        );
+        .expect(200, artifactContent, err => {
+          expect(mockedMinioClient).toBeCalledWith({
+            accessKey: 'somevalue',
+            endPoint: 's3.amazonaws.com',
+            port: undefined,
+            region: 'us-east-2',
+            secretKey: 'somevalue',
+            useSSL: undefined,
+          });
+          expect(mockedMinioClient).toBeCalledTimes(1);
+          expect(mockedGetK8sSecret).toBeCalledTimes(2);
+          expect(mockedGetK8sSecret).toHaveBeenNthCalledWith(
+            1,
+            'aws-s3-creds',
+            'AWS_ACCESS_KEY_ID',
+            `${namespace}`,
+          );
+          expect(mockedGetK8sSecret).toHaveBeenNthCalledWith(
+            2,
+            'aws-s3-creds',
+            'AWS_SECRET_ACCESS_KEY',
+            `${namespace}`,
+          );
+          expect(mockedGetK8sSecret).toBeCalledTimes(2);
+          done(err);
+        });
+    });
+
+    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default namespace when no namespace is provided, as specified in ENV', done => {
+      const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
+      mockedGetK8sSecret.mockResolvedValue('somevalue');
+      const mockedMinioClient: jest.Mock = minio.Client as any;
+      const namespace = 'notkubeflow';
+      const configs = loadConfigs(argv, { FRONTEND_SERVER_NAMESPACE: namespace });
+      app = new UIServer(configs);
+      const request = requests(app.start());
+      const providerInfo = {
+        Params: {
+          accessKeyKey: 'AWS_ACCESS_KEY_ID',
+          disableSSL: 'false',
+          endpoint: 's3.amazonaws.com',
+          fromEnv: 'false',
+          region: 'us-east-2',
+          secretKeyKey: 'AWS_SECRET_ACCESS_KEY',
+          secretName: 'aws-s3-creds',
+        },
+        Provider: 's3',
+      };
+      request
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(200, artifactContent, err => {
+          expect(mockedMinioClient).toBeCalledWith({
+            accessKey: 'somevalue',
+            endPoint: 's3.amazonaws.com',
+            port: undefined,
+            region: 'us-east-2',
+            secretKey: 'somevalue',
+            useSSL: undefined,
+          });
+          expect(mockedMinioClient).toBeCalledTimes(1);
+          expect(mockedGetK8sSecret).toBeCalledTimes(2);
+          expect(mockedGetK8sSecret).toHaveBeenNthCalledWith(
+            1,
+            'aws-s3-creds',
+            'AWS_ACCESS_KEY_ID',
+            `${namespace}`,
+          );
+          expect(mockedGetK8sSecret).toHaveBeenNthCalledWith(
+            2,
+            'aws-s3-creds',
+            'AWS_SECRET_ACCESS_KEY',
+            `${namespace}`,
+          );
+          expect(mockedGetK8sSecret).toBeCalledTimes(2);
+          done(err);
+        });
     });
 
     it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs', done => {

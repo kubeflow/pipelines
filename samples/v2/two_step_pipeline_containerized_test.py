@@ -17,11 +17,8 @@ from __future__ import annotations
 
 import unittest
 
-import kfp.deprecated as kfp
 from kfp.samples.test.utils import KfpTask
 from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TaskInputs
-from kfp.samples.test.utils import TaskOutputs
 from kfp.samples.test.utils import TestCase
 import kfp_server_api
 from ml_metadata.proto import Execution
@@ -81,6 +78,5 @@ if __name__ == '__main__':
         TestCase(
             pipeline_func=two_step_pipeline_containerized,
             verify_func=verify,
-            mode=kfp.dsl.PipelineExecutionMode.V2_ENGINE,
         ),
     ])

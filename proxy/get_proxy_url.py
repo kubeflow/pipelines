@@ -40,7 +40,7 @@ def urls_for_zone(zone, location_to_urls_map):
         ...
       }
   """
-    zone_match = re.match("((([a-z]+)-[a-z]+)\d+)-[a-z]", zone)
+    zone_match = re.match(r"((([a-z]+)-[a-z]+)\d+)-[a-z]", zone)
     if not zone_match:
         raise ValueError("Incorrect zone specified: {}".format(zone))
 
@@ -55,7 +55,7 @@ def urls_for_zone(zone, location_to_urls_map):
             url for url in location_to_urls_map[region] if url not in urls
         ])
 
-    region_regex = re.compile("([a-z]+-[a-z]+)\d+")
+    region_regex = re.compile(r"([a-z]+-[a-z]+)\d+")
     for location in location_to_urls_map:
         region_match = region_regex.match(location)
         if region_match and region_match.group(1) == approx_region:

@@ -87,23 +87,22 @@ setuptools.setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.8.0,<3.13.0',
+    python_requires='>=3.9.0',
     include_package_data=True,
     entry_points={
         'console_scripts': [
             'dsl-compile = kfp.cli.compile_:main',
-            'dsl-compile-deprecated = kfp.deprecated.compiler.main:main',
             'kfp=kfp.cli.__main__:main',
         ]
     })

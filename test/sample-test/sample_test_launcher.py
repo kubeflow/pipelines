@@ -42,7 +42,8 @@ class SampleTest(object):
                  results_gcs_dir,
                  host='',
                  target_image_prefix='',
-                 namespace='kubeflow'):
+                 namespace='kubeflow',
+                 expected_result='succeeded'):
         """Launch a KFP sample_test provided its name.
 
         :param test_name: name of the corresponding sample test.
@@ -50,6 +51,7 @@ class SampleTest(object):
         :param host: host of KFP API endpoint, default is auto-discovery from inverse-proxy-config.
         :param target_image_prefix: prefix of docker image, default is empty.
         :param namespace: namespace for kfp, default is kubeflow.
+        :param expected_result: the expected status for the run, default is succeeded.
         """
         self._test_name = test_name
         self._results_gcs_dir = results_gcs_dir
@@ -71,7 +73,9 @@ class SampleTest(object):
                 raise RuntimeError(
                     'Failed to get inverse proxy hostname') from err
 
-        print('KFP API host is %s' % self._host)
+        # With the healthz API in place, when the developer clicks the link,
+        # it will lead to a functional URL instead of a 404 error.
+        print(f'KFP API healthz endpoint is: {self._host}/apis/v1beta1/healthz')
 
         self._is_notebook = None
         self._work_dir = os.path.join(BASE_DIR, 'samples/core/',
@@ -79,6 +83,7 @@ class SampleTest(object):
 
         self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
         self._sample_test_output = self._results_gcs_dir
+        self._expected_result = expected_result
 
     def _compile(self):
 
@@ -88,7 +93,9 @@ class SampleTest(object):
         # Looking for the entry point of the test.
         list_of_files = os.listdir('.')
         for file in list_of_files:
-            m = re.match(self._test_name + '\.[a-zA-Z]+', file)
+            # matching by .py or .ipynb, there will be yaml ( compiled ) files in the folder.
+            # if you rerun the test suite twice, the test suite will fail
+            m = re.match(self._test_name + r'\.(py|ipynb)$', file)
             if m:
                 file_name, ext_name = os.path.splitext(file)
                 if self._is_notebook is not None:
@@ -156,13 +163,16 @@ class SampleTest(object):
                 parameters=nb_params,
                 prepare_only=True)
             # Convert to python script.
-            subprocess.call([
+            return_code = subprocess.call([
                 'jupyter', 'nbconvert', '--to', 'python',
                 '%s.ipynb' % self._test_name
             ])
 
         else:
-            subprocess.call(['python3', '%s.py' % self._test_name])
+            return_code = subprocess.call(['python3', '%s.py' % self._test_name])
+
+        # Command executed successfully!
+        assert return_code == 0
 
     def _injection(self):
         """Inject images for pipeline components.
@@ -203,6 +213,7 @@ class SampleTest(object):
                 host=self._host,
                 namespace=self._namespace,
                 experiment_name=experiment_name,
+                expected_result=self._expected_result,
             )
             pysample_checker.run()
             pysample_checker.check()
@@ -235,14 +246,14 @@ class ComponentTest(SampleTest):
     def _injection(self):
         """Sample-specific image injection into yaml file."""
         subs = {  # Tag can look like 1.0.0-rc.3, so we need both "-" and "." in the regex.
-            'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:(\w+|[.-])+':
+            r'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:(\w+|[.-])+':
                 self._local_confusionmatrix_image,
-            'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:(\w+|[.-])+':
+            r'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:(\w+|[.-])+':
                 self._local_roc_image
         }
         if self._test_name == 'xgboost_training_cm':
             subs.update({
-                'gcr\.io/ml-pipeline/ml-pipeline-gcp:(\w|[.-])+':
+                r'gcr\.io/ml-pipeline/ml-pipeline-gcp:(\w|[.-])+':
                     self._dataproc_gcp_image
             })
 

@@ -11,15 +11,20 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package driver
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -39,7 +44,6 @@ import (
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 var dummyImages = map[string]string{
@@ -72,6 +76,13 @@ type Options struct {
 
 	// optional, allows to specify kubernetes-specific executor config
 	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
+
+	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used
+	RunName string
+	// optional, required only if the {{$.pipeline_job_name}} placeholder is used
+	RunDisplayName string
+
+	PipelineLogLevel string
 }
 
 // Identifying information used for error messages
@@ -125,6 +136,8 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 			err = fmt.Errorf("driver.RootDAG(%s) failed: %w", opts.info(), err)
 		}
 	}()
+	b, _ := json.Marshal(opts)
+	glog.V(4).Info("RootDAG opts: ", string(b))
 	err = validateRootDAG(opts)
 	if err != nil {
 		return nil, err
@@ -132,7 +145,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
 	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
 
-	restConfig, err := rest.InClusterConfig()
+	restConfig, err := util.GetKubernetesConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
 	}
@@ -230,6 +243,8 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 			err = fmt.Errorf("driver.Container(%s) failed: %w", opts.info(), err)
 		}
 	}()
+	b, _ := json.Marshal(opts)
+	glog.V(4).Info("Container opts: ", string(b))
 	err = validateContainer(opts)
 	if err != nil {
 		return nil, err
@@ -254,7 +269,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return nil, err
 	}
-	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd, expr)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts, mlmd, expr)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +287,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		execution.Condition = &willTrigger
 	}
 	if execution.WillTrigger() {
-		executorInput.Outputs = provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions())
+		executorInput.Outputs = provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions(), uuid.NewString())
 	}
 
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
@@ -319,7 +334,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	cached := false
 	execution.Cached = &cached
 	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return execution, err
 		}
@@ -334,12 +349,12 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID)
+	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.PipelineLogLevel)
 	if err != nil {
 		return execution, err
 	}
 	if opts.KubernetesExecutorConfig != nil {
-		dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
+		dagTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline, true)
 		if err != nil {
 			return execution, err
 		}
@@ -356,6 +371,35 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	return execution, nil
 }
 
+// getPodResource will accept the new field that accepts placeholders (e.g. resourceMemoryLimit) and the old float64
+// field (e.g. memoryLimit) and return the resolved value as a Quantity. If the returned Quantity is nil, it was not set
+// by the user. If the new field is set, the old field is ignored.
+func getPodResource(
+	new string, old float64, executorInput *pipelinespec.ExecutorInput, oldFmtStr string,
+) (*k8sres.Quantity, error) {
+	var resolved string
+
+	if new != "" {
+		var err error
+
+		resolved, err = resolvePodSpecInputRuntimeParameter(new, executorInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve executor input when retrieving pod resource: %w", err)
+		}
+	} else if old != 0 {
+		resolved = fmt.Sprintf(oldFmtStr, old)
+	} else {
+		return nil, nil
+	}
+
+	q, err := k8sres.ParseQuantity(resolved)
+	if err != nil {
+		return nil, err
+	}
+
+	return &q, nil
+}
+
 // initPodSpecPatch generates a strategic merge patch for pod spec, it is merged
 // to container base template generated in compiler/container.go. Therefore, only
 // dynamic values are patched here. The volume mounts / configmap mounts are
@@ -367,6 +411,7 @@ func initPodSpecPatch(
 	executionID int64,
 	pipelineName string,
 	runID string,
+	pipelineLogLevel string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -387,9 +432,6 @@ func initPodSpecPatch(
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
-		// TODO(Bobgy): workaround argo emissary executor bug, after we upgrade to an argo version with the bug fix, we can remove the following line.
-		// Reference: https://github.com/argoproj/argo-workflows/issues/7406
-		"/var/run/argo/argoexec", "emissary", "--",
 		component.KFPLauncherPath,
 		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
 		"--pipeline_name", pipelineName,
@@ -405,65 +447,246 @@ func initPodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
-		"--", // separater before user command and args
 	}
+	if pipelineLogLevel != "1" {
+		// Add log level to user code launcher if not default (set to 1)
+		launcherCmd = append(launcherCmd, "--log_level", pipelineLogLevel)
+	}
+	launcherCmd = append(launcherCmd, "--") // separater before user command and args
 	res := k8score.ResourceRequirements{
 		Limits:   map[k8score.ResourceName]k8sres.Quantity{},
 		Requests: map[k8score.ResourceName]k8sres.Quantity{},
 	}
-	memoryLimit := container.GetResources().GetMemoryLimit()
-	if memoryLimit != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryLimit))
-		if err != nil {
-			return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-		}
-		res.Limits[k8score.ResourceMemory] = q
+
+	memoryLimit, err := getPodResource(
+		container.GetResources().GetResourceMemoryLimit(),
+		container.GetResources().GetMemoryLimit(),
+		executorInput,
+		"%vG",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
-	memoryRequest := container.GetResources().GetMemoryRequest()
-	if memoryRequest != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%vG", memoryRequest))
-		if err != nil {
-			return nil, err
-		}
-		res.Requests[k8score.ResourceMemory] = q
+	if memoryLimit != nil {
+		res.Limits[k8score.ResourceMemory] = *memoryLimit
 	}
-	cpuLimit := container.GetResources().GetCpuLimit()
-	if cpuLimit != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuLimit))
-		if err != nil {
-			return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-		}
-		res.Limits[k8score.ResourceCPU] = q
+
+	memoryRequest, err := getPodResource(
+		container.GetResources().GetResourceMemoryRequest(),
+		container.GetResources().GetMemoryRequest(),
+		executorInput,
+		"%vG",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
-	cpuRequest := container.GetResources().GetCpuRequest()
-	if cpuRequest != 0 {
-		q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", cpuRequest))
-		if err != nil {
-			return nil, err
-		}
-		res.Requests[k8score.ResourceCPU] = q
+	if memoryRequest != nil {
+		res.Requests[k8score.ResourceMemory] = *memoryRequest
 	}
+
+	cpuLimit, err := getPodResource(
+		container.GetResources().GetResourceCpuLimit(),
+		container.GetResources().GetCpuLimit(),
+		executorInput,
+		"%v",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+	}
+	if cpuLimit != nil {
+		res.Limits[k8score.ResourceCPU] = *cpuLimit
+	}
+
+	cpuRequest, err := getPodResource(
+		container.GetResources().GetResourceCpuRequest(),
+		container.GetResources().GetCpuRequest(),
+		executorInput,
+		"%v",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+	}
+	if cpuRequest != nil {
+		res.Requests[k8score.ResourceCPU] = *cpuRequest
+	}
+
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
-		if accelerator.GetType() != "" && accelerator.GetCount() > 0 {
-			q, err := k8sres.ParseQuantity(fmt.Sprintf("%v", accelerator.GetCount()))
+		var acceleratorType string
+		if accelerator.GetResourceType() != "" {
+			acceleratorType, err = resolvePodSpecInputRuntimeParameter(accelerator.GetResourceType(), executorInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 			}
-			res.Limits[k8score.ResourceName(accelerator.GetType())] = q
+		} else if accelerator.GetType() != "" {
+			acceleratorType = accelerator.GetType()
 		}
+
+		var acceleratorCount string
+
+		if accelerator.GetResourceCount() != "" {
+			var err error
+
+			acceleratorCount, err = resolvePodSpecInputRuntimeParameter(accelerator.GetResourceCount(), executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+			}
+		} else if accelerator.Count > 0 {
+			acceleratorCount = fmt.Sprintf("%v", accelerator.GetCount())
+		}
+
+		if acceleratorType != "" && acceleratorCount != "" {
+			q, err := k8sres.ParseQuantity(acceleratorCount)
+			if err != nil {
+				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+			}
+			res.Limits[k8score.ResourceName(acceleratorType)] = q
+		}
+	}
+
+	containerImage, err := resolvePodSpecInputRuntimeParameter(container.Image, executorInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
 	podSpec := &k8score.PodSpec{
 		Containers: []k8score.Container{{
 			Name:      "main", // argo task user container is always called "main"
 			Command:   launcherCmd,
 			Args:      userCmdArgs,
-			Image:     container.Image,
+			Image:     containerImage,
 			Resources: res,
 			Env:       userEnvVar,
 		}},
 	}
+
+	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), userEnvVar, podSpec)
+
 	return podSpec, nil
+}
+
+// addModelcarsToPodSpec will patch the pod spec if there are any input artifacts in the Modelcar format.
+// Much of this logic is based on KServe:
+// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L131
+func addModelcarsToPodSpec(
+	artifacts map[string]*pipelinespec.ArtifactList,
+	userEnvVar []k8score.EnvVar,
+	podSpec *k8score.PodSpec,
+) {
+	// We need to add Modelcar containers and volumes in a deterministic order so that we can have stable naming of
+	// containers and volumes. The approach taken is sorting by input artifact name and then leveraging the index
+	// as a suffix to Modelcar containers and volumes added to the pod spec. The artifact name cannot be directly used
+	// as it may not be a compatible Kubernetes object name.
+	modelcarArtifacts := map[string]*pipelinespec.RuntimeArtifact{}
+	modelcarArtifactNames := []string{}
+
+	for name, artifactList := range artifacts {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+
+		// Following the convention of downloadArtifacts in the launcher to only look at the first in the list.
+		inputArtifact := artifactList.Artifacts[0]
+
+		// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
+		// be set on inputArtifact.
+		if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			continue
+		}
+
+		modelcarArtifacts[name] = inputArtifact
+		modelcarArtifactNames = append(modelcarArtifactNames, name)
+	}
+
+	slices.Sort(modelcarArtifactNames)
+
+	for i, name := range modelcarArtifactNames {
+		inputArtifact := modelcarArtifacts[name]
+
+		localPath, err := component.LocalPathForURI(inputArtifact.Uri)
+		if err != nil {
+			continue
+		}
+
+		// If there is at least one Modelcar image, then shareProcessNamespace must be enabled.
+		trueVal := true
+		podSpec.ShareProcessNamespace = &trueVal
+
+		image := strings.TrimPrefix(inputArtifact.Uri, "oci://")
+
+		podSpec.InitContainers = append(
+			podSpec.InitContainers,
+			k8score.Container{
+				Name:  fmt.Sprintf("oci-prepull-%d", i),
+				Image: image,
+				Command: []string{
+					"sh",
+					"-c",
+					// Check that the expected models directory exists
+					// Taken from KServe:
+					// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
+					"echo 'Pre-fetching modelcar " + image + ": ' && [ -d /models ] && " +
+						"[ \"$$(ls -A /models)\" ] && echo 'OK ... Prefetched and valid (/models exists)' || " +
+						"(echo 'NOK ... Prefetched but modelcar is invalid (/models does not exist or is empty)' && " +
+						" exit 1)",
+				},
+				Env:                      userEnvVar,
+				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+			},
+		)
+
+		volumeName := fmt.Sprintf("oci-%d", i)
+
+		podSpec.Volumes = append(
+			podSpec.Volumes,
+			k8score.Volume{
+				Name: volumeName,
+				VolumeSource: k8score.VolumeSource{
+					EmptyDir: &k8score.EmptyDirVolumeSource{},
+				},
+			},
+		)
+
+		mountPath := strings.TrimSuffix(localPath, "/models")
+
+		emptyDirVolumeMount := k8score.VolumeMount{
+			Name:      volumeName,
+			MountPath: mountPath,
+			SubPath:   strings.TrimPrefix(mountPath, "/oci/"),
+		}
+
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
+
+		podSpec.Containers = append(
+			podSpec.Containers,
+			k8score.Container{
+				Name:            fmt.Sprintf("oci-%d", i),
+				Image:           image,
+				ImagePullPolicy: "IfNotPresent",
+				Env:             userEnvVar,
+				VolumeMounts:    []k8score.VolumeMount{emptyDirVolumeMount},
+				Command: []string{
+					"sh",
+					"-c",
+					// $$$$ gets escaped by YAML to $$, which is the current PID
+					// This container will sleep until the main container finishes execution and
+					// communicates its exit via a file creation, at which point this container
+					// will then also exit.
+					// This approach is taken instead of having the main container send a SIGHUP to the
+					// sleep process to avoid the need for the SYS_PTRACE capability which is not always available
+					// depending on the security context restrictions.
+					// This approach is inspired by KServe:
+					// https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
+					fmt.Sprintf(
+						"ln -s /proc/$$$$/root/models \"%s\" && "+
+							"echo \"Running Modelcar container...\" && "+
+							"until [ -f \"%s/launcher-complete\" ]; do sleep 1; done",
+						localPath, mountPath,
+					),
+				},
+				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+			},
+		)
+	}
 }
 
 // Extends the PodSpec to include Kubernetes-specific executor config.
@@ -647,7 +870,7 @@ func extendPodSpecPatch(
 						},
 						Spec: k8score.PersistentVolumeClaimSpec{
 							AccessModes: accessModes,
-							Resources: k8score.ResourceRequirements{
+							Resources: k8score.VolumeResourceRequirements{
 								Requests: k8score.ResourceList{
 									k8score.ResourceStorage: k8sres.MustParse(ephemeralVolumeSpec.GetSize()),
 								},
@@ -665,6 +888,33 @@ func extendPodSpecPatch(
 		podSpec.Volumes = append(podSpec.Volumes, ephemeralVolume)
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, ephemeralVolumeMount)
 	}
+
+	// EmptyDirMounts
+	for _, emptyDirVolumeSpec := range kubernetesExecutorConfig.GetEmptyDirMounts() {
+		var sizeLimitResource *k8sres.Quantity
+		if emptyDirVolumeSpec.GetSizeLimit() != "" {
+			r := k8sres.MustParse(emptyDirVolumeSpec.GetSizeLimit())
+			sizeLimitResource = &r
+		}
+
+		emptyDirVolume := k8score.Volume{
+			Name: emptyDirVolumeSpec.GetVolumeName(),
+			VolumeSource: k8score.VolumeSource{
+				EmptyDir: &k8score.EmptyDirVolumeSource{
+					Medium:    k8score.StorageMedium(emptyDirVolumeSpec.GetMedium()),
+					SizeLimit: sizeLimitResource,
+				},
+			},
+		}
+		emptyDirVolumeMount := k8score.VolumeMount{
+			Name:      emptyDirVolumeSpec.GetVolumeName(),
+			MountPath: emptyDirVolumeSpec.GetMountPath(),
+		}
+
+		podSpec.Volumes = append(podSpec.Volumes, emptyDirVolume)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
+	}
+
 	return nil
 }
 
@@ -675,6 +925,8 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 			err = fmt.Errorf("driver.DAG(%s) failed: %w", opts.info(), err)
 		}
 	}()
+	b, _ := json.Marshal(opts)
+	glog.V(4).Info("DAG opts: ", string(b))
 	err = validateDAG(opts)
 	if err != nil {
 		return nil, err
@@ -699,7 +951,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	if err != nil {
 		return nil, err
 	}
-	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts.Task, opts.Component.GetInputDefinitions(), mlmd, expr)
+	inputs, err := resolveInputs(ctx, dag, iterationIndex, pipeline, opts, mlmd, expr)
 	if err != nil {
 		return nil, err
 	}
@@ -725,6 +977,19 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	ecfg.ParentDagID = dag.Execution.GetID()
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
+
+	// Handle writing output parameters to MLMD.
+	ecfg.OutputParameters = opts.Component.GetDag().GetOutputs().GetParameters()
+	glog.V(4).Info("outputParameters: ", ecfg.OutputParameters)
+
+	// Handle writing output artifacts to MLMD.
+	ecfg.OutputArtifacts = opts.Component.GetDag().GetOutputs().GetArtifacts()
+	glog.V(4).Info("outputArtifacts: ", ecfg.OutputArtifacts)
+
+	totalDagTasks := len(opts.Component.GetDag().GetTasks())
+	ecfg.TotalDagTasks = &totalDagTasks
+	glog.V(4).Info("totalDagTasks: ", *ecfg.TotalDagTasks)
+
 	if opts.Task.GetArtifactIterator() != nil {
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
 	}
@@ -769,6 +1034,12 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		ecfg.IterationCount = &count
 		execution.IterationCount = &count
 	}
+
+	glog.V(4).Info("pipeline: ", pipeline)
+	b, _ = json.Marshal(*ecfg)
+	glog.V(4).Info("ecfg: ", string(b))
+	glog.V(4).Infof("dag: %v", dag)
+
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
@@ -798,7 +1069,7 @@ func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
 	}
 }
 
-func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput, outputDefinitions *pipelinespec.ComponentOutputsSpec, mlmd *metadata.Client, cachedMLMDExecutionID string) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
+func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput, mlmd *metadata.Client, cachedMLMDExecutionID string) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 	cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
@@ -909,12 +1180,18 @@ func validateNonRoot(opts Options) error {
 	return nil
 }
 
-func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, task *pipelinespec.PipelineTaskSpec, inputsSpec *pipelinespec.ComponentInputsSpec, mlmd *metadata.Client, expr *expression.Expr) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
+func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, pipeline *metadata.Pipeline, opts Options, mlmd *metadata.Client, expr *expression.Expr) (inputs *pipelinespec.ExecutorInput_Inputs, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to resolve inputs: %w", err)
 		}
 	}()
+
+	task := opts.Task
+	inputsSpec := opts.Component.GetInputDefinitions()
+
+	glog.V(4).Infof("dag: %v", dag)
+	glog.V(4).Infof("task: %v", task)
 	inputParams, _, err := dag.Execution.GetParameters()
 	if err != nil {
 		return nil, err
@@ -1078,20 +1355,11 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 		}
 		return inputs, nil
 	}
-	// get executions in context on demand
-	var tasksCache map[string]*metadata.Execution
-	getDAGTasks := func() (map[string]*metadata.Execution, error) {
-		if tasksCache != nil {
-			return tasksCache, nil
-		}
-		tasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline)
-		if err != nil {
-			return nil, err
-		}
-		tasksCache = tasks
-		return tasks, nil
-	}
+
+	// Handle parameters.
 	for name, paramSpec := range task.GetInputs().GetParameters() {
+		glog.V(4).Infof("name: %v", name)
+		glog.V(4).Infof("paramSpec: %v", paramSpec)
 		paramError := func(err error) error {
 			return fmt.Errorf("resolving input parameter %s with spec %s: %w", name, paramSpec, err)
 		}
@@ -1107,36 +1375,42 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			}
 			inputs.ParameterValues[name] = v
 
+		// This is the case where the input comes from the output of an upstream task.
 		case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
-			taskOutput := paramSpec.GetTaskOutputParameter()
-			if taskOutput.GetProducerTask() == "" {
-				return nil, paramError(fmt.Errorf("producer task is empty"))
+			cfg := resolveUpstreamOutputsConfig{
+				ctx:       ctx,
+				paramSpec: paramSpec,
+				dag:       dag,
+				pipeline:  pipeline,
+				mlmd:      mlmd,
+				inputs:    inputs,
+				name:      name,
+				err:       paramError,
 			}
-			if taskOutput.GetOutputParameterKey() == "" {
-				return nil, paramError(fmt.Errorf("output parameter key is empty"))
+			if err := resolveUpstreamParameters(cfg); err != nil {
+				return nil, err
 			}
-			tasks, err := getDAGTasks()
-			if err != nil {
-				return nil, paramError(err)
-			}
-			producer, ok := tasks[taskOutput.GetProducerTask()]
-			if !ok {
-				return nil, paramError(fmt.Errorf("cannot find producer task %q", taskOutput.GetProducerTask()))
-			}
-			_, outputs, err := producer.GetParameters()
-			if err != nil {
-				return nil, paramError(fmt.Errorf("get producer output parameters: %w", err))
-			}
-			param, ok := outputs[taskOutput.GetOutputParameterKey()]
-			if !ok {
-				return nil, paramError(fmt.Errorf("cannot find output parameter key %q in producer task %q", taskOutput.GetOutputParameterKey(), taskOutput.GetProducerTask()))
-			}
-			inputs.ParameterValues[name] = param
+
 		case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
 			runtimeValue := paramSpec.GetRuntimeValue()
 			switch t := runtimeValue.Value.(type) {
 			case *pipelinespec.ValueOrRuntimeParameter_Constant:
-				inputs.ParameterValues[name] = runtimeValue.GetConstant()
+				val := runtimeValue.GetConstant()
+
+				switch val.GetStringValue() {
+				case "{{$.pipeline_job_name}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(opts.RunDisplayName)
+				case "{{$.pipeline_job_resource_name}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(opts.RunName)
+				case "{{$.pipeline_job_uuid}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(opts.RunID)
+				case "{{$.pipeline_task_name}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(task.GetTaskInfo().GetName())
+				case "{{$.pipeline_task_uuid}}":
+					inputs.ParameterValues[name] = structpb.NewStringValue(fmt.Sprintf("%d", opts.DAGExecutionID))
+				default:
+					inputs.ParameterValues[name] = val
+				}
 			default:
 				return nil, paramError(fmt.Errorf("param runtime value spec of type %T not implemented", t))
 			}
@@ -1147,7 +1421,11 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			return nil, paramError(fmt.Errorf("parameter spec of type %T not implemented yet", t))
 		}
 	}
+
+	// Handle artifacts.
 	for name, artifactSpec := range task.GetInputs().GetArtifacts() {
+		glog.V(4).Infof("inputs: %#v", task.GetInputs())
+		glog.V(4).Infof("artifacts: %#v", task.GetInputs().GetArtifacts())
 		artifactError := func(err error) error {
 			return fmt.Errorf("failed to resolve input artifact %s with spec %s: %w", name, artifactSpec, err)
 		}
@@ -1164,36 +1442,18 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 			inputs.Artifacts[name] = v
 
 		case *pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact:
-			taskOutput := artifactSpec.GetTaskOutputArtifact()
-			if taskOutput.GetProducerTask() == "" {
-				return nil, artifactError(fmt.Errorf("producer task is empty"))
+			cfg := resolveUpstreamOutputsConfig{
+				ctx:          ctx,
+				artifactSpec: artifactSpec,
+				dag:          dag,
+				pipeline:     pipeline,
+				mlmd:         mlmd,
+				inputs:       inputs,
+				name:         name,
+				err:          artifactError,
 			}
-			if taskOutput.GetOutputArtifactKey() == "" {
-				return nil, artifactError(fmt.Errorf("output artifact key is empty"))
-			}
-			tasks, err := getDAGTasks()
-			if err != nil {
-				return nil, artifactError(err)
-			}
-			producer, ok := tasks[taskOutput.GetProducerTask()]
-			if !ok {
-				return nil, artifactError(fmt.Errorf("cannot find producer task %q", taskOutput.GetProducerTask()))
-			}
-			// TODO(Bobgy): cache results
-			outputs, err := mlmd.GetOutputArtifactsByExecutionId(ctx, producer.GetID())
-			if err != nil {
-				return nil, artifactError(err)
-			}
-			artifact, ok := outputs[taskOutput.GetOutputArtifactKey()]
-			if !ok {
-				return nil, artifactError(fmt.Errorf("cannot find output artifact key %q in producer task %q", taskOutput.GetOutputArtifactKey(), taskOutput.GetProducerTask()))
-			}
-			runtimeArtifact, err := artifact.ToRuntimeArtifact()
-			if err != nil {
-				return nil, artifactError(err)
-			}
-			inputs.Artifacts[name] = &pipelinespec.ArtifactList{
-				Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
+			if err := resolveUpstreamArtifacts(cfg); err != nil {
+				return nil, err
 			}
 		default:
 			return nil, artifactError(fmt.Errorf("artifact spec of type %T not implemented yet", t))
@@ -1203,7 +1463,282 @@ func resolveInputs(ctx context.Context, dag *metadata.DAG, iterationIndex *int, 
 	return inputs, nil
 }
 
-func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.ComponentOutputsSpec) *pipelinespec.ExecutorInput_Outputs {
+// getDAGTasks is a recursive function that returns a map of all tasks across all DAGs in the context of nested DAGs.
+func getDAGTasks(
+	ctx context.Context,
+	dag *metadata.DAG,
+	pipeline *metadata.Pipeline,
+	mlmd *metadata.Client,
+	flattenedTasks map[string]*metadata.Execution,
+) (map[string]*metadata.Execution, error) {
+	if flattenedTasks == nil {
+		flattenedTasks = make(map[string]*metadata.Execution)
+	}
+	currentExecutionTasks, err := mlmd.GetExecutionsInDAG(ctx, dag, pipeline, true)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range currentExecutionTasks {
+		flattenedTasks[k] = v
+	}
+	for _, v := range currentExecutionTasks {
+
+		if v.GetExecution().GetType() == "system.DAGExecution" {
+			// Iteration count is only applied when using ParallelFor, and in
+			// that scenario you're guaranteed to have redundant task names even
+			// within a single DAG, which results in an error when
+			// mlmd.GetExecutionsInDAG is called. ParallelFor outputs should be
+			// handled with dsl.Collected.
+			_, ok := v.GetExecution().GetCustomProperties()["iteration_count"]
+			if ok {
+				glog.Infof("Found a ParallelFor task, %v. Skipping it.", v.TaskName())
+				continue
+			}
+			glog.V(4).Infof("Found a task, %v, with an execution type of system.DAGExecution. Adding its tasks to the task list.", v.TaskName())
+			subDAG, err := mlmd.GetDAG(ctx, v.GetExecution().GetId())
+			if err != nil {
+				return nil, err
+			}
+			// Pass the subDAG into a recursive call to getDAGTasks and update
+			// tasks to include the subDAG's tasks.
+			flattenedTasks, err = getDAGTasks(ctx, subDAG, pipeline, mlmd, flattenedTasks)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return flattenedTasks, nil
+}
+
+// resolveUpstreamOutputsConfig is just a config struct used to store the input
+// parameters of the resolveUpstreamParameters and resolveUpstreamArtifacts
+// functions.
+type resolveUpstreamOutputsConfig struct {
+	ctx          context.Context
+	paramSpec    *pipelinespec.TaskInputsSpec_InputParameterSpec
+	artifactSpec *pipelinespec.TaskInputsSpec_InputArtifactSpec
+	dag          *metadata.DAG
+	pipeline     *metadata.Pipeline
+	mlmd         *metadata.Client
+	inputs       *pipelinespec.ExecutorInput_Inputs
+	name         string
+	err          func(error) error
+}
+
+// resolveUpstreamParameters resolves input parameters that come from upstream
+// tasks. These tasks can be components/containers, which is relatively
+// straightforward, or DAGs, in which case, we need to traverse the graph until
+// we arrive at a component/container (since there can be n nested DAGs).
+func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) error {
+	taskOutput := cfg.paramSpec.GetTaskOutputParameter()
+	glog.V(4).Info("taskOutput: ", taskOutput)
+	producerTaskName := taskOutput.GetProducerTask()
+	if producerTaskName == "" {
+		return cfg.err(fmt.Errorf("producerTaskName is empty"))
+	}
+	outputParameterKey := taskOutput.GetOutputParameterKey()
+	if outputParameterKey == "" {
+		return cfg.err(fmt.Errorf("output parameter key is empty"))
+	}
+
+	// Get a list of tasks for the current DAG first.
+	// The reason we use gatDAGTasks instead of mlmd.GetExecutionsInDAG is because the latter does not handle task name collisions in the map which results in a bunch of unhandled edge cases and test failures.
+	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
+	if err != nil {
+		return cfg.err(err)
+	}
+
+	producer, ok := tasks[producerTaskName]
+	if !ok {
+		return cfg.err(fmt.Errorf("producer task, %v, not in tasks", producerTaskName))
+	}
+	glog.V(4).Info("producer: ", producer)
+	glog.V(4).Infof("tasks: %#v", tasks)
+	currentTask := producer
+	currentSubTaskMaybeDAG := true
+	// Continue looping until we reach a sub-task that is NOT a DAG.
+	for currentSubTaskMaybeDAG {
+		glog.V(4).Info("currentTask: ", currentTask.TaskName())
+		// If the current task is a DAG:
+		if *currentTask.GetExecution().Type == "system.DAGExecution" {
+			// Since currentTask is a DAG, we need to deserialize its
+			// output parameter map so that we can look up its
+			// corresponding producer sub-task, reassign currentTask,
+			// and iterate through this loop again.
+			outputParametersCustomProperty, ok := currentTask.GetExecution().GetCustomProperties()["parameter_producer_task"]
+			if !ok {
+				return cfg.err(fmt.Errorf("task, %v, does not have a parameter_producer_task custom property", currentTask.TaskName()))
+			}
+			glog.V(4).Infof("outputParametersCustomProperty: %#v", outputParametersCustomProperty)
+
+			dagOutputParametersMap := make(map[string]*pipelinespec.DagOutputsSpec_DagOutputParameterSpec)
+			glog.V(4).Infof("outputParametersCustomProperty: %v", outputParametersCustomProperty.GetStructValue())
+
+			for name, value := range outputParametersCustomProperty.GetStructValue().GetFields() {
+				outputSpec := &pipelinespec.DagOutputsSpec_DagOutputParameterSpec{}
+				err := protojson.Unmarshal([]byte(value.GetStringValue()), outputSpec)
+				if err != nil {
+					return err
+				}
+				dagOutputParametersMap[name] = outputSpec
+			}
+
+			glog.V(4).Infof("Deserialized dagOutputParametersMap: %v", dagOutputParametersMap)
+
+			// Support for the 2 DagOutputParameterSpec types:
+			// ValueFromParameter & ValueFromOneof
+			var subTaskName string
+			switch dagOutputParametersMap[outputParameterKey].Kind.(type) {
+			case *pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromParameter:
+				subTaskName = dagOutputParametersMap[outputParameterKey].GetValueFromParameter().GetProducerSubtask()
+				outputParameterKey = dagOutputParametersMap[outputParameterKey].GetValueFromParameter().GetOutputParameterKey()
+			case *pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromOneof:
+				// When OneOf is specified in a pipeline, the output of only 1 task is consumed even though there may be more than 1 task output set. In this case we will attempt to grab the first successful task output.
+				paramSelectors := dagOutputParametersMap[outputParameterKey].GetValueFromOneof().GetParameterSelectors()
+				glog.V(4).Infof("paramSelectors: %v", paramSelectors)
+				// Since we have the tasks map, we can iterate through the parameterSelectors if the ProducerSubTask is not present in the task map and then assign the new OutputParameterKey only if it exists.
+				successfulOneOfTask := false
+				for !successfulOneOfTask {
+					for _, paramSelector := range paramSelectors {
+						subTaskName = paramSelector.GetProducerSubtask()
+						glog.V(4).Infof("subTaskName from paramSelector: %v", subTaskName)
+						glog.V(4).Infof("outputParameterKey from paramSelector: %v", paramSelector.GetOutputParameterKey())
+						if subTask, ok := tasks[subTaskName]; ok {
+							subTaskState := subTask.GetExecution().LastKnownState.String()
+							glog.V(4).Infof("subTask: %w , subTaskState: %v", subTaskName, subTaskState)
+							if subTaskState == "CACHED" || subTaskState == "COMPLETE" {
+
+								outputParameterKey = paramSelector.GetOutputParameterKey()
+								successfulOneOfTask = true
+								break
+							}
+						}
+					}
+					if !successfulOneOfTask {
+						return cfg.err(fmt.Errorf("processing OneOf: No successful task found"))
+					}
+				}
+			}
+			glog.V(4).Infof("SubTaskName from outputParams: %v", subTaskName)
+			glog.V(4).Infof("OutputParameterKey from outputParams: %v", outputParameterKey)
+			if subTaskName == "" {
+				return cfg.err(fmt.Errorf("producer_subtask not in outputParams"))
+			}
+			glog.V(4).Infof(
+				"Overriding currentTask, %v, output with currentTask's producer_subtask, %v, output.",
+				currentTask.TaskName(),
+				subTaskName,
+			)
+			currentTask, ok = tasks[subTaskName]
+			if !ok {
+				return cfg.err(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
+			}
+
+		} else {
+			_, outputParametersCustomProperty, err := currentTask.GetParameters()
+			if err != nil {
+				return err
+			}
+			cfg.inputs.ParameterValues[cfg.name] = outputParametersCustomProperty[outputParameterKey]
+			// Exit the loop.
+			currentSubTaskMaybeDAG = false
+		}
+	}
+
+	return nil
+}
+
+// resolveUpstreamArtifacts resolves input artifacts that come from upstream
+// tasks. These tasks can be components/containers, which is relatively
+// straightforward, or DAGs, in which case, we need to traverse the graph until
+// we arrive at a component/container (since there can be n nested DAGs).
+func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) error {
+	glog.V(4).Infof("artifactSpec: %#v", cfg.artifactSpec)
+	taskOutput := cfg.artifactSpec.GetTaskOutputArtifact()
+	if taskOutput.GetProducerTask() == "" {
+		return cfg.err(fmt.Errorf("producer task is empty"))
+	}
+	if taskOutput.GetOutputArtifactKey() == "" {
+		cfg.err(fmt.Errorf("output artifact key is empty"))
+	}
+	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
+	if err != nil {
+		cfg.err(err)
+	}
+
+	producer, ok := tasks[taskOutput.GetProducerTask()]
+	if !ok {
+		cfg.err(
+			fmt.Errorf("cannot find producer task %q", taskOutput.GetProducerTask()),
+		)
+	}
+	glog.V(4).Info("producer: ", producer)
+	currentTask := producer
+	outputArtifactKey := taskOutput.GetOutputArtifactKey()
+	currentSubTaskMaybeDAG := true
+	// Continue looping until we reach a sub-task that is NOT a DAG.
+	for currentSubTaskMaybeDAG {
+		glog.V(4).Info("currentTask: ", currentTask.TaskName())
+		// If the current task is a DAG:
+		if *currentTask.GetExecution().Type == "system.DAGExecution" {
+			// Get the sub-task.
+			outputArtifactsCustomProperty := currentTask.GetExecution().GetCustomProperties()["artifact_producer_task"]
+			// Deserialize the output artifacts.
+			var outputArtifacts map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
+			err := json.Unmarshal([]byte(outputArtifactsCustomProperty.GetStringValue()), &outputArtifacts)
+			if err != nil {
+				return err
+			}
+			glog.V(4).Infof("Deserialized outputArtifacts: %v", outputArtifacts)
+			// Adding support for multiple output artifacts
+			var subTaskName string
+			artifactSelectors := outputArtifacts[outputArtifactKey].GetArtifactSelectors()
+
+			for _, v := range artifactSelectors {
+				glog.V(4).Infof("v: %v", v)
+				glog.V(4).Infof("v.ProducerSubtask: %v", v.ProducerSubtask)
+				glog.V(4).Infof("v.OutputArtifactKey: %v", v.OutputArtifactKey)
+				subTaskName = v.ProducerSubtask
+				outputArtifactKey = v.OutputArtifactKey
+			}
+			// If the sub-task is a DAG, reassign currentTask and run
+			// through the loop again.
+			currentTask = tasks[subTaskName]
+			// }
+		} else {
+			// Base case, currentTask is a container, not a DAG.
+			outputs, err := cfg.mlmd.GetOutputArtifactsByExecutionId(cfg.ctx, currentTask.GetID())
+			if err != nil {
+				cfg.err(err)
+			}
+			glog.V(4).Infof("outputs: %#v", outputs)
+			artifact, ok := outputs[outputArtifactKey]
+			if !ok {
+				cfg.err(
+					fmt.Errorf(
+						"cannot find output artifact key %q in producer task %q",
+						taskOutput.GetOutputArtifactKey(),
+						taskOutput.GetProducerTask(),
+					),
+				)
+			}
+			runtimeArtifact, err := artifact.ToRuntimeArtifact()
+			if err != nil {
+				cfg.err(err)
+			}
+			cfg.inputs.Artifacts[cfg.name] = &pipelinespec.ArtifactList{
+				Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
+			}
+			// Since we are in the base case, escape the loop.
+			currentSubTaskMaybeDAG = false
+		}
+	}
+
+	return nil
+}
+
+func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.ComponentOutputsSpec, outputUriSalt string) *pipelinespec.ExecutorInput_Outputs {
 	outputs := &pipelinespec.ExecutorInput_Outputs{
 		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 		Parameters: make(map[string]*pipelinespec.ExecutorInput_OutputParameter),
@@ -1215,7 +1750,7 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 				{
 					// Do not preserve the query string for output artifacts, as otherwise
 					// they'd appear in file and artifact names.
-					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, name}, false),
+					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputUriSalt, name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},
@@ -1456,7 +1991,7 @@ func createPVC(
 	cached := false
 	execution.Cached = &cached
 	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return "", createdExecution, pb.Execution_FAILED, err
 		}
@@ -1478,7 +2013,7 @@ func createPVC(
 		},
 		Spec: k8score.PersistentVolumeClaimSpec{
 			AccessModes: accessModes,
-			Resources: k8score.ResourceRequirements{
+			Resources: k8score.VolumeResourceRequirements{
 				Requests: k8score.ResourceList{
 					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
 				},
@@ -1502,9 +2037,11 @@ func createPVC(
 			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
 		}
 	*/
-	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
-	if err != nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for create pvc: %w", err)
+	if opts.Task.GetCachingOptions().GetEnableCache() {
+		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
+		if err != nil {
+			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for create pvc: %w", err)
+		}
 	}
 
 	return createdPVC.ObjectMeta.Name, createdExecution, pb.Execution_COMPLETE, nil
@@ -1576,7 +2113,7 @@ func deletePVC(
 	cached := false
 	execution.Cached = &cached
 	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, opts.Component.GetOutputDefinitions(), mlmd, ecfg.CachedMLMDExecutionID)
+		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return createdExecution, pb.Execution_FAILED, err
 		}
@@ -1611,9 +2148,11 @@ func deletePVC(
 			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
 		}
 	*/
-	err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
-	if err != nil {
-		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entrty for delete pvc: %w", err)
+	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
+		if err != nil {
+			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for delete pvc: %w", err)
+		}
 	}
 
 	return createdExecution, pb.Execution_COMPLETE, nil
@@ -1621,7 +2160,7 @@ func deletePVC(
 
 func createK8sClient() (*kubernetes.Clientset, error) {
 	// Initialize Kubernetes client set
-	restConfig, err := rest.InClusterConfig()
+	restConfig, err := util.GetKubernetesConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
 	}
@@ -1727,7 +2266,7 @@ func createCache(
 ) error {
 	id := execution.GetID()
 	if id == 0 {
-		fmt.Errorf("failed to get id from createdExecution")
+		return fmt.Errorf("failed to get id from createdExecution")
 	}
 	task := &api.Task{
 		//TODO how to differentiate between shared pipeline and namespaced pipeline

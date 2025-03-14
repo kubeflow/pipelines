@@ -93,6 +93,8 @@ message ComponentSpec {
     DagSpec dag = 3;
     string executor_label = 4;
   }
+  // Supports platform-specific component features.
+  repeated SinglePlatformSpec single_platform_specs = 5;
 }
 
 // A DAG contains multiple tasks.
@@ -290,7 +292,7 @@ message TaskInputsSpec {
 
   // Represents an input parameter. The value can be taken from an upstream
   // task's output parameter (if specifying `producer_task` and
-  // `output_parameter_key`, or it can be a runtime value, which can either be
+  // `output_parameter_key`), or it can be a runtime value, which can either be
   // determined at compile-time, or from a pipeline parameter.
   message InputParameterSpec {
     // Represents an upstream task's output parameter.
@@ -305,9 +307,9 @@ message TaskInputsSpec {
 
     // Represents an upstream task's final status. The field can only be set if
     // the schema version is `2.0.0`. The resolved input parameter will be a
-    // json payload in string type.
+    // JSON payload in string type.
     message TaskFinalStatus {
-      // The name of the upsteram task where the final status is coming from.
+      // The name of the upstream task where the final status is coming from.
       string producer_task = 1;
     }
 
@@ -459,6 +461,9 @@ message PipelineTaskSpec {
   message CachingOptions {
     // Whether or not to enable cache for this task. Defaults to false.
     bool enable_cache = 1;
+    // Customized cache key for this task. If set, the cache_key will be used
+    // as the key for the task's cache.
+    string cache_key = 2;
   }
   CachingOptions caching_options = 6;
 
@@ -618,7 +623,7 @@ message PipelineInfo {
   // Required field. The name of the pipeline.
   // The name will be used to create or find pipeline context in MLMD.
   string name = 1;
-  
+
   // Optional fields. The readable display name for the pipeline template.
   // Should not exceed 1024 characters.
   string display_name = 2;
@@ -722,29 +727,66 @@ message PipelineDeploymentConfig {
     message ResourceSpec {
       // The limit of the number of vCPU cores. This container execution needs
       // at most cpu_limit vCPU to run.
-      double cpu_limit = 1;
+      // Deprecated. Use [ResourceSpec.resource_cpu_limit] instead.
+      double cpu_limit = 1 [deprecated = true];
 
       // The memory limit in GB. This container execution needs at most
       // memory_limit RAM to run.
-      double memory_limit = 2;
+      // Deprecated. Use [ResourceSpec.resource_memory_limit] instead.
+      double memory_limit = 2 [deprecated = true];
 
       // The request of the number of vCPU cores. This container execution
       // needs at least cpu_request vCPU to run.
-      double cpu_request = 5;
+      // Deprecated. Use [ResourceSpec.resource_cpu_request] instead.
+      double cpu_request = 5 [deprecated = true];
 
       // The memory request in GB. This container execution needs at least
       // memory_request RAM to run.
-      double memory_request = 6;
+      // Deprecated. Use [ResourceSpec.resource_memory_request] instead.
+      double memory_request = 6 [deprecated = true];
+
+      // The limit of the number of vCPU cores. This container execution needs
+      // at most resource_cpu_limit vCPU to run. Handles static values and
+      // placeholders.
+      string resource_cpu_limit = 7;
+
+      // The memory limit in GB. This container execution needs
+      // at most resource_memory_limit RAM to run. Handles static values and
+      // placeholders.
+      string resource_memory_limit = 8;
+
+      // The request of the number of vCPU cores. This container
+      // execution needs at least resource_cpu_request vCPU to run. Handles
+      // static values and placeholders.
+      string resource_cpu_request = 9;
+
+      // The memory request in GB. This container execution
+      // needs at least resource_memory_request RAM to run. Handles static
+      // values and placeholders.
+      string resource_memory_request = 10;
 
       // The specification on the accelerators being attached to this container.
       message AcceleratorConfig {
         // The type of accelerators.
-        string type = 1;
+        // Deprecated. Use [ResourceSpec.AcceleratorConfig.resource_type]
+        // instead.
+        string type = 1 [deprecated = true];
+
         // The number of accelerators.
-        int64 count = 2;
+        // Deprecated. Use [ResourceSpec.AcceleratorConfig.resource_count]
+        // instead.
+        int64 count = 2 [deprecated = true];
+
+        // The type of accelerators. Handles static values and
+        // placeholders.
+        string resource_type = 3;
+
+        // The number of accelerators. Handles static values and
+        // placeholders.
+        string resource_count = 4;
       }
       AcceleratorConfig accelerator = 3;
-      
+
       reserved 4;
     }
     ResourceSpec resources = 5;
@@ -1045,11 +1087,28 @@ message PlatformSpec {
 message SinglePlatformSpec {
   // Mirrors PipelineSpec.deployment_spec structure
   PlatformDeploymentConfig deployment_spec = 1;
-}
 
+  // Name of the platform. For example, "google_cloud"
+  string platform = 2;
+
+  // Arbitrary configuration, which will be defined by the platform
+  // protos/libraries.
+  google.protobuf.Struct config = 3;
+
+  PipelineConfig pipelineConfig = 4;
+}
 
 message PlatformDeploymentConfig {
   // Map of executor label to executor-level config
   // Mirrors PipelineSpec.deployment_spec.executors structure
   map<string, google.protobuf.Struct> executors = 1;
+}
+
+// Spec for pipeline-level config options. See PipelineConfig DSL class.
+message PipelineConfig {
+  // Name of the semaphore key to control pipeline concurrency
+  string semaphore_key = 1;
+
+  // Name of the mutex to ensure mutual exclusion
+  string mutex_name = 2;
 }

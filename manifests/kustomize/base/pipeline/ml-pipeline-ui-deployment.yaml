@@ -20,7 +20,7 @@ spec:
         configMap:
           name: ml-pipeline-ui-configmap
       containers:
-      - image: gcr.io/ml-pipeline/frontend:dummy
+      - image: ghcr.io/kubeflow/kfp-frontend:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
@@ -29,6 +29,16 @@ spec:
         - name: config-volume
           mountPath: /etc/config
           readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
         env:
           - name: VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
             value: /etc/config/viewer-pod-template.json
@@ -47,6 +57,14 @@ spec:
                 name: mlpipeline-minio-artifact
                 key: secretkey
           - name: ALLOW_CUSTOM_VISUALIZATIONS
+            value: "true"
+          - name: FRONTEND_SERVER_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: ARGO_ARCHIVE_LOGS
+            value: "true"
+          - name: DISABLE_GKE_METADATA
             value: "true"
         readinessProbe:
           exec:

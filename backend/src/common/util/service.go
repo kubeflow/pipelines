@@ -15,6 +15,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -50,6 +51,26 @@ func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAd
 	return errors.Wrapf(err, "Waiting for ml pipeline API server failed after all attempts.")
 }
 
+// GetKubernetesConfig will first try an in-cluster configuration but fallback to using a kubeconfig.
+func GetKubernetesConfig() (*rest.Config, error) {
+	restConfig, errInCluster := rest.InClusterConfig()
+	if errInCluster == nil {
+		return restConfig, nil
+	}
+
+	// Fallback to using a kubeconfig
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{},
+	)
+
+	restConfig, errKubeconfig := clientConfig.ClientConfig()
+	if errKubeconfig != nil {
+		return nil, fmt.Errorf("%w; %w", errInCluster, errKubeconfig)
+	}
+
+	return restConfig, nil
+}
+
 func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 	*kubernetes.Clientset, *rest.Config, string, error,
 ) {
@@ -72,6 +93,16 @@ func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 			"Failed to create client set during K8s client initialization")
 	}
 	return clientSet, config, namespace, nil
+}
+
+func GetRpcConnectionWithTimeout(address string, timeout time.Time) (*grpc.ClientConn, error) {
+	ctx, _ := context.WithDeadline(context.Background(), timeout)
+
+	conn, err := grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
+	}
+	return conn, nil
 }
 
 func GetRpcConnection(address string) (*grpc.ClientConn, error) {

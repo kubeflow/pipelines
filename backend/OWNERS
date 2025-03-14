@@ -1,8 +1,14 @@
 approvers:
   - chensun
-  - Tomcli
   - rimolive
+  - hbelmiro
+  - mprahl
 reviewers:
   - chensun
-  - Tomcli
+  - hbelmiro
+  - HumairAK
   - rimolive
+  - mprahl
+  - gmfrasca
+  - droctothorpe
+  - zazulam

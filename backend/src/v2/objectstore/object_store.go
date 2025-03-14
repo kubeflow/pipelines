@@ -17,6 +17,12 @@ package objectstore
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -27,14 +33,8 @@ import (
 	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"
 	"golang.org/x/oauth2/google"
-	"io"
-	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
 func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (bucket *blob.Bucket, err error) {
@@ -96,7 +96,7 @@ func UploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 	}
 
 	// localPath is a directory.
-	files, err := ioutil.ReadDir(localPath)
+	files, err := os.ReadDir(localPath)
 	if err != nil {
 		return fmt.Errorf("unable to list local directory %q: %w", localPath, err)
 	}
@@ -258,7 +258,7 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	config.Credentials = creds
 	config.Region = aws.String(params.Region)
 	config.DisableSSL = aws.Bool(params.DisableSSL)
-	config.S3ForcePathStyle = aws.Bool(true)
+	config.S3ForcePathStyle = aws.Bool(params.ForcePathStyle)
 
 	// AWS Specific:
 	// Path-style S3 endpoints, which are commonly used, may fall into either of two subdomains:

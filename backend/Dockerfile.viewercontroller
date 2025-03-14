@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.21.7-alpine3.19 as builder
+FROM golang:1.22.12-alpine3.21 as builder
 
 RUN apk update && apk upgrade
 RUN apk add --no-cache git gcc musl-dev
 
 WORKDIR /src/github.com/kubeflow/pipelines
+
+COPY ./go.mod ./
+COPY ./go.sum ./
+
+RUN GO111MODULE=on go mod download
+
 COPY . .
 
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/viewer/*.go
-# Check licenses and comply with license terms.
-RUN ./hack/install-go-licenses.sh
-# First, make sure there's no forbidden license.
-RUN go-licenses check ./backend/src/crd/controller/viewer
-RUN go-licenses csv ./backend/src/crd/controller/viewer > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv backend/third_party_licenses/viewer.csv && \
-    go-licenses save ./backend/src/crd/controller/viewer --save_path /tmp/NOTICES
 
 FROM alpine
 WORKDIR /bin
@@ -35,9 +34,6 @@ WORKDIR /bin
 COPY --from=builder /bin/controller /bin/controller
 RUN chmod +x /bin/controller
 
-# Copy licenses and notices.
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 
 ENV MAX_NUM_VIEWERS "50"
 ENV NAMESPACE "kubeflow"

@@ -819,7 +819,6 @@ describe('/apps/tensorboard', () => {
                 "test-ns",
                 "viewers",
                 "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
-                V1DeleteOptions {},
               ]
             `);
           done(err);

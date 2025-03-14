@@ -227,7 +227,7 @@ def get_short_type_name(type_name: str) -> str:
     Returns:
       The short form type name or the original name if pattern doesn't match.
     """
-    match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
+    match = re.match(r'(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
     return match['type'] if match else type_name
 
 

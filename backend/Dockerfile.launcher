@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.21.7-alpine3.19 as builder
+FROM golang:1.22.12-alpine3.21 as builder
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
+
+COPY ./go.mod ./
+COPY ./go.sum ./
+COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
+COPY ./api/go.mod ./api/go.mod
+
+RUN GO111MODULE=on go mod download
+
 COPY . .
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
-
-# Check licenses and comply with license terms.
-RUN ./hack/install-go-licenses.sh
-# First, make sure there's no forbidden license.
-RUN go-licenses check ./backend/src/v2/cmd/launcher-v2
-RUN go-licenses csv ./backend/src/v2/cmd/launcher-v2 > /tmp/licenses.csv && \
-    diff /tmp/licenses.csv backend/third_party_licenses/launcher.csv && \
-    go-licenses save ./backend/src/v2/cmd/launcher-v2 --save_path /tmp/NOTICES
 
 FROM alpine:3.19
 
@@ -35,8 +35,5 @@ USER appuser
 WORKDIR /bin
 
 COPY --from=builder /bin/launcher-v2 /bin/launcher-v2
-# Copy licenses and notices.
-COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 
 ENTRYPOINT [ "/bin/launcher-v2" ]

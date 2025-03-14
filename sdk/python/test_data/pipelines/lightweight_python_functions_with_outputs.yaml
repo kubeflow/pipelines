@@ -5,8 +5,6 @@
 #    first_number: int
 #    second_message: str
 #    second_number: int
-# Outputs:
-#    output-named-tuple-metrics: system.Metrics
 components:
   comp-add-numbers:
     executorLabel: exec-add-numbers
@@ -81,7 +79,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -97,7 +95,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add_numbers(first: int, second: int) -> int:\n    return first\
           \ + second\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-concat-message:
       container:
         args:
@@ -110,7 +108,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -126,7 +124,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef concat_message(first: str, second: str) -> str:\n    return first\
           \ + second\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-output-artifact:
       container:
         args:
@@ -139,7 +137,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -155,7 +153,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef output_artifact(number: int, message: str) -> Dataset:\n    result\
           \ = [message for _ in range(number)]\n    return '\\n'.join(result)\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-output-named-tuple:
       container:
         args:
@@ -168,7 +166,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -191,17 +189,11 @@ deploymentSpec:
           \ = 'Model contents: ' + artifact_contents\n\n    from collections import\
           \ namedtuple\n    output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])\n\
           \    return output(scalar, metrics, model)\n\n"
-        image: python:3.8
+        image: python:3.9
 pipelineInfo:
   name: functions-with-outputs
 root:
   dag:
-    outputs:
-      artifacts:
-        output-named-tuple-metrics:
-          artifactSelectors:
-          - outputArtifactKey: metrics
-            producerSubtask: output-named-tuple
     tasks:
       add-numbers:
         cachingOptions:
@@ -274,11 +266,5 @@ root:
         parameterType: STRING
       second_number:
         parameterType: NUMBER_INTEGER
-  outputDefinitions:
-    artifacts:
-      output-named-tuple-metrics:
-        artifactType:
-          schemaTitle: system.Metrics
-          schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.9.0

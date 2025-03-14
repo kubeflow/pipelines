@@ -6,7 +6,7 @@ commonLabels:
 resources:
 - service.yaml
 - deployment.yaml
-- composite-controller.yaml
+- decorator-controller.yaml
 configMapGenerator:
 - name: kubeflow-pipelines-profile-controller-code
   files:

@@ -53,13 +53,26 @@ spec:
         ports:
         - containerPort: 3306
           name: mysql
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 999
+          runAsGroup: 999
+          capabilities:
+            drop:
+            - ALL
         volumeMounts:
         - mountPath: /var/lib/mysql
           name: mysql-persistent-storage
         resources:
-            requests:
-              cpu: 100m
-              memory: 800Mi
+          requests:
+            cpu: 100m
+            memory: 800Mi
+      securityContext:
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
       volumes:
       - name: mysql-persistent-storage
         persistentVolumeClaim:

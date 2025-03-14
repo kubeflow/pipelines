@@ -1,18 +1,22 @@
-# Kubernetes Platform-specific Features
+# Kubeflow Pipelines SDK kfp-kubernetes API Reference
 
-The `kfp-kubernetes` Python library enables authoring [Kubeflow pipelines](https://www.kubeflow.org/docs/components/pipelines/v2/) with Kubernetes-specific features. These features are supported by the [default KFP open source BE](https://github.com/kubeflow/pipelines/tree/master/backend). Specifically, the `kfp-kubernetes` library supports authoring pipelines that use:
+The Kubeflow Pipelines SDK kfp-kubernetes python library (part of the [Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/) project) is an addon to the [Kubeflow Pipelines SDK](https://kubeflow-pipelines.readthedocs.io/) that enables authoring Kubeflow pipelines with Kubernetes-specific features and concepts, such as:
 
 * [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
 * [PersistentVolumeClaims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims)
-* [ImagePullPolicy](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
+* [ImagePullPolicies](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
+* [Ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/)
+* [Node selectors](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector)
+* [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
+* [Labels and annotations](https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/object-meta/#ObjectMeta)
+* and more
 
-See the [`kfp-kubernetes` reference documentation](https://kfp-kubernetes.readthedocs.io/).
+Be sure to check out the full [API Reference](https://kfp-kubernetes.readthedocs.io/) for more details.
 
 ## Installation
-The `kfp-kubernetes` package can be installed as a `kfp` SDK extra dependency with `kfp==2.x.x`:
-<!-- TODO: remove --pre when kfp v2 goes to GA -->
+The `kfp-kubernetes` package can be installed as a KFP SDK extra dependency.
 ```sh
-pip install kfp[kubernetes] --pre
+pip install kfp[kubernetes]
 ```
 
 Or installed independently:
@@ -20,8 +24,10 @@ Or installed independently:
 pip install kfp-kubernetes
 ```
 
-## Example usage
-<!-- TODO: test these examples once the BE implementation exists -->
+## Getting started
+
+The following is an example of a simple pipeline that uses the kfp-kubernetes library to mount a pre-existing secret as an environment variable available in the task's container.
+
 ### Secret: As environment variable
 ```python
 from kfp import dsl
@@ -30,7 +36,7 @@ from kfp import kubernetes
 @dsl.component
 def print_secret():
     import os
-    print(os.environ['my-secret'])
+    print(os.environ['SECRET_VAR'])
 
 @dsl.pipeline
 def pipeline():
@@ -39,6 +45,10 @@ def pipeline():
                                  secret_name='my-secret',
                                  secret_key_to_env={'password': 'SECRET_VAR'})
 ```
+
+## Other examples
+
+Here is a non-exhaustive list of some other examples of how to use the kfp-kubernetes library. Be sure to check out the full [API Reference](https://kfp-kubernetes.readthedocs.io/) for more details.
 
 ### Secret: As mounted volume
 ```python
@@ -85,7 +95,7 @@ from kfp import kubernetes
 @dsl.component
 def print_config_map():
     import os
-    print(os.environ['my-cm'])
+    print(os.environ['CM_VAR'])
 
 @dsl.pipeline
 def pipeline():
@@ -278,4 +288,22 @@ def simple_task():
 def pipeline():
     task = simple_task()
     kubernetes.set_image_pull_policy(task, "Always")
+```
+
+### ImagePullSecrets: Set secrets to authenticate image pulls
+```python
+from kfp import dsl
+from kfp import kubernetes
+
+@dsl.container_component
+def hello():
+    return dsl.ContainerSpec(
+        image='some-private-image:tag',
+        command=['echo', 'hello']
+    )
+
+@dsl.pipeline
+def pipeline():
+    task = hello()
+    kubernetes.set_image_pull_secrets(task, ['secret-name'])
 ```

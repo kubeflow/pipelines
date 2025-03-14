@@ -33,11 +33,11 @@ it should have the following content:
   For example:
 
   ```makefile
-  export DEV_IMAGE_PREFIX=gcr.io/ml-pipeline-test/kfp-
+  export DEV_IMAGE_PREFIX=ghcr.io/kubeflow-test/kfp-/kfp-
   ```
 
   Then after images are built, they will be pushed to locations like
-  `gcr.io/ml-pipeline-test/kfp-driver`.
+  `ghcr.io/kubeflow-test/kfp-driver`.
 
   The `.env` file is ignored by git, it's your local development configuration.
 
@@ -56,14 +56,14 @@ it should have the following content:
   echo "GOARCH_VALUE="$(go env GOARCH) >> .env
   ```
 
-* Install sample test python dependencies (require Python 3.7 or 3.8 due to [ml-metadata limitation](https://github.com/google/ml-metadata/issues/139)):
+* Install sample test python dependencies:
 
   ```bash
   cd test
   pip install -r requirements.txt
   ```
 
-* [Connecting to Kubeflow Pipelines using the SDK client](https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/#configure-sdk-client-by-environment-variables).
+* [Connecting to Kubeflow Pipelines using the SDK client](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/#configure-sdk-client-by-environment-variables).
 
   Recommend adding the env vars to your .bashrc or .zshrc etc to persist your config.
 
@@ -115,29 +115,3 @@ Instructions:
     ```
 
     Read [v2 sample test documentation](./test/README.md) for more details.
-
-### Update licenses
-
-Note, this is currently outdated instructions for v2 compatible mode. We haven't set up licensing workflow for v2 engine.
-
-Download the license tool binary from <https://github.com/Bobgy/go-licenses/releases> and put it into $PATH.
-
-Update licenses info by:
-
-```bash
-make license-launcher
-```
-
-or run the following to enable verbose output:
-
-```bash
-GO_LICENSES_FLAGS=-v4 make license-launcher
-```
-
-After the update, check generated third_party/licenses/launcher.csv file to
-make sure licenses of new dependencies are correctly identified.
-
-If something is unexpected, examine the unexpected dependencies by yourself and add
-overrides to [go-licenses.yaml](./go-licenses.yaml).
-
-For detailed documentation about the tool: <https://github.com/Bobgy/go-licenses/tree/main/v2>.

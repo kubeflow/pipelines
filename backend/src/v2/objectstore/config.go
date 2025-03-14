@@ -18,12 +18,13 @@ package objectstore
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
 	"os"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 // The endpoint uses Kubernetes service DNS name with namespace:
@@ -53,11 +54,12 @@ type S3Params struct {
 	FromEnv    bool
 	SecretName string
 	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
-	AccessKeyKey string
-	SecretKeyKey string
-	Region       string
-	Endpoint     string
-	DisableSSL   bool
+	AccessKeyKey   string
+	SecretKeyKey   string
+	Region         string
+	Endpoint       string
+	DisableSSL     bool
+	ForcePathStyle bool
 }
 
 func (b *Config) bucketURL() string {
@@ -220,6 +222,15 @@ func StructuredS3Params(p map[string]string) (*S3Params, error) {
 			return nil, err
 		}
 		sparams.DisableSSL = boolVal
+	}
+	if val, ok := p["forcePathStyle"]; ok {
+		boolVal, err := strconv.ParseBool(val)
+		if err != nil {
+			return nil, err
+		}
+		sparams.ForcePathStyle = boolVal
+	} else {
+		sparams.ForcePathStyle = true
 	}
 	return sparams, nil
 }

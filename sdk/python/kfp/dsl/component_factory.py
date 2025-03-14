@@ -27,6 +27,7 @@ from kfp import dsl
 from kfp.dsl import container_component_artifact_channel
 from kfp.dsl import container_component_class
 from kfp.dsl import graph_component
+from kfp.dsl import pipeline_config
 from kfp.dsl import placeholders
 from kfp.dsl import python_component
 from kfp.dsl import structures
@@ -36,7 +37,7 @@ from kfp.dsl.types import custom_artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
 
-_DEFAULT_BASE_IMAGE = 'python:3.8'
+_DEFAULT_BASE_IMAGE = 'python:3.9'
 SINGLE_OUTPUT_NAME = 'Output'
 
 
@@ -56,6 +57,8 @@ class ComponentInfo():
     base_image: str = _DEFAULT_BASE_IMAGE
     packages_to_install: Optional[List[str]] = None
     pip_index_urls: Optional[List[str]] = None
+    pip_trusted_hosts: Optional[List[str]] = None
+    use_venv: bool = False
 
 
 # A map from function_name to components.  This is always populated when a
@@ -69,24 +72,29 @@ def _python_function_name_to_component_name(name):
     return name_with_spaces[0].upper() + name_with_spaces[1:]
 
 
-def make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
-    """Generates index url options for pip install command based on provided
-    pip_index_urls.
+def make_index_url_options(pip_index_urls: Optional[List[str]],
+                           pip_trusted_hosts: Optional[List[str]]) -> str:
+    """Generates index URL options for the pip install command based on the
+    provided pip_index_urls and pip_trusted_hosts.
 
     Args:
-        pip_index_urls: Optional list of pip index urls
+        pip_index_urls (Optional[List[str]]): Optional list of pip index URLs.
+        pip_trusted_hosts (Optional[List[str]]): Optional list of pip trusted hosts.
 
     Returns:
-        - Empty string if pip_index_urls is empty/None.
-        - '--index-url url --trusted-host url ' if pip_index_urls contains 1
-        url
-        - the above followed by '--extra-index-url url --trusted-host url '
-        for
-        each next url in pip_index_urls if pip_index_urls contains more than 1
-        url
-
-        Note: In case pip_index_urls is not empty, the returned string will
-        contain space at the end.
+        str:
+            - An empty string if pip_index_urls is empty or None.
+            - '--index-url url ' if pip_index_urls contains 1 URL.
+            - The above followed by '--extra-index-url url ' for each additional URL in pip_index_urls
+            if pip_index_urls contains more than 1 URL.
+            - If pip_trusted_hosts is None:
+                - The above followed by '--trusted-host url ' for each URL in pip_index_urls.
+            - If pip_trusted_hosts is an empty List.
+                - No --trusted-host information will be added
+            - If pip_trusted_hosts contains any URLs:
+                - The above followed by '--trusted-host url ' for each URL in pip_trusted_hosts.
+    Note:
+        In case pip_index_urls is not empty, the returned string will contain a space at the end.
     """
     if not pip_index_urls:
         return ''
@@ -94,10 +102,17 @@ def make_index_url_options(pip_index_urls: Optional[List[str]]) -> str:
     index_url = pip_index_urls[0]
     extra_index_urls = pip_index_urls[1:]
 
-    options = [f'--index-url {index_url} --trusted-host {index_url}']
-    options.extend(
-        f'--extra-index-url {extra_index_url} --trusted-host {extra_index_url}'
-        for extra_index_url in extra_index_urls)
+    options = [f'--index-url {index_url}']
+    options.extend(f'--extra-index-url {extra_index_url}'
+                   for extra_index_url in extra_index_urls)
+
+    if pip_trusted_hosts is None:
+        options.extend([f'--trusted-host {index_url}'])
+        options.extend(f'--trusted-host {extra_index_url}'
+                       for extra_index_url in extra_index_urls)
+    elif len(pip_trusted_hosts) > 0:
+        options.extend(f'--trusted-host {trusted_host}'
+                       for trusted_host in pip_trusted_hosts)
 
     return ' '.join(options) + ' '
 
@@ -119,6 +134,15 @@ fi
 PIP_DISABLE_PIP_VERSION_CHECK=1 {pip_install_commands} && "$0" "$@"
 '''
 
+# Creates and activates a virtual environment in a temporary directory.
+# The environment inherits the system site packages.
+_use_venv_script_template = '''
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+tmp=$(mktemp -d)
+python3 -m venv "$tmp/venv" --system-site-packages
+. "$tmp/venv/bin/activate"
+'''
+
 
 def _get_packages_to_install_command(
     kfp_package_path: Optional[str] = None,
@@ -126,6 +150,8 @@ def _get_packages_to_install_command(
     packages_to_install: Optional[List[str]] = None,
     install_kfp_package: bool = True,
     target_image: Optional[str] = None,
+    pip_trusted_hosts: Optional[List[str]] = None,
+    use_venv: bool = False,
 ) -> List[str]:
     packages_to_install = packages_to_install or []
     kfp_in_user_pkgs = any(pkg.startswith('kfp') for pkg in packages_to_install)
@@ -136,9 +162,12 @@ def _get_packages_to_install_command(
     if not inject_kfp_install and not packages_to_install:
         return []
     pip_install_strings = []
-    index_url_options = make_index_url_options(pip_index_urls)
+    index_url_options = make_index_url_options(pip_index_urls,
+                                               pip_trusted_hosts)
 
     if inject_kfp_install:
+        if use_venv:
+            pip_install_strings.append(_use_venv_script_template)
         if kfp_package_path:
             kfp_pip_install_command = make_pip_install_command(
                 install_parts=[kfp_package_path],
@@ -517,6 +546,8 @@ def create_component_from_func(
     output_component_file: Optional[str] = None,
     install_kfp_package: bool = True,
     kfp_package_path: Optional[str] = None,
+    pip_trusted_hosts: Optional[List[str]] = None,
+    use_venv: bool = False,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -530,6 +561,8 @@ def create_component_from_func(
         kfp_package_path=kfp_package_path,
         packages_to_install=packages_to_install,
         pip_index_urls=pip_index_urls,
+        pip_trusted_hosts=pip_trusted_hosts,
+        use_venv=use_venv,
     )
 
     command = []
@@ -537,7 +570,7 @@ def create_component_from_func(
     if base_image is None:
         base_image = _DEFAULT_BASE_IMAGE
         warnings.warn(
-            ("The default base_image used by the @dsl.component decorator will switch from 'python:3.8' to 'python:3.9' on Oct 1, 2024. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.9."
+            ("The default base_image used by the @dsl.component decorator will switch from 'python:3.9' to 'python:3.10' on Oct 1, 2025. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.10."
             ),
             FutureWarning,
             stacklevel=2,
@@ -575,7 +608,8 @@ def create_component_from_func(
         output_component_file=output_component_file,
         base_image=base_image,
         packages_to_install=packages_to_install,
-        pip_index_urls=pip_index_urls)
+        pip_index_urls=pip_index_urls,
+        pip_trusted_hosts=pip_trusted_hosts)
 
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info
@@ -658,6 +692,7 @@ def create_graph_component_from_func(
     name: Optional[str] = None,
     description: Optional[str] = None,
     display_name: Optional[str] = None,
+    pipeline_config: pipeline_config.PipelineConfig = None,
 ) -> graph_component.GraphComponent:
     """Implementation for the @pipeline decorator.
 
@@ -674,6 +709,7 @@ def create_graph_component_from_func(
         component_spec=component_spec,
         pipeline_func=func,
         display_name=display_name,
+        pipeline_config=pipeline_config,
     )
 
 
