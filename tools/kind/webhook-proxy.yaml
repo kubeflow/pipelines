@@ -1,0 +1,68 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: webhook-selfsigned-issuer
+  namespace: kubeflow
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: webhook-serving-cert
+  namespace: kubeflow
+spec:
+  dnsNames:
+    - ml-pipeline-reverse-proxy.kubeflow.svc
+    - ml-pipeline-reverse-proxy.kubeflow.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: webhook-selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-pipeline-reverse-proxy
+  namespace: kubeflow
+spec:
+  ports:
+    - name: https
+      port: 9443
+      protocol: TCP
+      targetPort: 9443
+  selector:
+    app: reverse-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reverse-webhook
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reverse-webhook
+  template:
+    metadata:
+      labels:
+        app: reverse-webhook
+    spec:
+      containers:
+        - name: nginx
+          image: domain.local/kfp/webhook-proxy:latest
+          imagePullPolicy: Never
+          ports:
+            - name: https
+              protocol: TCP
+              containerPort: 9443
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: webhook-server-cert

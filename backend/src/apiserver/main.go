@@ -17,6 +17,14 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
+	"math"
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -29,19 +37,14 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/webhook"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"io"
-	"math"
-	"net"
-	"net/http"
-	"strconv"
-	"strings"
-	"sync"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -72,12 +75,20 @@ func main() {
 		template.Launcher = common.GetStringConfig(launcherEnv)
 	}
 
-	clientManager := cm.NewClientManager()
+	clientManager, err := cm.NewClientManager()
+	if err != nil {
+		glog.Fatalf("Failed to initialize ClientManager: %v", err)
+	}
+	if common.IsOnlyKubernetesWebhookMode() {
+		startWebhookHTTPProxy(clientManager.ControllerClient())
+		clientManager.Close()
+		return
+	}
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
 	)
-	err := config.LoadSamples(resourceManager, *sampleConfigPath)
+	err = config.LoadSamples(resourceManager, *sampleConfigPath)
 	if err != nil {
 		glog.Fatalf("Failed to load samples. Err: %v", err)
 	}
@@ -107,7 +118,7 @@ func main() {
 	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
 	go startRpcServer(resourceManager)
 	// This is blocking
-	startHttpProxy(resourceManager)
+	startHttpProxy(resourceManager, clientManager.ControllerClient())
 	backgroundCancel()
 	clientManager.Close()
 	wg.Wait()
@@ -179,7 +190,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	glog.Info("RPC server started")
 }
 
-func startHttpProxy(resourceManager *resource.ResourceManager) {
+func startHttpProxy(resourceManager *resource.ResourceManager, controllerClient ctrlclient.Client) {
 	glog.Info("Starting Http Proxy")
 
 	ctx := context.Background()
@@ -235,8 +246,22 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// Register a handler for Prometheus to poll.
 	topMux.Handle("/metrics", promhttp.Handler())
 
+	// Register webhook
+	registerWebhook(topMux, controllerClient)
+
 	http.ListenAndServe(*httpPortFlag, topMux)
 	glog.Info("Http Proxy started")
+}
+
+func startWebhookHTTPProxy(controllerClient ctrlclient.Client) {
+	glog.Info("Starting Http Proxy in Kubernetes Webhook Mode")
+
+	topMux := mux.NewRouter()
+
+	// Register the webhook
+	registerWebhook(topMux, controllerClient)
+
+	http.ListenAndServe(*httpPortFlag, topMux)
 }
 
 func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, serviceName string, ctx context.Context, mux *runtime.ServeMux) {
@@ -246,6 +271,14 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 	if err := handler(ctx, mux, endpoint, opts); err != nil {
 		glog.Fatalf("Failed to register %v handler: %v", serviceName, err)
 	}
+}
+
+func registerWebhook(topMux *mux.Router, controllerClient ctrlclient.Client) {
+	pvValidateWebhook, err := webhook.NewPipelineVersionWebhook(controllerClient)
+	if err != nil {
+		log.Fatalf("Failed to instantiate the Kubernetes webhook: %v", err)
+	}
+	topMux.Handle("/webhooks/validate-pipelineversion", pvValidateWebhook)
 }
 
 func initConfig() {
