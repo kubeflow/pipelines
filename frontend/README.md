@@ -93,8 +93,6 @@ cluster.
 1. Follow the [single-user KFP installation
    instructions](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/).
 2. Configure `kubectl` with access to your KFP cluster.
-   cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl)
-   guide).
 3. Use the following table to determine which script to run.
 
 | What to develop?                     | Script to run                            | Extra notes                                                        |
