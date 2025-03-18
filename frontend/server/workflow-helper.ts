@@ -175,7 +175,12 @@ export async function getKeyFormatFromArtifactRepositories(
     if (configMap === undefined) {
       throw k8sError;
     }
-    const artifactRepositories = configMap?.data['artifact-repositories'];
+    const artifactRepositories = configMap?.data?.['artifact-repositories'];
+    if (artifactRepositories === undefined) {
+      throw new Error(
+        `artifact-repositories configmap in ${namespace} namespace is missing an artifact-repositories field.`,
+      );
+    }
     const artifactRepositoriesValue = JsYaml.safeLoad(
       artifactRepositories,
     ) as PartialArtifactRepositoriesValue;

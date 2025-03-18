@@ -72,9 +72,9 @@ ReactDOM.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
-    // Uncomment the following for namespace switch during development.
-    // <NamespaceContext.Provider value='your-namespace'>{app}</NamespaceContext.Provider>
-    <NamespaceContext.Provider value={undefined}>{app}</NamespaceContext.Provider>
+    <NamespaceContext.Provider value={process.env.REACT_APP_NAMESPACE || undefined}>
+      {app}
+    </NamespaceContext.Provider>
   ),
   document.getElementById('root'),
 );

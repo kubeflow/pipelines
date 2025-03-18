@@ -15,6 +15,9 @@ spec:
       labels:
         app: minio
     spec:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
       containers:
       - args:
         - server
