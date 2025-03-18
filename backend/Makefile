@@ -5,6 +5,8 @@ KIND_NAME ?= dev-pipelines-api
 
 # Container Build Params
 CONTAINER_ENGINE ?= docker
+# IMG_REGISTRY can be used to automatically prepend registry details. e.g. "quay.io/kubeflow/"
+IMG_REGISTRY ?=
 IMG_TAG_APISERVER         ?= apiserver
 IMG_TAG_PERSISTENCEAGENT  ?= persistence-agent
 IMG_TAG_CACHESERVER       ?= cache-server
@@ -28,25 +30,25 @@ image_all: image_apiserver image_persistence_agent image_cache image_swf image_v
 
 .PHONY: image_apiserver
 image_apiserver:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_TAG_APISERVER} -f backend/Dockerfile .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_APISERVER} -f backend/Dockerfile .
 .PHONY: image_persistence_agent
 image_persistence_agent:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent .
 .PHONY: image_cache
 image_cache:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_TAG_CACHESERVER} -f backend/Dockerfile.cacheserver .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_CACHESERVER} -f backend/Dockerfile.cacheserver .
 .PHONY: image_swf
 image_swf:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow .
 .PHONY: image_viewer
 image_viewer:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
 .PHONY: image_visualization
 image_visualization:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_TAG_VISUALIZATION} -f backend/Dockerfile.visualization .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VISUALIZATION} -f backend/Dockerfile.visualization .
 .PHONY: image_driver
 image_driver:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .
 .PHONY: image_driver_debug
 image_driver_debug:
 	cd $(MOD_ROOT) && sed -e '/RUN .*go mod download/a\
@@ -56,10 +58,10 @@ image_driver_debug:
 	COPY --from=builder /go/bin/dlv /bin/dlv\
 	EXPOSE 2345' \
 	backend/Dockerfile.driver > backend/Dockerfile.driver-debug
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 --build-arg GCFLAGS="all=-N -l" -t ${IMG_TAG_DRIVER}:debug -f backend/Dockerfile.driver-debug .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 --build-arg GCFLAGS="all=-N -l" -t ${IMG_REGISTRY}${IMG_TAG_DRIVER}:debug -f backend/Dockerfile.driver-debug .
 .PHONY: image_launcher
 image_launcher:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_TAG_LAUNCHER} -f backend/Dockerfile.launcher .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_LAUNCHER} -f backend/Dockerfile.launcher .
 
 .PHONY: dev-kind-cluster
 dev-kind-cluster:
