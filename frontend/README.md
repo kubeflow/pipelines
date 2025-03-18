@@ -79,21 +79,68 @@ kubectl port-forward svc/metadata-envoy-service 9090:9090
 
 ### Proxy to a real cluster
 
-This requires you already have a real KFP cluster, you can proxy requests to it.
+You can proxy requests from the UI running on your host machine to an actual KFP
+deployment running on a remote or local Kubernetes cluster. This dramatically
+improves iteration time, especially since the docker build can take 20+ minutes.
 
-1. [Install Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/) based on your use case and environment.
-1. Configure `kubectl` with access to your KFP cluster. (For GCP, follow [Access to GCP cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl) guide).
-1. Use the following table to determine which script to run.
+KFP can be deployed in single-user or multi-user mode. Since there's a delta in
+logic between between the two modes, automated tests and manual validation
+against a single-user cluster can still fail when deployed to a multi-user
+cluster.
 
-| What to develop?                     | Script to run                                               | Extra notes                                                        |
-| ------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| Client UI                            | `NAMESPACE=kubeflow npm run start:proxy`                    |                                                                    |
-| Client UI + Node server              | `NAMESPACE=kubeflow npm run start:proxy-and-server`         | You need to rerun the script every time you edit node server code. |
-| Client UI + Node server (debug mode) | `NAMESPACE=kubeflow npm run start:proxy-and-server-inspect` | Same as above, and you can use chrome to debug the server.         |
+#### Single-user
+
+1. Follow the [single-user KFP installation
+   instructions](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/).
+2. Configure `kubectl` with access to your KFP cluster.
+3. Use the following table to determine which script to run.
+
+| What to develop?                     | Script to run                            | Extra notes                                                        |
+| ------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------ |
+| Client UI                            | `npm run start:proxy`                    |                                                                    |
+| Client UI + Node server              | `npm run start:proxy-and-server`         | You need to rerun the script every time you edit node server code. |
+| Client UI + Node server (debug mode) | `npm run start:proxy-and-server-inspect` | Same as above, and you can use chrome to debug the server.         |
+
+#### Multi-user
+
+1. Install Kubernetes and deploy KFP to it on your your local machine by
+   following the [multi-user Kubeflow installation
+   instructions](https://github.com/kubeflow/manifests?tab=readme-ov-file#installation).
+2. Run `cd frontend`.
+3. Run the following code block.
+
+    ```bash
+    export REACT_APP_NAMESPACE=kubeflow-user-example-com
+    npm run build
+    ```
+
+    If you're targeting the cluster installed in step 1, the target namespace
+    defaults to `kubeflow-user-example-com`. If you're targeting a different
+    cluster / namespace, make sure to update the `REACT_APP_NAMESPACE`
+    environment variable.
+4. Install
+   [mod-header](https://chromewebstore.google.com/detail/modheader-modify-http-hea/idgpnmonknjnojddfkpgkljpfnnfcklj?hl=en)
+   for Chrome.
+5. Open the mod-header modal.
+6. If you're targeting the cluster installed in step 1, add a header with a key
+   of `kubeflow-userid` and a value of `user@example.com`. If you're targeting a
+   different cluster / namespace, add the corresponding userid / namespace.
+7. Add `localhost:3001` to the filter field in the modal.
+8. Run the commands from the [Single-user](#single-user) section above, e.g.
+   `npm run start:proxy-and-server`.
+9. Navigate to http://localhost:3001. The UI running on your host machine should
+    now be able to communicate to a KFP backend deployed in multi-user mode.
+10. If you want the local UI server to target a single-user cluster again,
+   you'll need to run the following first:
+
+    ```bash
+    unset REACT_APP_NAMESPACE
+    npm run build
+    ```
 
 ## Unit testing FAQ
 
-There are a few typees of tests during presubmit:
+There are a few types of tests during pre-submit:
 
 * formatting, refer to [Code Style Section](#code-style)
 * linting, you can also run locally with `npm run lint`
@@ -235,13 +282,13 @@ package from
 
 ## Pipeline Spec (IR) API
 
-For KFP v2, we use pipeline spec or IR(Intermediate Representation) to represent a Pipeline defintion. It is saved as json payload when transmitted. You can find the API in [api/v2alpha1/pipeline_spec.proto](api/v2alpha1/pipeline_spec.proto). To take the latest of this file and compile it to Typescript classes, follow the below step:
+For KFP v2, we use pipeline spec or IR(Intermediate Representation) to represent a Pipeline definition. It is saved as json payload when transmitted. You can find the API in [api/v2alpha1/pipeline_spec.proto](api/v2alpha1/pipeline_spec.proto). To take the latest of this file and compile it to Typescript classes, follow the below step:
 
 ```
 npm run build:pipeline-spec
 ```
 
-See explaination it does below:
+See explanation it does below:
 
 
 ### Convert buffer to runtime object using protoc
@@ -254,7 +301,7 @@ so it can convert a payload stream to a PipelineSpec object during runtime.
 
 You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
 
-The plugin tool for convertion we currently use is [ts-proto](https://github.com/stephenh/ts-proto). We previously use
+The plugin tool for conversion we currently use is [ts-proto](https://github.com/stephenh/ts-proto). We previously use
 [protobuf.js](https://github.com/protobufjs/protobuf.js) but it doesn't natively support Protobuf.Value processing.
 
 You can checkout the generated TypeScript interfaces in [frontend/src/generated/pipeline_spec/pipeline_spec.ts](/frontend/src/generated/pipeline_spec/pipeline_spec.ts)
@@ -281,7 +328,7 @@ npm run build:platform-spec:kubernetes-platform
 
 ## Large features development
 
-To accommodate KFP v2 development, we create a `frontend feature flag` capability which hides features under development behind a flag. Only when developer explicitly enables these flags, they can see those features. To control the visiblity of these features, check out a webpage similar to pattern http://localhost:3000/#/frontend_features.
+To accommodate KFP v2 development, we create a `frontend feature flag` capability which hides features under development behind a flag. Only when developer explicitly enables these flags, they can see those features. To control the visibility of these features, check out a webpage similar to pattern http://localhost:3000/#/frontend_features.
 
 To manage feature flags default values, visit [frontend/src/feature.ts](frontend/src/feature.ts) for `const features`. To apply the default feature flags locally in your browser, run `localStorage.setItem('flags', "")` in browser console.
 
