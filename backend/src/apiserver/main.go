@@ -17,18 +17,13 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"sync"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
@@ -48,13 +43,6 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"io"
-	"math"
-	"net"
-	"net/http"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 const (
