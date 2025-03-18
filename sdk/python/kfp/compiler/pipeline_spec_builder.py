@@ -1739,9 +1739,17 @@ def _merge_component_spec(
 ) -> None:
     """Merges component spec from a sub pipeline spec into the main config.
 
-    During the merge we need to ensure all component specs have unique component
+    During the merge we need to ensure all component specs have a unique component
     name, that means we might need to update the `component_ref` referenced from
     task specs in sub_pipeline_spec.
+
+    Uniqueness is determined by existing component names in main_pipeline_spec
+    and sub_pipeline_spec.
+
+    Renaming is first done in place, specifically in a LIFO order. This is to avoid
+    a rename causing a name collision with a later rename. Then, the actual merge
+    of component specs is done in a second pass. This ensures all component specs
+    are in the final state at the time of merging.
 
     Args:
         main_pipeline_spec: The main pipeline spec to merge into.
@@ -1766,18 +1774,22 @@ def _merge_component_spec(
             if task_spec.component_ref.name == old_component_ref:
                 task_spec.component_ref.name = new_component_ref
 
-    # Do all the renaming in place, then do the acutal merge of component specs
-    # in a second pass. This would ensure all component specs are in the final
-    # state at the time of merging.
     old_name_to_new_name = {}
-    for component_name, component_spec in sub_pipeline_spec.components.items():
+    existing_main_comp_names = list(main_pipeline_spec.components.keys())
+    for component_name, _ in sub_pipeline_spec.components.items():
         old_component_name = component_name
+        current_comp_name_collection = [
+            key for pair in old_name_to_new_name.items() for key in pair
+        ]
         new_component_name = utils.make_name_unique_by_adding_index(
             name=component_name,
-            collection=list(main_pipeline_spec.components.keys()),
+            collection=existing_main_comp_names + current_comp_name_collection,
             delimiter='-')
         old_name_to_new_name[old_component_name] = new_component_name
 
+    ordered_names = enumerate(old_name_to_new_name.items())
+    lifo_ordered_names = sorted(ordered_names, key=lambda x: x[0], reverse=True)
+    for _, (old_component_name, new_component_name) in lifo_ordered_names:
         if new_component_name != old_component_name:
             _rename_component_refs(
                 pipeline_spec=sub_pipeline_spec,
