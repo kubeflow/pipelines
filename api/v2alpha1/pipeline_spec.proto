@@ -1111,4 +1111,8 @@ message PipelineConfig {
 
   // Name of the mutex to ensure mutual exclusion
   string mutex_name = 2;
+
+  // Time to live configuration after the pipeline run is completed for
+  // ephemeral resources created by the pipeline run.
+  int32 resource_ttl = 3;
 }
