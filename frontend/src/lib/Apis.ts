@@ -25,8 +25,6 @@ import {
 } from 'src/apisv2beta1/pipeline';
 import { RunServiceApi as RunServiceApiV1 } from 'src/apis/run';
 import { RunServiceApi as RunServiceApiV2 } from 'src/apisv2beta1/run';
-import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
-import { PlotType } from 'src/components/viewers/Viewer';
 import * as Utils from './Utils';
 import { buildQuery } from './Utils';
 import { StoragePath, StorageService } from './WorkflowParser';
