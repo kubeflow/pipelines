@@ -221,37 +221,6 @@ steps:
     docker push gcr.io/ml-pipeline/google/pipelines/proxyagent:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test/proxyagent:$(cat /workspace/mm.ver)
 
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA']
-  id:   'pullVisualizationServer'
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/visualization-server:$TAG_NAME']
-  id:   'tagVisualizationServerVersionNumber'
-  waitFor: ['pullVisualizationServer']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/visualization-server:$COMMIT_SHA']
-  id:   'tagVisualizationServerCommitSHA'
-  waitFor: ['pullVisualizationServer']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/visualizationserver:$TAG_NAME']
-  id:   'tagVisualizationServerForMarketplace'
-  waitFor: ['pullVisualizationServer']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines-test/visualizationserver:$TAG_NAME']
-  id:   'tagVisualizationServerForMarketplaceTest'
-  waitFor: ['pullVisualizationServer']
-- id:   'tagVisualizationServerForMarketplaceMajorMinor'
-  waitFor: ['pullVisualizationServer', 'parseMajorMinorVersion']
-  name: 'gcr.io/cloud-builders/docker'
-  entrypoint: bash
-  args:
-  - -ceux
-  - |
-    docker tag gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines/visualizationserver:$(cat /workspace/mm.ver)
-    docker tag gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA gcr.io/ml-pipeline/google/pipelines-test/visualizationserver:$(cat /workspace/mm.ver)
-    docker push gcr.io/ml-pipeline/google/pipelines/visualizationserver:$(cat /workspace/mm.ver)
-    docker push gcr.io/ml-pipeline/google/pipelines-test/visualizationserver:$(cat /workspace/mm.ver)
-
 # ! Sync to the same MLMD version:
 # * backend/metadata_writer/requirements.in and requirements.txt
 # * @kubeflow/frontend/src/mlmd/generated
@@ -603,8 +572,6 @@ images:
 - 'gcr.io/ml-pipeline/viewer-crd-controller:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/inverse-proxy-agent:$TAG_NAME'
 - 'gcr.io/ml-pipeline/inverse-proxy-agent:$COMMIT_SHA'
-- 'gcr.io/ml-pipeline/visualization-server:$TAG_NAME'
-- 'gcr.io/ml-pipeline/visualization-server:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/metadata-envoy:$TAG_NAME'
 - 'gcr.io/ml-pipeline/metadata-envoy:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/metadata-writer:$TAG_NAME'
@@ -617,7 +584,6 @@ images:
 - 'gcr.io/ml-pipeline/google/pipelines/viewercrd:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/persistenceagent:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/proxyagent:$TAG_NAME'
-- 'gcr.io/ml-pipeline/google/pipelines/visualizationserver:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/metadataserver:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/minio:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/mysql:$TAG_NAME'
@@ -634,7 +600,6 @@ images:
 - 'gcr.io/ml-pipeline/google/pipelines-test/viewercrd:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/persistenceagent:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/proxyagent:$TAG_NAME'
-- 'gcr.io/ml-pipeline/google/pipelines-test/visualizationserver:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/minio:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/mysql:$TAG_NAME'
