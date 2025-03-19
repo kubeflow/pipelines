@@ -129,13 +129,6 @@ swagger generate client \
     -m pipeline_upload_model \
     -t backend/api/${API_VERSION}/go_http_client
 swagger generate client \
-    -f backend/api/${API_VERSION}/swagger/visualization.swagger.json \
-    -A visualization \
-    --principal models.Principal \
-    -c visualization_client \
-    -m visualization_model \
-    -t backend/api/${API_VERSION}/go_http_client
-swagger generate client \
     -f backend/api/${API_VERSION}/swagger/healthz.swagger.json \
     -A healthz \
     --principal models.Principal \
