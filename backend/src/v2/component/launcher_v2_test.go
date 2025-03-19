@@ -15,6 +15,8 @@ package component
 
 import (
 	"context"
+	"io"
+	"os"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -87,6 +89,77 @@ func Test_executeV2_Parameters(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 
+			}
+		})
+	}
+}
+
+func Test_get_log_Writer(t *testing.T) {
+	old := osCreateFunc
+	defer func() { osCreateFunc = old }()
+
+	osCreateFunc = func(name string) (*os.File, error) {
+		tmpdir := t.TempDir()
+		file, _ := os.CreateTemp(tmpdir, "*")
+		return file, nil
+	}
+
+	tests := []struct {
+		name        string
+		artifacts   map[string]*pipelinespec.ArtifactList
+		multiWriter bool
+	}{
+		{
+			"single writer - no key logs",
+			map[string]*pipelinespec.ArtifactList{
+				"notLog": {},
+			},
+			false,
+		},
+		{
+			"single writer - key log has empty list",
+			map[string]*pipelinespec.ArtifactList{
+				"logs": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{},
+				},
+			},
+			false,
+		},
+		{
+			"single writer - malformed uri",
+			map[string]*pipelinespec.ArtifactList{
+				"logs": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri: "",
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"multiwriter",
+			map[string]*pipelinespec.ArtifactList{
+				"logs": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri: "minio://testinguri",
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			writer := getLogWriter(test.artifacts)
+			if test.multiWriter == false {
+				assert.Equal(t, os.Stdout, writer)
+			} else {
+				assert.IsType(t, io.MultiWriter(), writer)
 			}
 		})
 	}

@@ -1938,13 +1938,30 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 	}
 }
 
+// provisionOuutputs prepares output references that will get saved to MLMD.
 func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.ComponentOutputsSpec, outputUriSalt string) *pipelinespec.ExecutorInput_Outputs {
 	outputs := &pipelinespec.ExecutorInput_Outputs{
 		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 		Parameters: make(map[string]*pipelinespec.ExecutorInput_OutputParameter),
 		OutputFile: component.OutputMetadataFilepath,
 	}
-	for name, artifact := range outputsSpec.GetArtifacts() {
+	// TODO: Consider putting this behind a feature flag.
+	//
+	// Add a placeholder for a log artifact that will be written to by the
+	// subsequent executor.
+	artifacts := outputsSpec.GetArtifacts()
+	if artifacts == nil {
+		artifacts = make(map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec)
+	}
+	artifacts["logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+		ArtifactType: &pipelinespec.ArtifactTypeSchema{
+			Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+				SchemaTitle: "system.Artifact",
+			},
+		},
+	}
+
+	for name, artifact := range artifacts {
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{
 				{
@@ -1963,6 +1980,7 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),
 		}
 	}
+
 	return outputs
 }
 
