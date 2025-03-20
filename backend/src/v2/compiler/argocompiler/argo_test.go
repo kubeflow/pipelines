@@ -40,6 +40,7 @@ func Test_argo_compiler(t *testing.T) {
 		platformSpecPath string // path of possible input PlatformSpec to compile
 		argoYAMLPath     string // path of expected output argo workflow YAML
 		envVars          map[string]string
+		opts             *argocompiler.Options
 	}{
 		{
 			jobPath:          "../testdata/hello_world_with_retry.json",
@@ -88,6 +89,12 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/hello_world_log_level.yaml",
 			envVars:          map[string]string{"PIPELINE_LOG_LEVEL": "3"},
 		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "../testdata/hello_world_ttl_platform.json",
+			argoYAMLPath:     "testdata/hello_world_ttl.yaml",
+			opts:             &argocompiler.Options{TtlSeconds: 60},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
@@ -108,10 +115,10 @@ func Test_argo_compiler(t *testing.T) {
 					}
 				}
 			}()
-
+			var opts *argocompiler.Options = tt.opts
 			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
 			if *update {
-				wf, err := argocompiler.Compile(job, platformSpec, nil)
+				wf, err := argocompiler.Compile(job, platformSpec, opts)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -128,7 +135,7 @@ func Test_argo_compiler(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			wf, err := argocompiler.Compile(job, platformSpec, nil)
+			wf, err := argocompiler.Compile(job, platformSpec, opts)
 			if err != nil {
 				t.Error(err)
 			}
