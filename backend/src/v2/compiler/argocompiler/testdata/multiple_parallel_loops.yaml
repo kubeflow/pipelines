@@ -9,13 +9,32 @@ spec:
     - name: components-e7a1060777c9ef84e36a4d54f25d3102abbcbd62d4c8bbb5883c3a2cbcfb5c6d
       value: '{"executorLabel":"exec-print-op","inputDefinitions":{"parameters":{"s":{"parameterType":"STRING"}}}}'
     - name: implementations-e7a1060777c9ef84e36a4d54f25d3102abbcbd62d4c8bbb5883c3a2cbcfb5c6d
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op"],"command":["sh","-c","\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location ''kfp==2.7.0'' ''--no-deps'' ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_op(s: str):\n    print(s)\n\n"],"image":"python:3.7"}'
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.7.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        print_op(s: str):\n    print(s)\n\n"],"image":"python:3.7"}'
     - name: components-comp-for-loop-2
       value: '{"dag":{"tasks":{"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"s":{"componentInputParameter":"pipelinechannel--loop-item-param-1","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-op"}},"print-op-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"s":{"componentInputParameter":"pipelinechannel--loop-item-param-1","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-op-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"STRUCT"}}}}'
     - name: components-comp-for-loop-4
       value: '{"dag":{"tasks":{"print-op-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-3"},"inputs":{"parameters":{"s":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-op-3"}},"print-op-4":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-4"},"inputs":{"parameters":{"s":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-op-4"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-3":{"parameterType":"STRUCT"}}}}'
     - name: components-root
-      value: '{"dag":{"tasks":{"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"iteratorPolicy":{"parallelismLimit":2},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[{\"A_a\": \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\": \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\": \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\": \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\": \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"foo"}},"for-loop-4":{"componentRef":{"name":"comp-for-loop-4"},"iteratorPolicy":{"parallelismLimit":4},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\": \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\": \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\": \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\": \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\": \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"bar"}}}}}'
+      value: '{"dag":{"tasks":{"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"iteratorPolicy":{"parallelismLimit":2},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[{\"A_a\":
+        \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\": \"3\",
+        \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\": \"5\", \"B_b\":
+        \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\": \"7\", \"B_b\": \"70\"},
+        {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\": \"9\", \"B_b\": \"90\"}, {\"A_a\":
+        \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"foo"}},"for-loop-4":{"componentRef":{"name":"comp-for-loop-4"},"iteratorPolicy":{"parallelismLimit":4},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
+        \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\": \"3\",
+        \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\": \"5\", \"B_b\":
+        \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\": \"7\", \"B_b\": \"70\"},
+        {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\": \"9\", \"B_b\": \"90\"}, {\"A_a\":
+        \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"bar"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -35,7 +54,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -297,7 +316,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -364,7 +383,12 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-2"},"iteratorPolicy":{"parallelismLimit":2},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[{\"A_a\": \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\": \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\": \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\": \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\": \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"foo"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"iteratorPolicy":{"parallelismLimit":2},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[{\"A_a\":
+              \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\":
+              \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\":
+              \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\":
+              \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\":
+              \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"foo"}}'
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -392,7 +416,12 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-2"},"iteratorPolicy":{"parallelismLimit":2},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[{\"A_a\": \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\": \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\": \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\": \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\": \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"foo"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"iteratorPolicy":{"parallelismLimit":2},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[{\"A_a\":
+              \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\":
+              \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\":
+              \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\":
+              \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\":
+              \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"foo"}}'
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -424,7 +453,12 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-4"},"iteratorPolicy":{"parallelismLimit":4},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\": \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\": \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\": \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\": \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\": \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"bar"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-4"},"iteratorPolicy":{"parallelismLimit":4},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
+              \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\":
+              \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\":
+              \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\":
+              \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\":
+              \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"bar"}}'
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -452,7 +486,12 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-4"},"iteratorPolicy":{"parallelismLimit":4},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\": \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\": \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\": \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\": \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\": \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"bar"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-4"},"iteratorPolicy":{"parallelismLimit":4},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
+              \"1\", \"B_b\": \"10\"}, {\"A_a\": \"2\", \"B_b\": \"20\"}, {\"A_a\":
+              \"3\", \"B_b\": \"30\"}, {\"A_a\": \"4\", \"B_b\": \"40\"}, {\"A_a\":
+              \"5\", \"B_b\": \"50\"}, {\"A_a\": \"6\", \"B_b\": \"60\"}, {\"A_a\":
+              \"7\", \"B_b\": \"70\"}, {\"A_a\": \"8\", \"B_b\": \"80\"}, {\"A_a\":
+              \"9\", \"B_b\": \"90\"}, {\"A_a\": \"10\", \"B_b\": \"100\"}]"}},"taskInfo":{"name":"bar"}}'
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -479,14 +518,12 @@ spec:
           parameters:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        depends: ""
         name: for-loop-2
         template: comp-for-loop-2-for-loop-2-iterator
       - arguments:
           parameters:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        depends: ""
         name: for-loop-4
         template: comp-for-loop-4-for-loop-4-iterator
     inputs:
@@ -520,6 +557,8 @@ spec:
     metadata: {}
     name: entrypoint
     outputs: {}
+  ttlStrategy:
+    secondsAfterCompletion: 30
 status:
   finishedAt: null
   startedAt: null

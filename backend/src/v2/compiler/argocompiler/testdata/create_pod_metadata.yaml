@@ -38,7 +38,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -234,7 +234,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -315,6 +315,8 @@ spec:
     metadata: {}
     name: entrypoint
     outputs: {}
+  ttlStrategy:
+    secondsAfterCompletion: 30
 status:
   finishedAt: null
   startedAt: null

@@ -23,8 +23,6 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
-  securityContext:
-    runAsUser: 1001
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -308,7 +306,7 @@ spec:
     name: entrypoint
     outputs: {}
   ttlStrategy:
-    secondsAfterCompletion: 30
+    secondsAfterCompletion: 60
 status:
   finishedAt: null
   startedAt: null
