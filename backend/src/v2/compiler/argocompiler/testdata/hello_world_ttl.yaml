@@ -23,8 +23,6 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
-  securityContext:
-    runAsUser: 1001
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -57,12 +55,6 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
-      - --http_proxy
-      - ''
-      - --https_proxy
-      - ''
-      - --no_proxy
-      - ''
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -249,12 +241,6 @@ spec:
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
-      - --http_proxy
-      - ''
-      - --https_proxy
-      - ''
-      - --no_proxy
-      - ''
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -320,7 +306,7 @@ spec:
     name: entrypoint
     outputs: {}
   ttlStrategy:
-    secondsAfterCompletion: 30
+    secondsAfterCompletion: 60
 status:
   finishedAt: null
   startedAt: null

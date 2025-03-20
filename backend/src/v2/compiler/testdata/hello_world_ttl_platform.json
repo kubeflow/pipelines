@@ -1,0 +1,9 @@
+{
+  "platforms": {
+    "kubernetes": {
+      "pipelineConfig": {
+        "pipelineTtl": 60
+      }
+    }
+  }
+}

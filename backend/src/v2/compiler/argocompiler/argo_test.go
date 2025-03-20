@@ -101,6 +101,12 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/hello_world_cache_disabled.yaml",
 			compilerOptions:  argocompiler.Options{CacheDisabled: true},
 		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "../testdata/hello_world_ttl_platform.json",
+			argoYAMLPath:     "testdata/hello_world_ttl.yaml",
+			compilerOptions:  &argocompiler.Options{TtlSeconds: 60},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
@@ -121,7 +127,7 @@ func Test_argo_compiler(t *testing.T) {
 					}
 				}
 			}()
-
+			var opts *argocompiler.Options = tt.opts
 			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
 			if *update {
 				wf, err := argocompiler.Compile(job, platformSpec, &tt.compilerOptions)
