@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: squid
+  namespace: squid
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: squid
+  template:
+    metadata:
+      labels:
+        app: squid
+    spec:
+      containers:
+        - name: squid
+          image: registry.domain.local/squid:test
+          ports:
+            - containerPort: 3128
+          volumeMounts:
+            - name: squid-cache
+              mountPath: /var/cache/squid
+            - name: squid-log
+              mountPath: /var/log/squid
+      volumes:
+        - name: squid-cache
+          emptyDir: { }
+        - name: squid-log
+          emptyDir: { }

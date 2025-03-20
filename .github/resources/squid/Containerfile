@@ -1,0 +1,10 @@
+FROM quay.io/fedora/fedora:41
+
+RUN dnf install -y squid && \
+    dnf clean all
+
+COPY squid.conf /etc/squid/squid.conf
+
+EXPOSE 3128
+
+CMD ["squid", "-N", "-d", "1"]
