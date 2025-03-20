@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"io"
 	"net"
@@ -123,9 +124,10 @@ type ResourceManager struct {
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []kfpauth.Authenticator
 	options                   *ResourceManagerOptions
+	proxyConfig               proxy.Config
 }
 
-func NewResourceManager(clientManager ClientManagerInterface, options *ResourceManagerOptions) *ResourceManager {
+func NewResourceManager(clientManager ClientManagerInterface, options *ResourceManagerOptions, proxyConfig proxy.Config) *ResourceManager {
 	return &ResourceManager{
 		experimentStore:           clientManager.ExperimentStore(),
 		pipelineStore:             clientManager.PipelineStore(),
@@ -146,6 +148,7 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		uuid:                      clientManager.UUID(),
 		authenticators:            clientManager.Authenticators(),
 		options:                   options,
+		proxyConfig:               proxyConfig,
 	}
 }
 
@@ -495,7 +498,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		RunId: run.UUID,
 		RunAt: run.RunDetails.CreatedAtInSec,
 	}
-	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
+	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions, r.proxyConfig)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to generate the ExecutionSpec")
 	}
@@ -601,7 +604,7 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 			return failedToReconcileSwfCrsError(err)
 		}
 
-		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
+		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i], r.proxyConfig)
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
 		}
@@ -1075,7 +1078,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 		// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 		// Convert modelJob into scheduledWorkflow.
-		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job, r.proxyConfig)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 		}
@@ -1095,7 +1098,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
 
-		_, err = tmpl.ScheduledWorkflow(job)
+		_, err = tmpl.ScheduledWorkflow(job, r.proxyConfig)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
