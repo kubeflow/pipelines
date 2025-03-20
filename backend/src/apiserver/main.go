@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -26,6 +27,7 @@ import (
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -45,8 +47,12 @@ import (
 )
 
 const (
-	executionTypeEnv = "ExecutionType"
-	launcherEnv      = "Launcher"
+	executionTypeEnv   = "ExecutionType"
+	launcherEnv        = "Launcher"
+	unsetProxyArgValue = "unset"
+	httpProxyArg       = "http_proxy"
+	httpsProxyArg      = "https_proxy"
+	noProxyArg         = "no_proxy"
 )
 
 var (
@@ -56,6 +62,9 @@ var (
 	configPath         = flag.String("config", "", "Path to JSON file containing config")
 	sampleConfigPath   = flag.String("sampleconfig", "", "Path to samples")
 	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
+	httpProxy          = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
+	httpsProxy         = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
+	noProxy            = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -72,12 +81,19 @@ func main() {
 		template.Launcher = common.GetStringConfig(launcherEnv)
 	}
 
+	err := validateProxyConfig()
+	if err != nil {
+		glog.Fatal(err)
+	}
+
 	clientManager := cm.NewClientManager()
+	proxyConfig := proxy.NewProxyConfig(*httpProxy, *httpsProxy, *noProxy)
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
+		proxyConfig,
 	)
-	err := config.LoadSamples(resourceManager, *sampleConfigPath)
+	err = config.LoadSamples(resourceManager, *sampleConfigPath)
 	if err != nil {
 		glog.Fatalf("Failed to load samples. Err: %v", err)
 	}
@@ -111,6 +127,19 @@ func main() {
 	backgroundCancel()
 	clientManager.Close()
 	wg.Wait()
+}
+
+func validateProxyConfig() error {
+	if *httpProxy == unsetProxyArgValue {
+		return fmt.Errorf("argument --%s must be specified", httpProxyArg)
+	}
+	if *httpsProxy == unsetProxyArgValue {
+		return fmt.Errorf("argument --%s must be specified", httpsProxyArg)
+	}
+	if *noProxy == unsetProxyArgValue {
+		return fmt.Errorf("argument --%s must be specified", noProxyArg)
+	}
+	return nil
 }
 
 func reconcileSwfCrs(resourceManager *resource.ResourceManager, ctx context.Context, wg *sync.WaitGroup) {

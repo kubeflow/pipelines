@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"io"
 	"regexp"
 	"strings"
@@ -126,9 +127,9 @@ type Template interface {
 	GetTemplateType() TemplateType
 
 	// Get workflow
-	RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
+	RunWorkflow(modelRun *model.Run, options RunWorkflowOptions, proxyConfig proxy.ProxyConfig) (util.ExecutionSpec, error)
 
-	ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error)
+	ScheduledWorkflow(modelJob *model.Job, proxyConfig proxy.ProxyConfig) (*scheduledworkflow.ScheduledWorkflow, error)
 }
 
 type RunWorkflowOptions struct {

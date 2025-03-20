@@ -180,9 +180,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
 		"--condition_path", outputPath(paramCondition),
 		"--kubernetes_config", inputValue(paramKubernetesConfig),
-		"--http_proxy", c.http_proxy,
-		"--https_proxy", c.https_proxy,
-		"--no_proxy", c.no_proxy,
+		"--http_proxy", c.proxyConfig.GetHttpProxy(),
+		"--https_proxy", c.proxyConfig.GetHttpsProxy(),
+		"--no_proxy", c.proxyConfig.GetNoProxy(),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)

@@ -556,9 +556,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--execution_id_path", outputPath(paramExecutionID),
 		"--iteration_count_path", outputPath(paramIterationCount),
 		"--condition_path", outputPath(paramCondition),
-		"--http_proxy", "hhh-dag", //TODO: Helber
-		"--https_proxy", "hhh-dag", //TODO: Helber
-		"--no_proxy", "hhh-dag", //TODO: Helber
+		"--http_proxy", c.proxyConfig.GetHttpProxy(),
+		"--https_proxy", c.proxyConfig.GetHttpsProxy(),
+		"--no_proxy", c.proxyConfig.GetNoProxy(),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)

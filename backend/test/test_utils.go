@@ -15,6 +15,7 @@
 package test
 
 import (
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"net/http"
 	"os"
 	"testing"
@@ -292,4 +293,8 @@ func VerifyRunResourceReferences(resRefs []*run_model.APIResourceReference, targ
 		}
 	}
 	return matches == len(targets)
+}
+
+func BlankProxyConfig() proxy.ProxyConfig {
+	return proxy.NewProxyConfig("", "", "")
 }

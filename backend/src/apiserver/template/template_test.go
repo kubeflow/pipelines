@@ -16,6 +16,7 @@ package template
 
 import (
 	"encoding/json"
+	"github.com/kubeflow/pipelines/backend/test"
 	"os"
 	"strings"
 	"testing"
@@ -224,7 +225,7 @@ func TestScheduledWorkflow(t *testing.T) {
 		},
 	}
 
-	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob)
+	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob, test.BlankProxyConfig())
 	assert.Nil(t, err)
 
 	// We don't compare this field because it changes with every driver/launcher image release.
