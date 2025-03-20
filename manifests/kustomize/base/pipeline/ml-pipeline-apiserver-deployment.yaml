@@ -20,6 +20,10 @@ spec:
           type: RuntimeDefault
       containers:
       - env:
+        - name: V2_DRIVER_IMAGE
+          value: "quay.io/hbelmiro/dsp-driver:dev-issue-11744-1742398120"
+        - name: V2_LAUNCHER_IMAGE
+          value: "quay.io/hbelmiro/dsp-launcher:dev-issue-11744-1742333547"
         - name: LOG_LEVEL
           value: "info"
         # Driver / launcher log level during pipeline execution

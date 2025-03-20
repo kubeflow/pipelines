@@ -171,6 +171,9 @@ type workflowCompiler struct {
 	driverImage   string
 	driverCommand []string
 	launcherImage string
+	http_proxy    string
+	https_proxy   string
+	no_proxy      string
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

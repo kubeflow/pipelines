@@ -1,0 +1,20 @@
+FROM golang:1.22.12-alpine3.21 as builder
+
+ARG GCFLAGS=""
+
+WORKDIR /go/src/github.com/kubeflow/pipelines
+
+RUN GO111MODULE=on GOOS=linux GOARCH=arm64 go install github.com/go-delve/delve/cmd/dlv@latest
+
+RUN which dlv
+
+RUN ls -l /go/bin/dlv
+
+FROM alpine:3.19
+
+RUN adduser -S appuser
+USER appuser
+
+WORKDIR /bin
+
+COPY --from=builder /go/bin/dlv .

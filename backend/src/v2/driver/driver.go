@@ -83,6 +83,12 @@ type Options struct {
 	RunDisplayName string
 
 	PipelineLogLevel string
+
+	HttpProxy string
+
+	HttpsProxy string
+
+	NoProxy string
 }
 
 // Identifying information used for error messages
@@ -349,7 +355,8 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.PipelineLogLevel)
+	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName,
+		opts.RunID, opts.PipelineLogLevel, opts.HttpProxy, opts.HttpsProxy, opts.NoProxy)
 	if err != nil {
 		return execution, err
 	}
@@ -412,6 +419,9 @@ func initPodSpecPatch(
 	pipelineName string,
 	runID string,
 	pipelineLogLevel string,
+	httpProxy string,
+	httpsProxy string,
+	noProxy string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -426,6 +436,18 @@ func initPodSpecPatch(
 	userEnvVar := make([]k8score.EnvVar, 0)
 	for _, envVar := range container.GetEnv() {
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
+	}
+
+	if httpProxy != "" {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "http_proxy", Value: httpProxy})
+	}
+
+	if httpsProxy != "" {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "https_proxy", Value: httpsProxy})
+	}
+
+	if noProxy != "" {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "no_proxy", Value: noProxy})
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))

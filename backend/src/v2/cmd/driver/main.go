@@ -35,10 +35,14 @@ import (
 )
 
 const (
-	driverTypeArg = "type"
-	ROOT_DAG      = "ROOT_DAG"
-	DAG           = "DAG"
-	CONTAINER     = "CONTAINER"
+	driverTypeArg      = "type"
+	httpProxyArg       = "http_proxy"
+	httpsProxyArg      = "https_proxy"
+	noProxyArg         = "no_proxy"
+	unsetProxyArgValue = "unset"
+	ROOT_DAG           = "ROOT_DAG"
+	DAG                = "DAG"
+	CONTAINER          = "CONTAINER"
 )
 
 var (
@@ -70,6 +74,11 @@ var (
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
 	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
+
+	// proxy
+	httpProxy  = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
+	httpsProxy = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
+	noProxy    = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -99,6 +108,15 @@ func init() {
 func validate() error {
 	if *driverType == "" {
 		return fmt.Errorf("argument --%s must be specified", driverTypeArg)
+	}
+	if *httpProxy == unsetProxyArgValue {
+		return fmt.Errorf("argument --%s must be specified", httpProxyArg)
+	}
+	if *httpsProxy == unsetProxyArgValue {
+		return fmt.Errorf("argument --%s must be specified", httpsProxyArg)
+	}
+	if *noProxy == unsetProxyArgValue {
+		return fmt.Errorf("argument --%s must be specified", noProxyArg)
 	}
 	// validation responsibility lives in driver itself, so we do not validate all other args
 	return nil
@@ -167,6 +185,9 @@ func drive() (err error) {
 		DAGExecutionID:   *dagExecutionID,
 		IterationIndex:   *iterationIndex,
 		PipelineLogLevel: *logLevel,
+		HttpProxy:        *httpProxy,
+		HttpsProxy:       *httpsProxy,
+		NoProxy:          *noProxy,
 	}
 	var execution *driver.Execution
 	var driverErr error

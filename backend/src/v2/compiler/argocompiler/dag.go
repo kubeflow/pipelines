@@ -538,6 +538,11 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	}
 
 	args := []string{
+		//"--headless=true",
+		//"--listen=:2345",
+		//"--api-version=2",
+		//"--accept-multiclient",
+		//"exec", "/bin/driver", "--",
 		"--type", inputValue(paramDriverType),
 		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 		"--run_id", runID(),
@@ -551,6 +556,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--execution_id_path", outputPath(paramExecutionID),
 		"--iteration_count_path", outputPath(paramIterationCount),
 		"--condition_path", outputPath(paramCondition),
+		"--http_proxy", "hhh-dag", //TODO: Helber
+		"--https_proxy", "hhh-dag", //TODO: Helber
+		"--no_proxy", "hhh-dag", //TODO: Helber
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -576,8 +584,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
+			Image:   c.driverImage,
+			Command: c.driverCommand,
+			//Command: []string{"dlv"},
 			Args:      args,
 			Resources: driverResources,
 		},
