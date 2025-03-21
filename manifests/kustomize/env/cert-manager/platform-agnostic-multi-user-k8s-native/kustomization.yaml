@@ -12,19 +12,26 @@ resources:
 namespace: kubeflow
 
 patches:
-- path: patches/deployment.yaml
-  target:
-    kind: Deployment
-    name: ml-pipeline
-- path: patches/service.yaml
-  target:
-    kind: Service
-    name: ml-pipeline
-- path: patches/validating-webhook.yaml
-  target:
-    kind: ValidatingWebhookConfiguration
-    name: pipelineversions.pipelines.kubeflow.org
-- path: patches/mutating-webhook.yaml
-  target:
-    kind: MutatingWebhookConfiguration
-    name: pipelineversions.pipelines.kubeflow.org
+  - path: patches/deployment.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline
+  - path: patches/service.yaml
+    target:
+      kind: Service
+      name: ml-pipeline
+  - path: patches/validating-webhook.yaml
+    target:
+      kind: ValidatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+  - path: patches/mutating-webhook.yaml
+    target:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+  - path: patches/role.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRole
+      name: ml-pipeline
+

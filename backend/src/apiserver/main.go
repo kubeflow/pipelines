@@ -86,6 +86,17 @@ func main() {
 		template.Launcher = common.GetStringConfig(launcherEnv)
 	}
 
+	backgroundCtx, backgroundCancel := context.WithCancel(signals.SetupSignalHandler())
+	defer backgroundCancel()
+
+	wg := sync.WaitGroup{}
+
+	var options = &cm.Options{
+		UsePipelineKubernetesStorage: *usePipelinesKubernetesStorage,
+		Context:                      backgroundCtx,
+		WaitGroup:                    &wg,
+	}
+
 	logLevel := *logLevelFlag
 	if logLevel == "" {
 		logLevel = "info"
@@ -105,18 +116,12 @@ func main() {
 
 	ctrllog.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Level: zapLevel})))
 
-	clientManager, err := cm.NewClientManager()
+	clientManager, err := cm.NewClientManager(options)
 	if err != nil {
 		glog.Fatalf("Failed to initialize ClientManager: %v", err)
 	}
 
 	defer clientManager.Close()
-
-	backgroundCtx, backgroundCancel := context.WithCancel(signals.SetupSignalHandler())
-	defer backgroundCancel()
-
-	wg := sync.WaitGroup{}
-
 	webhookOnlyMode := common.IsOnlyKubernetesWebhookMode()
 
 	if *usePipelinesKubernetesStorage || webhookOnlyMode {
@@ -143,7 +148,7 @@ func main() {
 	}
 
 	resourceManager := resource.NewResourceManager(
-		&clientManager,
+		clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)

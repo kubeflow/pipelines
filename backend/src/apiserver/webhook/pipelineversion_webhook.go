@@ -18,7 +18,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
@@ -31,6 +33,11 @@ import (
 )
 
 var scheme *runtime.Scheme
+
+const (
+	maxRetries    = 10
+	retryInterval = 500 * time.Millisecond
+)
 
 func init() {
 	scheme = runtime.NewScheme()
@@ -134,13 +141,25 @@ func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Objec
 	pipeline := &k8sapi.Pipeline{}
 	nsName := types.NamespacedName{Namespace: pipelineVersion.Namespace, Name: pipelineVersion.Spec.PipelineName}
 
-	err := p.Client.Get(ctx, nsName, pipeline)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
+	// Because controller-client cache cannot be up to date when retrieving the pipeline,
+	// this loop will retry 10 times and wait 500ms in each retry.
+	for tries := 0; tries < maxRetries; tries++ {
+		err := p.Client.Get(ctx, nsName, pipeline)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				glog.V(4).Infof("Pipeline %v not found, probably because controller-client cache is not updated. Will retry in %v seconds.", pipeline.Name, retryInterval)
+				// Wait 500ms so cache can be updated
+				time.Sleep(retryInterval)
+				continue
+			}
+			return err
 		}
+		break
+	}
 
-		return err
+	// If after the retry loop pipeline is still nil, then the pipeline could not be found
+	if pipeline == nil {
+		return newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
 	}
 
 	if pipelineVersion.Labels == nil {

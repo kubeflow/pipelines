@@ -5,6 +5,10 @@ inputs:
   k8s_version:
     description: "The Kubernetes version to use for the Kind cluster"
     required: true
+  pipeline_store:
+    description: "Flag to deploy KFP with K8s Native API"
+    default: 'database'
+    required: false
   proxy:
     description: "If KFP should be deployed with proxy configuration"
     required: false
@@ -39,8 +43,12 @@ runs:
     - name: Deploy KFP
       shell: bash
       run: |
+        ARGS=""
+
         if [ "${{ inputs.proxy }}" = "true" ]; then
-          ./.github/resources/scripts/deploy-kfp.sh --proxy
-        else
-          ./.github/resources/scripts/deploy-kfp.sh
+          ARGS="${ARGS} --proxy"
+        elif [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
+          ARGS="${ARGS}  --deploy-k8s-native"
         fi
+        
+        ./.github/resources/scripts/deploy-kfp.sh $ARGS
