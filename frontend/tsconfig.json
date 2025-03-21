@@ -21,7 +21,6 @@
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "strictNullChecks": true,
-    "suppressImplicitAnyIndexErrors": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
