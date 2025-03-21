@@ -1111,4 +1111,7 @@ message PipelineConfig {
 
   // Name of the mutex to ensure mutual exclusion
   string mutex_name = 2;
+
+  // TTL Pipeline configuration
+  int32 pipelineTtl = 3;
 }
