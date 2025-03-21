@@ -14,6 +14,10 @@ spec:
       labels:
         app: metadata-writer
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+    
       containers:
       - name: main
         image: ghcr.io/kubeflow/kfp-metadata-writer:dummy
@@ -24,8 +28,6 @@ spec:
               fieldPath: metadata.namespace
         securityContext:
           allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
           runAsNonRoot: true
           runAsUser: 1000
           runAsGroup: 0

@@ -15,6 +15,9 @@ spec:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - image: ghcr.io/kubeflow/kfp-scheduled-workflow-controller:dummy
         imagePullPolicy: IfNotPresent
@@ -33,8 +36,6 @@ spec:
                 key: cronScheduleTimezone
         securityContext:
           allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
           runAsNonRoot: true
           runAsUser: 1000
           runAsGroup: 0

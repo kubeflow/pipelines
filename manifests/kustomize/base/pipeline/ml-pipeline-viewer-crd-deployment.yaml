@@ -15,6 +15,9 @@ spec:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
+      securityContext:
+          seccompProfile:
+            type: RuntimeDefault
       containers:
       - image: ghcr.io/kubeflow/kfp-viewer-crd-controller:dummy
         imagePullPolicy: Always
@@ -28,8 +31,6 @@ spec:
               fieldPath: metadata.namespace
         securityContext:
           allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
           runAsNonRoot: true
           runAsUser: 1000
           runAsGroup: 0

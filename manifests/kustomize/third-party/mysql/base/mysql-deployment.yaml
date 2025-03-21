@@ -55,8 +55,6 @@ spec:
           name: mysql
         securityContext:
           allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
           runAsNonRoot: true
           runAsUser: 999
           runAsGroup: 999
@@ -73,6 +71,8 @@ spec:
       securityContext:
         fsGroup: 999
         fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       volumes:
       - name: mysql-persistent-storage
         persistentVolumeClaim:
