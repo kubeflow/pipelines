@@ -716,7 +716,7 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
 func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 	return &RunStore{
 		db:                     db,
-		resourceReferenceStore: NewResourceReferenceStore(db),
+		resourceReferenceStore: NewResourceReferenceStore(db, nil),
 		time:                   time,
 	}
 }
