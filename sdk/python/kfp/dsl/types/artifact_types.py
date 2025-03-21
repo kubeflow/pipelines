@@ -98,7 +98,7 @@ class Artifact:
             return _S3_LOCAL_MOUNT_PREFIX + self.uri[len(S3_REMOTE_PREFIX):]
 
         elif self.uri.startswith(OCI_REMOTE_PREFIX):
-            escaped_uri = self.uri[len(OCI_REMOTE_PREFIX):].replace('/', '\\/')
+            escaped_uri = self.uri[len(OCI_REMOTE_PREFIX):].replace('/', '_')
             return _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
         # uri == path for local execution
         return self.uri
@@ -115,7 +115,7 @@ def convert_local_path_to_remote_path(path: str) -> str:
     elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
         return S3_REMOTE_PREFIX + path[len(_S3_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_OCI_LOCAL_MOUNT_PREFIX):
-        remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('\\/', '/')
+        remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('_', '/')
         if remote_path.endswith("/models"):
             remote_path = remote_path[:-len("/models")]
 
