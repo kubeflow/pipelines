@@ -42,3 +42,23 @@ patches:
   target:
     kind: Deployment
     name: cache-server
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/volumeMounts/-
+      value:
+        name: webhook-certs
+        mountPath: /etc/webhook/certs
+        readOnly: true
+  target:
+    kind: Deployment
+    name: ml-pipeline
+- patch: |-
+    - op: add
+      path: /spec/template/spec/volumes/-
+      value:
+        name: webhook-certs
+        secret:
+          secretName: kfp-api-webhook-cert
+  target:
+    kind: Deployment
+    name: ml-pipeline

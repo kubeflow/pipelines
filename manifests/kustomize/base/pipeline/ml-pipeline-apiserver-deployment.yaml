@@ -111,7 +111,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: mlpipeline-minio-artifact
-              key: secretkey
+              key: secretkey           
         image: ghcr.io/kubeflow/kfp-api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
@@ -120,6 +120,8 @@ spec:
           containerPort: 8888
         - name: grpc
           containerPort: 8887
+        - name: webhook
+          containerPort: 9443
         readinessProbe:
           exec:
             command:
@@ -172,5 +174,5 @@ spec:
         resources:
           requests:
             cpu: 250m
-            memory: 500Mi
+            memory: 500Mi           
       serviceAccountName: ml-pipeline

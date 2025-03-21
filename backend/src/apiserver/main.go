@@ -17,6 +17,14 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
+	"math"
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -29,19 +37,18 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/webhook"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/crd/pkg/signals"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"io"
-	"math"
-	"net"
-	"net/http"
-	"strconv"
-	"strings"
-	"sync"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 const (
@@ -53,6 +60,9 @@ var (
 	logLevelFlag       = flag.String("logLevel", "", "Defines the log level for the application.")
 	rpcPortFlag        = flag.String("rpcPortFlag", ":8887", "RPC Port")
 	httpPortFlag       = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
+	webhookPortFlag    = flag.String("webhookPortFlag", ":8443", "Https Proxy Port")
+	webhookTLSCertPath = flag.String("webhook-tls-cert-path", "/etc/webhook/certs/tls.crt", "Path to the webhook TLS certificate.")
+	webhookTLSKeyPath  = flag.String("webhook-tls-key-path", "/etc/webhook/certs/tls.key", "Path to the webhook TLS private key.")
 	configPath         = flag.String("config", "", "Path to JSON file containing config")
 	sampleConfigPath   = flag.String("sampleconfig", "", "Path to samples")
 	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
@@ -72,23 +82,6 @@ func main() {
 		template.Launcher = common.GetStringConfig(launcherEnv)
 	}
 
-	clientManager := cm.NewClientManager()
-	resourceManager := resource.NewResourceManager(
-		&clientManager,
-		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
-	)
-	err := config.LoadSamples(resourceManager, *sampleConfigPath)
-	if err != nil {
-		glog.Fatalf("Failed to load samples. Err: %v", err)
-	}
-
-	if !common.IsMultiUserMode() {
-		_, err = resourceManager.CreateDefaultExperiment("")
-		if err != nil {
-			glog.Fatalf("Failed to create default experiment. Err: %v", err)
-		}
-	}
-
 	logLevel := *logLevelFlag
 	if logLevel == "" {
 		logLevel = "info"
@@ -100,16 +93,80 @@ func main() {
 	}
 	log.SetLevel(level)
 
+	var zapLevel zapcore.Level
+	switch level {
+	case log.DebugLevel:
+		zapLevel = zapcore.DebugLevel
+	case log.InfoLevel:
+		zapLevel = zapcore.InfoLevel
+	case log.WarnLevel:
+		zapLevel = zapcore.WarnLevel
+	case log.ErrorLevel:
+		zapLevel = zapcore.ErrorLevel
+	case log.PanicLevel:
+		zapLevel = zapcore.PanicLevel
+	case log.FatalLevel:
+		zapLevel = zapcore.FatalLevel
+	default:
+		zapLevel = zapcore.InfoLevel
+		glog.Fatalf("Invalid log level: %s", logLevel)
+	}
+
+	ctrllog.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Level: zapLevel})))
+
+	clientManager, err := cm.NewClientManager()
+	if err != nil {
+		glog.Fatalf("Failed to initialize ClientManager: %v", err)
+	}
+
+	defer clientManager.Close()
+
+	stopCh := signals.SetupSignalHandler()
+
+	if common.IsOnlyKubernetesWebhookMode() {
+		webhookServer := startWebhook(clientManager.ControllerClient())
+		<-stopCh
+		glog.Info("Shutting down Kubernetes webhook server...")
+		if err := webhookServer.Shutdown(context.Background()); err != nil {
+			glog.Errorf("Error shutting down webhook server: %v", err)
+		}
+		return
+	}
+	resourceManager := resource.NewResourceManager(
+		&clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
+	)
+	err = config.LoadSamples(resourceManager, *sampleConfigPath)
+	if err != nil {
+		glog.Fatalf("Failed to load samples. Err: %v", err)
+	}
+
+	if !common.IsMultiUserMode() {
+		_, err = resourceManager.CreateDefaultExperiment("")
+		if err != nil {
+			glog.Fatalf("Failed to create default experiment. Err: %v", err)
+		}
+	}
+
 	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
 	defer backgroundCancel()
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	webhookServer := startWebhook(clientManager.ControllerClient())
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		<-stopCh
+		glog.Info("Shutting down Kubernetes webhook server...")
+		if err := webhookServer.Shutdown(context.Background()); err != nil {
+			glog.Errorf("Error shutting down webhook server: %v", err)
+		}
+	}()
 	go startRpcServer(resourceManager)
 	// This is blocking
 	startHttpProxy(resourceManager)
 	backgroundCancel()
-	clientManager.Close()
 	wg.Wait()
 }
 
@@ -237,6 +294,50 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 
 	http.ListenAndServe(*httpPortFlag, topMux)
 	glog.Info("Http Proxy started")
+}
+
+func startWebhook(controllerClient ctrlclient.Client) *http.Server {
+	glog.Info("Starting the Kubernetes webhooks")
+
+	tlsCertPath := *webhookTLSCertPath
+	tlsKeyPath := *webhookTLSKeyPath
+
+	topMux := mux.NewRouter()
+
+	pvValidateWebhook, err := webhook.NewPipelineVersionWebhook(controllerClient)
+	if err != nil {
+		log.Fatalf("Failed to instantiate the Kubernetes webhook: %v", err)
+	}
+
+	topMux.Handle("/webhooks/validate-pipelineversion", pvValidateWebhook)
+
+	server := &http.Server{
+		Addr:    *webhookPortFlag,
+		Handler: topMux,
+	}
+
+	go func() {
+		if tlsCertPath != "" && tlsKeyPath != "" && common.FileExists(tlsCertPath) && common.FileExists(tlsKeyPath) {
+			glog.Infof("Starting the Kubernetes webhook with TLS")
+			err := server.ListenAndServeTLS(tlsCertPath, tlsKeyPath)
+			if err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Failed to start the Kubernetes webhook with TLS: %v", err)
+			}
+		} else {
+			if tlsCertPath == "" || tlsKeyPath == "" {
+				glog.Warningf("TLS certificate/key paths are not set. Running Kubernetes webhook without TLS.")
+			} else {
+				glog.Infof("TLS files not found at specified paths, falling back to HTTP")
+			}
+			glog.Infof("Starting the Kubernetes webhook without TLS")
+			err := server.ListenAndServe()
+			if err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Failed to start Kubernetes webhook server: %v", err)
+			}
+		}
+	}()
+
+	return server
 }
 
 func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, serviceName string, ctx context.Context, mux *runtime.ServeMux) {

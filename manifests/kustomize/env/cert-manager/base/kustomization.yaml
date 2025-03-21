@@ -6,6 +6,7 @@ resources:
   - cache-cert-issuer.yaml
   - cache-cert.yaml
   - cache-webhook-config.yaml
+  - ./webhook
 commonLabels:
   app: cache-server-cert-manager
 
