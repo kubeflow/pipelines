@@ -284,6 +284,10 @@ func (e *UserError) Log() {
 // Convert UserError to GRPCStatus.
 // Required by https://pkg.go.dev/google.golang.org/grpc/status#FromError
 func (e *UserError) GRPCStatus() *status1.Status {
+	if e.internalError == nil {
+		e.internalError = errors.New("")
+	}
+
 	stat := status1.New(e.externalStatusCode, e.internalError.Error())
 	statWithDetail, statErr := stat.
 		WithDetails(&status.Status{

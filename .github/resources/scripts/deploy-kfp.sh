@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Remove the x if you need no print out of each command
-set -e
+set -xe
 
 REGISTRY="${REGISTRY:-kind-registry:5000}"
 EXIT_CODE=0
@@ -23,6 +23,21 @@ EXIT_CODE=0
 C_DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$C_DIR" ]]; then C_DIR="$PWD"; fi
 source "${C_DIR}/helper-functions.sh"
+
+TEST_MANIFESTS=".github/resources/manifests/argo"
+
+# Loop over script arguments passed. This uses a single switch-case
+# block with default value in case we want to make alternative deployments
+# in the future.
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --deploy-k8s-native)
+      CRD_MANIFESTS="manifests/kustomize/base/crds"
+      TEST_MANIFESTS=".github/resources/manifests/k8s-native"
+      shift
+      ;;
+  esac
+done
 
 kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
@@ -32,8 +47,12 @@ then
   exit $EXIT_CODE
 fi
 
+# If CRD_MANIFESTS env var is present, deploy the K8s Native API CRDs
+if [[ -n "${CRD_MANIFESTS}" ]]; then
+  kubectl apply -k $CRD_MANIFESTS
+fi
+
 # Deploy manifest
-TEST_MANIFESTS=".github/resources/manifests/argo"
 kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then

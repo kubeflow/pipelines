@@ -20,15 +20,17 @@ import (
 )
 
 // env vars in metadata-grpc-configmap is defined in component package
-var metadataConfigIsOptional bool = true
-var metadataEnvFrom = k8score.EnvFromSource{
-	ConfigMapRef: &k8score.ConfigMapEnvSource{
-		LocalObjectReference: k8score.LocalObjectReference{
-			Name: "metadata-grpc-configmap",
+var (
+	metadataConfigIsOptional bool = true
+	metadataEnvFrom               = k8score.EnvFromSource{
+		ConfigMapRef: &k8score.ConfigMapEnvSource{
+			LocalObjectReference: k8score.LocalObjectReference{
+				Name: "metadata-grpc-configmap",
+			},
+			Optional: &metadataConfigIsOptional,
 		},
-		Optional: &metadataConfigIsOptional,
-	},
-}
+	}
+)
 
 var commonEnvs = []k8score.EnvVar{{
 	Name: "KFP_POD_NAME",

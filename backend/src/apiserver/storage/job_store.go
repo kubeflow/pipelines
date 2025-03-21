@@ -490,10 +490,10 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 }
 
 // factory function for job store.
-func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
+func NewJobStore(db *DB, time util.TimeInterface, pipelineStore PipelineStoreInterface) *JobStore {
 	return &JobStore{
 		db:                     db,
-		resourceReferenceStore: NewResourceReferenceStore(db),
+		resourceReferenceStore: NewResourceReferenceStore(db, pipelineStore),
 		time:                   time,
 	}
 }
