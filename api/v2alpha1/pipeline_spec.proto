@@ -1111,4 +1111,9 @@ message PipelineConfig {
 
   // Name of the mutex to ensure mutual exclusion
   string mutex_name = 2;
+
+  // Time to live configuration after the pipeline run is completed. When TTL
+  // is reached, the Kubernetes resource that represents the pipeline run will
+  // be deleted by the underlying pipeline backend.
+  int32 pipelineTtl = 3;
 }
