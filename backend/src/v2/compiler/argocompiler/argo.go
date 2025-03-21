@@ -19,8 +19,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"os"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -41,6 +43,16 @@ type Options struct {
 	// optional
 	PipelineRoot string
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
+	SemaphoreKey string
+	MutexName    string
+}
+
+func getSemaphoreConfigMapName() string {
+	const defaultConfigMapName = "semaphore-config"
+	if name := os.Getenv("SEMAPHORE_CONFIGMAP_NAME"); name != "" {
+		return name
+	}
+	return defaultConfigMapName
 }
 
 func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
@@ -124,6 +136,27 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	runAsUser := GetPipelineRunAsUser()
 	if runAsUser != nil {
 		wf.Spec.SecurityContext = &k8score.PodSecurityContext{RunAsUser: runAsUser}
+	}
+	sync := &wfapi.Synchronization{}
+	if opts != nil && opts.SemaphoreKey != "" {
+		sync.Semaphore = &wfapi.SemaphoreRef{
+			ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+				LocalObjectReference: k8score.LocalObjectReference{
+					Name: getSemaphoreConfigMapName(),
+				},
+				Key: opts.SemaphoreKey,
+			},
+		}
+	}
+
+	if opts != nil && opts.MutexName != "" {
+		sync.Mutex = &wfapi.Mutex{
+			Name: opts.MutexName,
+		}
+	}
+
+	if sync.Semaphore != nil || sync.Mutex != nil {
+		wf.Spec.Synchronization = sync
 	}
 
 	c := &workflowCompiler{
