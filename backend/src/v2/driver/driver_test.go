@@ -434,15 +434,15 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	assert.Len(t, podSpec.Containers, 2)
 	assert.Len(t, podSpec.Containers[0].VolumeMounts, 1)
 	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].Name, "oci-0")
-	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].MountPath, "/oci/registry.domain.local\\/my-model:latest")
-	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].SubPath, "registry.domain.local\\/my-model:latest")
+	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].MountPath, "/oci/registry.domain.local_my-model:latest")
+	assert.Equal(t, podSpec.Containers[0].VolumeMounts[0].SubPath, "registry.domain.local_my-model:latest")
 
 	assert.Equal(t, podSpec.Containers[1].Name, "oci-0")
 	assert.Equal(t, podSpec.Containers[1].Image, "registry.domain.local/my-model:latest")
 	assert.Len(t, podSpec.Containers[1].VolumeMounts, 1)
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].Name, "oci-0")
-	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].MountPath, "/oci/registry.domain.local\\/my-model:latest")
-	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].SubPath, "registry.domain.local\\/my-model:latest")
+	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].MountPath, "/oci/registry.domain.local_my-model:latest")
+	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].SubPath, "registry.domain.local_my-model:latest")
 }
 
 func Test_makeVolumeMountPatch(t *testing.T) {
@@ -920,7 +920,8 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
 								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
-								Optional:             &[]bool{false}[0]},
+								Optional:             &[]bool{false}[0],
+							},
 						},
 					},
 				},
@@ -962,7 +963,8 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
 								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
-								Optional:             &[]bool{false}[0]},
+								Optional:             &[]bool{false}[0],
+							},
 						},
 					},
 				},
@@ -1004,7 +1006,8 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
 								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
-								Optional:             &[]bool{true}[0]},
+								Optional:             &[]bool{true}[0],
+							},
 						},
 					},
 				},

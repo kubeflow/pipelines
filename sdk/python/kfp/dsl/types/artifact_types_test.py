@@ -138,9 +138,9 @@ class TestConvertLocalPathToRemotePath(parameterized.TestCase):
         ('/gcs/foo/bar', 'gs://foo/bar'),
         ('/minio/foo/bar', 'minio://foo/bar'),
         ('/s3/foo/bar', 's3://foo/bar'),
-        ('/oci/quay.io\\/org\\/repo:latest/models',
+        ('/oci/quay.io_org_repo:latest/models',
          'oci://quay.io/org/repo:latest'),
-        ('/oci/quay.io\\/org\\/repo:latest', 'oci://quay.io/org/repo:latest'),
+        ('/oci/quay.io_org_repo:latest', 'oci://quay.io/org/repo:latest'),
         ('/tmp/kfp_outputs', '/tmp/kfp_outputs'),
         ('/some/random/path', '/some/random/path'),
     ]])
