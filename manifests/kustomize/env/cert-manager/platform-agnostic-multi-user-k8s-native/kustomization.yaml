@@ -28,3 +28,41 @@ patches:
     target:
       kind: MutatingWebhookConfiguration
       name: pipelineversions.pipelines.kubeflow.org
+  - patch: |
+      - op: add
+        path: "/rules/-"
+        value:
+          verbs:
+            - create
+            - get
+            - list
+            - watch
+            - update
+            - patch
+            - delete
+          apiGroups:
+            - pipelines.kubeflow.org
+          resources:
+            - pipelines
+            - pipelines/status
+      - op: add
+        path: "/rules/-"
+        value:
+          verbs:
+            - create
+            - get
+            - list
+            - watch
+            - update
+            - patch
+            - delete
+          apiGroups:
+            - pipelines.kubeflow.org
+          resources:
+            - pipelineversions
+            - pipelineversions/status
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: Role
+      name: ml-pipeline

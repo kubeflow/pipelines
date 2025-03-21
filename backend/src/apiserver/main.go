@@ -50,7 +50,6 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
 const (
@@ -62,12 +61,12 @@ var (
 	logLevelFlag                  = flag.String("logLevel", "", "Defines the log level for the application.")
 	rpcPortFlag                   = flag.String("rpcPortFlag", ":8887", "RPC Port")
 	httpPortFlag                  = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
-	webhookPortFlag               = flag.String("webhookPortFlag", ":8443", "Https Proxy Port")
-	webhookTLSCertPath            = flag.String("webhookTLSCertPath", "", "Path to the webhook TLS certificate.")
-	webhookTLSKeyPath             = flag.String("webhookTLSKeyPath", "", "Path to the webhook TLS private key.")
 	configPath                    = flag.String("config", "", "Path to JSON file containing config")
 	sampleConfigPath              = flag.String("sampleconfig", "", "Path to samples")
 	collectMetricsFlag            = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
+	webhookPortFlag               = flag.String("webhookPortFlag", ":8443", "Https Proxy Port")
+	webhookTLSCertPath            = flag.String("webhookTLSCertPath", "", "Path to the webhook TLS certificate.")
+	webhookTLSKeyPath             = flag.String("webhookTLSKeyPath", "", "Path to the webhook TLS private key.")
 	usePipelinesKubernetesStorage = flag.Bool("pipelinesStoreKubernetes", false, "Store and run pipeline versions in Kubernetes")
 )
 
@@ -83,6 +82,22 @@ func main() {
 	}
 	if viper.IsSet(launcherEnv) {
 		template.Launcher = common.GetStringConfig(launcherEnv)
+	}
+
+	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
+	defer backgroundCancel()
+
+	wg := sync.WaitGroup{}
+
+	var options = &cm.Options{
+		UsePipelineKubernetesStorage: *usePipelinesKubernetesStorage,
+		Context:                      backgroundCtx,
+		WaitGroup:                    &wg,
+	}
+
+	clientManager, err := cm.NewClientManager(options)
+	if err != nil {
+		glog.Fatalf("Failed to create client manager: %v", err)
 	}
 
 	logLevel := *logLevelFlag
@@ -103,18 +118,6 @@ func main() {
 	}
 
 	ctrllog.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Level: zapLevel})))
-
-	clientManager, err := cm.NewClientManager()
-	if err != nil {
-		glog.Fatalf("Failed to initialize ClientManager: %v", err)
-	}
-
-	defer clientManager.Close()
-
-	backgroundCtx, backgroundCancel := context.WithCancel(signals.SetupSignalHandler())
-	defer backgroundCancel()
-
-	wg := sync.WaitGroup{}
 
 	webhookOnlyMode := common.IsOnlyKubernetesWebhookMode()
 
@@ -142,7 +145,7 @@ func main() {
 	}
 
 	resourceManager := resource.NewResourceManager(
-		&clientManager,
+		clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
@@ -163,6 +166,7 @@ func main() {
 	// This is blocking
 	startHttpProxy(resourceManager)
 	backgroundCancel()
+	clientManager.Close()
 	wg.Wait()
 }
 
