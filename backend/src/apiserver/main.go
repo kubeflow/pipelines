@@ -50,12 +50,13 @@ const (
 )
 
 var (
-	logLevelFlag       = flag.String("logLevel", "", "Defines the log level for the application.")
-	rpcPortFlag        = flag.String("rpcPortFlag", ":8887", "RPC Port")
-	httpPortFlag       = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
-	configPath         = flag.String("config", "", "Path to JSON file containing config")
-	sampleConfigPath   = flag.String("sampleconfig", "", "Path to samples")
-	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
+	logLevelFlag                  = flag.String("logLevel", "", "Defines the log level for the application.")
+	rpcPortFlag                   = flag.String("rpcPortFlag", ":8887", "RPC Port")
+	httpPortFlag                  = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
+	configPath                    = flag.String("config", "", "Path to JSON file containing config")
+	sampleConfigPath              = flag.String("sampleconfig", "", "Path to samples")
+	collectMetricsFlag            = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
+	usePipelinesKubernetesStorage = flag.Bool("pipelinesStoreKubernetes", false, "Store and run pipeline versions in Kubernetes")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -72,7 +73,18 @@ func main() {
 		template.Launcher = common.GetStringConfig(launcherEnv)
 	}
 
-	clientManager := cm.NewClientManager()
+	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
+	defer backgroundCancel()
+
+	wg := sync.WaitGroup{}
+
+	var options = &cm.Options{
+		UsePipelineKubernetesStorage: *usePipelinesKubernetesStorage,
+		Context:                      backgroundCtx,
+		WaitGroup:                    &wg,
+	}
+
+	clientManager := cm.NewClientManager(options)
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
@@ -100,9 +112,6 @@ func main() {
 	}
 	log.SetLevel(level)
 
-	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
-	defer backgroundCancel()
-	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
 	go startRpcServer(resourceManager)

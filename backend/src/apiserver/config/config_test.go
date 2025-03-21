@@ -20,6 +20,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -35,6 +36,7 @@ func fakeResourceManager() *resource.ResourceManager {
 }
 
 func TestLoadSamplesConfigBackwardsCompatibility(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "Test")
 	rm := fakeResourceManager()
 	pc := []deprecatedConfig{
 		{
@@ -80,6 +82,7 @@ func TestLoadSamplesConfigBackwardsCompatibility(t *testing.T) {
 }
 
 func TestLoadSamples(t *testing.T) {
+	viper.Set("POD_NAMESPACE", "")
 	rm := fakeResourceManager()
 	pc := config{
 		LoadSamplesOnRestart: true,

@@ -28,7 +28,6 @@ type PipelineSpec struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
 
 // Pipeline is the Schema for the pipelines API.
 type Pipeline struct {
@@ -70,6 +69,27 @@ func (p *Pipeline) ToModel() *model.Pipeline {
 		UUID:           string(p.UID),
 		CreatedAtInSec: p.CreationTimestamp.Unix(),
 		Status:         pipelineStatus,
+	}
+}
+
+func (p *Pipeline) GetField(name string) interface{} {
+	switch name {
+	case "pipelines.id":
+		return p.UID
+	case "pipelines.pipeline_id":
+		return p.UID
+	case "pipelines.Name":
+		return p.Name
+	case "pipelines.display_name":
+		return p.Name
+	case "pipelines.created_at":
+		return p.CreationTimestamp
+	case "description":
+		return p.Spec.Description
+	case "pipelines.namespace":
+		return p.Namespace
+	default:
+		return ""
 	}
 }
 
