@@ -23,4 +23,4 @@ jobs:
           python-version: 3.9
 
       - name: Run isort tests
-        run: ./test/presubmit-isort-sdk.sh
+        run: make test-sdk-isort 
