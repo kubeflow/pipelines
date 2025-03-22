@@ -124,7 +124,7 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 		}
 
 		// Create pipeline if it does not already exist
-		p, fetchErr := resourceManager.GetPipelineByNameAndNamespace(cfg.Name, "")
+		p, fetchErr := resourceManager.GetPipelineByNameAndNamespace(cfg.Name, common.GetPodNamespace())
 		if fetchErr != nil {
 			if util.IsUserErrorCodeMatch(fetchErr, codes.NotFound) {
 				p, configErr = resourceManager.CreatePipeline(&model.Pipeline{
