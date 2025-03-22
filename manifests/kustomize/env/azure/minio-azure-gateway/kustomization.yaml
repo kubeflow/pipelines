@@ -6,8 +6,9 @@ resources:
 - minio-azure-gateway-service.yaml
 
 secretGenerator:
-- name: mlpipeline-minio-artifact
-  env: minio-artifact-secret.env
+- envs:
+  - minio-artifact-secret.env
+  name: mlpipeline-minio-artifact
 generatorOptions:
   # mlpipeline-minio-artifact needs to be referred by exact name
   disableNameSuffixHash: true
