@@ -69,7 +69,7 @@ Note that the conceptual examples here are for illustrative purposes, and are no
         * Dependency requirements (packages, environment variables, cluster CRDs, Secrets etc.)
         * Usage examples
         * Guidance on base image selection and other parameter options.
-    * **Focus on Core Kubeflow Integrations:** Prioritize components that integrate seamlessly with core Kubeflow projects like Kubeflow Training Operators, Katib, and KServe.
+    * **Focus on Core Kubeflow Integrations:** Prioritize components that integrate seamlessly with core Kubeflow projects like Kubeflow Trainer, Katib, and KServe.
     * **Focus on User Value and Simple Design** Components that make it into the Python SDK should be there because they are widely useful in MLE work. Simplicity is a virtue. Since each new component brings complexity to the SDK, it must also bring a higher level of value. It may be possible to include more narrow use case components in library extensions.
 
 ## Technical Changes and Implementation Steps
