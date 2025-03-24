@@ -125,7 +125,7 @@ spec:
             secretKeyRef:
               name: mlpipeline-minio-artifact
               key: secretkey
-        image: quay.io/hbelmiro/dsp-api-server:dev-issue-11744-1742832988
+        image: quay.io/hbelmiro/dsp-api-server:dev-issue-11744-1742856643
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
         ports:

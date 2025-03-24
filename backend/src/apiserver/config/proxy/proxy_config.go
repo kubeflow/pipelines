@@ -13,6 +13,13 @@
 // limitations under the License.
 package proxy
 
+const (
+	HttpProxyEnv        = "HTTP_PROXY"
+	HttpsProxyEnv       = "HTTPS_PROXY"
+	NoProxyEnv          = "NO_PROXY"
+	defaultNoProxyValue = "*.kubeflow,*.local,localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,0,1,2,3,4,5,6,7,8,9"
+)
+
 type ProxyConfig interface {
 	GetHttpProxy() string
 	GetHttpsProxy() string
@@ -25,6 +32,27 @@ func NewProxyConfig(httpProxy string, httpsProxy string, noProxy string) ProxyCo
 		httpsProxy: httpsProxy,
 		noProxy:    noProxy,
 	}
+}
+
+func NewProxyConfigFromEnvVars(settings map[string]interface{}) ProxyConfig {
+	httpProxy := getString(settings, HttpProxyEnv)
+	httpsProxy := getString(settings, HttpsProxyEnv)
+	noProxy := getString(settings, NoProxyEnv)
+
+	if (httpProxy != "" || httpsProxy != "") && noProxy == "" {
+		noProxy = defaultNoProxyValue
+	}
+
+	return NewProxyConfig(httpProxy, httpsProxy, noProxy)
+}
+
+func getString(settings map[string]interface{}, key string) string {
+	if val, exists := settings[key]; exists && val != nil {
+		if s, ok := val.(string); ok {
+			return s
+		}
+	}
+	return ""
 }
 
 type proxyConfig struct {

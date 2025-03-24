@@ -46,12 +46,8 @@ import (
 )
 
 const (
-	executionTypeEnv    = "ExecutionType"
-	launcherEnv         = "Launcher"
-	httpProxyEnv        = "HTTP_PROXY"
-	httpsProxyEnv       = "HTTPS_PROXY"
-	noProxyEnv          = "NO_PROXY"
-	defaultNoProxyValue = "*.kubeflow,*.local,localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,0,1,2,3,4,5,6,7,8,9"
+	executionTypeEnv = "ExecutionType"
+	launcherEnv      = "Launcher"
 )
 
 var (
@@ -78,7 +74,7 @@ func main() {
 	}
 
 	clientManager := cm.NewClientManager()
-	proxyConfig := getProxyConfig()
+	proxyConfig := proxy.NewProxyConfigFromEnvVars(viper.AllSettings())
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
@@ -118,14 +114,6 @@ func main() {
 	backgroundCancel()
 	clientManager.Close()
 	wg.Wait()
-}
-
-func getProxyConfig() proxy.ProxyConfig {
-	httpProxy := common.GetStringConfigWithDefault(httpProxyEnv, "")
-	httpsProxy := common.GetStringConfigWithDefault(httpsProxyEnv, "")
-	noProxy := common.GetStringConfigWithDefault(noProxyEnv, defaultNoProxyValue)
-
-	return proxy.NewProxyConfig(httpProxy, httpsProxy, noProxy)
 }
 
 func reconcileSwfCrs(resourceManager *resource.ResourceManager, ctx context.Context, wg *sync.WaitGroup) {
