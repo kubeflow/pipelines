@@ -176,6 +176,9 @@ type workflowCompiler struct {
 }
 
 func newWorkflowCompiler(proxyConfig proxy.ProxyConfig) *workflowCompiler {
+	if proxyConfig == nil {
+		panic("proxyConfig cannot be nil")
+	}
 	return &workflowCompiler{
 		proxyConfig: proxyConfig,
 	}

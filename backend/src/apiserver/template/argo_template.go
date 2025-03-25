@@ -28,6 +28,7 @@ import (
 )
 
 func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions, proxyConfig proxy.ProxyConfig) (util.ExecutionSpec, error) {
+	//TODO: Helber - use proxyConfig
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
 	// Overwrite namespace from the run object
@@ -95,6 +96,7 @@ type Argo struct {
 }
 
 func (t *Argo) ScheduledWorkflow(modelJob *model.Job, proxyConfig proxy.ProxyConfig) (*scheduledworkflow.ScheduledWorkflow, error) {
+	//TODO: Helber - use proxyConfig
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 	// Overwrite namespace from the job object
 	if modelJob.Namespace != "" {
