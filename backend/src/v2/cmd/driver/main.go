@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
 	"github.com/golang/glog"
@@ -185,10 +186,8 @@ func drive() (err error) {
 		DAGExecutionID:   *dagExecutionID,
 		IterationIndex:   *iterationIndex,
 		PipelineLogLevel: *logLevel,
-		HttpProxy:        *httpProxy,
-		HttpsProxy:       *httpsProxy,
-		NoProxy:          *noProxy,
 	}
+	proxyConfig := proxy.NewProxyConfig(*httpProxy, *httpsProxy, *noProxy)
 	var execution *driver.Execution
 	var driverErr error
 	switch *driverType {
@@ -200,7 +199,7 @@ func drive() (err error) {
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
-		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
+		execution, driverErr = driver.Container(ctx, options, client, cacheClient, proxyConfig)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}

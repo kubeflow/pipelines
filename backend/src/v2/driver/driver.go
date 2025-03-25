@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"slices"
 	"strconv"
 	"strings"
@@ -83,12 +84,6 @@ type Options struct {
 	RunDisplayName string
 
 	PipelineLogLevel string
-
-	HttpProxy string
-
-	HttpsProxy string
-
-	NoProxy string
 }
 
 // Identifying information used for error messages
@@ -243,7 +238,7 @@ func validateRootDAG(opts Options) (err error) {
 	return nil
 }
 
-func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient *cacheutils.Client) (execution *Execution, err error) {
+func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient *cacheutils.Client, proxyConfig proxy.ProxyConfig) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.Container(%s) failed: %w", opts.info(), err)
@@ -356,7 +351,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 
 	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName,
-		opts.RunID, opts.PipelineLogLevel, opts.HttpProxy, opts.HttpsProxy, opts.NoProxy)
+		opts.RunID, opts.PipelineLogLevel, proxyConfig)
 	if err != nil {
 		return execution, err
 	}
@@ -419,9 +414,7 @@ func initPodSpecPatch(
 	pipelineName string,
 	runID string,
 	pipelineLogLevel string,
-	httpProxy string,
-	httpsProxy string,
-	noProxy string,
+	proxyConfig proxy.ProxyConfig,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -438,16 +431,16 @@ func initPodSpecPatch(
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
 
-	if httpProxy != "" {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "HTTP_PROXY", Value: httpProxy})
+	if proxyConfig.GetHttpProxy() != "" {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "HTTP_PROXY", Value: proxyConfig.GetHttpProxy()})
 	}
 
-	if httpsProxy != "" {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "HTTPS_PROXY", Value: httpsProxy})
+	if proxyConfig.GetHttpsProxy() != "" {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "HTTPS_PROXY", Value: proxyConfig.GetHttpsProxy()})
 	}
 
-	if noProxy != "" {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "NO_PROXY", Value: noProxy})
+	if proxyConfig.GetNoProxy() != "" {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "NO_PROXY", Value: proxyConfig.GetNoProxy()})
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
