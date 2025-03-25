@@ -432,15 +432,15 @@ func initPodSpecPatch(
 	}
 
 	if proxyConfig.GetHttpProxy() != "" {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "HTTP_PROXY", Value: proxyConfig.GetHttpProxy()})
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "http_proxy", Value: proxyConfig.GetHttpProxy()})
 	}
 
 	if proxyConfig.GetHttpsProxy() != "" {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "HTTPS_PROXY", Value: proxyConfig.GetHttpsProxy()})
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "https_proxy", Value: proxyConfig.GetHttpsProxy()})
 	}
 
 	if proxyConfig.GetNoProxy() != "" {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "NO_PROXY", Value: proxyConfig.GetNoProxy()})
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "no_proxy", Value: proxyConfig.GetNoProxy()})
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
