@@ -74,7 +74,7 @@ func TestNewProxyConfigFromEnvVars(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
-			actualProxyConfig := NewProxyConfigFromEnvVars(tt.envVars)
+			actualProxyConfig := NewProxyConfigFromSettings(tt.envVars)
 			assert.Equal(t, tt.expectedProxyConfig, actualProxyConfig)
 		})
 	}

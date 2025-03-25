@@ -16,11 +16,11 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -31,7 +31,7 @@ import (
 
 func fakeResourceManager() *resource.ResourceManager {
 	clientManager := resource.NewFakeClientManagerOrFatalV2()
-	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}, test.BlankProxyConfig())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
 	return resourceManager
 }
 

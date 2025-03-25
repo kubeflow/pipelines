@@ -34,7 +34,7 @@ func NewProxyConfig(httpProxy string, httpsProxy string, noProxy string) ProxyCo
 	}
 }
 
-func NewProxyConfigFromEnvVars(settings map[string]interface{}) ProxyConfig {
+func NewProxyConfigFromSettings(settings map[string]interface{}) ProxyConfig {
 	httpProxy := getString(settings, HttpProxyEnv)
 	httpsProxy := getString(settings, HttpsProxyEnv)
 	noProxy := getString(settings, NoProxyEnv)
@@ -44,6 +44,10 @@ func NewProxyConfigFromEnvVars(settings map[string]interface{}) ProxyConfig {
 	}
 
 	return NewProxyConfig(httpProxy, httpsProxy, noProxy)
+}
+
+func BlankProxyConfig() ProxyConfig {
+	return NewProxyConfig("", "", "")
 }
 
 func getString(settings map[string]interface{}, key string) string {

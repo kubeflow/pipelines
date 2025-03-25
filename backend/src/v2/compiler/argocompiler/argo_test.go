@@ -17,7 +17,7 @@ package argocompiler_test
 import (
 	"flag"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"strings"
 	"testing"
@@ -104,7 +104,7 @@ func Test_argo_compiler(t *testing.T) {
 
 			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
 			if *update {
-				wf, err := argocompiler.Compile(job, platformSpec, nil, test.BlankProxyConfig())
+				wf, err := argocompiler.Compile(job, platformSpec, nil, proxy.BlankProxyConfig())
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -121,7 +121,7 @@ func Test_argo_compiler(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			wf, err := argocompiler.Compile(job, platformSpec, nil, test.BlankProxyConfig())
+			wf, err := argocompiler.Compile(job, platformSpec, nil, proxy.BlankProxyConfig())
 			if err != nil {
 				t.Error(err)
 			}

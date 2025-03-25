@@ -17,7 +17,7 @@ package server
 import (
 	"context"
 	"fmt"
-	utilTest "github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -277,7 +277,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}, utilTest.BlankProxyConfig())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
 	defer clientManager.Close()
 
 	server := &VisualizationServer{
@@ -317,7 +317,7 @@ func TestCreateVisualization_Unauthenticated(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}, utilTest.BlankProxyConfig())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
 	defer clientManager.Close()
 
 	server := &VisualizationServer{

@@ -74,7 +74,7 @@ func main() {
 	}
 
 	clientManager := cm.NewClientManager()
-	proxyConfig := proxy.NewProxyConfigFromEnvVars(viper.AllSettings())
+	proxyConfig := proxy.NewProxyConfigFromSettings(viper.AllSettings())
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
