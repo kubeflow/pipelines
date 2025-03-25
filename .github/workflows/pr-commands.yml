@@ -19,8 +19,9 @@ jobs:
           ref: ${{ env.DEFAULT_BRANCH }}
       - name: Check if the author is a member or Owner
         id: check-condition
+        env:
+          slash_command: ${{github.event.comment.body}}
         run: |
-          echo "slash_command=${{github.event.comment.body}}" >> $GITHUB_ENV
           if [[ "${{ github.event.comment.author_association }}" == "MEMBER" || "${{ github.event.comment.author_association }}" == "OWNER" ]]; then
             echo "condition_met=true" >> $GITHUB_ENV
           else
