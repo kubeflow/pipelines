@@ -225,7 +225,7 @@ func TestScheduledWorkflow(t *testing.T) {
 		},
 	}
 
-	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob, proxy.BlankProxyConfig())
+	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob, proxy.EmptyProxyConfig())
 	assert.Nil(t, err)
 
 	// We don't compare this field because it changes with every driver/launcher image release.

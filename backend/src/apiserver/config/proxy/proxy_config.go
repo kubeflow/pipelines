@@ -46,7 +46,7 @@ func NewProxyConfigFromSettings(settings map[string]interface{}) ProxyConfig {
 	return NewProxyConfig(httpProxy, httpsProxy, noProxy)
 }
 
-func BlankProxyConfig() ProxyConfig {
+func EmptyProxyConfig() ProxyConfig {
 	return NewProxyConfig("", "", "")
 }
 

@@ -136,7 +136,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline, *model.PipelineVersion) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	p1 := createPipeline("p1", "", "ns1")
 	p, _ := manager.CreatePipeline(p1)
 	pv1 := createPipelineVersion(
@@ -156,7 +156,7 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	apiExperiment := &model.Experiment{Name: "e1", Namespace: "ns1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -166,7 +166,7 @@ func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline, *model.PipelineVersion) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	apiExperiment := &model.Experiment{Name: "e1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -417,7 +417,7 @@ func TestCreatePipeline(t *testing.T) {
 			// setup
 			store := NewFakeClientManagerOrFatalV2()
 			defer store.Close()
-			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 			if test.badObjectStore {
 				manager.objectStore = &FakeBadObjectStore{}
 			}
@@ -550,7 +550,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 		t.Run(test.msg, func(t *testing.T) {
 			store := NewFakeClientManagerOrFatalV2()
 			defer store.Close()
-			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 			// Create a pipeline before versions.
 			p0 := createPipelineV1("my_pipeline")
@@ -640,7 +640,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 		t.Run(fmt.Sprintf("%+v", testClone), func(t *testing.T) {
 			store := NewFakeClientManagerOrFatalV2()
 			defer store.Close()
-			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 			if test.template == "" {
 				test.template = strings.TrimSpace(v2compatPipeline)
@@ -773,7 +773,7 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			store := NewFakeClientManagerOrFatalV2()
 			defer store.Close()
-			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 			pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
 			assert.True(t, ok)
 			pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
@@ -967,7 +967,7 @@ func TestGetPipelineTemplate_FromPipelineURI(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
 	manager.objectStore.AddFile([]byte(testWorkflow.ToStringForStore()), p.UUID)
@@ -989,7 +989,7 @@ func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
 	pv := &model.PipelineVersion{
@@ -1017,7 +1017,7 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
 	pv := &model.PipelineVersion{
@@ -1045,7 +1045,7 @@ func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
 	defer store.Close()
 	template := []byte("workflow: foo")
 	store.objectStore.AddFile(template, store.objectStore.GetPipelineKey(fmt.Sprint(1)))
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	_, err := manager.GetPipelineLatestTemplate("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Pipeline 1 not found")
@@ -1056,7 +1056,7 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	pipeline, _ := store.PipelineStore().CreatePipeline(createPipelineV1("pipeline1"))
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	_, err := manager.GetPipelineLatestTemplate(pipeline.UUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -1066,7 +1066,7 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 func TestListPipelines(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	// Create a pipeline.
 	p1 := createPipelineV1(
@@ -1125,7 +1125,7 @@ func TestListPipelines(t *testing.T) {
 func TestListPipelinesV1(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	// Create a pipeline.
 	p1 := createPipelineV1(
 		"pipeline1",
@@ -1184,7 +1184,7 @@ func TestListPipelineVersions(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	// Create a pipeline.
 	p1 := createPipelineV1(
@@ -1267,7 +1267,7 @@ func TestUpdatePipelineStatus(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
@@ -1337,7 +1337,7 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
@@ -1406,7 +1406,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	// Create a pipeline.
 	p := createPipelineV1(
@@ -1467,7 +1467,7 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	// Create a pipeline.
 	p := createPipelineV1(
@@ -1509,7 +1509,7 @@ func TestDeletePipeline(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	// Create a pipeline.
 	p1 := createPipelineV1(
@@ -1965,7 +1965,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	experimentID, _ := manager.CreateDefaultExperiment("")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -1982,7 +1982,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	experimentID, _ := manager.CreateDefaultExperiment("")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -2000,7 +2000,7 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	experimentID, _ := manager.CreateDefaultExperiment("")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -2018,7 +2018,7 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 func TestCreateRun_OverrideParametersError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	experimentID, _ := manager.CreateDefaultExperiment("")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -2036,7 +2036,7 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	experimentID, _ := manager.CreateDefaultExperiment("")
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	apiRun := &model.Run{
@@ -2055,7 +2055,7 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	experimentID, _ := manager.CreateDefaultExperiment("")
 	store.DB().Close()
 	apiRun := &model.Run{
@@ -2085,7 +2085,7 @@ func TestDeleteRun(t *testing.T) {
 func TestDeleteRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	err := manager.DeleteRun(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -2143,7 +2143,7 @@ func TestDeleteExperiment_ClearsDefaultExperiment(t *testing.T) {
 func TestDeleteExperiment_ExperimentNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	err := manager.DeleteExperiment("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -2187,7 +2187,7 @@ func TestTerminateRun(t *testing.T) {
 func TestTerminateRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	err := manager.TerminateRun(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -2223,7 +2223,7 @@ func TestRetryRun(t *testing.T) {
 func TestRetryRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	err := manager.RetryRun(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
@@ -2538,7 +2538,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	experimentID, _ := manager.CreateDefaultExperiment("")
 	job := &model.Job{
 		DisplayName:  "pp 1",
@@ -2560,7 +2560,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	experimentID, _ := manager.CreateDefaultExperiment("")
 	job := &model.Job{
 		K8SName:      "pp 1",
@@ -2579,7 +2579,7 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	experimentID, _ := manager.CreateDefaultExperiment("")
 	job := &model.Job{
 		K8SName:      "pp 1",
@@ -2660,7 +2660,7 @@ func TestEnableJob(t *testing.T) {
 func TestEnableJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	err := manager.ChangeJobMode(context.Background(), "1", false)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
@@ -2726,7 +2726,7 @@ func TestDeleteJob(t *testing.T) {
 func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	err := manager.DeleteJob(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
@@ -2893,7 +2893,7 @@ func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
 
 func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	ctx := context.Background()
 	defer store.Close()
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -3206,7 +3206,7 @@ func TestReconcileSwfCrs(t *testing.T) {
 func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 	manager.CreateDefaultExperiment("")
 	// Create pipeline
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -3346,7 +3346,7 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 func TestReadArtifact_NoRun_NotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	_, err := manager.ReadArtifact("run-1", "node-1", "artifact-1")
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
@@ -3960,7 +3960,7 @@ spec:
 func TestCreateDefaultExperiment(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	experimentID, err := manager.CreateDefaultExperiment("")
 	assert.Nil(t, err)
@@ -3984,7 +3984,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.BlankProxyConfig())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyProxyConfig())
 
 	experimentID, err := manager.CreateDefaultExperiment("multi-user")
 	assert.Nil(t, err)

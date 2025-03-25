@@ -51,7 +51,7 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 			os.Setenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY", tt.configMapKey)
 			os.Setenv("EXECUTOR_CABUNDLE_MOUNTPATH", tt.mountPath)
 
-			c := newWorkflowCompiler(proxy.BlankProxyConfig())
+			c := newWorkflowCompiler(proxy.EmptyProxyConfig())
 			c.templates = make(map[string]*wfapi.Template)
 			c.wf = &wfapi.Workflow{
 				Spec: wfapi.WorkflowSpec{
