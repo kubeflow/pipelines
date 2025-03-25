@@ -17,6 +17,14 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
+	"math"
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -35,13 +43,6 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"io"
-	"math"
-	"net"
-	"net/http"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 const (
@@ -156,13 +157,6 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	apiv1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
 	apiv1beta1.RegisterReportServiceServer(s, sharedReportServer)
 
-	apiv1beta1.RegisterVisualizationServiceServer(
-		s,
-		server.NewVisualizationServer(
-			resourceManager,
-			common.GetStringConfig(cm.VisualizationServiceHost),
-			common.GetStringConfig(cm.VisualizationServicePort),
-		))
 	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 
 	apiv2beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
@@ -194,7 +188,6 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux)
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterTaskServiceHandlerFromEndpoint, "TaskService", ctx, runtimeMux)
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, runtimeMux)
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService", ctx, runtimeMux)
 
 	// Create gRPC HTTP MUX and register services for v2beta1 api.

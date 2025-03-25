@@ -12,7 +12,6 @@ IMG_TAG_PERSISTENCEAGENT  ?= persistence-agent
 IMG_TAG_CACHESERVER       ?= cache-server
 IMG_TAG_SCHEDULEDWORKFLOW ?= scheduledworkflow
 IMG_TAG_VIEWERCONTROLLER  ?= viewercontroller
-IMG_TAG_VISUALIZATION     ?= visualization
 IMG_TAG_DRIVER            ?= kfp-driver
 IMG_TAG_LAUNCHER          ?= kfp-launcher
 
@@ -26,7 +25,7 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: image_all
-image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_visualization image_driver image_launcher
+image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_driver image_launcher
 
 .PHONY: image_apiserver
 image_apiserver:
@@ -41,11 +40,7 @@ image_cache:
 image_swf:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow .
 .PHONY: image_viewer
-image_viewer:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
-.PHONY: image_visualization
-image_visualization:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VISUALIZATION} -f backend/Dockerfile.visualization .
+image_viewer:cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
 .PHONY: image_driver
 image_driver:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .

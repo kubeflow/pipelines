@@ -77,12 +77,6 @@ steps:
          '/workspace/proxy/Dockerfile', '/workspace/proxy']
   id:   'buildInverseProxyAgent'
   waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA',
-         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
-         '/workspace/backend/Dockerfile.visualization', '/workspace']
-  id: 'buildVisualizationServer'
-  waitFor: ["-"]
 - id: 'buildMetadataWriter'
   name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA',
@@ -224,7 +218,7 @@ steps:
 # Tag for Hosted - Tag to hosted folder with MKP friendly name
 - id:   'tagForHosted'
   waitFor: ['parseMajorMinorVersion', 'buildFrontend', 'buildApiServer', 'buildScheduledWorkflow',
-            'buildViewerCrdController', 'buildPersistenceAgent', 'buildInverseProxyAgent', 'buildVisualizationServer',
+            'buildViewerCrdController', 'buildPersistenceAgent', 'buildInverseProxyAgent',
             'buildMetadataWriter', 'buildCacheServer', 'buildCacheDeployer', 'buildMetadataEnvoy',
             'buildMarketplaceDeployer', 'pullMetadataServer', 'pullMinio', 'pullMysql', 'pullCloudsqlProxy',
             'pullArgoExecutor', 'pullArgoWorkflowController']
@@ -243,7 +237,6 @@ images:
 - 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/metadata-writer:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/cache-server:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/cache-deployer:$COMMIT_SHA'
