@@ -3,6 +3,8 @@
 
 ## Introduction
 
+The [introduction to KFP on the website](https://www.kubeflow.org/docs/components/pipelines/overview/) promises that "KFP enables data scientists and machine learning engineers to...**leverage an ecosystem of existing components**" [emphasis added]. The truth is that in order to keep this promise, the KFP component ecosystem needs some serious work.
+
 While KFP excels as a pipeline execution platform, the current approach to providing reusable components, particularly through the [`pipelines/components`](../../components) directory, falls short of delivering a smooth and efficient user experience for Machine Learning Engineers (MLEs) on KFP.
 
 This proposal focuses on a critical first step towards improving KFP component usability: **replacing the existing [`pipelines/components`](../../components) directory with a more robust and user-friendly SDK-centric approach.**  This involves embedding core, widely applicable components directly within the KFP SDK; these components should be organized logically and easily accessible to users. This shift aims to reduce the burden on MLEs of finding or building common components, allowing them to focus more on ML development and less on component wrangling.
@@ -88,7 +90,7 @@ To implement this proposal, the following technical changes and steps are requir
 ## Follow-up Ideas
 
 While the details are out of scope of this proposal, two natural follow-up ideas are:
-* **SDK Extensions for components:** SDK extensions may make sense for component sets that support specific environments (like specific clouds), that are still widely useful, but only in certain contexts.
+* **SDK Extensions for Components:** SDK extensions may make sense for component sets that support specific environments (like specific clouds), that are still widely useful, but only in certain contexts.
 * **Component Hub:** A component hub would be a place where the KFP community can upload components to share. ML users are familiar with this pattern, for example with [PyTorch Hub](https://pytorch.org/hub/), and the ability to load a model through the PyTorch SDK with `torch.hub.load(<model_name>)`. It would be very intuitive for ML engineers to use the same functionality with a "KFP Hub" and SDK tools like `component = kfp.hub.load(<component_name>)`.  
 
 This proposal does not seek to flesh out these ideas, but rather to focus on getting the core SDK components from idea to reality. Let's get the core in place first. Presumably, both extensions and a hub would follow the component precedents for structure and quality that are set in this proposal.
