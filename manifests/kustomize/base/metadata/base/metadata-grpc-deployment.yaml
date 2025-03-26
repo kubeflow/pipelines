@@ -14,6 +14,9 @@ spec:
       labels:
         component: metadata-grpc-server
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: container
         # ! Sync to the same MLMD version:
