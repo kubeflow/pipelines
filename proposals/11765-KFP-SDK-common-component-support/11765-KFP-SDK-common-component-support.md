@@ -34,9 +34,9 @@ These issues lead to inefficiencies, increased development time, and a less-than
 This proposal advocates for a fundamental shift in how KFP provides common component support: **integration directly into the KFP SDK.**  This involves:
 
 * **Deprecate and Replacing the [`pipelines/components`](../../components) Directory:**
-    * **Retire Outdated/POC Components:**  Identify and remove components in [`pipelines/components`](../../components) that are outdated, buggy, or lack sufficient quality.
-    * **Migrate Useful Examples:**  Some components appear to be meant more as proof-of-concepts, than as production-ready tools; these are better kept in the [`samples`](../../samples/) directory. Relocate valuable, proof-of-concept components to the [`samples`](../../samples/) directory as illustrative examples.
-    * **Discontinue Active Development:**  Cease further development and maintenance of the [`pipelines/components`](../../components) directory as the primary source of reusable components.
+    * **Retire Outdated Components:**  Identify and remove components in [`pipelines/components`](../../components) that are outdated, buggy, or lack sufficient quality.
+    * **Migrate Useful Examples:**  Some components appear to be meant more as proof-of-concepts, than as production-ready tools; these are better kept in the [`samples`](../../samples/) directory as illustrative examples, or in a separate community component repository.
+    * **Discontinue Active Development:**  Cease further development and maintenance of the [`pipelines/components`](../../components) directory as the primary source of reusable components. Eventually remove the directory.
 
 * **Develope SDK-Integrated Component Categories:**  Organize core, widely applicable components within the KFP SDK under logical functional categories.  This proposal suggests the following initial categories (subject to review), mirroring common ML workflow stages:
 
@@ -93,14 +93,14 @@ The primary goal of this proposal is to establish the necessary foundation withi
 
 - **Phasing Out the Pipelines/Components Directory**
   - Identify any components that should be built-in to the SDK.
-  - Identify useful proof-of-concept components that should be moved to the `samples` directory.
+  - Identify useful proof-of-concept components that should be moved to the `samples` directory, or to a separate community component repository.
   - Deprecate and replace the existing pipelines/components directory with a structured SDK alternative.
 
 ### Non-Goals
 While this proposal lays the groundwork for a more user-friendly KFP component experience, it does *not* aim to:
 
 - **Define or Implement a Component Hub or Separate Component Repository**  
-  - While a centralized hub for community-contributed components is a natural follow-up idea, this proposal does not include designing or implementing this.
+  - While a centralized hub for community-contributed components is a natural follow-up idea, this proposal does not include designing or implementing this solution.
   
 - **Address SDK Component Extensions**  
   - The proposal focuses solely on core SDK components. It does not define an extension system for domain- or cloud-specific component sets, though this could be explored later.
@@ -114,10 +114,10 @@ To implement this proposal, the following technical changes and steps are requir
 
 1. **Define and Implement Top-Level `kfp.components` Structure:**  Create the proposed `kfp.components` namespace sub-modules (e.g., `data`, `train`, `serve`, `validate`) within the KFP SDK.
 2. **Develop Core Component Set:**  Prioritize the development of a core set of commonly used components within each category, focusing initially on integrations with Kubeflow Trainer, Katib, and KServe.
-3. **Migrate and Refactor Existing Components (Where Applicable):**  Evaluate components in [`pipelines/components`](../../components) for potential refactoring and migration to the SDK. Focus on components with broad applicability and high quality. Move components that serve more as good examples to the `samples` directory.
-4. **Deprecate [`pipelines/components`](../../components) Directory:**  Formally announce the deprecation of the [`pipelines/components`](../../components) directory and guide users towards the new SDK-centric approach.
+3. **Migrate and Refactor Existing Components (Where Applicable):**  Evaluate components in [`pipelines/components`](../../components) for potential refactoring and migration to the SDK. Focus on components with broad applicability and high quality. Move components that serve more as good examples to the `samples` directory (or separate repository).
+4. **Deprecate [`pipelines/components`](../../components) Directory:**  Formally deprecate the [`pipelines/components`](../../components) directory and guide users towards the new SDK-centric approach and other resource locations.
 5. **Update Documentation and Examples:**  Thoroughly document the new `kfp.components` structure and provide comprehensive usage examples in the KFP documentation and samples.
-6. **Establish Component Development Guidelines:**  Define clear guidelines for developing and contributing SDK components to maintain quality and consistency.
+6. **Establish Component Development Guidelines:**  Define clear guidelines for developing and contributing SDK components to maintain quality and consistency (See the [component standards proposal](https://github.com/kubeflow/pipelines/pull/11766/files)).
 
 ## Follow-up Ideas
 
