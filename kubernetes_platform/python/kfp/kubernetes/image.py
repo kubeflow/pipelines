@@ -36,17 +36,13 @@ def set_image_pull_secrets(
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
-    if is_list_of_strings(secret_names) or is_list_of_parameter_channel(secret_names):
-        image_pull_secret = []
-        for secret_name in secret_names:
-            secret_name_parameter = common.parse_k8s_parameter_input(secret_name, task)
-            image_pull_secret_pb = pb.ImagePullSecret(secret_name_parameter=secret_name_parameter)
-            if isinstance(secret_name, str):
-                image_pull_secret_pb.secret_name = secret_name
-            image_pull_secret.append(image_pull_secret_pb)
-    else:
-        raise ValueError("secret_names must be a list of strings or "
-                         "a list of pipeline input parameters.")
+    image_pull_secret = []
+    for secret_name in secret_names:
+        secret_name_parameter = common.parse_k8s_parameter_input(secret_name, task)
+        image_pull_secret_pb = pb.ImagePullSecret(secret_name_parameter=secret_name_parameter)
+        if isinstance(secret_name, str):
+            image_pull_secret_pb.secret_name = secret_name
+        image_pull_secret.append(image_pull_secret_pb)
 
     msg.image_pull_secret.extend(image_pull_secret)
 
@@ -74,11 +70,3 @@ def set_image_pull_policy(task: PipelineTask, policy: str) -> PipelineTask:
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
     return task
-
-
-def is_list_of_strings(items: list) -> bool:
-    return all(isinstance(item, str) for item in items)
-
-
-def is_list_of_parameter_channel(items: list) -> bool:
-    return all(isinstance(item, pipeline_channel.PipelineParameterChannel) for item in items)

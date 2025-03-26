@@ -39,7 +39,7 @@ class TestUseConfigMapAsVolume:
                                     'configMapName': 'cm-name',
                                     'mountPath': 'cmpath',
                                     'optional': False,
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name'
                                         }
@@ -73,7 +73,7 @@ class TestUseConfigMapAsVolume:
                                     'configMapName': 'cm-name',
                                     'mountPath': 'cmpath',
                                     'optional': True,
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name'
                                         }
@@ -107,7 +107,7 @@ class TestUseConfigMapAsVolume:
                                     'configMapName': 'cm-name',
                                     'mountPath': 'cmpath',
                                     'optional': False,
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name'
                                         }
@@ -147,7 +147,7 @@ class TestUseConfigMapAsVolume:
                                         'configMapName': 'cm-name1',
                                         'mountPath': 'cmpath1',
                                         'optional': False,
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'runtimeValue': {
                                                 'constant': 'cm-name1'
                                             }
@@ -157,7 +157,7 @@ class TestUseConfigMapAsVolume:
                                         'configMapName': 'cm-name2',
                                         'mountPath': 'cmpath2',
                                         'optional': False,
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'runtimeValue': {
                                                 'constant': 'cm-name2'
                                             }
@@ -197,7 +197,7 @@ class TestUseConfigMapAsVolume:
                                 'configMapAsEnv': [{
                                     'configMapName':
                                         'cm-name1',
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name1'
                                         }
@@ -211,7 +211,7 @@ class TestUseConfigMapAsVolume:
                                     'configMapName': 'cm-name2',
                                     'mountPath': 'cmpath2',
                                     'optional': False,
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name2'
                                         }
@@ -257,7 +257,7 @@ class TestUseConfigMapAsVolume:
                                 }],
                                 'configMapAsVolume': [{
                                     'configMapName': 'cm-name',
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name'
                                         }
@@ -291,7 +291,7 @@ class TestUseConfigMapAsVolume:
                         'executors': {
                             'exec-comp': {
                                 'configMapAsVolume': [{
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'componentInputParameter': 'cm_name_input_1'
                                     },
                                     'mountPath': 'cmpath',
@@ -336,14 +336,14 @@ class TestUseConfigMapAsVolume:
                             'exec-comp': {
                                 'configMapAsVolume': [
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'componentInputParameter': 'cm_name_input_1'
                                         },
                                         'mountPath': 'cmpath',
                                         'optional': False,
                                     },
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'componentInputParameter': 'cm_name_input_2'
                                         },
                                         'mountPath': 'cmpath',
@@ -355,7 +355,7 @@ class TestUseConfigMapAsVolume:
                             'exec-comp-2': {
                                 'configMapAsVolume': [
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'componentInputParameter': 'cm_name_input_2'
                                         },
                                         'mountPath': 'cmpath',
@@ -389,7 +389,7 @@ class TestUseConfigMapAsVolume:
                         'executors': {
                             'exec-comp': {
                                 'configMapAsVolume': [{
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'taskOutputParameter': {
                                             'outputParameterKey': 'Output',
                                             'producerTask': 'comp-with-output'
@@ -438,7 +438,7 @@ class TestUseConfigMapAsVolume:
                             'exec-comp': {
                                 'configMapAsVolume': [
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'taskOutputParameter': {
                                                 'outputParameterKey': 'Output',
                                                 'producerTask': 'comp-with-output'
@@ -448,7 +448,7 @@ class TestUseConfigMapAsVolume:
                                         'optional': False,
                                     },
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'taskOutputParameter': {
                                                 'outputParameterKey': 'Output',
                                                 'producerTask': 'comp-with-output-2'
@@ -462,7 +462,7 @@ class TestUseConfigMapAsVolume:
                             'exec-comp-2': {
                                 'configMapAsVolume': [
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'taskOutputParameter': {
                                                 'outputParameterKey': 'Output',
                                                 'producerTask': 'comp-with-output'
@@ -504,7 +504,7 @@ class TestUseConfigMapAsEnv:
                                 'configMapAsEnv': [{
                                     'configMapName':
                                         'cm-name',
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name'
                                         }
@@ -553,7 +553,7 @@ class TestUseConfigMapAsEnv:
                                     {
                                         'configMapName':
                                             'cm-name1',
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'runtimeValue': {
                                                 'constant': 'cm-name1'
                                             }
@@ -565,7 +565,7 @@ class TestUseConfigMapAsEnv:
                                     },
                                     {
                                         'configMapName': 'cm-name2',
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'runtimeValue': {
                                                 'constant': 'cm-name2'
                                             }
@@ -609,7 +609,7 @@ class TestUseConfigMapAsEnv:
                                 'configMapAsEnv': [{
                                     'configMapName':
                                         'cm-name1',
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name1'
                                         }
@@ -621,7 +621,7 @@ class TestUseConfigMapAsEnv:
                                 }],
                                 'configMapAsVolume': [{
                                     'configMapName': 'cm-name2',
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name2'
                                         }
@@ -671,7 +671,7 @@ class TestUseConfigMapAsEnv:
                                 ],
                                 'configMapAsEnv': [{
                                     'configMapName': 'cm-name',
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'runtimeValue': {
                                             'constant': 'cm-name'
                                         }
@@ -711,7 +711,7 @@ class TestUseConfigMapAsEnv:
                         'executors': {
                             'exec-comp': {
                                 'configMapAsEnv': [{
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'componentInputParameter': 'cm_name_input_1'
                                     },
                                     'keyToEnv': [
@@ -764,7 +764,7 @@ class TestUseConfigMapAsEnv:
                             'exec-comp': {
                                 'configMapAsEnv': [
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'componentInputParameter': 'cm_name_input_1'
                                         },
                                         'keyToEnv': [
@@ -775,7 +775,7 @@ class TestUseConfigMapAsEnv:
                                         ]
                                     },
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'componentInputParameter': 'cm_name_input_2'
                                         },
                                         'keyToEnv': [
@@ -790,7 +790,7 @@ class TestUseConfigMapAsEnv:
                             'exec-comp-2': {
                                 'configMapAsEnv': [
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'componentInputParameter': 'cm_name_input_2'
                                         },
                                         'keyToEnv': [
@@ -829,7 +829,7 @@ class TestUseConfigMapAsEnv:
                         'executors': {
                             'exec-comp': {
                                 'configMapAsEnv': [{
-                                    'configNameParameter': {
+                                    'configMapNameParameter': {
                                         'taskOutputParameter': {
                                             'outputParameterKey': 'Output',
                                             'producerTask': 'comp-with-output'
@@ -889,7 +889,7 @@ class TestUseConfigMapAsEnv:
                             'exec-comp': {
                                 'configMapAsEnv': [
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'taskOutputParameter': {
                                                 'outputParameterKey': 'Output',
                                                 'producerTask': 'comp-with-output'
@@ -903,7 +903,7 @@ class TestUseConfigMapAsEnv:
                                         ]
                                     },
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'taskOutputParameter': {
                                                 'outputParameterKey': 'Output',
                                                 'producerTask': 'comp-with-output-2'
@@ -921,7 +921,7 @@ class TestUseConfigMapAsEnv:
                             'exec-comp-2': {
                                 'configMapAsEnv': [
                                     {
-                                        'configNameParameter': {
+                                        'configMapNameParameter': {
                                             'taskOutputParameter': {
                                                 'outputParameterKey': 'Output',
                                                 'producerTask': 'comp-with-output'

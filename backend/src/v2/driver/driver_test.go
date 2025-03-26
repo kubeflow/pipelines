@@ -1236,9 +1236,9 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 			&kubernetesplatform.KubernetesExecutorConfig{
 				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
 					{
-						ConfigMapName:       "not-used",
-						ConfigNameParameter: inputParamConstant("cm1"),
-						MountPath:           "/data/path",
+						ConfigMapName:          "not-used",
+						ConfigMapNameParameter: inputParamConstant("cm1"),
+						MountPath:              "/data/path",
 					},
 				},
 			},
@@ -1279,10 +1279,10 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 			&kubernetesplatform.KubernetesExecutorConfig{
 				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
 					{
-						ConfigMapName:       "not-used",
-						ConfigNameParameter: inputParamConstant("cm1"),
-						MountPath:           "/data/path",
-						Optional:            &[]bool{false}[0],
+						ConfigMapName:          "not-used",
+						ConfigMapNameParameter: inputParamConstant("cm1"),
+						MountPath:              "/data/path",
+						Optional:               &[]bool{false}[0],
 					},
 				},
 			},
@@ -1324,10 +1324,10 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 			&kubernetesplatform.KubernetesExecutorConfig{
 				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
 					{
-						ConfigMapName:       "not-used",
-						ConfigNameParameter: inputParamConstant("cm1"),
-						MountPath:           "/data/path",
-						Optional:            &[]bool{true}[0],
+						ConfigMapName:          "not-used",
+						ConfigMapNameParameter: inputParamConstant("cm1"),
+						MountPath:              "/data/path",
+						Optional:               &[]bool{true}[0],
 					},
 				},
 			},
@@ -1388,10 +1388,10 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 			&kubernetesplatform.KubernetesExecutorConfig{
 				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
 					{
-						ConfigMapName:       "not-used",
-						ConfigNameParameter: inputParamComponent("param_1"),
-						MountPath:           "/data/path",
-						Optional:            &[]bool{true}[0],
+						ConfigMapName:          "not-used",
+						ConfigMapNameParameter: inputParamComponent("param_1"),
+						MountPath:              "/data/path",
+						Optional:               &[]bool{true}[0],
 					},
 				},
 			},
@@ -1477,8 +1477,8 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 			&kubernetesplatform.KubernetesExecutorConfig{
 				ConfigMapAsEnv: []*kubernetesplatform.ConfigMapAsEnv{
 					{
-						ConfigMapName:       "not-used",
-						ConfigNameParameter: inputParamConstant("my-cm"),
+						ConfigMapName:          "not-used",
+						ConfigMapNameParameter: inputParamConstant("my-cm"),
 						KeyToEnv: []*kubernetesplatform.ConfigMapAsEnv_ConfigMapKeyToEnvMap{
 							{
 								ConfigMapKey: "foo",
@@ -1521,8 +1521,8 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 			&kubernetesplatform.KubernetesExecutorConfig{
 				ConfigMapAsEnv: []*kubernetesplatform.ConfigMapAsEnv{
 					{
-						ConfigMapName:       "not-used",
-						ConfigNameParameter: inputParamComponent("param_1"),
+						ConfigMapName:          "not-used",
+						ConfigMapNameParameter: inputParamComponent("param_1"),
 						KeyToEnv: []*kubernetesplatform.ConfigMapAsEnv_ConfigMapKeyToEnvMap{
 							{
 								ConfigMapKey: "foo",

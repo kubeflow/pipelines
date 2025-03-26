@@ -281,17 +281,38 @@ class TestImagePullSecret:
             }
         }
 
-    def test_invalid_input(self):
-        # check for invalid input
+    def test_component_pipeline_multiple_input_types(self):
+        # checks that both string and input parameters
+        # are supported
 
-        with pytest.raises(
-                ValueError,
-                match="must be a list of strings or a list of pipeline input parameters"
-        ):
-            @dsl.pipeline
-            def my_pipeline():
-                t1 = comp()
-                kubernetes.set_image_pull_secrets(t1, ['a_str', 4])
+        @dsl.pipeline
+        def my_pipeline(input_1: str):
+            t1 = comp()
+            kubernetes.set_image_pull_secrets(t1, ['a_str', input_1])
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'imagePullSecret': [
+                                    {
+                                        'secretName': 'a_str',
+                                        'secretNameParameter': {'runtimeValue': {'constant': 'a_str'}}
+                                    },
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'input_1'
+                                        }
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 @dsl.component
 def comp():

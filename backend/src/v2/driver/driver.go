@@ -784,7 +784,7 @@ func extendPodSpecPatch(
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
 		var secretName string
 		if secretAsVolume.SecretNameParameter != nil {
-			resolvedSecretName, err := resolveK8sParameter(ctx, opts, dag, pipeline, mlmd,
+			resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
 				secretAsVolume.SecretNameParameter, inputParams)
 			if err != nil {
 				return fmt.Errorf("failed to resolve secret name: %w", err)
@@ -828,7 +828,7 @@ func extendPodSpecPatch(
 
 			var secretName string
 			if secretAsEnv.SecretNameParameter != nil {
-				resolvedSecretName, err := resolveK8sParameter(ctx, opts, dag, pipeline, mlmd,
+				resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
 					secretAsEnv.SecretNameParameter, inputParams)
 				if err != nil {
 					return fmt.Errorf("failed to resolve secret name: %w", err)
@@ -849,9 +849,9 @@ func extendPodSpecPatch(
 	// Get config map mount information
 	for _, configMapAsVolume := range kubernetesExecutorConfig.GetConfigMapAsVolume() {
 		var configMapName string
-		if configMapAsVolume.ConfigNameParameter != nil {
-			resolvedSecretName, err := resolveK8sParameter(ctx, opts, dag, pipeline, mlmd,
-				configMapAsVolume.ConfigNameParameter, inputParams)
+		if configMapAsVolume.ConfigMapNameParameter != nil {
+			resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+				configMapAsVolume.ConfigMapNameParameter, inputParams)
 			if err != nil {
 				return fmt.Errorf("failed to resolve configmap name: %w", err)
 			}
@@ -895,9 +895,9 @@ func extendPodSpecPatch(
 			}
 
 			var configMapName string
-			if configMapAsEnv.ConfigNameParameter != nil {
-				resolvedSecretName, err := resolveK8sParameter(ctx, opts, dag, pipeline, mlmd,
-					configMapAsEnv.ConfigNameParameter, inputParams)
+			if configMapAsEnv.ConfigMapNameParameter != nil {
+				resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+					configMapAsEnv.ConfigMapNameParameter, inputParams)
 				if err != nil {
 					return fmt.Errorf("failed to resolve configmap name: %w", err)
 				}
@@ -918,7 +918,7 @@ func extendPodSpecPatch(
 	for _, imagePullSecret := range kubernetesExecutorConfig.GetImagePullSecret() {
 		var secretName string
 		if imagePullSecret.SecretNameParameter != nil {
-			resolvedSecretName, err := resolveK8sParameter(ctx, opts, dag, pipeline, mlmd,
+			resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
 				imagePullSecret.SecretNameParameter, inputParams)
 			if err != nil {
 				return fmt.Errorf("failed to resolve image pull secret name: %w", err)
@@ -2349,7 +2349,7 @@ func makeVolumeMountPatch(
 			}
 		}
 
-		resolvedPvcName, err := resolveK8sParameter(ctx, opts, dag, pipeline, mlmd,
+		resolvedPvcName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
 			pvcNameParameter, inputParams)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to resolve pvc name: %w", err)

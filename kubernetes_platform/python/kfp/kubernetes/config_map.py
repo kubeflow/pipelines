@@ -48,7 +48,7 @@ def use_config_map_as_env(
     config_map_as_env = pb.ConfigMapAsEnv(key_to_env=key_to_env)
 
     config_map_name_parameter = common.parse_k8s_parameter_input(config_map_name, task)
-    config_map_as_env.config_name_parameter.CopyFrom(config_map_name_parameter)
+    config_map_as_env.config_map_name_parameter.CopyFrom(config_map_name_parameter)
 
     # deprecated: for backwards compatibility
     if isinstance(config_map_name, str):
@@ -88,7 +88,7 @@ def use_config_map_as_volume(
     )
 
     config_map_name_parameter = common.parse_k8s_parameter_input(config_map_name, task)
-    config_map_as_vol.config_name_parameter.CopyFrom(config_map_name_parameter)
+    config_map_as_vol.config_map_name_parameter.CopyFrom(config_map_name_parameter)
 
     # deprecated: for backwards compatibility
     if isinstance(config_map_name, str):

@@ -40,16 +40,16 @@ def add_toleration(
             Pipeline task.
         key:
             key is the taint key that the toleration applies to. Empty means
-            match all taint keys. If the key is empty, operator must Exist;
+            match all taint keys. If the key is empty, operator must be "Exists";
             this combination means to match all values and all keys.
         operator:
             operator represents a key's relationship to the value. Valid
-            operators are Exists and Equal. Defaults to Equal. Exists is
+            operators are "Exists" and "Equal". Defaults to "Equal". "Exists" is
             equivalent to wildcard for value, so that a pod can tolerate all
             taints of a particular category.
         value:
             value is the taint value the toleration matches to. If the operator
-            Exists, the value should be empty, otherwise just a regular
+            is "Exists", the value should be empty, otherwise just a regular
             string.
         effect:
             effect indicates the taint effect to match. Empty means match all

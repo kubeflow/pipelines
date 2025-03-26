@@ -81,29 +81,6 @@ func resolvePodSpecInputRuntimeParameter(parameterValue string, executorInput *p
 	return parameterValue, nil
 }
 
-// resolveK8sParameter resolves a k8s JSON and unmarshal it
-// to the provided k8s resource.
-//
-// Parameters:
-//   - pipelineInputParamSpec: An input parameter spec that resolve to a valid structpb.Value
-//   - inputParams: InputParams that contain resolution context for pipelineInputParamSpec
-func resolveK8sParameter(
-	ctx context.Context,
-	opts Options,
-	dag *metadata.DAG,
-	pipeline *metadata.Pipeline,
-	mlmd *metadata.Client,
-	pipelineInputParamSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	inputParams map[string]*structpb.Value,
-) (*structpb.Value, error) {
-	resolvedParameter, err := resolveInputParameter(ctx, dag, pipeline,
-		opts, mlmd, pipelineInputParamSpec, inputParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve input parameter name: %w", err)
-	}
-	return resolvedParameter, nil
-}
-
 // resolveK8sJsonParameter resolves a k8s JSON and unmarshal it
 // to the provided k8s resource.
 //
@@ -121,7 +98,7 @@ func resolveK8sJsonParameter[k8sResource any](
 	inputParams map[string]*structpb.Value,
 	res *k8sResource,
 ) error {
-	resolvedParam, err := resolveK8sParameter(ctx, opts, dag, pipeline, mlmd,
+	resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
 		pipelineInputParamSpec, inputParams)
 	if err != nil {
 		return fmt.Errorf("failed to resolve k8s parameter: %w", err)
