@@ -1,2 +1,2 @@
-sagemaker==2.1.0
+sagemaker==2.237.3
 kfp==1.8.13
