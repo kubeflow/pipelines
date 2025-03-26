@@ -99,7 +99,7 @@ The primary goal of this proposal is to establish the necessary foundation withi
 ### Non-Goals
 While this proposal lays the groundwork for a more user-friendly KFP component experience, it does *not* aim to:
 
-- **Define or Implement a Component Hub**  
+- **Define or Implement a Component Hub or Separate Component Repository**  
   - While a centralized hub for community-contributed components is a natural follow-up idea, this proposal does not include designing or implementing this.
   
 - **Address SDK Component Extensions**  
