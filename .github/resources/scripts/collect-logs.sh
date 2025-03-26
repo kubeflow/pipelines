@@ -30,9 +30,12 @@ function check_namespace {
 
 function display_pod_info {
     local NAMESPACE=$1
+
+    kubectl get pods -n "${NAMESPACE}"
+
     local POD_NAMES
 
-    POD_NAMES=$(kubectl get pods -n "${NS}" -o custom-columns=":metadata.name" --no-headers)
+    POD_NAMES=$(kubectl get pods -n "${NAMESPACE}" -o custom-columns=":metadata.name" --no-headers)
 
     if [[ -z "${POD_NAMES}" ]]; then
         echo "No pods found in namespace '${NAMESPACE}'." | tee -a "$OUTPUT_FILE"
