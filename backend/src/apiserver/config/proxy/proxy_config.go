@@ -13,6 +13,8 @@
 // limitations under the License.
 package proxy
 
+import "os"
+
 const (
 	HttpProxyEnv        = "HTTP_PROXY"
 	HttpsProxyEnv       = "HTTPS_PROXY"
@@ -34,29 +36,20 @@ func NewProxyConfig(httpProxy string, httpsProxy string, noProxy string) ProxyCo
 	}
 }
 
-func NewProxyConfigFromSettings(settings map[string]interface{}) ProxyConfig {
-	httpProxy := getString(settings, HttpProxyEnv)
-	httpsProxy := getString(settings, HttpsProxyEnv)
-	noProxy := getString(settings, NoProxyEnv)
+func NewProxyConfigFromEnv() ProxyConfig {
+	httpProxyValue, isHttpProxySet := os.LookupEnv(HttpProxyEnv)
+	httpsProxyValue, isHttpsProxySet := os.LookupEnv(HttpsProxyEnv)
+	noProxyValue, isNoProxySet := os.LookupEnv(NoProxyEnv)
 
-	if (httpProxy != "" || httpsProxy != "") && noProxy == "" {
-		noProxy = defaultNoProxyValue
+	if (isHttpProxySet || isHttpsProxySet) && !isNoProxySet {
+		return NewProxyConfig(httpProxyValue, httpsProxyValue, defaultNoProxyValue)
 	}
 
-	return NewProxyConfig(httpProxy, httpsProxy, noProxy)
+	return NewProxyConfig(httpProxyValue, httpsProxyValue, noProxyValue)
 }
 
 func EmptyProxyConfig() ProxyConfig {
 	return NewProxyConfig("", "", "")
-}
-
-func getString(settings map[string]interface{}, key string) string {
-	if val, exists := settings[key]; exists && val != nil {
-		if s, ok := val.(string); ok {
-			return s
-		}
-	}
-	return ""
 }
 
 type proxyConfig struct {

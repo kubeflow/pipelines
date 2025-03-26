@@ -74,7 +74,7 @@ func main() {
 	}
 
 	clientManager := cm.NewClientManager()
-	proxyConfig := proxy.NewProxyConfigFromSettings(viper.AllSettings())
+	proxyConfig := proxy.NewProxyConfigFromEnv()
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
@@ -102,6 +102,9 @@ func main() {
 		log.Fatal("Invalid log level:", err)
 	}
 	log.SetLevel(level)
+
+	log.Infof("Proxy config: http_proxy: '%s', https_proxy: '%s', no_proxy: '%s'",
+		proxyConfig.GetHttpProxy(), proxyConfig.GetHttpsProxy(), proxyConfig.GetNoProxy())
 
 	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
 	defer backgroundCancel()

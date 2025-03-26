@@ -432,15 +432,24 @@ func initPodSpecPatch(
 	}
 
 	if proxyConfig.GetHttpProxy() != "" {
+		glog.Infof("Setting http_proxy as %s", proxyConfig.GetHttpProxy())
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "http_proxy", Value: proxyConfig.GetHttpProxy()})
+	} else {
+		glog.Infof("http_proxy was not set")
 	}
 
 	if proxyConfig.GetHttpsProxy() != "" {
+		glog.Infof("Setting https_proxy as %s", proxyConfig.GetHttpsProxy())
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "https_proxy", Value: proxyConfig.GetHttpsProxy()})
+	} else {
+		glog.Infof("https_proxy was not set")
 	}
 
 	if proxyConfig.GetNoProxy() != "" {
+		glog.Infof("Setting no_proxy as %s", proxyConfig.GetNoProxy())
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "no_proxy", Value: proxyConfig.GetNoProxy()})
+	} else {
+		glog.Infof("no_proxy was not set")
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
