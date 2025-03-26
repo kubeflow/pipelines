@@ -76,6 +76,38 @@ Note that the conceptual examples here are for illustrative purposes, and are no
 
 The core value-add of this proposal is to suggest the structure necessary to support a basic set of high quality, readily available SDK-level KFP components. This foundation should create more capability for ML engineers.
 
+## Goals and Non-Goals
+
+### Goals
+The primary goal of this proposal is to establish the necessary foundation within the KFP SDK to support a core set of built-in, high-quality components that simplify the MLE experience. Specifically, this includes:
+
+- **Defining a Core Component Structure**
+  - Expand the use of the `kfp.components` namespace to support built-in components
+  - Organize components into logical submodules (e.g., `data`, `train`, `serve`, `validate`), rather than by vendor (as is done currently)
+
+- **Improving Component Usability for MLEs**  
+  - Provide readily available Python-native components that integrate seamlessly with Kubeflow projects (e.g., Kubeflow Trainer, Katib, KServe).
+  - Reduce friction in component discovery and usage by integrating them directly into the SDK.
+  - Provide clear documentation for each component, detailing usage, inputs/outputs, and environment requirements.
+  - Follow standards for official KFP components (see [standards proposal](https://github.com/kubeflow/pipelines/pull/11766/files))
+
+- **Phasing Out the Pipelines/Components Directory**
+  - Identify any components that should be built-in to the SDK.
+  - Identify useful proof-of-concept components that should be moved to the `samples` directory.
+  - Deprecate and replace the existing pipelines/components directory with a structured SDK alternative.
+
+### Non-Goals
+While this proposal lays the groundwork for a more user-friendly KFP component experience, it does *not* aim to:
+
+- **Define or Implement a Component Hub**  
+  - While a centralized hub for community-contributed components is a natural follow-up idea, this proposal does not include designing or implementing this.
+  
+- **Address SDK Component Extensions**  
+  - The proposal focuses solely on core SDK components. It does not define an extension system for domain- or cloud-specific component sets, though this could be explored later.
+
+- **Overhaul the Entire Component Authoring Experience**  
+  - The proposal does not change how users create components, nor does it introduce major modifications to the existing SDK beyond the introduction of built-in SDK components.
+
 ## Technical Changes and Implementation Steps
 
 To implement this proposal, the following technical changes and steps are required:
