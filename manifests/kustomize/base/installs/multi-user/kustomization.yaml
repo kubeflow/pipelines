@@ -1,9 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: kubeflow
-commonLabels:
-  app.kubernetes.io/name: kubeflow-pipelines
-  app.kubernetes.io/component: ml-pipeline
 resources:
 - ../../pipeline/cluster-scoped
 - ../../cache-deployer/cluster-scoped
@@ -31,3 +28,8 @@ patches:
 
 configurations:
 - params.yaml
+labels:
+- includeSelectors: true
+  pairs:
+    app.kubernetes.io/component: ml-pipeline
+    app.kubernetes.io/name: kubeflow-pipelines

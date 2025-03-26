@@ -9,17 +9,21 @@ resources:
 - minio-azure-gateway
 
 configMapGenerator:
-- name: pipeline-install-config
-  env: params.env
-  behavior: merge
+- behavior: merge
+  envs:
+  - params.env
+  name: pipeline-install-config
 
 secretGenerator:
-- name: mysql-secret
-  env: mysql-secret.env
-  behavior: merge
+- behavior: merge
+  envs:
+  - mysql-secret.env
+  name: mysql-secret
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
 # when application is deleted.
-commonLabels:
-  application-crd-id: kubeflow-pipelines
+labels:
+- includeSelectors: true
+  pairs:
+    application-crd-id: kubeflow-pipelines
