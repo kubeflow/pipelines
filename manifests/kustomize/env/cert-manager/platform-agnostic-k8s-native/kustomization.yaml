@@ -4,51 +4,23 @@ kind: Kustomization
 resources:
   - ../../../base/crds
   - ../../platform-agnostic
-  - ../base/webhook
+  - ../../../base/webhook
+  - ../base-webhook-certs/
+
+# !!! If you want to customize the namespace,
+# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
+namespace: kubeflow
 
 patches:
-  - patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/volumeMounts/-
-        value:
-          name: webhook-certs
-          mountPath: /etc/webhook/certs
-          readOnly: true
+  - path: patches/deployment.yaml
     target:
       kind: Deployment
       name: ml-pipeline
-  - patch: |-
-      - op: add
-        path: /spec/template/spec/volumes/-
-        value:
-          name: webhook-certs
-          secret:
-            secretName: kfp-api-webhook-cert
-    target:
-      kind: Deployment
-      name: ml-pipeline
-  - patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/args/-
-        value: "--webhookTLSCertPath=/etc/webhook/certs/cert.pem"
-    target:
-      kind: Deployment
-      name: ml-pipeline
-  - patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/args/-
-        value: "--webhookTLSKeyPath=/etc/webhook/certs/key.pem"
-    target:
-      kind: Deployment
-      name: ml-pipeline
-  - patch: |-
-      - op: add
-        path: /spec/ports/-
-        value:
-          name: webhook
-          port: 8443
-          protocol: TCP
-          targetPort: 8443
+  - path: patches/service.yaml
     target:
       kind: Service
       name: ml-pipeline
+  - path: patches/validating-webhook.yaml
+    target:
+      kind: ValidatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org

@@ -80,11 +80,9 @@ dev-kind-cluster:
 	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
 	kind --name $(KIND_NAME) load docker-image ${IMG_TAG_WEBHOOK_PROXY}
 	$(MAKE) install-cert-manager
-	$(MAKE) -C $(CURDIR)/src/crd/kubernetes install
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
 	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind
-	kubectl apply -k $(CURDIR)/../manifests/kustomize/base/crds	
 	kubectl apply -f $(CURDIR)/../tools/kind/webhook-proxy.yaml
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment

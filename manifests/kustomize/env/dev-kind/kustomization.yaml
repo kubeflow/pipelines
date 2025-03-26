@@ -2,10 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base/application
-  - ../cert-manager/base/webhook
+  - ../cert-manager/platform-agnostic-k8s-native
   - ./forward-local-api-endpoint.yaml
-  - ../platform-agnostic
 
 # !!! If you want to customize the namespace,
 # please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
@@ -127,6 +125,10 @@ patches:
         port: 8887
         protocol: TCP
         targetPort: 8887
+      - name: webhook
+        port: 8443
+        protocol: TCP
+        targetPort: 8443
       selector:
         $patch: delete
 - patch: |-

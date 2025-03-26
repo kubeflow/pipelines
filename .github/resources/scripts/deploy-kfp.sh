@@ -25,6 +25,7 @@ if [[ ! -d "$C_DIR" ]]; then C_DIR="$PWD"; fi
 source "${C_DIR}/helper-functions.sh"
 
 kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
+kubectl apply -k "manifests/kustomize/base/crds"
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
@@ -39,9 +40,6 @@ then
   echo "Failed to deploy cert-manager."
   exit $EXIT_CODE
 fi
-
-# Apply webhook configurations
-kubectl apply -k "manifests/kustomize/env/cert-manager/base/webhook/"
 
 # Deploy manifest
 TEST_MANIFESTS=".github/resources/manifests/argo"

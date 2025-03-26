@@ -16,6 +16,7 @@ package common
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -136,4 +137,9 @@ func ParseLogLevel(logLevel string) (zapcore.Level, error) {
 	default:
 		return zapcore.Level(0), fmt.Errorf("could not translate log level to ZAP levels: %s", logLevel)
 	}
+}
+
+func FileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	return !os.IsNotExist(err)
 }

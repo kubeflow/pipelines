@@ -15,7 +15,6 @@
 package common
 
 import (
-	"os"
 	"strconv"
 	"time"
 
@@ -132,9 +131,4 @@ func GetTokenReviewAudience() string {
 
 func IsOnlyKubernetesWebhookMode() bool {
 	return GetBoolConfigWithDefault(GlobalKubernetesWebhookMode, false)
-}
-
-func FileExists(filePath string) bool {
-	_, err := os.Stat(filePath)
-	return !os.IsNotExist(err)
 }

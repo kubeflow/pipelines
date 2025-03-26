@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -58,15 +59,16 @@ const (
 )
 
 var (
-	logLevelFlag       = flag.String("logLevel", "", "Defines the log level for the application.")
-	rpcPortFlag        = flag.String("rpcPortFlag", ":8887", "RPC Port")
-	httpPortFlag       = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
-	webhookPortFlag    = flag.String("webhookPortFlag", ":8443", "Https Proxy Port")
-	webhookTLSCertPath = flag.String("webhookTLSCertPath", "", "Path to the webhook TLS certificate.")
-	webhookTLSKeyPath  = flag.String("webhookTLSKeyPath", "", "Path to the webhook TLS private key.")
-	configPath         = flag.String("config", "", "Path to JSON file containing config")
-	sampleConfigPath   = flag.String("sampleconfig", "", "Path to samples")
-	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
+	logLevelFlag                  = flag.String("logLevel", "", "Defines the log level for the application.")
+	rpcPortFlag                   = flag.String("rpcPortFlag", ":8887", "RPC Port")
+	httpPortFlag                  = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
+	webhookPortFlag               = flag.String("webhookPortFlag", ":8443", "Https Proxy Port")
+	webhookTLSCertPath            = flag.String("webhookTLSCertPath", "", "Path to the webhook TLS certificate.")
+	webhookTLSKeyPath             = flag.String("webhookTLSKeyPath", "", "Path to the webhook TLS private key.")
+	configPath                    = flag.String("config", "", "Path to JSON file containing config")
+	sampleConfigPath              = flag.String("sampleconfig", "", "Path to samples")
+	collectMetricsFlag            = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
+	usePipelinesKubernetesStorage = flag.Bool("pipelinesStoreKubernetes", false, "Store and run pipeline versions in Kubernetes")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -114,23 +116,31 @@ func main() {
 
 	wg := sync.WaitGroup{}
 
-	wg.Add(1)
-	webhookServer, err := startWebhook(clientManager.ControllerClient(), &wg)
-	if err != nil {
-		glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
-	}
-	go func() {
-		<-backgroundCtx.Done()
-		glog.Info("Shutting down Kubernetes webhook server...")
-		if err := webhookServer.Shutdown(context.Background()); err != nil {
-			glog.Errorf("Error shutting down webhook server: %v", err)
-		}
-	}()
+	webhookOnlyMode := common.IsOnlyKubernetesWebhookMode()
 
-	if common.IsOnlyKubernetesWebhookMode() {
-		wg.Wait()
-		return
+	if *usePipelinesKubernetesStorage || webhookOnlyMode {
+		wg.Add(1)
+		webhookServer, err := startWebhook(clientManager.ControllerClient(), &wg)
+		if err != nil {
+			glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
+		}
+		go func() {
+			<-backgroundCtx.Done()
+			glog.Info("Shutting down Kubernetes webhook server...")
+			if err := webhookServer.Shutdown(context.Background()); err != nil {
+				glog.Errorf("Error shutting down webhook server: %v", err)
+			}
+		}()
+
+		// This mode is used when there are multiple Kubeflow Pipelines installations on the same cluster but the
+		// administrator only wants to have a single webhook endpoint for all of them. This causes only the webhook
+		// endpoints to be available.
+		if webhookOnlyMode {
+			wg.Wait()
+			return
+		}
 	}
+
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
@@ -297,7 +307,7 @@ func startWebhook(controllerClient ctrlclient.Client, wg *sync.WaitGroup) (*http
 
 	topMux.Handle("/webhooks/validate-pipelineversion", pvValidateWebhook)
 
-	server := &http.Server{
+	webhookServer := &http.Server{
 		Addr:    *webhookPortFlag,
 		Handler: topMux,
 	}
@@ -310,20 +320,20 @@ func startWebhook(controllerClient ctrlclient.Client, wg *sync.WaitGroup) (*http
 				glog.Fatalf("TLS certificate/key paths are set but files do not exist")
 			}
 			glog.Info("Starting the Kubernetes webhook with TLS")
-			err := server.ListenAndServeTLS(tlsCertPath, tlsKeyPath)
-			if err != nil && err != http.ErrServerClosed {
+			err := webhookServer.ListenAndServeTLS(tlsCertPath, tlsKeyPath)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				glog.Fatalf("Failed to start the Kubernetes webhook with TLS: %v", err)
 			}
 			return
 		}
 		glog.Warning("TLS certificate/key paths are not set. Starting webhook server without TLS.")
-		err := server.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
+		err := webhookServer.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
 		}
 	}()
 
-	return server, nil
+	return webhookServer, nil
 }
 
 func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, serviceName string, ctx context.Context, mux *runtime.ServeMux) {

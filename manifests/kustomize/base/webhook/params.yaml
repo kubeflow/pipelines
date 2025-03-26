@@ -1,10 +1,4 @@
 varReference:
-  - path: spec/commonName
-    kind: Certificate
-  - path: spec/dnsNames
-    kind: Certificate
-  - path: spec/issuerRef/name
-    kind: Certificate
   - path: metadata/annotations
     kind: ValidatingWebhookConfiguration
   - path: webhooks/clientConfig/service/namespace

@@ -93,10 +93,6 @@ func (p *PipelineVersionsWebhook) ValidateCreate(
 		return nil, newBadRequestError(err.Error())
 	}
 
-	if pipelineVersion.Name != tmpl.V2PipelineName() {
-		return nil, newBadRequestError("The object name must match spec.pipelineSpec.pipelineInformation.name")
-	}
-
 	return nil, nil
 }
 
@@ -118,6 +114,7 @@ func (p *PipelineVersionsWebhook) ValidateUpdate(_ context.Context, oldObj, newO
 	return nil, nil
 }
 
+// ValidateDelete is unused but required to implement the ctrladmission.CustomValidator interface.
 func (p *PipelineVersionsWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (ctrladmission.Warnings, error) {
 	return nil, nil
 }

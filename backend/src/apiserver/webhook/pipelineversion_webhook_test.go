@@ -119,26 +119,6 @@ func TestPipelineVersionWebhook_ValidateCreate_InvalidPipelineSpec(t *testing.T)
 	assert.Contains(t, err.Error(), "The pipeline spec is invalid")
 }
 
-func TestPipelineVersionWebhook_ValidateCreate_PipelineNameMismatch(t *testing.T) {
-	pipelineWebhook, validPipelineSpecJSON := setupPipelineWebhookTest(t)
-
-	invalidPipelineVersion := &k8sapi.PipelineVersion{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "wrong-name",
-			Namespace: "default",
-		},
-		Spec: k8sapi.PipelineVersionSpec{
-			PipelineName: "test-pipeline",
-			PipelineSpec: k8sapi.PipelineIRSpec{
-				Value: json.RawMessage(validPipelineSpecJSON),
-			},
-		},
-	}
-	_, err := pipelineWebhook.ValidateCreate(context.TODO(), invalidPipelineVersion)
-	assert.Error(t, err, "Expected error for mismatched pipeline name")
-	assert.Contains(t, err.Error(), "The object name must match spec.pipelineSpec.pipelineInformation.name")
-}
-
 func TestPipelineVersionWebhook_ValidateUpdate(t *testing.T) {
 	pipelineWebhook, validPipelineSpecJSON := setupPipelineWebhookTest(t)
 

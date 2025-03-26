@@ -3,12 +3,7 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-  - kfp-api-cert-issuer.yaml
-  - kfp-api-cert.yaml
   - pipelineversion-validating-webhook-config.yaml
-labels:
-  - pairs:
-      app: kfp-api-cert-manager
 
 configurations:
 - params.yaml
