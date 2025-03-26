@@ -40,13 +40,14 @@ This proposal advocates for the formal definition, documentation, and enforcemen
 * **Create a Component Checklist:** Develop a detailed checklist to guide component developers and reviewers. This checklist will serve as a practical tool to ensure adherence to the defined expectations. Key areas covered by the checklist can include:
 
     * **Python Function Documentation and Accessibility:**  Ensure core Python function is documented and usable both within and outside KFP pipelines.
-    * **Dependency Declarations:**  Explicitly list Python libraries, environment variables, and PyPI index/server requirements.
+    * **Dependency Declarations:**  Explicitly list Python libraries, environment variables, and PyPI index/server requirements. Also, note minimum KFP (SDK or backend) version requirements.
     * **Environment Setup and Requirements:**  Detail cluster dependencies (CRD, ConfigMap, Secret, etc), and system resource expectations (GPU, memory, CPU).
     * **Usage Instructions Across Environments:** Provide clear instructions for setting up and running components in different environments (local, cluster, etc.), considering differing needs for authentication, interacting with outputs, testing, and etc.
     * **Input/Output and Artifact Documentation:**  Clearly document component inputs, outputs, metadata, artifacts, errors, and logging.
     * **Performance and Testing Information:**  Provide guidance on expected runtime, resource usage, and include tests with instructions for execution.
+    * **Ownership:** Make it clear who is responsible for the individual component maintenance (if applicable). Have procedures for transfering ownership and for deprecating abandoned components.
 
-* **Document and Promot Standards:**  Clearly document the defined component expectations and the component checklist in prominent locations, such as:
+* **Document and Promote Standards:**  Clearly document the defined component expectations and the component checklist in prominent locations, such as:
 
     * **Top-level `README.md` in the KFP repository.**
     * **Dedicated section in the KFP website documentation.**
@@ -62,7 +63,7 @@ This proposal advocates for the formal definition, documentation, and enforcemen
 
 To implement this proposal, the following steps are necessary:
 
-1. **Formalize Component Expectations:**  Finalize and officially document the "Component Expectations" after giving time for community feedback and consensus.
+1. **Formalize Component Expectations:**  Give time for community feedback and consensus on this proposal. Finalize and officially document the "Component Expectations".
 2. **Develop the Component Checklist:**  Create a practical Component Checklist based on the outlined areas above, ensuring it is both user-friendly and comprehensive.
 3. **Document Standards and Checklist:**  Publish the Component Expectations and Checklist in prominent locations (repository README/Guide, website documentation).
 4. **Implement Review Process:**  Establish the review process for new component contributions and updates, incorporating the Component Checklist as a key evaluation tool.
