@@ -23,7 +23,25 @@ echo "REGISTRY=$REGISTRY"
 TAG="${TAG:-latest}"
 EXIT_CODE=0
 
+USE_PROXY=false
+
+while getopts ":p-:" OPT; do
+    case $OPT in
+        -) [ "$OPTARG" = "proxy" ] && USE_PROXY=true || { echo "Unknown option --$OPTARG"; exit 1; };;
+        \?) echo "Invalid option: -$OPTARG" >&2; exit 1;;
+    esac
+done
+
+shift $((OPTIND-1))
+
 docker system prune -a -f
+
+if $USE_PROXY; then
+  local script_dir="${BASH_SOURCE%/*}"
+
+  docker build --progress=plain -t "registry.domain.local/squid:test" -f ${script_dir}/../squid/Containerfile ${script_dir}/../squid
+  kind --name kfp load docker-image registry.domain.local/squid:test
+fi
 
 docker build --progress=plain -t "${REGISTRY}/apiserver:${TAG}" -f backend/Dockerfile . && docker push "${REGISTRY}/apiserver:${TAG}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]

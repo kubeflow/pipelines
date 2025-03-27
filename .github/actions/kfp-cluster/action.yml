@@ -23,7 +23,12 @@ runs:
 
     - name: Build images
       shell: bash
-      run: ./.github/resources/scripts/build-images.sh
+      run: |
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/build-images.sh --proxy
+        else
+          ./.github/resources/scripts/build-images.sh
+        fi
 
     - name: Deploy KFP
       shell: bash
