@@ -36,19 +36,19 @@ done
 shift $((OPTIND-1))
 
 deploy_manifests() {
+  if $USE_PROXY; then
+    ${C_DIR}/../squid/deploy-squid.sh
+    TEST_MANIFESTS=".github/resources/manifests/argo/overlays/proxy"
+  else
+    TEST_MANIFESTS=".github/resources/manifests/argo/overlays/no-proxy"
+  fi
+
   kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
   kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
   if [[ $EXIT_CODE -ne 0 ]]
   then
     echo "Failed to deploy cluster-scoped resources."
     exit $EXIT_CODE
-  fi
-
-  if $USE_PROXY; then
-    ${C_DIR}/../squid/deploy-squid.sh
-    TEST_MANIFESTS=".github/resources/manifests/argo/overlays/proxy"
-  else
-    TEST_MANIFESTS=".github/resources/manifests/argo/overlays/no-proxy"
   fi
 
   kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
