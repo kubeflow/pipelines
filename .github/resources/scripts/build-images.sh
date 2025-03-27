@@ -18,6 +18,7 @@
 # Remove the x if you need no print out of each command
 set -e
 
+SCRIPT_DIR="${BASH_SOURCE%/*}"
 REGISTRY="${REGISTRY:-kind-registry:5000}"
 echo "REGISTRY=$REGISTRY"
 TAG="${TAG:-latest}"
@@ -37,9 +38,7 @@ shift $((OPTIND-1))
 docker system prune -a -f
 
 if $USE_PROXY; then
-  local script_dir="${BASH_SOURCE%/*}"
-
-  docker build --progress=plain -t "registry.domain.local/squid:test" -f ${script_dir}/../squid/Containerfile ${script_dir}/../squid
+  docker build --progress=plain -t "registry.domain.local/squid:test" -f ${SCRIPT_DIR}/../squid/Containerfile ${SCRIPT_DIR}/../squid
   kind --name kfp load docker-image registry.domain.local/squid:test
 fi
 
