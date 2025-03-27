@@ -2,4 +2,6 @@
 
 set -e
 
-kubectl apply -k manifests
+C_DIR="${BASH_SOURCE%/*}"
+
+kubectl apply -k ${C_DIR}/manifests
