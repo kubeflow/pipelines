@@ -3,6 +3,7 @@ import time
 import urllib3
 import sys
 from kubernetes import client, config
+import subprocess
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -53,6 +54,20 @@ def all_pods_ready(statuses):
                for pod_status, ready, total, _ in statuses.values())
 
 
+def print_get_pods():
+    try:
+        result = subprocess.run(
+            ['kubectl', 'get', 'pods', '-n', 'kubeflow'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while running kubectl get pods: {e.stderr}")
+
+
 def check_pods(calm_time=10, timeout=600, retries_after_ready=5):
     start_time = time.time()
     stable_count = 0
@@ -62,6 +77,9 @@ def check_pods(calm_time=10, timeout=600, retries_after_ready=5):
         current_statuses = get_pod_statuses()
 
         logging.info("Checking pod statuses...")
+
+        print_get_pods()
+
         for pod_name, (pod_status, ready, total, waiting_messages) in current_statuses.items():
             logging.info(f"Pod {pod_name} - Status: {pod_status}, Ready: {ready}/{total}")
             for waiting_msg  in waiting_messages:
