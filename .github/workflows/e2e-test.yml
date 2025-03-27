@@ -49,7 +49,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
@@ -91,7 +91,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
@@ -136,7 +136,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
@@ -178,7 +178,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
@@ -227,7 +227,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
