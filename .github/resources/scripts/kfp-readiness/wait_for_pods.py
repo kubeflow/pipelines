@@ -78,8 +78,6 @@ def check_pods(calm_time=10, timeout=600, retries_after_ready=5):
 
         logging.info("Checking pod statuses...")
 
-        print_get_pods()
-
         for pod_name, (pod_status, ready, total, waiting_messages) in current_statuses.items():
             logging.info(f"Pod {pod_name} - Status: {pod_status}, Ready: {ready}/{total}")
             for waiting_msg  in waiting_messages:
@@ -101,6 +99,9 @@ def check_pods(calm_time=10, timeout=600, retries_after_ready=5):
 
         previous_statuses = current_statuses
         logging.info(f"Pods are still stabilizing. Retrying in {calm_time} seconds...")
+
+        print_get_pods()
+
         time.sleep(calm_time)
     else:
         log_pods()
