@@ -59,6 +59,8 @@ deploy_manifests() {
   fi
 }
 
+deploy_manifests
+
 # Check if all pods are running - (10 minutes)
 wait_for_pods || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
