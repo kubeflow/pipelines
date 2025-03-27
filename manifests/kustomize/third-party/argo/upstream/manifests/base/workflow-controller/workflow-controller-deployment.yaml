@@ -13,10 +13,6 @@ spec:
       labels:
         app: workflow-controller
     spec:
-      securityContext:
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
       priorityClassName: workflow-controller
       serviceAccountName: argo
       containers:
@@ -51,5 +47,7 @@ spec:
             initialDelaySeconds: 90
             periodSeconds: 60
             timeoutSeconds: 30
+      securityContext:
+        runAsNonRoot: true
       nodeSelector:
         kubernetes.io/os: linux
