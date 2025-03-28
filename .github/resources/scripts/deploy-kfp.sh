@@ -24,42 +24,22 @@ C_DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$C_DIR" ]]; then C_DIR="$PWD"; fi
 source "${C_DIR}/helper-functions.sh"
 
-USE_PROXY=false
+kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
+kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Failed to deploy cluster-scoped resources."
+  exit $EXIT_CODE
+fi
 
-while getopts ":p-:" OPT; do
-    case $OPT in
-        -) [ "$OPTARG" = "proxy" ] && USE_PROXY=true || { echo "Unknown option --$OPTARG"; exit 1; };;
-        \?) echo "Invalid option: -$OPTARG" >&2; exit 1;;
-    esac
-done
-
-shift $((OPTIND-1))
-
-deploy_manifests() {
-  if $USE_PROXY; then
-    ${C_DIR}/../squid/deploy-squid.sh
-    TEST_MANIFESTS=".github/resources/manifests/argo/overlays/proxy"
-  else
-    TEST_MANIFESTS=".github/resources/manifests/argo/overlays/no-proxy"
-  fi
-
-  kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
-  kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
-  if [[ $EXIT_CODE -ne 0 ]]
-  then
-    echo "Failed to deploy cluster-scoped resources."
-    exit $EXIT_CODE
-  fi
-
-  kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
-  if [[ $EXIT_CODE -ne 0 ]]
-  then
-    echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
-    exit 1
-  fi
-}
-
-deploy_manifests
+# Deploy manifest
+TEST_MANIFESTS=".github/resources/manifests/argo"
+kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
+  exit 1
+fi
 
 # Check if all pods are running - (10 minutes)
 wait_for_pods || EXIT_CODE=$?
