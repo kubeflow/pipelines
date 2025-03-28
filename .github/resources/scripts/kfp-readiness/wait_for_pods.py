@@ -63,7 +63,7 @@ def print_get_pods():
             text=True,
             check=True
         )
-        print(result.stdout)
+        return result.stdout
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while running kubectl get pods: {e.stderr}")
 
@@ -98,9 +98,10 @@ def check_pods(calm_time=10, timeout=600, retries_after_ready=5):
             stable_count = 0
 
         previous_statuses = current_statuses
-        logging.info(f"Pods are still stabilizing. Retrying in {calm_time} seconds...")
 
-        print_get_pods()
+        pods = print_get_pods()
+
+        logging.info(f"Pods are still stabilizing. Retrying in {calm_time} seconds...\n{pods}")
 
         time.sleep(calm_time)
     else:

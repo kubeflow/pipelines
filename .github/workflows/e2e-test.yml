@@ -235,7 +235,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}
+          name: kfp-api-integration-tests-v2-with-proxy-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
 
   frontend-integration-test:
