@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: squid
-          image: kind-registry:5000/squid:latest  # Replace with your Squid image and tag
+          image: registry.domain.local/squid:test
           ports:
             - containerPort: 3128
           volumeMounts:
