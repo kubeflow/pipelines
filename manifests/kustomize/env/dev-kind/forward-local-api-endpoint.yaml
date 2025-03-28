@@ -15,3 +15,7 @@ subsets:
         appProtocol: http
         port: 8888
         protocol: TCP
+      - name: webhook
+        appProtocol: http
+        port: 8443
+        protocol: TCP

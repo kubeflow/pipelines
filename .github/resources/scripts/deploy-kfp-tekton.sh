@@ -25,10 +25,19 @@ if [[ ! -d "$C_DIR" ]]; then C_DIR="$PWD"; fi
 source "${C_DIR}/helper-functions.sh"
 
 kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
+kubectl apply -k "manifests/kustomize/base/crds"
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Failed to deploy cluster-scoped resources."
+  exit $EXIT_CODE
+fi
+
+#Install cert-manager
+make -C ./backend install-cert-manager || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Failed to deploy cert-manager."
   exit $EXIT_CODE
 fi
 

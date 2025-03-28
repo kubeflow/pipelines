@@ -33,7 +33,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/minio/minio-go/v6"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -71,6 +74,18 @@ const (
 	clientBurst = "ClientBurst"
 )
 
+var scheme *runtime.Scheme
+
+func init() {
+	scheme = runtime.NewScheme()
+
+	err := k8sapi.AddToScheme(scheme)
+	if err != nil {
+		// Panic is okay here because it means there's a code issue and so the package shouldn't initialize.
+		panic(fmt.Sprintf("Failed to initialize the Kubernetes API scheme: %v", err))
+	}
+}
+
 // Container for all service clients.
 type ClientManager struct {
 	db                        *storage.DB
@@ -92,6 +107,7 @@ type ClientManager struct {
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []auth.Authenticator
+	controllerClient          ctrlclient.Client
 }
 
 func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
@@ -166,7 +182,31 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 	return c.authenticators
 }
 
-func (c *ClientManager) init() {
+func (c *ClientManager) ControllerClient() ctrlclient.Client {
+	return c.controllerClient
+}
+
+func (c *ClientManager) init() error {
+	glog.Info("Initializing controller client...")
+
+	restConfig, err := util.GetKubernetesConfig()
+	if err != nil {
+		return fmt.Errorf("failed to initialize the RestConfig: %w", err)
+	}
+
+	controllerClient, err := ctrlclient.New(
+		restConfig, ctrlclient.Options{Scheme: scheme},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize the controller client: %w", err)
+	}
+	c.controllerClient = controllerClient
+	glog.Info("Controller client initialized successfully.")
+
+	if common.IsOnlyKubernetesWebhookMode() {
+		return nil
+	}
+
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
 	db := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
@@ -214,6 +254,8 @@ func (c *ClientManager) init() {
 		c.authenticators = auth.GetAuthenticators(c.tokenReviewClient)
 	}
 	glog.Infof("Client manager initialized successfully")
+
+	return nil
 }
 
 func (c *ClientManager) Close() {
@@ -531,11 +573,14 @@ func initLogArchive() (logArchive archive.LogArchiveInterface) {
 }
 
 // NewClientManager creates and Init a new instance of ClientManager.
-func NewClientManager() ClientManager {
+func NewClientManager() (ClientManager, error) {
 	clientManager := ClientManager{}
-	clientManager.init()
+	err := clientManager.init()
+	if err != nil {
+		return ClientManager{}, err
+	}
 
-	return clientManager
+	return clientManager, nil
 }
 
 // Data migration in 2 steps to introduce pipeline_versions table. This
