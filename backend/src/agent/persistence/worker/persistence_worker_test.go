@@ -66,7 +66,7 @@ func TestPersistenceWorker_Success(t *testing.T) {
 	// Set up pipeline client
 	pipelineClient := client.NewPipelineClientFake()
 
-	// Set up peristence worker
+	// Set up persistence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker, err := NewPersistenceWorker(
@@ -97,7 +97,7 @@ func TestPersistenceWorker_NotFoundError(t *testing.T) {
 	// Set up pipeline client
 	pipelineClient := client.NewPipelineClientFake()
 
-	// Set up peristence worker
+	// Set up persistence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker, err := NewPersistenceWorker(
@@ -129,7 +129,7 @@ func TestPersistenceWorker_GetWorklowError(t *testing.T) {
 	// Set up pipeline client
 	pipelineClient := client.NewPipelineClientFake()
 
-	// Set up peristence worker
+	// Set up persistence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker, err := NewPersistenceWorker(
@@ -164,7 +164,7 @@ func TestPersistenceWorker_ReportWorkflowRetryableError(t *testing.T) {
 	pipelineClient.SetError(util.NewCustomError(fmt.Errorf("Error"), util.CUSTOM_CODE_TRANSIENT,
 		"My Retriable Error"))
 
-	// Set up peristence worker
+	// Set up persistence worker
 	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker, err := NewPersistenceWorker(
