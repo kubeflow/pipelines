@@ -12,4 +12,5 @@ kubectl apply -k ${C_DIR}/manifests
 
 if ! kubectl -n ${NAMESPACE} wait --for=condition=available deployment/squid --timeout=60s; then
     echo "Timeout occurred while waiting for the Squid deployment."
+    exit 1
 fi
