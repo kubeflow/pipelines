@@ -31,6 +31,35 @@ jobs:
       with:
         python-version: 3.9
 
+    - name: apt-get update
+      run: sudo apt-get update
+
+    - name: Install protobuf-compiler
+      run: sudo apt-get install protobuf-compiler -y
+
+    - name: Install setuptools
+      run: |
+        pip3 install setuptools
+        pip3 freeze
+
+    - name: Install Wheel
+      run: pip3 install wheel==0.42.0
+
+    - name: Install protobuf
+      run: pip3 install protobuf==4.25.3
+
+    - name: Generate API proto files
+      working-directory: ./api
+      run: make python
+
+    - name: Install kfp-pipeline-spec from source
+      run: |
+        python3 -m pip install api/v2alpha1/python
+
+    - name: Generate, Build, and Install Kubernetes API proto files & packages
+      working-directory: ./kubernetes_platform
+      run: make python && pip install python/dist/*.whl
+
     - name: Create KFP cluster
       uses: ./.github/actions/kfp-cluster
       with:
@@ -65,4 +94,3 @@ jobs:
       with:
         name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
         path: /tmp/tmp*/*
-

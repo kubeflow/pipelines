@@ -39,6 +39,7 @@ class TestMountPVC:
                             'exec-comp': {
                                 'pvcMount': [{
                                     'constant': 'pvc-name',
+                                    'pvcNameParameter': {'runtimeValue': {'constant': 'pvc-name'}},
                                     'mountPath': 'path'
                                 }]
                             }
@@ -73,10 +74,12 @@ class TestMountPVC:
                                 'pvcMount': [
                                     {
                                         'constant': 'pvc-name',
+                                        'pvcNameParameter': {'runtimeValue': {'constant': 'pvc-name'}},
                                         'mountPath': 'path1'
                                     },
                                     {
                                         'constant': 'other-pvc-name',
+                                        'pvcNameParameter': {'runtimeValue': {'constant': 'other-pvc-name'}},
                                         'mountPath': 'path2'
                                     },
                                 ]
@@ -111,11 +114,12 @@ class TestMountPVC:
                             'exec-comp': {
                                 'pvcMount': [{
                                     'constant': 'pvc-name',
+                                    'pvcNameParameter': {'runtimeValue': {'constant': 'pvc-name'}},
                                     'mountPath': 'path'
                                 }],
                                 'secretAsEnv': [{
-                                    'secretName':
-                                        'secret-name',
+                                    'secretName': 'secret-name',
+                                    'secretNameParameter': {'runtimeValue': {'constant': 'secret-name'}},
                                     'keyToEnv': [{
                                         'secretKey': 'password',
                                         'envVar': 'SECRET_VAR'
@@ -152,10 +156,12 @@ class TestMountPVC:
                             'exec-comp': {
                                 'pvcMount': [{
                                     'constant': 'pvc-name',
+                                    'pvcNameParameter': {'runtimeValue': {'constant': 'pvc-name'}},
                                     'mountPath': 'path'
                                 }],
                                 'secretAsVolume': [{
                                     'secretName': 'secret-name',
+                                    'secretNameParameter': {'runtimeValue': {'constant': 'secret-name'}},
                                     'mountPath': 'secretpath',
                                     'optional': False
                                 }]
@@ -174,7 +180,8 @@ class TestMountPVC:
 
         with pytest.raises(
                 ValueError,
-                match=r'Argument for \'pvc_name\' must be an instance of str or PipelineChannel\. Got unknown input type: <class \'int\'>\.',
+                match=r"Argument for 'input_param' must be an instance of str, dict, or PipelineChannel. "
+                      r"Got unknown input type: <class 'int'>.",
         ):
 
             @dsl.pipeline
@@ -185,6 +192,223 @@ class TestMountPVC:
                     mount_path='/path',
                 )
 
+    def test_component_pipeline_input_one(self):
+        # checks that a pipeline input for
+        # tasks is supported
+        @dsl.pipeline
+        def my_pipeline(pvc_name_input: str):
+            task = comp()
+            kubernetes.mount_pvc(
+                task,
+                pvc_name=pvc_name_input,
+                mount_path='path',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'pvcMount': [{
+                                    'componentInputParameter': 'pvc_name_input',
+                                    'pvcNameParameter': {
+                                        'componentInputParameter': 'pvc_name_input'
+                                    },
+                                    'mountPath': 'path'
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_component_pipeline_input_two(self):
+        # checks that multiple pipeline inputs for
+        # different tasks are supported
+        @dsl.pipeline
+        def my_pipeline(pvc_name_input_1: str, pvc_name_input_2: str):
+            t1 = comp()
+            kubernetes.mount_pvc(
+                t1,
+                pvc_name=pvc_name_input_1,
+                mount_path='path',
+            )
+            t2 = comp()
+            kubernetes.mount_pvc(
+                t2,
+                pvc_name=pvc_name_input_1,
+                mount_path='path',
+            )
+            kubernetes.mount_pvc(
+                t2,
+                pvc_name=pvc_name_input_2,
+                mount_path='path',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'pvcMount': [
+                                    {
+                                        'componentInputParameter': 'pvc_name_input_1',
+                                        'pvcNameParameter': {
+                                            'componentInputParameter': 'pvc_name_input_1'
+                                        },
+                                        'mountPath': 'path'
+                                    },
+                                ]
+                            },
+                            'exec-comp-2': {
+                                'pvcMount': [
+                                    {
+                                        'componentInputParameter': 'pvc_name_input_1',
+                                        'pvcNameParameter': {
+                                            'componentInputParameter': 'pvc_name_input_1'
+                                        },
+                                        'mountPath': 'path'
+                                    },
+                                    {
+                                        'componentInputParameter': 'pvc_name_input_2',
+                                        'pvcNameParameter': {
+                                            'componentInputParameter': 'pvc_name_input_2'
+                                        },
+                                        'mountPath': 'path'
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_component_upstream_input_one(self):
+        # checks that upstream task input parameters
+        # are supported
+        @dsl.pipeline
+        def my_pipeline():
+            t1 = comp()
+            t2 = comp_with_output()
+            kubernetes.mount_pvc(
+                t1,
+                pvc_name=t2.output,
+                mount_path='path',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'pvcMount': [{
+                                    'taskOutputParameter': {
+                                        'outputParameterKey': 'Output',
+                                        'producerTask': 'comp-with-output'
+                                    },
+                                    'pvcNameParameter': {
+                                        'taskOutputParameter': {
+                                            'outputParameterKey': 'Output',
+                                            'producerTask': 'comp-with-output'
+                                        }
+                                    },
+                                    'mountPath': 'path'
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_component_upstream_input_two(self):
+        # checks that multiple upstream task input
+        # parameters are supported
+        @dsl.pipeline
+        def my_pipeline():
+            t1 = comp()
+            t2 = comp_with_output()
+            t3 = comp_with_output()
+            t4 = comp_with_output()
+            kubernetes.mount_pvc(
+                t1,
+                pvc_name=t2.output,
+                mount_path='path1',
+            )
+            t5 = comp()
+            kubernetes.mount_pvc(
+                t5,
+                pvc_name=t3.output,
+                mount_path='path2',
+            )
+            kubernetes.mount_pvc(
+                t5,
+                pvc_name=t4.output,
+                mount_path='path3',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'pvcMount': [
+                                    {
+                                        'taskOutputParameter': {
+                                            'outputParameterKey': 'Output',
+                                            'producerTask': 'comp-with-output'
+                                        },
+                                        'pvcNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output'
+                                            }
+                                        },
+                                        'mountPath': 'path1'
+                                    },
+                                ]
+                            },
+                            'exec-comp-2': {
+                                'pvcMount': [
+                                    {
+                                        'taskOutputParameter': {
+                                            'outputParameterKey': 'Output',
+                                            'producerTask': 'comp-with-output-2'
+                                        },
+                                        'pvcNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-2'
+                                            }
+                                        },
+                                        'mountPath': 'path2'
+                                    },
+                                    {
+                                        'taskOutputParameter': {
+                                            'outputParameterKey': 'Output',
+                                            'producerTask': 'comp-with-output-3'
+                                        },
+                                        'pvcNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-3'
+                                            }
+                                        },
+                                        'mountPath': 'path3'
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 class TestGenericEphemeralVolume:
 
@@ -284,4 +508,8 @@ class TestGenericEphemeralVolume:
 
 @dsl.component
 def comp():
+    pass
+
+@dsl.component()
+def comp_with_output() -> str:
     pass

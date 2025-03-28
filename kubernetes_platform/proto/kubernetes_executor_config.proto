@@ -158,7 +158,7 @@ message ConfigMapAsVolume {
     optional bool optional = 3;
 
     // Name of the ConfigMap.
-    ml_pipelines.TaskInputsSpec.InputParameterSpec config_name_parameter = 4;
+    ml_pipelines.TaskInputsSpec.InputParameterSpec config_map_name_parameter = 4;
 }
 
 message ConfigMapAsEnv {
@@ -175,7 +175,7 @@ message ConfigMapAsEnv {
     repeated ConfigMapKeyToEnvMap key_to_env = 2;
 
     // Name of the ConfigMap.
-    ml_pipelines.TaskInputsSpec.InputParameterSpec config_name_parameter = 3;
+    ml_pipelines.TaskInputsSpec.InputParameterSpec config_map_name_parameter = 3;
 }
 
 message GenericEphemeralVolume {
