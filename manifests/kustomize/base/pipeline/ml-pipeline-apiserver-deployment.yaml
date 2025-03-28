@@ -20,6 +20,16 @@ spec:
           type: RuntimeDefault
       containers:
       - env:
+#        - name: HTTP_PROXY
+#          value: "http://10.96.125.1:3128"
+#        - name: HTTPS_PROXY
+#          value: "http://10.96.125.1:3128"
+#        - name: NO_PROXY
+#          value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,metadata-grpc-service,0,1,2,3,4,5,6,7,8,9"
+#        - name: V2_DRIVER_IMAGE
+#          value: "quay.io/hbelmiro/dsp-driver:dev-issue-11744-1742832986"
+#        - name: V2_LAUNCHER_IMAGE
+#          value: "quay.io/hbelmiro/dsp-launcher:dev-issue-11744-1742832984"
         - name: LOG_LEVEL
           value: "info"
         # Driver / launcher log level during pipeline execution
@@ -115,6 +125,7 @@ spec:
             secretKeyRef:
               name: mlpipeline-minio-artifact
               key: secretkey
+#        image: quay.io/hbelmiro/dsp-api-server:dev-issue-11744-1742997769
         image: ghcr.io/kubeflow/kfp-api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
@@ -123,45 +134,45 @@ spec:
           containerPort: 8888
         - name: grpc
           containerPort: 8887
-        readinessProbe:
-          exec:
-            command:
-              - wget
-              - -q # quiet
-              - -S # show server response
-              - -O
-              - "-" # Redirect output to stdout
-              - http://localhost:8888/apis/v1beta1/healthz
-          initialDelaySeconds: 3
-          periodSeconds: 5
-          timeoutSeconds: 2
-        livenessProbe:
-          exec:
-            command:
-              - wget
-              - -q # quiet
-              - -S # show server response
-              - -O
-              - "-" # Redirect output to stdout
-              - http://localhost:8888/apis/v1beta1/healthz
-          initialDelaySeconds: 3
-          periodSeconds: 5
-          timeoutSeconds: 2
+#        readinessProbe:
+#          exec:
+#            command:
+#              - wget
+#              - -q # quiet
+#              - -S # show server response
+#              - -O
+#              - "-" # Redirect output to stdout
+#              - http://localhost:8888/apis/v1beta1/healthz
+#          initialDelaySeconds: 3
+#          periodSeconds: 5
+#          timeoutSeconds: 2
+#        livenessProbe:
+#          exec:
+#            command:
+#              - wget
+#              - -q # quiet
+#              - -S # show server response
+#              - -O
+#              - "-" # Redirect output to stdout
+#              - http://localhost:8888/apis/v1beta1/healthz
+#          initialDelaySeconds: 3
+#          periodSeconds: 5
+#          timeoutSeconds: 2
         # This startup probe provides up to a 60 second grace window before the
         # liveness probe takes over to accomodate the occasional database
         # migration.
-        startupProbe:
-          exec:
-            command:
-              - wget
-              - -q # quiet
-              - -S # show server response
-              - -O
-              - "-" # Redirect output to stdout
-              - http://localhost:8888/apis/v1beta1/healthz
-          failureThreshold: 12
-          periodSeconds: 5
-          timeoutSeconds: 2
+#        startupProbe:
+#          exec:
+#            command:
+#              - wget
+#              - -q # quiet
+#              - -S # show server response
+#              - -O
+#              - "-" # Redirect output to stdout
+#              - http://localhost:8888/apis/v1beta1/healthz
+#          failureThreshold: 12
+#          periodSeconds: 5
+#          timeoutSeconds: 2
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true

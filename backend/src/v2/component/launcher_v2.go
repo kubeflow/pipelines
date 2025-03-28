@@ -178,24 +178,26 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	var outputArtifacts []*metadata.OutputArtifact
 	status := pb.Execution_FAILED
 	defer func() {
-		if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
-			if err != nil {
-				err = fmt.Errorf("failed to publish execution with error %s after execution failed: %s", perr.Error(), err.Error())
-			} else {
-				err = perr
+		if err == nil {
+			if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
+				if err != nil {
+					err = fmt.Errorf("failed to publish execution with error %s after execution failed: %s", perr.Error(), err.Error())
+				} else {
+					err = perr
+				}
 			}
-		}
-		glog.Infof("publish success.")
-		// At the end of the current task, we check the statuses of all tasks in
-		// the current DAG and update the DAG's status accordingly.
-		dag, err := l.metadataClient.GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
-		if err != nil {
-			glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
-		}
-		pipeline, _ := l.metadataClient.GetPipelineFromExecution(ctx, execution.GetID())
-		err = l.metadataClient.UpdateDAGExecutionsState(ctx, dag, pipeline)
-		if err != nil {
-			glog.Errorf("failed to update DAG state: %s", err.Error())
+			glog.Infof("publish success.")
+			// At the end of the current task, we check the statuses of all tasks in
+			// the current DAG and update the DAG's status accordingly.
+			dag, err := l.metadataClient.GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
+			if err != nil {
+				glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
+			}
+			pipeline, _ := l.metadataClient.GetPipelineFromExecution(ctx, execution.GetID())
+			err = l.metadataClient.UpdateDAGExecutionsState(ctx, dag, pipeline)
+			if err != nil {
+				glog.Errorf("failed to update DAG state: %s", err.Error())
+			}
 		}
 	}()
 	executedStartedTime := time.Now().Unix()

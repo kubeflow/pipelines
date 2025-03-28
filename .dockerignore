@@ -7,6 +7,7 @@ backend/Dockerfile
 backend/Dockerfile.cacheserver
 backend/Dockerfile.conformance
 backend/Dockerfile.driver
+backend/Dockerfile.driver.debug.kfp
 backend/Dockerfile.launcher
 backend/Dockerfile.persistenceagent
 backend/Dockerfile.scheduledworkflow

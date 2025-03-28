@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -43,7 +44,7 @@ type Options struct {
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
 
-func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
+func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options, proxyConfig proxy.ProxyConfig) (*wfapi.Workflow, error) {
 	// clone jobArg, because we don't want to change it
 	jobMsg := proto.Clone(jobArg)
 	job, ok := jobMsg.(*pipelinespec.PipelineJob)
@@ -126,17 +127,17 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf.Spec.SecurityContext = &k8score.PodSecurityContext{RunAsUser: runAsUser}
 	}
 
-	c := &workflowCompiler{
-		wf:        wf,
-		templates: make(map[string]*wfapi.Template),
-		// TODO(chensun): release process and update the images.
-		launcherImage: GetLauncherImage(),
-		driverImage:   GetDriverImage(),
-		driverCommand: GetDriverCommand(),
-		job:           job,
-		spec:          spec,
-		executors:     deploy.GetExecutors(),
-	}
+	c := newWorkflowCompiler(proxyConfig)
+	c.wf = wf
+	c.templates = make(map[string]*wfapi.Template)
+	// TODO(chensun): release process and update the images.
+	c.launcherImage = GetLauncherImage()
+	c.driverImage = GetDriverImage()
+	c.driverCommand = GetDriverCommand()
+	c.job = job
+	c.spec = spec
+	c.executors = deploy.GetExecutors()
+
 	if opts != nil {
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
@@ -171,6 +172,16 @@ type workflowCompiler struct {
 	driverImage   string
 	driverCommand []string
 	launcherImage string
+	proxyConfig   proxy.ProxyConfig
+}
+
+func newWorkflowCompiler(proxyConfig proxy.ProxyConfig) *workflowCompiler {
+	if proxyConfig == nil {
+		panic("proxyConfig cannot be nil")
+	}
+	return &workflowCompiler{
+		proxyConfig: proxyConfig,
+	}
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

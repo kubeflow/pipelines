@@ -26,6 +26,7 @@ import (
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -73,9 +74,11 @@ func main() {
 	}
 
 	clientManager := cm.NewClientManager()
+	proxyConfig := proxy.NewProxyConfigFromEnv()
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
+		proxyConfig,
 	)
 	err := config.LoadSamples(resourceManager, *sampleConfigPath)
 	if err != nil {
@@ -99,6 +102,9 @@ func main() {
 		log.Fatal("Invalid log level:", err)
 	}
 	log.SetLevel(level)
+
+	log.Infof("Proxy config: http_proxy: '%s', https_proxy: '%s', no_proxy: '%s'",
+		proxyConfig.GetHttpProxy(), proxyConfig.GetHttpsProxy(), proxyConfig.GetNoProxy())
 
 	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
 	defer backgroundCancel()

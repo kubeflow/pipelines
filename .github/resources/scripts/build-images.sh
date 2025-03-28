@@ -18,6 +18,7 @@
 # Remove the x if you need no print out of each command
 set -e
 
+SCRIPT_DIR="${BASH_SOURCE%/*}"
 REGISTRY="${REGISTRY:-kind-registry:5000}"
 echo "REGISTRY=$REGISTRY"
 TAG="${TAG:-latest}"
