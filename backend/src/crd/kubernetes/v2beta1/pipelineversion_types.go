@@ -225,6 +225,25 @@ func (in *PipelineIRSpec) DeepCopyInto(out *PipelineIRSpec) {
 	}
 }
 
+func (p *PipelineVersion) GetField(name string) interface{} {
+	switch name {
+	case "pipeline_versions.UUID":
+		return p.UID
+	case "pipeline_versions.pipeline_version_id":
+		return p.OwnerReferences[0].UID
+	case "pipeline_versions.Name":
+		return p.Name
+	case "pipeline_versions.CreatedAtInSec":
+		return p.CreationTimestamp
+	case "pipeline_versions.Description":
+		return p.Spec.Description
+	case "pipeline_versions.pipelineSpec":
+		return p.Spec.PipelineSpec
+	default:
+		return nil
+	}
+}
+
 func init() {
 	SchemeBuilder.Register(&PipelineVersion{}, &PipelineVersionList{})
 }
