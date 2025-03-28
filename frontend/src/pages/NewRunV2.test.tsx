@@ -568,6 +568,198 @@ describe('NewRunV2', () => {
     );
   });
 
+  describe('"Always Use Latest" checkbox functionality', () => {
+    it('should disable version selector and show status text when checked', async () => {
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Find and check the "Always Use Latest" checkbox
+      const alwaysUseLatestCheckbox = screen.getByLabelText(
+        'Always use the latest pipeline version',
+      );
+      fireEvent.click(alwaysUseLatestCheckbox);
+
+      // Verify version selector is disabled
+      expect(screen.getByText('Using latest pipeline version')).toBeInTheDocument();
+      // Verify choose button is disabled
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+    });
+
+    it('should clear version selection when checked', async () => {
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Verify version is initially set
+      await screen.findByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME);
+
+      // Find and check the "Always Use Latest" checkbox
+      const alwaysUseLatestCheckbox = screen.getByLabelText(
+        'Always use the latest pipeline version',
+      );
+      fireEvent.click(alwaysUseLatestCheckbox);
+
+      // Verify version selection is cleared
+      const versionSelectorInput = screen.getByText('Using latest pipeline version');
+      expect(versionSelectorInput).toBeInTheDocument();
+      expect(
+        screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should submit correct payload with only pipeline_id when checked', async () => {
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
+      createRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RUN_DETAILS);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Find and check the "Always Use Latest" checkbox
+      const alwaysUseLatestCheckbox = screen.getByLabelText(
+        'Always use the latest pipeline version',
+      );
+      fireEvent.click(alwaysUseLatestCheckbox);
+
+      // Click start button
+      const startButton = await screen.findByText('Start');
+      fireEvent.click(startButton);
+
+      // Verify API call contains only pipeline_id
+      await waitFor(() => {
+        expect(createRunSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pipeline_version_reference: {
+              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+            },
+          }),
+        );
+      });
+
+      // Verify API call does not contain pipeline_version_id
+      await waitFor(() => {
+        expect(createRunSpy).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            pipeline_version_reference: expect.objectContaining({
+              pipeline_version_id: expect.anything(),
+            }),
+          }),
+        );
+      });
+    });
+
+    it('should submit full version info when unchecked', async () => {
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
+      createRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RUN_DETAILS);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Ensure checkbox remains unchecked
+      const alwaysUseLatestCheckbox = screen.getByLabelText(
+        'Always use the latest pipeline version',
+      );
+      expect(alwaysUseLatestCheckbox).not.toBeChecked();
+
+      // Click start button
+      const startButton = await screen.findByText('Start');
+      fireEvent.click(startButton);
+
+      // Verify API call contains both pipeline_id and pipeline_version_id
+      await waitFor(() => {
+        expect(createRunSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pipeline_version_reference: {
+              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+              pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+            },
+          }),
+        );
+      });
+    });
+  });
+
   describe('starting a new run', () => {
     it('disable start button if no run name (start a new run)', async () => {
       const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
@@ -644,632 +836,6 @@ describe('NewRunV2', () => {
             service_account: '',
           }),
         );
-      });
-    });
-  });
-
-  describe('choose a pipeline', () => {
-    it('sets the pipeline from the selector modal when confirmed', async () => {
-      const listPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
-      listPipelineSpy.mockImplementation(() => {
-        const response: V2beta1ListPipelinesResponse = {
-          pipelines: [ORIGINAL_TEST_PIPELINE, NEW_TEST_PIPELINE],
-          total_size: 2,
-        };
-        return response;
-      });
-      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-      getPipelineSpy.mockImplementation(() => NEW_TEST_PIPELINE);
-
-      const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
-      listPipelineVersionsSpy.mockImplementation(() => {
-        const response: V2beta1ListPipelinesResponse = {
-          pipeline_versions: [NEW_TEST_PIPELINE_VERSION],
-          total_size: 1,
-        };
-        return response;
-      });
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            namespace='test-ns'
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const choosePipelineButton = screen.getAllByText('Choose')[0];
-      fireEvent.click(choosePipelineButton);
-
-      const expectedPipeline = await screen.findByText(NEW_TEST_PIPELINE_NAME);
-      fireEvent.click(expectedPipeline);
-
-      await waitFor(() => {
-        expect(getPipelineSpy).toHaveBeenCalled();
-      });
-
-      const usePipelineButton = screen.getByText('Use this pipeline');
-      fireEvent.click(usePipelineButton);
-
-      // After pipeline is selected, listPipelineVersions will be called to
-      // retrieve the latest version.
-      await waitFor(() => {
-        expect(listPipelineVersionsSpy).toHaveBeenCalledWith(
-          NEW_TEST_PIPELINE_ID,
-          undefined,
-          1,
-          'created_at desc',
-        );
-      });
-
-      screen.getByDisplayValue(NEW_TEST_PIPELINE_NAME);
-
-      const chooseVersionBtn = screen.getAllByText('Choose')[1];
-      // choose button for pipeline version is enabled after pipeline is selected
-      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
-    });
-  });
-
-  describe('choose a pipeline version', () => {
-    it('sets the pipeline version from the selector modal when confirmed', async () => {
-      const listPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
-      listPipelineVersionSpy.mockImplementation(() => {
-        const response: V2beta1ListPipelineVersionsResponse = {
-          pipeline_versions: [ORIGINAL_TEST_PIPELINE_VERSION, OTHER_TEST_PIPELINE_VERSION],
-          total_size: 2,
-        };
-        return response;
-      });
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-      getPipelineVersionSpy.mockImplementation(() => OTHER_TEST_PIPELINE_VERSION);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            namespace='test-ns'
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const choosePipelineVersionBtn = screen.getAllByText('Choose')[1];
-      fireEvent.click(choosePipelineVersionBtn);
-
-      const expectedPipelineVersion = await screen.findByText(OTHER_TEST_PIPELINE_VERSION_NAME);
-      fireEvent.click(expectedPipelineVersion);
-
-      await waitFor(() => {
-        expect(getPipelineVersionSpy).toHaveBeenCalled();
-      });
-
-      const usePipelineVersionBtn = screen.getByText('Use this pipeline version');
-      fireEvent.click(usePipelineVersionBtn);
-
-      screen.getByDisplayValue(OTHER_TEST_PIPELINE_VERSION_NAME);
-    });
-  });
-
-  describe('choose an experiment', () => {
-    it('lists available experiments by namespace if available', async () => {
-      const listExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
-      listExperimentSpy.mockImplementation(() => {
-        const response: V2beta1ListPipelinesResponse = {
-          experiments: [DEFAULT_EXPERIMENT, NEW_EXPERIMENT],
-          total_size: 2,
-        };
-        return response;
-      });
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            namespace='test-ns'
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const chooseExperimentButton = screen.getAllByText('Choose')[2];
-      fireEvent.click(chooseExperimentButton);
-
-      await waitFor(() => {
-        expect(listExperimentSpy).toHaveBeenCalledWith(
-          '',
-          10,
-          'created_at desc',
-          encodeURIComponent(
-            JSON.stringify({
-              predicates: [
-                {
-                  key: 'storage_state',
-                  operation: V2beta1PredicateOperation.NOTEQUALS,
-                  string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
-                },
-              ],
-            } as V2beta1Filter),
-          ),
-          'test-ns',
-        );
-      });
-    });
-
-    it('sets the experiment from the selector modal when confirmed', async () => {
-      const listExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
-      listExperimentSpy.mockImplementation(() => {
-        const response: V2beta1ListExperimentsResponse = {
-          experiments: [DEFAULT_EXPERIMENT, NEW_EXPERIMENT],
-          total_size: 2,
-        };
-        return response;
-      });
-      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-      getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const chooseExperimentButton = screen.getAllByText('Choose')[2];
-      fireEvent.click(chooseExperimentButton);
-
-      const expectedExperiment = await screen.findByText('new-experiment');
-      fireEvent.click(expectedExperiment);
-
-      await waitFor(() => {
-        expect(getExperimentSpy).toHaveBeenCalled();
-      });
-
-      const useExperimentButton = screen.getByText('Use this experiment');
-      fireEvent.click(useExperimentButton);
-
-      screen.getByDisplayValue('new-experiment');
-    });
-  });
-
-  describe('creating a recurring run', () => {
-    it('submits a new recurring run', async () => {
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
-      createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const recurringSwitcher = screen.getByLabelText('Recurring');
-      fireEvent.click(recurringSwitcher);
-      screen.getByText('Run trigger');
-
-      const startButton = await screen.findByText('Start');
-      // Because start button is set false by default
-      await waitFor(() => {
-        expect(startButton.closest('button')?.disabled).toEqual(false);
-      });
-      fireEvent.click(startButton);
-
-      await waitFor(() => {
-        expect(createRecurringRunSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            max_concurrency: '10',
-            mode: RecurringRunMode.ENABLE,
-            trigger: {
-              periodic_schedule: {
-                interval_second: '3600',
-              },
-            },
-          }),
-        );
-      });
-
-      await waitFor(() => {
-        expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-          message: 'Successfully started new recurring Run: Run of v2-xgboost-ilbo',
-          open: true,
-        });
-      });
-    });
-
-    it('enables to change the trigger parameters.', async () => {
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const recurringSwitcher = screen.getByLabelText('Recurring');
-      fireEvent.click(recurringSwitcher);
-
-      const maxConcurrenyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrenyParam, { target: { value: '5' } });
-
-      const timeCountParam = screen.getByDisplayValue('1');
-      fireEvent.change(timeCountParam, { target: { value: '5' } });
-
-      const timeUnitDropdown = screen.getAllByText('Hours')[0];
-      fireEvent.click(timeUnitDropdown);
-      const minutesItem = await screen.findByText('Minutes');
-      fireEvent.click(minutesItem);
-
-      const startButton = await screen.findByText('Start');
-      // Because start button is set false by default
-      await waitFor(() => {
-        expect(startButton.closest('button')?.disabled).toEqual(false);
-      });
-      fireEvent.click(startButton);
-
-      await waitFor(() => {
-        expect(createRecurringRunSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            max_concurrency: '5',
-            mode: RecurringRunMode.ENABLE,
-            trigger: {
-              periodic_schedule: {
-                interval_second: '300',
-              },
-            },
-          }),
-        );
-      });
-    });
-
-    it('disables the start button if max concurrent run is invalid input (non-integer)', async () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const recurringSwitcher = screen.getByLabelText('Recurring');
-      fireEvent.click(recurringSwitcher);
-
-      const maxConcurrenyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrenyParam, { target: { value: '10a' } });
-
-      const startButton = await screen.findByText('Start');
-      expect(startButton.closest('button')?.disabled).toEqual(true);
-    });
-
-    it('disables the start button if max concurrent run is invalid input (negative integer)', async () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsNewRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={DEFAULT_EXPERIMENT}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const recurringSwitcher = screen.getByLabelText('Recurring');
-      fireEvent.click(recurringSwitcher);
-
-      const maxConcurrenyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrenyParam, { target: { value: '-10' } });
-
-      const startButton = await screen.findByText('Start');
-      expect(startButton.closest('button')?.disabled).toEqual(true);
-    });
-  });
-
-  describe('cloning an existing run', () => {
-    it('only shows clone run name from original run', () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={TEST_RUN_ID}
-            existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
-      screen.findByDisplayValue(`Clone of ${API_UI_CREATED_NEW_RUN_DETAILS.display_name}`);
-    });
-
-    it('submits a run (clone UI-created run)', async () => {
-      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
-      createRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RUN_DETAILS);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={TEST_RUN_ID}
-            existingRun={API_UI_CREATED_NEW_RUN_DETAILS}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const startButton = await screen.findByText('Start');
-      // Because start button is set false by default
-      await waitFor(() => {
-        expect(startButton.closest('button')?.disabled).toEqual(false);
-      });
-      fireEvent.click(startButton);
-
-      await waitFor(() => {
-        expect(createRunSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            description: '',
-            display_name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_version_reference: {
-              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-              pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-            },
-            runtime_config: {
-              parameters: { intParam: 123 },
-              pipeline_root: 'gs://dummy_pipeline_root',
-            },
-            service_account: '',
-          }),
-        );
-      });
-    });
-
-    it('submits a run (clone SDK-created run)', async () => {
-      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
-      createRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RUN_DETAILS);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={TEST_RUN_ID}
-            existingRun={API_SDK_CREATED_NEW_RUN_DETAILS}
-            existingRecurringRunId={null}
-            existingRecurringRun={undefined}
-            existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const startButton = await screen.findByText('Start');
-      // Because start button is set false by default
-      await waitFor(() => {
-        expect(startButton.closest('button')?.disabled).toEqual(false);
-      });
-      fireEvent.click(startButton);
-
-      await waitFor(() => {
-        expect(createRunSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            description: '',
-            display_name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-            runtime_config: {
-              parameters: { intParam: 123 },
-              pipeline_root: 'gs://dummy_pipeline_root',
-            },
-            service_account: '',
-          }),
-        );
-      });
-    });
-  });
-
-  describe('clone an existing recurring run', () => {
-    it('submits a recurring run with same runtimeConfig and trigger from clone UI-created recurring run', async () => {
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
-      createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RECURRING_RUN_DETAILS);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={TEST_RECURRING_RUN_ID}
-            existingRecurringRun={API_UI_CREATED_NEW_RECURRING_RUN_DETAILS}
-            existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const startButton = await screen.findByText('Start');
-      // Because start button is set false by default
-      await waitFor(() => {
-        expect(startButton.closest('button')?.disabled).toEqual(false);
-      });
-      fireEvent.click(startButton);
-
-      await waitFor(() => {
-        expect(createRecurringRunSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            description: '',
-            display_name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_version_reference: {
-              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-              pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-            },
-            runtime_config: {
-              parameters: { intParam: 123 },
-              pipeline_root: 'gs://dummy_pipeline_root',
-            },
-            trigger: {
-              periodic_schedule: { interval_second: '3600' },
-            },
-            max_concurrency: '10',
-          }),
-        );
-      });
-
-      await waitFor(() => {
-        expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-          message: 'Successfully started new recurring Run: Clone of Run of v2-xgboost-ilbo',
-          open: true,
-        });
-      });
-    });
-
-    it('submits a recurring run with same runtimeConfig and trigger from clone SDK-created recurring run', async () => {
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
-      createRecurringRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RECURRING_RUN_DETAILS);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunV2
-            {...generatePropsClonedRun()}
-            existingRunId={null}
-            existingRun={undefined}
-            existingRecurringRunId={TEST_RECURRING_RUN_ID}
-            existingRecurringRun={API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS}
-            existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
-            existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
-            templateString={v2XGYamlTemplateString}
-            chosenExperiment={undefined}
-          />
-        </CommonTestWrapper>,
-      );
-
-      const startButton = await screen.findByText('Start');
-      // Because start button is set false by default
-      await waitFor(() => {
-        expect(startButton.closest('button')?.disabled).toEqual(false);
-      });
-      fireEvent.click(startButton);
-
-      await waitFor(() => {
-        expect(createRecurringRunSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            description: '',
-            display_name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-            runtime_config: {
-              parameters: { intParam: 123 },
-              pipeline_root: 'gs://dummy_pipeline_root',
-            },
-            trigger: {
-              periodic_schedule: { interval_second: '3600' },
-            },
-            max_concurrency: '10',
-          }),
-        );
-      });
-
-      await waitFor(() => {
-        expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-          message: 'Successfully started new recurring Run: Clone of Run of v2-xgboost-ilbo',
-          open: true,
-        });
       });
     });
   });
