@@ -13,14 +13,14 @@ vars:
 # NOTE: var name must be unique globally to allow composition of multiple kustomize
 # packages. Therefore, we added prefix `kfp-cluster-scoped-` to distinguish it from
 # others.
-- name: kfp-cluster-scoped-namespace
+- fieldref:
+    fieldPath: metadata.namespace
+  name: kfp-cluster-scoped-namespace
   objref:
     # cache deployer sa's metadata.namespace will be first transformed by namespace field in kustomization.yaml
     # so that we only need to change kustomization.yaml's namespace field for namespace customization.
+    apiVersion: v1
     kind: ServiceAccount
     name: kubeflow-pipelines-cache-deployer-sa
-    apiVersion: v1
-  fieldref:
-    fieldpath: metadata.namespace
 configurations:
 - params.yaml
