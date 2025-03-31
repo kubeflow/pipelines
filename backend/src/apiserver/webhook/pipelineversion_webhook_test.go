@@ -18,11 +18,13 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	k8sfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -36,6 +38,7 @@ func setupPipelineWebhookTest(t *testing.T) (*PipelineVersionsWebhook, string) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-pipeline",
 				Namespace: "default",
+				UID:       uuid.NewUUID(),
 			},
 		}).Build()
 
@@ -206,4 +209,39 @@ func TestPipelineVersionWebhook_ValidateUpdate_MetadataChangeAllowed(t *testing.
 
 	_, err := pipelineWebhook.ValidateUpdate(context.TODO(), oldPipelineVersion, newPipelineVersion)
 	assert.NoError(t, err, "Expected no error for metadata-only change")
+}
+
+func TestPipelineVersionWebhook_MutatingUpdate_FixesOwnersRef(t *testing.T) {
+	pipelineWebhook, validPipelineSpecJSON := setupPipelineWebhookTest(t)
+	badUID := uuid.NewUUID()
+
+	pipelineVersion := &k8sapi.PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "test-pipeline-v1",
+			Namespace:  "default",
+			Generation: 1,
+			Labels:     map[string]string{"version": "v2"},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: v2beta1.GroupVersion.String(),
+					Kind:       "Pipeline",
+					Name:       "test-pipeline2",
+					UID:        badUID,
+				},
+			},
+		},
+		Spec: k8sapi.PipelineVersionSpec{
+			PipelineName: "test-pipeline",
+			PipelineSpec: k8sapi.PipelineIRSpec{
+				Value: json.RawMessage(validPipelineSpecJSON),
+			},
+		},
+	}
+
+	err := pipelineWebhook.Default(context.TODO(), pipelineVersion)
+	require.NoError(t, err, "Expected no error for fixing the owner's reference")
+	require.Len(t, pipelineVersion.OwnerReferences, 1)
+	require.NotEqual(t, pipelineVersion.OwnerReferences[0].UID, badUID)
+	require.Equal(t, pipelineVersion.OwnerReferences[0].Name, "test-pipeline")
+	require.True(t, *pipelineVersion.OwnerReferences[0].BlockOwnerDeletion)
 }

@@ -119,14 +119,81 @@ func (p *PipelineVersionsWebhook) ValidateDelete(_ context.Context, _ runtime.Ob
 	return nil, nil
 }
 
-func NewPipelineVersionWebhook(client ctrlclient.Client) (http.Handler, error) {
+func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Object) error {
+	pipelineVersion, ok := obj.(*k8sapi.PipelineVersion)
+	if !ok {
+		return &apierrors.StatusError{
+			ErrStatus: metav1.Status{
+				Code:    http.StatusBadRequest,
+				Reason:  metav1.StatusReasonBadRequest,
+				Message: fmt.Sprintf("expected a PipelineVersion object but got %T", pipelineVersion),
+			},
+		}
+	}
+
+	pipeline := &k8sapi.Pipeline{}
+	nsName := types.NamespacedName{Namespace: pipelineVersion.Namespace, Name: pipelineVersion.Spec.PipelineName}
+
+	err := p.Client.Get(ctx, nsName, pipeline)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
+		}
+
+		return err
+	}
+
+	if pipelineVersion.Labels == nil {
+		pipelineVersion.Labels = map[string]string{}
+	}
+
+	// Labels for efficient querying
+	pipelineVersion.Labels["pipelines.kubeflow.org/pipeline-id"] = string(pipeline.UID)
+	pipelineVersion.Labels["pipelines.kubeflow.org/pipeline"] = pipeline.Name
+
+	trueVal := true
+
+	for i := range pipelineVersion.OwnerReferences {
+		ownerRef := &pipelineVersion.OwnerReferences[i]
+		if ownerRef.APIVersion != k8sapi.GroupVersion.String() || ownerRef.Kind != "Pipeline" {
+			continue
+		}
+
+		ownerRef.Name = pipeline.Name
+		ownerRef.BlockOwnerDeletion = &trueVal
+		ownerRef.UID = pipeline.UID
+
+		return nil
+	}
+
+	pipelineVersion.OwnerReferences = append(pipelineVersion.OwnerReferences, metav1.OwnerReference{
+		APIVersion:         k8sapi.GroupVersion.String(),
+		Kind:               "Pipeline",
+		Name:               pipeline.Name,
+		BlockOwnerDeletion: &trueVal,
+		UID:                pipeline.UID,
+	})
+
+	return nil
+}
+
+// NewPipelineVersionWebhook returns the validating webhook and mutating webhook HTTP handlers
+func NewPipelineVersionWebhook(client ctrlclient.Client) (http.Handler, http.Handler, error) {
 	validating, err := ctrladmission.StandaloneWebhook(
 		ctrladmission.WithCustomValidator(scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client}),
 		ctrladmission.StandaloneOptions{},
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return validating, nil
+	mutating, err := ctrladmission.StandaloneWebhook(
+		ctrladmission.WithCustomDefaulter(scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client}),
+		ctrladmission.StandaloneOptions{},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return validating, mutating, nil
 }

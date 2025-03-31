@@ -19,6 +19,7 @@ spec:
             - "-logtostderr=true"
             - "--webhookTLSCertPath=/etc/webhook/certs/tls.crt"
             - "--webhookTLSKeyPath=/etc/webhook/certs/tls.key"
+            - "--pipelinesStoreKubernetes=true"
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
