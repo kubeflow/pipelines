@@ -20,16 +20,19 @@ from pprint import pprint
 from typing import List
 import unittest
 
+import collected_parameters
 import component_with_optional_inputs
 import hello_world
 import kfp
 from kfp.dsl.graph_component import GraphComponent
+from modelcar import modelcar
+import parallel_after_dependency
+import parallel_consume_upstream
 import pipeline_container_no_input
 import pipeline_with_env
+import pipeline_with_placeholders
 import producer_consumer_param
 import subdagio
-import parallel_consume_upstream
-import parallel_after_dependency
 import two_step_pipeline_containerized
 import pipeline_with_placeholders
 import pipeline_with_secret_as_volume
@@ -157,10 +160,15 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=subdagio.artifact.crust),
             TestCase(
                 pipeline_func=subdagio.multiple_artifacts_namedtuple.crust),
-            TestCase(pipeline_func=pipeline_with_placeholders.pipeline_with_placeholders),
+            TestCase(pipeline_func=pipeline_with_placeholders
+                     .pipeline_with_placeholders),
             TestCase(pipeline_func=modelcar.pipeline_modelcar_test),
-            TestCase(pipeline_func=parallel_consume_upstream.loop_consume_upstream),
-            TestCase(pipeline_func=parallel_after_dependency.loop_with_after_dependency_set),
+            TestCase(
+                pipeline_func=parallel_consume_upstream.loop_consume_upstream),
+            TestCase(pipeline_func=parallel_after_dependency
+                     .loop_with_after_dependency_set),
+            TestCase(
+                pipeline_func=collected_parameters.collected_param_pipeline),
         ]
 
         with ThreadPoolExecutor() as executor:
