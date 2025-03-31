@@ -463,9 +463,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 		args        args
 		wantPath    string
 		wantName    string
-		wantErr     bool
 		inputParams map[string]*structpb.Value
-		errMsg      string
 	}{
 		{
 			"pvc name: constant (deprecated)",
@@ -481,9 +479,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			},
 			"/mnt/path",
 			"pvc-name",
-			false,
 			nil,
-			"",
 		},
 		{
 			"pvc name: constant parameter",
@@ -500,9 +496,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			},
 			"/mnt/path",
 			"pvc-name",
-			false,
 			nil,
-			"",
 		},
 		{
 			"pvc name: component input parameter",
@@ -518,11 +512,9 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			},
 			"/mnt/path",
 			"pvc-name",
-			false,
 			map[string]*structpb.Value{
 				"param_1": structpb.NewStringValue("pvc-name"),
 			},
-			"",
 		},
 	}
 
@@ -537,20 +529,13 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 				nil,
 				tt.inputParams,
 			)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-				assert.Nil(t, volumeMounts)
-				assert.Nil(t, volumes)
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.Nil(t, err)
-				assert.Equal(t, 1, len(volumeMounts))
-				assert.Equal(t, 1, len(volumes))
-				assert.Equal(t, volumeMounts[0].MountPath, tt.wantPath)
-				assert.Equal(t, volumeMounts[0].Name, tt.wantName)
-				assert.Equal(t, volumes[0].Name, tt.wantName)
-				assert.Equal(t, volumes[0].PersistentVolumeClaim.ClaimName, tt.wantName)
-			}
+			assert.Nil(t, err)
+			assert.Equal(t, 1, len(volumeMounts))
+			assert.Equal(t, 1, len(volumes))
+			assert.Equal(t, volumeMounts[0].MountPath, tt.wantPath)
+			assert.Equal(t, volumeMounts[0].Name, tt.wantName)
+			assert.Equal(t, volumes[0].Name, tt.wantName)
+			assert.Equal(t, volumes[0].PersistentVolumeClaim.ClaimName, tt.wantName)
 		})
 	}
 }
@@ -1071,9 +1056,9 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 								Name: "SECRET_VAR",
 								ValueFrom: &k8score.EnvVarSource{
 									SecretKeyRef: &k8score.SecretKeySelector{
-										k8score.LocalObjectReference{Name: "my-secret"},
-										"password",
-										nil,
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-secret"},
+										Key:                  "password",
+										Optional:             nil,
 									},
 								},
 							},
@@ -1115,9 +1100,9 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 								Name: "SECRET_VAR",
 								ValueFrom: &k8score.EnvVarSource{
 									SecretKeyRef: &k8score.SecretKeySelector{
-										k8score.LocalObjectReference{Name: "my-secret"},
-										"password",
-										nil,
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-secret"},
+										Key:                  "password",
+										Optional:             nil,
 									},
 								},
 							},
@@ -1158,9 +1143,9 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 								Name: "SECRET_VAR",
 								ValueFrom: &k8score.EnvVarSource{
 									SecretKeyRef: &k8score.SecretKeySelector{
-										k8score.LocalObjectReference{Name: "secret-name"},
-										"password",
-										nil,
+										LocalObjectReference: k8score.LocalObjectReference{Name: "secret-name"},
+										Key:                  "password",
+										Optional:             nil,
 									},
 								},
 							},
@@ -1472,9 +1457,9 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 								Name: "CONFIG_MAP_VAR",
 								ValueFrom: &k8score.EnvVarSource{
 									ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
-										k8score.LocalObjectReference{Name: "my-cm"},
-										"foo",
-										nil,
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-cm"},
+										Key:                  "foo",
+										Optional:             nil,
 									},
 								},
 							},
@@ -1516,9 +1501,9 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 								Name: "CONFIG_MAP_VAR",
 								ValueFrom: &k8score.EnvVarSource{
 									ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
-										k8score.LocalObjectReference{Name: "my-cm"},
-										"foo",
-										nil,
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-cm"},
+										Key:                  "foo",
+										Optional:             nil,
 									},
 								},
 							},
@@ -1560,9 +1545,9 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 								Name: "CONFIG_MAP_VAR",
 								ValueFrom: &k8score.EnvVarSource{
 									ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
-										k8score.LocalObjectReference{Name: "cm-name"},
-										"foo",
-										nil,
+										LocalObjectReference: k8score.LocalObjectReference{Name: "cm-name"},
+										Key:                  "foo",
+										Optional:             nil,
 									},
 								},
 							},
@@ -2173,9 +2158,9 @@ func Test_extendPodSpecPatch_FieldPathAsEnv(t *testing.T) {
 								Name: "SECRET_VAR",
 								ValueFrom: &k8score.EnvVarSource{
 									SecretKeyRef: &k8score.SecretKeySelector{
-										k8score.LocalObjectReference{Name: "my-secret"},
-										"password",
-										nil,
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-secret"},
+										Key:                  "password",
+										Optional:             nil,
 									},
 								},
 							},
