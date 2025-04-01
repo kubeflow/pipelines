@@ -8,7 +8,7 @@ jobs:
   rerun_pr_tests:
     name: rerun_pr_tests
     if: ${{ github.event.issue.pull_request }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - uses: hbelmiro/rerun-actions@01c46bec8d69a84b217e3deb104ef24994c2beee # https://github.com/hbelmiro/rerun-actions/releases/tag/v0.4.0
       with:
