@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kfp-api-webhook-cert
+spec:
+  commonName: kfp-api-webhook-cert
+  isCA: true
+  dnsNames:
+  - ml-pipeline
+  - ml-pipeline.$(kfp-namespace)
+  - ml-pipeline.$(kfp-namespace).svc
+  issuerRef:
+    kind: Issuer
+    name: kfp-api-webhook-selfsigned-issuer
+  secretName: kfp-api-webhook-cert
