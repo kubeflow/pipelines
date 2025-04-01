@@ -17,10 +17,6 @@ on:
       - 'test/**'
 
 jobs:
-  build-kfp-images:
-    name: Build KFP Images
-    uses: ./.github/workflows/build-images.yml
-
 
   initialization-tests-v1:
     needs: build-kfp-images
@@ -32,6 +28,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Build KFP images
+        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -76,6 +75,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build KFP images
+        uses: ./.github/actions/build-images
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -118,6 +120,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Build KFP images
+        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -165,6 +170,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build KFP images
+        uses: ./.github/actions/build-images
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -207,6 +215,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Build KFP images
+        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -257,6 +268,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Build KFP images
+        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
