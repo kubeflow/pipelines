@@ -19,7 +19,8 @@ on:
 jobs:
   build-kfp-images:
     name: Build KFP Images
-    uses: ./.github/actions/build-images
+    uses: ./.github/workflows/build-images.yml
+
 
   initialization-tests-v1:
     needs: build-kfp-images
