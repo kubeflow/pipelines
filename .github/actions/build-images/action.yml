@@ -1,0 +1,14 @@
+name: Build KFP Images
+
+on:
+  workflow_call:
+
+jobs:
+  build-kfp-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build images
+        run: ./.github/resources/scripts/build-images.sh

@@ -17,10 +17,6 @@ runs:
         version: v0.25.0
         node_image: kindest/node:${{ inputs.k8s_version }}
 
-    - name: Build images
-      shell: bash
-      run: ./.github/resources/scripts/build-images.sh
-
     - name: Deploy KFP
       shell: bash
       run: ./.github/resources/scripts/deploy-kfp.sh
