@@ -214,8 +214,11 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Resources: driverResources,
 			Env: []k8score.EnvVar{
 				{Name: "http_proxy", Value: c.proxyConfig.GetHttpProxy()},
+				{Name: "HTTP_PROXY", Value: c.proxyConfig.GetHttpProxy()},
 				{Name: "https_proxy", Value: c.proxyConfig.GetHttpsProxy()},
+				{Name: "HTTPS_PROXY", Value: c.proxyConfig.GetHttpsProxy()},
 				{Name: "no_proxy", Value: c.proxyConfig.GetNoProxy()},
+				{Name: "NO_PROXY", Value: c.proxyConfig.GetNoProxy()},
 			},
 		},
 	}

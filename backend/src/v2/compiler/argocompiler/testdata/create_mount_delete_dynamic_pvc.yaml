@@ -43,9 +43,15 @@ spec:
       env:
         - name: http_proxy
           value: ''
+        - name: HTTP_PROXY
+          value: ''
         - name: https_proxy
           value: ''
+        - name: HTTPS_PROXY
+          value: ''
         - name: no_proxy
+          value: ''
+        - name: NO_PROXY
           value: ''
       args:
       - --type
@@ -297,9 +303,15 @@ spec:
       env:
         - name: http_proxy
           value: ''
+        - name: HTTP_PROXY
+          value: ''
         - name: https_proxy
           value: ''
+        - name: HTTPS_PROXY
+          value: ''
         - name: no_proxy
+          value: ''
+        - name: NO_PROXY
           value: ''
       args:
       - --type
