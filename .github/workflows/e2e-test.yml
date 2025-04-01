@@ -19,7 +19,6 @@ on:
 jobs:
 
   initialization-tests-v1:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -65,7 +64,6 @@ jobs:
           path: /tmp/tmp*/*
 
   initialization-tests-v2:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -111,7 +109,6 @@ jobs:
           path: /tmp/tmp*/*
 
   api-integration-tests-v1:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -160,7 +157,6 @@ jobs:
           path: /tmp/tmp*/*
 
   api-integration-tests-v2:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -206,7 +202,6 @@ jobs:
           path: /tmp/tmp*/*
 
   frontend-integration-test:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -259,7 +254,6 @@ jobs:
           path: /tmp/tmp*/*
       
   basic-sample-tests:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
