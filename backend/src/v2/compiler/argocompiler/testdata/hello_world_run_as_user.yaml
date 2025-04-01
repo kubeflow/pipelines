@@ -28,6 +28,13 @@ spec:
     runAsUser: 1001
   templates:
   - container:
+      env:
+        - name: http_proxy
+          value: ''
+        - name: https_proxy
+          value: ''
+        - name: no_proxy
+          value: ''
       args:
       - --type
       - CONTAINER
@@ -222,6 +229,13 @@ spec:
     name: root
     outputs: {}
   - container:
+      env:
+        - name: http_proxy
+          value: ''
+        - name: https_proxy
+          value: ''
+        - name: no_proxy
+          value: ''
       args:
       - --type
       - '{{inputs.parameters.driver-type}}'
