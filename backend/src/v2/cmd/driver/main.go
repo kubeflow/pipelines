@@ -111,13 +111,13 @@ func validate() error {
 		return fmt.Errorf("argument --%s must be specified", driverTypeArg)
 	}
 	if *httpProxy == unsetProxyArgValue {
-		return fmt.Errorf("argument --%s must be specified", httpProxyArg)
+		return fmt.Errorf("argument --%s is required but can be an empty value", httpProxyArg)
 	}
 	if *httpsProxy == unsetProxyArgValue {
-		return fmt.Errorf("argument --%s must be specified", httpsProxyArg)
+		return fmt.Errorf("argument --%s is required but can be an empty value", httpsProxyArg)
 	}
 	if *noProxy == unsetProxyArgValue {
-		return fmt.Errorf("argument --%s must be specified", noProxyArg)
+		return fmt.Errorf("argument --%s is required but can be an empty value", noProxyArg)
 	}
 	// validation responsibility lives in driver itself, so we do not validate all other args
 	return nil
