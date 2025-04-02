@@ -4,7 +4,7 @@
   "dependencies": {
     "@aws-sdk/credential-providers": "^3.621.0",
     "@google-cloud/storage": "^2.5.0",
-    "@kubernetes/client-node": "^0.12.1",
+    "@kubernetes/client-node": "^1.1.0",
     "axios": ">=1.8.2",
     "crypto-js": "^3.1.8",
     "express": "^4.21.0",
