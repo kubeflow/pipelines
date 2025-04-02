@@ -17,6 +17,7 @@ package driver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -50,6 +51,8 @@ var dummyImages = map[string]string{
 	"argostub/createpvc": "create PVC",
 	"argostub/deletepvc": "delete PVC",
 }
+
+var ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
 
 // TODO(capri-xiyue): Move driver to component package
 // Driver options
@@ -179,6 +182,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	if err != nil {
 		return nil, err
 	}
+
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: &pipelinespec.ExecutorInput_Inputs{
 			ParameterValues: opts.RuntimeConfig.GetParameterValues(),
@@ -784,7 +788,7 @@ func extendPodSpecPatch(
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
 		var secretName string
 		if secretAsVolume.SecretNameParameter != nil {
-			resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 				secretAsVolume.SecretNameParameter, inputParams)
 			if err != nil {
 				return fmt.Errorf("failed to resolve secret name: %w", err)
@@ -828,7 +832,7 @@ func extendPodSpecPatch(
 
 			var secretName string
 			if secretAsEnv.SecretNameParameter != nil {
-				resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+				resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 					secretAsEnv.SecretNameParameter, inputParams)
 				if err != nil {
 					return fmt.Errorf("failed to resolve secret name: %w", err)
@@ -850,7 +854,7 @@ func extendPodSpecPatch(
 	for _, configMapAsVolume := range kubernetesExecutorConfig.GetConfigMapAsVolume() {
 		var configMapName string
 		if configMapAsVolume.ConfigMapNameParameter != nil {
-			resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 				configMapAsVolume.ConfigMapNameParameter, inputParams)
 			if err != nil {
 				return fmt.Errorf("failed to resolve configmap name: %w", err)
@@ -896,7 +900,7 @@ func extendPodSpecPatch(
 
 			var configMapName string
 			if configMapAsEnv.ConfigMapNameParameter != nil {
-				resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+				resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 					configMapAsEnv.ConfigMapNameParameter, inputParams)
 				if err != nil {
 					return fmt.Errorf("failed to resolve configmap name: %w", err)
@@ -918,7 +922,7 @@ func extendPodSpecPatch(
 	for _, imagePullSecret := range kubernetesExecutorConfig.GetImagePullSecret() {
 		var secretName string
 		if imagePullSecret.SecretNameParameter != nil {
-			resolvedSecretName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 				imagePullSecret.SecretNameParameter, inputParams)
 			if err != nil {
 				return fmt.Errorf("failed to resolve image pull secret name: %w", err)
@@ -1479,8 +1483,20 @@ func resolveInputs(
 	for name, paramSpec := range task.GetInputs().GetParameters() {
 		v, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams)
 		if err != nil {
+			if !errors.Is(err, ErrResolvedParameterNull) {
+				return nil, err
+			}
+
+			componentParam, ok := opts.Component.GetInputDefinitions().GetParameters()[name]
+			if ok && componentParam != nil && componentParam.IsOptional {
+				// If the resolved paramter was null and the component input parameter is optional, just skip setting
+				// it and the launcher will handle defaults.
+				continue
+			}
+
 			return nil, err
 		}
+
 		inputs.ParameterValues[name] = v
 	}
 
@@ -1497,7 +1513,9 @@ func resolveInputs(
 }
 
 // resolveInputParameter resolves an InputParameterSpec
-// using a given input context via InputParams.
+// using a given input context via InputParams. ErrResolvedParameterNull is returned if paramSpec
+// is a component input parameter and parameter resolves to a null value (i.e. an optional pipeline input with no
+// default). The caller can decide if this is allowed in that context.
 func resolveInputParameter(
 	ctx context.Context,
 	dag *metadata.DAG,
@@ -1521,6 +1539,13 @@ func resolveInputParameter(
 		if !ok {
 			return nil, paramError(fmt.Errorf("parent DAG does not have input parameter %s", componentInput))
 		}
+
+		if _, isNullValue := v.GetKind().(*structpb.Value_NullValue); isNullValue {
+			// Null values are only allowed for optional pipeline input parameters with no values. The caller has this
+			// context to know if this is allowed.
+			return nil, fmt.Errorf("%w: %s", ErrResolvedParameterNull, componentInput)
+		}
+
 		return v, nil
 
 	// This is the case where the input comes from the output of an upstream task.
@@ -1568,6 +1593,33 @@ func resolveInputParameter(
 	default:
 		return nil, paramError(fmt.Errorf("parameter spec of type %T not implemented yet", t))
 	}
+}
+
+// resolveInputParameterStr is like resolveInputParameter but returns an error if the resolved value is not a non-empty
+// string.
+func resolveInputParameterStr(
+	ctx context.Context,
+	dag *metadata.DAG,
+	pipeline *metadata.Pipeline,
+	opts Options,
+	mlmd *metadata.Client,
+	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
+	inputParams map[string]*structpb.Value,
+) (*structpb.Value, error) {
+	val, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams)
+	if err != nil {
+		return nil, err
+	}
+
+	if typedVal, ok := val.GetKind().(*structpb.Value_StringValue); ok && typedVal != nil {
+		if typedVal.StringValue == "" {
+			return nil, fmt.Errorf("resolving input parameter with spec %s. Expected a non-empty string.", paramSpec)
+		}
+	} else {
+		return nil, fmt.Errorf("resolving input parameter with spec %s. Expected a string but got: %T", paramSpec, val.GetKind())
+	}
+
+	return val, nil
 }
 
 // resolveInputArtifact resolves an InputArtifactSpec
@@ -2349,7 +2401,7 @@ func makeVolumeMountPatch(
 			}
 		}
 
-		resolvedPvcName, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+		resolvedPvcName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 			pvcNameParameter, inputParams)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to resolve pvc name: %w", err)

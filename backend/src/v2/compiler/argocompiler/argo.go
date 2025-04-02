@@ -72,8 +72,12 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	specParams := spec.GetRoot().GetInputDefinitions().GetParameters()
 	for name, param := range specParams {
 		_, ok := job.RuntimeConfig.ParameterValues[name]
-		if !ok && param.GetDefaultValue() != nil {
-			job.RuntimeConfig.ParameterValues[name] = param.GetDefaultValue()
+		if !ok {
+			if param.GetDefaultValue() != nil {
+				job.RuntimeConfig.ParameterValues[name] = param.GetDefaultValue()
+			} else if param.IsOptional {
+				job.RuntimeConfig.ParameterValues[name] = structpb.NewNullValue()
+			}
 		}
 	}
 
