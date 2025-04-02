@@ -14,7 +14,7 @@ def comp(env_var: str) -> str:
 
 
 @dsl.pipeline
-def my_pipeline(env_var: str) -> str:
+def test_env_exists(env_var: str) -> str:
     comp_task = comp(env_var=env_var)
     comp_task.set_caching_options(False)
     return comp_task.output

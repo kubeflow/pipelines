@@ -1,5 +1,5 @@
 # PIPELINE DEFINITION
-# Name: my-pipeline
+# Name: test-env-exists
 # Inputs:
 #    env_var: str
 # Outputs:
@@ -48,7 +48,7 @@ deploymentSpec:
           \ set\")\n\n    return value\n\n"
         image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
-  name: my-pipeline
+  name: test-env-exists
 root:
   dag:
     outputs:
