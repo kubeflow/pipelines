@@ -33,6 +33,8 @@ import (
 var update = flag.Bool("update", false, "update golden files")
 
 func Test_argo_compiler(t *testing.T) {
+	proxy.InitializeConfigWithEnv()
+
 	tests := []struct {
 		jobPath          string // path of input PipelineJob to compile
 		platformSpecPath string // path of possible input PlatformSpec to compile
@@ -104,7 +106,7 @@ func Test_argo_compiler(t *testing.T) {
 
 			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
 			if *update {
-				wf, err := argocompiler.Compile(job, platformSpec, nil, proxy.EmptyConfig())
+				wf, err := argocompiler.Compile(job, platformSpec, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -121,7 +123,7 @@ func Test_argo_compiler(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			wf, err := argocompiler.Compile(job, platformSpec, nil, proxy.EmptyConfig())
+			wf, err := argocompiler.Compile(job, platformSpec, nil)
 			if err != nil {
 				t.Error(err)
 			}

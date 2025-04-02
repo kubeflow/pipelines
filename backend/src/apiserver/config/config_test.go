@@ -16,7 +16,6 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -31,7 +30,7 @@ import (
 
 func fakeResourceManager() *resource.ResourceManager {
 	clientManager := resource.NewFakeClientManagerOrFatalV2()
-	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}, proxy.EmptyConfig())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	return resourceManager
 }
 

@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"io"
 	"regexp"
 	"strings"
@@ -76,7 +75,7 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 }
 
 // Converts modelJob to ScheduledWorkflow.
-func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, proxyConfig proxy.Config) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
 
 	bytes, err := protojson.Marshal(t.spec)
@@ -109,7 +108,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, proxyConfig proxy.Config
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil, proxyConfig)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
 	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
 		obj, err = tektoncompiler.Compile(job, kubernetesSpec, &tektoncompiler.Options{LauncherImage: Launcher})
 	}
@@ -288,7 +287,7 @@ func (t *V2Spec) ParametersJSON() (string, error) {
 	return "[]", nil
 }
 
-func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions, proxyConfig proxy.Config) (util.ExecutionSpec, error) {
+func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to marshal pipeline spec to json")
@@ -316,7 +315,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions, pr
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil, proxyConfig)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
 	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
 		obj, err = tektoncompiler.Compile(job, kubernetesSpec, nil)
 	}

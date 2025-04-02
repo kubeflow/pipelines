@@ -238,7 +238,7 @@ func validateRootDAG(opts Options) (err error) {
 	return nil
 }
 
-func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient *cacheutils.Client, proxyConfig proxy.Config) (execution *Execution, err error) {
+func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient *cacheutils.Client) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.Container(%s) failed: %w", opts.info(), err)
@@ -352,7 +352,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 
 	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName,
-		opts.RunID, opts.PipelineLogLevel, proxyConfig)
+		opts.RunID, opts.PipelineLogLevel)
 	if err != nil {
 		return execution, err
 	}
@@ -415,7 +415,6 @@ func initPodSpecPatch(
 	pipelineName string,
 	runID string,
 	pipelineLogLevel string,
-	proxyConfig proxy.Config,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -431,6 +430,8 @@ func initPodSpecPatch(
 	for _, envVar := range container.GetEnv() {
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
+
+	proxyConfig := proxy.GetConfig()
 
 	if proxyConfig.GetHttpProxy() != "" {
 		glog.Infof("Setting http_proxy and HTTP_PROXY as %s", proxyConfig.GetHttpProxy())

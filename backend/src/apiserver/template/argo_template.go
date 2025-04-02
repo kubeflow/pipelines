@@ -16,7 +16,6 @@ package template
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
@@ -27,7 +26,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions, _ proxy.Config) (util.ExecutionSpec, error) {
+func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
 	// Overwrite namespace from the run object
@@ -94,7 +93,7 @@ type Argo struct {
 	wf *util.Workflow
 }
 
-func (t *Argo) ScheduledWorkflow(modelJob *model.Job, _ proxy.Config) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 	// Overwrite namespace from the job object
 	if modelJob.Namespace != "" {

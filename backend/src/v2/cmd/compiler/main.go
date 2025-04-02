@@ -50,7 +50,6 @@ var (
 
 func main() {
 	flag.Parse()
-
 	noSpec := specPath == nil || *specPath == ""
 	noJob := jobPath == nil || *jobPath == ""
 	if noSpec && noJob {
@@ -70,6 +69,8 @@ func main() {
 		glog.Exitf("argument --%s must be specified", noProxyArg)
 	}
 
+	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
+
 	var job *pipelinespec.PipelineJob
 	var err error
 	if !noSpec {
@@ -81,19 +82,17 @@ func main() {
 	if err != nil {
 		glog.Exitf("Failed to load: %v", err)
 	}
-	if err := compile(job, proxy.NewConfig(*httpProxy, *httpsProxy, *noProxy)); err != nil {
+	if err := compile(job); err != nil {
 		glog.Exitf("Failed to compile: %v", err)
 	}
 }
 
-func compile(job *pipelinespec.PipelineJob, proxyConfig proxy.Config) error {
-	compilerOptions := &argocompiler.Options{
+func compile(job *pipelinespec.PipelineJob) error {
+	wf, err := argocompiler.Compile(job, nil, &argocompiler.Options{
 		DriverImage:   *driver,
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,
-	}
-
-	wf, err := argocompiler.Compile(job, nil, compilerOptions, proxyConfig)
+	})
 	if err != nil {
 		return err
 	}

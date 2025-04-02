@@ -15,7 +15,6 @@
 package argocompiler
 
 import (
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"testing"
 
@@ -51,11 +50,12 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 			os.Setenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY", tt.configMapKey)
 			os.Setenv("EXECUTOR_CABUNDLE_MOUNTPATH", tt.mountPath)
 
-			c := newWorkflowCompiler(proxy.EmptyConfig())
-			c.templates = make(map[string]*wfapi.Template)
-			c.wf = &wfapi.Workflow{
-				Spec: wfapi.WorkflowSpec{
-					Templates: []wfapi.Template{},
+			c := &workflowCompiler{
+				templates: make(map[string]*wfapi.Template),
+				wf: &wfapi.Workflow{
+					Spec: wfapi.WorkflowSpec{
+						Templates: []wfapi.Template{},
+					},
 				},
 			}
 

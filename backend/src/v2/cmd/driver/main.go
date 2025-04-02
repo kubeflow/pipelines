@@ -133,6 +133,9 @@ func drive() (err error) {
 	if err = validate(); err != nil {
 		return err
 	}
+
+	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
+
 	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJson))
 	componentSpec := &pipelinespec.ComponentSpec{}
 	if err := util.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
@@ -187,7 +190,6 @@ func drive() (err error) {
 		IterationIndex:   *iterationIndex,
 		PipelineLogLevel: *logLevel,
 	}
-	proxyConfig := proxy.NewConfig(*httpProxy, *httpsProxy, *noProxy)
 	var execution *driver.Execution
 	var driverErr error
 	switch *driverType {
@@ -199,7 +201,7 @@ func drive() (err error) {
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
-		execution, driverErr = driver.Container(ctx, options, client, cacheClient, proxyConfig)
+		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}

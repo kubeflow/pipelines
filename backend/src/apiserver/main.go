@@ -145,7 +145,6 @@ func main() {
 	resourceManager := resource.NewResourceManager(
 		&clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
-		proxy.NewConfigFromEnv(),
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
 	if err != nil {
@@ -369,4 +368,6 @@ func initConfig() {
 		// Read in config again
 		viper.ReadInConfig()
 	})
+
+	proxy.InitializeConfigWithEnv()
 }

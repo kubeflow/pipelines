@@ -173,6 +173,8 @@ func TestToSwfCRDResourceGeneratedName_EmptyName(t *testing.T) {
 }
 
 func TestScheduledWorkflow(t *testing.T) {
+	proxy.InitializeConfigWithEnv()
+
 	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
 	v2Template, _ := New([]byte(v2SpecHelloWorldYAML))
 
@@ -225,7 +227,7 @@ func TestScheduledWorkflow(t *testing.T) {
 		},
 	}
 
-	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob, proxy.EmptyConfig())
+	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob)
 	assert.Nil(t, err)
 
 	// We don't compare this field because it changes with every driver/launcher image release.

@@ -27,46 +27,46 @@ func TestNewConfigFromEnvVars(t *testing.T) {
 	}{
 		{
 			envVars:        map[string]string{},
-			expectedConfig: NewConfig("", "", ""),
+			expectedConfig: EmptyConfig(),
 		},
 		{
 			envVars: map[string]string{
 				HttpProxyEnv: "http_proxy",
 			},
-			expectedConfig: NewConfig("http_proxy", "", defaultNoProxyValue),
+			expectedConfig: newConfig("http_proxy", "", defaultNoProxyValue),
 		},
 		{
 			envVars: map[string]string{
 				HttpProxyEnv:  "http_proxy",
 				HttpsProxyEnv: "https_proxy",
 			},
-			expectedConfig: NewConfig("http_proxy", "https_proxy", defaultNoProxyValue),
+			expectedConfig: newConfig("http_proxy", "https_proxy", defaultNoProxyValue),
 		},
 		{
 			envVars: map[string]string{
 				HttpProxyEnv: "http_proxy",
 				NoProxyEnv:   "no_proxy",
 			},
-			expectedConfig: NewConfig("http_proxy", "", "no_proxy"),
+			expectedConfig: newConfig("http_proxy", "", "no_proxy"),
 		},
 		{
 			envVars: map[string]string{
 				HttpsProxyEnv: "https_proxy",
 			},
-			expectedConfig: NewConfig("", "https_proxy", defaultNoProxyValue),
+			expectedConfig: newConfig("", "https_proxy", defaultNoProxyValue),
 		},
 		{
 			envVars: map[string]string{
 				HttpsProxyEnv: "https_proxy",
 				NoProxyEnv:    "no_proxy",
 			},
-			expectedConfig: NewConfig("", "https_proxy", "no_proxy"),
+			expectedConfig: newConfig("", "https_proxy", "no_proxy"),
 		},
 		{
 			envVars: map[string]string{
 				NoProxyEnv: "no_proxy",
 			},
-			expectedConfig: NewConfig("", "", "no_proxy"),
+			expectedConfig: newConfig("", "", "no_proxy"),
 		},
 		{
 			envVars: map[string]string{
@@ -74,7 +74,7 @@ func TestNewConfigFromEnvVars(t *testing.T) {
 				HttpsProxyEnv: "https_proxy",
 				NoProxyEnv:    "no_proxy",
 			},
-			expectedConfig: NewConfig("http_proxy", "https_proxy", "no_proxy"),
+			expectedConfig: newConfig("http_proxy", "https_proxy", "no_proxy"),
 		},
 		{
 			envVars: map[string]string{
@@ -82,7 +82,7 @@ func TestNewConfigFromEnvVars(t *testing.T) {
 				HttpsProxyEnv: "",
 				NoProxyEnv:    "",
 			},
-			expectedConfig: NewConfig("", "", ""),
+			expectedConfig: EmptyConfig(),
 		},
 	}
 
@@ -93,7 +93,7 @@ func TestNewConfigFromEnvVars(t *testing.T) {
 				err := os.Setenv(k, v)
 				require.NoError(t, err)
 			}
-			actualConfig := NewConfigFromEnv()
+			actualConfig := newConfigFromEnv()
 			require.Equal(t, tt.expectedConfig, actualConfig)
 		})
 	}

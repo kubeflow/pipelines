@@ -15,6 +15,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"sort"
 	"strings"
@@ -551,9 +552,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--execution_id_path", outputPath(paramExecutionID),
 		"--iteration_count_path", outputPath(paramIterationCount),
 		"--condition_path", outputPath(paramCondition),
-		"--http_proxy", c.proxyConfig.GetHttpProxy(),
-		"--https_proxy", c.proxyConfig.GetHttpsProxy(),
-		"--no_proxy", c.proxyConfig.GetNoProxy(),
+		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
+		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
+		"--no_proxy", proxy.GetConfig().GetNoProxy(),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -584,12 +585,12 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Args:      args,
 			Resources: driverResources,
 			Env: []k8score.EnvVar{
-				{Name: "http_proxy", Value: c.proxyConfig.GetHttpProxy()},
-				{Name: "HTTP_PROXY", Value: c.proxyConfig.GetHttpProxy()},
-				{Name: "https_proxy", Value: c.proxyConfig.GetHttpsProxy()},
-				{Name: "HTTPS_PROXY", Value: c.proxyConfig.GetHttpsProxy()},
-				{Name: "no_proxy", Value: c.proxyConfig.GetNoProxy()},
-				{Name: "NO_PROXY", Value: c.proxyConfig.GetNoProxy()},
+				{Name: "http_proxy", Value: proxy.GetConfig().GetHttpProxy()},
+				{Name: "HTTP_PROXY", Value: proxy.GetConfig().GetHttpProxy()},
+				{Name: "https_proxy", Value: proxy.GetConfig().GetHttpsProxy()},
+				{Name: "HTTPS_PROXY", Value: proxy.GetConfig().GetHttpsProxy()},
+				{Name: "no_proxy", Value: proxy.GetConfig().GetNoProxy()},
+				{Name: "NO_PROXY", Value: proxy.GetConfig().GetNoProxy()},
 			},
 		},
 	}

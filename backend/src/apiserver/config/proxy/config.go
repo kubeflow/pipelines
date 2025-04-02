@@ -28,7 +28,24 @@ type Config interface {
 	GetNoProxy() string
 }
 
-func NewConfig(httpProxy string, httpsProxy string, noProxy string) Config {
+var (
+	configInstance Config = &nonInitializedConfig{}
+	emptyConfig           = newConfig("", "", "")
+)
+
+func InitializeConfig(httpProxy string, httpsProxy string, noProxy string) {
+	configInstance = newConfig(httpProxy, httpsProxy, noProxy)
+}
+
+func InitializeConfigWithEnv() {
+	configInstance = newConfigFromEnv()
+}
+
+func GetConfig() Config {
+	return configInstance
+}
+
+func newConfig(httpProxy string, httpsProxy string, noProxy string) Config {
 	return &config{
 		httpProxy:  httpProxy,
 		httpsProxy: httpsProxy,
@@ -36,23 +53,21 @@ func NewConfig(httpProxy string, httpsProxy string, noProxy string) Config {
 	}
 }
 
-func NewConfigFromEnv() Config {
+func newConfigFromEnv() Config {
 	httpProxyValue, isHttpProxySet := os.LookupEnv(HttpProxyEnv)
 	httpsProxyValue, isHttpsProxySet := os.LookupEnv(HttpsProxyEnv)
 	noProxyValue, isNoProxySet := os.LookupEnv(NoProxyEnv)
 
 	if (isHttpProxySet || isHttpsProxySet) && !isNoProxySet {
-		return NewConfig(httpProxyValue, httpsProxyValue, defaultNoProxyValue)
+		return newConfig(httpProxyValue, httpsProxyValue, defaultNoProxyValue)
 	}
 
-	return NewConfig(httpProxyValue, httpsProxyValue, noProxyValue)
+	return newConfig(httpProxyValue, httpsProxyValue, noProxyValue)
 }
 
 func EmptyConfig() Config {
 	return emptyConfig
 }
-
-var emptyConfig = NewConfig("", "", "")
 
 type config struct {
 	httpProxy  string
@@ -70,4 +85,19 @@ func (c *config) GetHttpsProxy() string {
 
 func (c *config) GetNoProxy() string {
 	return c.noProxy
+}
+
+type nonInitializedConfig struct {
+}
+
+func (c *nonInitializedConfig) GetHttpProxy() string {
+	panic("Attempt to use a non-initialized proxy config")
+}
+
+func (c *nonInitializedConfig) GetHttpsProxy() string {
+	panic("Attempt to use a non-initialized proxy config")
+}
+
+func (c *nonInitializedConfig) GetNoProxy() string {
+	panic("Attempt to use a non-initialized proxy config")
 }
