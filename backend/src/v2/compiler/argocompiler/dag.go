@@ -584,14 +584,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env: []k8score.EnvVar{
-				{Name: "http_proxy", Value: proxy.GetConfig().GetHttpProxy()},
-				{Name: "HTTP_PROXY", Value: proxy.GetConfig().GetHttpProxy()},
-				{Name: "https_proxy", Value: proxy.GetConfig().GetHttpsProxy()},
-				{Name: "HTTPS_PROXY", Value: proxy.GetConfig().GetHttpsProxy()},
-				{Name: "no_proxy", Value: proxy.GetConfig().GetNoProxy()},
-				{Name: "NO_PROXY", Value: proxy.GetConfig().GetNoProxy()},
-			},
+			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
 	c.templates[name] = t

@@ -13,7 +13,10 @@
 // limitations under the License.
 package proxy
 
-import "os"
+import (
+	k8score "k8s.io/api/core/v1"
+	"os"
+)
 
 const (
 	HttpProxyEnv        = "HTTP_PROXY"
@@ -26,6 +29,7 @@ type Config interface {
 	GetHttpProxy() string
 	GetHttpsProxy() string
 	GetNoProxy() string
+	GetEnvVars() []k8score.EnvVar
 }
 
 var (
@@ -75,6 +79,27 @@ type config struct {
 	noProxy    string
 }
 
+func (c *config) GetEnvVars() []k8score.EnvVar {
+	var envVars []k8score.EnvVar
+
+	if c.httpProxy != "" {
+		envVars = append(envVars, k8score.EnvVar{Name: "http_proxy", Value: c.httpProxy})
+		envVars = append(envVars, k8score.EnvVar{Name: "HTTP_PROXY", Value: c.httpProxy})
+	}
+
+	if c.httpsProxy != "" {
+		envVars = append(envVars, k8score.EnvVar{Name: "https_proxy", Value: c.httpsProxy})
+		envVars = append(envVars, k8score.EnvVar{Name: "HTTPS_PROXY", Value: c.httpsProxy})
+	}
+
+	if c.noProxy != "" {
+		envVars = append(envVars, k8score.EnvVar{Name: "no_proxy", Value: c.noProxy})
+		envVars = append(envVars, k8score.EnvVar{Name: "NO_PROXY", Value: c.noProxy})
+	}
+
+	return envVars
+}
+
 func (c *config) GetHttpProxy() string {
 	return c.httpProxy
 }
@@ -88,6 +113,10 @@ func (c *config) GetNoProxy() string {
 }
 
 type nonInitializedConfig struct {
+}
+
+func (c *nonInitializedConfig) GetEnvVars() []k8score.EnvVar {
+	panic("Attempt to use a non-initialized proxy config")
 }
 
 func (c *nonInitializedConfig) GetHttpProxy() string {

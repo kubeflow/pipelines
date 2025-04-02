@@ -431,37 +431,7 @@ func initPodSpecPatch(
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
 
-	proxyConfig := proxy.GetConfig()
-
-	if proxyConfig.GetHttpProxy() != "" {
-		glog.Infof("Setting http_proxy and HTTP_PROXY as %s", proxyConfig.GetHttpProxy())
-		userEnvVar = append(userEnvVar,
-			k8score.EnvVar{Name: "http_proxy", Value: proxyConfig.GetHttpProxy()},
-			k8score.EnvVar{Name: "HTTP_PROXY", Value: proxyConfig.GetHttpProxy()},
-		)
-	} else {
-		glog.Infof("http_proxy and HTTP_PROXY were not set")
-	}
-
-	if proxyConfig.GetHttpsProxy() != "" {
-		glog.Infof("Setting https_proxy and HTTPS_PROXY as %s", proxyConfig.GetHttpsProxy())
-		userEnvVar = append(userEnvVar,
-			k8score.EnvVar{Name: "https_proxy", Value: proxyConfig.GetHttpsProxy()},
-			k8score.EnvVar{Name: "HTTPS_PROXY", Value: proxyConfig.GetHttpsProxy()},
-		)
-	} else {
-		glog.Infof("https_proxy and HTTPS_PROXY were not set")
-	}
-
-	if proxyConfig.GetNoProxy() != "" {
-		glog.Infof("Setting no_proxy and NO_PROXY as %s", proxyConfig.GetNoProxy())
-		userEnvVar = append(userEnvVar,
-			k8score.EnvVar{Name: "no_proxy", Value: proxyConfig.GetNoProxy()},
-			k8score.EnvVar{Name: "NO_PROXY", Value: proxyConfig.GetNoProxy()},
-		)
-	} else {
-		glog.Infof("no_proxy and NO_PROXY were not set")
-	}
+	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)

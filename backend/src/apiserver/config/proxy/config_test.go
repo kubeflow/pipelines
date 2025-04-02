@@ -15,7 +15,9 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8score "k8s.io/api/core/v1"
 	"os"
 	"testing"
 )
@@ -95,6 +97,42 @@ func TestNewConfigFromEnvVars(t *testing.T) {
 			}
 			actualConfig := newConfigFromEnv()
 			require.Equal(t, tt.expectedConfig, actualConfig)
+		})
+	}
+}
+
+func TestGetEnvVars(t *testing.T) {
+	tests := []struct {
+		config          Config
+		expectedEnvVars []k8score.EnvVar
+	}{
+		{
+			newConfig("http", "", ""),
+			[]k8score.EnvVar{
+				{Name: "http_proxy", Value: "http"},
+				{Name: "HTTP_PROXY", Value: "http"},
+			},
+		},
+		{
+			newConfig("", "https", ""),
+			[]k8score.EnvVar{
+				{Name: "https_proxy", Value: "https"},
+				{Name: "HTTPS_PROXY", Value: "https"},
+			},
+		},
+		{
+			newConfig("", "", "no"),
+			[]k8score.EnvVar{
+				{Name: "no_proxy", Value: "no"},
+				{Name: "NO_PROXY", Value: "no"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
+			os.Clearenv()
+			assert.Equal(t, tt.expectedEnvVars, tt.config.GetEnvVars())
 		})
 	}
 }
