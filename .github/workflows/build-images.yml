@@ -1,0 +1,35 @@
+name: Build KFP Images
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'Dockerfile*'
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Images
+        env:
+          REGISTRY: your-docker-registry # replace with Docker Hub, GHCR, etc.
+          TAG: ${{ github.sha }}
+        run: |
+          docker build --progress=plain -t "${REGISTRY}/apiserver:${TAG}" -f backend/Dockerfile .
+          docker push "${REGISTRY}/apiserver:${TAG}"
+          docker build --progress=plain -t "${REGISTRY}/persistenceagent:${TAG}" -f backend/Dockerfile.persistenceagent .
+          docker push "${REGISTRY}/persistenceagent:${TAG}"
+          docker build --progress=plain -t "${REGISTRY}/scheduledworkflow:${TAG}" -f backend/Dockerfile.scheduledworkflow .
+          docker push "${REGISTRY}/scheduledworkflow:${TAG}"
+          docker build --progress=plain -t "${REGISTRY}/driver:${TAG}" -f backend/Dockerfile.driver .
+          docker push "${REGISTRY}/driver:${TAG}"
+          docker build --progress=plain -t "${REGISTRY}/launcher:${TAG}" -f backend/Dockerfile.launcher .
+          docker push "${REGISTRY}/launcher:${TAG}"

@@ -17,9 +17,7 @@ on:
       - 'test/**'
 
 jobs:
-
   initialization-tests-v1:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -28,9 +26,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Build KFP images
-        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -65,7 +60,6 @@ jobs:
           path: /tmp/tmp*/*
 
   initialization-tests-v2:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -74,9 +68,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Build KFP images
-        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -111,7 +102,6 @@ jobs:
           path: /tmp/tmp*/*
 
   api-integration-tests-v1:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -120,9 +110,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Build KFP images
-        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -160,7 +147,6 @@ jobs:
           path: /tmp/tmp*/*
 
   api-integration-tests-v2:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -169,9 +155,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Build KFP images
-        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -206,7 +189,6 @@ jobs:
           path: /tmp/tmp*/*
 
   frontend-integration-test:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -215,9 +197,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Build KFP images
-        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -259,7 +238,6 @@ jobs:
           path: /tmp/tmp*/*
       
   basic-sample-tests:
-    needs: build-kfp-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -268,9 +246,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Build KFP images
-        uses: ./.github/actions/build-images
 
       - name: Set up Python
         uses: actions/setup-python@v4
