@@ -87,7 +87,8 @@ class TestRunDockerContainer(DockerMockTestCase):
             volumes={current_test_dir: {
                 'bind': '/localdir',
                 'mode': 'ro'
-            }})
+            }},
+        )
 
 
 class TestDockerTaskHandler(DockerMockTestCase):
@@ -101,12 +102,40 @@ class TestDockerTaskHandler(DockerMockTestCase):
         )
         volumes = handler.get_volumes_to_mount()
         self.assertEqual(
-            volumes, {
+            volumes,
+            {
                 os.path.abspath('my_root'): {
                     'bind': os.path.abspath('my_root'),
-                    'mode': 'rw'
+                    'mode': 'rw',
                 }
-            })
+            },
+        )
+
+    def test_get_volumes_to_mount_with_custom_volumes(self):
+        handler = docker_task_handler.DockerTaskHandler(
+            image='alpine',
+            full_command=['echo', 'foo'],
+            pipeline_root=os.path.abspath('my_root'),
+            runner=local.DockerRunner(
+                volumes={'/path/to/dir': {
+                    'bind': '/mnt/vol',
+                    'mode': 'rw'
+                }}),
+        )
+        volumes = handler.get_volumes_to_mount()
+        self.assertEqual(
+            volumes,
+            {
+                os.path.abspath('my_root'): {
+                    'bind': os.path.abspath('my_root'),
+                    'mode': 'rw',
+                },
+                '/path/to/dir': {
+                    'bind': '/mnt/vol',
+                    'mode': 'rw'
+                },
+            },
+        )
 
     def test_run(self):
         handler = docker_task_handler.DockerTaskHandler(
@@ -126,7 +155,7 @@ class TestDockerTaskHandler(DockerMockTestCase):
             volumes={
                 os.path.abspath('my_root'): {
                     'bind': os.path.abspath('my_root'),
-                    'mode': 'rw'
+                    'mode': 'rw',
                 }
             },
         )
@@ -134,7 +163,7 @@ class TestDockerTaskHandler(DockerMockTestCase):
     def test_pipeline_root_relpath(self):
         with self.assertRaisesRegex(
                 ValueError,
-                r"'pipeline_root' should be an absolute path to correctly construct the volume mount specification\."
+                r"'pipeline_root' should be an absolute path to correctly construct the volume mount specification\.",
         ):
             docker_task_handler.DockerTaskHandler(
                 image='alpine',
@@ -246,11 +275,14 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:latest',
         )
-        self.assertEqual(kwargs['command'], [
-            'sh',
-            '-c',
-            'echo prefix-foo',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'sh',
+                '-c',
+                'echo prefix-foo',
+            ],
+        )
         self.assertTrue(kwargs['detach'])
         self.assertTrue(kwargs['stdout'])
         self.assertTrue(kwargs['stderr'])
@@ -270,8 +302,10 @@ class TestE2E(DockerMockTestCase,
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=['echo', x],
-                        else_=['echo', 'No input provided!'])
-                ])
+                        else_=['echo', 'No input provided!'],
+                    )
+                ],
+            )
 
         comp()
 
@@ -282,10 +316,13 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:3.19.0',
         )
-        self.assertEqual(kwargs['command'], [
-            'echo',
-            'No input provided!',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'echo',
+                'No input provided!',
+            ],
+        )
 
     def test_if_present_with_string_provided(self):
 
@@ -297,8 +334,10 @@ class TestE2E(DockerMockTestCase,
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=['echo', x],
-                        else_=['echo', 'No artifact provided!'])
-                ])
+                        else_=['echo', 'No artifact provided!'],
+                    )
+                ],
+            )
 
         comp(x='foo')
 
@@ -309,10 +348,13 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:3.19.0',
         )
-        self.assertEqual(kwargs['command'], [
-            'echo',
-            'foo',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'echo',
+                'foo',
+            ],
+        )
 
     def test_if_present_single_element_with_string_omitted(self):
 
@@ -326,8 +368,9 @@ class TestE2E(DockerMockTestCase,
                         input_name='x',
                         then=x,
                         else_='No artifact provided!',
-                    )
-                ])
+                    ),
+                ],
+            )
 
         comp()
 
@@ -338,10 +381,13 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:3.19.0',
         )
-        self.assertEqual(kwargs['command'], [
-            'echo',
-            'No artifact provided!',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'echo',
+                'No artifact provided!',
+            ],
+        )
 
     def test_if_present_single_element_with_string_provided(self):
 
@@ -355,8 +401,9 @@ class TestE2E(DockerMockTestCase,
                         input_name='x',
                         then=x,
                         else_='No artifact provided!',
-                    )
-                ])
+                    ),
+                ],
+            )
 
         comp(x='foo')
 
@@ -367,10 +414,13 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:3.19.0',
         )
-        self.assertEqual(kwargs['command'], [
-            'echo',
-            'foo',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'echo',
+                'foo',
+            ],
+        )
 
     def test_concat_placeholder(self):
 
@@ -378,7 +428,8 @@ class TestE2E(DockerMockTestCase,
         def comp(x: Optional[str] = None):
             return dsl.ContainerSpec(
                 image='alpine',
-                command=[dsl.ConcatPlaceholder(['prefix-', x, '-suffix'])])
+                command=[dsl.ConcatPlaceholder(['prefix-', x, '-suffix'])],
+            )
 
         comp()
 
@@ -400,8 +451,9 @@ class TestE2E(DockerMockTestCase,
                 command=[
                     'echo',
                     dsl.ConcatPlaceholder(
-                        ['a', dsl.ConcatPlaceholder(['b', x, 'd'])])
-                ])
+                        ['a', dsl.ConcatPlaceholder(['b', x, 'd'])]),
+                ],
+            )
 
         comp(x='c')
 
@@ -429,10 +481,12 @@ class TestE2E(DockerMockTestCase,
                             dsl.IfPresentPlaceholder(
                                 input_name='x',
                                 then='one thing',
-                                else_='another thing')
-                        ])
-                    ])
-                ])
+                                else_='another thing',
+                            ),
+                        ]),
+                    ]),
+                ],
+            )
 
         comp(x='c')
 
@@ -460,10 +514,12 @@ class TestE2E(DockerMockTestCase,
                             dsl.IfPresentPlaceholder(
                                 input_name='x',
                                 then='one thing',
-                                else_='another thing')
-                        ])
-                    ])
-                ])
+                                else_='another thing',
+                            ),
+                        ]),
+                    ]),
+                ],
+            )
 
         comp()
 
@@ -487,8 +543,10 @@ class TestE2E(DockerMockTestCase,
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=dsl.ConcatPlaceholder([x]),
-                        else_=dsl.ConcatPlaceholder(['something', ' ', 'else']))
-                ])
+                        else_=dsl.ConcatPlaceholder(['something', ' ', 'else']),
+                    ),
+                ],
+            )
 
         comp(x='something')
 
@@ -512,8 +570,10 @@ class TestE2E(DockerMockTestCase,
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=dsl.ConcatPlaceholder([x]),
-                        else_=dsl.ConcatPlaceholder(['another', ' ', 'thing']))
-                ])
+                        else_=dsl.ConcatPlaceholder(['another', ' ', 'thing']),
+                    ),
+                ],
+            )
 
         comp()
 
