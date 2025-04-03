@@ -15,6 +15,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"sort"
 	"strings"
@@ -551,6 +552,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--execution_id_path", outputPath(paramExecutionID),
 		"--iteration_count_path", outputPath(paramIterationCount),
 		"--condition_path", outputPath(paramCondition),
+		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
+		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
+		"--no_proxy", proxy.GetConfig().GetNoProxy(),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -580,6 +584,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
+			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
 	c.templates[name] = t

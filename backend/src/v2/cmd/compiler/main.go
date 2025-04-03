@@ -16,6 +16,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 
 	"github.com/golang/glog"
@@ -27,6 +28,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	unsetProxyArgValue = "unset"
+	httpProxyArg       = "http_proxy"
+	httpsProxyArg      = "https_proxy"
+	noProxyArg         = "no_proxy"
+)
+
 var (
 	// The spec flag is added to make running a pipeline with default parameters easier.
 	// Backend compiler should only accept PipelineJob.
@@ -35,6 +43,9 @@ var (
 	launcher     = flag.String("launcher", "", "v2 launcher image")
 	driver       = flag.String("driver", "", "v2 driver image")
 	pipelineRoot = flag.String("pipeline_root", "", "pipeline root")
+	httpProxy    = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
+	httpsProxy   = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
+	noProxy      = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
 )
 
 func main() {
@@ -42,11 +53,24 @@ func main() {
 	noSpec := specPath == nil || *specPath == ""
 	noJob := jobPath == nil || *jobPath == ""
 	if noSpec && noJob {
-		glog.Exitf("spec or job must be specified")
+		glog.Exitf("argument --spec or --job must be specified")
 	}
 	if !noSpec && !noJob {
-		glog.Exitf("spec and job cannot be specified at the same time")
+		glog.Exitf("argument --spec and --job cannot be specified at the same time")
 	}
+
+	if *httpProxy == unsetProxyArgValue {
+		glog.Exitf("argument --%s must be specified", httpProxyArg)
+	}
+	if *httpsProxy == unsetProxyArgValue {
+		glog.Exitf("argument --%s must be specified", httpsProxyArg)
+	}
+	if *noProxy == unsetProxyArgValue {
+		glog.Exitf("argument --%s must be specified", noProxyArg)
+	}
+
+	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
+
 	var job *pipelinespec.PipelineJob
 	var err error
 	if !noSpec {

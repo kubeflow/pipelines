@@ -16,6 +16,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
 	"strconv"
@@ -180,6 +181,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
 		"--condition_path", outputPath(paramCondition),
 		"--kubernetes_config", inputValue(paramKubernetesConfig),
+		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
+		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
+		"--no_proxy", proxy.GetConfig().GetNoProxy(),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -209,6 +213,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
+			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
 	c.templates[name] = t
