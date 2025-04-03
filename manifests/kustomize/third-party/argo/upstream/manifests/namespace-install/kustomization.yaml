@@ -4,7 +4,7 @@ resources:
   - ../base
   - ./argo-server-rbac
   - ./workflow-controller-rbac
-patchesJson6902:
+patches:
   - target:
       version: v1
       group: apps
