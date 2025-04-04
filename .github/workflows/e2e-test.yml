@@ -50,19 +50,16 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Download KFP image artifact
+      - name: Download KFP image archive
         uses: actions/download-artifact@v4
         with:
           name: kfp-images-archive
-          path: .
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-
-      - name: Load images into KinD cluster
-        run: kind load image-archive kfp-images.tar --name kfp
+          image_archive_path: kfp-images.tar
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -102,19 +99,16 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Download KFP image artifact
+      - name: Download KFP image archive
         uses: actions/download-artifact@v4
         with:
           name: kfp-images-archive
-          path: .
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-
-      - name: Load images into KinD cluster
-        run: kind load image-archive kfp-images.tar --name kfp
+          image_archive_path: kfp-images.tar
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -154,19 +148,16 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Download KFP image artifact
+      - name: Download KFP image archive
         uses: actions/download-artifact@v4
         with:
           name: kfp-images-archive
-          path: .
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-
-      - name: Load images into KinD cluster
-        run: kind load image-archive kfp-images.tar --name kfp
+          image_archive_path: kfp-images.tar
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -209,19 +200,16 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Download KFP image artifact
+      - name: Download KFP image archive
         uses: actions/download-artifact@v4
         with:
           name: kfp-images-archive
-          path: .
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-
-      - name: Load images into KinD cluster
-        run: kind load image-archive kfp-images.tar --name kfp
+          image_archive_path: kfp-images.tar
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -261,19 +249,16 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Download KFP image artifact
+      - name: Download KFP image archive
         uses: actions/download-artifact@v4
         with:
           name: kfp-images-archive
-          path: .
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-
-      - name: Load images into KinD cluster
-        run: kind load image-archive kfp-images.tar --name kfp
+          image_archive_path: kfp-images.tar
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -320,19 +305,16 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Download KFP image artifact
+      - name: Download KFP image archive
         uses: actions/download-artifact@v4
         with:
           name: kfp-images-archive
-          path: .
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-
-      - name: Load images into KinD cluster
-        run: kind load image-archive kfp-images.tar --name kfp
+          image_archive_path: kfp-images.tar
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
