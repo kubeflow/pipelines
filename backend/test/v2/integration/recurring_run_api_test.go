@@ -407,6 +407,8 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApisUseLatest() {
 	}}
 	helloWorldRecurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
+	assert.Equal(t, helloWorldPipelineVersion.PipelineID, helloWorldRecurringRun.PipelineVersionReference.PipelineID)
+	assert.Empty(t, helloWorldRecurringRun.PipelineVersionReference.PipelineVersionID)
 
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
