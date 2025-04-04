@@ -64,6 +64,9 @@ jobs:
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
         
+      - name: Wait for port-forward
+        run: sleep 15
+
       - name: Initialization tests v1
         id: tests
         working-directory: ./backend/test/initialization
@@ -113,6 +116,9 @@ jobs:
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
+      - name: Wait for port-forward
+        run: sleep 15
+
       - name: Initialization tests v2
         id: tests
         working-directory: ./backend/test/v2/initialization
@@ -161,6 +167,9 @@ jobs:
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: Wait for port-forward
+        run: sleep 15
 
       - name: Forward MySQL port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "mysql" 3306 3306
@@ -214,6 +223,9 @@ jobs:
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
+      - name: Wait for port-forward
+        run: sleep 15
+
       - name: API integration tests v2
         id: tests
         working-directory: ./backend/test/v2/integration
@@ -263,6 +275,9 @@ jobs:
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
+      - name: Wait for port-forward
+        run: sleep 15
+
       - name: Forward Frontend port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
 
@@ -288,7 +303,7 @@ jobs:
         with:
           name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
-      
+
   basic-sample-tests:
     needs: build-images
     runs-on: ubuntu-latest
@@ -318,6 +333,9 @@ jobs:
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+
+      - name: Wait for port-forward
+        run: sleep 15
 
       - name: Install prerequisites
         run: pip3 install -r ./test/sample-test/requirements.txt
