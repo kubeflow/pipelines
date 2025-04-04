@@ -69,7 +69,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
         except json.decoder.JSONDecodeError as e:
             raise Exception("Invalid JSON provided as arguments: {}".format(str(e)))
 
-        # If invalid JSON is provided that is incorretly escaped
+        # If invalid JSON is provided that is incorrectly escaped
         # arguments.get("arguments") can be a string. This Ensure that
         # json.loads properly converts stringified JSON to dict.
         if type(arguments.get("arguments")) != dict:
