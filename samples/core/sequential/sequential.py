@@ -20,7 +20,7 @@ from kfp import dsl, compiler
 @dsl.container_component
 def gcs_download_op(url: str, output: dsl.OutputPath(str)):
     return dsl.ContainerSpec(
-        image='google/cloud-sdk:279.0.0',
+        image='kind-registry:5000/google/cloud-sdk:279.0.0', # Use local registry
         command=['sh', '-c'],
         args=['gsutil cat $0 | tee $1', url, output],
     )
@@ -29,7 +29,7 @@ def gcs_download_op(url: str, output: dsl.OutputPath(str)):
 @dsl.container_component
 def echo_op(text: str):
     return dsl.ContainerSpec(
-        image='library/bash:4.4.23',
+        image='kind-registry:5000/library/bash:4.4.23',      # Use local registry
         command=['sh', '-c'],
         args=['echo "$0"', text]
     )

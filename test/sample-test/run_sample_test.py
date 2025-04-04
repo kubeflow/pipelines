@@ -156,16 +156,41 @@ class PySampleChecker(object):
         if self._run_pipeline:
             ###### Monitor Job ######
             start_time = datetime.now()
-            response = self._client.wait_for_run_completion(self._run_id, self._test_timeout)
-            succ = (response.state.lower() == self._expected_result)
+            run_status = None
+            error_message = None
+            print(f'Waiting for run {self._run_id} to complete (timeout: {self._test_timeout}s)...')
+            try:
+                response = self._client.wait_for_run_completion(self._run_id, self._test_timeout)
+                run_status = response.state.lower()
+                print(f'Run {self._run_id} completed with status: {run_status}')
+            except Exception as e:
+                print(f'Error or timeout waiting for run {self._run_id}: {e}')
+                error_message = str(e)
+                # Attempt to get final status even after timeout/error
+                try:
+                    run_detail = self._client.get_run(self._run_id)
+                    run_status = run_detail.run.state.lower()
+                    print(f'Final run status fetched: {run_status}')
+                    if run_detail.run.error:
+                        error_message = run_detail.run.error
+                        print(f'Run error message: {error_message}')
+                except Exception as get_run_e:
+                    print(f'Could not fetch final run status after error: {get_run_e}')
+
+            # Check if the final status matches the expected result
+            succ = (run_status == self._expected_result)
+
             end_time = datetime.now()
             elapsed_time = (end_time - start_time).seconds
+            # Include status and error in junit failure message
+            failure_message = f'waiting for job completion failure. Final Status: {run_status}. Error: {error_message}' if not succ else None
             utils.add_junit_test(self._test_cases, 'job completion', succ,
-                                 'waiting for job completion failure',
+                                 failure_message,
                                  elapsed_time)
-            print(f'Pipeline {"worked" if succ else "Failed"}. Elapsed time: {elapsed_time}s')
+            print(f'Pipeline {"worked" if succ else "failed"}. Elapsed time: {elapsed_time}s')
 
             ###### Delete Job ######
             #TODO: add deletion when the backend API offers the interface.
 
-            assert succ
+            # Use the logged status/error for assertion message
+            assert succ, f'Pipeline run {self._run_id} failed or did not reach expected state {self._expected_result}. Final Status: {run_status}. Error: {error_message}'
