@@ -38,6 +38,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
                 'parameters': {
                     'input_str1': 'Hello',
                     'input_str2': 'World',
+                    'input_str5_from_pipeline': 'Some pipeline default',
                 },
             },
             'outputs': {},
