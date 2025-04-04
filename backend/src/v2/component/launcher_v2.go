@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -72,6 +73,7 @@ type kubernetesClient struct {
 	Clientset kubernetes.Interface
 }
 
+// NewLauncherV2 is a factory function that returns an instance of LauncherV2.
 func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, componentSpecJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
 	defer func() {
 		if err != nil {
@@ -163,6 +165,7 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 	}
 }
 
+// Execute calls executeV2, updates the cache, and publishes the results to MLMD.
 func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	defer func() {
 		if err != nil {
@@ -243,6 +246,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		}
 		return l.cacheClient.CreateExecutionCache(ctx, task)
 	}
+
 	return nil
 }
 
@@ -319,6 +323,8 @@ func (l *LauncherV2) publish(
 	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
 }
 
+// executeV2 handles placeholder substitution for inputs, calls execute to
+// execute end user logic, and uploads the resulting output Artifacts.
 func executeV2(
 	ctx context.Context,
 	executorInput *pipelinespec.ExecutorInput,
@@ -427,6 +433,46 @@ func prettyPrint(jsonStr string) string {
 
 const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 
+// We overwrite this as a DI mechanism for testing getLogWriter. We could make
+// it an explicit input to getLogWriter, but then it would have to be an input
+// in getLogWriter's caller as well.
+var osCreateFunc = os.Create
+
+// getLogWriter returns an io.Writer that can either be single-channel to stdout
+// or dual-channel to stdout AND a log file based on the URI of a log artifact
+// in the supplied ArtifactList. Downstream, the resulting log file gets
+// uploaded to the object store.
+func getLogWriter(artifacts map[string]*pipelinespec.ArtifactList) (writer io.Writer) {
+	logsArtifactList, ok := artifacts["logs"]
+
+	if !ok || len(logsArtifactList.Artifacts) == 0 {
+		return os.Stdout
+	}
+
+	logURI := logsArtifactList.Artifacts[0].Uri
+	logFilePath, err := LocalPathForURI(logURI)
+	if err != nil {
+		glog.Errorf("Error converting log artifact URI, %s, to file path.", logURI)
+		return os.Stdout
+	}
+
+	logFile, err := osCreateFunc(logFilePath)
+	if err != nil {
+		glog.Errorf("Error creating logFilePath, %s.", logFilePath)
+		return os.Stdout
+	}
+
+	return io.MultiWriter(os.Stdout, logFile)
+}
+
+// TODO: Clarify the differences between the various execution functions. Are
+// all of them necessary? Do the existing partitions make sense? Can the
+// function names more effectively encapsulate the division in responsibilities?
+// We have tried to clarify this with some  basic function doc strings, but a
+// deeper refactor might be advisable.
+
+// execute downloads input artifacts, prepares the execution environment,
+// executes the end user code, and returns the outputs.
 func execute(
 	ctx context.Context,
 	executorInput *pipelinespec.ExecutorInput,
@@ -445,17 +491,21 @@ func execute(
 		return nil, err
 	}
 
-	// Run user program.
-	executor := exec.Command(cmd, args...)
-	executor.Stdin = os.Stdin
-	executor.Stdout = os.Stdout
-	executor.Stderr = os.Stderr
+	writer := getLogWriter(executorInput.Outputs.GetArtifacts())
+
+	// Prepare command that will execute end user code.
+	command := exec.Command(cmd, args...)
+	command.Stdin = os.Stdin
+	// Pipe stdout/stderr to the aforementioned multiWriter.
+	command.Stdout = writer
+	command.Stderr = writer
 	defer glog.Flush()
-	if err := executor.Run(); err != nil {
+
+	// Execute end user code.
+	if err := command.Run(); err != nil {
 		return nil, err
 	}
 
-	// Collect outputs from output metadata file.
 	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
 }
 
@@ -472,47 +522,49 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
-		// TODO: Support multiple artifacts someday, probably through the v2 engine.
-		outputArtifact := artifactList.Artifacts[0]
 
-		// Merge executor output artifact info with executor input
-		if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
-			mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
-		}
+		for _, outputArtifact := range artifactList.Artifacts {
+			glog.Infof("outputArtifact in uploadOutputArtifacts call: ", outputArtifact)
 
-		// Upload artifacts from local path to remote storages.
-		localDir, err := LocalPathForURI(outputArtifact.Uri)
-		if err != nil {
-			glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
-		} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
-			blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
-			if err != nil {
-				return nil, fmt.Errorf("failed to upload output artifact %q: %w", name, err)
+			// Merge executor output artifact info with executor input
+			if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
+				mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
 			}
-			if err := objectstore.UploadBlob(ctx, opts.bucket, localDir, blobKey); err != nil {
-				//  We allow components to not produce output files
-				if errors.Is(err, os.ErrNotExist) {
-					glog.Warningf("Local filepath %q does not exist", localDir)
-				} else {
-					return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+
+			// Upload artifacts from local path to remote storages.
+			localDir, err := LocalPathForURI(outputArtifact.Uri)
+			if err != nil {
+				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
+			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
+				blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
+				if err != nil {
+					return nil, fmt.Errorf("failed to upload output artifact %q: %w", name, err)
+				}
+				if err := objectstore.UploadBlob(ctx, opts.bucket, localDir, blobKey); err != nil {
+					//  We allow components to not produce output files
+					if errors.Is(err, os.ErrNotExist) {
+						glog.Warningf("Local filepath %q does not exist", localDir)
+					} else {
+						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+					}
 				}
 			}
-		}
 
-		// Write out the metadata.
-		metadataErr := func(err error) error {
-			return fmt.Errorf("unable to produce MLMD artifact for output %q: %w", name, err)
+			// Write out the metadata.
+			metadataErr := func(err error) error {
+				return fmt.Errorf("unable to produce MLMD artifact for output %q: %w", name, err)
+			}
+			// TODO(neuromage): Consider batching these instead of recording one by one.
+			schema, err := getArtifactSchema(outputArtifact.GetType())
+			if err != nil {
+				return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
+			}
+			mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE, opts.bucketConfig)
+			if err != nil {
+				return nil, metadataErr(err)
+			}
+			outputArtifacts = append(outputArtifacts, mlmdArtifact)
 		}
-		// TODO(neuromage): Consider batching these instead of recording one by one.
-		schema, err := getArtifactSchema(outputArtifact.GetType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to determine schema for output %q: %w", name, err)
-		}
-		mlmdArtifact, err := opts.metadataClient.RecordArtifact(ctx, name, schema, outputArtifact, pb.Artifact_LIVE, opts.bucketConfig)
-		if err != nil {
-			return nil, metadataErr(err)
-		}
-		outputArtifacts = append(outputArtifacts, mlmdArtifact)
 	}
 	return outputArtifacts, nil
 }
@@ -833,15 +885,17 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
-		outputArtifact := artifactList.Artifacts[0]
 
-		localPath, err := LocalPathForURI(outputArtifact.Uri)
-		if err != nil {
-			return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
-		}
+		for _, outputArtifact := range artifactList.Artifacts {
 
-		if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
-			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
+			localPath, err := LocalPathForURI(outputArtifact.Uri)
+			if err != nil {
+				return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
+			}
+
+			if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+				return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
+			}
 		}
 	}
 
