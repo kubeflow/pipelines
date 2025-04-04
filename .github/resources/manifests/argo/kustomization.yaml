@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-- ../../../../manifests/kustomize/base
+- ../../../../manifests/kustomize/base/pipeline
 
 images:
 - name: ghcr.io/kubeflow/kfp-api-server
