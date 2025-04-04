@@ -24,3 +24,7 @@ patches:
     target:
       kind: ValidatingWebhookConfiguration
       name: pipelineversions.pipelines.kubeflow.org
+  - path: patches/mutating-webhook.yaml
+    target:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org

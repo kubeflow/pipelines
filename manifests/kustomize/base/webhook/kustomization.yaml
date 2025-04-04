@@ -4,6 +4,7 @@ namespace: kubeflow
 
 resources:
   - pipelineversion-validating-webhook-config.yaml
+  - pipelineversion-mutating-webhook-config.yaml
 
 configurations:
 - params.yaml

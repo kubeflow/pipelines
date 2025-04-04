@@ -43,6 +43,11 @@ fi
 
 # Deploy manifest
 TEST_MANIFESTS=".github/resources/manifests/argo"
+
+if [[ "$PIPELINE_STORE" == "kubernetes" ]]; then
+  TEST_MANIFESTS=".github/resources/manifests/kubernetes-native"
+fi
+
 kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
