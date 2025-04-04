@@ -300,12 +300,13 @@ func startWebhook(controllerClient ctrlclient.Client, wg *sync.WaitGroup) (*http
 
 	topMux := mux.NewRouter()
 
-	pvValidateWebhook, err := webhook.NewPipelineVersionWebhook(controllerClient)
+	pvValidateWebhook, pvMutateWebhook, err := webhook.NewPipelineVersionWebhook(controllerClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate the Kubernetes webhook: %v", err)
 	}
 
 	topMux.Handle("/webhooks/validate-pipelineversion", pvValidateWebhook)
+	topMux.Handle("/webhooks/mutate-pipelineversion", pvMutateWebhook)
 
 	webhookServer := &http.Server{
 		Addr:    *webhookPortFlag,

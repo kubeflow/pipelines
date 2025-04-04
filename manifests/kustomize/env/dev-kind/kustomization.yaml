@@ -142,6 +142,16 @@ patches:
           service:
             name: ml-pipeline-reverse-proxy
 - patch: |-
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: MutatingWebhookConfiguration
+    metadata:
+      name: pipelineversions.pipelines.kubeflow.org
+    webhooks:
+      - name: pipelineversions.pipelines.kubeflow.org
+        clientConfig:
+          service:
+            name: ml-pipeline-reverse-proxy
+- patch: |-
     apiVersion: cert-manager.io/v1
     kind: Certificate
     metadata:
