@@ -2,12 +2,11 @@ name: KFP e2e tests
 
 on:
   push:
-    branches: [master]
-
   pull_request:
     paths:
       - '.github/workflows/e2e-test.yml'
       - '.github/resources/**'
+      - '.github/actions/**'
       - 'go.mod'
       - 'go.sum'
       - 'backend/**'
@@ -17,7 +16,26 @@ on:
       - 'test/**'
 
 jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    name: Build KFP Images
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build KFP images and save to tar
+        id: build
+        uses: ./.github/actions/build-kfp-images
+
+      - name: Upload KFP image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-images-archive
+          path: ${{ steps.build.outputs.image_archive_path }}
+          retention-days: 1 # Keep artifact for 1 day
+
   initialization-tests-v1:
+    needs: build-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -32,10 +50,19 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Download KFP image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kfp-images-archive
+          path: .
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Load images into KinD cluster
+        run: kind load image-archive kfp-images.tar --name kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -60,6 +87,7 @@ jobs:
           path: /tmp/tmp*/*
 
   initialization-tests-v2:
+    needs: build-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -74,10 +102,19 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Download KFP image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kfp-images-archive
+          path: .
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Load images into KinD cluster
+        run: kind load image-archive kfp-images.tar --name kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -102,6 +139,7 @@ jobs:
           path: /tmp/tmp*/*
 
   api-integration-tests-v1:
+    needs: build-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -116,10 +154,19 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Download KFP image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kfp-images-archive
+          path: .
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Load images into KinD cluster
+        run: kind load image-archive kfp-images.tar --name kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -147,6 +194,7 @@ jobs:
           path: /tmp/tmp*/*
 
   api-integration-tests-v2:
+    needs: build-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -161,10 +209,19 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Download KFP image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kfp-images-archive
+          path: .
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Load images into KinD cluster
+        run: kind load image-archive kfp-images.tar --name kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -189,6 +246,7 @@ jobs:
           path: /tmp/tmp*/*
 
   frontend-integration-test:
+    needs: build-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -203,10 +261,19 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Download KFP image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kfp-images-archive
+          path: .
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Load images into KinD cluster
+        run: kind load image-archive kfp-images.tar --name kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -238,6 +305,7 @@ jobs:
           path: /tmp/tmp*/*
       
   basic-sample-tests:
+    needs: build-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -252,10 +320,19 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Download KFP image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kfp-images-archive
+          path: .
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Load images into KinD cluster
+        run: kind load image-archive kfp-images.tar --name kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
