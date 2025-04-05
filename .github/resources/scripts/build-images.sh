@@ -93,21 +93,6 @@ fi
 
 echo "Successfully built and saved images to ${ARCHIVE_PATH}"
 
-KIND_REGISTRY="kind-registry:5000"
-KIND_CLUSTER_NAME="kind"
-
-echo "Pushing third-party images to local registry..."
-docker pull google/cloud-sdk:279.0.0
-docker tag google/cloud-sdk:279.0.0 "${KIND_REGISTRY}/google/cloud-sdk:279.0.0"
-docker push "${KIND_REGISTRY}/google/cloud-sdk:279.0.0"
-
-docker pull library/bash:4.4.23
-docker tag library/bash:4.4.23 "${KIND_REGISTRY}/library/bash:4.4.23"
-docker push "${KIND_REGISTRY}/library/bash:4.4.23"
-
-echo "Loading images from archive ${ARCHIVE_PATH} into kind cluster ${KIND_CLUSTER_NAME}..."
-kind load image-archive "${ARCHIVE_PATH}" --name "${KIND_CLUSTER_NAME}"
-
 # clean up intermittent build caches to free up disk space
 docker system prune -a -f
 
