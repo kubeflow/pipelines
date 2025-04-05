@@ -20,10 +20,11 @@ import (
 )
 
 var (
-	namespace           = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
-	initializeTimeout   = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
-	runIntegrationTests = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
-	runUpgradeTests     = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
+	namespace                   = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
+	initializeTimeout           = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
+	runIntegrationTests         = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
+	runK8sStoreIntegrationTests = flag.Bool("runK8sStoreIntegrationTests", false, "Whether to run integration tests with K8s Native API Support")
+	runUpgradeTests             = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
 )
 
 /**

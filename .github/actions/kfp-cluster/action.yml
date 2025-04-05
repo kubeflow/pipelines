@@ -5,6 +5,10 @@ inputs:
   k8s_version:
     description: "The Kubernetes version to use for the Kind cluster"
     required: true
+  kubernetes_store:
+    description: "Flag to deploy KFP with K8s Native API"
+    default: 'database'
+    required: false
 
 runs:
   using: "composite"
@@ -21,6 +25,12 @@ runs:
       shell: bash
       run: ./.github/resources/scripts/build-images.sh
 
-    - name: Deploy KFP
+    - name: Deploy KFP w/ Database
       shell: bash
+      if: ${{ inputs.kubernetes_store == 'database'}}
       run: ./.github/resources/scripts/deploy-kfp.sh
+
+    - name: Deploy KFP w/ K8s Native API
+      shell: bash
+      if: ${{ inputs.kubernetes_store == 'kubernetes' }}
+      run: ./.github/resources/scripts/deploy-kfp.sh --deploy-k8s-native
