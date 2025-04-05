@@ -71,14 +71,11 @@ class PySampleChecker(object):
 
     def run(self):
         """Run compiled KFP pipeline."""
-        print("--- Entering PySampleChecker.run ---")
 
         ###### Initialization ######
-        print(f"Initializing KFP client with host: {self._host}")
         self._client = Client(host=self._host)
 
         ###### Check Input File ######
-        print(f"Checking for input file: {self._input}")
         utils.add_junit_test(self._test_cases, 'input generated yaml file',
                              os.path.exists(self._input),
                              'yaml file is not generated')
@@ -148,21 +145,11 @@ class PySampleChecker(object):
 
         # Submit for pipeline running.
         if self._run_pipeline:
-            print(f"Attempting to run pipeline: experiment_id={self._experiment_id}, job_name={self._job_name}, input={self._input}, args={self._test_args}")
-            try:
-                response = self._client.run_pipeline(self._experiment_id,
+            response = self._client.run_pipeline(self._experiment_id,
                                                  self._job_name, self._input,
                                                  self._test_args)
-                self._run_id = response.run_id
-                print(f"Successfully submitted pipeline run. Run ID: {self._run_id}")
-                utils.add_junit_test(self._test_cases, 'create pipeline run', True)
-            except Exception as e:
-                print(f"ERROR during client.run_pipeline: {e}")
-                utils.add_junit_test(self._test_cases, 'create pipeline run', False, str(e))
-                # Re-raise the exception to potentially halt the process if needed
-                raise
-        else:
-            print("Skipping pipeline run submission because self._run_pipeline is False.")
+            self._run_id = response.run_id
+            utils.add_junit_test(self._test_cases, 'create pipeline run', True)
 
     def check(self):
         """Check pipeline run results."""

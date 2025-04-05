@@ -19,6 +19,8 @@ It decides which test to trigger based upon the arguments provided.
 import os
 import re
 import subprocess
+import sys
+import time
 
 from check_notebook_results import NoteBookChecker
 from constants import BASE_DIR
@@ -60,23 +62,48 @@ class SampleTest(object):
         self._target_image_prefix = target_image_prefix
         self._namespace = namespace
         self._host = host
+        print(f"DEBUG: Initial host value: {self._host}")
         if self._host == '':
+            print(f"DEBUG: Host is empty, attempting to discover endpoint")
             try:
                 # Get inverse proxy hostname from a config map called 'inverse-proxy-config'
                 # in the same namespace as KFP.
                 try:
+                    print(f"DEBUG: Attempting to load in-cluster config")
                     kubernetes.config.load_incluster_config()
-                except:
+                    print(f"DEBUG: Successfully loaded in-cluster config")
+                except Exception as k8s_incluster_err:
+                    print(f"DEBUG: Failed to load in-cluster config: {k8s_incluster_err}")
+                    print(f"DEBUG: Attempting to load kube config")
                     kubernetes.config.load_kube_config()
+                    print(f"DEBUG: Successfully loaded kube config")
 
+                print(f"DEBUG: Setting host to http://localhost:8888")
                 self._host = 'http://localhost:8888'
             except Exception as err:
+                print(f"DEBUG: ERROR: Failed to set up Kubernetes config: {err}")
                 raise RuntimeError(
                     'Failed to get inverse proxy hostname') from err
+            print(f"DEBUG: Final host value after discovery: {self._host}")
 
         # With the healthz API in place, when the developer clicks the link,
         # it will lead to a functional URL instead of a 404 error.
         print(f'KFP API healthz endpoint is: {self._host}/apis/v1beta1/healthz')
+        
+        # Try to ping the healthz endpoint to verify connectivity
+        try:
+            import requests
+            print(f"DEBUG: Attempting to connect to healthz endpoint: {self._host}/apis/v1beta1/healthz")
+            start_time = time.time()
+            response = requests.get(f"{self._host}/apis/v1beta1/healthz", timeout=10)
+            elapsed = time.time() - start_time
+            print(f"DEBUG: Healthz endpoint response: status={response.status_code}, time={elapsed:.2f}s")
+            if response.status_code != 200:
+                print(f"DEBUG: WARNING - Healthz endpoint returned non-200 status: {response.status_code}")
+                print(f"DEBUG: Response content: {response.text[:200]}...")
+        except Exception as health_err:
+            print(f"DEBUG: ERROR connecting to healthz endpoint: {health_err}")
+            print("DEBUG: Continuing anyway, but this may cause issues later")
 
         self._is_notebook = None
         self._work_dir = os.path.join(BASE_DIR, 'samples/core/',
@@ -88,13 +115,14 @@ class SampleTest(object):
 
     def _compile(self):
         print(f"--- Entering SampleTest._compile ---")
+        print(f"DEBUG: Current directory before changing: {os.getcwd()}")
+        print(f"DEBUG: Changing to work directory: {self._work_dir}")
         os.chdir(self._work_dir)
-        print(f'Changed directory to: {self._work_dir}')
+        print(f"DEBUG: Current directory after changing: {os.getcwd()}")
+        print('Run the sample tests...')
 
         # Looking for the entry point of the test.
         list_of_files = os.listdir('.')
-        print(f'Files in work dir: {list_of_files}')
-        entry_point = None
         for file in list_of_files:
             # matching by .py or .ipynb, there will be yaml ( compiled ) files in the folder.
             # if you rerun the test suite twice, the test suite will fail
@@ -103,76 +131,79 @@ class SampleTest(object):
                 file_name, ext_name = os.path.splitext(file)
                 if self._is_notebook is not None:
                     raise (RuntimeError(
-                        'There are both .py and .ipynb files for test: %s' %
-                        self._test_name))
-                entry_point = file
+                        'Multiple entry points found under sample: {}'.format(
+                            self._test_name)))
+                if ext_name == '.py':
+                    self._is_notebook = False
                 if ext_name == '.ipynb':
                     self._is_notebook = True
-                    print(f'Detected notebook entry point: {entry_point}')
-                else:
-                    self._is_notebook = False
-                    print(f'Detected python script entry point: {entry_point}')
 
-        if entry_point is None:
-            raise (RuntimeError('No .py or .ipynb file found for test %s' %
-                              self._test_name))
+        if self._is_notebook is None:
+            raise (RuntimeError('No entry point found for sample: {}'.format(
+                self._test_name)))
 
-        if self._is_notebook:
-            print(f'Executing notebook: {entry_point} using papermill...')
-            try:
-                pm.execute_notebook(
-                    entry_point,
-                    'out.ipynb',
-                    parameters=dict(
-                        output=self._sample_test_output,
-                        project='YOUR_PROJECT_ID',
-                        test_data_dir='gs://ml-pipeline-playground/testdata'
-                    )
-                )
-                print(f'Papermill execution finished for {entry_point}')
-            except Exception as e:
-                print(f'ERROR during papermill execution: {e}')
-                raise
-            # Prepare KFP package
-            print(f'Preparing KFP package for notebook...')
-            self._run_pipeline = os.path.join(self._work_dir, 'out.ipynb')
-            # Notebooks must be compiled to pipeline package yaml.
-            subprocess.check_call([
-                'jupyter', 'nbconvert', '--to', 'python',
-                os.path.join(self._work_dir, 'out.ipynb')
-            ])
-            subprocess.check_call([
-                'dsl-compile-ipynb', '--py',
-                os.path.join(self._work_dir, 'out.py'), '--output',
-                os.path.join(self._work_dir, 'out.yaml')
-            ])
-            self._run_pipeline = os.path.join(self._work_dir, 'out.yaml')
-            print(f'KFP package for notebook created: {self._run_pipeline}')
+        config_schema = yamale.make_schema(SCHEMA_CONFIG)
+        # Retrieve default config
+        try:
+            with open(DEFAULT_CONFIG, 'r') as f:
+                raw_args = yaml.safe_load(f)
+            default_config = yamale.make_data(DEFAULT_CONFIG)
+            yamale.validate(
+                config_schema,
+                default_config)  # If fails, a ValueError will be raised.
+        except yaml.YAMLError as yamlerr:
+            raise RuntimeError('Illegal default config:{}'.format(yamlerr))
+        except OSError as ose:
+            raise FileExistsError('Default config not found:{}'.format(ose))
         else:
-            # Compile the pipeline
-            pipeline_func = utils.load_module(entry_point)
-            output_package = os.path.join(self._work_dir,
-                                        '%s.py.yaml' % self._test_name)
-            print(f'Compiling python script {entry_point} to {output_package}...')
-            try:
-                kfp.compiler.Compiler().compile(pipeline_func, output_package)
-                print(f'Compilation finished for {entry_point}.')
-            except Exception as e:
-                print(f'ERROR during KFP compilation: {e}')
-                raise
+            self._run_pipeline = raw_args['run_pipeline']
 
-            # TODO: temporary workaround for running sample tests locally
-            # The sample test workflow compiles the python DSL sample code into KFP yaml
-            # static definition, then uses KFP client CLI to submit the pipeline run.
-            # Running KFP sample tests need the artifacts to be passed correctly by
-            # replacing the input placeholders. This is not working currently.
-            # Also, this is tied to specifics of Argo CLI and needs more work.
-            print('Executing python script locally (temporary workaround? Check comments)...')
-            return_code = subprocess.call(['python3', entry_point])
-            print(f'Local python script execution finished with code: {return_code}')
+        # For presubmit check, do not do any image injection as for now.
+        # Notebook samples need to be papermilled first.
+        if self._is_notebook:
+            # Parse necessary params from config.yaml
+            nb_params = {}
+            try:
+                config_file = os.path.join(CONFIG_DIR,
+                                           '%s.config.yaml' % self._test_name)
+                with open(config_file, 'r') as f:
+                    raw_args = yaml.safe_load(f)
+                test_config = yamale.make_data(config_file)
+                yamale.validate(
+                    config_schema,
+                    test_config)  # If fails, a ValueError will be raised.
+            except yaml.YAMLError as yamlerr:
+                print('No legit yaml config file found, use default args:{}'
+                      .format(yamlerr))
+            except OSError as ose:
+                print(
+                    'Config file with the same name not found, use default args:{}'
+                    .format(ose))
+            else:
+                if 'notebook_params' in raw_args.keys():
+                    nb_params.update(raw_args['notebook_params'])
+                    if 'output' in raw_args['notebook_params'].keys(
+                    ):  # output is a special param that has to be specified dynamically.
+                        nb_params['output'] = self._sample_test_output
+                if 'run_pipeline' in raw_args.keys():
+                    self._run_pipeline = raw_args['run_pipeline']
+
+            pm.execute_notebook(
+                input_path='%s.ipynb' % self._test_name,
+                output_path='%s.ipynb' % self._test_name,
+                parameters=nb_params,
+                prepare_only=True)
+            # Convert to python script.
+            return_code = subprocess.call([
+                'jupyter', 'nbconvert', '--to', 'python',
+                '%s.ipynb' % self._test_name
+            ])
+
+        else:
+            return_code = subprocess.call(['python3', '%s.py' % self._test_name])
 
         # Command executed successfully!
-        assert return_code == 0 # This assert seems problematic if compilation path taken?
+        assert return_code == 0
 
     def _injection(self):
         """Inject images for pipeline components.
@@ -184,18 +215,23 @@ class SampleTest(object):
 
     def run_test(self):
         print(f"--- Entering SampleTest.run_test ---")
-        print(f'Starting test: {self._test_name}, notebook: {self._is_notebook}') # Log before compile
-        self._compile()
-        print(f'Compilation/preparation finished for {self._test_name}. Notebook: {self._is_notebook}')
-        self._injection()
+        try:
+            self._compile()
+            print(f"DEBUG: _compile completed successfully")
+            self._injection()
+            print(f"DEBUG: _injection completed successfully")
 
-        # Overriding the experiment name of pipeline runs
-        experiment_name = self._test_name + '-test'
-        print(f'Setting experiment name override to: {experiment_name}')
-        os.environ['KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'] = experiment_name
+            # Overriding the experiment name of pipeline runs
+            experiment_name = self._test_name + '-test'
+            print(f"DEBUG: Setting experiment name to: {experiment_name}")
+            os.environ['KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'] = experiment_name
+        except Exception as e:
+            print(f"DEBUG: ERROR in run_test: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
         if self._is_notebook:
-            print(f'Initializing NoteBookChecker for {self._test_name}')
             nbchecker = NoteBookChecker(
                 testname=self._test_name,
                 result=self._sample_test_result,
@@ -203,19 +239,13 @@ class SampleTest(object):
                 experiment_name=experiment_name,
                 host=self._host,
             )
-            print(f'Calling NoteBookChecker.run() for {self._test_name}')
             nbchecker.run()
-            print(f'NoteBookChecker.run() finished for {self._test_name}')
             os.chdir(TEST_DIR)
-            print(f'Calling NoteBookChecker.check() for {self._test_name}')
             nbchecker.check()
-            print(f'NoteBookChecker.check() finished for {self._test_name}')
         else:
-            print(f'Initializing PySampleChecker for {self._test_name}')
             os.chdir(TEST_DIR)
             input_file = os.path.join(self._work_dir,
                                       '%s.py.yaml' % self._test_name)
-            print(f'Using input file for PySampleChecker: {input_file}')
 
             pysample_checker = PySampleChecker(
                 testname=self._test_name,
@@ -227,12 +257,8 @@ class SampleTest(object):
                 experiment_name=experiment_name,
                 expected_result=self._expected_result,
             )
-            print(f'Calling PySampleChecker.run() for {self._test_name}')
             pysample_checker.run()
-            print(f'PySampleChecker.run() finished for {self._test_name}')
-            print(f'Calling PySampleChecker.check() for {self._test_name}')
             pysample_checker.check()
-            print(f'PySampleChecker.check() finished for {self._test_name}')
 
 
 class ComponentTest(SampleTest):
@@ -263,7 +289,6 @@ class ComponentTest(SampleTest):
     def _injection(self):
         """Sample-specific image injection into yaml file."""
         print(f"--- Entering ComponentTest._injection ---")
-        print(f'Injecting images for component test: {self._test_name}')
         subs = {  # Tag can look like 1.0.0-rc.3, so we need both "-" and "." in the regex.
             r'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:(\w+|[.-])+':
                 self._local_confusionmatrix_image,
@@ -281,10 +306,8 @@ class ComponentTest(SampleTest):
         else:
             # Only the above sample need injection for now.
             pass
-        print(f'Performing file injection into {self._test_name}.py.yaml')
         utils.file_injection('%s.py.yaml' % self._test_name,
                              '%s.py.yaml.tmp' % self._test_name, subs)
-        print(f'File injection finished for {self._test_name}.py.yaml')
 
 
 def main():
@@ -297,7 +320,15 @@ def main():
     test.
     """
     print(f"--- Entering main ---")
-    fire.Fire({'sample_test': SampleTest, 'component_test': ComponentTest})
+    print(f"DEBUG: Python version: {sys.version}")
+    print(f"DEBUG: Command line arguments: {sys.argv}")
+    try:
+        fire.Fire({'sample_test': SampleTest, 'component_test': ComponentTest})
+    except Exception as e:
+        print(f"DEBUG: ERROR in main(): {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 if __name__ == '__main__':
