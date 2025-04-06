@@ -433,9 +433,7 @@ func prettyPrint(jsonStr string) string {
 
 const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 
-// We overwrite this as a DI mechanism for testing getLogWriter. We could make
-// it an explicit input to getLogWriter, but then it would have to be an input
-// in getLogWriter's caller as well.
+// We overwrite this as a DI mechanism for testing getLogWriter.
 var osCreateFunc = os.Create
 
 // getLogWriter returns an io.Writer that can either be single-channel to stdout
@@ -443,9 +441,9 @@ var osCreateFunc = os.Create
 // in the supplied ArtifactList. Downstream, the resulting log file gets
 // uploaded to the object store.
 func getLogWriter(artifacts map[string]*pipelinespec.ArtifactList) (writer io.Writer) {
-	logsArtifactList, ok := artifacts["logs"]
+	logsArtifactList, ok := artifacts["executor-logs"]
 
-	if !ok || len(logsArtifactList.Artifacts) == 0 {
+	if !ok || len(logsArtifactList.Artifacts) != 1 {
 		return os.Stdout
 	}
 
@@ -464,12 +462,6 @@ func getLogWriter(artifacts map[string]*pipelinespec.ArtifactList) (writer io.Wr
 
 	return io.MultiWriter(os.Stdout, logFile)
 }
-
-// TODO: Clarify the differences between the various execution functions. Are
-// all of them necessary? Do the existing partitions make sense? Can the
-// function names more effectively encapsulate the division in responsibilities?
-// We have tried to clarify this with some  basic function doc strings, but a
-// deeper refactor might be advisable.
 
 // execute downloads input artifacts, prepares the execution environment,
 // executes the end user code, and returns the outputs.
@@ -524,7 +516,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 		}
 
 		for _, outputArtifact := range artifactList.Artifacts {
-			glog.Infof("outputArtifact in uploadOutputArtifacts call: ", outputArtifact)
+			glog.Infof("outputArtifact in uploadOutputArtifacts call: ", outputArtifact.Name)
 
 			// Merge executor output artifact info with executor input
 			if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
