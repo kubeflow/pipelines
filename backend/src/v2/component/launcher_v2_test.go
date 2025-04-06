@@ -141,7 +141,7 @@ func Test_get_log_Writer(t *testing.T) {
 		{
 			"multiwriter",
 			map[string]*pipelinespec.ArtifactList{
-				"logs": {
+				"executor-logs": {
 					Artifacts: []*pipelinespec.RuntimeArtifact{
 						{
 							Uri: "minio://testinguri",

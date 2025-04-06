@@ -1953,7 +1953,7 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 	if artifacts == nil {
 		artifacts = make(map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec)
 	}
-	artifacts["logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+	artifacts["executor-logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
 		ArtifactType: &pipelinespec.ArtifactTypeSchema{
 			Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
 				SchemaTitle: "system.Artifact",
