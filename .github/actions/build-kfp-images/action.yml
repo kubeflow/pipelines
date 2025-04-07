@@ -1,0 +1,24 @@
+name: "Build KFP Images and Save to Tar"
+description: "Builds all necessary KFP backend images and saves them to a tar archive."
+
+outputs:
+  image_archive_path:
+    description: "The path to the saved image tar archive."
+    value: ${{ steps.build-save.outputs.archive_path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build images and save to tar
+      id: build-save
+      shell: bash
+      # This script will be modified to accept an output path argument
+      # and save images instead of pushing.
+      run: |
+        archive_path="kfp-images.tar"
+        if ./.github/resources/scripts/build-images.sh "$archive_path"; then
+          echo "archive_path=$archive_path" >> $GITHUB_OUTPUT
+        else
+          echo "Image build and save failed."
+          exit 1
+        fi
