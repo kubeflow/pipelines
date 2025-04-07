@@ -1,4 +1,4 @@
-# Copyright 2024 The Kubeflow Authors
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,186 +11,272 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from concurrent.futures import as_completed
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
-import inspect
+"""This launcher module serves as the entry-point of the sample test image.
+
+It decides which test to trigger based upon the arguments provided.
+"""
+
 import os
-from pprint import pprint
-from typing import List
-import unittest
+import re
+import subprocess
 
-import component_with_optional_inputs
-import hello_world
-import kfp
-from kfp.dsl.graph_component import GraphComponent
-import pipeline_container_no_input
-import pipeline_with_env
-import producer_consumer_param
-import subdagio
-import parallel_consume_upstream
-import parallel_after_dependency
-import two_step_pipeline_containerized
-import pipeline_with_placeholders
-import pipeline_with_secret_as_volume
-import pipeline_with_secret_as_env
-from kubernetes import client, config, utils
+from check_notebook_results import NoteBookChecker
+from constants import BASE_DIR
+from constants import CONFIG_DIR
+from constants import DEFAULT_CONFIG
+from constants import SCHEMA_CONFIG
+from constants import TEST_DIR
+import fire
+import kubernetes
+import papermill as pm
+from run_sample_test import PySampleChecker
+import utils
+import yamale
 import yaml
-from modelcar import modelcar
-
-_MINUTE = 60  # seconds
-_DEFAULT_TIMEOUT = 5 * _MINUTE
-SAMPLES_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
-PRE_REQ_DIR = os.path.join(SAMPLES_DIR, 'v2', 'pre-requisites')
-PREREQS = [
-    os.path.join(PRE_REQ_DIR, 'test-secrets.yaml')
-]
-
-_KFP_NAMESPACE = os.getenv('KFP_NAMESPACE', 'kubeflow')
 
 
-@dataclass
-class TestCase:
-    pipeline_func: GraphComponent
-    timeout: int = _DEFAULT_TIMEOUT
+class SampleTest(object):
 
+    def __init__(self,
+                 test_name,
+                 results_gcs_dir,
+                 host='',
+                 target_image_prefix='',
+                 namespace='kubeflow',
+                 expected_result='succeeded'):
+        """Launch a KFP sample_test provided its name.
 
-def deploy_k8s_yaml(namespace: str, yaml_file: str):
-    config.load_kube_config()
-    api_client = client.ApiClient()
-    try:
-        utils.create_from_yaml(api_client, yaml_file, namespace=namespace)
-        print(f"Resource(s) from {yaml_file} deployed successfully.")
-    except Exception as e:
-        raise RuntimeError(f"Exception when deploying from YAML: {e}")
+        :param test_name: name of the corresponding sample test.
+        :param results_gcs_dir: gs dir to store test result.
+        :param host: host of KFP API endpoint, default is auto-discovery from inverse-proxy-config.
+        :param target_image_prefix: prefix of docker image, default is empty.
+        :param namespace: namespace for kfp, default is kubeflow.
+        :param expected_result: the expected status for the run, default is succeeded.
+        """
+        self._test_name = test_name
+        self._results_gcs_dir = results_gcs_dir
+        # Capture the first segment after gs:// as the project name.
+        self._target_image_prefix = target_image_prefix
+        self._namespace = namespace
+        self._host = host
+        if self._host == '':
+            try:
+                # Get inverse proxy hostname from a config map called 'inverse-proxy-config'
+                # in the same namespace as KFP.
+                try:
+                    kubernetes.config.load_incluster_config()
+                except:
+                    kubernetes.config.load_kube_config()
 
+                self._host = 'http://localhost:8888'
+            except Exception as err:
+                raise RuntimeError(
+                    'Failed to get inverse proxy hostname') from err
 
-def delete_k8s_yaml(namespace: str, yaml_file: str):
-    config.load_kube_config()
-    v1 = client.CoreV1Api()
-    apps_v1 = client.AppsV1Api()
+        # With the healthz API in place, when the developer clicks the link,
+        # it will lead to a functional URL instead of a 404 error.
+        print(f'KFP API healthz endpoint is: {self._host}/apis/v1beta1/healthz')
 
-    try:
-        with open(yaml_file, "r") as f:
-            yaml_docs = yaml.safe_load_all(f)
+        self._is_notebook = None
+        self._work_dir = os.path.join(BASE_DIR, 'samples/core/',
+                                      self._test_name)
 
-            for doc in yaml_docs:
-                if not doc:
-                    continue  # Skip empty documents
+        self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
+        self._sample_test_output = self._results_gcs_dir
+        self._expected_result = expected_result
 
-                kind = doc.get("kind", "").lower()
-                name = doc["metadata"]["name"]
+    def _compile(self):
 
-                print(f"Deleting {kind} named {name}...")
+        os.chdir(self._work_dir)
+        print('Run the sample tests...')
 
-                # There's no utils.delete_from_yaml
-                # as a workaround we manually fetch required data
-                if kind == "deployment":
-                    apps_v1.delete_namespaced_deployment(name, namespace)
-                elif kind == "service":
-                    v1.delete_namespaced_service(name, namespace)
-                elif kind == "configmap":
-                    v1.delete_namespaced_config_map(name, namespace)
-                elif kind == "pod":
-                    v1.delete_namespaced_pod(name, namespace)
-                elif kind == "secret":
-                    v1.delete_namespaced_secret(name, namespace)
-                elif kind == "persistentvolumeclaim":
-                    v1.delete_namespaced_persistent_volume_claim(name, namespace)
-                elif kind == "namespace":
-                    client.CoreV1Api().delete_namespace(name)
-                else:
-                    print(f"Skipping unsupported resource type: {kind}")
+        # Looking for the entry point of the test.
+        list_of_files = os.listdir('.')
+        for file in list_of_files:
+            # matching by .py or .ipynb, there will be yaml ( compiled ) files in the folder.
+            # if you rerun the test suite twice, the test suite will fail
+            m = re.match(self._test_name + r'\.(py|ipynb)$', file)
+            if m:
+                file_name, ext_name = os.path.splitext(file)
+                if self._is_notebook is not None:
+                    raise (RuntimeError(
+                        'Multiple entry points found under sample: {}'.format(
+                            self._test_name)))
+                if ext_name == '.py':
+                    self._is_notebook = False
+                if ext_name == '.ipynb':
+                    self._is_notebook = True
 
-        print(f"Resource(s) from {yaml_file} deleted successfully.")
-    except Exception as e:
-        print(f"Exception when deleting from YAML: {e}")
+        if self._is_notebook is None:
+            raise (RuntimeError('No entry point found for sample: {}'.format(
+                self._test_name)))
 
+        config_schema = yamale.make_schema(SCHEMA_CONFIG)
+        # Retrieve default config
+        try:
+            with open(DEFAULT_CONFIG, 'r') as f:
+                raw_args = yaml.safe_load(f)
+            default_config = yamale.make_data(DEFAULT_CONFIG)
+            yamale.validate(
+                config_schema,
+                default_config)  # If fails, a ValueError will be raised.
+        except yaml.YAMLError as yamlerr:
+            raise RuntimeError('Illegal default config:{}'.format(yamlerr))
+        except OSError as ose:
+            raise FileExistsError('Default config not found:{}'.format(ose))
+        else:
+            self._run_pipeline = raw_args['run_pipeline']
 
-class SampleTest(unittest.TestCase):
-    _kfp_host_and_port = os.getenv('KFP_API_HOST_AND_PORT',
-                                   'http://localhost:8888')
-    _kfp_ui_and_port = os.getenv('KFP_UI_HOST_AND_PORT',
-                                 'http://localhost:8080')
-    _client = kfp.Client(host=_kfp_host_and_port, ui_host=_kfp_ui_and_port)
+        # For presubmit check, do not do any image injection as for now.
+        # Notebook samples need to be papermilled first.
+        if self._is_notebook:
+            # Parse necessary params from config.yaml
+            nb_params = {}
+            try:
+                config_file = os.path.join(CONFIG_DIR,
+                                           '%s.config.yaml' % self._test_name)
+                with open(config_file, 'r') as f:
+                    raw_args = yaml.safe_load(f)
+                test_config = yamale.make_data(config_file)
+                yamale.validate(
+                    config_schema,
+                    test_config)  # If fails, a ValueError will be raised.
+            except yaml.YAMLError as yamlerr:
+                print('No legit yaml config file found, use default args:{}'
+                      .format(yamlerr))
+            except OSError as ose:
+                print(
+                    'Config file with the same name not found, use default args:{}'
+                    .format(ose))
+            else:
+                if 'notebook_params' in raw_args.keys():
+                    nb_params.update(raw_args['notebook_params'])
+                    if 'output' in raw_args['notebook_params'].keys(
+                    ):  # output is a special param that has to be specified dynamically.
+                        nb_params['output'] = self._sample_test_output
+                if 'run_pipeline' in raw_args.keys():
+                    self._run_pipeline = raw_args['run_pipeline']
 
-    @classmethod
-    def setUpClass(cls):
-        """Runs once before all tests."""
-        print("Deploying pre-requisites....")
-        for p in PREREQS:
-            deploy_k8s_yaml(_KFP_NAMESPACE, p)
-        print("Done deploying pre-requisites.")
+            pm.execute_notebook(
+                input_path='%s.ipynb' % self._test_name,
+                output_path='%s.ipynb' % self._test_name,
+                parameters=nb_params,
+                prepare_only=True)
+            # Convert to python script.
+            return_code = subprocess.call([
+                'jupyter', 'nbconvert', '--to', 'python',
+                '%s.ipynb' % self._test_name
+            ])
 
-    @classmethod
-    def tearDownClass(cls):
-        """Runs once after all tests in this class."""
-        print("Cleaning up resources....")
-        for p in PREREQS:
-            delete_k8s_yaml(_KFP_NAMESPACE, p)
-        print("Done clean up.")
+        else:
+            return_code = subprocess.call(['python3', '%s.py' % self._test_name])
 
-    def test(self):
-        test_cases: List[TestCase] = [
-            TestCase(pipeline_func=hello_world.pipeline_hello_world),
-            TestCase(pipeline_func=producer_consumer_param
-                     .producer_consumer_param_pipeline),
-            TestCase(pipeline_func=pipeline_container_no_input
-                     .pipeline_container_no_input),
-            TestCase(pipeline_func=two_step_pipeline_containerized
-                     .two_step_pipeline_containerized),
-            TestCase(pipeline_func=component_with_optional_inputs.pipeline),
-            TestCase(pipeline_func=pipeline_with_env.pipeline_with_env),
+        # Command executed successfully!
+        assert return_code == 0
 
-            # The following tests are not working. Tracking issue: https://github.com/kubeflow/pipelines/issues/11053
-            # TestCase(pipeline_func=pipeline_with_importer.pipeline_with_importer),
-            # TestCase(pipeline_func=pipeline_with_volume.pipeline_with_volume),
-            TestCase(pipeline_func=pipeline_with_secret_as_volume.pipeline_secret_volume),
-            TestCase(pipeline_func=pipeline_with_secret_as_env.pipeline_secret_env),
-            TestCase(pipeline_func=subdagio.parameter.crust),
-            TestCase(pipeline_func=subdagio.parameter_cache.crust),
-            TestCase(pipeline_func=subdagio.mixed_parameters.crust),
-            TestCase(
-                pipeline_func=subdagio.multiple_parameters_namedtuple.crust),
-            TestCase(pipeline_func=subdagio.parameter_oneof.crust),
-            TestCase(pipeline_func=subdagio.artifact_cache.crust),
-            TestCase(pipeline_func=subdagio.artifact.crust),
-            TestCase(
-                pipeline_func=subdagio.multiple_artifacts_namedtuple.crust),
-            TestCase(pipeline_func=pipeline_with_placeholders.pipeline_with_placeholders),
-            TestCase(pipeline_func=modelcar.pipeline_modelcar_test),
-            TestCase(pipeline_func=parallel_consume_upstream.loop_consume_upstream),
-            TestCase(pipeline_func=parallel_after_dependency.loop_with_after_dependency_set),
-        ]
+    def _injection(self):
+        """Inject images for pipeline components.
 
-        with ThreadPoolExecutor() as executor:
-            futures = [
-                executor.submit(self.run_test_case, test_case.pipeline_func,
-                                test_case.timeout) for test_case in test_cases
-            ]
-            for future in as_completed(futures):
-                future.result()
+        This is only valid for coimponent test
+        """
+        pass
 
-    def run_test_case(self, pipeline_func: GraphComponent, timeout: int):
-        with self.subTest(pipeline=pipeline_func, msg=pipeline_func.name):
-            print(
-                f'Running pipeline: {inspect.getmodule(pipeline_func.pipeline_func).__name__}/{pipeline_func.name}.'
+    def run_test(self):
+        self._compile()
+        self._injection()
+
+        # Overriding the experiment name of pipeline runs
+        experiment_name = self._test_name + '-test'
+        os.environ['KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'] = experiment_name
+
+        if self._is_notebook:
+            nbchecker = NoteBookChecker(
+                testname=self._test_name,
+                result=self._sample_test_result,
+                run_pipeline=self._run_pipeline,
+                experiment_name=experiment_name,
+                host=self._host,
             )
-            run_result = self._client.create_run_from_pipeline_func(
-                pipeline_func=pipeline_func)
+            nbchecker.run()
+            os.chdir(TEST_DIR)
+            nbchecker.check()
+        else:
+            os.chdir(TEST_DIR)
+            input_file = os.path.join(self._work_dir,
+                                      '%s.py.yaml' % self._test_name)
 
-            run_response = run_result.wait_for_run_completion(timeout)
-
-            pprint(run_response.run_details)
-            print('Run details page URL:')
-            print(
-                f'{self._kfp_ui_and_port}/#/runs/details/{run_response.run_id}')
-
-            self.assertEqual(run_response.state, 'SUCCEEDED')
-            print(
-                f'Pipeline, {inspect.getmodule(pipeline_func.pipeline_func).__name__}/{pipeline_func.name}, succeeded.'
+            pysample_checker = PySampleChecker(
+                testname=self._test_name,
+                input=input_file,
+                output=self._sample_test_output,
+                result=self._sample_test_result,
+                host=self._host,
+                namespace=self._namespace,
+                experiment_name=experiment_name,
+                expected_result=self._expected_result,
             )
+            pysample_checker.run()
+            pysample_checker.check()
+
+
+class ComponentTest(SampleTest):
+    """Launch a KFP sample test as component test provided its name.
+
+    Currently follows the same logic as sample test for compatibility.
+    include xgboost_training_cm
+    """
+
+    def __init__(self,
+                 test_name,
+                 results_gcs_dir,
+                 gcp_image,
+                 local_confusionmatrix_image,
+                 local_roc_image,
+                 target_image_prefix='',
+                 namespace='kubeflow'):
+        super().__init__(
+            test_name=test_name,
+            results_gcs_dir=results_gcs_dir,
+            target_image_prefix=target_image_prefix,
+            namespace=namespace)
+        self._local_confusionmatrix_image = local_confusionmatrix_image
+        self._local_roc_image = local_roc_image
+        self._dataproc_gcp_image = gcp_image
+
+    def _injection(self):
+        """Sample-specific image injection into yaml file."""
+        subs = {  # Tag can look like 1.0.0-rc.3, so we need both "-" and "." in the regex.
+            r'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:(\w+|[.-])+':
+                self._local_confusionmatrix_image,
+            r'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:(\w+|[.-])+':
+                self._local_roc_image
+        }
+        if self._test_name == 'xgboost_training_cm':
+            subs.update({
+                r'gcr\.io/ml-pipeline/ml-pipeline-gcp:(\w|[.-])+':
+                    self._dataproc_gcp_image
+            })
+
+            utils.file_injection('%s.py.yaml' % self._test_name,
+                                 '%s.py.yaml.tmp' % self._test_name, subs)
+        else:
+            # Only the above sample need injection for now.
+            pass
+        utils.file_injection('%s.py.yaml' % self._test_name,
+                             '%s.py.yaml.tmp' % self._test_name, subs)
+
+
+def main():
+    """Launches either KFP sample test or component test as a command
+    entrypoint.
+
+    Usage:
+    python sample_test_launcher.py sample_test run_test arg1 arg2 to launch sample test, and
+    python sample_test_launcher.py component_test run_test arg1 arg2 to launch component
+    test.
+    """
+    fire.Fire({'sample_test': SampleTest, 'component_test': ComponentTest})
 
 
 if __name__ == '__main__':
-    unittest.main()
+    main()
