@@ -2194,7 +2194,7 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 		ExperimentId:   j.ExperimentId,
 	}
 
-	if j.PipelineSpec.PipelineVersionId == "" {
+	if j.PipelineSpec.PipelineId == "" && j.PipelineSpec.PipelineVersionId == "" {
 		spec, err := yamlStringToPipelineSpecStruct(j.PipelineSpec.PipelineSpecManifest)
 		if err != nil {
 			return &apiv2beta1.RecurringRun{

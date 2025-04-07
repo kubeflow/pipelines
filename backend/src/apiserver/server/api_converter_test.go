@@ -2164,6 +2164,11 @@ func TestToApiRecurringRun(t *testing.T) {
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
 		MaxConcurrency: 2,
 		NoCatchup:      true,
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionReference{
+			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+				PipelineId: "1",
+			},
+		},
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 2},
