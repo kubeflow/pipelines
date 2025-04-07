@@ -1679,6 +1679,7 @@ func getDAGTasks(
 	pipeline *metadata.Pipeline,
 	mlmd *metadata.Client,
 	flattenedTasks map[string]*metadata.Execution,
+	parallelFor bool,
 ) (map[string]*metadata.Execution, error) {
 	if flattenedTasks == nil {
 		flattenedTasks = make(map[string]*metadata.Execution)
@@ -1700,8 +1701,8 @@ func getDAGTasks(
 			// handled with dsl.Collected.
 			_, ok := v.GetExecution().GetCustomProperties()["iteration_count"]
 			if ok {
-				glog.Infof("Found a ParallelFor task, %v. Skipping it.", v.TaskName())
-				continue
+				glog.V(4).Infof("Found a ParallelFor task, %v.", v.TaskName())
+				parallelFor = true
 			}
 			glog.V(4).Infof("Found a task, %v, with an execution type of system.DAGExecution. Adding its tasks to the task list.", v.TaskName())
 			subDAG, err := mlmd.GetDAG(ctx, v.GetExecution().GetId())
@@ -1710,7 +1711,7 @@ func getDAGTasks(
 			}
 			// Pass the subDAG into a recursive call to getDAGTasks and update
 			// tasks to include the subDAG's tasks.
-			flattenedTasks, err = getDAGTasks(ctx, subDAG, pipeline, mlmd, flattenedTasks)
+			flattenedTasks, err = getDAGTasks(ctx, subDAG, pipeline, mlmd, flattenedTasks, parallelFor)
 			if err != nil {
 				return nil, err
 			}
@@ -1749,10 +1750,17 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 		return nil, cfg.err(fmt.Errorf("output parameter key is empty"))
 	}
 
+	isParallelForDAG := cfg.dag.Execution.GetExecution().GetCustomProperties()["iteration_index"] != nil
+	if isParallelForDAG {
+		// This is needed to support tasks within a ParallelFor Loop that do not leverage the iterator values but still consume outputs from ones that do
+		task_iteration_index := cfg.dag.Execution.GetExecution().GetCustomProperties()["iteration_index"].GetIntValue()
+		producerTaskName = fmt.Sprintf("%s_idx_%v", producerTaskName, task_iteration_index)
+		glog.Infof("Attempting to retrieve DAG Tasks from a parallelFor DAG")
+	}
 	// Get a list of tasks for the current DAG first.
 	// The reason we use gatDAGTasks instead of mlmd.GetExecutionsInDAG is because the latter does not handle
 	// task name collisions in the map which results in a bunch of unhandled edge cases and test failures.
-	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
+	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil, false)
 	if err != nil {
 		return nil, cfg.err(err)
 	}
@@ -1832,14 +1840,42 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 			if subTaskName == "" {
 				return nil, cfg.err(fmt.Errorf("producer_subtask not in outputParams"))
 			}
-			glog.V(4).Infof(
-				"Overriding currentTask, %v, output with currentTask's producer_subtask, %v, output.",
-				currentTask.TaskName(),
-				subTaskName,
-			)
-			currentTask, ok = tasks[subTaskName]
-			if !ok {
-				return nil, cfg.err(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
+			// If the sub-task is a ParallelFor DAG, we need to gather all i.e. dsl.Collected support
+			if currentTask.GetExecution().GetCustomProperties()["iteration_count"] != nil {
+				glog.V(4).Infof("currentTask, %v, is a ParallelFor DAG. Attempting to gather all producer_subtask iterations of %w", currentTask.TaskName(), subTaskName)
+
+				outputs_list := make([]*structpb.Value, 0)
+				for i := range currentTask.GetExecution().GetCustomProperties()["iteration_count"].GetIntValue() {
+					// Follow the convention set in mlmd.GetExecutionsInDAG for ParallelFor tasks
+					subTaskIterationName := fmt.Sprintf("%s_idx_%v", subTaskName, i)
+					glog.V(4).Infof("subTaskIterationName: %v", subTaskIterationName)
+					subTask, ok := tasks[subTaskIterationName]
+					if !ok {
+						return nil, cfg.err(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
+					}
+					_, outputParametersCustomProperty, err := subTask.GetParameters()
+					if err != nil {
+						return nil, err
+					}
+					outputs_list = append(outputs_list, outputParametersCustomProperty[outputParameterKey])
+				}
+				return &structpb.Value{
+					Kind: &structpb.Value_ListValue{
+						ListValue: &structpb.ListValue{
+							Values: outputs_list,
+						},
+					},
+				}, nil
+			} else {
+				glog.V(4).Infof(
+					"Overriding currentTask, %v, output with currentTask's producer_subtask, %v, output.",
+					currentTask.TaskName(),
+					subTaskName,
+				)
+				currentTask, ok = tasks[subTaskName]
+				if !ok {
+					return nil, cfg.err(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
+				}
 			}
 		} else {
 			_, outputParametersCustomProperty, err := currentTask.GetParameters()
@@ -1859,21 +1895,32 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.ArtifactList, error) {
 	glog.V(4).Infof("artifactSpec: %#v", cfg.artifactSpec)
 	taskOutput := cfg.artifactSpec.GetTaskOutputArtifact()
+	glog.V(4).Info("taskOutput: ", taskOutput)
+	producerTaskName := taskOutput.GetProducerTask()
 	if taskOutput.GetProducerTask() == "" {
 		return nil, cfg.err(fmt.Errorf("producer task is empty"))
 	}
 	if taskOutput.GetOutputArtifactKey() == "" {
 		cfg.err(fmt.Errorf("output artifact key is empty"))
 	}
-	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
+
+	isParallelForDAG := cfg.dag.Execution.GetExecution().GetCustomProperties()["iteration_index"] != nil
+	if isParallelForDAG {
+		// This is needed to support tasks within a ParallelFor Loop that do not leverage the iterator values but still consume outputs from ones that do
+		task_iteration_index := cfg.dag.Execution.GetExecution().GetCustomProperties()["iteration_index"].GetIntValue()
+		producerTaskName = fmt.Sprintf("%s_idx_%v", producerTaskName, task_iteration_index)
+		glog.Infof("Attempting to retrieve DAG Tasks from a parallelFor DAG")
+	}
+
+	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil, isParallelForDAG)
 	if err != nil {
 		cfg.err(err)
 	}
 
-	producer, ok := tasks[taskOutput.GetProducerTask()]
+	producer, ok := tasks[producerTaskName]
 	if !ok {
 		cfg.err(
-			fmt.Errorf("cannot find producer task %q", taskOutput.GetProducerTask()),
+			fmt.Errorf("cannot find producer task %q", producerTaskName),
 		)
 	}
 	glog.V(4).Info("producer: ", producer)
@@ -1905,10 +1952,46 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 				subTaskName = v.ProducerSubtask
 				outputArtifactKey = v.OutputArtifactKey
 			}
-			// If the sub-task is a DAG, reassign currentTask and run
-			// through the loop again.
-			currentTask = tasks[subTaskName]
-			// }
+
+			if currentTask.GetExecution().GetCustomProperties()["iteration_count"] != nil {
+				glog.V(4).Infof("currentTask, %v, is a ParallelFor DAG. Attempting to gather all producer_subtask iterations of %w", currentTask.TaskName(), subTaskName)
+
+				outputs_list := make([]*pipelinespec.RuntimeArtifact, 0)
+				for i := range currentTask.GetExecution().GetCustomProperties()["iteration_count"].GetIntValue() {
+					// Follow the convention set in mlmd.GetExecutionsInDAG for ParallelFor tasks
+					subTaskIterationName := fmt.Sprintf("%s_idx_%v", subTaskName, i)
+					glog.V(4).Infof("subTaskIterationName: %v", subTaskIterationName)
+					subTask, ok := tasks[subTaskIterationName]
+					if !ok {
+						return nil, cfg.err(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
+					}
+					outputArtifacts, err := cfg.mlmd.GetOutputArtifactsByExecutionId(cfg.ctx, subTask.GetID())
+					if err != nil {
+						return nil, err
+					}
+
+					runtimeArtifact, err := outputArtifacts[outputArtifactKey].ToRuntimeArtifact()
+					if err != nil {
+						cfg.err(err)
+					}
+					outputs_list = append(outputs_list, runtimeArtifact)
+				}
+				return &pipelinespec.ArtifactList{
+					Artifacts: outputs_list,
+				}, nil
+			} else {
+				// If the sub-task is a DAG, reassign currentTask and run
+				glog.V(4).Infof(
+					"Overriding currentTask, %v, output with currentTask's producer_subtask, %v, output.",
+					currentTask.TaskName(),
+					subTaskName,
+				)
+				currentTask, ok = tasks[subTaskName]
+				if !ok {
+					return nil, cfg.err(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
+				}
+			}
+
 		} else {
 			// Base case, currentTask is a container, not a DAG.
 			outputs, err := cfg.mlmd.GetOutputArtifactsByExecutionId(cfg.ctx, currentTask.GetID())
