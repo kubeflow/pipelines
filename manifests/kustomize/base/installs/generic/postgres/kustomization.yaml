@@ -8,40 +8,40 @@ resources:
 - pipeline-install-config.yaml
 - postgres-secret-extended.yaml
 vars:
-- name: kfp-namespace
+- fieldref:
+    fieldPath: metadata.namespace
+  name: kfp-namespace
   objref:
-    kind: Deployment
     apiVersion: apps/v1
+    kind: Deployment
     name: ml-pipeline
-  fieldref:
-    fieldpath: metadata.namespace
-- name: kfp-app-name
+- fieldref:
+    fieldPath: data.appName
+  name: kfp-app-name
   objref:
+    apiVersion: v1
     kind: ConfigMap
     name: pipeline-install-config
-    apiVersion: v1
-  fieldref:
-    fieldpath: data.appName
-- name: kfp-app-version
+- fieldref:
+    fieldPath: data.appVersion
+  name: kfp-app-version
   objref:
+    apiVersion: v1
     kind: ConfigMap
     name: pipeline-install-config
-    apiVersion: v1
-  fieldref:
-    fieldpath: data.appVersion
-- name: kfp-artifact-bucket-name
+- fieldref:
+    fieldPath: data.bucketName
+  name: kfp-artifact-bucket-name
   objref:
+    apiVersion: v1
     kind: ConfigMap
     name: pipeline-install-config
-    apiVersion: v1
-  fieldref:
-    fieldpath: data.bucketName
-- name: kfp-default-pipeline-root
+- fieldref:
+    fieldPath: data.defaultPipelineRoot
+  name: kfp-default-pipeline-root
   objref:
+    apiVersion: v1
     kind: ConfigMap
     name: pipeline-install-config
-    apiVersion: v1
-  fieldref:
-    fieldpath: data.defaultPipelineRoot
 configurations:
- - params.yaml
+- params.yaml
