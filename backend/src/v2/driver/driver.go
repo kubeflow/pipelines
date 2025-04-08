@@ -87,6 +87,8 @@ type Options struct {
 	RunDisplayName string
 
 	PipelineLogLevel string
+
+	PublishLogs string
 }
 
 // Identifying information used for error messages
@@ -292,7 +294,13 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		execution.Condition = &willTrigger
 	}
 	if execution.WillTrigger() {
-		executorInput.Outputs = provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions(), uuid.NewString())
+		executorInput.Outputs = provisionOutputs(
+			pipeline.GetPipelineRoot(),
+			opts.Task.GetTaskInfo().GetName(),
+			opts.Component.GetOutputDefinitions(),
+			uuid.NewString(),
+			opts.PublishLogs,
+		)
 	}
 
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
@@ -355,7 +363,16 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.PipelineLogLevel)
+	podSpec, err := initPodSpecPatch(
+		opts.Container,
+		opts.Component,
+		executorInput,
+		execution.ID,
+		opts.PipelineName,
+		opts.RunID,
+		opts.PipelineLogLevel,
+		opts.PublishLogs,
+	)
 	if err != nil {
 		return execution, err
 	}
@@ -418,6 +435,7 @@ func initPodSpecPatch(
 	pipelineName string,
 	runID string,
 	pipelineLogLevel string,
+	publishLogs string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -455,10 +473,14 @@ func initPodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--publish_logs", publishLogs,
 	}
 	if pipelineLogLevel != "1" {
 		// Add log level to user code launcher if not default (set to 1)
 		launcherCmd = append(launcherCmd, "--log_level", pipelineLogLevel)
+	}
+	if publishLogs == "true" {
+		launcherCmd = append(launcherCmd, "--publish_logs", publishLogs)
 	}
 	launcherCmd = append(launcherCmd, "--") // separater before user command and args
 	res := k8score.ResourceRequirements{
@@ -1939,26 +1961,34 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 }
 
 // provisionOuutputs prepares output references that will get saved to MLMD.
-func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.ComponentOutputsSpec, outputUriSalt string) *pipelinespec.ExecutorInput_Outputs {
+func provisionOutputs(
+	pipelineRoot,
+	taskName string,
+	outputsSpec *pipelinespec.ComponentOutputsSpec,
+	outputURISalt string,
+	publishOutput string,
+) *pipelinespec.ExecutorInput_Outputs {
 	outputs := &pipelinespec.ExecutorInput_Outputs{
 		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 		Parameters: make(map[string]*pipelinespec.ExecutorInput_OutputParameter),
 		OutputFile: component.OutputMetadataFilepath,
 	}
-	// TODO: Consider putting this behind a feature flag.
-	//
-	// Add a placeholder for a log artifact that will be written to by the
-	// subsequent executor.
 	artifacts := outputsSpec.GetArtifacts()
-	if artifacts == nil {
-		artifacts = make(map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec)
-	}
-	artifacts["executor-logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
-		ArtifactType: &pipelinespec.ArtifactTypeSchema{
-			Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
-				SchemaTitle: "system.Artifact",
+
+	// TODO: Check if there's a more idiomatic way to handle this.
+	if publishOutput == "true" {
+		// Add a placeholder for a log artifact that will be written to by the
+		// subsequent executor.
+		if artifacts == nil {
+			artifacts = make(map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec)
+		}
+		artifacts["executor-logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+			ArtifactType: &pipelinespec.ArtifactTypeSchema{
+				Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+					SchemaTitle: "system.Artifact",
+				},
 			},
-		},
+		}
 	}
 
 	for name, artifact := range artifacts {
@@ -1967,7 +1997,7 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 				{
 					// Do not preserve the query string for output artifacts, as otherwise
 					// they'd appear in file and artifact names.
-					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputUriSalt, name}, false),
+					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputURISalt, name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},

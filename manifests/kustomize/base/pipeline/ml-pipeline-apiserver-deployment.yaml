@@ -20,6 +20,9 @@ spec:
           type: RuntimeDefault
       containers:
       - env:
+        # Whether or not to publish component logs to the object store.
+        - name: PUBLISH_LOGS
+          value: "true"
         - name: LOG_LEVEL
           value: "info"
         # Driver / launcher log level during pipeline execution
