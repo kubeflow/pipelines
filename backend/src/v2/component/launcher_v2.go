@@ -52,6 +52,7 @@ type LauncherV2Options struct {
 	MLMDServerPort,
 	PipelineName,
 	RunID string
+	PublishLogs string
 }
 
 type LauncherV2 struct {
@@ -223,7 +224,19 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err = prepareOutputFolders(l.executorInput); err != nil {
 		return err
 	}
-	executorOutput, outputArtifacts, err = executeV2(ctx, l.executorInput, l.component, l.command, l.args, bucket, bucketConfig, l.metadataClient, l.options.Namespace, l.k8sClient)
+	executorOutput, outputArtifacts, err = executeV2(
+		ctx,
+		l.executorInput,
+		l.component,
+		l.command,
+		l.args,
+		bucket,
+		bucketConfig,
+		l.metadataClient,
+		l.options.Namespace,
+		l.k8sClient,
+		l.options.PublishLogs,
+	)
 	if err != nil {
 		return err
 	}
@@ -336,6 +349,7 @@ func executeV2(
 	metadataClient metadata.ClientInterface,
 	namespace string,
 	k8sClient kubernetes.Interface,
+	publishLogs string,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 
 	// Add parameter default values to executorInput, if there is not already a user input.
@@ -362,7 +376,17 @@ func executeV2(
 		args[i] = arg
 	}
 
-	executorOutput, err := execute(ctx, executorInput, cmd, args, bucket, bucketConfig, namespace, k8sClient)
+	executorOutput, err := execute(
+		ctx,
+		executorInput,
+		cmd,
+		args,
+		bucket,
+		bucketConfig,
+		namespace,
+		k8sClient,
+		publishLogs,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -474,6 +498,7 @@ func execute(
 	bucketConfig *objectstore.Config,
 	namespace string,
 	k8sClient kubernetes.Interface,
+	publishLogs string,
 ) (*pipelinespec.ExecutorOutput, error) {
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
@@ -483,7 +508,12 @@ func execute(
 		return nil, err
 	}
 
-	writer := getLogWriter(executorInput.Outputs.GetArtifacts())
+	var writer io.Writer
+	if publishLogs == "true" {
+		writer = getLogWriter(executorInput.Outputs.GetArtifacts())
+	} else {
+		writer = os.Stdout
+	}
 
 	// Prepare command that will execute end user code.
 	command := exec.Command(cmd, args...)
