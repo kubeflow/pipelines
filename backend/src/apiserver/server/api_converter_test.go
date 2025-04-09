@@ -936,7 +936,7 @@ func TestToApiPipeline(t *testing.T) {
 			},
 		},
 		{
-			"empy uuid",
+			"empty uuid",
 			&model.Pipeline{
 				Name:           "pipeline1",
 				Description:    "This is pipeline1",

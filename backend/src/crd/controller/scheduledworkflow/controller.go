@@ -330,7 +330,7 @@ func (c *Controller) processNextWorkItem() bool {
 		// - when using: workqueue.Forget && workqueue.AddRateLimited()
 		//   The item is reprocessed after the baseDelay
 		// - when using: workqueue.AddRateLimited()
-		//   The item is reprocessed folowing the exponential backoff strategy:
+		//   The item is reprocessed following the exponential backoff strategy:
 		//   baseDelay * 10^(failure count)
 		//   It is not reprocessed earlier due to SharedInformerFactory defaultResync.
 		//   It is not reprocessed earlier even if the resource is deleted/re-created.
