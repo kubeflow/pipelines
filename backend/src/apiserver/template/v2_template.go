@@ -106,12 +106,14 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 
 	var PipelineOptions argocompiler.Options
-	for _, platform := range t.platformSpec.Platforms {
-		if platform.PipelineConfig.PipelineTtl != 0 {
-			PipelineOptions = argocompiler.Options{
-				TtlSeconds: platform.PipelineConfig.PipelineTtl,
+	if t.platformSpec != nil && t.platformSpec.Platforms != nil {
+		for _, platform := range t.platformSpec.Platforms {
+			if platform.PipelineConfig.ResourceTtl != 0 {
+				PipelineOptions = argocompiler.Options{
+					TtlSeconds: platform.PipelineConfig.ResourceTtl,
+				}
+				break
 			}
-			break
 		}
 	}
 
@@ -323,9 +325,9 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	var PipelineOptions *argocompiler.Options
 	if t.platformSpec != nil && t.platformSpec.Platforms != nil {
 		for _, platform := range t.platformSpec.Platforms {
-			if platform.PipelineConfig.PipelineTtl != 0 {
+			if platform.PipelineConfig.ResourceTtl != 0 {
 				PipelineOptions = &argocompiler.Options{
-					TtlSeconds: platform.PipelineConfig.PipelineTtl,
+					TtlSeconds: platform.PipelineConfig.ResourceTtl,
 				}
 				break
 			}
