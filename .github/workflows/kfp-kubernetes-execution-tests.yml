@@ -11,6 +11,9 @@ on:
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
       - 'kubernetes_platform/**'
+      - 'backend/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   kfp-kubernetes-execution-tests:
