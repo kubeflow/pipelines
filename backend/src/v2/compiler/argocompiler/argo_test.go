@@ -105,7 +105,7 @@ func Test_argo_compiler(t *testing.T) {
 			jobPath:          "../testdata/hello_world.json",
 			platformSpecPath: "../testdata/hello_world_ttl_platform.json",
 			argoYAMLPath:     "testdata/hello_world_ttl.yaml",
-			compilerOptions:  &argocompiler.Options{TtlSeconds: 60},
+			compilerOptions:  argocompiler.Options{TtlSeconds: 60},
 		},
 	}
 	for _, tt := range tests {
@@ -127,7 +127,6 @@ func Test_argo_compiler(t *testing.T) {
 					}
 				}
 			}()
-			var opts *argocompiler.Options = tt.opts
 			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
 			if *update {
 				wf, err := argocompiler.Compile(job, platformSpec, &tt.compilerOptions)

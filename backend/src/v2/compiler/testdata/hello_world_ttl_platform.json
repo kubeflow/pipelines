@@ -2,7 +2,7 @@
   "platforms": {
     "kubernetes": {
       "pipelineConfig": {
-        "pipelineTtl": 60
+        "resourceTtl": 60
       }
     }
   }

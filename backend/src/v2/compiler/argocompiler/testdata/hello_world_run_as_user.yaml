@@ -38,7 +38,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ""
+      - ''
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -232,7 +232,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ""
+      - ''
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
