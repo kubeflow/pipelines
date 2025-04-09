@@ -28,6 +28,11 @@ on:
         default: 'true'
         description: 'Set latest tag on build images.'
         required: true
+      add_sha_tag:
+        type: string
+        default: 'true'
+        description: 'Add a sha image tag.'
+        required: false
   workflow_dispatch:
     inputs:
       src_branch:
@@ -55,6 +60,11 @@ on:
         default: 'true'
         description: 'Set latest tag on build images.'
         required: true
+      add_sha_tag:
+        type: string
+        default: 'true'
+        description: 'Add a sha image tag.'
+        required: false
 env:
   SOURCE_BRANCH: ${{ inputs.src_branch }}
   TARGET_IMAGE_TAG: ${{ inputs.target_tag }}
@@ -62,6 +72,7 @@ env:
   IMAGE_REGISTRY: ghcr.io
   IMAGE_ORG: ${{ github.repository_owner }}
   SET_LATEST: ${{ inputs.set_latest }}
+  ADD_SHA_TAG: ${{ inputs.add_sha_tag }}
 jobs:
   build-images-with-tag:
     continue-on-error: false
@@ -157,7 +168,7 @@ jobs:
           tags: |
             type=raw,value=${{env.TARGET_IMAGE_TAG}}
             type=raw,value=latest,enable=${{ env.SET_LATEST == 'true'}}
-            type=sha
+            type=sha,enable=${{ env.ADD_SHA_TAG == 'true' }}
 
       # Build the image. If the build succeeds, it pushes the image to GitHub
       # Packages. It uses the context parameter to define the build's context
