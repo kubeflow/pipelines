@@ -642,11 +642,17 @@ class PipelineTask:
             self,
             name: Union[str,
                         pipeline_channel.PipelineChannel]) -> 'PipelineTask':
-        """Sets container  type to use when executing this task. Takes
-        precedence over @component(base_image=...)
+        """Sets the container image to use when executing this task.
+
+        Takes precedence over the `base_image` specified in the `@component` decorator.
+
+        Unlike `base_image`, this method supports dynamic values such as
+        Pipeline Parameters or outputs from previous tasks, which are resolved at runtime.
 
         Args:
-            name: The name of the image, e.g. "python:3.9-alpine".
+            name: The container image name as a static string (e.g., "python:3.9-alpine")
+                or a dynamic reference (e.g., a PipelineParameter instance or
+                a task output like `task.outputs['image_name']`).
 
         Returns:
             Self return to allow chained setting calls.
