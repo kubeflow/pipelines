@@ -19,12 +19,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
@@ -34,6 +29,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+	"os"
+	"path/filepath"
+	"strconv"
 )
 
 const (
@@ -72,7 +70,6 @@ var (
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
 	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
-	publishLogs        = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -170,7 +167,6 @@ func drive() (err error) {
 		DAGExecutionID:   *dagExecutionID,
 		IterationIndex:   *iterationIndex,
 		PipelineLogLevel: *logLevel,
-		PublishLogs:      *publishLogs,
 	}
 	var execution *driver.Execution
 	var driverErr error
