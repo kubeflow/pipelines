@@ -9,6 +9,8 @@ on:
       - '.github/workflows/kfp-sdk-runtime-tests.yml'
       - 'sdk/python/**'
       - 'test/presubmit-test-kfp-runtime-code.sh'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   kfp-runtime-tests:

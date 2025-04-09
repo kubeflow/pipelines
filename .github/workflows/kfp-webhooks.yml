@@ -9,6 +9,8 @@ on:
       - '.github/resources/**'
       - '.github/workflows/kfp-webhooks.yml'
       - 'backend/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   webhook-tests:
