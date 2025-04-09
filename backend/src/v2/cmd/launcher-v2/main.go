@@ -42,6 +42,7 @@ var (
 	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
 	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	logLevel          = flag.String("log_level", "1", "The verbosity level to log.")
+	publishLogs       = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 )
 
 func main() {
@@ -79,6 +80,7 @@ func run() error {
 		MLMDServerPort:    *mlmdServerPort,
 		PipelineName:      *pipelineName,
 		RunID:             *runID,
+		PublishLogs:       *publishLogs,
 	}
 
 	switch *executorType {
