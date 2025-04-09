@@ -820,10 +820,10 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	// Documentation on query syntax:
 	// https://github.com/google/ml-metadata/blob/839c3501a195d340d2855b6ffdb2c4b0b49862c9/ml_metadata/proto/metadata_store.proto#L831
 	// If filter is set to true, the MLMD call will only grab executions for the current DAG, else it would grab all the execution for the context which includes sub-DAGs.
-	parent_dag_id := dag.Execution.GetID()
+	parentDAGID := dag.Execution.GetID()
 	parentDAGFilter := ""
 	if filter {
-		parentDAGFilter = fmt.Sprintf("custom_properties.parent_dag_id.int_value = %v", parent_dag_id)
+		parentDAGFilter = fmt.Sprintf("custom_properties.parent_dag_id.int_value = %v", parentDAGID)
 	}
 
 	// Note, because MLMD does not have index on custom properties right now, we
