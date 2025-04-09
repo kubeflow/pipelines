@@ -13,10 +13,9 @@
 // limitations under the License.
 
 import {
-  Core_v1Api,
-  Custom_objectsApi,
+  CoreV1Api,
+  CustomObjectsApi,
   KubeConfig,
-  V1DeleteOptions,
   V1Pod,
   V1EventList,
   V1ConfigMap,
@@ -55,8 +54,8 @@ if (fs.existsSync(namespaceFilePath)) {
 const kc = new KubeConfig();
 // This loads kubectl config when not in cluster.
 kc.loadFromDefault();
-const k8sV1Client = kc.makeApiClient(Core_v1Api);
-const k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
+const k8sV1Client = kc.makeApiClient(CoreV1Api);
+const k8sV1CustomObjectClient = kc.makeApiClient(CustomObjectsApi);
 
 function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
@@ -203,7 +202,6 @@ export async function deleteTensorboardInstance(logdir: string, namespace: strin
   }
 
   const viewerName = getNameOfViewerResource(logdir);
-  const deleteOption = new V1DeleteOptions();
 
   await k8sV1CustomObjectClient.deleteNamespacedCustomObject(
     viewerGroup,
@@ -211,7 +209,6 @@ export async function deleteTensorboardInstance(logdir: string, namespace: strin
     namespace,
     viewerPlural,
     viewerName,
-    deleteOption,
   );
 }
 
@@ -346,7 +343,7 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
   if (res.response.statusCode >= 400) {
     throw new Error(`Unable to query workflow:${workflowName}: Access denied.`);
   }
-  return res.body;
+  return res.body as PartialArgoWorkflow;
 }
 
 /**
@@ -367,7 +364,7 @@ export async function getK8sSecret(name: string, key: string, providedNamespace?
   }
 
   const k8sSecret = await k8sV1Client.readNamespacedSecret(name, namespace);
-  const secretb64 = k8sSecret.body.data[key];
+  const secretb64 = k8sSecret.body.data?.[key] || '';
   const buff = new Buffer(secretb64, 'base64');
   return buff.toString('ascii');
 }

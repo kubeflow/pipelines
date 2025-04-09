@@ -26,13 +26,13 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
-	"github.com/kubeflow/pipelines/backend/src/crd/pkg/signals"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
 var (
@@ -59,7 +59,7 @@ func main() {
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler()
+	stopCh := signals.SetupSignalHandler().Done()
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Classes and utilities for using and creating artifacts in components."""
 
+import enum
 import os
 from typing import Dict, List, Optional, Type
 import warnings
@@ -22,10 +23,12 @@ _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
 _S3_LOCAL_MOUNT_PREFIX = '/s3/'
 _OCI_LOCAL_MOUNT_PREFIX = '/oci/'
 
-GCS_REMOTE_PREFIX = 'gs://'
-MINIO_REMOTE_PREFIX = 'minio://'
-S3_REMOTE_PREFIX = 's3://'
-OCI_REMOTE_PREFIX = 'oci://'
+
+class RemotePrefix(enum.Enum):
+    GCS = 'gs://'
+    MINIO = 'minio://'
+    S3 = 's3://'
+    OCI = 'oci://'
 
 
 class Artifact:
@@ -89,16 +92,18 @@ class Artifact:
         self._set_path(path)
 
     def _get_path(self) -> Optional[str]:
-        if self.uri.startswith(GCS_REMOTE_PREFIX):
-            return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(GCS_REMOTE_PREFIX):]
-        elif self.uri.startswith(MINIO_REMOTE_PREFIX):
-            return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len(MINIO_REMOTE_PREFIX
-                                                           ):]
-        elif self.uri.startswith(S3_REMOTE_PREFIX):
-            return _S3_LOCAL_MOUNT_PREFIX + self.uri[len(S3_REMOTE_PREFIX):]
-
-        elif self.uri.startswith(OCI_REMOTE_PREFIX):
-            escaped_uri = self.uri[len(OCI_REMOTE_PREFIX):].replace('/', '\\/')
+        if self.uri.startswith(RemotePrefix.GCS.value):
+            return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.GCS.value
+                                                         ):]
+        if self.uri.startswith(RemotePrefix.MINIO.value):
+            return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.MINIO
+                                                            .value):]
+        if self.uri.startswith(RemotePrefix.S3.value):
+            return _S3_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.S3.value
+                                                        ):]
+        if self.uri.startswith(RemotePrefix.OCI.value):
+            escaped_uri = self.uri[len(RemotePrefix.OCI.value):].replace(
+                '/', '_')
             return _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
         # uri == path for local execution
         return self.uri
@@ -109,17 +114,17 @@ class Artifact:
 
 def convert_local_path_to_remote_path(path: str) -> str:
     if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
-        return GCS_REMOTE_PREFIX + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
+        return RemotePrefix.GCS.value + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
-        return MINIO_REMOTE_PREFIX + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
+        return RemotePrefix.MINIO.value + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
-        return S3_REMOTE_PREFIX + path[len(_S3_LOCAL_MOUNT_PREFIX):]
+        return RemotePrefix.S3.value + path[len(_S3_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_OCI_LOCAL_MOUNT_PREFIX):
-        remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('\\/', '/')
+        remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('_', '/')
         if remote_path.endswith("/models"):
             remote_path = remote_path[:-len("/models")]
 
-        return OCI_REMOTE_PREFIX + remote_path
+        return RemotePrefix.OCI.value + remote_path
 
     return path
 

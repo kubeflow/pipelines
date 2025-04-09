@@ -819,6 +819,8 @@ spec:
                                   type: object
                                 securityToken:
                                   type: string
+                                useSDKCreds:
+                                  type: boolean
                               required:
                               - key
                               type: object
@@ -848,6 +850,17 @@ spec:
                                   type: object
                                 bucket:
                                   type: string
+                                caSecret:
+                                  properties:
+                                    key:
+                                      type: string
+                                    name:
+                                      type: string
+                                    optional:
+                                      type: boolean
+                                  required:
+                                  - key
+                                  type: object
                                 createBucketIfNotPresent:
                                   properties:
                                     objectLocking:
@@ -957,6 +970,8 @@ spec:
                     type: object
                   artifactGC:
                     properties:
+                      forceFinalizerRemoval:
+                        type: boolean
                       podMetadata:
                         properties:
                           annotations:
@@ -968,6 +983,8 @@ spec:
                               type: string
                             type: object
                         type: object
+                      podSpecPatch:
+                        type: string
                       serviceAccountName:
                         type: string
                       strategy:
@@ -1429,6 +1446,8 @@ spec:
                                         type: object
                                       securityToken:
                                         type: string
+                                      useSDKCreds:
+                                        type: boolean
                                     required:
                                     - key
                                     type: object
@@ -1458,6 +1477,17 @@ spec:
                                         type: object
                                       bucket:
                                         type: string
+                                      caSecret:
+                                        properties:
+                                          key:
+                                            type: string
+                                          name:
+                                            type: string
+                                          optional:
+                                            type: boolean
+                                        required:
+                                        - key
+                                        type: object
                                       createBucketIfNotPresent:
                                         properties:
                                           objectLocking:
@@ -1614,6 +1644,8 @@ spec:
                               type: object
                             gauge:
                               properties:
+                                operation:
+                                  type: string
                                 realtime:
                                   type: boolean
                                 value:
@@ -1707,6 +1739,8 @@ spec:
                     type: object
                   podGC:
                     properties:
+                      deleteDelayDuration:
+                        type: string
                       labelSelector:
                         properties:
                           matchExpressions:
@@ -1861,6 +1895,8 @@ spec:
                         properties:
                           name:
                             type: string
+                          namespace:
+                            type: string
                         type: object
                       semaphore:
                         properties:
@@ -1875,6 +1911,8 @@ spec:
                             required:
                             - key
                             type: object
+                          namespace:
+                            type: string
                         type: object
                     type: object
                   templateDefaults:
@@ -2594,6 +2632,8 @@ spec:
                                 type: object
                               securityToken:
                                 type: string
+                              useSDKCreds:
+                                type: boolean
                             required:
                             - key
                             type: object
@@ -2619,6 +2659,17 @@ spec:
                                 type: object
                               bucket:
                                 type: string
+                              caSecret:
+                                properties:
+                                  key:
+                                    type: string
+                                  name:
+                                    type: string
+                                  optional:
+                                    type: boolean
+                                required:
+                                - key
+                                type: object
                               createBucketIfNotPresent:
                                 properties:
                                   objectLocking:
@@ -4305,6 +4356,8 @@ spec:
                                                 type: object
                                               securityToken:
                                                 type: string
+                                              useSDKCreds:
+                                                type: boolean
                                             required:
                                             - key
                                             type: object
@@ -4334,6 +4387,17 @@ spec:
                                                 type: object
                                               bucket:
                                                 type: string
+                                              caSecret:
+                                                properties:
+                                                  key:
+                                                    type: string
+                                                  name:
+                                                    type: string
+                                                  optional:
+                                                    type: boolean
+                                                required:
+                                                - key
+                                                type: object
                                               createBucketIfNotPresent:
                                                 properties:
                                                   objectLocking:
@@ -4867,6 +4931,8 @@ spec:
                                                       type: object
                                                     securityToken:
                                                       type: string
+                                                    useSDKCreds:
+                                                      type: boolean
                                                   required:
                                                   - key
                                                   type: object
@@ -4896,6 +4962,17 @@ spec:
                                                       type: object
                                                     bucket:
                                                       type: string
+                                                    caSecret:
+                                                      properties:
+                                                        key:
+                                                          type: string
+                                                        name:
+                                                          type: string
+                                                        optional:
+                                                          type: boolean
+                                                      required:
+                                                      - key
+                                                      type: object
                                                     createBucketIfNotPresent:
                                                       properties:
                                                         objectLocking:
@@ -5480,6 +5557,8 @@ spec:
                                         type: object
                                       securityToken:
                                         type: string
+                                      useSDKCreds:
+                                        type: boolean
                                     required:
                                     - key
                                     type: object
@@ -5509,6 +5588,17 @@ spec:
                                         type: object
                                       bucket:
                                         type: string
+                                      caSecret:
+                                        properties:
+                                          key:
+                                            type: string
+                                          name:
+                                            type: string
+                                          optional:
+                                            type: boolean
+                                        required:
+                                        - key
+                                        type: object
                                       createBucketIfNotPresent:
                                         properties:
                                           objectLocking:
@@ -6643,6 +6733,8 @@ spec:
                                       type: object
                                     securityToken:
                                       type: string
+                                    useSDKCreds:
+                                      type: boolean
                                   required:
                                   - key
                                   type: object
@@ -6672,6 +6764,17 @@ spec:
                                       type: object
                                     bucket:
                                       type: string
+                                    caSecret:
+                                      properties:
+                                        key:
+                                          type: string
+                                        name:
+                                          type: string
+                                        optional:
+                                          type: boolean
+                                      required:
+                                      - key
+                                      type: object
                                     createBucketIfNotPresent:
                                       properties:
                                         objectLocking:
@@ -6831,6 +6934,8 @@ spec:
                                   type: object
                                 gauge:
                                   properties:
+                                    operation:
+                                      type: string
                                     realtime:
                                       type: boolean
                                     value:
@@ -7293,6 +7398,8 @@ spec:
                                       type: object
                                     securityToken:
                                       type: string
+                                    useSDKCreds:
+                                      type: boolean
                                   required:
                                   - key
                                   type: object
@@ -7322,6 +7429,17 @@ spec:
                                       type: object
                                     bucket:
                                       type: string
+                                    caSecret:
+                                      properties:
+                                        key:
+                                          type: string
+                                        name:
+                                          type: string
+                                        optional:
+                                          type: boolean
+                                      required:
+                                      - key
+                                      type: object
                                     createBucketIfNotPresent:
                                       properties:
                                         objectLocking:
@@ -7866,6 +7984,8 @@ spec:
                                         type: object
                                       securityToken:
                                         type: string
+                                      useSDKCreds:
+                                        type: boolean
                                     required:
                                     - key
                                     type: object
@@ -7895,6 +8015,17 @@ spec:
                                         type: object
                                       bucket:
                                         type: string
+                                      caSecret:
+                                        properties:
+                                          key:
+                                            type: string
+                                          name:
+                                            type: string
+                                          optional:
+                                            type: boolean
+                                        required:
+                                        - key
+                                        type: object
                                       createBucketIfNotPresent:
                                         properties:
                                           objectLocking:
@@ -9250,6 +9381,8 @@ spec:
                             properties:
                               name:
                                 type: string
+                              namespace:
+                                type: string
                             type: object
                           semaphore:
                             properties:
@@ -9264,6 +9397,8 @@ spec:
                                 required:
                                 - key
                                 type: object
+                              namespace:
+                                type: string
                             type: object
                         type: object
                       timeout:
@@ -10683,6 +10818,8 @@ spec:
                                   type: object
                                 securityToken:
                                   type: string
+                                useSDKCreds:
+                                  type: boolean
                               required:
                               - key
                               type: object
@@ -10708,6 +10845,17 @@ spec:
                                   type: object
                                 bucket:
                                   type: string
+                                caSecret:
+                                  properties:
+                                    key:
+                                      type: string
+                                    name:
+                                      type: string
+                                    optional:
+                                      type: boolean
+                                  required:
+                                  - key
+                                  type: object
                                 createBucketIfNotPresent:
                                   properties:
                                     objectLocking:
@@ -12394,6 +12542,8 @@ spec:
                                                   type: object
                                                 securityToken:
                                                   type: string
+                                                useSDKCreds:
+                                                  type: boolean
                                               required:
                                               - key
                                               type: object
@@ -12423,6 +12573,17 @@ spec:
                                                   type: object
                                                 bucket:
                                                   type: string
+                                                caSecret:
+                                                  properties:
+                                                    key:
+                                                      type: string
+                                                    name:
+                                                      type: string
+                                                    optional:
+                                                      type: boolean
+                                                  required:
+                                                  - key
+                                                  type: object
                                                 createBucketIfNotPresent:
                                                   properties:
                                                     objectLocking:
@@ -12956,6 +13117,8 @@ spec:
                                                         type: object
                                                       securityToken:
                                                         type: string
+                                                      useSDKCreds:
+                                                        type: boolean
                                                     required:
                                                     - key
                                                     type: object
@@ -12985,6 +13148,17 @@ spec:
                                                         type: object
                                                       bucket:
                                                         type: string
+                                                      caSecret:
+                                                        properties:
+                                                          key:
+                                                            type: string
+                                                          name:
+                                                            type: string
+                                                          optional:
+                                                            type: boolean
+                                                        required:
+                                                        - key
+                                                        type: object
                                                       createBucketIfNotPresent:
                                                         properties:
                                                           objectLocking:
@@ -13569,6 +13743,8 @@ spec:
                                           type: object
                                         securityToken:
                                           type: string
+                                        useSDKCreds:
+                                          type: boolean
                                       required:
                                       - key
                                       type: object
@@ -13598,6 +13774,17 @@ spec:
                                           type: object
                                         bucket:
                                           type: string
+                                        caSecret:
+                                          properties:
+                                            key:
+                                              type: string
+                                            name:
+                                              type: string
+                                            optional:
+                                              type: boolean
+                                          required:
+                                          - key
+                                          type: object
                                         createBucketIfNotPresent:
                                           properties:
                                             objectLocking:
@@ -14732,6 +14919,8 @@ spec:
                                         type: object
                                       securityToken:
                                         type: string
+                                      useSDKCreds:
+                                        type: boolean
                                     required:
                                     - key
                                     type: object
@@ -14761,6 +14950,17 @@ spec:
                                         type: object
                                       bucket:
                                         type: string
+                                      caSecret:
+                                        properties:
+                                          key:
+                                            type: string
+                                          name:
+                                            type: string
+                                          optional:
+                                            type: boolean
+                                        required:
+                                        - key
+                                        type: object
                                       createBucketIfNotPresent:
                                         properties:
                                           objectLocking:
@@ -14920,6 +15120,8 @@ spec:
                                     type: object
                                   gauge:
                                     properties:
+                                      operation:
+                                        type: string
                                       realtime:
                                         type: boolean
                                       value:
@@ -15382,6 +15584,8 @@ spec:
                                         type: object
                                       securityToken:
                                         type: string
+                                      useSDKCreds:
+                                        type: boolean
                                     required:
                                     - key
                                     type: object
@@ -15411,6 +15615,17 @@ spec:
                                         type: object
                                       bucket:
                                         type: string
+                                      caSecret:
+                                        properties:
+                                          key:
+                                            type: string
+                                          name:
+                                            type: string
+                                          optional:
+                                            type: boolean
+                                        required:
+                                        - key
+                                        type: object
                                       createBucketIfNotPresent:
                                         properties:
                                           objectLocking:
@@ -15955,6 +16170,8 @@ spec:
                                           type: object
                                         securityToken:
                                           type: string
+                                        useSDKCreds:
+                                          type: boolean
                                       required:
                                       - key
                                       type: object
@@ -15984,6 +16201,17 @@ spec:
                                           type: object
                                         bucket:
                                           type: string
+                                        caSecret:
+                                          properties:
+                                            key:
+                                              type: string
+                                            name:
+                                              type: string
+                                            optional:
+                                              type: boolean
+                                          required:
+                                          - key
+                                          type: object
                                         createBucketIfNotPresent:
                                           properties:
                                             objectLocking:
@@ -17339,6 +17567,8 @@ spec:
                               properties:
                                 name:
                                   type: string
+                                namespace:
+                                  type: string
                               type: object
                             semaphore:
                               properties:
@@ -17353,6 +17583,8 @@ spec:
                                   required:
                                   - key
                                   type: object
+                                namespace:
+                                  type: string
                               type: object
                           type: object
                         timeout:

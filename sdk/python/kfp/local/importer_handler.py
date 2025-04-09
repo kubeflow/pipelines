@@ -124,9 +124,9 @@ def get_importer_uri(
         raise ValueError(
             f'Got unknown value of artifact_uri: {value_or_runtime_param}')
 
-    if uri.startswith(artifact_types.GCS_REMOTE_PREFIX) or uri.startswith(
-            artifact_types.S3_REMOTE_PREFIX) or uri.startswith(
-                artifact_types.MINIO_REMOTE_PREFIX):
+    if any(
+            uri.startswith(prefix)
+            for prefix in [p.value for p in artifact_types.RemotePrefix]):
         warnings.warn(
             f"It looks like you're using the remote file '{uri}' in a 'dsl.importer'. Note that you will only be able to read and write to/from local files using 'artifact.path' in local executed pipelines."
         )

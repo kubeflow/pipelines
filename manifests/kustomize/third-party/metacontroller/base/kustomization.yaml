@@ -7,8 +7,11 @@ resources:
 - crd.yaml
 - service-account.yaml
 - stateful-set.yaml
-commonLabels:
-  kustomize.component: metacontroller
+labels:
+- includeSelectors: true
+  pairs:
+    kustomize.component: metacontroller
+
 # Update metacontroller CRD:
 # Copy the upstream file to crd.yaml in this folder.
 # Upstream file: https://github.com/metacontroller/metacontroller/blob/master/manifests/production/metacontroller-crds-v1.yaml

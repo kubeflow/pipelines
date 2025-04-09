@@ -23,7 +23,4 @@ set -ex
 # Get this bash script's dir.
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-# Update NOTICES of the specified argo version.
-"${DIR}/imp-1-update-notices.sh"
-# Build and push license compliant argo images to gcr.io/ml-pipeline.
-"${DIR}/imp-2-build-push-images.sh"
+# TODO: automatically update/replace instances of old ArgoWorkflows images with new versions in manifests

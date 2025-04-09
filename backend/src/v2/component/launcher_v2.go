@@ -816,7 +816,7 @@ func LocalPathForURI(uri string) (string, error) {
 		return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
 	}
 	if strings.HasPrefix(uri, "oci://") {
-		return "/oci/" + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "\\/") + "/models", nil
+		return "/oci/" + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
 }

@@ -2,9 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base/application
-  - ./forward-local-api-endpoint.yaml
-  - ../platform-agnostic
+- ../cert-manager/platform-agnostic-k8s-native
+- ./forward-local-api-endpoint.yaml
 
 # !!! If you want to customize the namespace,
 # please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
@@ -126,5 +125,42 @@ patches:
         port: 8887
         protocol: TCP
         targetPort: 8887
+      - name: webhook
+        port: 8443
+        protocol: TCP
+        targetPort: 8443
       selector:
         $patch: delete
+- patch: |-
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingWebhookConfiguration
+    metadata:
+      name: pipelineversions.pipelines.kubeflow.org
+    webhooks:
+      - name: pipelineversions.pipelines.kubeflow.org
+        clientConfig:
+          service:
+            name: ml-pipeline-reverse-proxy
+- patch: |-
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: MutatingWebhookConfiguration
+    metadata:
+      name: pipelineversions.pipelines.kubeflow.org
+    webhooks:
+      - name: pipelineversions.pipelines.kubeflow.org
+        clientConfig:
+          service:
+            name: ml-pipeline-reverse-proxy
+- patch: |-
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: kfp-api-webhook-cert
+    spec:
+      dnsNames:
+      - ml-pipeline
+      - ml-pipeline.$(kfp-namespace)
+      - ml-pipeline.$(kfp-namespace).svc
+      - ml-pipeline-reverse-proxy
+      - ml-pipeline-reverse-proxy.$(kfp-namespace)
+      - ml-pipeline-reverse-proxy.$(kfp-namespace).svc

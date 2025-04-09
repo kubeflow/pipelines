@@ -7,12 +7,12 @@ spec:
     spec:
       containers:
         - name: workflow-controller
-          image: gcr.io/ml-pipeline/workflow-controller:v3.4.17-license-compliance
+          image: quay.io/argoproj/workflow-controller:v3.5.14
           args:
             - --configmap
             - workflow-controller-configmap
             - --executor-image
-            - gcr.io/ml-pipeline/argoexec:v3.4.17-license-compliance
+            - quay.io/argoproj/argoexec:v3.5.14
           securityContext:
             seccompProfile:
               type: RuntimeDefault
