@@ -39,7 +39,7 @@ func TestParameterFormatter_Format(t *testing.T) {
 	// Test [[Index]]
 	assert.Equal(t, "FOO 27 FOO", formatter.Format("FOO [[Index]] FOO"))
 
-	// Test [[ScheduledTime.15-04-05]] substition
+	// Test [[ScheduledTime.15-04-05]] substitution
 	assert.Equal(t, "FOO 00-00-25 FOO", formatter.Format("FOO [[ScheduledTime.15-04-05]] FOO"))
 
 	// Test [[CurrentTime.15-04-05]] substitution

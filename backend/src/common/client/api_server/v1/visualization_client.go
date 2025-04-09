@@ -71,7 +71,7 @@ func (c *VisualizationClient) Create(parameters *params.VisualizationServiceCrea
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create visualizaiton. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
+			fmt.Sprintf("Failed to create visualization. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
 			fmt.Sprintf("Failed to create visualization '%v'", parameters.Body.Type))
 	}
 

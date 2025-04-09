@@ -89,7 +89,7 @@ func processReportMetricResult(
 			errors.New(result.GetMessage()), util.CUSTOM_CODE_PERMANENT,
 			"failed to report metric because of invalid arguments: %+v", result)
 	case api.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR:
-		// Internal error is considered as trasient and should be retried later.
+		// Internal error is considered as transient and should be retried later.
 		return util.NewCustomError(
 			errors.New(result.GetMessage()), util.CUSTOM_CODE_TRANSIENT,
 			"failed to report metric because of internal error: %+v", result)
