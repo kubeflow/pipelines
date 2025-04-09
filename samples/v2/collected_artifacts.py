@@ -41,18 +41,14 @@ def read_single_file(file: Artifact) -> str:
 @dsl.pipeline()
 def collecting_artifacts(model_ids: str = '',) -> List[Artifact]:
     ids_split_op = split_ids(model_ids=model_ids)
-    ids_split_op.set_caching_options(False)
     with dsl.ParallelFor(ids_split_op.output) as model_id:
         create_file_op = create_file(content=model_id)
-        create_file_op.set_caching_options(False)
 
         read_single_file_op = read_single_file(
             file=create_file_op.outputs['file'])
-        read_single_file_op.set_caching_options(False)
 
     read_file_op = read_files(
         files=dsl.Collected(create_file_op.outputs['file']))
-    read_file_op.set_caching_options(False)
 
     return dsl.Collected(create_file_op.outputs['file'])
 
@@ -61,14 +57,13 @@ def collecting_artifacts(model_ids: str = '',) -> List[Artifact]:
 def collected_artifact_pipeline():
     model_ids = 's1,s2,s3'
     dag = collecting_artifacts(model_ids=model_ids)
-    dag.set_caching_options(False)
-
     read_files_op = read_files(files=dag.output)
-    read_files_op.set_caching_options(False)
 
 
 if __name__ == '__main__':
-    # Compiler().compile(pipeline_func=collected_artifacts_pipeline, package_path=f"{__file__.removesuffix('.py')}.yaml")
     client = kfp.Client()
     run = client.create_run_from_pipeline_func(
-        collected_artifact_pipeline, arguments={})
+        collected_artifact_pipeline,
+        arguments={},
+        enable_caching=False,
+    )
