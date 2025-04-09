@@ -60,10 +60,10 @@ func SetExecutionType(newType ExecutionType) {
 	executionType = newType
 }
 
-// Abastract interface to encapsulate the resource needed by the underlying execution runtime
+// Abstract interface to encapsulate the resource needed by the underlying execution runtime
 // i.e Workflow is for Argo, PipelineRun is for Tekton and etc.
 // Status related information will go to ExecutionStatus interface.
-// TODO: add more methods to make ExecutionSpec fullly represent Workflow. At the beginning
+// TODO: add more methods to make ExecutionSpec fully represent Workflow. At the beginning
 //
 //	phase, gradually add methods and not break the existing functions. Later on,
 //	other execution runtime support could be added too.
@@ -94,7 +94,7 @@ type ExecutionSpec interface {
 	// access status related information
 	ExecutionStatus() ExecutionStatus
 
-	// Return a SpecParameters which represents all paramenters
+	// Return a SpecParameters which represents all parameters
 	// key is the parameter's name and value is the SpecParameter which
 	// contains default and value
 	SpecParameters() SpecParameters
@@ -158,7 +158,7 @@ type ExecutionSpec interface {
 	// Validate the ExecutionSpec
 	Validate(lint, ignoreEntrypoint bool) error
 
-	// Decompress ExecutionSpec. In most case, decompress infomation in status
+	// Decompress ExecutionSpec. In most case, decompress information in status
 	Decompress() error
 
 	// Check if the ExecutionSpec allows retry, return error if not

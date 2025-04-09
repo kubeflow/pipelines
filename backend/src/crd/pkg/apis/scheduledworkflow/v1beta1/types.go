@@ -103,7 +103,7 @@ type WorkflowResource struct {
 	// [[ScheduledTime]] is substituted by the scheduled time of the workflow (default format)
 	// [[CurrentTime]] is substituted by the current time (default format)
 	// [[Index]] is substituted by the index of the workflow (e.g. 3 means that it was the 3rd workflow created)
-	// [[ScheduledTime.15-04-05]] is substituted by the sheduled time (custom format specified as a Go time format: https://golang.org/pkg/time/#Parse)
+	// [[ScheduledTime.15-04-05]] is substituted by the scheduled time (custom format specified as a Go time format: https://golang.org/pkg/time/#Parse)
 	// [[CurrentTime.15-04-05]] is substituted by the current time (custom format specified as a Go time format: https://golang.org/pkg/time/#Parse)
 
 	Parameters []Parameter `json:"parameters,omitempty"`
