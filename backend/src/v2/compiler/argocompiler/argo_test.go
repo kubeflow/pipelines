@@ -17,6 +17,7 @@ package argocompiler_test
 import (
 	"flag"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"strings"
 	"testing"
@@ -32,6 +33,8 @@ import (
 var update = flag.Bool("update", false, "update golden files")
 
 func Test_argo_compiler(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
 	tests := []struct {
 		jobPath          string // path of input PipelineJob to compile
 		platformSpecPath string // path of possible input PlatformSpec to compile

@@ -49,6 +49,12 @@ spec:
           - "{{outputs.parameters.condition.path}}"
           - --kubernetes_config
           - "{{inputs.parameters.kubernetes-config}}"
+          - --http_proxy
+          - ''
+          - --https_proxy
+          - ''
+          - --no_proxy
+          - ''
         command:
           - driver
         image: gcr.io/ml-pipeline/kfp-driver
@@ -237,6 +243,12 @@ spec:
           - "{{outputs.parameters.condition.path}}"
           - --run_metadata
           - "{{inputs.parameters.run-metadata}}"
+          - --http_proxy
+          - ''
+          - --https_proxy
+          - ''
+          - --no_proxy
+          - ''
         command:
           - driver
         image: gcr.io/ml-pipeline/kfp-driver
