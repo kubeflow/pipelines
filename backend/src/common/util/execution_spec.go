@@ -20,7 +20,6 @@ import (
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-	pipelineapi "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -28,9 +27,8 @@ import (
 type ExecutionType string
 
 const (
-	ArgoWorkflow      ExecutionType = "Workflow"
-	TektonPipelineRun ExecutionType = "PipelineRun"
-	Unknown           ExecutionType = "Unknown"
+	ArgoWorkflow ExecutionType = "Workflow"
+	Unknown      ExecutionType = "Unknown"
 )
 
 var (
@@ -61,7 +59,7 @@ func SetExecutionType(newType ExecutionType) {
 }
 
 // Abstract interface to encapsulate the resource needed by the underlying execution runtime
-// i.e Workflow is for Argo, PipelineRun is for Tekton and etc.
+// e.g. Workflow is for Argo
 // Status related information will go to ExecutionStatus interface.
 // TODO: add more methods to make ExecutionSpec fully represent Workflow. At the beginning
 //
@@ -188,8 +186,6 @@ func NewExecutionSpec(bytes []byte) (ExecutionSpec, error) {
 	switch meta.Kind {
 	case string(ArgoWorkflow):
 		return NewWorkflowFromBytes(bytes)
-	case string(TektonPipelineRun):
-		return NewPipelineRunFromBytes(bytes)
 	default:
 		return nil, NewInvalidInputError("Unknown execution spec")
 	}
@@ -205,8 +201,6 @@ func NewExecutionSpecJSON(execType ExecutionType, bytes []byte) (ExecutionSpec, 
 	switch execType {
 	case ArgoWorkflow:
 		return NewWorkflowFromBytesJSON(bytes)
-	case TektonPipelineRun:
-		return NewPipelineRunFromBytesJSON(bytes)
 	default:
 		return nil, NewInvalidInputError("Unknown execution spec")
 	}
@@ -220,8 +214,6 @@ func NewExecutionSpecFromInterface(execType ExecutionType, obj interface{}) (Exe
 	switch execType {
 	case ArgoWorkflow:
 		return NewWorkflowFromInterface(obj)
-	case TektonPipelineRun:
-		return NewPipelineRunFromInterface(obj)
 	default:
 		return nil, NewInternalServerError(
 			errors.New("ExecutionType is not supported"), "type:%s", execType)
@@ -234,8 +226,6 @@ func UnmarshalParameters(execType ExecutionType, paramsString string) (SpecParam
 	switch execType {
 	case ArgoWorkflow:
 		return UnmarshParametersWorkflow(paramsString)
-	case TektonPipelineRun:
-		return UnmarshParametersPipelineRun(paramsString)
 	default:
 		return nil, NewInternalServerError(
 			errors.New("ExecutionType is not supported"), "type:%s", execType)
@@ -248,8 +238,6 @@ func MarshalParameters(execType ExecutionType, params SpecParameters) (string, e
 	switch execType {
 	case ArgoWorkflow:
 		return MarshalParametersWorkflow(params)
-	case TektonPipelineRun:
-		return MarshalParametersPipelineRun(params)
 	default:
 		return "", NewInternalServerError(
 			errors.New("ExecutionType is not supported"), "type:%s", execType)
@@ -284,28 +272,6 @@ func ScheduleSpecToExecutionSpec(
 		workflow.APIVersion = "argoproj.io/v1alpha1"
 		workflow.Kind = "Workflow"
 		return NewWorkflow(workflow), nil
-	case TektonPipelineRun:
-		if executionSpecStr, ok := wfr.Spec.(string); ok {
-			return NewPipelineRunFromScheduleWorkflowSpecBytesJSON([]byte(executionSpecStr))
-		}
-		// fall back to Tekton PipelineRunSpec, need to marshal back to json string then unmarshal to
-		// Tekton PipelineRunSpec because wfr.Spec is a map at this moment
-		raw, err := json.Marshal(wfr.Spec)
-		if err != nil {
-			return nil, NewInternalServerError(
-				errors.New("can't marshal WorkflowResource.Spec"), "err:%v", err)
-		}
-		var spec pipelineapi.PipelineRunSpec
-		if err := json.Unmarshal(raw, &spec); err != nil {
-			return nil, NewInternalServerError(
-				errors.New("can't unmarshal WorkflowResource.Spec"), "err:%v", err)
-		}
-		pr := &pipelineapi.PipelineRun{
-			Spec: spec,
-		}
-		pr.APIVersion = "tekton.dev/v1"
-		pr.Kind = "PipelineRun"
-		return NewPipelineRun(pr), nil
 	default:
 		return nil, NewInternalServerError(
 			errors.New("ExecutionType is not supported"), "type:%s", execType)
@@ -318,12 +284,6 @@ func GetTerminatePatch(execType ExecutionType) interface{} {
 		return map[string]interface{}{
 			"spec": map[string]interface{}{
 				"activeDeadlineSeconds": 0,
-			},
-		}
-	case TektonPipelineRun:
-		return map[string]interface{}{
-			"spec": map[string]interface{}{
-				"status": "Cancelled",
 			},
 		}
 	default:
