@@ -23,8 +23,6 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	prclientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
-	prinformer "github.com/tektoncd/pipeline/pkg/client/informers/externalversions"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -103,27 +101,6 @@ func NewExecutionClientOrFatal(execType ExecutionType, initConnectionTimeout tim
 			glog.Fatalf("Failed to create ExecutionClient for Argo. Error: %v", err)
 		}
 		return &WorkflowClient{client: argoProjClient}
-	case TektonPipelineRun:
-		var prClient *prclientset.Clientset
-		operation := func() error {
-			restConfig, err := GetKubernetesConfig()
-			if err != nil {
-				return errors.Wrap(err, "Failed to initialize the RestConfig")
-			}
-			restConfig.QPS = float32(clientParams.QPS)
-			restConfig.Burst = clientParams.Burst
-			prClient = prclientset.NewForConfigOrDie(restConfig)
-			return nil
-		}
-
-		b := backoff.NewExponentialBackOff()
-		b.MaxElapsedTime = initConnectionTimeout
-		err := backoff.Retry(operation, b)
-
-		if err != nil {
-			glog.Fatalf("Failed to create ExecutionClient for Argo. Error: %v", err)
-		}
-		return &PipelineRunClient{client: prClient}
 	default:
 		glog.Fatalf("Not supported type of Execution")
 	}
@@ -163,35 +140,6 @@ func NewExecutionInformerOrFatal(execType ExecutionType, namespace string,
 		return &WorkflowInformer{
 			informer: argoInformer.Argoproj().V1alpha1().Workflows(), factory: argoInformer,
 		}
-	case TektonPipelineRun:
-		var prInformer prinformer.SharedInformerFactory
-		var prClient *prclientset.Clientset
-		operation := func() error {
-			restConfig, err := GetKubernetesConfig()
-			if err != nil {
-				return errors.Wrap(err, "Failed to initialize the RestConfig")
-			}
-			restConfig.QPS = float32(clientParams.QPS)
-			restConfig.Burst = clientParams.Burst
-			prClient = prclientset.NewForConfigOrDie(restConfig)
-			if namespace == "" {
-				prInformer = prinformer.NewSharedInformerFactory(prClient, time.Second*30)
-			} else {
-				prInformer = prinformer.NewFilteredSharedInformerFactory(
-					prClient, time.Second*30, namespace, nil)
-			}
-			return nil
-		}
-
-		b := backoff.NewExponentialBackOff()
-		b.MaxElapsedTime = initConnectionTimeout
-		err := backoff.Retry(operation, b)
-
-		if err != nil {
-			glog.Fatalf("Failed to create ExecutionInformer for Argo. Error: %v", err)
-		}
-		return &PipelineRunInformer{
-			informer: prInformer.Tekton().V1().PipelineRuns(), factory: prInformer, clientset: prClient}
 	default:
 		glog.Fatalf("Not supported type of Execution")
 	}
