@@ -43,6 +43,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.10.0
+	go.uber.org/mock v0.5.1
 	go.uber.org/zap v1.27.0
 	gocloud.dev v0.40.0
 	golang.org/x/net v0.38.0

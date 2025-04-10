@@ -47,7 +47,18 @@ func (c *FakeClient) PublishExecution(ctx context.Context, execution *Execution,
 }
 
 func (c *FakeClient) CreateExecution(ctx context.Context, pipeline *Pipeline, config *ExecutionConfig) (*Execution, error) {
-	return nil, nil
+	fingerPrintValue := pb.Value{Value: &pb.Value_StringValue{StringValue: "fake-fingerprint"}}
+	id := int64(1)
+	execution := &Execution{
+		execution: &pb.Execution{
+			Id: &id,
+			CustomProperties: map[string]*pb.Value{
+				keyCacheFingerPrint: &fingerPrintValue,
+			},
+		},
+		pipeline: pipeline,
+	}
+	return execution, nil
 }
 func (c *FakeClient) PrePublishExecution(ctx context.Context, execution *Execution, config *ExecutionConfig) (*Execution, error) {
 	return nil, nil
@@ -62,7 +73,17 @@ func (c *FakeClient) GetExecution(ctx context.Context, id int64) (*Execution, er
 }
 
 func (c *FakeClient) GetPipelineFromExecution(ctx context.Context, id int64) (*Pipeline, error) {
-	return nil, nil
+	pipelineRootValue := pb.Value{Value: &pb.Value_StringValue{StringValue: "mem://fake-pipeline-root"}}
+
+	pipeline := Pipeline{
+		pipelineCtx: &pb.Context{},
+		pipelineRunCtx: &pb.Context{
+			CustomProperties: map[string]*pb.Value{
+				keyPipelineRoot: &pipelineRootValue,
+			},
+		},
+	}
+	return &pipeline, nil
 }
 
 func (c *FakeClient) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pipeline, filter bool) (executionsMap map[string]*Execution, err error) {
@@ -90,7 +111,8 @@ func (c *FakeClient) GetOutputArtifactsByExecutionId(ctx context.Context, execut
 }
 
 func (c *FakeClient) RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error) {
-	return nil, nil
+	outputArtifact := &OutputArtifact{}
+	return outputArtifact, nil
 }
 
 func (c *FakeClient) GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error) {

@@ -41,7 +41,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type LauncherV2Options struct {
@@ -67,15 +66,34 @@ type LauncherV2 struct {
 	metadataClient metadata.ClientInterface
 	k8sClient      kubernetes.Interface
 	cacheClient    *cacheutils.Client
+
+	// overrideable functions
+	executionFunc  ExecutionFunc
+	createFileFunc CreateFileFunc
 }
 
-// Client is the struct to hold the Kubernetes Clientset
-type kubernetesClient struct {
-	Clientset kubernetes.Interface
+// LauncherV2Dependencies can be used to inject dependency overrides into LauncherV2
+type LauncherV2Dependencies struct {
+	k8sClientProvider      K8sClientProvider
+	metadataClientProvider MetadataClientProvider
+	cacheClientProvider    CacheClientProvider
+	executionFunc          ExecutionFunc
+	createFileFunc         CreateFileFunc
+}
+
+// DefaultLauncherV2Dependencies provides in-cluster dependencies
+func DefaultLauncherV2Dependencies() *LauncherV2Dependencies {
+	return &LauncherV2Dependencies{
+		k8sClientProvider:      defaultK8sClientProvider,
+		metadataClientProvider: defaultMetadataClientProvider,
+		cacheClientProvider:    defaultCacheClientProvider,
+		executionFunc:          executeV2,
+		createFileFunc:         osCreateFunc,
+	}
 }
 
 // NewLauncherV2 is a factory function that returns an instance of LauncherV2.
-func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, componentSpecJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
+func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, componentSpecJSON string, cmdArgs []string, opts *LauncherV2Options, dependencies *LauncherV2Dependencies) (l *LauncherV2, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to create component launcher v2: %w", err)
@@ -101,19 +119,15 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	k8sClient, err := dependencies.k8sClientProvider()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
 	}
-	metadataClient, err := metadata.NewClient(opts.MLMDServerAddress, opts.MLMDServerPort)
+	metadataClient, err := dependencies.metadataClientProvider(opts.MLMDServerAddress, opts.MLMDServerPort)
 	if err != nil {
 		return nil, err
 	}
-	cacheClient, err := cacheutils.NewClient()
+	cacheClient, err := dependencies.cacheClientProvider()
 	if err != nil {
 		return nil, err
 	}
@@ -127,12 +141,15 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 		metadataClient: metadataClient,
 		k8sClient:      k8sClient,
 		cacheClient:    cacheClient,
+		executionFunc:  dependencies.executionFunc,
+		createFileFunc: dependencies.createFileFunc,
 	}, nil
 }
 
 // stopWaitingArtifacts will create empty files to tell Modelcar sidecar containers to stop. Any errors encountered are
 // logged since this is meant as a deferred function at the end of the launcher's execution.
-func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
+func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList, createFile CreateFileFunc) []error {
+	errs := make([]error, 0)
 	for _, artifactList := range artifacts {
 		if len(artifactList.Artifacts) == 0 {
 			continue
@@ -149,14 +166,16 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 
 		localPath, err := LocalPathForURI(inputArtifact.Uri)
 		if err != nil {
+			errs = append(errs, err)
 			continue
 		}
 
 		glog.Infof("Stopping Modelcar container for artifact %s", inputArtifact.Uri)
 
 		launcherCompleteFile := strings.TrimSuffix(localPath, "/models") + "/launcher-complete"
-		_, err = os.Create(launcherCompleteFile)
+		_, err = createFile(launcherCompleteFile)
 		if err != nil {
+			errs = append(errs, err)
 			glog.Errorf(
 				"Failed to stop the artifact %s by creating %s: %v", inputArtifact.Uri, launcherCompleteFile, err,
 			)
@@ -164,7 +183,22 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 			continue
 		}
 	}
+	return errs
 }
+
+type ExecutionFunc func(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	component *pipelinespec.ComponentSpec,
+	cmd string,
+	args []string,
+	bucket *blob.Bucket,
+	bucketConfig *objectstore.Config,
+	metadataClient metadata.ClientInterface,
+	namespace string,
+	k8sClient kubernetes.Interface,
+	publishLogs string,
+) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error)
 
 // Execute calls executeV2, updates the cache, and publishes the results to MLMD.
 func (l *LauncherV2) Execute(ctx context.Context) (err error) {
@@ -174,7 +208,9 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		}
 	}()
 
-	defer stopWaitingArtifacts(l.executorInput.GetInputs().GetArtifacts())
+	defer func() {
+		_ = stopWaitingArtifacts(l.executorInput.GetInputs().GetArtifacts(), l.createFileFunc)
+	}()
 
 	// publish execution regardless the task succeeds or not
 	var execution *metadata.Execution
@@ -224,7 +260,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err = prepareOutputFolders(l.executorInput); err != nil {
 		return err
 	}
-	executorOutput, outputArtifacts, err = executeV2(
+	executorOutput, outputArtifacts, err = l.executionFunc(
 		ctx,
 		l.executorInput,
 		l.component,
@@ -433,7 +469,7 @@ func collectOutputParameters(executorInput *pipelinespec.ExecutorInput, executor
 		msg := func(err error) error {
 			return fmt.Errorf("failed to read output parameter name=%q type=%q path=%q: %w", name, paramSpec.GetParameterType(), param.GetOutputFile(), err)
 		}
-		b, err := os.ReadFile(param.GetOutputFile())
+		b, err := osReadFileFunc(param.GetOutputFile())
 		if err != nil {
 			return msg(err)
 		}
@@ -459,6 +495,9 @@ const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 
 // We overwrite this as a DI mechanism for testing getLogWriter.
 var osCreateFunc = os.Create
+
+// We overwrite this as a DI mechanism for testing collectOutputParameters
+var osReadFileFunc = os.ReadFile
 
 // getLogWriter returns an io.Writer that can either be single-channel to stdout
 // or dual-channel to stdout AND a log file based on the URI of a log artifact
