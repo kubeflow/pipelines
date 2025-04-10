@@ -5,6 +5,9 @@ inputs:
   k8s_version:
     description: "The Kubernetes version to use for the Kind cluster"
     required: true
+  image_archive_path:
+    description: "Path to the KFP image tar archive to load"
+    required: true
 
 runs:
   using: "composite"
@@ -17,9 +20,9 @@ runs:
         version: v0.25.0
         node_image: kindest/node:${{ inputs.k8s_version }}
 
-    - name: Build images
+    - name: Load KFP images into KinD node
       shell: bash
-      run: ./.github/resources/scripts/build-images.sh
+      run: kind load image-archive ${{ inputs.image_archive_path }} --name kfp
 
     - name: Deploy KFP
       shell: bash
