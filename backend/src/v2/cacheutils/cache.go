@@ -127,6 +127,12 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
+func NewCustomClient(svc api.TaskServiceClient) *Client {
+	return &Client{
+		svc: svc,
+	}
+}
+
 func cacheDefaultEndpoint() string {
 	// Discover ml-pipeline in the same namespace by env var.
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
@@ -165,8 +171,8 @@ func (c *Client) GetExecutionCache(fingerPrint, pipelineName, namespace string) 
 	if err != nil {
 		return "", fmt.Errorf("failed to convert filter into JSON: %w", err)
 	}
-	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "created_at desc", PageSize: 1}
-	listTasksResponse, err := c.svc.ListTasksV1(context.Background(), listTasksReuqest)
+	listTasksRequest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "created_at desc", PageSize: 1}
+	listTasksResponse, err := c.svc.ListTasksV1(context.Background(), listTasksRequest)
 	if err != nil {
 		return "", fmt.Errorf("failed to list tasks: %w", err)
 	}
