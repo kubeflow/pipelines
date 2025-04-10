@@ -1445,6 +1445,40 @@ class Client:
 
         return response
 
+    def upload_pipeline_from_pipeline_func(
+        self,
+        pipeline_func: base_component.BaseComponent,
+        pipeline_name: Optional[str] = None,
+        description: Optional[str] = None,
+        namespace: Optional[str] = None,
+    ) -> kfp_server_api.V2beta1Pipeline:
+        """Uploads a pipeline from a pipeline_func.
+
+        Args:
+            pipeline_func: Pipeline function constructed with ``@kfp.dsl.pipeline`` decorator.
+            pipeline_name: Name of the pipeline to be shown in the UI.
+            description: Description of the pipeline to be shown in the UI.
+            namespace: Optional. Kubernetes namespace where the pipeline should
+                be uploaded. For single user deployment, leave it as None; For
+                multi user, input a namespace where the user is authorized.
+
+        Returns:
+            ``V2beta1Pipeline`` object.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_func,
+                package_path=pipeline_package_path,
+            )
+
+            return self.upload_pipeline(
+                pipeline_package_path=pipeline_package_path,
+                pipeline_name=pipeline_name,
+                description=description,
+                namespace=namespace,
+            )
+
     def upload_pipeline_version(
         self,
         pipeline_package_path: str,
@@ -1493,6 +1527,43 @@ class Client:
             print(f'Pipeline details: {link}')
 
         return response
+
+    def upload_pipeline_version_from_pipeline_func(
+        self,
+        pipeline_func: base_component.BaseComponent,
+        pipeline_version_name: str,
+        pipeline_id: Optional[str] = None,
+        pipeline_name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> kfp_server_api.V2beta1PipelineVersion:
+        """Uploads a new version of the pipeline.
+
+        Args:
+            pipeline_func: Pipeline function constructed with ``@kfp.dsl.pipeline`` decorator.
+            pipeline_version_name:  Name of the pipeline version to be shown in
+                the UI.
+            pipeline_id: ID of the pipeline.
+            pipeline_name: Name of the pipeline.
+            description: Description of the pipeline version to show in the UI.
+
+        Returns:
+            ``V2beta1PipelineVersion`` object.
+        """
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_func,
+                package_path=pipeline_package_path,
+            )
+
+            return self.upload_pipeline_version(
+                pipeline_package_path=pipeline_package_path,
+                pipeline_version_name=pipeline_version_name,
+                pipeline_id=pipeline_id,
+                pipeline_name=pipeline_name,
+                description=description,
+            )
 
     def get_pipeline(self, pipeline_id: str) -> kfp_server_api.V2beta1Pipeline:
         """Gets pipeline details.
