@@ -131,11 +131,10 @@ func TestExecutionSpec_NewExecutionSpecFromInterface(t *testing.T) {
 	assert.NotEmpty(t, execSpec)
 
 	// unknown type
-	// TODO: fix this when PipelineRun get implemented
-	execSpec, err = NewExecutionSpecFromInterface(TektonPipelineRun, test)
+	execSpec, err = NewExecutionSpecFromInterface("Unimplemented", test)
 	assert.Empty(t, execSpec)
 	assert.Error(t, err)
-	assert.EqualError(t, err, "Invalid input error: not PipelineRun struct")
+	assert.EqualError(t, err, "InternalServerError: type:Unimplemented: ExecutionType is not supported")
 }
 
 func TestExecutionSpec_UnmarshalParameters(t *testing.T) {

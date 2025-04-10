@@ -29,7 +29,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
-	"github.com/kubeflow/pipelines/backend/src/v2/compiler/tektoncompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	goyaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -109,8 +108,6 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
-	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
-		obj, err = tektoncompiler.Compile(job, kubernetesSpec, &tektoncompiler.Options{LauncherImage: Launcher})
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -316,8 +313,6 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
-	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
-		obj, err = tektoncompiler.Compile(job, kubernetesSpec, nil)
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
