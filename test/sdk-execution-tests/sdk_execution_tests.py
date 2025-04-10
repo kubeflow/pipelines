@@ -147,6 +147,7 @@ def test(test_case: TestCase) -> None:
 if __name__ == '__main__':
     pytest.main()
 
+    print("'df -h' output before minio pvc deletion:")
     result = subprocess.run(['df', '-h'],
                             capture_output=True,
                             text=True,
@@ -154,16 +155,17 @@ if __name__ == '__main__':
     print(result.stdout)
 
     try:
-        print(f'Deleting MinIO PVC')
+        print(f'Deleting minio pvc...')
         kubernetes.client.CoreV1Api().delete_namespaced_persistent_volume_claim(
             name='minio-pvc',
             namespace=KFP_NAMESPACE,
         )
 
+        print("'df -h' output after minio pvc deletion:")
         result = subprocess.run(['df', '-h'],
                                 capture_output=True,
                                 text=True,
                                 check_returncode=True)
         print(result.stdout)
     except kubernetes.client.rest.ApiException as e:
-        print(f'Failed to delete the MinIO PVC: {e}', file=sys.stderr)
+        print(f'Failed to delete the minio pvc: {e}', file=sys.stderr)

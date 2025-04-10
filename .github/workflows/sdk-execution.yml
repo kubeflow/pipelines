@@ -74,7 +74,7 @@ jobs:
         run: |
           export KFP_ENDPOINT="http://localhost:8888"
           export TIMEOUT_SECONDS=2700
-          pytest -v -n 5 ./test/sdk-execution-tests/sdk_execution_tests.py
+          pytest -v -n 5 -rP ./test/sdk-execution-tests/sdk_execution_tests.py
         continue-on-error: true
 
       - name: Collect failed logs
