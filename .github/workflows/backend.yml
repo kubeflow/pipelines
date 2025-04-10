@@ -12,6 +12,8 @@ on:
       - 'backend/**'
       - '.github/resources/**'
       - 'manifests/kustomize/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 env:
   GITHUB_ACTION: "true"

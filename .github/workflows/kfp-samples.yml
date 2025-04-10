@@ -13,6 +13,8 @@ on:
       - 'samples/**'
       - 'samples/core/dataflow/**'
       - 'samples/core/parameterized_tfx_oss/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   samples:

@@ -9,6 +9,8 @@ on:
       - '.github/workflows/backend-visualization.yml'
       - 'backend/src/apiserver/visualization/**'
       - 'test/presubmit-backend-visualization.sh'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   backend-visualization-test:

@@ -15,6 +15,8 @@ on:
       - 'proxy/**'
       - 'manifests/kustomize/**'
       - 'test/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   initialization-tests-v1:
