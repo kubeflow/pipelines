@@ -10,7 +10,9 @@ on:
       - '.github/resources/**'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
-      - 'backend/src/v2/compiler/**'
+      - 'backend/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   sdk-execution-tests:
