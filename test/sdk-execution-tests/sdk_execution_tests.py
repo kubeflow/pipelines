@@ -20,10 +20,14 @@ from typing import Any, Dict, List, Tuple
 from kfp import client
 from kfp import dsl  # noqa
 import kfp_server_api
+import kubernetes.client
+import kubernetes.client.rest
+import kubernetes.config
 import pytest
 import yaml
 
 KFP_ENDPOINT = os.environ['KFP_ENDPOINT']
+KFP_NAMESPACE = os.getenv("KFP_NAMESPACE", "kubeflow")
 TIMEOUT_SECONDS = os.environ['TIMEOUT_SECONDS']
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(
@@ -32,6 +36,7 @@ CONFIG_PATH = os.path.join(PROJECT_ROOT, 'sdk', 'python', 'test_data',
                            'test_data_config.yaml')
 
 kfp_client = client.Client(host=KFP_ENDPOINT)
+kubernetes.config.load_kube_config()
 
 
 @dataclasses.dataclass
@@ -123,6 +128,13 @@ def test(test_case: TestCase) -> None:
     api_run = wait(run_result)
     assert api_run.state == test_case.expected_state, f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
 
+    try:
+        print(f'Deleting the Argo Workflow for run {api_run.run_id}')
+        kubernetes.client.CustomObjectsApi().delete_collection_namespaced_custom_object(
+            "argoproj.io", "v1alpha1", KFP_NAMESPACE, "workflows", label_selector=f'pipeline/runid={api_run.run_id}'
+        )
+    except kubernetes.client.rest.ApiException as e:
+        print(f'Failed to delete the Argo Workflow for run {api_run.run_id}: {e}', file=sys.stderr)
 
 if __name__ == '__main__':
     pytest.main()

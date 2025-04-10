@@ -23,6 +23,9 @@ def component_op(
     input_str1: Optional[str] = 'string default value',
     input_str2: Optional[str] = None,
     input_str3: Optional[str] = None,
+    input_str4_from_pipeline: Optional[str] = "Some component default",
+    input_str5_from_pipeline: Optional[str] = "Some component default",
+    input_str6_from_pipeline: Optional[str] = None,
     input_bool1: Optional[bool] = True,
     input_bool2: Optional[bool] = None,
     input_dict: Optional[Dict[str, int]] = {"a": 1},
@@ -32,6 +35,9 @@ def component_op(
     print(f'input_str1: {input_str1}, type: {type(input_str1)}')
     print(f'input_str2: {input_str2}, type: {type(input_str2)}')
     print(f'input_str3: {input_str3}, type: {type(input_str3)}')
+    print(f'input_str4_from_pipeline: {input_str4_from_pipeline}, type: {type(input_str4_from_pipeline)}')
+    print(f'input_str5_from_pipeline: {input_str5_from_pipeline}, type: {type(input_str5_from_pipeline)}')
+    print(f'input_str6_from_pipeline: {input_str6_from_pipeline}, type: {type(input_str6_from_pipeline)}')
     print(f'input_bool1: {input_bool1}, type: {type(input_bool1)}')
     print(f'input_bool2: {input_bool2}, type: {type(input_bool2)}')
     print(f'input_bool: {input_dict}, type: {type(input_dict)}')
@@ -40,10 +46,13 @@ def component_op(
 
 
 @dsl.pipeline(name='v2-component-optional-input')
-def pipeline():
+def pipeline(input_str4: Optional[str] = None, input_str5: Optional[str] = "Some pipeline default", input_str6: Optional[str] = None):
     component_op(
         input_str1='Hello',
         input_str2='World',
+        input_str4_from_pipeline=input_str4,
+        input_str5_from_pipeline=input_str5,
+        input_str6_from_pipeline=input_str6,
     )
 
 

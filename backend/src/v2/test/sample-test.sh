@@ -16,22 +16,17 @@
 
 set -ex
 
-pushd ./backend/src/v2/test
-
-python3 -m pip install --upgrade pip
-python3 -m pip install -r ./requirements-sample-test.txt
-
-popd
-
-REPO_NAME="${REPO_NAME:-kubeflow/pipelines}"
+REPO_NAME="${REPO_NAME:-example-test-organization/pipelines}"
 
 if [[ -n "${PULL_NUMBER}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
+
 else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
 fi
 
-python3 -m pip install $KFP_PACKAGE_PATH
+python3 -m pip install --upgrade pip
+python3 -m pip install ${KFP_PACKAGE_PATH}
 
 # The -u flag makes python output unbuffered, so that we can see real time log.
 # Reference: https://stackoverflow.com/a/107717

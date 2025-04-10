@@ -21,41 +21,33 @@ from kfp import compiler
 # https://www.kubeflow.org/docs/started/installing-kubeflow/#packaged-distributions-of-kubeflow
 # If you are using a different distribution, you'll need to pre-create the secret yourself, or
 # use a different secret that you know will exist.
-SECRET_NAME = "user-gcp-sa"
-
 @dsl.component
 def comp():
     import os
-
-    secret_key = "type"
-    secret_path = os.path.join('/mnt/my_vol', secret_key)
+    import sys
+    username_path = os.path.join('/mnt/my_vol', "username")
 
     # Check if the secret exists
-    if not os.path.exists(secret_path):
+    if not os.path.exists(username_path):
         raise Exception('Secret not found')
 
     # Open the secret
-    with open(secret_path, 'rb') as secret_file:
-        secret_data = secret_file.read()
+    with open(username_path, 'rb') as secret_file:
+        username = secret_file.read()
 
     # Decode the secret
-    secret_data = secret_data.decode('utf-8')
+    username = username.decode('utf-8')
 
     # Print the secret
-    print(secret_data)
-
-    if secret_data == "service_account":
-        print("Success")
-        return 0
-    else:
-        sys.exit("Failure: cannot access secret as volume variable")
+    print(f"username: {username}")
+    assert username == "user1"
 
 
 @dsl.pipeline
-def pipeline_secret_volume():
+def pipeline_secret_volume(secret_param: str = "test-secret-1"):
     task = comp()
     kubernetes.use_secret_as_volume(
-        task, secret_name=SECRET_NAME, mount_path='/mnt/my_vol')
+        task, secret_name=secret_param, mount_path='/mnt/my_vol')
 
 
 if __name__ == '__main__':
