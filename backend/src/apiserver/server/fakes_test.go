@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"testing"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -139,6 +140,7 @@ var referencesOfInvalidPipelineVersion = []*apiv1beta1.ResourceReference{
 // This automatically runs before all the tests.
 func initEnvVars() {
 	viper.Set(common.PodNamespace, "ns1")
+	proxy.InitializeConfigWithEmptyForTests()
 }
 
 func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {

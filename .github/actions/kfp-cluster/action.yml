@@ -5,6 +5,10 @@ inputs:
   k8s_version:
     description: "The Kubernetes version to use for the Kind cluster"
     required: true
+  proxy:
+    description: "If KFP should be deployed with proxy configuration"
+    required: false
+    default: false
 
 runs:
   using: "composite"
@@ -17,10 +21,26 @@ runs:
         version: v0.25.0
         node_image: kindest/node:${{ inputs.k8s_version }}
 
+    - name: Deploy Squid
+      id: deploy-squid
+      if: ${{ (inputs.proxy == 'true' )}}
+      shell: bash
+      run: ./.github/resources/squid/deploy-squid.sh
+
     - name: Build images
       shell: bash
-      run: ./.github/resources/scripts/build-images.sh
+      run: |
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/build-images.sh --proxy
+        else
+          ./.github/resources/scripts/build-images.sh
+        fi
 
     - name: Deploy KFP
       shell: bash
-      run: ./.github/resources/scripts/deploy-kfp.sh
+      run: |
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/deploy-kfp.sh --proxy
+        else
+          ./.github/resources/scripts/deploy-kfp.sh
+        fi

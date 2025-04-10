@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"slices"
 	"strconv"
 	"strings"
@@ -432,6 +433,8 @@ func initPodSpecPatch(
 	for _, envVar := range container.GetEnv() {
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
+
+	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)

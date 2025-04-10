@@ -16,6 +16,7 @@ package driver
 import (
 	"context"
 	"encoding/json"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"testing"
 
 	"google.golang.org/protobuf/types/known/structpb"
@@ -33,6 +34,9 @@ import (
 func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
+
+	proxy.InitializeConfigWithEmptyForTests()
+
 	type args struct {
 		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 		componentSpec    *pipelinespec.ComponentSpec
