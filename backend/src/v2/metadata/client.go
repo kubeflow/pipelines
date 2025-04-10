@@ -281,6 +281,10 @@ func (e *Execution) FingerPrint() string {
 	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
 }
 
+func GetParallelForTaskName(taskName string, iterationIndex int64) string {
+	return fmt.Sprintf("%s_idx_%d", taskName, iterationIndex)
+}
+
 // GenerateOutputURI appends the specified paths to the pipeline root.
 // It may be configured to preserve the query part of the pipeline root
 // by splitting it off and appending it back to the full URI.
@@ -857,11 +861,11 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 			}
 			// Handle for parallelFor subdags & their tasks that consume the values from the iterator.
 			if e.GetCustomProperties()[keyIterationIndex] != nil {
-				taskName = fmt.Sprintf("%s_idx_%d", taskName, e.GetCustomProperties()[keyIterationIndex].GetIntValue())
+				taskName = GetParallelForTaskName(taskName, e.GetCustomProperties()[keyIterationIndex].GetIntValue())
 
 			} else if dag.Execution.GetExecution().GetCustomProperties()[keyIterationIndex] != nil {
 				// Handle for tasks within a parallelFor subdag that do not consume the values from the iterator as input but rather the output of a task that does.
-				taskName = fmt.Sprintf("%s_idx_%d", taskName, dag.Execution.GetExecution().GetCustomProperties()[keyIterationIndex].GetIntValue())
+				taskName = GetParallelForTaskName(taskName, dag.Execution.GetExecution().GetCustomProperties()[keyIterationIndex].GetIntValue())
 			}
 
 			existing, ok := executionsMap[taskName]
