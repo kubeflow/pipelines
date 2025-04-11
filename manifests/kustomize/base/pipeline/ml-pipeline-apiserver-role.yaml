@@ -38,6 +38,12 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - kubeflow.org
+  resources:
+  - scheduledworkflows/finalizers
+  verbs:
+  - update
+- apiGroups:
   - pipelines.kubeflow.org
   resources:
   - pipelines
