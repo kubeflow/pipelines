@@ -30,10 +30,17 @@ jobs:
         with:
           python-version: 3.9
 
+      # This is intended to address disk space issues that have surfaced
+      # intermittently during CI -
+      # https://github.com/actions/runner-images/issues/2840#issuecomment-1284059930
       - name: Free up space in /dev/root
         run: |
+            echo "Disk usage before clean up:"
+            df -h
             sudo rm -rf /usr/share/dotnet
             sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+            echo "Disk usage after clean up:"
+            df -h
 
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
