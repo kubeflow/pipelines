@@ -20,31 +20,32 @@ from pprint import pprint
 from typing import List
 import unittest
 
+import collected_parameters
 import component_with_optional_inputs
 import hello_world
 import kfp
 from kfp.dsl.graph_component import GraphComponent
+from kubernetes import client
+from kubernetes import config
+from kubernetes import utils
+from modelcar import modelcar
+import parallel_after_dependency
+import parallel_consume_upstream
 import pipeline_container_no_input
 import pipeline_with_env
+import pipeline_with_placeholders
+import pipeline_with_secret_as_env
+import pipeline_with_secret_as_volume
 import producer_consumer_param
 import subdagio
-import parallel_consume_upstream
-import parallel_after_dependency
 import two_step_pipeline_containerized
-import pipeline_with_placeholders
-import pipeline_with_secret_as_volume
-import pipeline_with_secret_as_env
-from kubernetes import client, config, utils
 import yaml
-from modelcar import modelcar
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 5 * _MINUTE
 SAMPLES_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
 PRE_REQ_DIR = os.path.join(SAMPLES_DIR, 'v2', 'pre-requisites')
-PREREQS = [
-    os.path.join(PRE_REQ_DIR, 'test-secrets.yaml')
-]
+PREREQS = [os.path.join(PRE_REQ_DIR, 'test-secrets.yaml')]
 
 _KFP_NAMESPACE = os.getenv('KFP_NAMESPACE', 'kubeflow')
 
@@ -60,9 +61,9 @@ def deploy_k8s_yaml(namespace: str, yaml_file: str):
     api_client = client.ApiClient()
     try:
         utils.create_from_yaml(api_client, yaml_file, namespace=namespace)
-        print(f"Resource(s) from {yaml_file} deployed successfully.")
+        print(f'Resource(s) from {yaml_file} deployed successfully.')
     except Exception as e:
-        raise RuntimeError(f"Exception when deploying from YAML: {e}")
+        raise RuntimeError(f'Exception when deploying from YAML: {e}')
 
 
 def delete_k8s_yaml(namespace: str, yaml_file: str):
@@ -71,40 +72,41 @@ def delete_k8s_yaml(namespace: str, yaml_file: str):
     apps_v1 = client.AppsV1Api()
 
     try:
-        with open(yaml_file, "r") as f:
+        with open(yaml_file, 'r') as f:
             yaml_docs = yaml.safe_load_all(f)
 
             for doc in yaml_docs:
                 if not doc:
                     continue  # Skip empty documents
 
-                kind = doc.get("kind", "").lower()
-                name = doc["metadata"]["name"]
+                kind = doc.get('kind', '').lower()
+                name = doc['metadata']['name']
 
-                print(f"Deleting {kind} named {name}...")
+                print(f'Deleting {kind} named {name}...')
 
                 # There's no utils.delete_from_yaml
                 # as a workaround we manually fetch required data
-                if kind == "deployment":
+                if kind == 'deployment':
                     apps_v1.delete_namespaced_deployment(name, namespace)
-                elif kind == "service":
+                elif kind == 'service':
                     v1.delete_namespaced_service(name, namespace)
-                elif kind == "configmap":
+                elif kind == 'configmap':
                     v1.delete_namespaced_config_map(name, namespace)
-                elif kind == "pod":
+                elif kind == 'pod':
                     v1.delete_namespaced_pod(name, namespace)
-                elif kind == "secret":
+                elif kind == 'secret':
                     v1.delete_namespaced_secret(name, namespace)
-                elif kind == "persistentvolumeclaim":
-                    v1.delete_namespaced_persistent_volume_claim(name, namespace)
-                elif kind == "namespace":
+                elif kind == 'persistentvolumeclaim':
+                    v1.delete_namespaced_persistent_volume_claim(
+                        name, namespace)
+                elif kind == 'namespace':
                     client.CoreV1Api().delete_namespace(name)
                 else:
-                    print(f"Skipping unsupported resource type: {kind}")
+                    print(f'Skipping unsupported resource type: {kind}')
 
-        print(f"Resource(s) from {yaml_file} deleted successfully.")
+        print(f'Resource(s) from {yaml_file} deleted successfully.')
     except Exception as e:
-        print(f"Exception when deleting from YAML: {e}")
+        print(f'Exception when deleting from YAML: {e}')
 
 
 class SampleTest(unittest.TestCase):
@@ -117,18 +119,18 @@ class SampleTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Runs once before all tests."""
-        print("Deploying pre-requisites....")
+        print('Deploying pre-requisites....')
         for p in PREREQS:
             deploy_k8s_yaml(_KFP_NAMESPACE, p)
-        print("Done deploying pre-requisites.")
+        print('Done deploying pre-requisites.')
 
     @classmethod
     def tearDownClass(cls):
         """Runs once after all tests in this class."""
-        print("Cleaning up resources....")
+        print('Cleaning up resources....')
         for p in PREREQS:
             delete_k8s_yaml(_KFP_NAMESPACE, p)
-        print("Done clean up.")
+        print('Done clean up.')
 
     def test(self):
         test_cases: List[TestCase] = [
@@ -145,8 +147,10 @@ class SampleTest(unittest.TestCase):
             # The following tests are not working. Tracking issue: https://github.com/kubeflow/pipelines/issues/11053
             # TestCase(pipeline_func=pipeline_with_importer.pipeline_with_importer),
             # TestCase(pipeline_func=pipeline_with_volume.pipeline_with_volume),
-            TestCase(pipeline_func=pipeline_with_secret_as_volume.pipeline_secret_volume),
-            TestCase(pipeline_func=pipeline_with_secret_as_env.pipeline_secret_env),
+            TestCase(pipeline_func=pipeline_with_secret_as_volume
+                     .pipeline_secret_volume),
+            TestCase(
+                pipeline_func=pipeline_with_secret_as_env.pipeline_secret_env),
             TestCase(pipeline_func=subdagio.parameter.crust),
             TestCase(pipeline_func=subdagio.parameter_cache.crust),
             TestCase(pipeline_func=subdagio.mixed_parameters.crust),
@@ -157,10 +161,15 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=subdagio.artifact.crust),
             TestCase(
                 pipeline_func=subdagio.multiple_artifacts_namedtuple.crust),
-            TestCase(pipeline_func=pipeline_with_placeholders.pipeline_with_placeholders),
+            TestCase(pipeline_func=pipeline_with_placeholders
+                     .pipeline_with_placeholders),
             TestCase(pipeline_func=modelcar.pipeline_modelcar_test),
-            TestCase(pipeline_func=parallel_consume_upstream.loop_consume_upstream),
-            TestCase(pipeline_func=parallel_after_dependency.loop_with_after_dependency_set),
+            TestCase(
+                pipeline_func=parallel_consume_upstream.loop_consume_upstream),
+            TestCase(pipeline_func=parallel_after_dependency
+                     .loop_with_after_dependency_set),
+            TestCase(
+                pipeline_func=collected_parameters.collected_param_pipeline),
         ]
 
         with ThreadPoolExecutor() as executor:

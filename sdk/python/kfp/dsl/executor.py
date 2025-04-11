@@ -70,11 +70,17 @@ class Executor:
                     type_annotations.is_list_of_artifacts(annotation.__origin__)
                 ) or type_annotations.is_list_of_artifacts(annotation)
                 if is_list_of_artifacts:
+                    # Get the annotation of the inner type of the list
+                    # to use when creating the artifacts
+                    inner_annotation = type_annotations.get_inner_type(
+                        annotation)
+
                     self.input_artifacts[name] = [
                         self.make_artifact(
                             msg,
                             name,
                             self.func,
+                            annotation=inner_annotation,
                         ) for msg in list_of_artifact_proto_structs
                     ]
                 else:
@@ -102,8 +108,10 @@ class Executor:
         runtime_artifact: Dict,
         name: str,
         func: Callable,
+        annotation: Optional[Any] = None,
     ) -> Any:
-        annotation = func.__annotations__.get(name)
+        annotation = func.__annotations__.get(
+            name) if annotation is None else annotation
         if isinstance(annotation, type_annotations.InputPath):
             schema_title, _ = annotation.type.split('@')
             if schema_title in artifact_types._SCHEMA_TITLE_TO_TYPE:
