@@ -45,6 +45,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 		pipelineName     string
 		runID            string
 		pipelineLogLevel string
+		publishLogs      string
 	}
 	tests := []struct {
 		name    string
@@ -88,6 +89,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
+				"false",
 			},
 			`"nvidia.com/gpu":"1"`,
 			false,
@@ -128,6 +130,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
+				"false",
 			},
 			`"amd.com/gpu":"1"`,
 			false,
@@ -168,6 +171,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
+				"false",
 			},
 			`"cloud-tpus.google.com/v3":"1"`,
 			false,
@@ -208,6 +212,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
+				"false",
 			},
 			`"cloud-tpus.google.com/v2":"1"`,
 			false,
@@ -248,6 +253,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
+				"false",
 			},
 			`"custom.example.com/accelerator-v1":"1"`,
 			false,
@@ -256,7 +262,16 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, tt.args.pipelineName, tt.args.runID, tt.args.pipelineLogLevel)
+			podSpec, err := initPodSpecPatch(
+				tt.args.container,
+				tt.args.componentSpec,
+				tt.args.executorInput,
+				tt.args.executionID,
+				tt.args.pipelineName,
+				tt.args.runID,
+				tt.args.pipelineLogLevel,
+				tt.args.publishLogs,
+			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
 				assert.NotNil(t, err)
@@ -356,7 +371,14 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 	}
 
 	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "1",
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"1",
+		"false",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -389,7 +411,14 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	executorInput := &pipelinespec.ExecutorInput{}
 
 	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "1",
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"1",
+		"false",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -424,7 +453,14 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	}
 
 	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput, 27, "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "1",
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"1",
+		"false",
 	)
 	assert.Nil(t, err)
 
@@ -450,6 +486,31 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].SubPath, "registry.domain.local_my-model:latest")
 }
 
+// Validate that setting publishLogs to true propagates to the driver container
+// commands in the podSpec.
+func Test_initPodSpecPatch_publishLogs(t *testing.T) {
+	podSpec, err := initPodSpecPatch(
+		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{},
+		&pipelinespec.ComponentSpec{},
+		&pipelinespec.ExecutorInput{},
+		// executorInput,
+		27,
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"1",
+		"true",
+	)
+	assert.Nil(t, err)
+	cmd := podSpec.Containers[0].Command
+	assert.Contains(t, cmd, "--publish_logs")
+	// TODO: There may be a simpler way to check this.
+	for idx, val := range cmd {
+		if val == "--publish_logs" {
+			assert.Equal(t, cmd[idx+1], "true")
+		}
+	}
+
+}
 func Test_makeVolumeMountPatch(t *testing.T) {
 	type args struct {
 		pvcMount []*kubernetesplatform.PvcMount
@@ -550,6 +611,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 		pipelineName     string
 		runID            string
 		pipelineLogLevel string
+		publishLogs      string
 	}
 	tests := []struct {
 		name    string
@@ -590,6 +652,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
+				"false",
 			},
 			`"resources":{"limits":{"cpu":"2","memory":"1500M"},"requests":{"cpu":"1","memory":"650M"}}`,
 			"",
@@ -627,6 +690,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
+				"false",
 			},
 			`"resources":{"limits":{"cpu":"2","memory":"1500M"}}`,
 			`"requests"`,
@@ -642,6 +706,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.pipelineName,
 				tt.args.runID,
 				tt.args.pipelineLogLevel,
+				tt.args.publishLogs,
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)

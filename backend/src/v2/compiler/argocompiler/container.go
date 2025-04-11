@@ -16,11 +16,12 @@ package argocompiler
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
@@ -46,6 +47,7 @@ const (
 	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
 	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
 	PipelineLogLevelEnvVar   = "PIPELINE_LOG_LEVEL"
+	PublishLogsEnvVar        = "PUBLISH_LOGS"
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
 	s3ScratchLocation        = "/s3"
@@ -192,6 +194,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
+	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
+		args = append(args, "--publish_logs", value)
+	}
 
 	t := &wfapi.Template{
 		Name: name,
@@ -315,6 +320,9 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
+	}
+	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
+		args = append(args, "--publish_logs", value)
 	}
 	executor := &wfapi.Template{
 		Name:          nameContainerImpl,

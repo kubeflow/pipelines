@@ -14,6 +14,7 @@
 import dataclasses
 import functools
 import os
+import subprocess
 import sys
 from typing import Any, Dict, List, Tuple
 
@@ -27,7 +28,7 @@ import pytest
 import yaml
 
 KFP_ENDPOINT = os.environ['KFP_ENDPOINT']
-KFP_NAMESPACE = os.getenv("KFP_NAMESPACE", "kubeflow")
+KFP_NAMESPACE = os.getenv('KFP_NAMESPACE', 'kubeflow')
 TIMEOUT_SECONDS = os.environ['TIMEOUT_SECONDS']
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(
@@ -130,12 +131,41 @@ def test(test_case: TestCase) -> None:
 
     try:
         print(f'Deleting the Argo Workflow for run {api_run.run_id}')
-        kubernetes.client.CustomObjectsApi().delete_collection_namespaced_custom_object(
-            "argoproj.io", "v1alpha1", KFP_NAMESPACE, "workflows", label_selector=f'pipeline/runid={api_run.run_id}'
-        )
+        kubernetes.client.CustomObjectsApi(
+        ).delete_collection_namespaced_custom_object(
+            'argoproj.io',
+            'v1alpha1',
+            KFP_NAMESPACE,
+            'workflows',
+            label_selector=f'pipeline/runid={api_run.run_id}')
     except kubernetes.client.rest.ApiException as e:
-        print(f'Failed to delete the Argo Workflow for run {api_run.run_id}: {e}', file=sys.stderr)
+        print(
+            f'Failed to delete the Argo Workflow for run {api_run.run_id}: {e}',
+            file=sys.stderr)
 
 
 if __name__ == '__main__':
     pytest.main()
+
+    print("'df -h' output before minio pvc deletion:")
+    result = subprocess.run(['df', '-h'],
+                            capture_output=True,
+                            text=True,
+                            check_returncode=True)
+    print(result.stdout)
+
+    try:
+        print(f'Deleting minio pvc...')
+        kubernetes.client.CoreV1Api().delete_namespaced_persistent_volume_claim(
+            name='minio-pvc',
+            namespace=KFP_NAMESPACE,
+        )
+
+        print("'df -h' output after minio pvc deletion:")
+        result = subprocess.run(['df', '-h'],
+                                capture_output=True,
+                                text=True,
+                                check_returncode=True)
+        print(result.stdout)
+    except kubernetes.client.rest.ApiException as e:
+        print(f'Failed to delete the minio pvc: {e}', file=sys.stderr)

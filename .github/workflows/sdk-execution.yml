@@ -10,7 +10,9 @@ on:
       - '.github/resources/**'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
-      - 'backend/src/v2/compiler/**'
+      - 'backend/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   sdk-execution-tests:
@@ -72,7 +74,7 @@ jobs:
         run: |
           export KFP_ENDPOINT="http://localhost:8888"
           export TIMEOUT_SECONDS=2700
-          pytest -v -n 5 ./test/sdk-execution-tests/sdk_execution_tests.py
+          pytest -v -n 5 -rP ./test/sdk-execution-tests/sdk_execution_tests.py
         continue-on-error: true
 
       - name: Collect failed logs
