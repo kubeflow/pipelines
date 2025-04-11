@@ -18,7 +18,7 @@ from typing import NamedTuple
 from kfp import dsl
 
 
-@dsl.component(packages_to_install=['tensorflow==2.11.0'])
+@dsl.component(packages_to_install=['tensorflow==2.16.1'])
 def get_training_artifacts(
     docker_region: str,
     trainer_dir: dsl.InputPath(),
@@ -55,7 +55,7 @@ def get_training_artifacts(
       instance_schema_uri=str,
   )
   return outputs(
-      f'{docker_region}-docker.pkg.dev/vertex-ai/starryn/predictor:20240723_0542_RC00',  # pylint: disable=too-many-function-args
+      f'{docker_region}-docker.pkg.dev/vertex-ai/starryn/predictor:20250411_0542_RC00',  # pylint: disable=too-many-function-args
       private_dir,  # pylint: disable=too-many-function-args
       os.path.join(private_dir, 'predict_schema.yaml'),  # pylint: disable=too-many-function-args
       os.path.join(private_dir, 'instance_schema.yaml'),  # pylint: disable=too-many-function-args
