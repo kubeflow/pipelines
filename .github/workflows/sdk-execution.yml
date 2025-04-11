@@ -30,6 +30,11 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Free up space in /dev/root
+        run: |
+            sudo rm -rf /usr/share/dotnet
+            sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
