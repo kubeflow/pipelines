@@ -123,7 +123,9 @@ server locally:
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
         "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888"
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
+        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
       },
       "args": [
         "--config",
@@ -235,8 +237,9 @@ command to use Delve and the Driver image to use debug image built previously.
                 "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
                 "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
                 "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
+                "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
                 "V2_DRIVER_IMAGE": "kfp-driver:debug",
-                "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --",
+                "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --"
             }
         }
     ]
