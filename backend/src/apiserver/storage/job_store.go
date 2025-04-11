@@ -489,11 +489,12 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	return nil
 }
 
-// factory function for job store.
-func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
+// If pipelineStore is provided, it will be used instead of direct database queries for getting pipelines
+// and pipeline versions.
+func NewJobStore(db *DB, time util.TimeInterface, pipelineStore PipelineStoreInterface) *JobStore {
 	return &JobStore{
 		db:                     db,
-		resourceReferenceStore: NewResourceReferenceStore(db),
+		resourceReferenceStore: NewResourceReferenceStore(db, pipelineStore),
 		time:                   time,
 	}
 }

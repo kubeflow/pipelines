@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -134,13 +135,19 @@ func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Objec
 	pipeline := &k8sapi.Pipeline{}
 	nsName := types.NamespacedName{Namespace: pipelineVersion.Namespace, Name: pipelineVersion.Spec.PipelineName}
 
-	err := p.Client.Get(ctx, nsName, pipeline)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
+	for tries := 0; tries < 10; tries++ {
+		err := p.Client.Get(ctx, nsName, pipeline)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				if tries < 10 {
+					time.Sleep(500 * time.Millisecond)
+					continue
+				}
+				return newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
+			}
+			return err
 		}
-
-		return err
+		break
 	}
 
 	if pipelineVersion.Labels == nil {

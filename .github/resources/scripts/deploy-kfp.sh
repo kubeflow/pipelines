@@ -24,19 +24,27 @@ C_DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$C_DIR" ]]; then C_DIR="$PWD"; fi
 source "${C_DIR}/helper-functions.sh"
 
+TEST_MANIFESTS=".github/resources/manifests/argo"
 USE_PROXY=false
 
-while getopts ":p-:" OPT; do
-    case $OPT in
-        -) [ "$OPTARG" = "proxy" ] && USE_PROXY=true || { echo "Unknown option --$OPTARG"; exit 1; };;
-        \?) echo "Invalid option: -$OPTARG" >&2; exit 1;;
-    esac
+# Loop over script arguments passed. This uses a single switch-case
+# block with default value in case we want to make alternative deployments
+# in the future.
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --deploy-k8s-native)
+      CRD_MANIFESTS="manifests/kustomize/base/crds"
+      TEST_MANIFESTS=".github/resources/manifests/kubernetes-native"
+      shift
+      ;;
+    --proxy)
+      USE_PROXY=true
+      shift
+      ;;
+  esac
 done
 
-shift $((OPTIND-1))
-
 kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
-kubectl apply -k "manifests/kustomize/base/crds"
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
@@ -52,11 +60,9 @@ then
   exit $EXIT_CODE
 fi
 
-# Deploy manifest
-TEST_MANIFESTS=".github/resources/manifests/argo"
-
-if [[ "$PIPELINE_STORE" == "kubernetes" ]]; then
-  TEST_MANIFESTS=".github/resources/manifests/kubernetes-native"
+# If CRD_MANIFESTS env var is present, deploy the K8s Native API CRDs
+if [[ -n "${CRD_MANIFESTS}" ]]; then
+  kubectl apply -k "${CRD_MANIFESTS}"
 fi
 
 if $USE_PROXY; then
