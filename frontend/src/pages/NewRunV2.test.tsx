@@ -1273,4 +1273,204 @@ describe('NewRunV2', () => {
       });
     });
   });
+
+  describe('"Always Use Latest" checkbox functionality', () => {
+    it('should disable version selector and show status text when checked', async () => {
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Find and check the "Always Use Latest" checkbox
+      const alwaysUseLatestCheckbox = screen.getByLabelText(
+        'Always use the latest pipeline version',
+      );
+      fireEvent.click(alwaysUseLatestCheckbox);
+
+      // Verify version selector is disabled
+      expect(screen.getByText('Using latest pipeline version')).toBeTruthy();
+      // Verify choose button is disabled
+      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+    });
+
+    it('should clear version selection when checked', async () => {
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Verify version is initially set
+      await screen.findByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME);
+
+      // Find and check the "Always Use Latest" checkbox
+      const alwaysUseLatestCheckbox = screen.getByLabelText(
+        'Always use the latest pipeline version',
+      );
+      fireEvent.click(alwaysUseLatestCheckbox);
+
+      // Verify version selection is cleared
+      const versionSelectorInput = screen.getByText('Using latest pipeline version');
+      expect(versionSelectorInput).toBeTruthy();
+      expect(screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME)).toBeNull();
+    });
+
+    it('should submit correct payload with only pipeline_id when checked', async () => {
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
+      createRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RUN_DETAILS);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Find and check the "Always Use Latest" checkbox
+      const alwaysUseLatestCheckbox = screen.getByLabelText(
+        'Always use the latest pipeline version',
+      );
+      fireEvent.click(alwaysUseLatestCheckbox);
+
+      // Click start button
+      const startButton = await screen.findByText('Start');
+      fireEvent.click(startButton);
+
+      // Verify API call contains only pipeline_id
+      await waitFor(() => {
+        expect(createRunSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pipeline_version_reference: {
+              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+            },
+          }),
+        );
+      });
+
+      // Verify API call does not contain pipeline_version_id
+      await waitFor(() => {
+        expect(createRunSpy).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            pipeline_version_reference: expect.objectContaining({
+              pipeline_version_id: expect.anything(),
+            }),
+          }),
+        );
+      });
+    });
+
+    it('should submit full version info when unchecked', async () => {
+      jest.resetAllMocks();
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
+      createRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RUN_DETAILS);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+      // wait for that the component finishes loading
+      await screen.findByLabelText('Always use the latest pipeline version');
+
+      // Ensure checkbox remains unchecked
+      const alwaysUseLatestCheckbox = screen.getByLabelText(
+        'Always use the latest pipeline version',
+      );
+      expect(alwaysUseLatestCheckbox.checked).toBe(false);
+
+      // Click start button
+      const startButton = await screen.findByText('Start');
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(false);
+      });
+
+      fireEvent.click(startButton);
+
+      // Verify API call contains both pipeline_id and pipeline_version_id
+      await waitFor(
+        () => {
+          expect(createRunSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+              pipeline_version_reference: {
+                pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+                pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+              },
+            }),
+          );
+        },
+        { timeout: 3000 },
+      );
+    });
+  });
 });
