@@ -87,6 +87,8 @@ type Options struct {
 	RunDisplayName string
 
 	PipelineLogLevel string
+
+	PublishLogs string
 }
 
 // Identifying information used for error messages
@@ -291,8 +293,33 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		}
 		execution.Condition = &willTrigger
 	}
+
+	// When the container image is a dummy image, there is no launcher for this
+	// task. This happens when this task is created to implement a
+	// Kubernetes-specific configuration, i.e., there is no user container to
+	// run. It publishes execution details to mlmd in driver and takes care of
+	// caching, which are usually done in launcher. We also skip creating the
+	// podspecpatch in these cases.
+	_, isKubernetesPlatformOp := dummyImages[opts.Container.Image]
+	if isKubernetesPlatformOp {
+		// To be consistent with other artifacts, the driver registers log
+		// artifacts to MLMD and the launcher publishes them to the object
+		// store. This pattern does not work for kubernetesPlatformOps because
+		// they have no launcher. There's no point in registering logs that
+		// won't be published. Consequently, when we know we're dealing with
+		// kubernetesPlatformOps, we set publishLogs to "false". We can amend
+		// this when we update the driver to publish logs directly.
+		opts.PublishLogs = "false"
+	}
+
 	if execution.WillTrigger() {
-		executorInput.Outputs = provisionOutputs(pipeline.GetPipelineRoot(), opts.Task.GetTaskInfo().GetName(), opts.Component.GetOutputDefinitions(), uuid.NewString())
+		executorInput.Outputs = provisionOutputs(
+			pipeline.GetPipelineRoot(),
+			opts.Task.GetTaskInfo().GetName(),
+			opts.Component.GetOutputDefinitions(),
+			uuid.NewString(),
+			opts.PublishLogs,
+		)
 	}
 
 	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
@@ -305,12 +332,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
 
-	// When the container image is a dummy image, there is no launcher for this task.
-	// This happens when this task is created to implement a Kubernetes-specific configuration, i.e.,
-	// there is no user container to run.
-	// It publishes execution details to mlmd in driver and takes care of caching, which are usually done in launcher.
-	// We also skip creating the podspecpatch in these cases.
-	if _, ok := dummyImages[opts.Container.Image]; ok {
+	if isKubernetesPlatformOp {
 		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)
 	}
 
@@ -355,7 +377,16 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
-	podSpec, err := initPodSpecPatch(opts.Container, opts.Component, executorInput, execution.ID, opts.PipelineName, opts.RunID, opts.PipelineLogLevel)
+	podSpec, err := initPodSpecPatch(
+		opts.Container,
+		opts.Component,
+		executorInput,
+		execution.ID,
+		opts.PipelineName,
+		opts.RunID,
+		opts.PipelineLogLevel,
+		opts.PublishLogs,
+	)
 	if err != nil {
 		return execution, err
 	}
@@ -418,6 +449,7 @@ func initPodSpecPatch(
 	pipelineName string,
 	runID string,
 	pipelineLogLevel string,
+	publishLogs string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -455,10 +487,14 @@ func initPodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--publish_logs", publishLogs,
 	}
 	if pipelineLogLevel != "1" {
 		// Add log level to user code launcher if not default (set to 1)
 		launcherCmd = append(launcherCmd, "--log_level", pipelineLogLevel)
+	}
+	if publishLogs == "true" {
+		launcherCmd = append(launcherCmd, "--publish_logs", publishLogs)
 	}
 	launcherCmd = append(launcherCmd, "--") // separater before user command and args
 	res := k8score.ResourceRequirements{
@@ -1938,19 +1974,44 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 	}
 }
 
-func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.ComponentOutputsSpec, outputUriSalt string) *pipelinespec.ExecutorInput_Outputs {
+// provisionOuutputs prepares output references that will get saved to MLMD.
+func provisionOutputs(
+	pipelineRoot,
+	taskName string,
+	outputsSpec *pipelinespec.ComponentOutputsSpec,
+	outputURISalt string,
+	publishOutput string,
+) *pipelinespec.ExecutorInput_Outputs {
 	outputs := &pipelinespec.ExecutorInput_Outputs{
 		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 		Parameters: make(map[string]*pipelinespec.ExecutorInput_OutputParameter),
 		OutputFile: component.OutputMetadataFilepath,
 	}
-	for name, artifact := range outputsSpec.GetArtifacts() {
+	artifacts := outputsSpec.GetArtifacts()
+
+	// TODO: Check if there's a more idiomatic way to handle this.
+	if publishOutput == "true" {
+		// Add a placeholder for a log artifact that will be written to by the
+		// subsequent executor.
+		if artifacts == nil {
+			artifacts = make(map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec)
+		}
+		artifacts["executor-logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+			ArtifactType: &pipelinespec.ArtifactTypeSchema{
+				Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+					SchemaTitle: "system.Artifact",
+				},
+			},
+		}
+	}
+
+	for name, artifact := range artifacts {
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{
 				{
 					// Do not preserve the query string for output artifacts, as otherwise
 					// they'd appear in file and artifact names.
-					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputUriSalt, name}, false),
+					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputURISalt, name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},
@@ -1963,6 +2024,7 @@ func provisionOutputs(pipelineRoot, taskName string, outputsSpec *pipelinespec.C
 			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),
 		}
 	}
+
 	return outputs
 }
 
@@ -2101,7 +2163,7 @@ func createPVC(
 	inputs := execution.ExecutorInput.Inputs
 	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
 
-	// Requied input: access_modes
+	// Required input: access_modes
 	accessModeInput, ok := inputs.ParameterValues["access_modes"]
 	if !ok || accessModeInput == nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter access_modes not provided")
