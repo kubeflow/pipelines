@@ -49,12 +49,9 @@ DATA_CORRECT_CHILDREN = {
 DATA_MISSING_PIPELINE_ENABLED = {"parent": {}, "children": {}}
 
 # Default values when environments are not explicit
-DEFAULT_FRONTEND_IMAGE = "ghcr.io/kubeflow/kfp-frontend"
-DEFAULT_VISUALIZATION_IMAGE = "ghcr.io/kubeflow/kfp-visualization-server"
+DEFAULT_FRONTEND_IMAGE = "gcr.io/ml-pipeline/frontend"
 
 # Variables used for environment variable sets
-VISUALIZATION_SERVER_IMAGE = "vis-image"
-VISUALIZATION_SERVER_TAG = "somenumber.1.2.3"
 FRONTEND_IMAGE = "frontend-image"
 FRONTEND_TAG = "somehash"
 
@@ -79,16 +76,13 @@ ENV_KFP_VERSION_ONLY = dict(ENV_VARIABLES_BASE,
 ENV_IMAGES_NO_TAGS = dict(ENV_VARIABLES_BASE,
                           **{
                               "KFP_VERSION": KFP_VERSION,
-                              "VISUALIZATION_SERVER_IMAGE": VISUALIZATION_SERVER_IMAGE,
                               "FRONTEND_IMAGE": FRONTEND_IMAGE,
                           }
                           )
 
 ENV_IMAGES_WITH_TAGS = dict(ENV_VARIABLES_BASE,
                             **{
-                                "VISUALIZATION_SERVER_IMAGE": VISUALIZATION_SERVER_IMAGE,
                                 "FRONTEND_IMAGE": FRONTEND_IMAGE,
-                                "VISUALIZATION_SERVER_TAG": VISUALIZATION_SERVER_TAG,
                                 "FRONTEND_TAG": FRONTEND_TAG,
                             }
                             )
@@ -151,43 +145,36 @@ def sync_server_from_arguments(request):
 
 
 @pytest.mark.parametrize(
-    "sync_server, data, expected_status, expected_visualization_server_image, expected_frontend_server_image",
+    "sync_server, data, expected_status, expected_frontend_server_image",
     [
         (
                 ENV_KFP_VERSION_ONLY,
                 DATA_INCORRECT_CHILDREN,
                 {"kubeflow-pipelines-ready": "False"},
-                generate_image_name(DEFAULT_VISUALIZATION_IMAGE, KFP_VERSION),
                 generate_image_name(DEFAULT_FRONTEND_IMAGE, KFP_VERSION),
         ),
         (
                 ENV_IMAGES_NO_TAGS,
                 DATA_INCORRECT_CHILDREN,
                 {"kubeflow-pipelines-ready": "False"},
-                generate_image_name(ENV_IMAGES_NO_TAGS["VISUALIZATION_SERVER_IMAGE"], KFP_VERSION),
                 generate_image_name(ENV_IMAGES_NO_TAGS["FRONTEND_IMAGE"], KFP_VERSION),
         ),
         (
                 ENV_IMAGES_WITH_TAGS,
                 DATA_INCORRECT_CHILDREN,
                 {"kubeflow-pipelines-ready": "False"},
-                generate_image_name(ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
-                                    ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
                 generate_image_name(ENV_IMAGES_WITH_TAGS["FRONTEND_IMAGE"], ENV_IMAGES_WITH_TAGS["FRONTEND_TAG"]),
         ),
         (
                 ENV_IMAGES_WITH_TAGS,
                 DATA_CORRECT_CHILDREN,
                 {"kubeflow-pipelines-ready": "True"},
-                generate_image_name(ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
-                                    ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
                 generate_image_name(ENV_IMAGES_WITH_TAGS["FRONTEND_IMAGE"], ENV_IMAGES_WITH_TAGS["FRONTEND_TAG"]),
         ),
     ],
     indirect=["sync_server"]
 )
-def test_sync_server_with_pipeline_enabled(sync_server, data, expected_status,
-                                           expected_visualization_server_image, expected_frontend_server_image):
+def test_sync_server_with_pipeline_enabled(sync_server, data, expected_status, expected_frontend_server_image):
     """
     Nearly end-to-end test of how Controller serves .sync as a POST
 
@@ -210,30 +197,25 @@ def test_sync_server_with_pipeline_enabled(sync_server, data, expected_status,
     assert results['status'] == expected_status
 
     # Poke a few children to test things that can vary by environment variable
-    assert results['children'][1]["spec"]["template"]["spec"]["containers"][0][
-               "image"] == expected_visualization_server_image
     assert results['children'][5]["spec"]["template"]["spec"]["containers"][0][
                "image"] == expected_frontend_server_image
 
 
 @pytest.mark.parametrize(
-    "sync_server_from_arguments, data, expected_status, expected_visualization_server_image, "
+    "sync_server_from_arguments, data, expected_status, "
     "expected_frontend_server_image",
     [
         (
                 ENV_IMAGES_WITH_TAGS_AND_ISTIO,
                 DATA_CORRECT_CHILDREN,
                 {"kubeflow-pipelines-ready": "True"},
-                generate_image_name(ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
-                                    ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
                 generate_image_name(ENV_IMAGES_WITH_TAGS["FRONTEND_IMAGE"], ENV_IMAGES_WITH_TAGS["FRONTEND_TAG"]),
         ),
     ],
     indirect=["sync_server_from_arguments"]
 )
 def test_sync_server_with_direct_passing_of_settings(
-        sync_server_from_arguments, data, expected_status, expected_visualization_server_image,
-        expected_frontend_server_image):
+        sync_server_from_arguments, data, expected_status, expected_frontend_server_image):
     """
     Nearly end-to-end test of how Controller serves .sync as a POST, taking variables as arguments
 
@@ -253,8 +235,6 @@ def test_sync_server_with_direct_passing_of_settings(
     assert results['status'] == expected_status
 
     # Poke a few children to test things that can vary by environment variable
-    assert results['children'][1]["spec"]["template"]["spec"]["containers"][0][
-               "image"] == expected_visualization_server_image
     assert results['children'][5]["spec"]["template"]["spec"]["containers"][0][
                "image"] == expected_frontend_server_image
 

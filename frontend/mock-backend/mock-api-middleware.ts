@@ -727,10 +727,6 @@ export default (app: express.Application) => {
     }, 300);
   });
 
-  app.get('/visualizations/allowed', (req, res) => {
-    res.send(true);
-  });
-
   // Uncomment this instead to test 404 endpoints.
   // app.get('/system/cluster-name', (_, res) => {
   //   res.status(404).send('404 Not Found');

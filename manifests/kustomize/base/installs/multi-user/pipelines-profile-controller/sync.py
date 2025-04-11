@@ -25,8 +25,7 @@ def main():
 
 
 def get_settings_from_env(controller_port=None,
-                          visualization_server_image=None, frontend_image=None,
-                          visualization_server_tag=None, frontend_tag=None, disable_istio_sidecar=None,
+                          frontend_image=None, frontend_tag=None, disable_istio_sidecar=None,
                           minio_access_key=None, minio_secret_key=None, kfp_default_pipeline_root=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
@@ -36,9 +35,7 @@ def get_settings_from_env(controller_port=None,
     Settings are pulled from the all-caps version of the setting name.  The
     following defaults are used if those environment variables are not set
     to enable backwards compatibility with previous versions of this script:
-        visualization_server_image: ghcr.io/kubeflow/kfp-visualization-server
-        visualization_server_tag: value of KFP_VERSION environment variable
-        frontend_image: ghcr.io/kubeflow/kfp-frontend
+        frontend_image: gcr.io/ml-pipeline/frontend
         frontend_tag: value of KFP_VERSION environment variable
         disable_istio_sidecar: Required (no default)
         minio_access_key: Required (no default)
@@ -49,10 +46,6 @@ def get_settings_from_env(controller_port=None,
         controller_port or \
         os.environ.get("CONTROLLER_PORT", "8080")
 
-    settings["visualization_server_image"] = \
-        visualization_server_image or \
-        os.environ.get("VISUALIZATION_SERVER_IMAGE", "ghcr.io/kubeflow/kfp-visualization-server")
-
     settings["frontend_image"] = \
         frontend_image or \
         os.environ.get("FRONTEND_IMAGE", "ghcr.io/kubeflow/kfp-frontend")
@@ -60,11 +53,6 @@ def get_settings_from_env(controller_port=None,
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
-    settings["visualization_server_tag"] = \
-        visualization_server_tag or \
-        os.environ.get("VISUALIZATION_SERVER_TAG") or \
-        os.environ["KFP_VERSION"]
-
     settings["frontend_tag"] = \
         frontend_tag or \
         os.environ.get("FRONTEND_TAG") or \
@@ -90,8 +78,7 @@ def get_settings_from_env(controller_port=None,
     return settings
 
 
-def server_factory(visualization_server_image,
-                   visualization_server_tag, frontend_image, frontend_tag,
+def server_factory(frontend_image, frontend_tag,
                    disable_istio_sidecar, minio_access_key,
                    minio_secret_key, kfp_default_pipeline_root=None,
                    url="", controller_port=8080):
@@ -150,116 +137,6 @@ def server_factory(visualization_server_image,
                         "METADATA_GRPC_SERVICE_HOST":
                             "metadata-grpc-service.kubeflow",
                         "METADATA_GRPC_SERVICE_PORT": "8080",
-                    },
-                },
-                # Visualization server related manifests below
-                {
-                    "apiVersion": "apps/v1",
-                    "kind": "Deployment",
-                    "metadata": {
-                        "labels": {
-                            "app": "ml-pipeline-visualizationserver"
-                        },
-                        "name": "ml-pipeline-visualizationserver",
-                        "namespace": namespace,
-                    },
-                    "spec": {
-                        "selector": {
-                            "matchLabels": {
-                                "app": "ml-pipeline-visualizationserver"
-                            },
-                        },
-                        "template": {
-                            "metadata": {
-                                "labels": {
-                                    "app": "ml-pipeline-visualizationserver"
-                                },
-                                "annotations": disable_istio_sidecar and {
-                                    "sidecar.istio.io/inject": "false"
-                                } or {},
-                            },
-                            "spec": {
-                                "containers": [{
-                                    "image": f"{visualization_server_image}:{visualization_server_tag}",
-                                    "imagePullPolicy":
-                                        "IfNotPresent",
-                                    "name":
-                                        "ml-pipeline-visualizationserver",
-                                    "ports": [{
-                                        "containerPort": 8888
-                                    }],
-                                    "resources": {
-                                        "requests": {
-                                            "cpu": "50m",
-                                            "memory": "200Mi"
-                                        },
-                                        "limits": {
-                                            "cpu": "500m",
-                                            "memory": "1Gi"
-                                        },
-                                    }
-                                }],
-                                "serviceAccountName":
-                                    "default-editor",
-                            },
-                        },
-                    },
-                },
-                {
-                    "apiVersion": "networking.istio.io/v1alpha3",
-                    "kind": "DestinationRule",
-                    "metadata": {
-                        "name": "ml-pipeline-visualizationserver",
-                        "namespace": namespace,
-                    },
-                    "spec": {
-                        "host": "ml-pipeline-visualizationserver",
-                        "trafficPolicy": {
-                            "tls": {
-                                "mode": "ISTIO_MUTUAL"
-                            }
-                        }
-                    }
-                },
-                {
-                    "apiVersion": "security.istio.io/v1beta1",
-                    "kind": "AuthorizationPolicy",
-                    "metadata": {
-                        "name": "ml-pipeline-visualizationserver",
-                        "namespace": namespace,
-                    },
-                    "spec": {
-                        "selector": {
-                            "matchLabels": {
-                                "app": "ml-pipeline-visualizationserver"
-                            }
-                        },
-                        "rules": [{
-                            "from": [{
-                                "source": {
-                                    "principals": ["cluster.local/ns/kubeflow/sa/ml-pipeline"]
-                                }
-                            }]
-                        }]
-                    }
-                },
-                {
-                    "apiVersion": "v1",
-                    "kind": "Service",
-                    "metadata": {
-                        "name": "ml-pipeline-visualizationserver",
-                        "namespace": namespace,
-                    },
-                    "spec": {
-                        "ports": [{
-                            "name": "http",
-                            "port": 8888,
-                            "protocol": "TCP",
-                            "targetPort": 8888,
-                        }],
-                        "selector": {
-                            "app": "ml-pipeline-visualizationserver",
-                        },
                     },
                 },
                 # Artifact fetcher related resources below.

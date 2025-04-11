@@ -101,9 +101,6 @@ jobs:
           - image: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
-          - image: kfp-visualization-server
-            dockerfile: backend/Dockerfile.visualization
-            context: .
           - image: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
