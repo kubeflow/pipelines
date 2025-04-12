@@ -10,41 +10,29 @@ runs:
         name: kfp-images
         path: /tmp/kfp-images
 
-    - name: Load images into Kind and tag them
+    - name: Load images into Kind
       shell: bash
       run: |
         # Make sure the directory exists
         ls -la /tmp/kfp-images/
         
-        # Create a registry directory in the kind node
-        docker exec kfp-control-plane mkdir -p /var/lib/registry/docker/registry/v2/repositories/kind-registry/
-        
-        # Load each image into Kind and tag it immediately
-        echo "Loading apiserver image..."
+        # Load each image into Kind
         kind load image-archive /tmp/kfp-images/apiserver.tar --name kfp
-        docker exec kfp-control-plane crictl pull docker.io/library/apiserver:latest
-        docker exec kfp-control-plane crictl tag docker.io/library/apiserver:latest kind-registry:5000/apiserver:latest
-        
-        echo "Loading persistenceagent image..."
         kind load image-archive /tmp/kfp-images/persistenceagent.tar --name kfp
-        docker exec kfp-control-plane crictl pull docker.io/library/persistenceagent:latest
-        docker exec kfp-control-plane crictl tag docker.io/library/persistenceagent:latest kind-registry:5000/persistenceagent:latest
-        
-        echo "Loading scheduledworkflow image..."
         kind load image-archive /tmp/kfp-images/scheduledworkflow.tar --name kfp
-        docker exec kfp-control-plane crictl pull docker.io/library/scheduledworkflow:latest
-        docker exec kfp-control-plane crictl tag docker.io/library/scheduledworkflow:latest kind-registry:5000/scheduledworkflow:latest
-        
-        echo "Loading driver image..."
         kind load image-archive /tmp/kfp-images/driver.tar --name kfp
-        docker exec kfp-control-plane crictl pull docker.io/library/driver:latest
-        docker exec kfp-control-plane crictl tag docker.io/library/driver:latest kind-registry:5000/driver:latest
-        
-        echo "Loading launcher image..."
         kind load image-archive /tmp/kfp-images/launcher.tar --name kfp
-        docker exec kfp-control-plane crictl pull docker.io/library/launcher:latest
-        docker exec kfp-control-plane crictl tag docker.io/library/launcher:latest kind-registry:5000/launcher:latest
+        
+        # List images to see actual names
+        docker exec kfp-control-plane crictl images
+        
+        # Tag the images with the expected registry prefix
+        # Using the full path as shown in the crictl images output
+        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/apiserver:latest kind-registry:5000/apiserver:latest
+        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/persistenceagent:latest kind-registry:5000/persistenceagent:latest
+        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/scheduledworkflow:latest kind-registry:5000/scheduledworkflow:latest
+        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/driver:latest kind-registry:5000/driver:latest
+        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/launcher:latest kind-registry:5000/launcher:latest
         
         # Verify images are properly tagged
-        echo "Verifying tagged images..."
         docker exec kfp-control-plane crictl images 
