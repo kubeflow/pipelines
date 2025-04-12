@@ -1,0 +1,24 @@
+name: "Download and Load KFP Images"
+description: "Download KFP image artifacts and load them into Kind cluster"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download image artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: kfp-images
+        path: /tmp/kfp-images
+
+    - name: Load images into Kind
+      shell: bash
+      run: |
+        # Make sure the directory exists
+        ls -la /tmp/kfp-images/
+        
+        # Load each image into Kind
+        kind load image-archive /tmp/kfp-images/apiserver.tar --name kfp
+        kind load image-archive /tmp/kfp-images/persistenceagent.tar --name kfp
+        kind load image-archive /tmp/kfp-images/scheduledworkflow.tar --name kfp
+        kind load image-archive /tmp/kfp-images/driver.tar --name kfp
+        kind load image-archive /tmp/kfp-images/launcher.tar --name kfp 

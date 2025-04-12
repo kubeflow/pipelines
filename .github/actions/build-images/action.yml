@@ -1,0 +1,46 @@
+name: "Build KFP Images"
+description: "Build KFP images, export to tar files and upload as artifacts"
+
+inputs:
+  proxy:
+    description: "If images should be built with proxy configuration"
+    required: false
+    default: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build images
+      shell: bash
+      run: |
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/build-images.sh --proxy
+        else
+          ./.github/resources/scripts/build-images.sh
+        fi
+    
+    - name: Create export directory
+      shell: bash
+      run: mkdir -p /tmp/kfp-images
+    
+    - name: Export images to tar files
+      shell: bash
+      run: |
+        REGISTRY="${REGISTRY:-kind-registry:5000}"
+        TAG="${TAG:-latest}"
+        
+        # Save each image to a tar file
+        docker save "${REGISTRY}/apiserver:${TAG}" -o /tmp/kfp-images/apiserver.tar
+        docker save "${REGISTRY}/persistenceagent:${TAG}" -o /tmp/kfp-images/persistenceagent.tar
+        docker save "${REGISTRY}/scheduledworkflow:${TAG}" -o /tmp/kfp-images/scheduledworkflow.tar
+        docker save "${REGISTRY}/driver:${TAG}" -o /tmp/kfp-images/driver.tar
+        docker save "${REGISTRY}/launcher:${TAG}" -o /tmp/kfp-images/launcher.tar
+        
+        # List the saved tar files
+        ls -la /tmp/kfp-images/
+    
+    - name: Upload image artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: kfp-images
+        path: /tmp/kfp-images/*.tar 

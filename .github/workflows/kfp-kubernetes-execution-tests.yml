@@ -16,8 +16,19 @@ on:
       - '!**/OWNERS'
 
 jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    name: Build KFP images
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and upload images
+        uses: ./.github/actions/build-images
+
   kfp-kubernetes-execution-tests:
     runs-on: ubuntu-24.04
+    needs: [build-images]
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
@@ -47,6 +58,12 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Download and load images
+        uses: ./.github/actions/download-images
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy-kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888

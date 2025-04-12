@@ -1,12 +1,12 @@
-name: "Set up KFP on KinD"
-description: "Step to start and configure KFP on KinD"
+name: "Set up KinD Cluster"
+description: "Create a Kubernetes in Docker (KinD) cluster"
 
 inputs:
   k8s_version:
     description: "The Kubernetes version to use for the Kind cluster"
     required: true
   proxy:
-    description: "If KFP should be deployed with proxy configuration"
+    description: "If Squid proxy should be deployed"
     required: false
     default: false
 
@@ -26,21 +26,3 @@ runs:
       if: ${{ (inputs.proxy == 'true' )}}
       shell: bash
       run: ./.github/resources/squid/deploy-squid.sh
-
-    - name: Build images
-      shell: bash
-      run: |
-        if [ "${{ inputs.proxy }}" = "true" ]; then
-          ./.github/resources/scripts/build-images.sh --proxy
-        else
-          ./.github/resources/scripts/build-images.sh
-        fi
-
-    - name: Deploy KFP
-      shell: bash
-      run: |
-        if [ "${{ inputs.proxy }}" = "true" ]; then
-          ./.github/resources/scripts/deploy-kfp.sh --proxy
-        else
-          ./.github/resources/scripts/deploy-kfp.sh
-        fi

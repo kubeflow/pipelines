@@ -17,8 +17,19 @@ on:
       - 'test/**'
 
 jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    name: Build KFP images
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and upload images
+        uses: ./.github/actions/build-images
+
   initialization-tests-v1:
     runs-on: ubuntu-latest
+    needs: [build-images]
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
@@ -36,6 +47,12 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Download and load images
+        uses: ./.github/actions/download-images
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy-kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -61,6 +78,7 @@ jobs:
 
   initialization-tests-v2:
     runs-on: ubuntu-latest
+    needs: [build-images]
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
@@ -78,6 +96,12 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Download and load images
+        uses: ./.github/actions/download-images
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy-kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -103,6 +127,7 @@ jobs:
 
   api-integration-tests-v1:
     runs-on: ubuntu-latest
+    needs: [build-images]
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
@@ -120,6 +145,12 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Download and load images
+        uses: ./.github/actions/download-images
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy-kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -148,6 +179,7 @@ jobs:
 
   api-integration-tests-v2:
     runs-on: ubuntu-latest
+    needs: [build-images]
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
@@ -165,6 +197,12 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Download and load images
+        uses: ./.github/actions/download-images
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy-kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -190,6 +228,7 @@ jobs:
 
   api-integration-tests-v2-with-proxy:
     runs-on: ubuntu-latest
+    needs: [build-images]
     strategy:
       matrix:
         k8s_version: [ "v1.31.0" ]
@@ -210,6 +249,16 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           proxy: 'true'
         continue-on-error: true
+
+      - name: Download and load images
+        if: ${{ (steps.create-kfp-cluster.outcome == 'success' )}}
+        uses: ./.github/actions/download-images
+
+      - name: Deploy KFP
+        if: ${{ (steps.create-kfp-cluster.outcome == 'success' )}}
+        uses: ./.github/actions/deploy-kfp
+        with:
+          proxy: 'true'
 
       - name: Forward API port
         id: forward-api-port
@@ -240,6 +289,7 @@ jobs:
 
   frontend-integration-test:
     runs-on: ubuntu-latest
+    needs: [build-images]
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
@@ -257,6 +307,12 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Download and load images
+        uses: ./.github/actions/download-images
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy-kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -289,6 +345,7 @@ jobs:
       
   basic-sample-tests:
     runs-on: ubuntu-latest
+    needs: [build-images]
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
@@ -306,6 +363,12 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+
+      - name: Download and load images
+        uses: ./.github/actions/download-images
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy-kfp
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
