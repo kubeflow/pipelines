@@ -10,31 +10,35 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Build images
-      shell: bash
-      run: |
-        if [ "${{ inputs.proxy }}" = "true" ]; then
-          ./.github/resources/scripts/build-images.sh --proxy
-        else
-          ./.github/resources/scripts/build-images.sh
-        fi
-    
     - name: Create export directory
       shell: bash
       run: mkdir -p /tmp/kfp-images
     
-    - name: Export images to tar files
+    - name: Build and export images
       shell: bash
       run: |
-        REGISTRY="${REGISTRY:-kind-registry:5000}"
-        TAG="${TAG:-latest}"
+        # Set tag for images
+        TAG="latest"
         
-        # Save each image to a tar file
-        docker save "${REGISTRY}/apiserver:${TAG}" -o /tmp/kfp-images/apiserver.tar
-        docker save "${REGISTRY}/persistenceagent:${TAG}" -o /tmp/kfp-images/persistenceagent.tar
-        docker save "${REGISTRY}/scheduledworkflow:${TAG}" -o /tmp/kfp-images/scheduledworkflow.tar
-        docker save "${REGISTRY}/driver:${TAG}" -o /tmp/kfp-images/driver.tar
-        docker save "${REGISTRY}/launcher:${TAG}" -o /tmp/kfp-images/launcher.tar
+        # Build apiserver image
+        docker build --progress=plain -t "apiserver:${TAG}" -f backend/Dockerfile .
+        docker save "apiserver:${TAG}" -o /tmp/kfp-images/apiserver.tar
+        
+        # Build persistenceagent image
+        docker build --progress=plain -t "persistenceagent:${TAG}" -f backend/Dockerfile.persistenceagent .
+        docker save "persistenceagent:${TAG}" -o /tmp/kfp-images/persistenceagent.tar
+        
+        # Build scheduledworkflow image
+        docker build --progress=plain -t "scheduledworkflow:${TAG}" -f backend/Dockerfile.scheduledworkflow .
+        docker save "scheduledworkflow:${TAG}" -o /tmp/kfp-images/scheduledworkflow.tar
+        
+        # Build driver image
+        docker build --progress=plain -t "driver:${TAG}" -f backend/Dockerfile.driver .
+        docker save "driver:${TAG}" -o /tmp/kfp-images/driver.tar
+        
+        # Build launcher image
+        docker build --progress=plain -t "launcher:${TAG}" -f backend/Dockerfile.launcher .
+        docker save "launcher:${TAG}" -o /tmp/kfp-images/launcher.tar
         
         # List the saved tar files
         ls -la /tmp/kfp-images/
