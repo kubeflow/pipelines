@@ -13,7 +13,7 @@ runs:
     - name: Load images into Kind
       shell: bash
       run: |
-        # Make sure the directory exists
+        # Make sure the directory exists and list files
         ls -la /tmp/kfp-images/
         
         # Load each image into Kind
@@ -26,13 +26,27 @@ runs:
         # List images to see actual names
         docker exec kfp-control-plane crictl images
         
-        # Tag the images with the expected registry prefix
-        # Using the full path as shown in the crictl images output
-        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/apiserver:latest kind-registry:5000/apiserver:latest
-        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/persistenceagent:latest kind-registry:5000/persistenceagent:latest
-        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/scheduledworkflow:latest kind-registry:5000/scheduledworkflow:latest
-        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/driver:latest kind-registry:5000/driver:latest
-        docker exec kfp-control-plane ctr -n k8s.io images tag docker.io/library/launcher:latest kind-registry:5000/launcher:latest
+        # Create patch file for KFP deployment to match the image names
+        cat > /tmp/image-patch.yaml << EOF
+        apiVersion: kustomize.config.k8s.io/v1beta1
+        kind: Kustomization
+        images:
+        - name: kind-registry:5000/apiserver
+          newName: docker.io/library/apiserver
+        - name: kind-registry:5000/persistenceagent
+          newName: docker.io/library/persistenceagent
+        - name: kind-registry:5000/scheduledworkflow
+          newName: docker.io/library/scheduledworkflow
+        - name: kind-registry:5000/driver
+          newName: docker.io/library/driver
+        - name: kind-registry:5000/launcher
+          newName: docker.io/library/launcher
+        EOF
         
-        # Verify images are properly tagged
-        docker exec kfp-control-plane crictl images 
+        # Save the patch file for the deploy-kfp action to use
+        mkdir -p /tmp/kfp-patches
+        cp /tmp/image-patch.yaml /tmp/kfp-patches/
+        
+        # List the patch file
+        echo "Created image patch file:"
+        cat /tmp/kfp-patches/image-patch.yaml 
