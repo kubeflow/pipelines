@@ -65,7 +65,44 @@ else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
 fi
 
-kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
+if [ -f "/tmp/kfp-patches/image-patch.yaml" ]; then
+  echo "Found image patch file. Will apply it to match loaded image names."
+  TEMP_KUSTOMIZE_DIR=$(mktemp -d)
+  
+  # Copy the kustomization.yaml from the manifest path to temp dir
+  cp "${TEST_MANIFESTS}/kustomization.yaml" "${TEMP_KUSTOMIZE_DIR}/"
+  
+  # Copy the image patch file to temp dir
+  cp "/tmp/kfp-patches/image-patch.yaml" "${TEMP_KUSTOMIZE_DIR}/image-patch.yaml"
+  
+  # Create a new kustomization.yaml that includes the original resources and the image patch
+  cd "${TEMP_KUSTOMIZE_DIR}"
+  
+  # Get the resources from the original kustomization.yaml
+  RESOURCES=$(grep -A100 "resources:" kustomization.yaml | grep -B100 -m1 "^[^-]" | head -n -1 | tail -n +2)
+  
+  # Create new kustomization.yaml with the image patch
+  cat > kustomization.yaml << EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+${RESOURCES}
+
+# Include configurations from the image patch file
+$(cat image-patch.yaml | grep -v "apiVersion\|kind\|Kustomization")
+EOF
+  
+  echo "Created patched kustomization.yaml:"
+  cat kustomization.yaml
+  
+  # Apply the patched kustomization
+  kubectl apply -k "${TEMP_KUSTOMIZE_DIR}" || EXIT_CODE=$?
+  cd - > /dev/null
+else
+  kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
+fi
+
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."

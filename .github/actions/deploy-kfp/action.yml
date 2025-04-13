@@ -13,56 +13,12 @@ runs:
     - name: Deploy KFP
       shell: bash
       run: |
-        # Check if image patch file exists and create a temporary directory for kustomize
-        if [ -f "/tmp/kfp-patches/image-patch.yaml" ]; then
-          echo "Found image patch file. Will apply it to match loaded image names."
-          TEMP_KUSTOMIZE_DIR=$(mktemp -d)
-          
-          # Determine manifest path based on proxy setting
-          if [ "${{ inputs.proxy }}" = "true" ]; then
-            MANIFEST_PATH=".github/resources/manifests/argo/overlays/proxy"
-          else
-            MANIFEST_PATH=".github/resources/manifests/argo/overlays/no-proxy"
-          fi
-          
-          # Copy the kustomization.yaml from the manifest path to temp dir
-          cp "${MANIFEST_PATH}/kustomization.yaml" "${TEMP_KUSTOMIZE_DIR}/"
-          
-          # Copy the image patch file to temp dir
-          cp "/tmp/kfp-patches/image-patch.yaml" "${TEMP_KUSTOMIZE_DIR}/image-patch.yaml"
-          
-          # Create a new kustomization.yaml that includes the original resources and the image patch
-          cd "${TEMP_KUSTOMIZE_DIR}"
-          
-          # Get the resources from the original kustomization.yaml
-          RESOURCES=$(grep -A100 "resources:" kustomization.yaml | grep -B100 -m1 "^[^-]" | head -n -1 | tail -n +2)
-          
-          # Create new kustomization.yaml with the image patch
-          cat > kustomization.yaml << EOF
-          apiVersion: kustomize.config.k8s.io/v1beta1
-          kind: Kustomization
-          
-          resources:
-          ${RESOURCES}
-          
-          # Include configurations from the image patch file
-          $(cat image-patch.yaml | grep -v "apiVersion\|kind\|Kustomization")
-          EOF
-          
-          echo "Created patched kustomization.yaml:"
-          cat kustomization.yaml
-          
-          # Apply the patched kustomization
-          kubectl apply -k "${TEMP_KUSTOMIZE_DIR}"
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/deploy-kfp.sh --proxy
         else
-          # Just use the original deploy script if no patch file found
-          if [ "${{ inputs.proxy }}" = "true" ]; then
-            ./.github/resources/scripts/deploy-kfp.sh --proxy
-          else
-            ./.github/resources/scripts/deploy-kfp.sh
-          fi
+          ./.github/resources/scripts/deploy-kfp.sh
         fi
-        
+
         # Check if all pods are running
         echo "Waiting for KFP pods to be ready..."
         kubectl wait --for=condition=ready pod --all -n kubeflow --timeout=300s || true
