@@ -10,7 +10,7 @@ This README will help you set up your coding environment in order to build and r
 ## Prerequisites
 Before you begin, ensure you have:
 - [Go installed](https://go.dev/doc/install)
-- Docker installed (for building container images)
+- Docker and Podman installed (for building container images)
 
 Note that you may need to restart your shell after installing these resources in order for the changes to take effect.
 
@@ -85,6 +85,8 @@ pods on the cluster using the `ml-pipeline` `Service`.
   [kind #1200](https://github.com/kubernetes-sigs/kind/issues/1200#issuecomment-1304855791) for an example manifest.
 * Optional: VSCode is installed to leverage a sample `launch.json` file.
   * This relies on dlv: (go install -v github.com/go-delve/delve/cmd/dlv@latest)
+* Note that while you can use Podman to build the KFP images, you will still require Docker installed to run the make 
+  dev-kind-cluster commands
 
 #### Provisioning the Cluster
 
