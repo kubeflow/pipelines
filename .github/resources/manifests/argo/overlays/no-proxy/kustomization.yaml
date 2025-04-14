@@ -15,5 +15,6 @@ images:
   newName: kind-registry:5000/scheduledworkflow
   newTag: latest
 
-patchesStrategicMerge:
-- apiserver-env.yaml
+patches:
+- path: apiserver-env.yaml
+- path: workflow-disable-logs-patch.yaml

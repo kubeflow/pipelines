@@ -11,20 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import dataclasses
 import functools
 import os
+import subprocess
 import sys
-from typing import Any, Dict, List, Tuple
-
-from kfp import client
-from kfp import dsl  # noqa
 import kfp_server_api
 import kubernetes.client
 import kubernetes.client.rest
 import kubernetes.config
 import pytest
 import yaml
+from typing import Any, Dict, List, Tuple
+from minio import S3Error
+from ml_metadata import metadata_store
+from ml_metadata.proto import metadata_store_pb2
+from ml_metadata.metadata_store.metadata_store import ListOptions
+from minio import Minio
+from kfp import client
+from kfp import dsl
 
 KFP_ENDPOINT = os.environ['KFP_ENDPOINT']
 KFP_NAMESPACE = os.getenv('KFP_NAMESPACE', 'kubeflow')
@@ -35,9 +41,24 @@ PROJECT_ROOT = os.path.abspath(
 CONFIG_PATH = os.path.join(PROJECT_ROOT, 'sdk', 'python', 'test_data',
                            'test_data_config.yaml')
 
+METADATA_HOST = '127.0.0.1'
+METADATA_PORT = 8080
+
 kfp_client = client.Client(host=KFP_ENDPOINT)
 kubernetes.config.load_kube_config()
 
+minio_client = Minio(
+    endpoint="127.0.0.1:9000",
+    access_key="minio",
+    secret_key="minio123",
+    secure=False,
+)
+
+BUCKET_NAME = "mlpipeline"
+
+print("Checking Minio connectivity...")
+for b in minio_client.list_buckets():
+    print(f"Found bucket: {b.name}")
 
 @dataclasses.dataclass
 class TestCase:
@@ -93,14 +114,60 @@ def run(test_case: TestCase) -> Tuple[str, client.client.RunPipelineResult]:
     pipeline_func = import_obj_from_file(full_path, test_case.function_name)
     run_result = kfp_client.create_run_from_pipeline_func(
         pipeline_func,
-        enable_caching=True,
+        enable_caching=False,
         arguments=test_case.arguments,
     )
     run_url = f'{KFP_ENDPOINT}/#/runs/details/{run_result.run_id}'
     print(
         f'- Created run {test_case.name}\n\tModule: {test_case.module_path}\n\tURL: {run_url}\n'
     )
+
     return run_url, run_result
+
+
+def get_run_artifacts(run_id: str):
+    mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
+        host=METADATA_HOST,
+        port=METADATA_PORT,
+    )
+    mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
+    contexts = mlmd_store.get_contexts(list_options=ListOptions(filter_query=f"name = '{run_id}'"))
+    if len(contexts) != 1:
+        print("ERROR: Unable to find pipelinerun context in MLMD", file=sys.stderr)
+        return []
+
+    context = contexts[0]
+    return [a for a in mlmd_store.get_artifacts_by_context(context.id)]
+
+
+def cleanup_run_resources(run_id: str):
+    print(f"Cleaning up resources for run {run_id}")
+
+    artifacts = get_run_artifacts(run_id)
+    print(f"Found {len(artifacts)} artifacts for run {run_id}")
+    # Clean up any Artifacts from object store
+    for artifact in artifacts:
+        try:
+            object_key = artifact.uri.removeprefix(f"minio://{BUCKET_NAME}")
+            print(f"Deleting artifact {object_key} for run {run_id}")
+            minio_client.remove_object(BUCKET_NAME, object_key)
+        except S3Error as err:
+            print(f"MinIO error: {err} for run {run_id}")
+
+    # Clean up Argo Workflow
+    try:
+        print(f'Deleting the Argo Workflow for run {run_id}')
+        kubernetes.client.CustomObjectsApi(
+        ).delete_collection_namespaced_custom_object(
+            'argoproj.io',
+            'v1alpha1',
+            KFP_NAMESPACE,
+            'workflows',
+            label_selector=f'pipeline/runid={run_id}')
+    except kubernetes.client.rest.ApiException as e:
+        print(
+            f'Failed to delete the Argo Workflow for run {run_id}: {e}',
+            file=sys.stderr)
 
 
 def get_kfp_package_path() -> str:
@@ -128,20 +195,7 @@ def test(test_case: TestCase) -> None:
     api_run = wait(run_result)
     assert api_run.state == test_case.expected_state, f'Pipeline {test_case.name} ended with incorrect status: {api_run.state}. More info: {run_url}'
 
-    try:
-        print(f'Deleting the Argo Workflow for run {api_run.run_id}')
-        kubernetes.client.CustomObjectsApi(
-        ).delete_collection_namespaced_custom_object(
-            'argoproj.io',
-            'v1alpha1',
-            KFP_NAMESPACE,
-            'workflows',
-            label_selector=f'pipeline/runid={api_run.run_id}')
-    except kubernetes.client.rest.ApiException as e:
-        print(
-            f'Failed to delete the Argo Workflow for run {api_run.run_id}: {e}',
-            file=sys.stderr)
-
+    cleanup_run_resources(api_run.run_id)
 
 if __name__ == '__main__':
     pytest.main()
