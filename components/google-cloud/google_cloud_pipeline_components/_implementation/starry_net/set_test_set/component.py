@@ -18,7 +18,7 @@ from typing import NamedTuple
 from kfp import dsl
 
 
-@dsl.component(packages_to_install=['tensorflow==2.11.0'])
+@dsl.component(packages_to_install=['tensorflow==2.16.1'])
 def set_test_set(
     dataprep_dir: dsl.InputPath(),
 ) -> NamedTuple('TestSetArtifact', uri=str, artifact=dsl.Artifact):
