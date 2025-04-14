@@ -83,6 +83,9 @@ var (
 	httpsProxy  = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
 	noProxy     = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
 	publishLogs = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+
+	// cache
+	cacheEnabledFlag = flag.String("cache_enabled", "", "Enable cache globally.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -177,7 +180,11 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	cacheClient, err := cacheutils.NewClient()
+	cacheEnabled, err := strconv.ParseBool(*cacheEnabledFlag)
+	if err != nil {
+		return err
+	}
+	cacheClient, err := cacheutils.NewClient(cacheEnabled)
 	if err != nil {
 		return err
 	}
@@ -193,6 +200,7 @@ func drive() (err error) {
 		IterationIndex:   *iterationIndex,
 		PipelineLogLevel: *logLevel,
 		PublishLogs:      *publishLogs,
+		CacheEnabled:     &cacheEnabled,
 	}
 	var execution *driver.Execution
 	var driverErr error

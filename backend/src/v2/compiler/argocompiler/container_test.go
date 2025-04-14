@@ -50,6 +50,7 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 			os.Setenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY", tt.configMapKey)
 			os.Setenv("EXECUTOR_CABUNDLE_MOUNTPATH", tt.mountPath)
 
+			cacheEnabled := true
 			c := &workflowCompiler{
 				templates: make(map[string]*wfapi.Template),
 				wf: &wfapi.Workflow{
@@ -57,6 +58,7 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 						Templates: []wfapi.Template{},
 					},
 				},
+				cacheEnabled: &cacheEnabled,
 			}
 
 			c.addContainerExecutorTemplate("test-ref", "comp-test-ref")

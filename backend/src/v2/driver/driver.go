@@ -90,6 +90,8 @@ type Options struct {
 	PipelineLogLevel string
 
 	PublishLogs string
+
+	CacheEnabled *bool
 }
 
 // Identifying information used for error messages
@@ -245,7 +247,7 @@ func validateRootDAG(opts Options) (err error) {
 	return nil
 }
 
-func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient *cacheutils.Client) (execution *Execution, err error) {
+func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient cacheutils.Client) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.Container(%s) failed: %w", opts.info(), err)
@@ -337,13 +339,15 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)
 	}
 
-	// Generate fingerprint and MLMD ID for cache
-	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient)
-	if err != nil {
-		return execution, err
+	if *opts.CacheEnabled {
+		// Generate fingerprint and MLMD ID for cache
+		fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient)
+		if err != nil {
+			return execution, err
+		}
+		ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+		ecfg.FingerPrint = fingerPrint
 	}
-	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
-	ecfg.FingerPrint = fingerPrint
 
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
@@ -358,11 +362,12 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 
 	// Use cache and skip launcher if all contions met:
-	// (1) Cache is enabled
-	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	// (1) Cache is enabled globally
+	// (2) Cache is enabled for the task
+	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists
 	cached := false
 	execution.Cached = &cached
-	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return execution, err
@@ -387,6 +392,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.RunID,
 		opts.PipelineLogLevel,
 		opts.PublishLogs,
+		*opts.CacheEnabled,
 	)
 	if err != nil {
 		return execution, err
@@ -451,6 +457,7 @@ func initPodSpecPatch(
 	runID string,
 	pipelineLogLevel string,
 	publishLogs string,
+	cacheEnabled bool,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -489,6 +496,7 @@ func initPodSpecPatch(
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 		"--publish_logs", publishLogs,
+		"--cache_enabled", strconv.FormatBool(cacheEnabled),
 	}
 	if pipelineLogLevel != "1" {
 		// Add log level to user code launcher if not default (set to 1)
@@ -1306,7 +1314,7 @@ func collectOutputArtifactMetadataFromCache(ctx context.Context, executorInput *
 
 }
 
-func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput) (string, error) {
+func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cacheClient cacheutils.Client) (string, error) {
 	outputParametersTypeMap := make(map[string]string)
 	for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
 		outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
@@ -1315,11 +1323,11 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput) (st
 	userCmdArgs = append(userCmdArgs, opts.Container.Command...)
 	userCmdArgs = append(userCmdArgs, opts.Container.Args...)
 
-	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, userCmdArgs, opts.Container.Image)
+	cacheKey, err := cacheClient.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, userCmdArgs, opts.Container.Image)
 	if err != nil {
 		return "", fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
-	fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
+	fingerPrint, err := cacheClient.GenerateFingerPrint(cacheKey)
 	return fingerPrint, err
 }
 
@@ -2364,7 +2372,7 @@ var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
 func kubernetesPlatformOps(
 	ctx context.Context,
 	mlmd *metadata.Client,
-	cacheClient *cacheutils.Client,
+	cacheClient cacheutils.Client,
 	execution *Execution,
 	ecfg *metadata.ExecutionConfig,
 	opts *Options,
@@ -2466,7 +2474,7 @@ func createPVC(
 	k8sClient kubernetes.Interface,
 	execution Execution,
 	opts *Options,
-	cacheClient *cacheutils.Client,
+	cacheClient cacheutils.Client,
 	mlmd *metadata.Client,
 	ecfg *metadata.ExecutionConfig,
 ) (pvcName string, createdExecution *metadata.Execution, status pb.Execution_State, err error) {
@@ -2571,11 +2579,12 @@ func createPVC(
 	}
 
 	// Use cache and skip createpvc if all conditions met:
-	// (1) Cache is enabled
-	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	// (1) Cache is enabled globally
+	// (2) Cache is enabled for the task
+	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists
 	cached := false
 	execution.Cached = &cached
-	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return "", createdExecution, pb.Execution_FAILED, err
@@ -2616,13 +2625,7 @@ func createPVC(
 	glog.Infof("Created PVC %s\n", createdPVC.ObjectMeta.Name)
 
 	// Create a cache entry
-	/*
-		id := createdExecution.GetID()
-		if id == 0 {
-			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
-		}
-	*/
-	if opts.Task.GetCachingOptions().GetEnableCache() {
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() {
 		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
 		if err != nil {
 			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for create pvc: %w", err)
@@ -2637,7 +2640,7 @@ func deletePVC(
 	k8sClient kubernetes.Interface,
 	execution Execution,
 	opts *Options,
-	cacheClient *cacheutils.Client,
+	cacheClient cacheutils.Client,
 	mlmd *metadata.Client,
 	ecfg *metadata.ExecutionConfig,
 ) (createdExecution *metadata.Execution, status pb.Execution_State, err error) {
@@ -2693,11 +2696,12 @@ func deletePVC(
 	}
 
 	// Use cache and skip createpvc if all conditions met:
-	// (1) Cache is enabled
-	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	// (1) Cache is enabled globally
+	// (2) Cache is enabled for the task
+	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists
 	cached := false
 	execution.Cached = &cached
-	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return createdExecution, pb.Execution_FAILED, err
@@ -2726,14 +2730,8 @@ func deletePVC(
 
 	glog.Infof("Deleted PVC %s\n", pvcName)
 
-	/*
-		// Create a cache entry
-		id := createdExecution.GetID()
-		if id == 0 {
-			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
-		}
-	*/
-	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+	// Create a cache entry
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
 		if err != nil {
 			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for delete pvc: %w", err)
@@ -2816,10 +2814,10 @@ func makeVolumeMountPatch(
 	return volumeMounts, volumes, nil
 }
 
-func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient *cacheutils.Client) (string, string, error) {
-	if execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
+func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient cacheutils.Client) (string, string, error) {
+	if *opts.CacheEnabled && execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
-		fingerPrint, err := getFingerPrint(*opts, execution.ExecutorInput)
+		fingerPrint, err := getFingerPrint(*opts, execution.ExecutorInput, cacheClient)
 		if err != nil {
 			return "", "", fmt.Errorf("failure while getting fingerPrint: %w", err)
 		}
@@ -2839,7 +2837,7 @@ func createCache(
 	opts *Options,
 	taskStartedTime int64,
 	fingerPrint string,
-	cacheClient *cacheutils.Client,
+	cacheClient cacheutils.Client,
 ) error {
 	id := execution.GetID()
 	if id == 0 {

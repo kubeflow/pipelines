@@ -149,9 +149,11 @@ func main() {
 		}
 	}
 
+	cacheEnabled := common.GetBoolConfigWithDefault("CacheEnabled", true)
+
 	resourceManager := resource.NewResourceManager(
 		clientManager,
-		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
+		resource.NewResourceManagerOptions(*collectMetricsFlag, cacheEnabled),
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
 	if err != nil {

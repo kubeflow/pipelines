@@ -24,7 +24,7 @@ def comp():
 @dsl.pipeline
 def my_pipeline():
     pvc1 = kubernetes.CreatePVC(
-        pvc_name='static-pvc-name',
+        pvc_name='static-pvc-name-cmdep',
         access_modes=['ReadWriteOnce'],
         size='5Gi',
         storage_class_name='standard',

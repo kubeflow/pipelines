@@ -271,6 +271,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.runID,
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
+				true,
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -379,6 +380,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"1",
 		"false",
+		true,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -419,6 +421,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"1",
 		"false",
+		true,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -461,6 +464,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"1",
 		"false",
+		true,
 	)
 	assert.Nil(t, err)
 
@@ -499,6 +503,7 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"1",
 		"true",
+		true,
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -708,6 +713,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.runID,
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
+				true,
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)

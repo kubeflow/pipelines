@@ -17,6 +17,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/golang/glog"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -30,11 +31,12 @@ import (
 var (
 	// The spec flag is added to make running a pipeline with default parameters easier.
 	// Backend compiler should only accept PipelineJob.
-	specPath     = flag.String("spec", "", "path to pipeline spec file")
-	jobPath      = flag.String("job", "", "path to pipeline job file")
-	launcher     = flag.String("launcher", "", "v2 launcher image")
-	driver       = flag.String("driver", "", "v2 driver image")
-	pipelineRoot = flag.String("pipeline_root", "", "pipeline root")
+	specPath         = flag.String("spec", "", "path to pipeline spec file")
+	jobPath          = flag.String("job", "", "path to pipeline job file")
+	launcher         = flag.String("launcher", "", "v2 launcher image")
+	driver           = flag.String("driver", "", "v2 driver image")
+	pipelineRoot     = flag.String("pipeline_root", "", "pipeline root")
+	cacheEnabledFlag = flag.String("cache_enabled", "", "enable caching")
 )
 
 func main() {
@@ -65,10 +67,15 @@ func main() {
 }
 
 func compile(job *pipelinespec.PipelineJob) error {
+	cacheEnabled, err := strconv.ParseBool(*cacheEnabledFlag)
+	if err != nil {
+		return err
+	}
 	wf, err := argocompiler.Compile(job, nil, &argocompiler.Options{
 		DriverImage:   *driver,
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,
+		CacheEnabled:  &cacheEnabled,
 	})
 	if err != nil {
 		return err

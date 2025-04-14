@@ -200,6 +200,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
+		"--cache_enabled", strconv.FormatBool(*c.cacheEnabled),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -329,6 +330,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 	c.templates[nameContainerExecutor] = container
 
 	args := []string{
+		"--cache_enabled", strconv.FormatBool(*c.cacheEnabled),
 		"--copy", component.KFPLauncherPath,
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
