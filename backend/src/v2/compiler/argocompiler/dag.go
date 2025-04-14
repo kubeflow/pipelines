@@ -18,6 +18,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -539,6 +540,11 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	}
 
 	args := []string{
+		//"--headless=true",
+		//"--listen=:2345",
+		//"--api-version=2",
+		//"--accept-multiclient",
+		//"exec", "/bin/driver", "--",
 		"--type", inputValue(paramDriverType),
 		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
 		"--run_id", runID(),
@@ -555,6 +561,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
+		"--cache_enabled", strconv.FormatBool(*c.cacheEnabled),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -583,8 +590,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
+			Image:   c.driverImage,
+			Command: c.driverCommand,
+			//Command:   []string{"dlv"},
 			Args:      args,
 			Resources: driverResources,
 			Env:       proxy.GetConfig().GetEnvVars(),

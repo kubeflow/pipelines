@@ -89,6 +89,8 @@ type Options struct {
 	PipelineLogLevel string
 
 	PublishLogs string
+
+	CacheEnabled *bool
 }
 
 // Identifying information used for error messages
@@ -244,7 +246,7 @@ func validateRootDAG(opts Options) (err error) {
 	return nil
 }
 
-func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient *cacheutils.Client) (execution *Execution, err error) {
+func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient cacheutils.Client) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.Container(%s) failed: %w", opts.info(), err)
@@ -336,13 +338,15 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)
 	}
 
-	// Generate fingerprint and MLMD ID for cache
-	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient)
-	if err != nil {
-		return execution, err
+	if *opts.CacheEnabled {
+		// Generate fingerprint and MLMD ID for cache
+		fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient)
+		if err != nil {
+			return execution, err
+		}
+		ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
+		ecfg.FingerPrint = fingerPrint
 	}
-	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
-	ecfg.FingerPrint = fingerPrint
 
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
@@ -386,6 +390,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.RunID,
 		opts.PipelineLogLevel,
 		opts.PublishLogs,
+		*opts.CacheEnabled,
 	)
 	if err != nil {
 		return execution, err
@@ -450,6 +455,7 @@ func initPodSpecPatch(
 	runID string,
 	pipelineLogLevel string,
 	publishLogs string,
+	cacheEnabled bool,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -488,6 +494,7 @@ func initPodSpecPatch(
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 		"--publish_logs", publishLogs,
+		"--cache_enabled", strconv.FormatBool(cacheEnabled),
 	}
 	if pipelineLogLevel != "1" {
 		// Add log level to user code launcher if not default (set to 1)
@@ -2041,7 +2048,7 @@ var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
 func kubernetesPlatformOps(
 	ctx context.Context,
 	mlmd *metadata.Client,
-	cacheClient *cacheutils.Client,
+	cacheClient cacheutils.Client,
 	execution *Execution,
 	ecfg *metadata.ExecutionConfig,
 	opts *Options,
@@ -2143,7 +2150,7 @@ func createPVC(
 	k8sClient kubernetes.Interface,
 	execution Execution,
 	opts *Options,
-	cacheClient *cacheutils.Client,
+	cacheClient cacheutils.Client,
 	mlmd *metadata.Client,
 	ecfg *metadata.ExecutionConfig,
 ) (pvcName string, createdExecution *metadata.Execution, status pb.Execution_State, err error) {
@@ -2314,7 +2321,7 @@ func deletePVC(
 	k8sClient kubernetes.Interface,
 	execution Execution,
 	opts *Options,
-	cacheClient *cacheutils.Client,
+	cacheClient cacheutils.Client,
 	mlmd *metadata.Client,
 	ecfg *metadata.ExecutionConfig,
 ) (createdExecution *metadata.Execution, status pb.Execution_State, err error) {
@@ -2493,8 +2500,8 @@ func makeVolumeMountPatch(
 	return volumeMounts, volumes, nil
 }
 
-func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient *cacheutils.Client) (string, string, error) {
-	if execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
+func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient cacheutils.Client) (string, string, error) {
+	if *opts.CacheEnabled && execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
 		fingerPrint, err := getFingerPrint(*opts, execution.ExecutorInput)
 		if err != nil {
@@ -2516,7 +2523,7 @@ func createCache(
 	opts *Options,
 	taskStartedTime int64,
 	fingerPrint string,
-	cacheClient *cacheutils.Client,
+	cacheClient cacheutils.Client,
 ) error {
 	id := execution.GetID()
 	if id == 0 {

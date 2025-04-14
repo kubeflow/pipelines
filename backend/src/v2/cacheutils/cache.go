@@ -106,25 +106,49 @@ func GenerateCacheKey(
 
 }
 
+type Client interface {
+	GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error)
+	CreateExecutionCache(ctx context.Context, task *api.Task) error
+}
+
+type disabledCacheClient struct {
+}
+
+func (d disabledCacheClient) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
+	panic("cache disabled")
+}
+
+func (d disabledCacheClient) CreateExecutionCache(ctx context.Context, task *api.Task) error {
+	panic("cache disabled")
+}
+
+var _ Client = &disabledCacheClient{}
+
 // Client is an KFP service client.
-type Client struct {
+type client struct {
 	svc api.TaskServiceClient
 }
 
-// NewClient creates a Client.
-func NewClient() (*Client, error) {
-	cacheEndPoint := cacheDefaultEndpoint()
-	glog.Infof("Connecting to cache endpoint %s", cacheEndPoint)
-	conn, err := grpc.Dial(cacheEndPoint,
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
-	}
+var _ Client = &client{}
 
-	return &Client{
-		svc: api.NewTaskServiceClient(conn),
-	}, nil
+// NewClient creates a Client.
+func NewClient(disableCacheGlobally bool) (Client, error) {
+	if false { //TODO: Helber - use disableCacheGlobally
+		cacheEndPoint := cacheDefaultEndpoint()
+		glog.Infof("Connecting to cache endpoint %s", cacheEndPoint)
+		conn, err := grpc.Dial(cacheEndPoint,
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
+			grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
+		}
+
+		return &client{
+			svc: api.NewTaskServiceClient(conn),
+		}, nil
+	} else {
+		return &disabledCacheClient{}, nil
+	}
 }
 
 func cacheDefaultEndpoint() string {
@@ -143,7 +167,7 @@ func cacheDefaultEndpoint() string {
 	return defaultKfpApiEndpoint
 }
 
-func (c *Client) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
+func (c *client) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
 	fingerPrintPredicate := &api.Predicate{
 		Op:    api.Predicate_EQUALS,
 		Key:   "fingerprint",
@@ -178,7 +202,7 @@ func (c *Client) GetExecutionCache(fingerPrint, pipelineName, namespace string) 
 	}
 }
 
-func (c *Client) CreateExecutionCache(ctx context.Context, task *api.Task) error {
+func (c *client) CreateExecutionCache(ctx context.Context, task *api.Task) error {
 	req := &api.CreateTaskRequest{
 		Task: task,
 	}
