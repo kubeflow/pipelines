@@ -544,6 +544,7 @@ function NewRunV2(props: NewRunV2Props) {
                     const isChecked = e.target.checked;
                     setUseLatestVersion(isChecked);
                   }}
+                  disabled={!isRecurringRun || !existingPipeline}
                   color='primary'
                 />
               }
