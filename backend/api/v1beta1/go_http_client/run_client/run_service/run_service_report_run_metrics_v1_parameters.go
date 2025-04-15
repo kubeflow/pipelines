@@ -58,7 +58,8 @@ func NewRunServiceReportRunMetricsV1ParamsWithHTTPClient(client *http.Client) *R
 	}
 }
 
-/*RunServiceReportRunMetricsV1Params contains all the parameters to send to the API endpoint
+/*
+RunServiceReportRunMetricsV1Params contains all the parameters to send to the API endpoint
 for the run service report run metrics v1 operation typically these are written to a http.Request
 */
 type RunServiceReportRunMetricsV1Params struct {

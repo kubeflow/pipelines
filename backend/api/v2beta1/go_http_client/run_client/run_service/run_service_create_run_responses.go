@@ -49,7 +49,8 @@ func NewRunServiceCreateRunOK() *RunServiceCreateRunOK {
 	return &RunServiceCreateRunOK{}
 }
 
-/*RunServiceCreateRunOK handles this case with default header values.
+/*
+RunServiceCreateRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewRunServiceCreateRunDefault(code int) *RunServiceCreateRunDefault {
 	}
 }
 
-/*RunServiceCreateRunDefault handles this case with default header values.
+/*
+RunServiceCreateRunDefault handles this case with default header values.
 
 An unexpected error response.
 */

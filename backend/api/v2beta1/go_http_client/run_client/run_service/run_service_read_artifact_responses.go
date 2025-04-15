@@ -49,7 +49,8 @@ func NewRunServiceReadArtifactOK() *RunServiceReadArtifactOK {
 	return &RunServiceReadArtifactOK{}
 }
 
-/*RunServiceReadArtifactOK handles this case with default header values.
+/*
+RunServiceReadArtifactOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewRunServiceReadArtifactDefault(code int) *RunServiceReadArtifactDefault {
 	}
 }
 
-/*RunServiceReadArtifactDefault handles this case with default header values.
+/*
+RunServiceReadArtifactDefault handles this case with default header values.
 
 An unexpected error response.
 */

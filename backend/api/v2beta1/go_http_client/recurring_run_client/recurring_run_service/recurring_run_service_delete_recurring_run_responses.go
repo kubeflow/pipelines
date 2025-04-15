@@ -49,7 +49,8 @@ func NewRecurringRunServiceDeleteRecurringRunOK() *RecurringRunServiceDeleteRecu
 	return &RecurringRunServiceDeleteRecurringRunOK{}
 }
 
-/*RecurringRunServiceDeleteRecurringRunOK handles this case with default header values.
+/*
+RecurringRunServiceDeleteRecurringRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewRecurringRunServiceDeleteRecurringRunDefault(code int) *RecurringRunServ
 	}
 }
 
-/*RecurringRunServiceDeleteRecurringRunDefault handles this case with default header values.
+/*
+RecurringRunServiceDeleteRecurringRunDefault handles this case with default header values.
 
 An unexpected error response.
 */

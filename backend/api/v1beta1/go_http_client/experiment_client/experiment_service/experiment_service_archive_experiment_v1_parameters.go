@@ -56,7 +56,8 @@ func NewExperimentServiceArchiveExperimentV1ParamsWithHTTPClient(client *http.Cl
 	}
 }
 
-/*ExperimentServiceArchiveExperimentV1Params contains all the parameters to send to the API endpoint
+/*
+ExperimentServiceArchiveExperimentV1Params contains all the parameters to send to the API endpoint
 for the experiment service archive experiment v1 operation typically these are written to a http.Request
 */
 type ExperimentServiceArchiveExperimentV1Params struct {

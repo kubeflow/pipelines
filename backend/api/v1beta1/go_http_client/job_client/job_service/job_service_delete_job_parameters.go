@@ -56,7 +56,8 @@ func NewJobServiceDeleteJobParamsWithHTTPClient(client *http.Client) *JobService
 	}
 }
 
-/*JobServiceDeleteJobParams contains all the parameters to send to the API endpoint
+/*
+JobServiceDeleteJobParams contains all the parameters to send to the API endpoint
 for the job service delete job operation typically these are written to a http.Request
 */
 type JobServiceDeleteJobParams struct {

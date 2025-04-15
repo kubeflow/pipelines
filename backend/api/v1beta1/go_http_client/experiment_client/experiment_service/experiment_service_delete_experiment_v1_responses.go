@@ -49,7 +49,8 @@ func NewExperimentServiceDeleteExperimentV1OK() *ExperimentServiceDeleteExperime
 	return &ExperimentServiceDeleteExperimentV1OK{}
 }
 
-/*ExperimentServiceDeleteExperimentV1OK handles this case with default header values.
+/*
+ExperimentServiceDeleteExperimentV1OK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewExperimentServiceDeleteExperimentV1Default(code int) *ExperimentServiceD
 	}
 }
 
-/*ExperimentServiceDeleteExperimentV1Default handles this case with default header values.
+/*
+ExperimentServiceDeleteExperimentV1Default handles this case with default header values.
 
 An unexpected error response.
 */

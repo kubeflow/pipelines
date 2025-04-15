@@ -56,7 +56,8 @@ func NewPipelineServiceDeletePipelineV1ParamsWithHTTPClient(client *http.Client)
 	}
 }
 
-/*PipelineServiceDeletePipelineV1Params contains all the parameters to send to the API endpoint
+/*
+PipelineServiceDeletePipelineV1Params contains all the parameters to send to the API endpoint
 for the pipeline service delete pipeline v1 operation typically these are written to a http.Request
 */
 type PipelineServiceDeletePipelineV1Params struct {

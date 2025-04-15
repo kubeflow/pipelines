@@ -49,7 +49,8 @@ func NewExperimentServiceUnarchiveExperimentOK() *ExperimentServiceUnarchiveExpe
 	return &ExperimentServiceUnarchiveExperimentOK{}
 }
 
-/*ExperimentServiceUnarchiveExperimentOK handles this case with default header values.
+/*
+ExperimentServiceUnarchiveExperimentOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewExperimentServiceUnarchiveExperimentDefault(code int) *ExperimentService
 	}
 }
 
-/*ExperimentServiceUnarchiveExperimentDefault handles this case with default header values.
+/*
+ExperimentServiceUnarchiveExperimentDefault handles this case with default header values.
 
 An unexpected error response.
 */

@@ -49,7 +49,8 @@ func NewPipelineServiceDeletePipelineV1OK() *PipelineServiceDeletePipelineV1OK {
 	return &PipelineServiceDeletePipelineV1OK{}
 }
 
-/*PipelineServiceDeletePipelineV1OK handles this case with default header values.
+/*
+PipelineServiceDeletePipelineV1OK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewPipelineServiceDeletePipelineV1Default(code int) *PipelineServiceDeleteP
 	}
 }
 
-/*PipelineServiceDeletePipelineV1Default handles this case with default header values.
+/*
+PipelineServiceDeletePipelineV1Default handles this case with default header values.
 
 An unexpected error response.
 */

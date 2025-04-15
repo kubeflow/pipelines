@@ -58,7 +58,8 @@ func NewJobServiceCreateJobParamsWithHTTPClient(client *http.Client) *JobService
 	}
 }
 
-/*JobServiceCreateJobParams contains all the parameters to send to the API endpoint
+/*
+JobServiceCreateJobParams contains all the parameters to send to the API endpoint
 for the job service create job operation typically these are written to a http.Request
 */
 type JobServiceCreateJobParams struct {

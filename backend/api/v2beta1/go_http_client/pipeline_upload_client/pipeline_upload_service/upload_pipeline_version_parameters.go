@@ -56,7 +56,8 @@ func NewUploadPipelineVersionParamsWithHTTPClient(client *http.Client) *UploadPi
 	}
 }
 
-/*UploadPipelineVersionParams contains all the parameters to send to the API endpoint
+/*
+UploadPipelineVersionParams contains all the parameters to send to the API endpoint
 for the upload pipeline version operation typically these are written to a http.Request
 */
 type UploadPipelineVersionParams struct {

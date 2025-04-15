@@ -56,7 +56,8 @@ func NewPipelineServiceGetTemplateParamsWithHTTPClient(client *http.Client) *Pip
 	}
 }
 
-/*PipelineServiceGetTemplateParams contains all the parameters to send to the API endpoint
+/*
+PipelineServiceGetTemplateParams contains all the parameters to send to the API endpoint
 for the pipeline service get template operation typically these are written to a http.Request
 */
 type PipelineServiceGetTemplateParams struct {

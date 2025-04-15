@@ -69,7 +69,8 @@ func NewExperimentServiceListExperimentsV1ParamsWithHTTPClient(client *http.Clie
 	}
 }
 
-/*ExperimentServiceListExperimentsV1Params contains all the parameters to send to the API endpoint
+/*
+ExperimentServiceListExperimentsV1Params contains all the parameters to send to the API endpoint
 for the experiment service list experiments v1 operation typically these are written to a http.Request
 */
 type ExperimentServiceListExperimentsV1Params struct {

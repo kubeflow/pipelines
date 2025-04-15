@@ -49,7 +49,8 @@ func NewRunServiceRetryRunOK() *RunServiceRetryRunOK {
 	return &RunServiceRetryRunOK{}
 }
 
-/*RunServiceRetryRunOK handles this case with default header values.
+/*
+RunServiceRetryRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewRunServiceRetryRunDefault(code int) *RunServiceRetryRunDefault {
 	}
 }
 
-/*RunServiceRetryRunDefault handles this case with default header values.
+/*
+RunServiceRetryRunDefault handles this case with default header values.
 
 An unexpected error response.
 */

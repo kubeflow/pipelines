@@ -57,7 +57,8 @@ func NewRunServiceListRunsParamsWithHTTPClient(client *http.Client) *RunServiceL
 	}
 }
 
-/*RunServiceListRunsParams contains all the parameters to send to the API endpoint
+/*
+RunServiceListRunsParams contains all the parameters to send to the API endpoint
 for the run service list runs operation typically these are written to a http.Request
 */
 type RunServiceListRunsParams struct {

@@ -56,7 +56,8 @@ func NewPipelineServiceGetPipelineByNameV1ParamsWithHTTPClient(client *http.Clie
 	}
 }
 
-/*PipelineServiceGetPipelineByNameV1Params contains all the parameters to send to the API endpoint
+/*
+PipelineServiceGetPipelineByNameV1Params contains all the parameters to send to the API endpoint
 for the pipeline service get pipeline by name v1 operation typically these are written to a http.Request
 */
 type PipelineServiceGetPipelineByNameV1Params struct {

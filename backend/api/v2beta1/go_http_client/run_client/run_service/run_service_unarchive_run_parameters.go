@@ -56,7 +56,8 @@ func NewRunServiceUnarchiveRunParamsWithHTTPClient(client *http.Client) *RunServ
 	}
 }
 
-/*RunServiceUnarchiveRunParams contains all the parameters to send to the API endpoint
+/*
+RunServiceUnarchiveRunParams contains all the parameters to send to the API endpoint
 for the run service unarchive run operation typically these are written to a http.Request
 */
 type RunServiceUnarchiveRunParams struct {

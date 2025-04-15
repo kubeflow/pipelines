@@ -49,7 +49,8 @@ func NewPipelineServiceCreatePipelineAndVersionOK() *PipelineServiceCreatePipeli
 	return &PipelineServiceCreatePipelineAndVersionOK{}
 }
 
-/*PipelineServiceCreatePipelineAndVersionOK handles this case with default header values.
+/*
+PipelineServiceCreatePipelineAndVersionOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewPipelineServiceCreatePipelineAndVersionDefault(code int) *PipelineServic
 	}
 }
 
-/*PipelineServiceCreatePipelineAndVersionDefault handles this case with default header values.
+/*
+PipelineServiceCreatePipelineAndVersionDefault handles this case with default header values.
 
 An unexpected error response.
 */

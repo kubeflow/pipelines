@@ -49,7 +49,8 @@ func NewPipelineServiceCreatePipelineOK() *PipelineServiceCreatePipelineOK {
 	return &PipelineServiceCreatePipelineOK{}
 }
 
-/*PipelineServiceCreatePipelineOK handles this case with default header values.
+/*
+PipelineServiceCreatePipelineOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewPipelineServiceCreatePipelineDefault(code int) *PipelineServiceCreatePip
 	}
 }
 
-/*PipelineServiceCreatePipelineDefault handles this case with default header values.
+/*
+PipelineServiceCreatePipelineDefault handles this case with default header values.
 
 An unexpected error response.
 */

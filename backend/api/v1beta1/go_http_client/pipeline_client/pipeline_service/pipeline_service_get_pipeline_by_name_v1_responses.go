@@ -49,7 +49,8 @@ func NewPipelineServiceGetPipelineByNameV1OK() *PipelineServiceGetPipelineByName
 	return &PipelineServiceGetPipelineByNameV1OK{}
 }
 
-/*PipelineServiceGetPipelineByNameV1OK handles this case with default header values.
+/*
+PipelineServiceGetPipelineByNameV1OK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewPipelineServiceGetPipelineByNameV1Default(code int) *PipelineServiceGetP
 	}
 }
 
-/*PipelineServiceGetPipelineByNameV1Default handles this case with default header values.
+/*
+PipelineServiceGetPipelineByNameV1Default handles this case with default header values.
 
 An unexpected error response.
 */
