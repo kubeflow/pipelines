@@ -518,7 +518,7 @@ function NewRunV2(props: NewRunV2Props) {
               {...props}
               pipeline={existingPipeline}
               pipelineVersionName={pipelineVersionName}
-              disabled={useLatestVersion}
+              usingLatestPipelineVersion={useLatestVersion}
               handlePipelineVersionChange={updatedPipelineVersion => {
                 if (updatedPipelineVersion.display_name) {
                   setPipelineVersionName(updatedPipelineVersion.display_name);
@@ -828,7 +828,7 @@ interface PipelineVersionSelectorSpecificProps {
   pipeline: V2beta1Pipeline | undefined;
   pipelineVersionName: string | undefined;
   handlePipelineVersionChange: (pipelineVersion: V2beta1PipelineVersion) => void;
-  disabled: boolean;
+  usingLatestPipelineVersion: boolean;
 }
 type PipelineVersionSelectorProps = PageProps & PipelineVersionSelectorSpecificProps;
 
@@ -841,7 +841,9 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
       <Input
         value={props.pipelineVersionName}
         required={true}
-        label={props.disabled ? 'Using latest pipeline version' : 'Pipeline Version *'}
+        label={
+          props.usingLatestPipelineVersion ? 'Using latest pipeline version' : 'Pipeline Version *'
+        }
         disabled={true}
         variant='outlined'
         InputProps={{
@@ -853,7 +855,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
                 id='choosePipelineVersionBtn'
                 onClick={() => setPipelineVersionSelectorOpen(true)}
                 style={{ padding: '3px 5px', margin: 0 }}
-                disabled={!props.pipeline || props.disabled}
+                disabled={!props.pipeline || props.usingLatestPipelineVersion}
               >
                 Choose
               </Button>
