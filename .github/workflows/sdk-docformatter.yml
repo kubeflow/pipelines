@@ -9,6 +9,8 @@ on:
       - 'sdk/python/**'
       - 'test/presubmit-docformatter-sdk.sh'
       - '.github/workflows/sdk-docformatter.yml'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   test-docformatter-kfp-sdk:
