@@ -100,7 +100,12 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManagerOptions struct {
-	CollectMetrics bool `json:"collect_metrics,omitempty"`
+	CollectMetrics bool  `json:"collect_metrics,omitempty"`
+	CacheEnabled   *bool `json:"cache_enabled,omitempty"`
+}
+
+func NewResourceManagerOptions(calendarMetrics bool, cacheEnabled bool) *ResourceManagerOptions {
+	return &ResourceManagerOptions{CollectMetrics: calendarMetrics, CacheEnabled: &cacheEnabled}
 }
 
 type ResourceManager struct {
@@ -492,8 +497,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	run.RunDetails.CreatedAtInSec = r.time.Now().Unix()
 	runWorkflowOptions := template.RunWorkflowOptions{
-		RunId: run.UUID,
-		RunAt: run.RunDetails.CreatedAtInSec,
+		RunId:        run.UUID,
+		RunAt:        run.RunDetails.CreatedAtInSec,
+		CacheEnabled: r.options.CacheEnabled,
 	}
 	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
 	if err != nil {

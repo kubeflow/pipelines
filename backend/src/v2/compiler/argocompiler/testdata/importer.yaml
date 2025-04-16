@@ -44,6 +44,8 @@ spec:
       - $(METADATA_GRPC_SERVICE_HOST)
       - --mlmd_server_port
       - $(METADATA_GRPC_SERVICE_PORT)
+      - --cache_enabled
+      - "true"
       command:
       - launcher-v2
       env:
@@ -131,6 +133,8 @@ spec:
       - ''
       - --no_proxy
       - ''
+      - --cache_enabled
+      - 'true'
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver

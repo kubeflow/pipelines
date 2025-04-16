@@ -55,6 +55,8 @@ spec:
           - ''
           - --no_proxy
           - ''
+          - --cache_enabled
+          - 'true'
         command:
           - driver
         image: gcr.io/ml-pipeline/kfp-driver
@@ -157,6 +159,8 @@ spec:
                 cpu: 100m
       initContainers:
         - command:
+            - --cache_enabled
+            - 'true'
             - launcher-v2
             - --copy
             - /kfp-launcher/launch
@@ -249,6 +253,8 @@ spec:
           - ''
           - --no_proxy
           - ''
+          - --cache_enabled
+          - 'true'
         command:
           - driver
         image: gcr.io/ml-pipeline/kfp-driver

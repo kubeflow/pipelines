@@ -23,7 +23,7 @@ def comp():
 
 @dsl.component
 def get_pvc_name() -> str:
-    return 'static-pvc-name'
+    return 'static-pvc-name-create-mount-delete-existing-pvc-from-task-output'
 
 
 @dsl.pipeline
