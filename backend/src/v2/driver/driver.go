@@ -361,11 +361,12 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 
 	// Use cache and skip launcher if all contions met:
-	// (1) Cache is enabled
-	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	// (1) Cache is enabled globally
+	// (2) Cache is enabled for the task
+	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists
 	cached := false
 	execution.Cached = &cached
-	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return execution, err
@@ -2257,11 +2258,12 @@ func createPVC(
 	}
 
 	// Use cache and skip createpvc if all conditions met:
-	// (1) Cache is enabled
-	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	// (1) Cache is enabled globally
+	// (2) Cache is enabled for the task
+	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists
 	cached := false
 	execution.Cached = &cached
-	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return "", createdExecution, pb.Execution_FAILED, err
@@ -2302,13 +2304,7 @@ func createPVC(
 	glog.Infof("Created PVC %s\n", createdPVC.ObjectMeta.Name)
 
 	// Create a cache entry
-	/*
-		id := createdExecution.GetID()
-		if id == 0 {
-			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
-		}
-	*/
-	if opts.Task.GetCachingOptions().GetEnableCache() {
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() {
 		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
 		if err != nil {
 			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for create pvc: %w", err)
@@ -2379,11 +2375,12 @@ func deletePVC(
 	}
 
 	// Use cache and skip createpvc if all conditions met:
-	// (1) Cache is enabled
-	// (2) CachedMLMDExecutionID is non-empty, which means a cache entry exists
+	// (1) Cache is enabled globally
+	// (2) Cache is enabled for the task
+	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists
 	cached := false
 	execution.Cached = &cached
-	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
 		if err != nil {
 			return createdExecution, pb.Execution_FAILED, err
@@ -2412,14 +2409,8 @@ func deletePVC(
 
 	glog.Infof("Deleted PVC %s\n", pvcName)
 
-	/*
-		// Create a cache entry
-		id := createdExecution.GetID()
-		if id == 0 {
-			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to get id from createdExecution")
-		}
-	*/
-	if opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
+	// Create a cache entry
+	if *opts.CacheEnabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
 		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
 		if err != nil {
 			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for delete pvc: %w", err)
