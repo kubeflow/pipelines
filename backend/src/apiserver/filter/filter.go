@@ -19,13 +19,17 @@ package filter
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/ptypes"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
+
+const filterMessage = "Filter %v is not implemented for Kubernetes pipeline store. Only substring is supported."
 
 // Internal representation of a predicate.
 type Predicate struct {
@@ -205,6 +209,86 @@ func replaceMapKeys(m map[string][]interface{}, keyMap map[string]string, prefix
 		delete(m, k)
 	}
 	return nil
+}
+
+func (f *Filter) FilterK8sPipelines(pipeline v2beta1.Pipeline) (bool, error) {
+	if len(f.eq) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "eq"))
+	}
+
+	if len(f.neq) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "neq"))
+	}
+
+	if len(f.gt) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gt"))
+	}
+
+	if len(f.gte) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gte"))
+	}
+
+	if len(f.lt) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lt"))
+	}
+
+	if len(f.lte) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lte"))
+	}
+
+	if len(f.in) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "in"))
+	}
+
+	for k := range f.substring {
+		for _, v := range f.substring[k] {
+			if strings.Contains(fmt.Sprint(pipeline.GetField(k)), fmt.Sprint(v)) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func (f *Filter) FilterK8sPipelineVersions(pipelineVersion v2beta1.PipelineVersion) (bool, error) {
+	if len(f.eq) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "eq"))
+	}
+
+	if len(f.neq) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "neq"))
+	}
+
+	if len(f.gt) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gt"))
+	}
+
+	if len(f.gte) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gte"))
+	}
+
+	if len(f.lt) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lt"))
+	}
+
+	if len(f.lte) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lte"))
+	}
+
+	if len(f.in) > 0 {
+		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "in"))
+	}
+
+	for k := range f.substring {
+		for _, v := range f.substring[k] {
+			if strings.Contains(fmt.Sprint(pipelineVersion.GetField(k)), fmt.Sprint(v)) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied

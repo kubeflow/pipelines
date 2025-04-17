@@ -516,7 +516,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, apiv2beta1.Run_AVAILABLE.String(), runs[0].StorageState.ToString())
 	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
 
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
 	job1 := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
