@@ -15,7 +15,11 @@ package component
 
 import (
 	"context"
+	"errors"
+	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"go.uber.org/mock/gomock"
 	"io"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"testing"
 
@@ -42,6 +46,30 @@ var addNumbersComponent = &pipelinespec.ComponentSpec{
 			"Output": {ParameterType: pipelinespec.ParameterType_NUMBER_INTEGER},
 		},
 	},
+}
+
+var exampleExecutorInputJSON = `{
+  "inputs": {
+    "artifacts": {
+      "list1": {
+        "artifacts": [
+          {
+            "name": "runtime artifact 1",
+            "uri": "oci://runtime-artifact-1"
+          }
+        ]
+      }
+    }
+  }
+}
+`
+
+var validOpts = LauncherV2Options{
+	Namespace:         "my-namespace",
+	PodName:           "my-pod",
+	PodUID:            "abcd",
+	MLMDServerAddress: "example.com",
+	MLMDServerPort:    "1234",
 }
 
 // Tests that launcher correctly executes the user component and successfully writes output parameters to file.
@@ -106,7 +134,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 	}
 }
 
-func Test_executeV2_publishLogss(t *testing.T) {
+func Test_executeV2_publishLogs(t *testing.T) {
 	tests := []struct {
 		name          string
 		executorInput *pipelinespec.ExecutorInput
@@ -234,6 +262,419 @@ func Test_get_log_Writer(t *testing.T) {
 			} else {
 				assert.IsType(t, io.MultiWriter(), writer)
 			}
+		})
+	}
+}
+
+// Tests happy and unhappy paths for constructing a new LauncherV2
+func Test_NewLauncherV2(t *testing.T) {
+	helloCmdArgs := []string{"sh", "-c", "echo \"hello world\""}
+	happyPathDeps := LauncherV2Dependencies{
+		k8sClientProvider: func() (kubernetes.Interface, error) {
+			return &fake.Clientset{}, nil
+		},
+		metadataClientProvider: func(address string, port string) (metadata.ClientInterface, error) {
+			return metadata.NewFakeClient(), nil
+		},
+		cacheClientProvider: func() (*cacheutils.Client, error) {
+			return &cacheutils.Client{}, nil
+		},
+	}
+	type args struct {
+		executionID       int64
+		executorInputJSON string
+		componentSpecJSON string
+		cmdArgs           []string
+		opts              LauncherV2Options
+		deps              LauncherV2Dependencies
+	}
+	tests := []struct {
+		name        string
+		args        *args
+		expectedErr error
+	}{
+		{
+			name: "happy path",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{}",
+				cmdArgs:           helloCmdArgs,
+				opts:              validOpts,
+				deps:              happyPathDeps,
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "missing executionID",
+			args: &args{
+				executionID: 0,
+			},
+			expectedErr: errors.New("must specify execution ID"),
+		},
+		{
+			name: "invalid executorInput",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{",
+			},
+			expectedErr: errors.New("unexpected EOF"),
+		},
+		{
+			name: "invalid componentSpec",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{",
+			},
+			expectedErr: errors.New("unexpected EOF\ncomponentSpec: {"),
+		},
+		{
+			name: "missing cmdArgs",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{}",
+				cmdArgs:           []string{},
+			},
+			expectedErr: errors.New("command and arguments are empty"),
+		},
+		{
+			name: "invalid opts",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{}",
+				cmdArgs:           helloCmdArgs,
+				opts:              LauncherV2Options{},
+			},
+			expectedErr: errors.New("invalid launcher options: must specify Namespace"),
+		},
+		{
+			name: "k8s client error",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{}",
+				cmdArgs:           helloCmdArgs,
+				opts:              validOpts,
+				deps: (func() LauncherV2Dependencies {
+					myDeps := happyPathDeps
+					myDeps.k8sClientProvider = func() (kubernetes.Interface, error) {
+						return nil, errors.New("k8s client error")
+					}
+					return myDeps
+				})(),
+			},
+			expectedErr: errors.New("k8s client error"),
+		},
+		{
+			name: "metadata client error",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{}",
+				cmdArgs:           helloCmdArgs,
+				opts:              validOpts,
+				deps: (func() LauncherV2Dependencies {
+					myDeps := happyPathDeps
+					myDeps.metadataClientProvider = func(address string, port string) (metadata.ClientInterface, error) {
+						return nil, errors.New("metadata client error")
+					}
+					return myDeps
+				})(),
+			},
+			expectedErr: errors.New("metadata client error"),
+		},
+		{
+			name: "cache client error",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{}",
+				cmdArgs:           helloCmdArgs,
+				opts:              validOpts,
+				deps: (func() LauncherV2Dependencies {
+					myDeps := happyPathDeps
+					myDeps.cacheClientProvider = func() (*cacheutils.Client, error) {
+						return nil, errors.New("cache client error")
+					}
+					return myDeps
+				})(),
+			},
+			expectedErr: errors.New("cache client error"),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			args := test.args
+			_, err := NewLauncherV2(context.TODO(), args.executionID, args.executorInputJSON, args.componentSpecJSON, args.cmdArgs, &args.opts, &args.deps)
+			if test.expectedErr != nil {
+				assert.ErrorContains(t, err, test.expectedErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func Test_DefaultLauncherV2Dependencies(t *testing.T) {
+	defaultDeps := DefaultLauncherV2Dependencies()
+	assert.IsType(t, defaultK8sClientProvider, defaultDeps.k8sClientProvider)
+	assert.IsType(t, defaultMetadataClientProvider, defaultDeps.metadataClientProvider)
+	assert.IsType(t, defaultCacheClientProvider, defaultDeps.cacheClientProvider)
+}
+
+func Test_LauncherV2_Execute(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	helloCmdArgs := []string{"sh", "-c", "echo \"hello world\""}
+	validOpts := &LauncherV2Options{
+		Namespace:         "my-namespace",
+		PodName:           "my-pod",
+		PodUID:            "abcd",
+		MLMDServerAddress: "example.com",
+		MLMDServerPort:    "1234",
+	}
+	testDeps := LauncherV2Dependencies{
+		k8sClientProvider: func() (kubernetes.Interface, error) {
+			return &fake.Clientset{}, nil
+		},
+		metadataClientProvider: func(address string, port string) (metadata.ClientInterface, error) {
+			fakeClient := metadata.NewFakeClient()
+			pipeline, _ := fakeClient.GetPipelineFromExecution(context.TODO(), int64(1))
+			execution, _ := fakeClient.CreateExecution(context.TODO(), pipeline, &metadata.ExecutionConfig{})
+			mockMetadataClient := metadata.NewMockClientInterface(ctrl)
+			mockMetadataClient.
+				EXPECT().
+				GetExecution(gomock.Any(), int64(1)).
+				Return(execution, nil)
+			mockMetadataClient.
+				EXPECT().
+				PrePublishExecution(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(execution, nil)
+			mockMetadataClient.
+				EXPECT().
+				PublishExecution(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(nil)
+			mockMetadataClient.
+				EXPECT().
+				GetDAG(gomock.Any(), gomock.Any()).
+				Return(&metadata.DAG{}, nil)
+			mockMetadataClient.
+				EXPECT().
+				GetPipelineFromExecution(gomock.Any(), gomock.Any()).
+				Return(pipeline, nil)
+			mockMetadataClient.
+				EXPECT().
+				UpdateDAGExecutionsState(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(nil)
+			return mockMetadataClient, nil
+		},
+		cacheClientProvider: func() (*cacheutils.Client, error) {
+			mockSvc := cacheutils.NewMockTaskServiceClient(ctrl)
+			mockSvc.
+				EXPECT().
+				CreateTaskV1(gomock.Any(), gomock.Any()).
+				Return(nil, nil)
+			return cacheutils.NewCustomClient(mockSvc), nil
+		},
+		executionFunc: func(
+			ctx context.Context,
+			executorInput *pipelinespec.ExecutorInput,
+			component *pipelinespec.ComponentSpec,
+			cmd string,
+			args []string,
+			bucket *blob.Bucket,
+			bucketConfig *objectstore.Config,
+			metadataClient metadata.ClientInterface,
+			namespace string,
+			k8sClient kubernetes.Interface,
+			publishLogs string) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
+			return &pipelinespec.ExecutorOutput{}, nil, nil
+		},
+		createFileFunc: func(s string) (*os.File, error) {
+			return nil, nil
+		},
+	}
+	type args struct {
+		executionID       int64
+		executorInputJSON string
+		componentSpecJSON string
+		cmdArgs           []string
+		opts              *LauncherV2Options
+		deps              LauncherV2Dependencies
+	}
+	tests := []struct {
+		name        string
+		args        *args
+		expectedErr error
+	}{
+		{
+			name: "happy path",
+			args: &args{
+				executionID: 1,
+				// executorInputJSON: "{}",
+				executorInputJSON: exampleExecutorInputJSON,
+				componentSpecJSON: "{}",
+				cmdArgs:           helloCmdArgs,
+				opts:              validOpts,
+				deps:              testDeps,
+			},
+			expectedErr: nil,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			args := test.args
+			launcherV2, err := NewLauncherV2(context.TODO(), args.executionID, args.executorInputJSON, args.componentSpecJSON, args.cmdArgs, args.opts, &args.deps)
+			assert.NoError(t, err)
+			err = launcherV2.Execute(context.TODO())
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func Test_stopWaitingArtifacts(t *testing.T) {
+	artifacts := map[string]*pipelinespec.ArtifactList{
+		"list1": &pipelinespec.ArtifactList{
+			Artifacts: []*pipelinespec.RuntimeArtifact{
+				{
+					Name: "runtime artifact 1",
+					Uri:  "oci://runtime-artifact-1",
+				},
+			},
+		},
+		"list2": &pipelinespec.ArtifactList{
+			Artifacts: make([]*pipelinespec.RuntimeArtifact, 0),
+		},
+		"list3": &pipelinespec.ArtifactList{
+			Artifacts: []*pipelinespec.RuntimeArtifact{
+				{
+					Name: "runtime artifact 2",
+					Uri:  "runtime-artifact-2",
+				},
+			},
+		},
+	}
+	tests := []struct {
+		name               string
+		createFileProvider CreateFileProvider
+		artifacts          map[string]*pipelinespec.ArtifactList
+		expectedErrs       []error
+	}{
+		{
+			name: "happy path",
+			createFileProvider: func(s string) (*os.File, error) {
+				return nil, nil
+			},
+			expectedErrs: make([]error, 0),
+		},
+		{
+			name: "create file error",
+			createFileProvider: func(s string) (*os.File, error) {
+				return nil, errors.New("create file error")
+			},
+			expectedErrs: []error{errors.New("create file error")},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			errs := stopWaitingArtifacts(artifacts, test.createFileProvider)
+			assert.Equal(t, test.expectedErrs, errs)
+		})
+	}
+}
+
+func Test_LauncherV2_Info(t *testing.T) {
+	helloCmdArgs := []string{"sh", "-c", "echo \"hello world\""}
+	validOpts := &LauncherV2Options{
+		Namespace:         "my-namespace",
+		PodName:           "my-pod",
+		PodUID:            "abcd",
+		MLMDServerAddress: "example.com",
+		MLMDServerPort:    "1234",
+	}
+	deps := LauncherV2Dependencies{
+		k8sClientProvider: func() (kubernetes.Interface, error) {
+			return &fake.Clientset{}, nil
+		},
+		metadataClientProvider: func(address string, port string) (metadata.ClientInterface, error) {
+			return metadata.NewFakeClient(), nil
+		},
+		cacheClientProvider: func() (*cacheutils.Client, error) {
+			return &cacheutils.Client{}, nil
+		},
+	}
+
+	launcher, err := NewLauncherV2(context.TODO(), int64(1), exampleExecutorInputJSON, "{}", helloCmdArgs, validOpts, &deps)
+	assert.NoError(t, err)
+	res := launcher.Info()
+	assert.Equal(t, "launcher info:\nexecutorInput="+exampleExecutorInputJSON, res)
+}
+
+func Test_LauncherV2Options_validate(t *testing.T) {
+	tests := []struct {
+		name        string
+		opts        LauncherV2Options
+		expectedErr error
+	}{
+		{
+			name:        "happy path",
+			opts:        validOpts,
+			expectedErr: nil,
+		},
+		{
+			name: "missing namespace",
+			opts: (func() LauncherV2Options {
+				myOpts := validOpts
+				myOpts.Namespace = ""
+				return myOpts
+			})(),
+			expectedErr: errors.New("invalid launcher options: must specify Namespace"),
+		},
+		{
+			name: "missing pod name",
+			opts: (func() LauncherV2Options {
+				myOpts := validOpts
+				myOpts.PodName = ""
+				return myOpts
+			})(),
+			expectedErr: errors.New("invalid launcher options: must specify PodName"),
+		},
+		{
+			name: "missing pod uid",
+			opts: (func() LauncherV2Options {
+				myOpts := validOpts
+				myOpts.PodUID = ""
+				return myOpts
+			})(),
+			expectedErr: errors.New("invalid launcher options: must specify PodUID"),
+		},
+		{
+			name: "missing mlmdserver address",
+			opts: (func() LauncherV2Options {
+				myOpts := validOpts
+				myOpts.MLMDServerAddress = ""
+				return myOpts
+			})(),
+			expectedErr: errors.New("invalid launcher options: must specify MLMDServerAddress"),
+		},
+		{
+			name: "missing mlmdserver port",
+			opts: (func() LauncherV2Options {
+				myOpts := validOpts
+				myOpts.MLMDServerPort = ""
+				return myOpts
+			})(),
+			expectedErr: errors.New("invalid launcher options: must specify MLMDServerPort"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := test.opts.validate()
+			assert.Equal(t, test.expectedErr, err)
 		})
 	}
 }
