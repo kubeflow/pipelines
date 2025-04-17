@@ -14,6 +14,10 @@
 
 FROM golang:1.23-alpine as builder
 
+# Needed musl-dev for github.com/mattn/go-sqlite3
+RUN apk update && apk upgrade && \
+    apk add --no-cache bash git openssh gcc musl-dev
+
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -24,10 +28,6 @@ COPY ./api/go.mod ./api/go.mod
 RUN GO111MODULE=on go mod download
 
 COPY . .
-
-# Needed musl-dev for github.com/mattn/go-sqlite3
-RUN apk update && apk upgrade && \
-    apk add --no-cache bash git openssh gcc musl-dev
 
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
 
