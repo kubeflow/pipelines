@@ -64,14 +64,14 @@ ENV LOG_LEVEL info
 
 WORKDIR /bin
 
+# Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
+RUN apt-get update && apt-get install -y ca-certificates wget
+
 COPY backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
 
 COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver
-
-# Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
-RUN apt-get update && apt-get install -y ca-certificates wget
 
 # Pin sample doc links to the commit that built the backend image
 RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \

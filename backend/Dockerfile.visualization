@@ -21,12 +21,12 @@
 FROM tensorflow/tensorflow:2.10.1
 
 RUN apt-get update \
-  && apt-get install -y wget curl tar openssl
+  && apt-get install -y wget curl tar openssl \
+  && curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz \
+  && mkdir -p /usr/local/gcloud \
+  && tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz \
+  && /usr/local/gcloud/google-cloud-sdk/install.sh \
 
-RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
-RUN mkdir -p /usr/local/gcloud
-RUN tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
-RUN /usr/local/gcloud/google-cloud-sdk/install.sh
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 WORKDIR /src
