@@ -841,9 +841,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
       <Input
         value={props.pipelineVersionName}
         required={!props.usingLatestPipelineVersion}
-        label={
-          props.usingLatestPipelineVersion ? 'Using latest pipeline version' : 'Pipeline Version'
-        }
+        label={'Pipeline Version'}
         disabled={true}
         variant='outlined'
         InputProps={{
