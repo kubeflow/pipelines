@@ -22,6 +22,7 @@ import {
   InputAdornment,
   FormControlLabel,
   Radio,
+  Checkbox,
 } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 import * as JsYaml from 'js-yaml';
@@ -204,6 +205,26 @@ function NewRunV2(props: NewRunV2Props) {
       ? !cloneOrigin.recurringRun.no_catchup
       : true;
   const [needCatchup, setNeedCatchup] = useState(initialCatchup);
+  const [useLatestVersion, setUseLatestVersion] = useState(() => {
+    const saved = localStorage.getItem('useLatestPipelineVersion');
+    return saved === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('useLatestPipelineVersion', useLatestVersion.toString());
+  }, [useLatestVersion]);
+
+  useEffect(() => {
+    if (useLatestVersion) {
+      // Clear pipeline version when using latest
+      setPipelineVersionName('');
+      setRunName(
+        existingPipeline
+          ? 'Run of ' + existingPipeline.display_name + ' ' + new Date().toISOString()
+          : '',
+      );
+    }
+  }, [useLatestVersion, existingPipeline]);
 
   const clonedRuntimeConfig = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.runtime_config
@@ -355,12 +376,11 @@ function NewRunV2(props: NewRunV2Props) {
       pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
         ? JsYaml.safeLoad(templateString || '')
         : undefined,
-      pipeline_version_reference:
-        pipelineVersionRefClone || pipelineVersionRefNew
-          ? cloneOrigin.isClone
-            ? pipelineVersionRefClone
-            : pipelineVersionRefNew
-          : undefined,
+      pipeline_version_reference: useLatestVersion
+        ? { pipeline_id: existingPipeline?.pipeline_id }
+        : cloneOrigin.isClone
+        ? pipelineVersionRefClone
+        : pipelineVersionRefNew,
       runtime_config: {
         pipeline_root: pipelineRoot,
         parameters: runtimeParameters,
@@ -505,6 +525,7 @@ function NewRunV2(props: NewRunV2Props) {
               {...props}
               pipeline={existingPipeline}
               pipelineVersionName={pipelineVersionName}
+              disabled={useLatestVersion}
               handlePipelineVersionChange={updatedPipelineVersion => {
                 if (updatedPipelineVersion.display_name) {
                   setPipelineVersionName(updatedPipelineVersion.display_name);
@@ -521,6 +542,19 @@ function NewRunV2(props: NewRunV2Props) {
                   handlePipelineVersionIdChange(updatedPipelineVersion.pipeline_version_id);
                 }
               }}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={useLatestVersion}
+                  onChange={e => {
+                    const isChecked = e.target.checked;
+                    setUseLatestVersion(isChecked);
+                  }}
+                  color='primary'
+                />
+              }
+              label='Always use the latest pipeline version'
             />
           </div>
         )}
@@ -800,6 +834,7 @@ interface PipelineVersionSelectorSpecificProps {
   pipeline: V2beta1Pipeline | undefined;
   pipelineVersionName: string | undefined;
   handlePipelineVersionChange: (pipelineVersion: V2beta1PipelineVersion) => void;
+  disabled: boolean;
 }
 type PipelineVersionSelectorProps = PageProps & PipelineVersionSelectorSpecificProps;
 
@@ -824,7 +859,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
                 id='choosePipelineVersionBtn'
                 onClick={() => setPipelineVersionSelectorOpen(true)}
                 style={{ padding: '3px 5px', margin: 0 }}
-                disabled={!props.pipeline}
+                disabled={!props.pipeline || props.disabled}
               >
                 Choose
               </Button>
