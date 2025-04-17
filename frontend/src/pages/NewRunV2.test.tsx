@@ -1275,6 +1275,65 @@ describe('NewRunV2', () => {
   });
 
   describe('"Always Use Latest" checkbox functionality', () => {
+    it('should be disabled when in one-off run mode', async () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Verify checkbox is disabled in one-off mode
+      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
+      expect(checkbox.disabled).toBe(true);
+    });
+
+    it('should be checkable when in recurring run mode. The default state is unchecked.', async () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Switch to recurring mode
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      // verify the checkbox is enabled in recurring run mode
+      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
+      expect(checkbox.disabled).toBe(false);
+
+      // verify the checkbox is unchecked by default
+      expect(checkbox.checked).toBe(false);
+
+      // verify the checkbox is checkable
+      fireEvent.click(checkbox);
+      expect(checkbox.checked).toBe(true);
+    });
+
     it('should disable version selector and show status text when checked', async () => {
       // Mock API calls
       const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
