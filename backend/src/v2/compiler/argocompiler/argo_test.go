@@ -42,6 +42,11 @@ func Test_argo_compiler(t *testing.T) {
 		envVars          map[string]string
 	}{
 		{
+			jobPath:          "../testdata/hello_world_with_retry.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/hello_world_with_retry.yaml",
+		},
+		{
 			jobPath:          "../testdata/hello_world.json",
 			platformSpecPath: "",
 			argoYAMLPath:     "testdata/hello_world.yaml",
