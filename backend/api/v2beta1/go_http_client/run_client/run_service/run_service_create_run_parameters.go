@@ -58,7 +58,8 @@ func NewRunServiceCreateRunParamsWithHTTPClient(client *http.Client) *RunService
 	}
 }
 
-/*RunServiceCreateRunParams contains all the parameters to send to the API endpoint
+/*
+RunServiceCreateRunParams contains all the parameters to send to the API endpoint
 for the run service create run operation typically these are written to a http.Request
 */
 type RunServiceCreateRunParams struct {

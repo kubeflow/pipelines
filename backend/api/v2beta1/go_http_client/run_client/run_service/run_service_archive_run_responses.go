@@ -49,7 +49,8 @@ func NewRunServiceArchiveRunOK() *RunServiceArchiveRunOK {
 	return &RunServiceArchiveRunOK{}
 }
 
-/*RunServiceArchiveRunOK handles this case with default header values.
+/*
+RunServiceArchiveRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewRunServiceArchiveRunDefault(code int) *RunServiceArchiveRunDefault {
 	}
 }
 
-/*RunServiceArchiveRunDefault handles this case with default header values.
+/*
+RunServiceArchiveRunDefault handles this case with default header values.
 
 An unexpected error response.
 */

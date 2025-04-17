@@ -56,7 +56,8 @@ func NewExperimentServiceUnarchiveExperimentV1ParamsWithHTTPClient(client *http.
 	}
 }
 
-/*ExperimentServiceUnarchiveExperimentV1Params contains all the parameters to send to the API endpoint
+/*
+ExperimentServiceUnarchiveExperimentV1Params contains all the parameters to send to the API endpoint
 for the experiment service unarchive experiment v1 operation typically these are written to a http.Request
 */
 type ExperimentServiceUnarchiveExperimentV1Params struct {

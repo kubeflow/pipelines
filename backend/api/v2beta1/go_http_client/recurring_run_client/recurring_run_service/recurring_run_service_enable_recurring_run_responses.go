@@ -49,7 +49,8 @@ func NewRecurringRunServiceEnableRecurringRunOK() *RecurringRunServiceEnableRecu
 	return &RecurringRunServiceEnableRecurringRunOK{}
 }
 
-/*RecurringRunServiceEnableRecurringRunOK handles this case with default header values.
+/*
+RecurringRunServiceEnableRecurringRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewRecurringRunServiceEnableRecurringRunDefault(code int) *RecurringRunServ
 	}
 }
 
-/*RecurringRunServiceEnableRecurringRunDefault handles this case with default header values.
+/*
+RecurringRunServiceEnableRecurringRunDefault handles this case with default header values.
 
 An unexpected error response.
 */

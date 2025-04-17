@@ -49,7 +49,8 @@ func NewPipelineServiceGetTemplateOK() *PipelineServiceGetTemplateOK {
 	return &PipelineServiceGetTemplateOK{}
 }
 
-/*PipelineServiceGetTemplateOK handles this case with default header values.
+/*
+PipelineServiceGetTemplateOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewPipelineServiceGetTemplateDefault(code int) *PipelineServiceGetTemplateD
 	}
 }
 
-/*PipelineServiceGetTemplateDefault handles this case with default header values.
+/*
+PipelineServiceGetTemplateDefault handles this case with default header values.
 
 An unexpected error response.
 */

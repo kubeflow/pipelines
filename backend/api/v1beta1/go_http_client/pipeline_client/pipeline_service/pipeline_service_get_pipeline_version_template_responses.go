@@ -49,7 +49,8 @@ func NewPipelineServiceGetPipelineVersionTemplateOK() *PipelineServiceGetPipelin
 	return &PipelineServiceGetPipelineVersionTemplateOK{}
 }
 
-/*PipelineServiceGetPipelineVersionTemplateOK handles this case with default header values.
+/*
+PipelineServiceGetPipelineVersionTemplateOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewPipelineServiceGetPipelineVersionTemplateDefault(code int) *PipelineServ
 	}
 }
 
-/*PipelineServiceGetPipelineVersionTemplateDefault handles this case with default header values.
+/*
+PipelineServiceGetPipelineVersionTemplateDefault handles this case with default header values.
 
 An unexpected error response.
 */

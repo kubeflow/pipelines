@@ -16,9 +16,10 @@ import (
 
 // V2beta1RunStorageState Describes whether an entity is available or archived.
 //
-//  - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used
-//  - AVAILABLE: Entity is available.
-//  - ARCHIVED: Entity is archived.
+//   - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used
+//   - AVAILABLE: Entity is available.
+//   - ARCHIVED: Entity is archived.
+//
 // swagger:model v2beta1RunStorageState
 type V2beta1RunStorageState string
 

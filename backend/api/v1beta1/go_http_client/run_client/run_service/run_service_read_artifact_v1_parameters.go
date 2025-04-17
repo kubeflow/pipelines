@@ -56,7 +56,8 @@ func NewRunServiceReadArtifactV1ParamsWithHTTPClient(client *http.Client) *RunSe
 	}
 }
 
-/*RunServiceReadArtifactV1Params contains all the parameters to send to the API endpoint
+/*
+RunServiceReadArtifactV1Params contains all the parameters to send to the API endpoint
 for the run service read artifact v1 operation typically these are written to a http.Request
 */
 type RunServiceReadArtifactV1Params struct {

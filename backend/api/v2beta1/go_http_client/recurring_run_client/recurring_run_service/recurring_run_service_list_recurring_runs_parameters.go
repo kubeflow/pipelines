@@ -57,7 +57,8 @@ func NewRecurringRunServiceListRecurringRunsParamsWithHTTPClient(client *http.Cl
 	}
 }
 
-/*RecurringRunServiceListRecurringRunsParams contains all the parameters to send to the API endpoint
+/*
+RecurringRunServiceListRecurringRunsParams contains all the parameters to send to the API endpoint
 for the recurring run service list recurring runs operation typically these are written to a http.Request
 */
 type RecurringRunServiceListRecurringRunsParams struct {

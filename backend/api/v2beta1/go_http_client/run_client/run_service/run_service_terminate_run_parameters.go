@@ -56,7 +56,8 @@ func NewRunServiceTerminateRunParamsWithHTTPClient(client *http.Client) *RunServ
 	}
 }
 
-/*RunServiceTerminateRunParams contains all the parameters to send to the API endpoint
+/*
+RunServiceTerminateRunParams contains all the parameters to send to the API endpoint
 for the run service terminate run operation typically these are written to a http.Request
 */
 type RunServiceTerminateRunParams struct {

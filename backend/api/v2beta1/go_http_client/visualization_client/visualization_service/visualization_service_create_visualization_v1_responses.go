@@ -49,7 +49,8 @@ func NewVisualizationServiceCreateVisualizationV1OK() *VisualizationServiceCreat
 	return &VisualizationServiceCreateVisualizationV1OK{}
 }
 
-/*VisualizationServiceCreateVisualizationV1OK handles this case with default header values.
+/*
+VisualizationServiceCreateVisualizationV1OK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewVisualizationServiceCreateVisualizationV1Default(code int) *Visualizatio
 	}
 }
 
-/*VisualizationServiceCreateVisualizationV1Default handles this case with default header values.
+/*
+VisualizationServiceCreateVisualizationV1Default handles this case with default header values.
 
 An unexpected error response.
 */

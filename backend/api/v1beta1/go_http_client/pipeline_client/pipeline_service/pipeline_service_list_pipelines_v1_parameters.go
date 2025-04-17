@@ -69,7 +69,8 @@ func NewPipelineServiceListPipelinesV1ParamsWithHTTPClient(client *http.Client) 
 	}
 }
 
-/*PipelineServiceListPipelinesV1Params contains all the parameters to send to the API endpoint
+/*
+PipelineServiceListPipelinesV1Params contains all the parameters to send to the API endpoint
 for the pipeline service list pipelines v1 operation typically these are written to a http.Request
 */
 type PipelineServiceListPipelinesV1Params struct {

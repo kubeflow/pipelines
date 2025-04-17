@@ -56,7 +56,8 @@ func NewRunServiceDeleteRunV1ParamsWithHTTPClient(client *http.Client) *RunServi
 	}
 }
 
-/*RunServiceDeleteRunV1Params contains all the parameters to send to the API endpoint
+/*
+RunServiceDeleteRunV1Params contains all the parameters to send to the API endpoint
 for the run service delete run v1 operation typically these are written to a http.Request
 */
 type RunServiceDeleteRunV1Params struct {

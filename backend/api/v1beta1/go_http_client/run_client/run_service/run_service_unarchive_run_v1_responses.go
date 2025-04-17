@@ -49,7 +49,8 @@ func NewRunServiceUnarchiveRunV1OK() *RunServiceUnarchiveRunV1OK {
 	return &RunServiceUnarchiveRunV1OK{}
 }
 
-/*RunServiceUnarchiveRunV1OK handles this case with default header values.
+/*
+RunServiceUnarchiveRunV1OK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewRunServiceUnarchiveRunV1Default(code int) *RunServiceUnarchiveRunV1Defau
 	}
 }
 
-/*RunServiceUnarchiveRunV1Default handles this case with default header values.
+/*
+RunServiceUnarchiveRunV1Default handles this case with default header values.
 
 An unexpected error response.
 */

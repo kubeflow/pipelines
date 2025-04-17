@@ -56,7 +56,8 @@ func NewRecurringRunServiceDeleteRecurringRunParamsWithHTTPClient(client *http.C
 	}
 }
 
-/*RecurringRunServiceDeleteRecurringRunParams contains all the parameters to send to the API endpoint
+/*
+RecurringRunServiceDeleteRecurringRunParams contains all the parameters to send to the API endpoint
 for the recurring run service delete recurring run operation typically these are written to a http.Request
 */
 type RecurringRunServiceDeleteRecurringRunParams struct {

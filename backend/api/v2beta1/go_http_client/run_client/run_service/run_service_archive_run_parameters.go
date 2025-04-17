@@ -56,7 +56,8 @@ func NewRunServiceArchiveRunParamsWithHTTPClient(client *http.Client) *RunServic
 	}
 }
 
-/*RunServiceArchiveRunParams contains all the parameters to send to the API endpoint
+/*
+RunServiceArchiveRunParams contains all the parameters to send to the API endpoint
 for the run service archive run operation typically these are written to a http.Request
 */
 type RunServiceArchiveRunParams struct {

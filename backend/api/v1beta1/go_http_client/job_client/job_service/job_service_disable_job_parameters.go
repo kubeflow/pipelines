@@ -56,7 +56,8 @@ func NewJobServiceDisableJobParamsWithHTTPClient(client *http.Client) *JobServic
 	}
 }
 
-/*JobServiceDisableJobParams contains all the parameters to send to the API endpoint
+/*
+JobServiceDisableJobParams contains all the parameters to send to the API endpoint
 for the job service disable job operation typically these are written to a http.Request
 */
 type JobServiceDisableJobParams struct {

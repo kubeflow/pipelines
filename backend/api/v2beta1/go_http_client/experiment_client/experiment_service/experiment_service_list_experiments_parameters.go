@@ -57,7 +57,8 @@ func NewExperimentServiceListExperimentsParamsWithHTTPClient(client *http.Client
 	}
 }
 
-/*ExperimentServiceListExperimentsParams contains all the parameters to send to the API endpoint
+/*
+ExperimentServiceListExperimentsParams contains all the parameters to send to the API endpoint
 for the experiment service list experiments operation typically these are written to a http.Request
 */
 type ExperimentServiceListExperimentsParams struct {

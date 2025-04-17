@@ -56,7 +56,8 @@ func NewExperimentServiceDeleteExperimentParamsWithHTTPClient(client *http.Clien
 	}
 }
 
-/*ExperimentServiceDeleteExperimentParams contains all the parameters to send to the API endpoint
+/*
+ExperimentServiceDeleteExperimentParams contains all the parameters to send to the API endpoint
 for the experiment service delete experiment operation typically these are written to a http.Request
 */
 type ExperimentServiceDeleteExperimentParams struct {

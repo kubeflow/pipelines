@@ -56,7 +56,8 @@ func NewPipelineServiceGetPipelineVersionParamsWithHTTPClient(client *http.Clien
 	}
 }
 
-/*PipelineServiceGetPipelineVersionParams contains all the parameters to send to the API endpoint
+/*
+PipelineServiceGetPipelineVersionParams contains all the parameters to send to the API endpoint
 for the pipeline service get pipeline version operation typically these are written to a http.Request
 */
 type PipelineServiceGetPipelineVersionParams struct {

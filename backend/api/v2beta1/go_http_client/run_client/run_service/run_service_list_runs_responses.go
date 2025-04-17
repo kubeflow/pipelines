@@ -49,7 +49,8 @@ func NewRunServiceListRunsOK() *RunServiceListRunsOK {
 	return &RunServiceListRunsOK{}
 }
 
-/*RunServiceListRunsOK handles this case with default header values.
+/*
+RunServiceListRunsOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewRunServiceListRunsDefault(code int) *RunServiceListRunsDefault {
 	}
 }
 
-/*RunServiceListRunsDefault handles this case with default header values.
+/*
+RunServiceListRunsDefault handles this case with default header values.
 
 An unexpected error response.
 */

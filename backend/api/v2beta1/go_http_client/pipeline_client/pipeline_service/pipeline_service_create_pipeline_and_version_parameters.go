@@ -58,7 +58,8 @@ func NewPipelineServiceCreatePipelineAndVersionParamsWithHTTPClient(client *http
 	}
 }
 
-/*PipelineServiceCreatePipelineAndVersionParams contains all the parameters to send to the API endpoint
+/*
+PipelineServiceCreatePipelineAndVersionParams contains all the parameters to send to the API endpoint
 for the pipeline service create pipeline and version operation typically these are written to a http.Request
 */
 type PipelineServiceCreatePipelineAndVersionParams struct {

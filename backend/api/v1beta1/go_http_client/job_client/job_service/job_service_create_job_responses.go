@@ -49,7 +49,8 @@ func NewJobServiceCreateJobOK() *JobServiceCreateJobOK {
 	return &JobServiceCreateJobOK{}
 }
 
-/*JobServiceCreateJobOK handles this case with default header values.
+/*
+JobServiceCreateJobOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewJobServiceCreateJobDefault(code int) *JobServiceCreateJobDefault {
 	}
 }
 
-/*JobServiceCreateJobDefault handles this case with default header values.
+/*
+JobServiceCreateJobDefault handles this case with default header values.
 
 An unexpected error response.
 */

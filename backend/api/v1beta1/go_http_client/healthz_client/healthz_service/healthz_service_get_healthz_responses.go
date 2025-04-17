@@ -49,7 +49,8 @@ func NewHealthzServiceGetHealthzOK() *HealthzServiceGetHealthzOK {
 	return &HealthzServiceGetHealthzOK{}
 }
 
-/*HealthzServiceGetHealthzOK handles this case with default header values.
+/*
+HealthzServiceGetHealthzOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewHealthzServiceGetHealthzDefault(code int) *HealthzServiceGetHealthzDefau
 	}
 }
 
-/*HealthzServiceGetHealthzDefault handles this case with default header values.
+/*
+HealthzServiceGetHealthzDefault handles this case with default header values.
 
 An unexpected error response.
 */

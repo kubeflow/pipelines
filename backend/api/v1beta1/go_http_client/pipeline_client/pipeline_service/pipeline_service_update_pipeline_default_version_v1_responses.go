@@ -49,7 +49,8 @@ func NewPipelineServiceUpdatePipelineDefaultVersionV1OK() *PipelineServiceUpdate
 	return &PipelineServiceUpdatePipelineDefaultVersionV1OK{}
 }
 
-/*PipelineServiceUpdatePipelineDefaultVersionV1OK handles this case with default header values.
+/*
+PipelineServiceUpdatePipelineDefaultVersionV1OK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewPipelineServiceUpdatePipelineDefaultVersionV1Default(code int) *Pipeline
 	}
 }
 
-/*PipelineServiceUpdatePipelineDefaultVersionV1Default handles this case with default header values.
+/*
+PipelineServiceUpdatePipelineDefaultVersionV1Default handles this case with default header values.
 
 An unexpected error response.
 */

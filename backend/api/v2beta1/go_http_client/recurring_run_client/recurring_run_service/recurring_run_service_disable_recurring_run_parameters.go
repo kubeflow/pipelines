@@ -56,7 +56,8 @@ func NewRecurringRunServiceDisableRecurringRunParamsWithHTTPClient(client *http.
 	}
 }
 
-/*RecurringRunServiceDisableRecurringRunParams contains all the parameters to send to the API endpoint
+/*
+RecurringRunServiceDisableRecurringRunParams contains all the parameters to send to the API endpoint
 for the recurring run service disable recurring run operation typically these are written to a http.Request
 */
 type RecurringRunServiceDisableRecurringRunParams struct {

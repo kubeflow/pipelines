@@ -56,7 +56,8 @@ func NewRunServiceTerminateRunV1ParamsWithHTTPClient(client *http.Client) *RunSe
 	}
 }
 
-/*RunServiceTerminateRunV1Params contains all the parameters to send to the API endpoint
+/*
+RunServiceTerminateRunV1Params contains all the parameters to send to the API endpoint
 for the run service terminate run v1 operation typically these are written to a http.Request
 */
 type RunServiceTerminateRunV1Params struct {

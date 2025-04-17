@@ -49,7 +49,8 @@ func NewRunServiceReportRunMetricsV1OK() *RunServiceReportRunMetricsV1OK {
 	return &RunServiceReportRunMetricsV1OK{}
 }
 
-/*RunServiceReportRunMetricsV1OK handles this case with default header values.
+/*
+RunServiceReportRunMetricsV1OK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewRunServiceReportRunMetricsV1Default(code int) *RunServiceReportRunMetric
 	}
 }
 
-/*RunServiceReportRunMetricsV1Default handles this case with default header values.
+/*
+RunServiceReportRunMetricsV1Default handles this case with default header values.
 
 An unexpected error response.
 */

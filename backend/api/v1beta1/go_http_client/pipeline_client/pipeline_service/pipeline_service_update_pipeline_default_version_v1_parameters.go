@@ -56,7 +56,8 @@ func NewPipelineServiceUpdatePipelineDefaultVersionV1ParamsWithHTTPClient(client
 	}
 }
 
-/*PipelineServiceUpdatePipelineDefaultVersionV1Params contains all the parameters to send to the API endpoint
+/*
+PipelineServiceUpdatePipelineDefaultVersionV1Params contains all the parameters to send to the API endpoint
 for the pipeline service update pipeline default version v1 operation typically these are written to a http.Request
 */
 type PipelineServiceUpdatePipelineDefaultVersionV1Params struct {

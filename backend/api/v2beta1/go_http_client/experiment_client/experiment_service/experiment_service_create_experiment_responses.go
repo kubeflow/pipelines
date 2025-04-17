@@ -49,7 +49,8 @@ func NewExperimentServiceCreateExperimentOK() *ExperimentServiceCreateExperiment
 	return &ExperimentServiceCreateExperimentOK{}
 }
 
-/*ExperimentServiceCreateExperimentOK handles this case with default header values.
+/*
+ExperimentServiceCreateExperimentOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewExperimentServiceCreateExperimentDefault(code int) *ExperimentServiceCre
 	}
 }
 
-/*ExperimentServiceCreateExperimentDefault handles this case with default header values.
+/*
+ExperimentServiceCreateExperimentDefault handles this case with default header values.
 
 An unexpected error response.
 */

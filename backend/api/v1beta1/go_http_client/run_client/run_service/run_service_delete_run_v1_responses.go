@@ -49,7 +49,8 @@ func NewRunServiceDeleteRunV1OK() *RunServiceDeleteRunV1OK {
 	return &RunServiceDeleteRunV1OK{}
 }
 
-/*RunServiceDeleteRunV1OK handles this case with default header values.
+/*
+RunServiceDeleteRunV1OK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewRunServiceDeleteRunV1Default(code int) *RunServiceDeleteRunV1Default {
 	}
 }
 
-/*RunServiceDeleteRunV1Default handles this case with default header values.
+/*
+RunServiceDeleteRunV1Default handles this case with default header values.
 
 An unexpected error response.
 */

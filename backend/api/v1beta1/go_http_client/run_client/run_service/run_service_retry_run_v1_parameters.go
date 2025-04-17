@@ -56,7 +56,8 @@ func NewRunServiceRetryRunV1ParamsWithHTTPClient(client *http.Client) *RunServic
 	}
 }
 
-/*RunServiceRetryRunV1Params contains all the parameters to send to the API endpoint
+/*
+RunServiceRetryRunV1Params contains all the parameters to send to the API endpoint
 for the run service retry run v1 operation typically these are written to a http.Request
 */
 type RunServiceRetryRunV1Params struct {

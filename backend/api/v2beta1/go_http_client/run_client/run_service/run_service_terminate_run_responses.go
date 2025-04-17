@@ -49,7 +49,8 @@ func NewRunServiceTerminateRunOK() *RunServiceTerminateRunOK {
 	return &RunServiceTerminateRunOK{}
 }
 
-/*RunServiceTerminateRunOK handles this case with default header values.
+/*
+RunServiceTerminateRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewRunServiceTerminateRunDefault(code int) *RunServiceTerminateRunDefault {
 	}
 }
 
-/*RunServiceTerminateRunDefault handles this case with default header values.
+/*
+RunServiceTerminateRunDefault handles this case with default header values.
 
 An unexpected error response.
 */
