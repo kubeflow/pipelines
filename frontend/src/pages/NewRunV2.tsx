@@ -513,6 +513,22 @@ function NewRunV2(props: NewRunV2Props) {
               }}
             />
 
+            {/* Checkbox: Always Use Latest Version*/}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={useLatestVersion}
+                  onChange={e => {
+                    const isChecked = e.target.checked;
+                    setUseLatestVersion(isChecked);
+                  }}
+                  disabled={!isRecurringRun || !existingPipeline}
+                  color='primary'
+                />
+              }
+              label='Always use the latest pipeline version'
+            />
+
             {/* Pipeline version selection */}
             <PipelineVersionSelector
               {...props}
@@ -536,20 +552,6 @@ function NewRunV2(props: NewRunV2Props) {
                   handlePipelineVersionIdChange(updatedPipelineVersion.pipeline_version_id);
                 }
               }}
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={useLatestVersion}
-                  onChange={e => {
-                    const isChecked = e.target.checked;
-                    setUseLatestVersion(isChecked);
-                  }}
-                  disabled={!isRecurringRun || !existingPipeline}
-                  color='primary'
-                />
-              }
-              label='Always use the latest pipeline version'
             />
           </div>
         )}
