@@ -832,15 +832,20 @@ interface PipelineVersionSelectorSpecificProps {
 }
 type PipelineVersionSelectorProps = PageProps & PipelineVersionSelectorSpecificProps;
 
-function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
+function PipelineVersionSelector(props: PipelineVersionSelectorProps, isRecurringRun: boolean) {
   const [pipelineVersionSelectorOpen, setPipelineVersionSelectorOpen] = useState(false);
   const [pendingPipelineVersion, setPendingPipelineVersion] = useState<V2beta1PipelineVersion>();
 
   return (
     <>
+      {console.log({
+        isRecurringRun: isRecurringRun,
+        usingLatest: props.usingLatestPipelineVersion,
+        required: !isRecurringRun || !props.usingLatestPipelineVersion,
+      })} // this block is for testing
       <Input
         value={props.pipelineVersionName}
-        required={!props.usingLatestPipelineVersion}
+        required={!isRecurringRun || !props.usingLatestPipelineVersion}
         label={'Pipeline Version'}
         disabled={true}
         variant='outlined'
@@ -853,7 +858,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
                 id='choosePipelineVersionBtn'
                 onClick={() => setPipelineVersionSelectorOpen(true)}
                 style={{ padding: '3px 5px', margin: 0 }}
-                disabled={!props.pipeline || props.usingLatestPipelineVersion}
+                disabled={!props.pipeline || props.usingLatestPipelineVersion || !isRecurringRun}
               >
                 Choose
               </Button>
