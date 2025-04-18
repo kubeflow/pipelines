@@ -804,3 +804,60 @@ def recursive_replace_placeholders(data: Union[Dict, List], old_value: str,
         if isinstance(data, pipeline_channel.PipelineChannel):
             data = str(data)
         return new_value if data == old_value else data
+
+
+# Note that cpu_to_float assumes the string has already been validated by the _validate_cpu_request_limit method.
+def _cpu_to_float(cpu: str) -> float:
+    """Converts the validated CPU request/limit string and to its numeric float
+    value.
+
+    Args:
+        cpu: CPU requests or limits. This string should be a number or a
+            number followed by an "m" to indicate millicores (1/1000). For
+            more information, see `Specify a CPU Request and a CPU Limit
+    Returns:
+        The numeric value (float) of the cpu request/limit.
+    """
+    return float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
+
+
+# Note that memory_to_float assumes the string has already been validated by the _validate_memory_request_limit method.
+def _memory_to_float(memory: str) -> float:
+    """Converts the validated memory request/limit string to its numeric value.
+
+    Args:
+        memory: Memory requests or limits. This string should be a number or
+            a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G",
+            "Gi", "M", "Mi", "K", or "Ki".
+    Returns:
+        The numeric value (float) of the memory request/limit.
+    """
+    if memory.endswith('E'):
+        memory = float(memory[:-1]) * constants._E / constants._G
+    elif memory.endswith('Ei'):
+        memory = float(memory[:-2]) * constants._EI / constants._G
+    elif memory.endswith('P'):
+        memory = float(memory[:-1]) * constants._P / constants._G
+    elif memory.endswith('Pi'):
+        memory = float(memory[:-2]) * constants._PI / constants._G
+    elif memory.endswith('T'):
+        memory = float(memory[:-1]) * constants._T / constants._G
+    elif memory.endswith('Ti'):
+        memory = float(memory[:-2]) * constants._TI / constants._G
+    elif memory.endswith('G'):
+        memory = float(memory[:-1])
+    elif memory.endswith('Gi'):
+        memory = float(memory[:-2]) * constants._GI / constants._G
+    elif memory.endswith('M'):
+        memory = float(memory[:-1]) * constants._M / constants._G
+    elif memory.endswith('Mi'):
+        memory = float(memory[:-2]) * constants._MI / constants._G
+    elif memory.endswith('K'):
+        memory = float(memory[:-1]) * constants._K / constants._G
+    elif memory.endswith('Ki'):
+        memory = float(memory[:-2]) * constants._KI / constants._G
+    else:
+        # By default interpret as a plain integer, in the unit of Bytes.
+        memory = float(memory) / constants._G
+
+    return memory
