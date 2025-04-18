@@ -829,28 +829,25 @@ interface PipelineVersionSelectorSpecificProps {
   pipelineVersionName: string | undefined;
   handlePipelineVersionChange: (pipelineVersion: V2beta1PipelineVersion) => void;
   usingLatestPipelineVersion: boolean;
+  isRecurringRun: boolean;
 }
 type PipelineVersionSelectorProps = PageProps & PipelineVersionSelectorSpecificProps;
 
-function PipelineVersionSelector(props: PipelineVersionSelectorProps, isRecurringRun: boolean) {
+function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
   const [pipelineVersionSelectorOpen, setPipelineVersionSelectorOpen] = useState(false);
   const [pendingPipelineVersion, setPendingPipelineVersion] = useState<V2beta1PipelineVersion>();
 
   return (
     <>
-      {console.log({
-        isRecurringRun: isRecurringRun,
-        usingLatest: props.usingLatestPipelineVersion,
-        required: !isRecurringRun || !props.usingLatestPipelineVersion,
-      })} // this block is for testing
       <Input
         value={props.pipelineVersionName}
-        required={!isRecurringRun || !props.usingLatestPipelineVersion}
+        required={!props.isRecurringRun || !props.usingLatestPipelineVersion}
         label={'Pipeline Version'}
         disabled={true}
         variant='outlined'
         InputProps={{
           classes: { disabled: css.nonEditableInput },
+          inputProps: { 'data-testid': 'pipeline-version-input-field' },
           endAdornment: (
             <InputAdornment position='end'>
               <Button
@@ -858,7 +855,9 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps, isRecurrin
                 id='choosePipelineVersionBtn'
                 onClick={() => setPipelineVersionSelectorOpen(true)}
                 style={{ padding: '3px 5px', margin: 0 }}
-                disabled={!props.pipeline || props.usingLatestPipelineVersion || !isRecurringRun}
+                disabled={
+                  !props.pipeline || props.usingLatestPipelineVersion || !props.isRecurringRun
+                }
               >
                 Choose
               </Button>
@@ -867,7 +866,6 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps, isRecurrin
           readOnly: true,
         }}
       />
-
       {/* Pipeline version selector dialog */}
       <Dialog
         open={pipelineVersionSelectorOpen}

@@ -1322,10 +1322,9 @@ describe('NewRunV2', () => {
       // Verify checkbox is disabled
       const checkbox = screen.getByLabelText('Always use the latest pipeline version');
       expect(checkbox.disabled).toBe(true);
-
-      // When using getByLabelText, make sure to include the correct control type associated with the label, such as input, select, or textarea.
-      const versionSelector = screen.getByLabelText(/Pipeline Version/i) as HTMLInputElement;
-      expect(versionSelector.required).toBe(true);
+      // verify version selector is enabled
+      const actualInput = screen.getByTestId('pipeline-version-input-field');
+      expect(actualInput.hasAttribute('required')).toBe(true);
     });
 
     it('should make version selector required if checkbox is unchecked in recurring run', async () => {
@@ -1354,13 +1353,8 @@ describe('NewRunV2', () => {
       const checkbox = screen.getByLabelText('Always use the latest pipeline version');
       expect(checkbox.checked).toBe(false);
 
-      const versionInput = screen.getByRole('textbox', {
-        name: /Pipeline Version/i,
-      }) as HTMLInputElement;
-
-      console.log(versionSelector.outerHTML); // 观察实际渲染的 required 属性
-
-      expect(versionSelector.required).toBe(true);
+      const actualInput = screen.getByTestId('pipeline-version-input-field');
+      expect(actualInput.hasAttribute('required')).toBe(true);
     });
 
     it('should be checkable in recurring run mode. The default state is unchecked.', async () => {
