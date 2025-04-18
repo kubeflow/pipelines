@@ -1322,7 +1322,9 @@ describe('NewRunV2', () => {
       // Verify checkbox is disabled
       const checkbox = screen.getByLabelText('Always use the latest pipeline version');
       expect(checkbox.disabled).toBe(true);
-      // verify version selector is enabled
+      // verify version selector is enabled and required
+      const chooseBtn = document.getElementById('choosePipelineVersionBtn');
+      expect(chooseBtn.disabled).toBe(false);
       const actualInput = screen.getByTestId('pipeline-version-input-field');
       expect(actualInput.hasAttribute('required')).toBe(true);
     });
@@ -1353,6 +1355,9 @@ describe('NewRunV2', () => {
       const checkbox = screen.getByLabelText('Always use the latest pipeline version');
       expect(checkbox.checked).toBe(false);
 
+      // verify the version selector is enabled and required
+      const chooseBtn = document.getElementById('choosePipelineVersionBtn');
+      expect(chooseBtn.disabled).toBe(false);
       const actualInput = screen.getByTestId('pipeline-version-input-field');
       expect(actualInput.hasAttribute('required')).toBe(true);
     });
@@ -1392,12 +1397,13 @@ describe('NewRunV2', () => {
       expect(checkbox.checked).toBe(true);
 
       // verify version selector is not required when checkbox is enabled
-      //const versionSelector = screen.getByLabelText('Pipeline Version');
-      const versionSelector = screen.getByLabelText(/Pipeline Version/i) as HTMLInputElement;
-      expect(versionSelector.required).toBe(false);
+      await waitFor(() => {
+        const actualInput = screen.getByTestId('pipeline-version-input-field');
+        expect(actualInput.hasAttribute('required')).toBe(false);
+      });
     });
 
-    it('should clear version selection and diable version selector when checked', async () => {
+    it('should clear version selection and disable version selector when checked', async () => {
       // Mock API calls
       const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -1437,8 +1443,8 @@ describe('NewRunV2', () => {
       expect(screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME)).toBeNull();
 
       // Verify choose button is disabled
-      const chooseVersionBtn = screen.getAllByText('Choose')[1];
-      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+      const chooseBtn = document.getElementById('choosePipelineVersionBtn');
+      expect(chooseBtn.disabled).toBe(true);
     });
 
     it('should submit correct payload with only pipeline_id when checked', async () => {
