@@ -2,6 +2,8 @@
 
 ## Features
 
+* feat(sdk): add upload pipeline and upload pipeline version from pipeline function (#11804)
+
 ## Breaking changes
 
 ## Deprecations
