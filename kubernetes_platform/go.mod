@@ -1,7 +1,12 @@
 module github.com/kubeflow/pipelines/kubernetes_platform
 
-go 1.21
+go 1.23
 
-require google.golang.org/protobuf v1.27.1
+require (
+	github.com/kubeflow/pipelines/api v0.0.0-00010101000000-000000000000
+	google.golang.org/protobuf v1.27.1
+)
 
-require golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+require google.golang.org/genproto v0.0.0-20211026145609-4688e4c4e024 // indirect
+
+replace github.com/kubeflow/pipelines/api => ../api
