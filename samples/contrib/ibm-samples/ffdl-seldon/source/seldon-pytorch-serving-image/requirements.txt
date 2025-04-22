@@ -1,4 +1,4 @@
-torch==1.0.0
+torch==2.6.0
 torchvision==0.2.1
 boto3==1.9.83
 pandas
