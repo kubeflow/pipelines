@@ -22,6 +22,7 @@ from kfp.local import executor_input_utils
 from kfp.local import executor_output_utils
 from kfp.local import logging_utils
 from kfp.local import placeholder_utils
+from kfp.local import podman_task_handler
 from kfp.local import status
 from kfp.local import subprocess_task_handler
 from kfp.local import task_handler_interface
@@ -134,6 +135,8 @@ def run_single_task_implementation(
                 subprocess_task_handler.SubprocessTaskHandler,
             local.DockerRunner:
                 docker_task_handler.DockerTaskHandler,
+            local.PodmanRunner:
+                podman_task_handler.PodmanTaskHandler,
         }
     TaskHandler = task_handler_map[runner_type]
 

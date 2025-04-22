@@ -26,3 +26,5 @@ urllib3<3.0.0
 
 ## standard library backports ##
 typing-extensions>=3.7.4,<5; python_version<"3.9"
+
+podman>=5.4.0.1
