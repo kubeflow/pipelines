@@ -88,6 +88,11 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/hello_world_log_level.yaml",
 			envVars:          map[string]string{"PIPELINE_LOG_LEVEL": "3"},
 		},
+		{
+			jobPath:          "../testdata/hello_world_with_retry_all_args.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/hello_world_with_retry_all_args.yaml",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
