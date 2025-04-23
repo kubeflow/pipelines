@@ -41,7 +41,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type LauncherV2Options struct {
@@ -62,11 +61,35 @@ type LauncherV2 struct {
 	command       string
 	args          []string
 	options       LauncherV2Options
+	dependencies  *LauncherV2Dependencies
+}
 
-	// clients
-	metadataClient metadata.ClientInterface
+// LauncherV2Dependencies can be used to inject dependency overrides into LauncherV2
+type LauncherV2Dependencies struct {
 	k8sClient      kubernetes.Interface
-	cacheClient    *cacheutils.Client
+	metadataClient metadata.ClientInterface
+	cacheClient    cacheutils.ClientInterface
+}
+
+// DefaultLauncherV2Dependencies provides in-cluster dependencies
+func DefaultLauncherV2Dependencies(metadataAddress string, metadataPort string) (*LauncherV2Dependencies, error) {
+	k8sClient, err := getDefaultK8sClient()
+	if err != nil {
+		return nil, err
+	}
+	metadataClient, err := getDefaultMetadataClient(metadataAddress, metadataPort)
+	if err != nil {
+		return nil, err
+	}
+	cacheClient, err := getDefaultCacheClient()
+	if err != nil {
+		return nil, err
+	}
+	return &LauncherV2Dependencies{
+		k8sClient:      k8sClient,
+		metadataClient: metadataClient,
+		cacheClient:    cacheClient,
+	}, err
 }
 
 // Client is the struct to hold the Kubernetes Clientset
@@ -75,7 +98,15 @@ type kubernetesClient struct {
 }
 
 // NewLauncherV2 is a factory function that returns an instance of LauncherV2.
-func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, componentSpecJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
+func NewLauncherV2(
+	ctx context.Context,
+	executionID int64,
+	executorInputJSON,
+	componentSpecJSON string,
+	cmdArgs []string,
+	opts *LauncherV2Options,
+	dependencies *LauncherV2Dependencies,
+) (l *LauncherV2, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to create component launcher v2: %w", err)
@@ -101,32 +132,14 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
-	}
-	metadataClient, err := metadata.NewClient(opts.MLMDServerAddress, opts.MLMDServerPort)
-	if err != nil {
-		return nil, err
-	}
-	cacheClient, err := cacheutils.NewClient()
-	if err != nil {
-		return nil, err
-	}
 	return &LauncherV2{
-		executionID:    executionID,
-		executorInput:  executorInput,
-		component:      component,
-		command:        cmdArgs[0],
-		args:           cmdArgs[1:],
-		options:        *opts,
-		metadataClient: metadataClient,
-		k8sClient:      k8sClient,
-		cacheClient:    cacheClient,
+		executionID:   executionID,
+		executorInput: executorInput,
+		component:     component,
+		command:       cmdArgs[0],
+		args:          cmdArgs[1:],
+		options:       *opts,
+		dependencies:  dependencies,
 	}, nil
 }
 
@@ -192,12 +205,12 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		glog.Infof("publish success.")
 		// At the end of the current task, we check the statuses of all tasks in
 		// the current DAG and update the DAG's status accordingly.
-		dag, err := l.metadataClient.GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
+		dag, err := l.dependencies.metadataClient.GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
 		if err != nil {
 			glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
 		}
-		pipeline, _ := l.metadataClient.GetPipelineFromExecution(ctx, execution.GetID())
-		err = l.metadataClient.UpdateDAGExecutionsState(ctx, dag, pipeline)
+		pipeline, _ := l.dependencies.metadataClient.GetPipelineFromExecution(ctx, execution.GetID())
+		err = l.dependencies.metadataClient.UpdateDAGExecutionsState(ctx, dag, pipeline)
 		if err != nil {
 			glog.Errorf("failed to update DAG state: %s", err.Error())
 		}
@@ -217,7 +230,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.options.Namespace, bucketConfig)
+	bucket, err := objectstore.OpenBucket(ctx, l.dependencies.k8sClient, l.options.Namespace, bucketConfig)
 	if err != nil {
 		return err
 	}
@@ -232,9 +245,9 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		l.args,
 		bucket,
 		bucketConfig,
-		l.metadataClient,
+		l.dependencies.metadataClient,
 		l.options.Namespace,
-		l.k8sClient,
+		l.dependencies.k8sClient,
 		l.options.PublishLogs,
 	)
 	if err != nil {
@@ -257,7 +270,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
 			Fingerprint:     fingerPrint,
 		}
-		return l.cacheClient.CreateExecutionCache(ctx, task)
+		return l.dependencies.cacheClient.CreateExecutionCache(ctx, task)
 	}
 
 	return nil
@@ -303,7 +316,7 @@ func (l *LauncherV2) prePublish(ctx context.Context) (execution *metadata.Execut
 			err = fmt.Errorf("failed to pre-publish Pod info to ML Metadata: %w", err)
 		}
 	}()
-	execution, err = l.metadataClient.GetExecution(ctx, l.executionID)
+	execution, err = l.dependencies.metadataClient.GetExecution(ctx, l.executionID)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +325,7 @@ func (l *LauncherV2) prePublish(ctx context.Context) (execution *metadata.Execut
 		PodUID:    l.options.PodUID,
 		Namespace: l.options.Namespace,
 	}
-	return l.metadataClient.PrePublishExecution(ctx, execution, ecfg)
+	return l.dependencies.metadataClient.PrePublishExecution(ctx, execution, ecfg)
 }
 
 // TODO(Bobgy): consider passing output artifacts info from executor output.
@@ -333,7 +346,7 @@ func (l *LauncherV2) publish(
 	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
 	// to publish output artifacts to the context too.
 	// return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, pb.Execution_COMPLETE)
-	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
+	return l.dependencies.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
 }
 
 // executeV2 handles placeholder substitution for inputs, calls execute to
