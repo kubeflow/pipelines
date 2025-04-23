@@ -90,6 +90,27 @@ def get_settings_from_env(controller_port=None,
     return settings
 
 
+def compute_desired_status(attachments, desired_resources):
+    expected_counts = {}
+
+    for resource in desired_resources:
+        kind = resource["kind"]
+        api_version = resource["apiVersion"]
+        key = f"{kind}.{api_version}"
+        if key not in expected_counts:
+            expected_counts[key] = 0
+        expected_counts[key] += 1
+
+    desired_status = {}
+    for key, expected_count in expected_counts.items():
+        observed_count = len(attachments.get(key, []))
+        desired_status[key] = observed_count == expected_count
+
+    desired_status["kubeflow-pipelines-ready"] = all(desired_status.values())
+
+    return desired_status
+
+
 def server_factory(visualization_server_image,
                    visualization_server_tag, frontend_image, frontend_tag,
                    disable_istio_sidecar, minio_access_key,
@@ -108,10 +129,8 @@ def server_factory(visualization_server_image,
             if pipeline_enabled != "true":
                 return {"status": {}, "attachments": []}
 
-            desired_configmap_count = 1
             desired_resources = []
             if kfp_default_pipeline_root:
-                desired_configmap_count = 2
                 desired_resources += [{
                     "apiVersion": "v1",
                     "kind": "ConfigMap",
@@ -123,19 +142,6 @@ def server_factory(visualization_server_image,
                         "defaultPipelineRoot": kfp_default_pipeline_root,
                     },
                 }]
-
-
-            # Compute status based on observed state.
-            desired_status = {
-                "kubeflow-pipelines-ready":
-                    len(attachments["Secret.v1"]) == 1 and
-                    len(attachments["ConfigMap.v1"]) == desired_configmap_count and
-                    len(attachments["Deployment.apps/v1"]) == 2 and
-                    len(attachments["Service.v1"]) == 2 and
-                    len(attachments["DestinationRule.networking.istio.io/v1alpha3"]) == 1 and
-                    len(attachments["AuthorizationPolicy.security.istio.io/v1beta1"]) == 1 and
-                    "True" or "False"
-            }
 
             # Generate the desired attachment object(s).
             desired_resources += [
@@ -374,6 +380,8 @@ def server_factory(visualization_server_image,
                     "secretkey": minio_secret_key,
                 },
             })
+
+            desired_status = compute_desired_status(attachments, desired_resources)
 
             return {"status": desired_status, "attachments": desired_resources}
 
