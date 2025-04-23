@@ -16,10 +16,13 @@ package component
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -305,6 +308,109 @@ func Test_get_log_Writer(t *testing.T) {
 				assert.Equal(t, os.Stdout, writer)
 			} else {
 				assert.IsType(t, io.MultiWriter(), writer)
+			}
+		})
+	}
+}
+
+// Tests happy and unhappy paths for constructing a new LauncherV2
+func Test_NewLauncherV2(t *testing.T) {
+	var testCmdArgs = []string{"sh", "-c", "echo \"hello world\""}
+
+	disabledCacheClient, _ := cacheutils.NewClient(true)
+	var testLauncherV2Deps = client_manager.NewFakeClientManager(
+		fake.NewSimpleClientset(),
+		metadata.NewFakeClient(),
+		disabledCacheClient,
+	)
+
+	var testValidLauncherV2Opts = LauncherV2Options{
+		Namespace:         "my-namespace",
+		PodName:           "my-pod",
+		PodUID:            "abcd",
+		MLMDServerAddress: "example.com",
+		MLMDServerPort:    "1234",
+	}
+
+	type args struct {
+		executionID       int64
+		executorInputJSON string
+		componentSpecJSON string
+		cmdArgs           []string
+		opts              LauncherV2Options
+		cm                client_manager.ClientManagerInterface
+	}
+	tests := []struct {
+		name        string
+		args        *args
+		expectedErr error
+	}{
+		{
+			name: "happy path",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{}",
+				cmdArgs:           testCmdArgs,
+				opts:              testValidLauncherV2Opts,
+				cm:                testLauncherV2Deps,
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "missing executionID",
+			args: &args{
+				executionID: 0,
+			},
+			expectedErr: errors.New("must specify execution ID"),
+		},
+		{
+			name: "invalid executorInput",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{",
+			},
+			expectedErr: errors.New("unexpected EOF"),
+		},
+		{
+			name: "invalid componentSpec",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{",
+			},
+			expectedErr: errors.New("unexpected EOF\ncomponentSpec: {"),
+		},
+		{
+			name: "missing cmdArgs",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{}",
+				cmdArgs:           []string{},
+			},
+			expectedErr: errors.New("command and arguments are empty"),
+		},
+		{
+			name: "invalid opts",
+			args: &args{
+				executionID:       1,
+				executorInputJSON: "{}",
+				componentSpecJSON: "{}",
+				cmdArgs:           testCmdArgs,
+				opts:              LauncherV2Options{},
+			},
+			expectedErr: errors.New("invalid launcher options: must specify Namespace"),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			args := test.args
+			_, err := NewLauncherV2(context.Background(), args.executionID, args.executorInputJSON, args.componentSpecJSON, args.cmdArgs, &args.opts, args.cm)
+			if test.expectedErr != nil {
+				assert.ErrorContains(t, err, test.expectedErr.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
