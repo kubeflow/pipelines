@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 )
@@ -101,7 +102,16 @@ func run() error {
 		}
 		return nil
 	case "container":
-		launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), launcherV2Opts)
+		clientOptions := &client_manager.Options{
+			MLMDServerAddress: launcherV2Opts.MLMDServerAddress,
+			MLMDServerPort:    launcherV2Opts.MLMDServerPort,
+			CacheDisabled:     launcherV2Opts.CacheDisabled,
+		}
+		clientManager, err := client_manager.NewClientManager(clientOptions)
+		if err != nil {
+			return err
+		}
+		launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), launcherV2Opts, clientManager)
 		if err != nil {
 			return err
 		}
