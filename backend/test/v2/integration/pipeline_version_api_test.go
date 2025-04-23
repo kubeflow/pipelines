@@ -103,11 +103,11 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 
 	/* ---------- Upload a pipeline YAML ---------- */
 	pipelineParams := upload_params.NewUploadPipelineParams()
-	pipelineName := "test_pipeline"
+	pipelineName := "test-pipeline"
 	pipelineParams.SetName(&pipelineName)
 	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", pipelineParams)
 	require.Nil(t, err)
-	assert.Equal(t, "test_pipeline", pipeline.DisplayName)
+	assert.Equal(t, "test-pipeline", pipeline.DisplayName)
 
 	/* ---------- Get pipeline id ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{})
@@ -116,7 +116,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Equal(t, 1, totalSize)
 	pipelineId := pipelines[0].PipelineID
 
-	/* ---------- Upload a pipeline version YAML under test_pipeline ---------- */
+	/* ---------- Upload a pipeline version YAML under test-pipeline ---------- */
 	time.Sleep(1 * time.Second)
 	pipelineVersionParams := upload_params.NewUploadPipelineVersionParams()
 	pipelineVersionParams.SetPipelineid(&pipelineId)
@@ -126,7 +126,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 
 	/* ---------- Upload the same pipeline version again. Should fail due to name uniqueness ---------- */
 	time.Sleep(1 * time.Second)
-	_, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", upload_params.NewUploadPipelineVersionParams())
+	_, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", pipelineVersionParams)
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to upload pipeline version")
 
@@ -180,7 +180,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	for _, p := range pipelineVersions {
 		assert.NotNil(t, *p)
 		assert.NotNil(t, p.CreatedAt)
-		assert.Contains(t, []string{"test_pipeline" /*default version created with pipeline*/, "sequential", "arguments", "arguments-parameters.yaml", "zip-arguments-parameters"}, p.DisplayName)
+		assert.Contains(t, []string{"test-pipeline" /*default version created with pipeline*/, "sequential", "arguments", "arguments-parameters.yaml", "zip-arguments-parameters"}, p.DisplayName)
 	}
 
 	/* ---------- Verify list pipeline sorted by names ---------- */
@@ -208,7 +208,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	require.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelineVersions))
 	assert.Equal(t, 5, totalSize)
-	assert.Equal(t, "test_pipeline", listSecondPagePipelineVersions[0].DisplayName)
+	assert.Equal(t, "test-pipeline", listSecondPagePipelineVersions[0].DisplayName)
 	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelineVersions[1].DisplayName)
 	assert.Empty(t, nextPageToken)
 
@@ -222,7 +222,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	require.Nil(t, err)
 	assert.Equal(t, 3, len(listFirstPagePipelineVersions))
 	assert.Equal(t, 5, totalSize)
-	assert.Equal(t, "test_pipeline", listFirstPagePipelineVersions[0].DisplayName)
+	assert.Equal(t, "test-pipeline", listFirstPagePipelineVersions[0].DisplayName)
 	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelineVersions[1].DisplayName)
 	assert.Equal(t, "sequential", listFirstPagePipelineVersions[2].DisplayName)
 	assert.NotEmpty(t, nextPageToken)
@@ -260,7 +260,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Equal(t, 3, len(listFirstPagePipelineVersions))
 	assert.Equal(t, 5, totalSize)
 	assert.Equal(t, "zip-arguments-parameters", listFirstPagePipelineVersions[0].DisplayName)
-	assert.Equal(t, "test_pipeline", listFirstPagePipelineVersions[1].DisplayName)
+	assert.Equal(t, "test-pipeline", listFirstPagePipelineVersions[1].DisplayName)
 	assert.Equal(t, "sequential", listFirstPagePipelineVersions[2].DisplayName)
 	assert.NotEmpty(t, nextPageToken)
 
@@ -302,11 +302,11 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 
 	/* ---------- Upload a pipeline YAML ---------- */
 	pipelineParams := upload_params.NewUploadPipelineParams()
-	pipelineName := "test_v2_pipeline"
+	pipelineName := "test-v2-pipeline"
 	pipelineParams.SetName(&pipelineName)
 	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", pipelineParams)
 	require.Nil(t, err)
-	assert.Equal(t, "test_v2_pipeline", pipeline.DisplayName)
+	assert.Equal(t, "test-v2-pipeline", pipeline.DisplayName)
 
 	/* ---------- Upload a pipeline version with v2 pipeline spec YAML ---------- */
 	time.Sleep(1 * time.Second)
@@ -326,7 +326,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	actual_bytes, err := json.Marshal(v2Version.PipelineSpec)
 	require.Nil(t, err)
 	// Override pipeline name, then compare
-	assert.Equal(t, string(expected_bytes), strings.Replace(string(actual_bytes), "pipeline/test_v2_pipeline", "whalesay", 1))
+	assert.Equal(t, string(expected_bytes), strings.Replace(string(actual_bytes), "pipeline/test-v2-pipeline", "whalesay", 1))
 }
 
 func TestPipelineVersionAPI(t *testing.T) {

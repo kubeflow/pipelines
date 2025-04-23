@@ -48,6 +48,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"k8s.io/client-go/dynamic"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -86,6 +87,17 @@ func main() {
 		template.Launcher = common.GetStringConfig(launcherEnv)
 	}
 
+	backgroundCtx, backgroundCancel := context.WithCancel(signals.SetupSignalHandler())
+	defer backgroundCancel()
+
+	wg := sync.WaitGroup{}
+
+	options := &cm.Options{
+		UsePipelineKubernetesStorage: *usePipelinesKubernetesStorage,
+		Context:                      backgroundCtx,
+		WaitGroup:                    &wg,
+	}
+
 	logLevel := *logLevelFlag
 	if logLevel == "" {
 		logLevel = "info"
@@ -105,23 +117,17 @@ func main() {
 
 	ctrllog.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Level: zapLevel})))
 
-	clientManager, err := cm.NewClientManager()
+	clientManager, err := cm.NewClientManager(options)
 	if err != nil {
 		glog.Fatalf("Failed to initialize ClientManager: %v", err)
 	}
 
 	defer clientManager.Close()
-
-	backgroundCtx, backgroundCancel := context.WithCancel(signals.SetupSignalHandler())
-	defer backgroundCancel()
-
-	wg := sync.WaitGroup{}
-
 	webhookOnlyMode := common.IsOnlyKubernetesWebhookMode()
 
 	if *usePipelinesKubernetesStorage || webhookOnlyMode {
 		wg.Add(1)
-		webhookServer, err := startWebhook(clientManager.ControllerClient(), &wg)
+		webhookServer, err := startWebhook(clientManager.ControllerClient(), clientManager.DynamicClient(), &wg)
 		if err != nil {
 			glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
 		}
@@ -143,7 +149,7 @@ func main() {
 	}
 
 	resourceManager := resource.NewResourceManager(
-		&clientManager,
+		clientManager,
 		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
@@ -293,7 +299,9 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	glog.Info("Http Proxy started")
 }
 
-func startWebhook(controllerClient ctrlclient.Client, wg *sync.WaitGroup) (*http.Server, error) {
+func startWebhook(
+	controllerClient ctrlclient.Client, dynamicClient dynamic.Interface, wg *sync.WaitGroup,
+) (*http.Server, error) {
 	glog.Info("Starting the Kubernetes webhooks...")
 
 	tlsCertPath := *webhookTLSCertPath
@@ -301,7 +309,7 @@ func startWebhook(controllerClient ctrlclient.Client, wg *sync.WaitGroup) (*http
 
 	topMux := mux.NewRouter()
 
-	pvValidateWebhook, pvMutateWebhook, err := webhook.NewPipelineVersionWebhook(controllerClient)
+	pvValidateWebhook, pvMutateWebhook, err := webhook.NewPipelineVersionWebhook(controllerClient, dynamicClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate the Kubernetes webhook: %v", err)
 	}
