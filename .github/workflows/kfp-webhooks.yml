@@ -29,8 +29,7 @@ jobs:
       uses: ./.github/actions/kfp-cluster
       with:
         k8s_version: ${{ matrix.k8s_version }}
-      env:
-        PIPELINE_STORE: kubernetes
+        pipeline_store: kubernetes
       continue-on-error: true
 
     - name: Run Webhook Integration Tests

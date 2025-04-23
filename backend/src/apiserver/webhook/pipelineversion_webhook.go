@@ -17,15 +17,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	"net/http"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrladmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -42,7 +44,8 @@ func init() {
 }
 
 type PipelineVersionsWebhook struct {
-	Client ctrlclient.Client
+	Client        ctrlclient.Client
+	DynamicClient dynamic.Interface
 }
 
 var _ ctrladmission.CustomValidator = &PipelineVersionsWebhook{}
@@ -57,24 +60,54 @@ func newBadRequestError(msg string) *apierrors.StatusError {
 	}
 }
 
-func (p *PipelineVersionsWebhook) ValidateCreate(
-	ctx context.Context, obj runtime.Object,
-) (warnings ctrladmission.Warnings, err error) {
-	pipelineVersion, ok := obj.(*k8sapi.PipelineVersion)
-	if !ok {
-		return nil, newBadRequestError(fmt.Sprintf("Expected a PipelineVersion object but got %T", pipelineVersion))
+func (p *PipelineVersionsWebhook) getPipeline(ctx context.Context, namespace string, name string) (*k8sapi.Pipeline, error) {
+	pipeline := &k8sapi.Pipeline{}
+	err := p.Client.Get(
+		ctx, types.NamespacedName{Namespace: namespace, Name: name}, pipeline,
+	)
+	if err == nil {
+		return pipeline, nil
 	}
 
-	pipeline := &k8sapi.Pipeline{}
+	if !apierrors.IsNotFound(err) {
+		return nil, newBadRequestError(fmt.Sprintf("Failed to get the Pipeline %s/%s: %v", namespace, name, err))
+	}
 
-	err = p.Client.Get(
-		ctx, types.NamespacedName{Namespace: pipelineVersion.Namespace, Name: pipelineVersion.Spec.PipelineName}, pipeline,
+	// Fallback to not using the cache
+	pipelineGVR := v2beta1.GroupVersion.WithResource("pipelines")
+
+	unstructPipeline, err := p.DynamicClient.Resource(pipelineGVR).Namespace(namespace).Get(
+		ctx, name, metav1.GetOptions{},
 	)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
 		}
 
+		return nil, newBadRequestError(fmt.Sprintf("Failed to get the Pipeline %s/%s: %v", namespace, name, err))
+	}
+
+	k8sPipeline := &v2beta1.Pipeline{}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructuredWithValidation(
+		unstructPipeline.Object, k8sPipeline, true,
+	)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Received an invalid pipeline")
+	}
+
+	return k8sPipeline, nil
+}
+
+func (p *PipelineVersionsWebhook) ValidateCreate(
+	ctx context.Context, obj runtime.Object,
+) (ctrladmission.Warnings, error) {
+	pipelineVersion, ok := obj.(*k8sapi.PipelineVersion)
+	if !ok {
+		return nil, newBadRequestError(fmt.Sprintf("Expected a PipelineVersion object but got %T", pipelineVersion))
+	}
+
+	_, err := p.getPipeline(ctx, pipelineVersion.Namespace, pipelineVersion.Spec.PipelineName)
+	if err != nil {
 		return nil, err
 	}
 
@@ -131,15 +164,8 @@ func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Objec
 		}
 	}
 
-	pipeline := &k8sapi.Pipeline{}
-	nsName := types.NamespacedName{Namespace: pipelineVersion.Namespace, Name: pipelineVersion.Spec.PipelineName}
-
-	err := p.Client.Get(ctx, nsName, pipeline)
+	pipeline, err := p.getPipeline(ctx, pipelineVersion.Namespace, pipelineVersion.Spec.PipelineName)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
-		}
-
 		return err
 	}
 
@@ -178,9 +204,13 @@ func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Objec
 }
 
 // NewPipelineVersionWebhook returns the validating webhook and mutating webhook HTTP handlers
-func NewPipelineVersionWebhook(client ctrlclient.Client) (http.Handler, http.Handler, error) {
+func NewPipelineVersionWebhook(
+	client ctrlclient.Client, dynamicClient dynamic.Interface,
+) (http.Handler, http.Handler, error) {
 	validating, err := ctrladmission.StandaloneWebhook(
-		ctrladmission.WithCustomValidator(scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client}),
+		ctrladmission.WithCustomValidator(
+			scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client, DynamicClient: dynamicClient},
+		),
 		ctrladmission.StandaloneOptions{},
 	)
 	if err != nil {
@@ -188,7 +218,9 @@ func NewPipelineVersionWebhook(client ctrlclient.Client) (http.Handler, http.Han
 	}
 
 	mutating, err := ctrladmission.StandaloneWebhook(
-		ctrladmission.WithCustomDefaulter(scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client}),
+		ctrladmission.WithCustomDefaulter(
+			scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client, DynamicClient: dynamicClient},
+		),
 		ctrladmission.StandaloneOptions{},
 	)
 	if err != nil {

@@ -1205,7 +1205,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 func TestArchiveRun(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
@@ -1237,7 +1237,7 @@ func TestArchiveRun_InternalError(t *testing.T) {
 func TestUnarchiveRun(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
@@ -1337,7 +1337,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 func TestDeleteRun(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
