@@ -10,6 +10,18 @@
 
 ## Documentation updates
 
+# 2.12.2
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* fix(sdk): Add SDK support for setting resource limits on older KFP versions (#11839)
+
 # 2.12.1
 
 ## Features

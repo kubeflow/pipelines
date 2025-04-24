@@ -1,11 +1,16 @@
 [
     {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.12.1/",
-        "title": "2.12.1",
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.12.2/",
+        "title": "2.12.2",
         "aliases": [
             "stable",
             "latest"
         ]
+    },
+    {
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.12.1/",
+        "title": "2.12.1",
+        "aliases": []
     },
     {
         "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.12.0/",
