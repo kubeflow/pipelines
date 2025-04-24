@@ -6,7 +6,14 @@ KIND_NAME ?= dev-pipelines-api
 CERT_MANAGER_VERSION ?= v1.16.2
 
 # Container Build Params
-CONTAINER_ENGINE ?= docker
+CONTAINER_ENGINE ?= $(shell \
+	if command -v docker >/dev/null 2>&1; then \
+		echo docker; \
+	elif command -v podman >/dev/null 2>&1; then \
+		echo podman; \
+	fi \
+)
+
 # IMG_REGISTRY can be used to automatically prepend registry details. e.g. "quay.io/kubeflow/"
 IMG_REGISTRY ?=
 IMG_TAG_APISERVER         ?= apiserver
@@ -78,7 +85,11 @@ dev-kind-cluster:
 	-kind create cluster --name $(KIND_NAME) --config $(CURDIR)/../tools/kind/kind-config.yaml
 	kubectl config use-context kind-$(KIND_NAME)
 	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
-	kind --name $(KIND_NAME) load docker-image ${IMG_TAG_WEBHOOK_PROXY}
+	@if [ "${CONTAINER_ENGINE}" = "docker" ]; then \
+		kind --name ${KIND_NAME} load docker-image ${IMG_TAG_WEBHOOK_PROXY}; \
+	else \
+		bash -c "kind load --name ${KIND_NAME} image-archive <( ${CONTAINER_ENGINE} save ${IMG_TAG_WEBHOOK_PROXY})"; \
+	fi
 	$(MAKE) install-cert-manager
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
 	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
@@ -89,7 +100,11 @@ dev-kind-cluster:
 
 .PHONY: kind-load-driver-debug
 kind-load-driver-debug:
-	kind --name $(KIND_NAME) load docker-image ${IMG_TAG_DRIVER}:debug
+	@if [ "${CONTAINER_ENGINE}" = "docker" ]; then \
+		kind --name ${KIND_NAME} load docker-image ${IMG_TAG_DRIVER}:debug
+	else \
+		bash -c "kind load --name ${KIND_NAME} image-archive <( ${CONTAINER_ENGINE} save ${IMG_TAG_DRIVER})"; \
+	fi
 
 .PHONY: kind-build-and-load-driver-debug
 kind-build-and-load-driver-debug: image_driver_debug kind-load-driver-debug
