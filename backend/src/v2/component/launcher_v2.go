@@ -139,29 +139,31 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 		}
 
 		// Following the convention of downloadArtifacts in the launcher to only look at the first in the list.
-		inputArtifact := artifactList.Artifacts[0]
+		for _, artifact := range artifactList.Artifacts {
+			inputArtifact := artifact
 
-		// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
-		// be set on inputArtifact.
-		if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
-			continue
-		}
+			// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
+			// be set on inputArtifact.
+			if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+				continue
+			}
 
-		localPath, err := LocalPathForURI(inputArtifact.Uri)
-		if err != nil {
-			continue
-		}
+			localPath, err := LocalPathForURI(inputArtifact.Uri)
+			if err != nil {
+				continue
+			}
 
-		glog.Infof("Stopping Modelcar container for artifact %s", inputArtifact.Uri)
+			glog.Infof("Stopping Modelcar container for artifact %s", inputArtifact.Uri)
 
-		launcherCompleteFile := strings.TrimSuffix(localPath, "/models") + "/launcher-complete"
-		_, err = os.Create(launcherCompleteFile)
-		if err != nil {
-			glog.Errorf(
-				"Failed to stop the artifact %s by creating %s: %v", inputArtifact.Uri, launcherCompleteFile, err,
-			)
+			launcherCompleteFile := strings.TrimSuffix(localPath, "/models") + "/launcher-complete"
+			_, err = os.Create(launcherCompleteFile)
+			if err != nil {
+				glog.Errorf(
+					"Failed to stop the artifact %s by creating %s: %v", inputArtifact.Uri, launcherCompleteFile, err,
+				)
 
-			continue
+				continue
+			}
 		}
 	}
 }
