@@ -1,4 +1,4 @@
-FROM gcr.io/ml-pipeline-test/selenium-standalone-chrome-gcloud-nodejs:v20230322-2.0.0b11-144-g87e1c5fcf-dirty-2ca4f7
+FROM ghcr.io/kubeflow/kfp-selenium-standalone-chrome-gcloud-nodejs:main-e21bbbaf225dc0d5470df55d6d7254b7e2dd066c
 #To build this image: cd selenium-standalone-chrome-gcloud-nodejs.Docker && make push
 
 COPY --chown=seluser . /src
