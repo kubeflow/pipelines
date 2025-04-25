@@ -805,10 +805,41 @@ func extendPodSpecPatch(
 			if toleration != nil {
 				k8sToleration := &k8score.Toleration{}
 				if toleration.TolerationJson != nil {
-					err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
-						toleration.GetTolerationJson(), inputParams, k8sToleration)
+					resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+						toleration.GetTolerationJson(), inputParams)
 					if err != nil {
 						return fmt.Errorf("failed to resolve toleration: %w", err)
+					}
+
+					// TolerationJson can be either a single toleration or list of tolerations
+					// the field accepts both, and in both cases the tolerations are appended
+					// to the total executor pod toleration list.
+					var paramJSON []byte
+					isSingleToleration := resolvedParam.GetStructValue() != nil
+					isListToleration := resolvedParam.GetListValue() != nil
+					if isSingleToleration {
+						paramJSON, err = resolvedParam.GetStructValue().MarshalJSON()
+						if err != nil {
+							return err
+						}
+						var singleToleration k8score.Toleration
+						if err = json.Unmarshal(paramJSON, &singleToleration); err != nil {
+							return fmt.Errorf("failed to marshal single toleration to json: %w", err)
+						}
+						k8sTolerations = append(k8sTolerations, singleToleration)
+					} else if isListToleration {
+						paramJSON, err = resolvedParam.GetListValue().MarshalJSON()
+						if err != nil {
+							return err
+						}
+						var k8sTolerationsList []k8score.Toleration
+						if err = json.Unmarshal(paramJSON, &k8sTolerationsList); err != nil {
+							return fmt.Errorf("failed to marshal list toleration to json: %w", err)
+						}
+						k8sTolerations = append(k8sTolerations, k8sTolerationsList...)
+					} else {
+						return fmt.Errorf("encountered unexpected toleration proto value, "+
+							"must be either struct or list type: %w", err)
 					}
 				} else {
 					k8sToleration.Key = toleration.Key
@@ -816,8 +847,9 @@ func extendPodSpecPatch(
 					k8sToleration.Value = toleration.Value
 					k8sToleration.Effect = k8score.TaintEffect(toleration.Effect)
 					k8sToleration.TolerationSeconds = toleration.TolerationSeconds
+					k8sTolerations = append(k8sTolerations, *k8sToleration)
 				}
-				k8sTolerations = append(k8sTolerations, *k8sToleration)
+
 			}
 		}
 		podSpec.Tolerations = k8sTolerations
