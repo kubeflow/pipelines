@@ -278,7 +278,7 @@ func (s *UpgradeTests) PreparePipelines() {
 		Body: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "sequential",
 			PackageURL: &pipeline_model.V2beta1URL{
-				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/v2/sequential.yaml",
+				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
 			},
 			PipelineID: sequentialPipeline.PipelineID,
 		},
@@ -305,7 +305,7 @@ func (s *UpgradeTests) PreparePipelines() {
 		Body: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "arguments",
 			PackageURL: &pipeline_model.V2beta1URL{
-				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/v2/arguments.pipeline.zip",
+				PipelineURL: "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip",
 			},
 			PipelineID: argumentUrlPipeline.PipelineID,
 		},

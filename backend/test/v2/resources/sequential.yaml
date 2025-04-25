@@ -1,38 +1,35 @@
 # PIPELINE DEFINITION
 # Name: sequential
 # Inputs:
-#    url: str
+#    param1: str
+#    param2: str
 components:
-  comp-download:
-    executorLabel: exec-download
-    inputDefinitions:
-      parameters:
-        url:
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        downloaded:
-          parameterType: STRING
   comp-echo:
     executorLabel: exec-echo
     inputDefinitions:
       parameters:
-        downloaded:
+        message:
+          parameterType: STRING
+  comp-echo-2:
+    executorLabel: exec-echo-2
+    inputDefinitions:
+      parameters:
+        message:
           parameterType: STRING
 deploymentSpec:
   executors:
-    exec-download:
-      container:
-        args:
-        - gsutil cp {{$.inputs.parameters['url']}} {{$.outputs.parameters['downloaded'].output_file}}
-        command:
-        - sh
-        - -c
-        image: google/cloud-sdk
     exec-echo:
       container:
         args:
-        - echo {{$.inputs.parameters['downloaded']}}
+        - echo {{$.inputs.parameters['message']}}
+        command:
+        - sh
+        - -c
+        image: library/bash
+    exec-echo-2:
+      container:
+        args:
+        - echo {{$.inputs.parameters['message']}}
         command:
         - sh
         - -c
@@ -42,35 +39,33 @@ pipelineInfo:
 root:
   dag:
     tasks:
-      download:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-download
-        inputs:
-          parameters:
-            url:
-              componentInputParameter: url
-        taskInfo:
-          name: download
       echo:
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-echo
-        dependentTasks:
-        - download
         inputs:
           parameters:
-            downloaded:
-              taskOutputParameter:
-                outputParameterKey: downloaded
-                producerTask: download
+            message:
+              componentInputParameter: param1
         taskInfo:
           name: echo
+      echo-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo-2
+        inputs:
+          parameters:
+            message:
+              componentInputParameter: param2
+        taskInfo:
+          name: echo-2
   inputDefinitions:
     parameters:
-      url:
+      param1:
+        parameterType: STRING
+      param2:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.13
+sdkVersion: kfp-2.12.2
