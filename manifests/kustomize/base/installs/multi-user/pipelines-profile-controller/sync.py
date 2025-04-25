@@ -90,7 +90,62 @@ def get_settings_from_env(controller_port=None,
     return settings
 
 
+
+def fill_json_template(path, **kwargs):
+    """
+    Fill a JSON template with values provided as keyword arguments.
+
+    :param path: Path to the JSON template file.
+    :param kwargs: Keyword arguments representing placeholder values.
+    :return: A JSON object with placeholders filled.
+    """
+    with open(path, "r") as file:
+        loaded_template = file.read()
+
+    if loaded_template == "":
+        return []
+
+    for key, value in kwargs.items():
+        placeholder = f"{{{{{key}}}}}"  # Double curly braces for placeholders
+        loaded_template = loaded_template.replace(placeholder, str(value))
+
+    json_object = json.loads(loaded_template)
+
+    return json_object
+
+
+def load_desired_resources(*args, **kwargs):
+    """Load desired resources from a JSON template file, strings with
+    double curly brackets will be filled with the values provided through
+    kwargs."""
+
+    resources = fill_json_template(
+        path="hooks/desired_resources.json", **kwargs
+    ) + fill_json_template(
+        path="hooks/additional_desired_resources.json", **kwargs
+    )
+    if kwargs.get("kfp_default_pipeline_root"):
+        resources.append(
+            {
+                "apiVersion": "v1",
+                "kind": "ConfigMap",
+                "metadata": {
+                    "name": "kfp-launcher",
+                    "namespace": kwargs.get("namespace"),
+                },
+                "data": {
+                    "defaultPipelineRoot": kwargs.get(
+                        "kfp_default_pipeline_root"
+                    ),
+                },
+            }
+        )
+    return resources
+
+
 def compute_desired_status(attachments, desired_resources):
+    """Calculate the desired status of Kubernetes resources by comparing
+    expected and observed counts."""
     expected_counts = {}
 
     for resource in desired_resources:
@@ -129,257 +184,32 @@ def server_factory(visualization_server_image,
             if pipeline_enabled != "true":
                 return {"status": {}, "attachments": []}
 
-            desired_resources = []
-            if kfp_default_pipeline_root:
-                desired_resources += [{
-                    "apiVersion": "v1",
-                    "kind": "ConfigMap",
-                    "metadata": {
-                        "name": "kfp-launcher",
-                        "namespace": namespace,
-                    },
-                    "data": {
-                        "defaultPipelineRoot": kfp_default_pipeline_root,
-                    },
-                }]
+            if disable_istio_sidecar:
+                istio_sidecar_annotation = {"sidecar.istio.io/inject": "false"}
+            else:
+                istio_sidecar_annotation = {}
 
-            # Generate the desired attachment object(s).
-            desired_resources += [
-                {
-                    "apiVersion": "v1",
-                    "kind": "ConfigMap",
-                    "metadata": {
-                        "name": "metadata-grpc-configmap",
-                        "namespace": namespace,
-                    },
-                    "data": {
-                        "METADATA_GRPC_SERVICE_HOST":
-                            "metadata-grpc-service.kubeflow",
-                        "METADATA_GRPC_SERVICE_PORT": "8080",
-                    },
-                },
-                # Visualization server related manifests below
-                {
-                    "apiVersion": "apps/v1",
-                    "kind": "Deployment",
-                    "metadata": {
-                        "labels": {
-                            "app": "ml-pipeline-visualizationserver"
-                        },
-                        "name": "ml-pipeline-visualizationserver",
-                        "namespace": namespace,
-                    },
-                    "spec": {
-                        "selector": {
-                            "matchLabels": {
-                                "app": "ml-pipeline-visualizationserver"
-                            },
-                        },
-                        "template": {
-                            "metadata": {
-                                "labels": {
-                                    "app": "ml-pipeline-visualizationserver"
-                                },
-                                "annotations": disable_istio_sidecar and {
-                                    "sidecar.istio.io/inject": "false"
-                                } or {},
-                            },
-                            "spec": {
-                                "containers": [{
-                                    "image": f"{visualization_server_image}:{visualization_server_tag}",
-                                    "imagePullPolicy":
-                                        "IfNotPresent",
-                                    "name":
-                                        "ml-pipeline-visualizationserver",
-                                    "ports": [{
-                                        "containerPort": 8888
-                                    }],
-                                    "resources": {
-                                        "requests": {
-                                            "cpu": "50m",
-                                            "memory": "200Mi"
-                                        },
-                                        "limits": {
-                                            "cpu": "500m",
-                                            "memory": "1Gi"
-                                        },
-                                    }
-                                }],
-                                "serviceAccountName":
-                                    "default-editor",
-                            },
-                        },
-                    },
-                },
-                {
-                    "apiVersion": "networking.istio.io/v1alpha3",
-                    "kind": "DestinationRule",
-                    "metadata": {
-                        "name": "ml-pipeline-visualizationserver",
-                        "namespace": namespace,
-                    },
-                    "spec": {
-                        "host": "ml-pipeline-visualizationserver",
-                        "trafficPolicy": {
-                            "tls": {
-                                "mode": "ISTIO_MUTUAL"
-                            }
-                        }
-                    }
-                },
-                {
-                    "apiVersion": "security.istio.io/v1beta1",
-                    "kind": "AuthorizationPolicy",
-                    "metadata": {
-                        "name": "ml-pipeline-visualizationserver",
-                        "namespace": namespace,
-                    },
-                    "spec": {
-                        "selector": {
-                            "matchLabels": {
-                                "app": "ml-pipeline-visualizationserver"
-                            }
-                        },
-                        "rules": [{
-                            "from": [{
-                                "source": {
-                                    "principals": ["cluster.local/ns/kubeflow/sa/ml-pipeline"]
-                                }
-                            }]
-                        }]
-                    }
-                },
-                {
-                    "apiVersion": "v1",
-                    "kind": "Service",
-                    "metadata": {
-                        "name": "ml-pipeline-visualizationserver",
-                        "namespace": namespace,
-                    },
-                    "spec": {
-                        "ports": [{
-                            "name": "http",
-                            "port": 8888,
-                            "protocol": "TCP",
-                            "targetPort": 8888,
-                        }],
-                        "selector": {
-                            "app": "ml-pipeline-visualizationserver",
-                        },
-                    },
-                },
-                # Artifact fetcher related resources below.
-                {
-                    "apiVersion": "apps/v1",
-                    "kind": "Deployment",
-                    "metadata": {
-                        "labels": {
-                            "app": "ml-pipeline-ui-artifact"
-                        },
-                        "name": "ml-pipeline-ui-artifact",
-                        "namespace": namespace,
-                    },
-                    "spec": {
-                        "selector": {
-                            "matchLabels": {
-                                "app": "ml-pipeline-ui-artifact"
-                            }
-                        },
-                        "template": {
-                            "metadata": {
-                                "labels": {
-                                    "app": "ml-pipeline-ui-artifact"
-                                },
-                                "annotations": disable_istio_sidecar and {
-                                    "sidecar.istio.io/inject": "false"
-                                } or {},
-                            },
-                            "spec": {
-                                "containers": [{
-                                    "name":
-                                        "ml-pipeline-ui-artifact",
-                                    "image": f"{frontend_image}:{frontend_tag}",
-                                    "imagePullPolicy":
-                                        "IfNotPresent",
-                                    "ports": [{
-                                        "containerPort": 3000
-                                    }],
-                                    "env": [
-                                        {
-                                            "name": "MINIO_ACCESS_KEY",
-                                            "valueFrom": {
-                                                "secretKeyRef": {
-                                                    "key": "accesskey",
-                                                    "name": "mlpipeline-minio-artifact"
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "name": "MINIO_SECRET_KEY",
-                                            "valueFrom": {
-                                                "secretKeyRef": {
-                                                    "key": "secretkey",
-                                                    "name": "mlpipeline-minio-artifact"
-                                                }
-                                            }
-                                        }
-                                    ],
-                                    "resources": {
-                                        "requests": {
-                                            "cpu": "10m",
-                                            "memory": "70Mi"
-                                        },
-                                        "limits": {
-                                            "cpu": "100m",
-                                            "memory": "500Mi"
-                                        },
-                                    }
-                                }],
-                                "serviceAccountName":
-                                    "default-editor"
-                            }
-                        }
-                    }
-                },
-                {
-                    "apiVersion": "v1",
-                    "kind": "Service",
-                    "metadata": {
-                        "name": "ml-pipeline-ui-artifact",
-                        "namespace": namespace,
-                        "labels": {
-                            "app": "ml-pipeline-ui-artifact"
-                        }
-                    },
-                    "spec": {
-                        "ports": [{
-                            "name":
-                                "http",  # name is required to let istio understand request protocol
-                            "port": 80,
-                            "protocol": "TCP",
-                            "targetPort": 3000
-                        }],
-                        "selector": {
-                            "app": "ml-pipeline-ui-artifact"
-                        }
-                    }
-                },
+            desired_resources = load_desired_resources(
+                namespace=namespace,
+                kfp_default_pipeline_root=kfp_default_pipeline_root,
+                istio_sidecar_annotation=istio_sidecar_annotation,
+                visualization_server_image=visualization_server_image,
+                visualization_server_tag=visualization_server_tag,
+                frontend_image=frontend_image,
+                frontend_tag=frontend_tag,
+                minio_access_key=minio_access_key,
+                minio_secret_key=minio_secret_key,
+            )
+
+            # Exclude secrets from the print statement
+            non_secret_resources = [
+                r for r in desired_resources if r["kind"] != "Secret"
             ]
-            print('Received request:\n', json.dumps(parent, sort_keys=True))
-            print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))
-            # Moved after the print argument because this is sensitive data.
-            desired_resources.append({
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "metadata": {
-                    "name": "mlpipeline-minio-artifact",
-                    "namespace": namespace,
-                },
-                "data": {
-                    "accesskey": minio_access_key,
-                    "secretkey": minio_secret_key,
-                },
-            })
+            print("Received request:\n", json.dumps(parent, sort_keys=True))
+            print(
+                "Desired resources except secrets:\n",
+                json.dumps(non_secret_resources, sort_keys=True),
+            )
 
             desired_status = compute_desired_status(attachments, desired_resources)
 
