@@ -173,7 +173,7 @@ class TestTolerationsJSON:
         # checks that a pipeline input for
         # tasks is supported
         @dsl.pipeline
-        def my_pipeline(toleration_input: str):
+        def my_pipeline(toleration_input: dict):
             task = comp()
             kubernetes.add_toleration_json(
                 task,
@@ -204,7 +204,7 @@ class TestTolerationsJSON:
         # checks that multiple pipeline inputs for
         # different tasks are supported
         @dsl.pipeline
-        def my_pipeline(toleration_input_1: str, toleration_input_2: str):
+        def my_pipeline(toleration_input_1: dict, toleration_input_2: list):
             t1 = comp()
             kubernetes.add_toleration_json(
                 t1,

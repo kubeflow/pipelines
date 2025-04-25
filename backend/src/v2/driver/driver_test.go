@@ -2075,6 +2075,165 @@ func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
 				}),
 			},
 		},
+		{
+			"Valid - toleration json - toleration list",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				Tolerations: []*kubernetesplatform.Toleration{
+					{
+						TolerationJson: inputParamComponent("param_1"),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Tolerations: []k8score.Toleration{
+					{
+						Key:               "key1",
+						Operator:          "Equal",
+						Value:             "value1",
+						Effect:            "NoSchedule",
+						TolerationSeconds: int64Ptr(3601),
+					},
+					{
+						Key:               "key2",
+						Operator:          "Equal",
+						Value:             "value2",
+						Effect:            "NoSchedule",
+						TolerationSeconds: int64Ptr(3602),
+					},
+					{
+						Key:               "key3",
+						Operator:          "Equal",
+						Value:             "value3",
+						Effect:            "NoSchedule",
+						TolerationSeconds: int64Ptr(3603),
+					},
+				},
+			},
+			map[string]*structpb.Value{
+				"param_1": validListOfStructsOrPanic([]map[string]interface{}{
+					{
+						"key":               "key1",
+						"operator":          "Equal",
+						"value":             "value1",
+						"effect":            "NoSchedule",
+						"tolerationSeconds": 3601,
+					},
+					{
+						"key":               "key2",
+						"operator":          "Equal",
+						"value":             "value2",
+						"effect":            "NoSchedule",
+						"tolerationSeconds": 3602,
+					},
+					{
+						"key":               "key3",
+						"operator":          "Equal",
+						"value":             "value3",
+						"effect":            "NoSchedule",
+						"tolerationSeconds": 3603,
+					},
+				}),
+			},
+		},
+		{
+			"Valid - toleration json - list toleration & single toleration & constant toleration",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				Tolerations: []*kubernetesplatform.Toleration{
+					{
+						TolerationJson: inputParamComponent("param_1"),
+					},
+					{
+						TolerationJson: inputParamComponent("param_2"),
+					},
+					{
+						Key:      "key5",
+						Operator: "Equal",
+						Value:    "value5",
+						Effect:   "NoSchedule",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Tolerations: []k8score.Toleration{
+					{
+						Key:               "key1",
+						Operator:          "Equal",
+						Value:             "value1",
+						Effect:            "NoSchedule",
+						TolerationSeconds: int64Ptr(3601),
+					},
+					{
+						Key:               "key2",
+						Operator:          "Equal",
+						Value:             "value2",
+						Effect:            "NoSchedule",
+						TolerationSeconds: int64Ptr(3602),
+					},
+					{
+						Key:               "key3",
+						Operator:          "Equal",
+						Value:             "value3",
+						Effect:            "NoSchedule",
+						TolerationSeconds: int64Ptr(3603),
+					},
+					{
+						Key:               "key4",
+						Operator:          "Equal",
+						Value:             "value4",
+						Effect:            "NoSchedule",
+						TolerationSeconds: int64Ptr(3604),
+					},
+					{
+						Key:      "key5",
+						Operator: "Equal",
+						Value:    "value5",
+						Effect:   "NoSchedule",
+					},
+				},
+			},
+			map[string]*structpb.Value{
+				"param_1": validListOfStructsOrPanic([]map[string]interface{}{
+					{
+						"key":               "key1",
+						"operator":          "Equal",
+						"value":             "value1",
+						"effect":            "NoSchedule",
+						"tolerationSeconds": 3601,
+					},
+					{
+						"key":               "key2",
+						"operator":          "Equal",
+						"value":             "value2",
+						"effect":            "NoSchedule",
+						"tolerationSeconds": 3602,
+					},
+					{
+						"key":               "key3",
+						"operator":          "Equal",
+						"value":             "value3",
+						"effect":            "NoSchedule",
+						"tolerationSeconds": 3603,
+					},
+				}),
+				"param_2": validValueStructOrPanic(map[string]interface{}{
+					"key":               "key4",
+					"operator":          "Equal",
+					"value":             "value4",
+					"effect":            "NoSchedule",
+					"tolerationSeconds": 3604,
+				}),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2552,6 +2711,18 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.podSpec)
 		})
 	}
+}
+
+func validListOfStructsOrPanic(data []map[string]interface{}) *structpb.Value {
+	var listValues []*structpb.Value
+	for _, item := range data {
+		s, err := structpb.NewStruct(item)
+		if err != nil {
+			panic(err)
+		}
+		listValues = append(listValues, structpb.NewStructValue(s))
+	}
+	return structpb.NewListValue(&structpb.ListValue{Values: listValues})
 }
 
 func validValueStructOrPanic(data map[string]interface{}) *structpb.Value {
