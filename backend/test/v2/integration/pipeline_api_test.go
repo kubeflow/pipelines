@@ -126,7 +126,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 			},
 			PipelineVersion: &model.V2beta1PipelineVersion{
 				PackageURL: &model.V2beta1URL{
-					PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/v2/sequential.yaml",
+					PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
 				},
 			},
 		},
@@ -141,7 +141,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "sequential", sequentialPipelineVersions[0].DisplayName)
 	assert.Equal(t, "sequential pipeline", sequentialPipelineVersions[0].Description)
 	assert.Equal(t, sequentialPipeline.PipelineID, sequentialPipelineVersions[0].PipelineID)
-	assert.Equal(t, "https://storage.googleapis.com/ml-pipeline-dataset/v2/sequential.yaml", sequentialPipelineVersions[0].PackageURL.PipelineURL)
+	assert.Equal(t, "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml", sequentialPipelineVersions[0].PackageURL.PipelineURL)
 
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
@@ -164,7 +164,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 				Description: "1st version of argument url pipeline",
 				PipelineID:  sequentialPipeline.PipelineID,
 				PackageURL: &model.V2beta1URL{
-					PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/v2/arguments.pipeline.zip",
+					PipelineURL: "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip",
 				},
 			},
 		})
@@ -172,7 +172,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "argumentUrl-v1", argumentUrlPipelineVersion.DisplayName)
 	assert.Equal(t, "1st version of argument url pipeline", argumentUrlPipelineVersion.Description)
 	assert.Equal(t, argumentUrlPipeline.PipelineID, argumentUrlPipelineVersion.PipelineID)
-	assert.Equal(t, "https://storage.googleapis.com/ml-pipeline-dataset/v2/arguments.pipeline.zip", argumentUrlPipelineVersion.PackageURL.PipelineURL)
+	assert.Equal(t, "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip", argumentUrlPipelineVersion.PackageURL.PipelineURL)
 
 	/* ---------- Verify list pipeline works ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{})

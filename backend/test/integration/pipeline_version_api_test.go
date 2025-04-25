@@ -145,7 +145,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 		Body: &pipeline_model.APIPipelineVersion{
 			Name: "sequential",
 			PackageURL: &pipeline_model.APIURL{
-				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml",
+				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
 			},
 			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
@@ -174,7 +174,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 		Body: &pipeline_model.APIPipelineVersion{
 			Name: "arguments",
 			PackageURL: &pipeline_model.APIURL{
-				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
+				PipelineURL: "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/resources/arguments.pipeline.zip",
 			},
 			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
