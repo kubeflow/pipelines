@@ -104,8 +104,8 @@ type ResourceManagerOptions struct {
 	CacheEnabled   *bool `json:"cache_enabled,omitempty"`
 }
 
-func NewResourceManagerOptions(calendarMetrics bool, cacheEnabled bool) *ResourceManagerOptions {
-	return &ResourceManagerOptions{CollectMetrics: calendarMetrics, CacheEnabled: &cacheEnabled}
+func NewResourceManagerOptions(collectMetrics bool, cacheEnabled bool) *ResourceManagerOptions {
+	return &ResourceManagerOptions{CollectMetrics: collectMetrics, CacheEnabled: &cacheEnabled}
 }
 
 type ResourceManager struct {
