@@ -89,10 +89,10 @@ def add_toleration_json(task: PipelineTask,
         task:
             Pipeline task.
         toleration_json:
-            a toleration that is a pipeline input parameter.
+            a toleration that is a pipeline input parameter, dict, or list.
             The input parameter must be of type dict or list.
 
-            If it is a dict, it must be a single toleration object.
+            If it is an  input parameter of type dict, it must be a single toleration object.
             For example a pipeline input parameter in this case could be:
                 {
                   "key": "key1",
@@ -101,7 +101,7 @@ def add_toleration_json(task: PipelineTask,
                   "effect": "NoSchedule"
                 }
 
-            If it is a list, it must be list of toleration objects.
+            If it is an input parameter of type list, it must be list of toleration objects.
             For example a pipeline input parameter in this case could be:
                 [
                     {
@@ -116,18 +116,35 @@ def add_toleration_json(task: PipelineTask,
                       "effect": "NoExecute"
                     }
                 ]
+            In the case of static list or dicts, the call wraps add_toleration.
     Returns:
         Task object with added toleration.
     """
-    if not isinstance(toleration_json, pipeline_channel.PipelineParameterChannel):
-        raise TypeError("toleration_json must be a Pipeline Input Parameter.")
 
-    msg = common.get_existing_kubernetes_config_as_message(task)
-    toleration = pb.Toleration()
-    toleration.toleration_json.CopyFrom(
-        common.parse_k8s_parameter_input(toleration_json, task)
-    )
-    msg.tolerations.append(toleration)
-    task.platform_config["kubernetes"] = json_format.MessageToDict(msg)
+    if isinstance(toleration_json, pipeline_channel.PipelineParameterChannel):
+        msg = common.get_existing_kubernetes_config_as_message(task)
+        toleration = pb.Toleration()
+        toleration.toleration_json.CopyFrom(
+            common.parse_k8s_parameter_input(toleration_json, task)
+        )
+        msg.tolerations.append(toleration)
+        task.platform_config["kubernetes"] = json_format.MessageToDict(msg)
+    elif isinstance(toleration_json, list):
+        for toleration in toleration_json:
+            _add_dict_toleration(task, toleration)
+    elif isinstance(toleration_json, dict):
+        _add_dict_toleration(task, toleration_json)
+    else:
+        raise ValueError("toleration_json must be a dict, list, or input parameter")
 
     return task
+
+def _add_dict_toleration(task: PipelineTask, toleration: dict):
+    add_toleration(
+        task,
+        key=toleration.get("key"),
+        value=toleration.get("value"),
+        operator=toleration.get("operator"),
+        effect=toleration.get("effect"),
+        toleration_seconds=toleration.get("toleration_seconds"),
+    )
