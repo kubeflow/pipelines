@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from typing import Optional, Union
 
 from google.protobuf import json_format
@@ -82,28 +81,70 @@ def add_toleration(
 
 
 def add_toleration_json(task: PipelineTask,
-                        toleration_json: Union[pipeline_channel.PipelineParameterChannel, dict]
+                        toleration_json: Union[pipeline_channel.PipelineParameterChannel, list, dict]
                         ):
-    """Add a Pod Toleration in the form of a JSON to a task.
+    """Add a Pod Toleration in the form of a Pipeline Input JSON to a task.
 
     Args:
         task:
             Pipeline task.
         toleration_json:
-            a toleration provided as dict or input parameter. Takes
-            precedence over other key, operator, value, effect,
-            and toleration_seconds.
+            a toleration that is a pipeline input parameter, dict, or list.
+            The input parameter must be of type dict or list.
 
+            If it is an  input parameter of type dict, it must be a single toleration object.
+            For example a pipeline input parameter in this case could be:
+                {
+                  "key": "key1",
+                  "operator": "Equal",
+                  "value": "value1",
+                  "effect": "NoSchedule"
+                }
+
+            If it is an input parameter of type list, it must be list of toleration objects.
+            For example a pipeline input parameter in this case could be:
+                [
+                    {
+                      "key": "key1",
+                      "operator": "Equal",
+                      "value": "value1",
+                      "effect": "NoSchedule"
+                    },
+                    {
+                      "key": "key2",
+                      "operator": "Exists",
+                      "effect": "NoExecute"
+                    }
+                ]
+            In the case of static list or dicts, the call wraps add_toleration.
     Returns:
         Task object with added toleration.
     """
 
-    msg = common.get_existing_kubernetes_config_as_message(task)
-    toleration = pb.Toleration()
-    toleration.toleration_json.CopyFrom(
-        common.parse_k8s_parameter_input(toleration_json, task)
-    )
-    msg.tolerations.append(toleration)
-    task.platform_config["kubernetes"] = json_format.MessageToDict(msg)
+    if isinstance(toleration_json, pipeline_channel.PipelineParameterChannel):
+        msg = common.get_existing_kubernetes_config_as_message(task)
+        toleration = pb.Toleration()
+        toleration.toleration_json.CopyFrom(
+            common.parse_k8s_parameter_input(toleration_json, task)
+        )
+        msg.tolerations.append(toleration)
+        task.platform_config["kubernetes"] = json_format.MessageToDict(msg)
+    elif isinstance(toleration_json, list):
+        for toleration in toleration_json:
+            _add_dict_toleration(task, toleration)
+    elif isinstance(toleration_json, dict):
+        _add_dict_toleration(task, toleration_json)
+    else:
+        raise ValueError("toleration_json must be a dict, list, or input parameter")
 
     return task
+
+def _add_dict_toleration(task: PipelineTask, toleration: dict):
+    add_toleration(
+        task,
+        key=toleration.get("key"),
+        value=toleration.get("value"),
+        operator=toleration.get("operator"),
+        effect=toleration.get("effect"),
+        toleration_seconds=toleration.get("toleration_seconds"),
+    )
