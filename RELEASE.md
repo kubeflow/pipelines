@@ -238,17 +238,19 @@ The target tag should be `$VERSION`.
     Update the KFP Kubernetes SDK version in `__init__.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11380).
 
     ```bash
+    export KFP_KUBERNETES_VERSION=
     pip3 install twine --user
     cd kubernetes_platform/python
-    ./kubernetes_platform/python/create_release_branch.sh
+    ./create_release_branch.sh
     ```
 
-    Follow the output push instructions to push the branch to KFP, then do the following:
+    Follow the output push instructions to **commit and push the branch to KFP**, then do the following:
 
     ```bash
     # set this to the appropriate version that matches what was set in __init__.py earlier
     export KFP_KUBERNETES_VERSION=
-    ./kubernetes_platform/python/release.sh
+    cd kubernetes_platform/python
+    ./release.sh
     ```
    
     Note that this script will build the package, test install, and push to PyPi.
