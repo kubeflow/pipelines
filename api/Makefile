@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Contact one of chensun, HumairAK, zijianjoy if this remote image needs an update.
-PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.0
+PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.1
 
 .PHONY: all
 all: golang python

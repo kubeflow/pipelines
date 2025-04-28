@@ -18,8 +18,8 @@ from kfp.dsl import pipeline_channel
 from kfp.compiler.pipeline_spec_builder import to_protobuf_value
 from kfp.dsl import PipelineTask
 from google.protobuf import json_format
+from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
-import pipeline_spec_pb2
 
 def get_existing_kubernetes_config_as_message(
         task: 'PipelineTask') -> pb.KubernetesExecutorConfig:

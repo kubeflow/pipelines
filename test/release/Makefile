@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-REMOTE=ghcr.io/kubeflow/kfp-release:1.0
+REMOTE=ghcr.io/kubeflow/kfp-release:1.1
 
 CONTAINER_ENGINE ?= docker
 
