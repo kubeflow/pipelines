@@ -25,7 +25,6 @@ except ImportError:
 PLATFORM_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
 PIPELINE_API_PROTO_DIR = os.path.join(os.path.dirname(PLATFORM_DIR), 'api', 'v2alpha1')
 PROTO_DIR = os.path.join(PLATFORM_DIR, 'proto')
-pipeline_api_source = os.path.join(PIPELINE_API_PROTO_DIR, 'pipeline_spec.proto')
 
 PKG_DIR = os.path.realpath(
     os.path.join(PLATFORM_DIR, 'python', 'kfp', 'kubernetes'))

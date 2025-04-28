@@ -52,9 +52,9 @@ type APIJob struct {
 	// If false, the job will catch up on each past interval.
 	NoCatchup bool `json:"no_catchup,omitempty"`
 
-	// Required input field.
+	// Optional input field.
 	// Describing what the pipeline manifest and parameters to use
-	// for the scheduled job.
+	// for the scheduled job. If unset, fetch the pipline_spec at runtime.
 	PipelineSpec *APIPipelineSpec `json:"pipeline_spec,omitempty"`
 
 	// Optional input field. Specify which resource this job belongs to.
