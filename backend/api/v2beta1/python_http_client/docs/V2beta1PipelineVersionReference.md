@@ -5,7 +5,7 @@ Reference to an existing pipeline version.
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **pipeline_id** | **str** | Input. Required. Unique ID of the parent pipeline. | [optional] 
-**pipeline_version_id** | **str** | Input. Required. Unique ID of an existing pipeline version. | [optional] 
+**pipeline_version_id** | **str** | Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
