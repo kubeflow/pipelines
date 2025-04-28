@@ -161,9 +161,7 @@ def compute_desired_status(attachments, desired_resources):
         observed_count = len(attachments.get(key, []))
         desired_status[key] = observed_count == expected_count
 
-    desired_status["kubeflow-pipelines-ready"] = all(desired_status.values())
-
-    return desired_status
+    return {"kubeflow-pipelines-ready": all(desired_status.values())}
 
 
 def server_factory(visualization_server_image,
