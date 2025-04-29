@@ -1,6 +1,12 @@
 ## Upcoming release
 
+## Release 2.20.0
+
 * Bump image for Structured Data pipelines.
+* Set tensorboard_experiment_name to random uuid when uploading plots in Starry Net pipeline.
+* Upgrade default Tensorflow version when setting test set and retrieving training artifacts to random uuid when uploading plots in Starry Net pipeline.
+* Bump Starry Net dataprep, trainer and predictor image versions.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.19.0
 
