@@ -90,6 +90,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			return nil, fmt.Errorf("bug: cloned Kubernetes spec message does not have expected type")
 		}
 	}
+	var maxParallelism *int64
+	if kubernetesSpec != nil && kubernetesSpec.PipelineConfig != nil {
+		maxParallelism = &kubernetesSpec.PipelineConfig.MaxParallelism
+	}
 
 	// initialization
 	wf := &wfapi.Workflow{
@@ -109,6 +113,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			// },
 		},
 		Spec: wfapi.WorkflowSpec{
+			Parallelism: maxParallelism,
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",

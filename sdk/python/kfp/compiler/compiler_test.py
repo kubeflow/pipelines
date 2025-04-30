@@ -31,7 +31,7 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
-from kfp.dsl import Artifact
+from kfp.dsl import Artifact, PipelineConfig
 from kfp.dsl import ContainerSpec
 from kfp.dsl import Dataset
 from kfp.dsl import graph_component
@@ -236,6 +236,23 @@ class TestCompilePipeline(parameterized.TestCase):
 
             compiler.Compiler().compile(
                 pipeline_func=simple_pipeline, package_path=target_file)
+
+            self.assertTrue(os.path.exists(target_file))
+            with open(target_file, 'r') as f:
+                f.read()
+
+    def test_compile_pipeline_with_max_parallelism(self):
+
+        @dsl.pipeline(pipeline_config=PipelineConfig(3))
+        def my_pipeline():
+            comp()
+            comp()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target_file = os.path.join(tmpdir, 'limited_parallelism.yaml')
+
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=target_file)
 
             self.assertTrue(os.path.exists(target_file))
             with open(target_file, 'r') as f:
