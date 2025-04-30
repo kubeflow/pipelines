@@ -16,7 +16,9 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
-  - path: patches/service.yaml
+  # This must use a JSON patch to ensure the webhook port is added last, otherwise it can be added first, which
+  # affects the service default port automatically detected by the UI.
+  - path: patches/service.json
     target:
       kind: Service
       name: ml-pipeline
