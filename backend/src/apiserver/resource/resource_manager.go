@@ -373,7 +373,7 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if pipelineSpecURI != "" {
 		pv.PipelineSpecURI = pipelineSpecURI
 	}
-	tmpl, err := template.New(pipelineSpecBytes)
+	tmpl, err := template.New(pipelineSpecBytes, *r.options.CacheEnabled)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
 	}
@@ -1096,7 +1096,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
 
-		tmpl, err := template.New(manifest)
+		tmpl, err := template.New(manifest, *r.options.CacheEnabled)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
@@ -1482,7 +1482,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
 		}
 	}
-	tmpl, err := template.New([]byte(manifest))
+	tmpl, err := template.New([]byte(manifest), *r.options.CacheEnabled)
 	if err != nil {
 		return nil, "", util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 	}
@@ -1641,7 +1641,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	}
 
 	// Create a template
-	tmpl, err := template.New(pipelineSpecBytes)
+	tmpl, err := template.New(pipelineSpecBytes, *r.options.CacheEnabled)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
 	}

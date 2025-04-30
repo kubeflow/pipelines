@@ -42,7 +42,8 @@ func setupPipelineWebhookTest(t *testing.T) (*PipelineVersionsWebhook, string) {
 			},
 		}).Build()
 
-	pipelineWebhook := &PipelineVersionsWebhook{Client: fakeClient}
+	cacheEnabled := true
+	pipelineWebhook := &PipelineVersionsWebhook{Client: fakeClient, cacheEnabled: &cacheEnabled}
 
 	validPipelineSpec := map[string]interface{}{
 		"pipelineInfo": map[string]interface{}{

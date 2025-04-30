@@ -124,10 +124,12 @@ func main() {
 	defer clientManager.Close()
 	webhookOnlyMode := common.IsOnlyKubernetesWebhookMode()
 
+	cacheEnabled := common.GetBoolConfigWithDefault("CacheEnabled", true)
+
 	if *usePipelinesKubernetesStorage || webhookOnlyMode {
 		wg.Add(1)
 		webhookServer, err := startWebhook(
-			clientManager.ControllerClient(true), clientManager.ControllerClient(false), &wg,
+			clientManager.ControllerClient(true), clientManager.ControllerClient(false), &wg, cacheEnabled,
 		)
 		if err != nil {
 			glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
@@ -148,8 +150,6 @@ func main() {
 			return
 		}
 	}
-
-	cacheEnabled := common.GetBoolConfigWithDefault("CacheEnabled", true)
 
 	resourceManager := resource.NewResourceManager(
 		clientManager,
@@ -302,7 +302,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	glog.Info("Http Proxy started")
 }
 
-func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *sync.WaitGroup) (*http.Server, error) {
+func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *sync.WaitGroup, cacheEnabled bool) (*http.Server, error) {
 	glog.Info("Starting the Kubernetes webhooks...")
 
 	tlsCertPath := *webhookTLSCertPath
@@ -310,7 +310,7 @@ func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *
 
 	topMux := mux.NewRouter()
 
-	pvValidateWebhook, pvMutateWebhook, err := webhook.NewPipelineVersionWebhook(client, clientNoCahe)
+	pvValidateWebhook, pvMutateWebhook, err := webhook.NewPipelineVersionWebhook(client, clientNoCahe, cacheEnabled)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate the Kubernetes webhook: %v", err)
 	}

@@ -129,6 +129,8 @@ type Template interface {
 	RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
 
 	ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error)
+
+	IsCacheEnabled() bool
 }
 
 type RunWorkflowOptions struct {
@@ -137,13 +139,13 @@ type RunWorkflowOptions struct {
 	CacheEnabled *bool
 }
 
-func New(bytes []byte) (Template, error) {
+func New(bytes []byte, cacheEnabled bool) (Template, error) {
 	format := inferTemplateFormat(bytes)
 	switch format {
 	case V1:
 		return NewArgoTemplate(bytes)
 	case V2:
-		return NewV2SpecTemplate(bytes)
+		return NewV2SpecTemplate(bytes, cacheEnabled)
 	default:
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "unknown template format")
 	}

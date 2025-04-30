@@ -176,7 +176,7 @@ func TestScheduledWorkflow(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 
 	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
-	v2Template, _ := New([]byte(v2SpecHelloWorldYAML))
+	v2Template, _ := New([]byte(v2SpecHelloWorldYAML), true)
 
 	modelJob := &model.Job{
 		K8SName:        "name1",
@@ -283,10 +283,12 @@ func TestNewTemplate_V2(t *testing.T) {
 	var expectedSpec pipelinespec.PipelineSpec
 	err = protojson.Unmarshal(jsonData, &expectedSpec)
 	assert.Nil(t, err)
+	cacheEnabled := true
 	expectedTemplate := &V2Spec{
-		spec: &expectedSpec,
+		spec:         &expectedSpec,
+		cacheEnabled: &cacheEnabled,
 	}
-	templateV2Spec, err := New([]byte(template))
+	templateV2Spec, err := New([]byte(template), cacheEnabled)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }
@@ -311,18 +313,20 @@ func TestNewTemplate_WithPlatformSpec(t *testing.T) {
 	assert.Nil(t, err)
 	protojson.Unmarshal(jsonData, &expectedPlatformSpec)
 
+	cacheEnabled := true
 	expectedTemplate := &V2Spec{
 		spec:         &expectedPipelineSpec,
 		platformSpec: &expectedPlatformSpec,
+		cacheEnabled: &cacheEnabled,
 	}
-	templateV2Spec, err := New([]byte(template))
+	templateV2Spec, err := New([]byte(template), cacheEnabled)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }
 
 func TestNewTemplate_V2_InvalidSchemaVersion(t *testing.T) {
 	template := loadYaml(t, "testdata/hello_world_schema_2_0_0.yaml")
-	_, err := New([]byte(template))
+	_, err := New([]byte(template), true)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "KFP only supports schema version 2.1.0")
 }
@@ -332,9 +336,9 @@ func TestNewTemplate_V2_InvalidSchemaVersion(t *testing.T) {
 // so we verify the parsed object.
 func TestBytes_V2_WithExecutorConfig(t *testing.T) {
 	template := loadYaml(t, "testdata/pipeline_with_volume.yaml")
-	templateV2Spec, _ := New([]byte(template))
+	templateV2Spec, _ := New([]byte(template), true)
 	templateBytes := templateV2Spec.Bytes()
-	newTemplateV2Spec, err := New(templateBytes)
+	newTemplateV2Spec, err := New(templateBytes, true)
 	assert.Nil(t, err)
 	assert.Equal(t, templateV2Spec, newTemplateV2Spec)
 }
@@ -344,9 +348,9 @@ func TestBytes_V2_WithExecutorConfig(t *testing.T) {
 // so we verify the parsed object.
 func TestBytes_V2(t *testing.T) {
 	template := loadYaml(t, "testdata/hello_world.yaml")
-	templateV2Spec, _ := New([]byte(template))
+	templateV2Spec, _ := New([]byte(template), true)
 	templateBytes := templateV2Spec.Bytes()
-	newTemplateV2Spec, err := New(templateBytes)
+	newTemplateV2Spec, err := New(templateBytes, true)
 	assert.Nil(t, err)
 	assert.Equal(t, templateV2Spec, newTemplateV2Spec)
 }

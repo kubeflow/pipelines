@@ -38,7 +38,10 @@ import (
 type V2Spec struct {
 	spec         *pipelinespec.PipelineSpec
 	platformSpec *pipelinespec.PlatformSpec
+	cacheEnabled *bool
 }
+
+var _ Template = &V2Spec{}
 
 var Launcher = ""
 
@@ -107,7 +110,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheEnabled: t.cacheEnabled})
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -152,8 +155,8 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 	return V2
 }
 
-func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
-	var v2Spec V2Spec
+func NewV2SpecTemplate(template []byte, cacheEnabled bool) (*V2Spec, error) {
+	v2Spec := &V2Spec{cacheEnabled: &cacheEnabled}
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
@@ -221,7 +224,7 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 	if v2Spec.spec == nil {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "no pipeline spec is provided")
 	}
-	return &v2Spec, nil
+	return v2Spec, nil
 }
 
 func (t *V2Spec) Bytes() []byte {
@@ -339,6 +342,10 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	}
 	executionSpec.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
 	return executionSpec, nil
+}
+
+func (t *V2Spec) IsCacheEnabled() bool {
+	return *t.cacheEnabled
 }
 
 func IsPlatformSpecWithKubernetesConfig(template []byte) bool {
