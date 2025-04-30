@@ -3,6 +3,7 @@ package storage
 import (
 	"testing"
 
+	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -21,6 +22,10 @@ import (
 )
 
 func TestListK8sPipelines(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	fc := &model.FilterContext{}
@@ -45,6 +50,10 @@ func TestListK8sPipelines(t *testing.T) {
 }
 
 func TestListK8sPipelines_WithFilter(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipeline := &model.Pipeline{
@@ -74,6 +83,10 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 }
 
 func TestListK8sPipelines_Pagination(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipeline1 := &model.Pipeline{
@@ -101,12 +114,17 @@ func TestListK8sPipelines_Pagination(t *testing.T) {
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
+	require.Nil(t, err1, "Failed to create list options: %v")
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "Test Pipeline 3", "Pagination failed")
 }
 
 func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipeline1 := &model.Pipeline{
@@ -140,6 +158,10 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 }
 
 func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipeline1 := &model.Pipeline{
@@ -173,6 +195,10 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 }
 
 func TestListK8sPipelines_Pagination_LessThanPageSize(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "", nil)
@@ -186,38 +212,34 @@ func TestListK8sPipelines_Pagination_LessThanPageSize(t *testing.T) {
 
 func TestGetK8sPipeline(t *testing.T) {
 	// This is important for getting a K8s pipeline
+	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
-	pipeline := &model.Pipeline{
-		UUID:        DefaultFakePipelineId,
-		Name:        "Test Pipeline 3",
-		Description: "Test Pipeline 3 Description",
-		Namespace:   "Test",
-	}
-
-	p, err := store.GetPipeline(pipeline.UUID)
+	p, err := store.GetPipeline(DefaultFakePipelineIdTwo)
 	require.Nil(t, err, "Failed to get Pipeline: %v", err)
-	require.Equal(t, p.UUID, pipeline.UUID)
+	require.Equal(t, p.UUID, DefaultFakePipelineIdTwo)
 }
 
 func TestGetK8sPipeline_NotFoundError(t *testing.T) {
 	// This is important for getting a K8s pipeline
+	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
-	pipeline := &model.Pipeline{
-		UUID:        DefaultFakePipelineIdFive,
-		Name:        "Test Pipeline 3",
-		Description: "Test Pipeline 3 Description",
-		Namespace:   "Test",
-	}
-
-	_, err := store.GetPipeline(pipeline.UUID)
+	_, err := store.GetPipeline(DefaultFakePipelineIdFive)
 	require.NotNil(t, err)
 }
 
 func TestCreateK8sPipeline(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipeline := &model.Pipeline{
@@ -235,7 +257,10 @@ func TestCreateK8sPipeline(t *testing.T) {
 }
 
 func TestDeleteK8sPipeline(t *testing.T) {
-	viper.Set("POD_NAMESPACE", "test")
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	err := store.DeletePipeline(DefaultFakePipelineId)
@@ -247,22 +272,27 @@ func TestDeleteK8sPipeline(t *testing.T) {
 }
 
 func TestCreateK8sPipelineVersion(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipelineVersion := &model.PipelineVersion{
 		Name:        "Test Pipeline Version",
-		PipelineId:  DefaultFakePipelineId,
+		PipelineId:  DefaultFakePipelineIdTwo,
 		Description: "Test Pipeline Version Description",
 	}
 
 	_, err := store.CreatePipelineVersion(pipelineVersion)
 	require.Nil(t, err, "Failed to create PipelineVersion: %v", err)
-	// require.Equal(t, pv, *pipelineVersion)
 }
 
 func TestDeleteK8sPipelineVersion(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	err := store.DeletePipelineVersion(DefaultFakePipelineId)
@@ -276,6 +306,10 @@ func TestDeleteK8sPipelineVersion(t *testing.T) {
 }
 
 func TestGetK8sPipelineVersion(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipelineVersion := &model.PipelineVersion{
@@ -290,7 +324,10 @@ func TestGetK8sPipelineVersion(t *testing.T) {
 }
 
 func TestGetLatestK8sPipelineVersion(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipelineVersion, err := store.GetLatestPipelineVersion(DefaultFakePipelineIdTwo)
@@ -299,7 +336,10 @@ func TestGetLatestK8sPipelineVersion(t *testing.T) {
 }
 
 func TestGetK8sPipelineVersion_NotFoundError(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	_, err := store.GetLatestPipelineVersion(DefaultFakePipelineIdFive)
@@ -308,16 +348,20 @@ func TestGetK8sPipelineVersion_NotFoundError(t *testing.T) {
 }
 
 func TestListK8sPipelineVersions_Pagination(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipelineVersion1 := &model.PipelineVersion{
 		Name:       "Test Pipeline Version 1",
-		PipelineId: DefaultFakePipelineId,
+		PipelineId: DefaultFakePipelineIdTwo,
 	}
 
 	pipelineVersion2 := &model.PipelineVersion{
 		Name:       "Test Pipeline Version 2",
-		PipelineId: DefaultFakePipelineId,
+		PipelineId: DefaultFakePipelineIdTwo,
 	}
 
 	_, err := store.CreatePipelineVersion(pipelineVersion1)
@@ -326,29 +370,36 @@ func TestListK8sPipelineVersions_Pagination(t *testing.T) {
 	require.Nil(t, err, "Failed to create PipelineVersion: %v", err)
 
 	options, err := list.NewOptions(&model.PipelineVersion{}, 1, "", nil)
+	require.Nil(t, err, "Failed to create list options")
 
-	pipelineVersions, _, npt, err := store.ListPipelineVersions(DefaultFakePipelineId, options)
+	pipelineVersions, _, npt, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.NotNil(t, npt, "Npt should not be nil")
 
 	options, err = list.NewOptionsFromToken(npt, 1)
+	require.Nil(t, err, "Failed to create list options")
 	pipelineVersions, _, _, err = store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
+	require.Nil(t, err, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.Equalf(t, pipelineVersions[0].Name, "Test Pipeline Version 3", "Pagination did not work as expected")
 }
 
 func TestListK8sPipelineVersions_Pagination_Descend(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipelineVersion1 := &model.PipelineVersion{
 		Name:       "Test Pipeline Version 1",
-		PipelineId: DefaultFakePipelineId,
+		PipelineId: DefaultFakePipelineIdTwo,
 	}
 
 	pipelineVersion2 := &model.PipelineVersion{
 		Name:       "Test Pipeline Version 2",
-		PipelineId: DefaultFakePipelineId,
+		PipelineId: DefaultFakePipelineIdTwo,
 	}
 
 	_, err := store.CreatePipelineVersion(pipelineVersion1)
@@ -365,6 +416,10 @@ func TestListK8sPipelineVersions_Pagination_Descend(t *testing.T) {
 }
 
 func TestListK8sPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "", nil)
@@ -377,6 +432,10 @@ func TestListK8sPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestGetK8sPipelineVersionByName(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipelineVersion, err := store.GetPipelineVersionByName("Test Pipeline Version 3")
@@ -385,7 +444,10 @@ func TestGetK8sPipelineVersionByName(t *testing.T) {
 }
 
 func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	filterProto := &api.Filter{
@@ -408,7 +470,10 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 }
 
 func TestCreatePipelineAndPipelineVersion(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
 	store := NewPipelineStoreKubernetes(getClient())
 
 	k8sPipeline := &model.Pipeline{
@@ -426,27 +491,7 @@ func getClient() (client.Client, client.Client) {
 	scheme := runtime.NewScheme()
 	err := v2beta1.AddToScheme(scheme)
 	if err != nil {
-	}
-
-	pipeline := &v2beta1.Pipeline{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:       DefaultFakePipelineId,
-			Name:      "Test Pipeline",
-			Namespace: "Test",
-		},
-	}
-
-	pipeline1 := &v2beta1.Pipeline{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "Test Pipeline 1",
-			Namespace: "Test",
-		},
-	}
-	pipeline2 := &v2beta1.Pipeline{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "Test Pipeline 2",
-			Namespace: "Test",
-		},
+		glog.Fatalf("Failed to add to scheme: %v", err)
 	}
 
 	pipeline3 := &v2beta1.Pipeline{
@@ -471,6 +516,9 @@ func getClient() (client.Client, client.Client) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "Test Pipeline Version 1",
 			Namespace: "Test",
+			Labels: map[string]string{
+				"pipelines.kubeflow.org/pipeline-id": DefaultFakePipelineId,
+			},
 		},
 	}
 
@@ -502,7 +550,7 @@ func getClient() (client.Client, client.Client) {
 
 	k8sClient := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithStatusSubresource(pipeline, pipeline1, pipeline2, pipelineVersion, pipelineVersion1, pipelineVersion2).
+		WithStatusSubresource(pipelineVersion, pipelineVersion1, pipelineVersion2, pipelineVersion3).
 		WithObjects(pipeline3, pipelineVersion3).
 		Build()
 
