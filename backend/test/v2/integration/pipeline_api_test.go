@@ -160,7 +160,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 		&params.PipelineServiceCreatePipelineVersionParams{
 			PipelineID: argumentUrlPipeline.PipelineID,
 			Body: &model.V2beta1PipelineVersion{
-				DisplayName: "argumentUrl-v1",
+				DisplayName: "argumenturl-v1",
 				Description: "1st version of argument url pipeline",
 				PipelineID:  sequentialPipeline.PipelineID,
 				PackageURL: &model.V2beta1URL{
@@ -169,7 +169,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 			},
 		})
 	require.Nil(t, err)
-	assert.Equal(t, "argumentUrl-v1", argumentUrlPipelineVersion.DisplayName)
+	assert.Equal(t, "argumenturl-v1", argumentUrlPipelineVersion.DisplayName)
 	assert.Equal(t, "1st version of argument url pipeline", argumentUrlPipelineVersion.Description)
 	assert.Equal(t, argumentUrlPipeline.PipelineID, argumentUrlPipelineVersion.PipelineID)
 	assert.Equal(t, "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip", argumentUrlPipelineVersion.PackageURL.PipelineURL)

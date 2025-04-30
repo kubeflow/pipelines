@@ -152,8 +152,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        pipeline_store: [ "database", "kubernetes" ]
         k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
-    name: API integration tests v2 - K8s ${{ matrix.k8s_version }}
+    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -167,6 +168,7 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          pipeline_store: ${{ matrix.pipeline_store }}
 
       - name: Forward API port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
@@ -187,7 +189,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}
+          name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}
           path: /tmp/tmp*/*
 
   api-integration-tests-v2-with-proxy:

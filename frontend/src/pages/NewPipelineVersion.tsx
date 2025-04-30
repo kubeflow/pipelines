@@ -474,7 +474,12 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       const currDate = new Date();
       this.setState({
         pipelineVersionName:
-          pipelineResponse.display_name + '_version_at_' + currDate.toISOString(),
+          pipelineResponse.display_name +
+          '-version-at-' +
+          currDate
+            .toISOString()
+            .toLowerCase()
+            .replace(/:/g, '-'),
       });
     }
 
@@ -490,7 +495,15 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       // Suggest a version name based on pipeline name
       const currDate = new Date();
       this.setState(
-        { pipelineVersionName: value + '_version_at_' + currDate.toISOString() },
+        {
+          pipelineVersionName:
+            value +
+            '-version-at-' +
+            currDate
+              .toISOString()
+              .toLowerCase()
+              .replace(/:/g, '-'),
+        },
         this._validate.bind(this),
       );
     }
@@ -511,7 +524,14 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         pipelineSelectorOpen: false,
         // Suggest a version name based on pipeline name
         pipelineVersionName:
-          (pipeline && pipeline.display_name + '_version_at_' + currDate.toISOString()) || '',
+          (pipeline &&
+            pipeline.display_name +
+              '-version-at-' +
+              currDate
+                .toISOString()
+                .toLowerCase()
+                .replace(/:/g, '-')) ||
+          '',
       },
       () => this._validate(),
     );

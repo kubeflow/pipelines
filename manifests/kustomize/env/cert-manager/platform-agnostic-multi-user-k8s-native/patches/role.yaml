@@ -1,0 +1,33 @@
+- op: add
+  path: "/rules/-"
+  value:
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+    apiGroups:
+      - pipelines.kubeflow.org
+    resources:
+      - pipelines
+      - pipelines/finalizers
+- op: add
+  path: "/rules/-"
+  value:
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+    apiGroups:
+      - pipelines.kubeflow.org
+    resources:
+      - pipelineversions
+      - pipelineversions/status
+      - pipelineversions/finalizers

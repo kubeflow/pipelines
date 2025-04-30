@@ -12,19 +12,28 @@ resources:
 namespace: kubeflow
 
 patches:
-- path: patches/deployment.yaml
-  target:
-    kind: Deployment
-    name: ml-pipeline
-- path: patches/service.yaml
-  target:
-    kind: Service
-    name: ml-pipeline
-- path: patches/validating-webhook.yaml
-  target:
-    kind: ValidatingWebhookConfiguration
-    name: pipelineversions.pipelines.kubeflow.org
-- path: patches/mutating-webhook.yaml
-  target:
-    kind: MutatingWebhookConfiguration
-    name: pipelineversions.pipelines.kubeflow.org
+  - path: patches/deployment.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline
+  # This must use a JSON patch to ensure the webhook port is added last, otherwise it can be added first, which
+  # affects the service default port automatically detected by the UI.
+  - path: patches/service.json
+    target:
+      kind: Service
+      name: ml-pipeline
+  - path: patches/validating-webhook.yaml
+    target:
+      kind: ValidatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+  - path: patches/mutating-webhook.yaml
+    target:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+  - path: patches/role.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRole
+      name: ml-pipeline
+
