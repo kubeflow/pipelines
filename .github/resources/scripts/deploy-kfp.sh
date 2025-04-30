@@ -24,19 +24,32 @@ C_DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$C_DIR" ]]; then C_DIR="$PWD"; fi
 source "${C_DIR}/helper-functions.sh"
 
+TEST_MANIFESTS=".github/resources/manifests/argo"
+PIPELINES_STORE="database"
 USE_PROXY=false
 
-while getopts ":p-:" OPT; do
-    case $OPT in
-        -) [ "$OPTARG" = "proxy" ] && USE_PROXY=true || { echo "Unknown option --$OPTARG"; exit 1; };;
-        \?) echo "Invalid option: -$OPTARG" >&2; exit 1;;
-    esac
+# Loop over script arguments passed. This uses a single switch-case
+# block with default value in case we want to make alternative deployments
+# in the future.
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --deploy-k8s-native)
+      PIPELINES_STORE="kubernetes"
+      shift
+      ;;
+    --proxy)
+      USE_PROXY=true
+      shift
+      ;;
+  esac
 done
 
-shift $((OPTIND-1))
+if [ "${USE_PROXY}" == "true" && "${PIPELINES_STORE}" == "kubernetes" ]; then
+  echo "ERROR: Kubernetes Pipeline store cannot be deployed with proxy support."
+  exit 1
+fi
 
 kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
-kubectl apply -k "manifests/kustomize/base/crds"
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
@@ -44,23 +57,22 @@ then
   exit $EXIT_CODE
 fi
 
-#Install cert-manager
-make -C ./backend install-cert-manager || EXIT_CODE=$?
-if [[ $EXIT_CODE -ne 0 ]]
-then
-  echo "Failed to deploy cert-manager."
-  exit $EXIT_CODE
+# If pipelines store is set to 'kubernetes', cert-manager must be deployed
+if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+  #Install cert-manager
+  make -C ./backend install-cert-manager || EXIT_CODE=$?
+  if [[ $EXIT_CODE -ne 0 ]]
+  then
+    echo "Failed to deploy cert-manager."
+    exit $EXIT_CODE
+  fi
 fi
 
-# Deploy manifest
-TEST_MANIFESTS=".github/resources/manifests/argo"
-
-if [[ "$PIPELINE_STORE" == "kubernetes" ]]; then
-  TEST_MANIFESTS=".github/resources/manifests/kubernetes-native"
-fi
-
+# Manifests will be deployed according to the flag provided
 if $USE_PROXY; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
+elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
 else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
 fi

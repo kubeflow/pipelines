@@ -15,10 +15,12 @@
 package clientmanager
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -36,6 +38,7 @@ import (
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/minio/minio-go/v6"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -108,10 +111,26 @@ type ClientManager struct {
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []auth.Authenticator
 	controllerClient          ctrlclient.Client
+	controllerClientNoCache   ctrlclient.Client
+}
+
+// Options to pass to Client Manager initialization
+type Options struct {
+	UsePipelineKubernetesStorage bool
+	Context                      context.Context
+	WaitGroup                    *sync.WaitGroup
 }
 
 func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
 	return c.taskStore
+}
+
+func (c *ClientManager) ControllerClient(cacheEnabled bool) ctrlclient.Client {
+	if cacheEnabled {
+		return c.controllerClient
+	}
+
+	return c.controllerClientNoCache
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -182,29 +201,70 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 	return c.authenticators
 }
 
-func (c *ClientManager) ControllerClient() ctrlclient.Client {
-	return c.controllerClient
-}
+func (c *ClientManager) init(options *Options) error {
+	// time
+	c.time = util.NewRealTime()
 
-func (c *ClientManager) init() error {
-	glog.Info("Initializing controller client...")
+	// UUID generator
+	c.uuid = util.NewUUIDGenerator()
 
-	restConfig, err := util.GetKubernetesConfig()
-	if err != nil {
-		return fmt.Errorf("failed to initialize the RestConfig: %w", err)
-	}
+	var pipelineStoreForRef storage.PipelineStoreInterface
 
-	controllerClient, err := ctrlclient.New(
-		restConfig, ctrlclient.Options{Scheme: scheme},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to initialize the controller client: %w", err)
-	}
-	c.controllerClient = controllerClient
-	glog.Info("Controller client initialized successfully.")
+	if options.UsePipelineKubernetesStorage || common.IsOnlyKubernetesWebhookMode() {
+		glog.Info("Initializing controller client...")
+		restConfig, err := util.GetKubernetesConfig()
+		if err != nil {
+			return err
+		}
 
-	if common.IsOnlyKubernetesWebhookMode() {
-		return nil
+		var cacheConfig map[string]cache.Config
+
+		if !common.IsMultiUserMode() && common.GetPodNamespace() != "" && !common.IsOnlyKubernetesWebhookMode() {
+			cacheConfig = map[string]cache.Config{common.GetPodNamespace(): {}}
+		}
+
+		k8sAPICache, err := cache.New(restConfig,
+			cache.Options{
+				DefaultNamespaces: cacheConfig,
+				Scheme:            scheme,
+			},
+		)
+		if err != nil {
+			return err
+		}
+
+		options.WaitGroup.Add(1)
+		go func() {
+			defer options.WaitGroup.Done()
+
+			err := k8sAPICache.Start(options.Context)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to start the cache to the cluster: %v", err))
+			}
+		}()
+
+		controllerClient, err := ctrlclient.New(
+			restConfig, ctrlclient.Options{Scheme: scheme, Cache: &ctrlclient.CacheOptions{Reader: k8sAPICache}},
+		)
+		if err != nil {
+			return fmt.Errorf("failed to initialize the controller client: %w", err)
+		}
+
+		controllerClientNoCache, err := ctrlclient.New(restConfig, ctrlclient.Options{Scheme: scheme})
+		if err != nil {
+			return fmt.Errorf("failed to initialize the no cache controller client: %w", err)
+		}
+
+		glog.Info("Controller client initialized successfully.")
+
+		c.controllerClient = controllerClient
+		c.controllerClientNoCache = controllerClientNoCache
+		if common.IsOnlyKubernetesWebhookMode() {
+			return nil
+		}
+
+		c.pipelineStore = storage.NewPipelineStoreKubernetes(controllerClient, controllerClientNoCache)
+		pipelineStoreForRef = c.pipelineStore
 	}
 
 	glog.Info("Initializing client manager")
@@ -212,18 +272,15 @@ func (c *ClientManager) init() error {
 	db := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
 	glog.Info("DB client initialized successfully")
-	// time
-	c.time = util.NewRealTime()
-
-	// UUID generator
-	c.uuid = util.NewUUIDGenerator()
 
 	c.db = db
+	if !options.UsePipelineKubernetesStorage {
+		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
+	}
 	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid)
-	c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
-	c.jobStore = storage.NewJobStore(db, c.time)
+	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef)
 	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid)
-	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
+	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	glog.Info("Initializing Object store client...")
@@ -573,11 +630,11 @@ func initLogArchive() (logArchive archive.LogArchiveInterface) {
 }
 
 // NewClientManager creates and Init a new instance of ClientManager.
-func NewClientManager() (ClientManager, error) {
-	clientManager := ClientManager{}
-	err := clientManager.init()
+func NewClientManager(options *Options) (*ClientManager, error) {
+	clientManager := &ClientManager{}
+	err := clientManager.init(options)
 	if err != nil {
-		return ClientManager{}, err
+		return nil, err
 	}
 
 	return clientManager, nil
