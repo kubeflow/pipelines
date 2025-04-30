@@ -16,11 +16,12 @@ package template
 
 import (
 	"encoding/json"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"

@@ -253,9 +253,9 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 			PodTemplateSpec: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
-						corev1.Container{
+						{
 							VolumeMounts: []corev1.VolumeMount{
-								corev1.VolumeMount{
+								{
 									Name:      "/volume-mount-name",
 									MountPath: "/mount/path",
 								},
@@ -263,7 +263,7 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 						},
 					},
 					Volumes: []corev1.Volume{
-						corev1.Volume{
+						{
 							Name: "/volume-mount-name",
 							VolumeSource: corev1.VolumeSource{
 								GCEPersistentDisk: &corev1.GCEPersistentDiskVolumeSource{
@@ -403,7 +403,7 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 				"viewer": "viewer-123",
 			}},
 		Spec: corev1.ServiceSpec{
-			Ports: []corev1.ServicePort{corev1.ServicePort{
+			Ports: []corev1.ServicePort{{
 				Name:       "http",
 				Protocol:   corev1.ProtocolTCP,
 				Port:       int32(80),

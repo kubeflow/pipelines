@@ -16,8 +16,9 @@ package driver
 import (
 	"context"
 	"encoding/json"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"google.golang.org/protobuf/types/known/structpb"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"

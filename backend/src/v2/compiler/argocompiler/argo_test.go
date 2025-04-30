@@ -17,10 +17,11 @@ package argocompiler_test
 import (
 	"flag"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/google/go-cmp/cmp"

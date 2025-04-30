@@ -16,6 +16,10 @@ package config
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -24,9 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 func fakeResourceManager() *resource.ResourceManager {
