@@ -38,7 +38,6 @@ import (
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/minio/minio-go/v6"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -112,7 +111,7 @@ type ClientManager struct {
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []auth.Authenticator
 	controllerClient          ctrlclient.Client
-	dynamicClient             dynamic.Interface
+	controllerClientNoCache   ctrlclient.Client
 }
 
 // Options to pass to Client Manager initialization
@@ -126,12 +125,12 @@ func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
 	return c.taskStore
 }
 
-func (c *ClientManager) ControllerClient() ctrlclient.Client {
-	return c.controllerClient
-}
+func (c *ClientManager) ControllerClient(cacheEnabled bool) ctrlclient.Client {
+	if cacheEnabled {
+		return c.controllerClient
+	}
 
-func (c *ClientManager) DynamicClient() dynamic.Interface {
-	return c.dynamicClient
+	return c.controllerClientNoCache
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -209,8 +208,6 @@ func (c *ClientManager) init(options *Options) error {
 	// UUID generator
 	c.uuid = util.NewUUIDGenerator()
 
-	var controllerClient ctrlclient.Client
-
 	var pipelineStoreForRef storage.PipelineStoreInterface
 
 	if options.UsePipelineKubernetesStorage || common.IsOnlyKubernetesWebhookMode() {
@@ -246,27 +243,27 @@ func (c *ClientManager) init(options *Options) error {
 			}
 		}()
 
-		controllerClient, err = ctrlclient.New(
+		controllerClient, err := ctrlclient.New(
 			restConfig, ctrlclient.Options{Scheme: scheme, Cache: &ctrlclient.CacheOptions{Reader: k8sAPICache}},
 		)
 		if err != nil {
 			return fmt.Errorf("failed to initialize the controller client: %w", err)
 		}
 
-		dynamicClient, err := dynamic.NewForConfig(restConfig)
+		controllerClientNoCache, err := ctrlclient.New(restConfig, ctrlclient.Options{Scheme: scheme})
 		if err != nil {
-			return fmt.Errorf("failed to initialize the dynamic client: %w", err)
+			return fmt.Errorf("failed to initialize the no cache controller client: %w", err)
 		}
 
 		glog.Info("Controller client initialized successfully.")
 
 		c.controllerClient = controllerClient
-		c.dynamicClient = dynamicClient
+		c.controllerClientNoCache = controllerClientNoCache
 		if common.IsOnlyKubernetesWebhookMode() {
 			return nil
 		}
 
-		c.pipelineStore = storage.NewPipelineStoreKubernetes(controllerClient, dynamicClient)
+		c.pipelineStore = storage.NewPipelineStoreKubernetes(controllerClient, controllerClientNoCache)
 		pipelineStoreForRef = c.pipelineStore
 	}
 

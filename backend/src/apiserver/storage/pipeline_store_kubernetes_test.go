@@ -14,8 +14,6 @@ import (
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
-	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -424,7 +422,7 @@ func TestCreatePipelineAndPipelineVersion(t *testing.T) {
 	require.Nil(t, err, "Failed to create Pipeline: %v", err)
 }
 
-func getClient() (client.Client, dynamic.Interface) {
+func getClient() (client.Client, client.Client) {
 	scheme := runtime.NewScheme()
 	err := v2beta1.AddToScheme(scheme)
 	if err != nil {
@@ -508,10 +506,5 @@ func getClient() (client.Client, dynamic.Interface) {
 		WithObjects(pipeline3, pipelineVersion3).
 		Build()
 
-	fakeDynamic := fakedynamic.NewSimpleDynamicClient(
-		scheme, pipeline, pipeline1, pipeline2, pipelineVersion, pipelineVersion1, pipelineVersion2, pipeline3,
-		pipelineVersion3,
-	)
-
-	return k8sClient, fakeDynamic
+	return k8sClient, k8sClient
 }

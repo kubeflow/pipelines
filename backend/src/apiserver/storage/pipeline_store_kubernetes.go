@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"slices"
 	"sort"
 	"strings"
@@ -16,10 +15,10 @@ import (
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
 
 var (
@@ -29,11 +28,11 @@ var (
 
 type PipelineStoreKubernetes struct {
 	client        ctrlclient.Client
-	noCacheClient dynamic.Interface
+	clientNoCache ctrlclient.Client
 }
 
-func NewPipelineStoreKubernetes(k8sClient ctrlclient.Client, dynamicClient dynamic.Interface) *PipelineStoreKubernetes {
-	return &PipelineStoreKubernetes{client: k8sClient, noCacheClient: dynamicClient}
+func NewPipelineStoreKubernetes(k8sClient ctrlclient.Client, k8sClientNoCache ctrlclient.Client) *PipelineStoreKubernetes {
+	return &PipelineStoreKubernetes{client: k8sClient, clientNoCache: k8sClientNoCache}
 }
 
 func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
@@ -455,11 +454,8 @@ func (k *PipelineStoreKubernetes) getK8sPipeline(pipelineId string) (*v2beta1.Pi
 	// Be careful, the deep copy is disabled here to reduce memory allocations
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
 
-	var namespace string
-
 	if !common.IsMultiUserMode() && common.GetPodNamespace() != "" {
-		namespace = common.GetPodNamespace()
-		listOptions = append(listOptions, ctrlclient.InNamespace(namespace))
+		listOptions = append(listOptions, ctrlclient.InNamespace(common.GetPodNamespace()))
 	}
 
 	err := k.client.List(context.TODO(), &pipelines, listOptions...)
@@ -474,31 +470,14 @@ func (k *PipelineStoreKubernetes) getK8sPipeline(pipelineId string) (*v2beta1.Pi
 	}
 
 	// Fallback to not using the cache
-	pipelineGVR := v2beta1.GroupVersion.WithResource("pipelines")
-
-	var pipelineClient dynamic.ResourceInterface
-	if namespace == "" {
-		pipelineClient = k.noCacheClient.Resource(pipelineGVR)
-	} else {
-		pipelineClient = k.noCacheClient.Resource(pipelineGVR).Namespace(namespace)
-	}
-
-	unstructPipelines, err := pipelineClient.List(context.TODO(), metav1.ListOptions{})
+	err = k.clientNoCache.List(context.TODO(), &pipelines, listOptions...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list the pipelines")
 	}
 
-	for _, unstructPipeline := range unstructPipelines.Items {
-		if string(unstructPipeline.GetUID()) == pipelineId {
-			k8sPipeline := &v2beta1.Pipeline{}
-			err := runtime.DefaultUnstructuredConverter.FromUnstructuredWithValidation(
-				unstructPipeline.Object, k8sPipeline, true,
-			)
-			if err != nil {
-				return nil, util.NewInternalServerError(err, "Received an invalid pipeline")
-			}
-
-			return k8sPipeline, nil
+	for _, k8sPipeline := range pipelines.Items {
+		if string(k8sPipeline.UID) == pipelineId {
+			return &k8sPipeline, nil
 		}
 	}
 
@@ -513,11 +492,8 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 	// Be careful, the deep copy is disabled here to reduce memory allocations
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
 
-	var namespace string
-
 	if !common.IsMultiUserMode() && common.GetPodNamespace() != "" {
-		namespace = common.GetPodNamespace()
-		listOptions = append(listOptions, ctrlclient.InNamespace(namespace))
+		listOptions = append(listOptions, ctrlclient.InNamespace(common.GetPodNamespace()))
 	}
 
 	var errMsg string
@@ -549,37 +525,15 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 	}
 
 	// Fallback to not using the cache if the specific pipeline version is missing
-	pvGVR := v2beta1.GroupVersion.WithResource("pipelineversions")
-
-	var pvClient dynamic.ResourceInterface
-	if namespace == "" {
-		pvClient = k.noCacheClient.Resource(pvGVR)
-	} else {
-		pvClient = k.noCacheClient.Resource(pvGVR).Namespace(namespace)
-	}
-
-	unstructListOptions := metav1.ListOptions{}
-	if pipelineId != "" {
-		unstructListOptions.LabelSelector = "pipelines.kubeflow.org/pipeline-id=" + pipelineId
-	}
-
-	unstructPVs, err := pvClient.List(context.TODO(), unstructListOptions)
+	err = k.clientNoCache.List(ctx, &pipelineVersions, listOptions...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, errMsg)
 	}
 
-	for _, unstructPV := range unstructPVs.Items {
-		if string(unstructPV.GetUID()) != pipelineVersionId {
-			continue
+	for _, pipelineVersion := range pipelineVersions.Items {
+		if string(pipelineVersion.UID) == pipelineVersionId {
+			return &v2beta1.PipelineVersionList{Items: []v2beta1.PipelineVersion{pipelineVersion}}, nil
 		}
-
-		k8sPV := &v2beta1.PipelineVersion{}
-		err := runtime.DefaultUnstructuredConverter.FromUnstructuredWithValidation(unstructPV.Object, k8sPV, true)
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Received an invalid pipeline version")
-		}
-
-		return &v2beta1.PipelineVersionList{Items: []v2beta1.PipelineVersion{*k8sPV}}, nil
 	}
 
 	return nil, util.NewResourceNotFoundError("PipelineVersion", pipelineVersionId)
