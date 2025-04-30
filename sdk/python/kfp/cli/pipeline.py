@@ -110,7 +110,6 @@ def create_version(ctx: click.Context,
         pipeline_package_path=package_file,
         pipeline_version_name=pipeline_version,
         pipeline_id=pipeline_id,
-        pipeline_name=pipeline_name,
         description=description)
     output.print_output(
         version,
