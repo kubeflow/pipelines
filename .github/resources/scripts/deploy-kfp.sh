@@ -72,7 +72,7 @@ fi
 if $USE_PROXY; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
 elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
-  TEST_MANIFESTS=".github/resources/manifests/kubernetes-native"
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
 else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
 fi
