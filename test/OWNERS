@@ -1,11 +1,6 @@
 approvers:
-  - connor-mccarthy
-  - gkcalat
-  - jlyaoyuli
-  - hbelmiro
-  - DharmitD
-reviewers:
   - chensun
-  - gkcalat
-  - jlyaoyuli
-  - rimolive
+  - HumairAK
+reviewers:
+  - mprahl
+  - droctothorpe

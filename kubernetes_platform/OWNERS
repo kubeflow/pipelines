@@ -1,8 +1,9 @@
 approvers:
   - chensun
+  - HumairAK
   - hbelmiro
+  - mprahl
 reviewers:
-  - chensun
   - DharmitD
   - hbelmiro
   - droctothorpe
