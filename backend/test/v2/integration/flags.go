@@ -26,6 +26,7 @@ var (
 	runK8sStoreIntegrationTests = flag.Bool("runK8sStoreIntegrationTests", false, "Whether to run integration tests with K8s Native API Support")
 	runUpgradeTests             = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
 	useProxy                    = flag.Bool("useProxy", false, "Whether to run the proxy tests")
+	cacheEnabled                = flag.Bool("cacheEnabled", true, "Whether cache is enabled tests")
 )
 
 /**
