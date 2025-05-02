@@ -134,12 +134,13 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		launcherImage: GetLauncherImage(),
-		driverImage:   GetDriverImage(),
-		driverCommand: GetDriverCommand(),
-		job:           job,
-		spec:          spec,
-		executors:     deploy.GetExecutors(),
+		launcherImage:   GetLauncherImage(),
+		launcherCommand: GetLauncherCommand(),
+		driverImage:     GetDriverImage(),
+		driverCommand:   GetDriverCommand(),
+		job:             job,
+		spec:            spec,
+		executors:       deploy.GetExecutors(),
 	}
 	if opts != nil {
 		if opts.DriverImage != "" {
@@ -170,11 +171,12 @@ type workflowCompiler struct {
 	spec      *pipelinespec.PipelineSpec
 	executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec
 	// state
-	wf            *wfapi.Workflow
-	templates     map[string]*wfapi.Template
-	driverImage   string
-	driverCommand []string
-	launcherImage string
+	wf              *wfapi.Workflow
+	templates       map[string]*wfapi.Template
+	driverImage     string
+	driverCommand   []string
+	launcherImage   string
+	launcherCommand []string
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

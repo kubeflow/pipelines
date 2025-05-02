@@ -42,6 +42,8 @@ const (
 	// For releases, the manifest will have the correct release version set.
 	// this is to avoid hardcoding releases in code here.
 	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:latest"
+	LauncherCommandEnvVar    = "V2_LAUNCHER_COMMAND"
+	DefaultLauncherCommand   = "launcher-v2"
 	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:latest"
 	DefaultDriverCommand     = "driver"
 	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
@@ -111,6 +113,14 @@ func GetDriverCommand() []string {
 		driverCommand = DefaultDriverCommand
 	}
 	return strings.Split(driverCommand, " ")
+}
+
+func GetLauncherCommand() []string {
+	launcherCommand := os.Getenv(LauncherCommandEnvVar)
+	if launcherCommand == "" {
+		launcherCommand = DefaultLauncherCommand
+	}
+	return strings.Split(launcherCommand, " ")
 }
 
 func GetPipelineRunAsUser() *int64 {
@@ -384,7 +394,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   c.launcherImage,
-				Command: []string{"launcher-v2"},
+				Command: c.launcherCommand,
 				Args:    args,
 				VolumeMounts: []k8score.VolumeMount{
 					{
