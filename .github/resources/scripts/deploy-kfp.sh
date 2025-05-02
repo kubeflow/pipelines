@@ -92,6 +92,47 @@ then
   exit 1
 fi
 
+echo "All pods are running. Checking deployments health..."
+
+DEPLOYMENTS=(
+  "cache-deployer-deployment"
+  "cache-server"
+  "metadata-envoy-deployment"
+  "metadata-grpc-deployment"
+  "metadata-writer"
+  "minio"
+  "ml-pipeline"
+  "ml-pipeline-persistenceagent"
+  "ml-pipeline-scheduledworkflow"
+  "ml-pipeline-ui"
+  "ml-pipeline-viewer-crd"
+  "ml-pipeline-visualizationserver"
+  "mysql"
+  "workflow-controller"
+)
+
+TIMEOUT="1m"
+ALL_HEALTHY=true
+
+for DEPLOYMENT in "${DEPLOYMENTS[@]}"; do
+  echo "Checking deployment: $DEPLOYMENT"
+
+  kubectl -n kubeflow wait "deployment/$DEPLOYMENT" --for=condition=Available --timeout="$TIMEOUT" || EXIT_CODE=$?
+  if [ $EXIT_CODE -ne 0 ]; then
+    echo "Deployment $DEPLOYMENT is not healthy."
+    ALL_HEALTHY=false
+  else
+    echo "Deployment $DEPLOYMENT is healthy."
+  fi
+done
+
+if [ "$ALL_HEALTHY" = true ]; then
+  echo "All required deployments are healthy."
+else
+  echo "One or more required deployments are not healthy."
+  exit 1
+fi
+
 collect_artifacts kubeflow
 
 echo "Finished KFP deployment."
