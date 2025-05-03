@@ -318,6 +318,10 @@ type RunDetails struct {
 	TaskDetails             []*Task
 }
 
+func (RunMetric) TableName() string {
+	return "run_metrics"
+}
+
 type RunMetric struct {
 	RunUUID     string  `gorm:"column:RunUUID; not null; primary_key;"`
 	NodeID      string  `gorm:"column:NodeID; not null; primary_key;"`
