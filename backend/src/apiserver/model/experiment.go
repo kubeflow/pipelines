@@ -14,6 +14,10 @@
 
 package model
 
+func (Experiment) TableName() string {
+	return "experiments"
+}
+
 type Experiment struct {
 	UUID                  string       `gorm:"column:UUID; not null; primary_key;"`
 	Name                  string       `gorm:"column:Name; not null; unique_index:idx_name_namespace;"`
