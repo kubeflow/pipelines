@@ -61,8 +61,6 @@ spec:
           - ""
           - --no_proxy
           - ""
-          - --cache_enabled
-          - "true"
         command:
           - driver
         image: ghcr.io/kubeflow/kfp-driver
@@ -170,8 +168,6 @@ spec:
             name: dot-config-scratch
       initContainers:
         - args:
-            - --cache_enabled
-            - "true"
             - --copy
             - /kfp-launcher/launch
           command:
@@ -401,8 +397,6 @@ spec:
           - ""
           - --no_proxy
           - ""
-          - --cache_enabled
-          - "true"
         command:
           - driver
         image: ghcr.io/kubeflow/kfp-driver

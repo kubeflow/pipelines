@@ -44,7 +44,7 @@ var (
 	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	logLevel          = flag.String("log_level", "1", "The verbosity level to log.")
 	publishLogs       = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
-	cacheEnabledFlag  = flag.String("cache_enabled", "", "Enable cache globally.")
+	cacheEnabledFlag  = flag.String("cache_enabled", "true", "Enable cache globally.")
 )
 
 func main() {

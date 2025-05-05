@@ -61,8 +61,6 @@ spec:
       - ''
       - --no_proxy
       - ''
-      - --cache_enabled
-      - 'true'
       - --log_level
       - "3"
       command:
@@ -156,8 +154,6 @@ spec:
         name: dot-config-scratch
     initContainers:
     - args:
-      - --cache_enabled
-      - 'true'
       - --copy
       - /kfp-launcher/launch
       - --log_level
@@ -261,8 +257,6 @@ spec:
       - ''
       - --no_proxy
       - ''
-      - --cache_enabled
-      - 'true'
       - --log_level
       - "3"
       command:
