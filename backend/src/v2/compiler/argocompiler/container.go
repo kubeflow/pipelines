@@ -35,6 +35,8 @@ const (
 	volumeNameCABundle       = "ca-bundle"
 	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:2.4.0"
 	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
+	LauncherCommandEnvVar    = "V2_LAUNCHER_COMMAND"
+	DefaultLauncherCommand   = "launcher-v2"
 	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:2.4.0"
 	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
 	DefaultDriverCommand     = "driver"
@@ -104,6 +106,14 @@ func GetDriverCommand() []string {
 		driverCommand = DefaultDriverCommand
 	}
 	return strings.Split(driverCommand, " ")
+}
+
+func GetLauncherCommand() []string {
+	launcherCommand := os.Getenv(LauncherCommandEnvVar)
+	if launcherCommand == "" {
+		launcherCommand = DefaultLauncherCommand
+	}
+	return strings.Split(launcherCommand, " ")
 }
 
 func GetPipelineRunAsUser() *int64 {
@@ -370,7 +380,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   c.launcherImage,
-				Command: []string{"launcher-v2"},
+				Command: c.launcherCommand,
 				Args:    args,
 				VolumeMounts: []k8score.VolumeMount{
 					{

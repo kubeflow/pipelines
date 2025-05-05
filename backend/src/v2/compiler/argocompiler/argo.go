@@ -19,8 +19,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -134,12 +135,13 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		launcherImage: GetLauncherImage(),
-		driverImage:   GetDriverImage(),
-		driverCommand: GetDriverCommand(),
-		job:           job,
-		spec:          spec,
-		executors:     deploy.GetExecutors(),
+		launcherImage:   GetLauncherImage(),
+		launcherCommand: GetLauncherCommand(),
+		driverImage:     GetDriverImage(),
+		driverCommand:   GetDriverCommand(),
+		job:             job,
+		spec:            spec,
+		executors:       deploy.GetExecutors(),
 	}
 
 	mlPipelineTLSEnabled, err := GetMLPipelineServiceTLSEnabled()
@@ -182,6 +184,7 @@ type workflowCompiler struct {
 	driverImage                 string
 	driverCommand               []string
 	launcherImage               string
+	launcherCommand             []string
 	mlPipelineServiceTLSEnabled bool
 }
 
