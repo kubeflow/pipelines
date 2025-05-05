@@ -35,10 +35,11 @@ from kfp.dsl import placeholders
 from kfp.dsl import structures
 from kfp.dsl import tasks_group
 from kfp.dsl import utils
-from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
+
+GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
 # must be defined here to avoid circular imports
 group_type_to_dsl_class = {
@@ -1219,10 +1220,9 @@ def build_spec_by_group(
     group: tasks_group.TasksGroup,
     inputs: Mapping[str, List[Tuple[pipeline_channel.PipelineChannel, str]]],
     outputs: DefaultDict[str, Dict[str, pipeline_channel.PipelineChannel]],
-    dependencies: Dict[str, List[compiler_utils.GroupOrTaskType]],
+    dependencies: Dict[str, List[GroupOrTaskType]],
     rootgroup_name: str,
-    task_name_to_parent_groups: Mapping[str,
-                                        List[compiler_utils.GroupOrTaskType]],
+    task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
     group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
     name_to_for_loop_group: Mapping[str, tasks_group.ParallelFor],
     platform_spec: pipeline_spec_pb2.PlatformSpec,
