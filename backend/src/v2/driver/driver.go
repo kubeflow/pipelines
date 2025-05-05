@@ -19,11 +19,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
@@ -627,18 +628,20 @@ func addModelcarsToPodSpec(
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
+		// Following the convention of downloadArtifacts in the launcher to look at the entire list.
+		for index, artifact := range artifactList.Artifacts {
+			inputArtifact := artifact
 
-		// Following the convention of downloadArtifacts in the launcher to only look at the first in the list.
-		inputArtifact := artifactList.Artifacts[0]
+			// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
+			// be set on inputArtifact.
+			if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+				continue
+			}
 
-		// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
-		// be set on inputArtifact.
-		if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
-			continue
+			artifactName := fmt.Sprintf("%s-%d", name, index)
+			modelcarArtifacts[artifactName] = inputArtifact
+			modelcarArtifactNames = append(modelcarArtifactNames, artifactName)
 		}
-
-		modelcarArtifacts[name] = inputArtifact
-		modelcarArtifactNames = append(modelcarArtifactNames, name)
 	}
 
 	slices.Sort(modelcarArtifactNames)
@@ -1684,7 +1687,7 @@ func resolveInputParameterStr(
 
 	if typedVal, ok := val.GetKind().(*structpb.Value_StringValue); ok && typedVal != nil {
 		if typedVal.StringValue == "" {
-			return nil, fmt.Errorf("resolving input parameter with spec %s. Expected a non-empty string.", paramSpec)
+			return nil, fmt.Errorf("resolving input parameter with spec %s. Expected a non-empty string", paramSpec)
 		}
 	} else {
 		return nil, fmt.Errorf("resolving input parameter with spec %s. Expected a string but got: %T", paramSpec, val.GetKind())
@@ -1761,15 +1764,9 @@ func getDAGTasks(
 	for _, v := range currentExecutionTasks {
 
 		if v.GetExecution().GetType() == "system.DAGExecution" {
-			// Iteration count is only applied when using ParallelFor, and in
-			// that scenario you're guaranteed to have redundant task names even
-			// within a single DAG, which results in an error when
-			// mlmd.GetExecutionsInDAG is called. ParallelFor outputs should be
-			// handled with dsl.Collected.
 			_, ok := v.GetExecution().GetCustomProperties()["iteration_count"]
 			if ok {
-				glog.Infof("Found a ParallelFor task, %v. Skipping it.", v.TaskName())
-				continue
+				glog.V(4).Infof("Found a ParallelFor task, %v.", v.TaskName())
 			}
 			glog.V(4).Infof("Found a task, %v, with an execution type of system.DAGExecution. Adding its tasks to the task list.", v.TaskName())
 			subDAG, err := mlmd.GetDAG(ctx, v.GetExecution().GetId())
@@ -1817,9 +1814,20 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 		return nil, cfg.err(fmt.Errorf("output parameter key is empty"))
 	}
 
-	// Get a list of tasks for the current DAG first.
-	// The reason we use gatDAGTasks instead of mlmd.GetExecutionsInDAG is because the latter does not handle
-	// task name collisions in the map which results in a bunch of unhandled edge cases and test failures.
+	producerTaskName = metadata.GetTaskNameWithDagID(producerTaskName, cfg.dag.Execution.GetID())
+	// For the scenario where 2 tasks are defined within a ParallelFor and 1
+	// receives the output of the other we must ensure that the downstream task
+	// resolves the approriate output of the iteration it is in. With knowing if
+	// we are resolving inputs for a task within a ParallelFor DAG we can add
+	// the iteration index to the producerTaskName so that we can resolve the
+	// correct iteration of that task.
+	producerTaskName = InferIndexedTaskName(producerTaskName, cfg.dag.Execution)
+	// Get a list of tasks for the current DAG first. The reason we use
+	// getDAGTasks instead of mlmd.GetExecutionsInDAG without the dag filter is
+	// because the latter does not handle task name collisions in the map which
+	// results in a bunch of unhandled edge cases and test failures.
+	glog.V(4).Infof("producerTaskName: %v", producerTaskName)
+	glog.V(4).Infof("outputParameterKey: %v", outputParameterKey)
 	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
 	if err != nil {
 		return nil, cfg.err(err)
@@ -1832,6 +1840,7 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 	glog.V(4).Info("producer: ", producer)
 	glog.V(4).Infof("tasks: %#v", tasks)
 	currentTask := producer
+	subTaskName := producerTaskName
 	// Continue looping until we reach a sub-task that is NOT a DAG.
 	for {
 		glog.V(4).Info("currentTask: ", currentTask.TaskName())
@@ -1861,45 +1870,36 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 
 			glog.V(4).Infof("Deserialized dagOutputParametersMap: %v", dagOutputParametersMap)
 
+			// For this section, if the currentTask we are looking for is within
+			// a ParallelFor DAG, this means the actual task that produced the
+			// output we need has multiple iterations so we have to gather all
+			// them and fan them in by collecting them into a list i.e.
+			// kfp.dsl.Collected support.
+			parentDAG, err := cfg.mlmd.GetExecution(cfg.ctx, currentTask.GetExecution().GetCustomProperties()["parent_dag_id"].GetIntValue())
+			if err != nil {
+				return nil, cfg.err(err)
+			}
+			iterations := getParallelForIterationCount(currentTask, parentDAG)
+			if iterations > 0 {
+				parameterList, _, err := CollectInputs(cfg, subTaskName, tasks, outputParameterKey, false)
+				if err != nil {
+					return nil, cfg.err(err)
+				}
+				return parameterList, nil
+			}
 			// Support for the 2 DagOutputParameterSpec types:
 			// ValueFromParameter & ValueFromOneof
-			var subTaskName string
-			switch dagOutputParametersMap[outputParameterKey].Kind.(type) {
-			case *pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromParameter:
-				subTaskName = dagOutputParametersMap[outputParameterKey].GetValueFromParameter().GetProducerSubtask()
-				outputParameterKey = dagOutputParametersMap[outputParameterKey].GetValueFromParameter().GetOutputParameterKey()
-			case *pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromOneof:
-				// When OneOf is specified in a pipeline, the output of only 1 task is consumed even though there may be more than 1 task output set. In this case we will attempt to grab the first successful task output.
-				paramSelectors := dagOutputParametersMap[outputParameterKey].GetValueFromOneof().GetParameterSelectors()
-				glog.V(4).Infof("paramSelectors: %v", paramSelectors)
-				// Since we have the tasks map, we can iterate through the parameterSelectors if the ProducerSubTask is not present in the task map and then assign the new OutputParameterKey only if it exists.
-				successfulOneOfTask := false
-				for !successfulOneOfTask {
-					for _, paramSelector := range paramSelectors {
-						subTaskName = paramSelector.GetProducerSubtask()
-						glog.V(4).Infof("subTaskName from paramSelector: %v", subTaskName)
-						glog.V(4).Infof("outputParameterKey from paramSelector: %v", paramSelector.GetOutputParameterKey())
-						if subTask, ok := tasks[subTaskName]; ok {
-							subTaskState := subTask.GetExecution().LastKnownState.String()
-							glog.V(4).Infof("subTask: %w , subTaskState: %v", subTaskName, subTaskState)
-							if subTaskState == "CACHED" || subTaskState == "COMPLETE" {
-
-								outputParameterKey = paramSelector.GetOutputParameterKey()
-								successfulOneOfTask = true
-								break
-							}
-						}
-					}
-					if !successfulOneOfTask {
-						return nil, cfg.err(fmt.Errorf("processing OneOf: No successful task found"))
-					}
-				}
+			subTaskName, outputParameterKey, err = GetProducerTask(currentTask, tasks, subTaskName, outputParameterKey, false)
+			if err != nil {
+				return nil, cfg.err(err)
 			}
 			glog.V(4).Infof("SubTaskName from outputParams: %v", subTaskName)
 			glog.V(4).Infof("OutputParameterKey from outputParams: %v", outputParameterKey)
 			if subTaskName == "" {
 				return nil, cfg.err(fmt.Errorf("producer_subtask not in outputParams"))
 			}
+
+			// If the sub-task is a DAG, reassign currentTask and run
 			glog.V(4).Infof(
 				"Overriding currentTask, %v, output with currentTask's producer_subtask, %v, output.",
 				currentTask.TaskName(),
@@ -1909,6 +1909,7 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 			if !ok {
 				return nil, cfg.err(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
 			}
+
 		} else {
 			_, outputParametersCustomProperty, err := currentTask.GetParameters()
 			if err != nil {
@@ -1927,61 +1928,84 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.ArtifactList, error) {
 	glog.V(4).Infof("artifactSpec: %#v", cfg.artifactSpec)
 	taskOutput := cfg.artifactSpec.GetTaskOutputArtifact()
+	glog.V(4).Info("taskOutput: ", taskOutput)
+	producerTaskName := taskOutput.GetProducerTask()
 	if taskOutput.GetProducerTask() == "" {
 		return nil, cfg.err(fmt.Errorf("producer task is empty"))
 	}
 	if taskOutput.GetOutputArtifactKey() == "" {
 		cfg.err(fmt.Errorf("output artifact key is empty"))
 	}
+	producerTaskName = metadata.GetTaskNameWithDagID(producerTaskName, cfg.dag.Execution.GetID())
+	// The main difference between the root ParallelFor DAG and its iteration
+	// DAGs is that the root contains the custom property "iteration_count"
+	// while the iterations contain "iteration_index". We can use this to
+	// determine if we are in a ParallelFor DAG or not. The iteration DAGs will
+	// contain the "iteration_index" which is used to resolve the correct output
+	// artifact for the downstream task within the iteration. ParallelFor
+	// iterations are DAGs themselves, we can verify if we are in a iteration by
+	// confirming that the "iteration_index" exists for the DAG of the current
+	// task we are attempting to resolve. If the dag contains the
+	// "iteration_index", the producerTaskName will be updated appropriately
+	producerTaskName = InferIndexedTaskName(producerTaskName, cfg.dag.Execution)
+	glog.V(4).Infof("producerTaskName: %v", producerTaskName)
 	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
 	if err != nil {
-		cfg.err(err)
+		return nil, cfg.err(err)
 	}
 
-	producer, ok := tasks[taskOutput.GetProducerTask()]
+	producer, ok := tasks[producerTaskName]
 	if !ok {
-		cfg.err(
-			fmt.Errorf("cannot find producer task %q", taskOutput.GetProducerTask()),
+		return nil, cfg.err(
+			fmt.Errorf("cannot find producer task %q", producerTaskName),
 		)
 	}
 	glog.V(4).Info("producer: ", producer)
+	glog.V(4).Infof("tasks: %#v", tasks)
 	currentTask := producer
 	outputArtifactKey := taskOutput.GetOutputArtifactKey()
-
-	// Continue looping until we reach a sub-task that is NOT a DAG.
+	subTaskName := producerTaskName
+	// Continue looping until we reach a sub-task that is either a ParallelFor
+	// task or a Container task.
 	for {
 		glog.V(4).Info("currentTask: ", currentTask.TaskName())
 		// If the current task is a DAG:
 		if *currentTask.GetExecution().Type == "system.DAGExecution" {
 			// Get the sub-task.
-			outputArtifactsCustomProperty := currentTask.GetExecution().GetCustomProperties()["artifact_producer_task"]
-			// Deserialize the output artifacts.
-			var outputArtifacts map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
-			err := json.Unmarshal([]byte(outputArtifactsCustomProperty.GetStringValue()), &outputArtifacts)
+			parentDAG, err := cfg.mlmd.GetExecution(cfg.ctx, currentTask.GetExecution().GetCustomProperties()["parent_dag_id"].GetIntValue())
 			if err != nil {
-				return nil, err
+				return nil, cfg.err(err)
 			}
-			glog.V(4).Infof("Deserialized outputArtifacts: %v", outputArtifacts)
-			// Adding support for multiple output artifacts
-			var subTaskName string
-			artifactSelectors := outputArtifacts[outputArtifactKey].GetArtifactSelectors()
-
-			for _, v := range artifactSelectors {
-				glog.V(4).Infof("v: %v", v)
-				glog.V(4).Infof("v.ProducerSubtask: %v", v.ProducerSubtask)
-				glog.V(4).Infof("v.OutputArtifactKey: %v", v.OutputArtifactKey)
-				subTaskName = v.ProducerSubtask
-				outputArtifactKey = v.OutputArtifactKey
+			iterations := getParallelForIterationCount(currentTask, parentDAG)
+			if iterations > 0 {
+				_, artifactList, err := CollectInputs(cfg, subTaskName, tasks, outputArtifactKey, true)
+				if err != nil {
+					return nil, cfg.err(err)
+				}
+				return artifactList, nil
 			}
+			subTaskName, outputArtifactKey, err = GetProducerTask(currentTask, tasks, subTaskName, outputArtifactKey, true)
+			if err != nil {
+				return nil, cfg.err(err)
+			}
+			glog.V(4).Infof("ProducerSubtask: %v", subTaskName)
+			glog.V(4).Infof("OutputArtifactKey: %v", outputArtifactKey)
 			// If the sub-task is a DAG, reassign currentTask and run
-			// through the loop again.
-			currentTask = tasks[subTaskName]
-			// }
+			glog.V(4).Infof("currentTask ID: %v", currentTask.GetID())
+			glog.V(4).Infof(
+				"Overriding currentTask, %v, output with currentTask's producer_subtask, %v, output.",
+				currentTask.TaskName(),
+				subTaskName,
+			)
+			currentTask, ok = tasks[subTaskName]
+			if !ok {
+				return nil, cfg.err(fmt.Errorf("subTaskName, %v, not in tasks", subTaskName))
+			}
 		} else {
 			// Base case, currentTask is a container, not a DAG.
 			outputs, err := cfg.mlmd.GetOutputArtifactsByExecutionId(cfg.ctx, currentTask.GetID())
 			if err != nil {
-				cfg.err(err)
+				return nil, cfg.err(err)
 			}
 			glog.V(4).Infof("outputs: %#v", outputs)
 			artifact, ok := outputs[outputArtifactKey]
@@ -2006,7 +2030,274 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 	}
 }
 
-// provisionOuutputs prepares output references that will get saved to MLMD.
+// CollectInputs performs artifact/parameter collection across a DAG/tree
+// using a breadth first search traversal.
+func CollectInputs(
+	cfg resolveUpstreamOutputsConfig,
+	parallelForDAGTaskName string,
+	tasks map[string]*metadata.Execution,
+	outputKey string,
+	isArtifact bool,
+) (outputParameterList *structpb.Value, outputArtifactList *pipelinespec.ArtifactList, err error) {
+	glog.V(4).Infof("currentTask is a ParallelFor DAG. Attempting to gather all nested producer_subtasks")
+	// Set some helpers for the start and looping for BFS
+	var currentTask *metadata.Execution
+	var workingSubTaskName string
+	workingOutputKey := outputKey
+	previousWorkingOutputKey := outputKey
+	// Instantiate the lists values that will hold all values pulled from the
+	// tasks of each iteration.
+	parallelForParameterList := make([]*structpb.Value, 0)
+	parallelForArtifactList := make([]*pipelinespec.RuntimeArtifact, 0)
+	tasksToResolve := make([]string, 0)
+	// Set up the queue for BFS by setting the parallelFor DAG task as the
+	// initial node. The loop will add the iteration dag task names for us into
+	// the slice/queue.
+	tasksToResolve = append(tasksToResolve, parallelForDAGTaskName)
+	previousTaskName := tasks[tasksToResolve[0]].TaskName()
+
+	for len(tasksToResolve) > 0 {
+		// The starterQueue contains the first set of child DAGs from the
+		// parallelFor, i.e. the iteration dags.
+		glog.V(4).Infof("tasksToResolve: %v", tasksToResolve)
+		currentTaskName := tasksToResolve[0]
+		tasksToResolve = tasksToResolve[1:]
+
+		currentTask = tasks[currentTaskName]
+
+		// We check if these values need to be updated going through the
+		// resolution of dags/tasks Most commonly the subTaskName will change
+		// for both parameter & artifact resolution. For parameter resolutions,
+		// the outputParameterKey can change, and is used for extracting the
+		// appropriate field off of the struct set for the outputs on the task
+		// in question.
+
+		// An issue arises if we update the outputParameterKey but there exists
+		// multiple iterations of the same task and we haven't fully parsed all
+		// iterations. We will encounter a scenario where we will attempt to
+		// extract fields from the struct with the wrong key. Hence, the
+		// condition below. NOTE: This is only an issue for Parameter resolution
+		// and does not interfere with Artifact resolution.
+		if currentTask.TaskName() == previousTaskName {
+			workingOutputKey = previousWorkingOutputKey
+		}
+
+		previousTaskName = currentTask.TaskName()
+		previousWorkingOutputKey = workingOutputKey
+		workingSubTaskName, workingOutputKey, _ = GetProducerTask(currentTask, tasks, workingSubTaskName, workingOutputKey, isArtifact)
+
+		glog.V(4).Infof("currentTask ID: %v", currentTask.GetID())
+		glog.V(4).Infof("currentTask Name: %v", currentTask.TaskName())
+		glog.V(4).Infof("currentTask Type: %v", currentTask.GetExecution().GetType())
+		glog.V(4).Infof("workingSubTaskName %v", workingSubTaskName)
+		glog.V(4).Infof("workingOutputKey: %v", workingOutputKey)
+
+		iterations := currentTask.GetExecution().GetCustomProperties()["iteration_count"]
+		iterationIndex := currentTask.GetExecution().GetCustomProperties()["iteration_index"]
+
+		// Base cases for handling the task that actually maps to the task that
+		// created the artifact/parameter we are searching for.
+
+		//  Base case 1: currentTask is a ContainerExecution that we can load
+		//  the values off of.
+		if *currentTask.GetExecution().Type == "system.ContainerExecution" {
+			glog.V(4).Infof("currentTask, %v, is a ContainerExecution", currentTaskName)
+			paramValue, artifact, err := collectContainerOutput(cfg, currentTask, workingOutputKey, isArtifact)
+			if err != nil {
+				return nil, nil, err
+			}
+			if isArtifact {
+				parallelForArtifactList = append(parallelForArtifactList, artifact)
+				glog.V(4).Infof("parallelForArtifactList: %v", parallelForArtifactList)
+			} else {
+				parallelForParameterList = append(parallelForParameterList, paramValue)
+				glog.V(4).Infof("parallelForParameterList: %v", parallelForParameterList)
+			}
+			continue
+		}
+		// Base case 2: currentTask is a DAGExecution within a loop but is
+		// NOT a ParallelFor Head DAG
+		if iterations == nil {
+			tempSubTaskName := workingSubTaskName
+			if iterationIndex != nil {
+				// handle for parallel iteration dag, i.e one of the DAG
+				// instances of the loop.
+				tempSubTaskName = metadata.GetParallelForTaskName(tempSubTaskName, iterationIndex.GetIntValue())
+				glog.V(4).Infof("subTaskIterationName: %v", tempSubTaskName)
+			}
+			glog.V(4).Infof("tempSubTaskName: %v", tempSubTaskName)
+			tasksToResolve = append(tasksToResolve, tempSubTaskName)
+			continue
+		}
+
+		// If the currentTask is not a ContainerExecution AND we have the
+		// custom property set for "iteration_count", we can deduce that
+		// currentTask is in fact a ParallelFor Head DAG, thus we need to add
+		// its iteration DAGs to the queue.
+
+		for i := range iterations.GetIntValue() {
+			loopName := metadata.GetTaskNameWithDagID(currentTask.TaskName(), currentTask.GetID())
+			loopIterationName := metadata.GetParallelForTaskName(loopName, i)
+			glog.V(4).Infof("loopIterationName: %v", loopIterationName)
+			tasksToResolve = append(tasksToResolve, loopIterationName)
+		}
+	}
+
+	outputParameterList = &structpb.Value{
+		Kind: &structpb.Value_ListValue{
+			ListValue: &structpb.ListValue{
+				Values: parallelForParameterList,
+			},
+		},
+	}
+	outputArtifactList = &pipelinespec.ArtifactList{
+		Artifacts: parallelForArtifactList,
+	}
+	glog.V(4).Infof("outputParameterList: %#v", outputParameterList)
+	glog.V(4).Infof("outputArtifactList: %#v", outputArtifactList)
+	return outputParameterList, outputArtifactList, nil
+}
+
+// collectContainerOutput pulls either the artifact or parameter that is a
+// task's output where said task was called within a parallelFor loop
+func collectContainerOutput(
+	cfg resolveUpstreamOutputsConfig,
+	currentTask *metadata.Execution,
+	workingOutputKey string,
+	isArtifact bool,
+) (*structpb.Value, *pipelinespec.RuntimeArtifact, error) {
+	var param *structpb.Value
+	var artifact *pipelinespec.RuntimeArtifact
+	if isArtifact {
+		outputArtifacts, err := cfg.mlmd.GetOutputArtifactsByExecutionId(cfg.ctx, currentTask.GetID())
+		if err != nil {
+			return nil, nil, err
+		}
+		glog.V(4).Infof("outputArtifacts: %#v", outputArtifacts)
+		glog.V(4).Infof("outputKey: %v", workingOutputKey)
+		artifact, err = outputArtifacts[workingOutputKey].ToRuntimeArtifact()
+		if err != nil {
+			return nil, nil, cfg.err(err)
+		}
+		glog.V(4).Infof("runtimeArtifact: %v", artifact)
+	} else {
+		_, outputParameters, err := currentTask.GetParameters()
+		glog.V(4).Infof("outputParameters: %v", outputParameters)
+		if err != nil {
+			return nil, nil, cfg.err(err)
+		}
+		param = outputParameters[workingOutputKey]
+	}
+	return param, artifact, nil
+}
+
+// GetProducerTask gets the updated ProducerSubTask /
+// Output[Artifact|Parameter]Key if they exists, else it returns the original
+// input.
+func GetProducerTask(parentTask *metadata.Execution, tasks map[string]*metadata.Execution, subTaskName string, outputKey string, isArtifact bool) (producerSubTaskName string, tempOutputKey string, err error) {
+	tempOutputKey = outputKey
+	if isArtifact {
+		producerTaskValue := parentTask.GetExecution().GetCustomProperties()["artifact_producer_task"]
+		if producerTaskValue != nil {
+			var tempOutputArtifacts map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
+			err := json.Unmarshal([]byte(producerTaskValue.GetStringValue()), &tempOutputArtifacts)
+			if err != nil {
+				return "", "", err
+			}
+			glog.V(4).Infof("tempOutputsArtifacts: %v", tempOutputArtifacts)
+			glog.V(4).Infof("outputArtifactKey: %v", outputKey)
+			tempSelectors := tempOutputArtifacts[outputKey].GetArtifactSelectors()
+			if len(tempSelectors) > 0 {
+				producerSubTaskName = tempSelectors[len(tempSelectors)-1].ProducerSubtask
+				tempOutputKey = tempSelectors[len(tempSelectors)-1].OutputArtifactKey
+			}
+		}
+
+	} else {
+		producerTaskValue := parentTask.GetExecution().GetCustomProperties()["parameter_producer_task"]
+		if producerTaskValue != nil {
+			tempOutputParametersMap := make(map[string]*pipelinespec.DagOutputsSpec_DagOutputParameterSpec)
+			for name, value := range producerTaskValue.GetStructValue().GetFields() {
+				outputSpec := &pipelinespec.DagOutputsSpec_DagOutputParameterSpec{}
+				err := protojson.Unmarshal([]byte(value.GetStringValue()), outputSpec)
+				if err != nil {
+					return "", "", err
+				}
+				tempOutputParametersMap[name] = outputSpec
+			}
+			glog.V(4).Infof("tempOutputParametersMap: %#v", tempOutputParametersMap)
+			switch tempOutputParametersMap[tempOutputKey].Kind.(type) {
+			case *pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromParameter:
+				producerSubTaskName = tempOutputParametersMap[tempOutputKey].GetValueFromParameter().GetProducerSubtask()
+				tempOutputKey = tempOutputParametersMap[tempOutputKey].GetValueFromParameter().GetOutputParameterKey()
+			case *pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromOneof:
+				// When OneOf is specified in a pipeline, the output of only 1
+				// task is consumed even though there may be more than 1 task
+				// output set. In this case we will attempt to grab the first
+				// successful task output.
+				paramSelectors := tempOutputParametersMap[tempOutputKey].GetValueFromOneof().GetParameterSelectors()
+				glog.V(4).Infof("paramSelectors: %v", paramSelectors)
+				// Since we have the tasks map, we can iterate through the
+				// parameterSelectors if the ProducerSubTask is not present in
+				// the task map and then assign the new OutputParameterKey only
+				// if it exists.
+				successfulOneOfTask := false
+				for _, paramSelector := range paramSelectors {
+					producerSubTaskName = paramSelector.GetProducerSubtask()
+					// Used just for retrieval since we lookup the task in the map
+					updatedSubTaskName := metadata.GetTaskNameWithDagID(producerSubTaskName, parentTask.GetID())
+					glog.V(4).Infof("subTaskName with Dag ID from paramSelector: %v", updatedSubTaskName)
+					glog.V(4).Infof("outputParameterKey from paramSelector: %v", paramSelector.GetOutputParameterKey())
+					if subTask, ok := tasks[updatedSubTaskName]; ok {
+						subTaskState := subTask.GetExecution().GetLastKnownState().String()
+						glog.V(4).Infof("subTask: %w , subTaskState: %v", updatedSubTaskName, subTaskState)
+						if subTaskState == "CACHED" || subTaskState == "COMPLETE" {
+							tempOutputKey = paramSelector.GetOutputParameterKey()
+							successfulOneOfTask = true
+							break
+						}
+					}
+				}
+				if !successfulOneOfTask {
+					return "", "", fmt.Errorf("processing OneOf: No successful task found")
+				}
+			}
+		}
+	}
+	if producerSubTaskName != "" {
+		producerSubTaskName = metadata.GetTaskNameWithDagID(producerSubTaskName, parentTask.GetID())
+	} else {
+		producerSubTaskName = subTaskName
+	}
+	return producerSubTaskName, tempOutputKey, nil
+}
+
+// Helper for determining if the current producerTask in question needs to pull from an iteration dag that it may exist in.
+func InferIndexedTaskName(producerTaskName string, dag *metadata.Execution) string {
+	// Check if the DAG in question is a parallelFor iteration DAG. If it is, we need to
+	// update the producerTaskName so the downstream task resolves the appropriate index.
+	if dag.GetExecution().GetCustomProperties()["iteration_index"] != nil {
+		task_iteration_index := dag.GetExecution().GetCustomProperties()["iteration_index"].GetIntValue()
+		producerTaskName = metadata.GetParallelForTaskName(producerTaskName, task_iteration_index)
+		glog.V(4).Infof("TaskIteration - ProducerTaskName: %v", producerTaskName)
+		glog.Infof("Attempting to retrieve outputs from a ParallelFor iteration")
+	}
+	return producerTaskName
+}
+
+// Helper for checking if collecting outputs is required for downstream tasks.
+func getParallelForIterationCount(task *metadata.Execution, dag *metadata.Execution) int64 {
+	iterations := task.GetExecution().GetCustomProperties()["iteration_count"]
+	glog.V(4).Infof("task: %v, iterations: %v", task.TaskName(), iterations)
+	if iterations == nil {
+		glog.V(4).Infof("No iteration_count found on task %v, checking associated DAG", task.TaskName())
+		iterations = dag.GetExecution().GetCustomProperties()["iteration_count"]
+		glog.V(4).Infof("dag: %v, iterations: %v", dag.TaskName(), iterations)
+	}
+	return iterations.GetIntValue()
+}
+
+// provisionOutputs prepares output references that will get saved to MLMD.
 func provisionOutputs(
 	pipelineRoot,
 	taskName string,
