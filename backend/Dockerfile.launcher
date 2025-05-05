@@ -17,8 +17,7 @@ ARG SOURCE_CODE=.
 ARG CI_CONTAINER_VERSION="unknown"
 
 
-# Use ubi8/nodejs-14 as base image
-FROM registry.access.redhat.com/ubi8/go-toolset:1.22 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.22 as builder
 
 
 ## Build args to be used at this step
@@ -38,13 +37,15 @@ RUN GO111MODULE=on go mod download
 COPY ${SOURCE_CODE}/ ./
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
+RUN GO111MODULE=on CGO_ENABLED=1 GOOS=linux GOARCH=amd64 GOEXPERIMENT=strictfipsruntime go build -tags 'netgo strictfipsruntime' -o /bin/launcher-v2-fips ./backend/src/v2/cmd/launcher-v2/*.go
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
 
 WORKDIR /bin
 
 COPY --from=builder /bin/launcher-v2 /bin/launcher-v2
-RUN chmod +x /bin/launcher-v2
+COPY --from=builder /bin/launcher-v2-fips /bin/launcher-v2-fips
+RUN chmod +x /bin/launcher-v2 && chmod +x /bin/launcher-v2-fips
 
 ENTRYPOINT ["/bin/launcher-v2"]
 
