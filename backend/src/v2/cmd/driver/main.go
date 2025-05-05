@@ -83,9 +83,7 @@ var (
 	httpsProxy  = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
 	noProxy     = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
 	publishLogs = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
-
-	// cache
-	cacheEnabledFlag = flag.String("cache_enabled", "", "Enable cache globally.")
+	cacheEnabledFlag = flag.String("cache_enabled", "true", "Enable cache globally.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
