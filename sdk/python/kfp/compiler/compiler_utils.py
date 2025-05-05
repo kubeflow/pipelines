@@ -13,8 +13,10 @@
 # limitations under the License.
 """Utility methods for compiler implementation that is IR-agnostic."""
 
+import ast
 import collections
 import copy
+import inspect
 from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 from kfp import dsl
@@ -24,6 +26,8 @@ from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
 from kfp.dsl import tasks_group
+from kfp.dsl import base_component
+from kfp.dsl import python_component
 
 GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
@@ -861,3 +865,94 @@ def _memory_to_float(memory: str) -> float:
         memory = float(memory) / constants._G
 
     return memory
+
+
+def validate_component_imports(component: base_component.BaseComponent) -> None:
+    """Validates that all functions used within a component are either defined or imported within the component.
+
+    Args:
+        component: The component to validate.
+
+    Raises:
+        ValueError: If any function used in the component is not defined or imported.
+    """
+    if not isinstance(component, python_component.PythonComponent):
+        return
+
+    # Get the source code of the component function
+    func = component.python_func
+    source = inspect.getsource(func)
+    
+    # Parse the source code into an AST
+    tree = ast.parse(source)
+    
+    # Get all function definitions in the component
+    defined_functions = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            defined_functions.add(node.name)
+    
+    # Get all function calls in the component
+    called_functions = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                called_functions.add(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                called_functions.add(node.func.attr)
+    
+    # Get all imports in the component
+    imported_functions = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for name in node.names:
+                imported_functions.add(name.name)
+        elif isinstance(node, ast.ImportFrom):
+            for name in node.names:
+                imported_functions.add(name.name)
+    
+    # Check for undefined functions
+    undefined_functions = called_functions - defined_functions - imported_functions
+    if undefined_functions:
+        raise ValueError(
+            f'Component {func.__name__} uses functions that are neither defined nor imported: {undefined_functions}'
+        )
+
+
+def validate_component(component: base_component.BaseComponent) -> None:
+    """Runs all validation checks on a component.
+
+    Args:
+        component: The component to validate.
+
+    Raises:
+        ValueError: If any validation check fails.
+    """
+    validate_component_imports(component)
+    # Add more validation checks here in the future
+
+
+def validate_pipeline_components(pipeline_func: base_component.BaseComponent) -> None:
+    """Validates all components used within a pipeline.
+
+    Args:
+        pipeline_func: The pipeline function to validate components for.
+
+    Raises:
+        ValueError: If any component validation fails.
+    """
+    # Get the source code of the pipeline function
+    source = inspect.getsource(pipeline_func.python_func)
+    
+    # Parse the source code into an AST
+    tree = ast.parse(source)
+    
+    # Find all component instantiations in the pipeline
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            # Check if this is a component instantiation
+            if isinstance(node.func, ast.Name):
+                # Get the component from the pipeline's components dictionary
+                component_name = node.func.id
+                if component_name in pipeline_func.components:
+                    validate_component(pipeline_func.components[component_name])

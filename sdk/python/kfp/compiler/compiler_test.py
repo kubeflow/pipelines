@@ -1265,6 +1265,57 @@ class TestWriteToFileTypes(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=None, package_path='/tmp/pipeline.yaml')
 
+    def test_validate_imports(self):
+        """Test that import validation catches undefined functions."""
+        @dsl.component
+        def component_with_undefined_func():
+            undefined_function()  # This function is not defined or imported
+
+        with self.assertRaisesRegex(ValueError,
+                                    r'Component component_with_undefined_func uses functions that are neither defined nor imported'):
+            compiler.Compiler().compile(
+                pipeline_func=component_with_undefined_func,
+                package_path='/tmp/pipeline.yaml',
+                validate_imports=True)
+
+        @dsl.component
+        def component_with_func_imported_outside():
+            # This should raise an error, as os is imported
+            # in the script (above), but not in the component
+            os.getcwd()
+
+        with self.assertRaisesRegex(ValueError,
+                                    r'Component component_with_func_imported_outside uses functions that are neither defined nor imported'):
+            compiler.Compiler().compile(
+                pipeline_func=component_with_func_imported_outside,
+                package_path='/tmp/pipeline.yaml',
+                validate_imports=True)
+
+        @dsl.component
+        def component_with_defined_func():
+            def helper():
+                pass
+            helper()  # This function is defined in the component
+
+        # This should not raise an error
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=component_with_defined_func,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                validate_imports=True)
+
+        @dsl.component
+        def component_with_imported_func():
+            import math
+            math.sqrt(4)  # This function is imported
+
+        # This should not raise an error
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=component_with_imported_func,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                validate_imports=True)
+
 
 class TestCompileComponent(parameterized.TestCase):
 
