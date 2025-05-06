@@ -1276,7 +1276,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=component_with_undefined_func,
                 package_path='/tmp/pipeline.yaml',
-                validate_imports=True)
+                validate=True)
 
         @dsl.component
         def component_with_func_imported_outside():
@@ -1289,9 +1289,11 @@ class TestWriteToFileTypes(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=component_with_func_imported_outside,
                 package_path='/tmp/pipeline.yaml',
-                validate_imports=True)
+                validate=True)
 
-        @dsl.component
+        @dsl.component(
+            base_image='python:3.11'        
+        )
         def component_with_defined_func():
             def helper():
                 pass
@@ -1302,7 +1304,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=component_with_defined_func,
                 package_path=os.path.join(tmpdir, 'pipeline.yaml'),
-                validate_imports=True)
+                validate=True)
 
         @dsl.component
         def component_with_imported_func():
@@ -1314,7 +1316,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=component_with_imported_func,
                 package_path=os.path.join(tmpdir, 'pipeline.yaml'),
-                validate_imports=True)
+                validate=True)
 
 
 class TestCompileComponent(parameterized.TestCase):

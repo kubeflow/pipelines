@@ -883,6 +883,31 @@ def validate_component_imports(component: base_component.BaseComponent) -> None:
     func = component.python_func
     source = inspect.getsource(func)
     
+    # Remove any leading whitespace from each line
+    source_lines = source.split('\n')
+    min_indent = float('inf')
+    for line in source_lines:
+        if line.strip():
+            min_indent = min(min_indent, len(line) - len(line.lstrip()))
+    if min_indent != float('inf'):
+        source = '\n'.join(line[min_indent:] for line in source_lines)
+    
+    # Remove the decorator line(s)
+    source_lines = source.split('\n')
+    while source_lines and source_lines[0].strip().startswith('@'):
+        line = source_lines[0].strip()
+        if '(' in line:
+            # Handle multiline decorator
+            paren_count = line.count('(') - line.count(')')
+            source_lines.pop(0)
+            while paren_count > 0 and source_lines:
+                line = source_lines[0].strip()
+                paren_count += line.count('(') - line.count(')')
+                source_lines.pop(0)
+        else:
+            source_lines.pop(0)
+    source = '\n'.join(source_lines)
+    
     # Parse the source code into an AST
     tree = ast.parse(source)
     
@@ -892,27 +917,53 @@ def validate_component_imports(component: base_component.BaseComponent) -> None:
         if isinstance(node, ast.FunctionDef):
             defined_functions.add(node.name)
     
-    # Get all function calls in the component
+    # Get all function calls and module accesses in the component
     called_functions = set()
+    used_modules = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name):
                 called_functions.add(node.func.id)
             elif isinstance(node.func, ast.Attribute):
-                called_functions.add(node.func.attr)
+                if isinstance(node.func.value, ast.Name):
+                    # For module.function() calls, we track both the module and the function
+                    used_modules.add(node.func.value.id)
+                    called_functions.add(f"{node.func.value.id}.{node.func.attr}")
+                else:
+                    called_functions.add(node.func.attr)
+        elif isinstance(node, ast.Attribute):
+            if isinstance(node.value, ast.Name):
+                # Track module accesses like 'os.path'
+                used_modules.add(node.value.id)
     
     # Get all imports in the component
     imported_functions = set()
+    imported_modules = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for name in node.names:
+                imported_modules.add(name.name)
                 imported_functions.add(name.name)
         elif isinstance(node, ast.ImportFrom):
+            module = node.module if node.module else ''
+            imported_modules.add(module)
             for name in node.names:
                 imported_functions.add(name.name)
     
-    # Check for undefined functions
-    undefined_functions = called_functions - defined_functions - imported_functions
+    # Check for undefined functions and unimported modules
+    undefined_functions = set()
+    for func_name in called_functions:
+        if '.' in func_name:
+            module_name = func_name.split('.')[0]
+            if module_name not in imported_modules:
+                undefined_functions.add(func_name)
+        elif func_name not in defined_functions and func_name not in imported_functions:
+            undefined_functions.add(func_name)
+    
+    # Add any unimported modules to the undefined functions set
+    unimported_modules = used_modules - imported_modules
+    undefined_functions.update(unimported_modules)
+    
     if undefined_functions:
         raise ValueError(
             f'Component {func.__name__} uses functions that are neither defined nor imported: {undefined_functions}'
