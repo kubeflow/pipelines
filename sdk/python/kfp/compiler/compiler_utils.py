@@ -20,14 +20,14 @@ import inspect
 from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 from kfp import dsl
+from kfp.dsl import base_component
 from kfp.dsl import constants
 from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
-from kfp.dsl import tasks_group
-from kfp.dsl import base_component
 from kfp.dsl import python_component
+from kfp.dsl import tasks_group
 
 GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 

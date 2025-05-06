@@ -21,8 +21,8 @@ import ast
 import inspect
 from typing import Any, Dict, Optional, Set
 
-from kfp.compiler import pipeline_spec_builder as builder
 from kfp.compiler import compiler_utils
+from kfp.compiler import pipeline_spec_builder as builder
 from kfp.dsl import base_component
 from kfp.dsl import python_component
 from kfp.dsl.types import type_utils
