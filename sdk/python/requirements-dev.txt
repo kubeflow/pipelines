@@ -6,7 +6,7 @@ mypy==0.941
 pip-tools==6.0.0
 pre-commit==2.19.0
 pycln==2.1.1
-pylint==2.12.2
+pylint==2.17.7
 pytest==7.1.2
 pytest-cov==3.0.0
 pytest-xdist==2.5.0
