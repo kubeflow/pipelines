@@ -15,7 +15,7 @@
 # Build arguments
 ARG SOURCE_CODE=.
 
-FROM registry.access.redhat.com/ubi8/go-toolset:1.22 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.22 as builder
 
 USER root
 # Downloading Argo CLI so that the samples are validated
@@ -37,10 +37,10 @@ RUN GO111MODULE=on go mod download
 # Copy the source
 COPY ${SOURCE_CODE}/ ./
 
-RUN GO111MODULE=on go build -o /bin/apiserver ./backend/src/apiserver/ && \
+RUN GO111MODULE=on CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime go build -tags strictfipsruntime -o /bin/apiserver ./backend/src/apiserver/ && \
     dnf clean all
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
 
 WORKDIR /bin
 
