@@ -1266,18 +1266,9 @@ class TestWriteToFileTypes(parameterized.TestCase):
                 pipeline_func=None, package_path='/tmp/pipeline.yaml')
 
     def test_validate_imports(self):
-        """Test that import validation catches undefined functions."""
-        @dsl.component
-        def component_with_undefined_func():
-            undefined_function()  # This function is not defined or imported
+        """Test that import validation catches unimported and undefined functions."""
 
-        with self.assertRaisesRegex(ValueError,
-                                    r'Component component_with_undefined_func uses functions that are neither defined nor imported'):
-            compiler.Compiler().compile(
-                pipeline_func=component_with_undefined_func,
-                package_path='/tmp/pipeline.yaml',
-                validate=True)
-
+        import os
         @dsl.component
         def component_with_func_imported_outside():
             # This should raise an error, as os is imported
@@ -1288,6 +1279,22 @@ class TestWriteToFileTypes(parameterized.TestCase):
                                     r'Component component_with_func_imported_outside uses functions that are neither defined nor imported'):
             compiler.Compiler().compile(
                 pipeline_func=component_with_func_imported_outside,
+                package_path='/tmp/pipeline.yaml',
+                validate=True)
+
+        def outside_func():
+            pass
+
+        @dsl.component(
+            packages_to_install="numpy"
+        )
+        def component_with_func_defined_outside():
+            outside_func()
+        # This should raise an error since outside_func is not imported or defined in component
+        with self.assertRaisesRegex(ValueError,
+                                    r'Component component_with_func_defined_outside uses functions that are neither defined nor imported'):
+            compiler.Compiler().compile(
+                pipeline_func=component_with_func_defined_outside,
                 package_path='/tmp/pipeline.yaml',
                 validate=True)
 
