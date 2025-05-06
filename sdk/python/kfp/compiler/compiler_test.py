@@ -1291,7 +1291,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
         # disable yapf formatting to keep multiline component
         # yapf: disable
         @dsl.component(
-            packages_to_install="numpy"
+            packages_to_install='numpy'
         ) # yapf: enable
         def component_with_func_defined_outside():
             outside_func()
