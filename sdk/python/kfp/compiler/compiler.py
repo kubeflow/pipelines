@@ -17,14 +17,11 @@ Implementation of KFP compiler that compiles KFP pipeline into Pipeline IR:
 https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 
-import ast
-import inspect
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional
 
 from kfp.compiler import compiler_utils
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.dsl import base_component
-from kfp.dsl import python_component
 from kfp.dsl.types import type_utils
 
 

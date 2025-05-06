@@ -868,7 +868,8 @@ def _memory_to_float(memory: str) -> float:
 
 
 def validate_component_imports(component: base_component.BaseComponent) -> None:
-    """Validates that all functions used within a component are either defined or imported within the component.
+    """Validates that all functions used within a component are either defined
+    or imported within the component.
 
     Args:
         component: The component to validate.
@@ -929,7 +930,7 @@ def validate_component_imports(component: base_component.BaseComponent) -> None:
                     # For module.function() calls, we track both the module and the function
                     used_modules.add(node.func.value.id)
                     called_functions.add(
-                        f"{node.func.value.id}.{node.func.attr}")
+                        f'{node.func.value.id}.{node.func.attr}')
                 else:
                     called_functions.add(node.func.attr)
         elif isinstance(node, ast.Attribute):
