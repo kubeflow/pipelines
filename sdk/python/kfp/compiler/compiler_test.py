@@ -1269,14 +1269,17 @@ class TestWriteToFileTypes(parameterized.TestCase):
         """Test that import validation catches unimported and undefined functions."""
 
         import os
+
         @dsl.component
         def component_with_func_imported_outside():
             # This should raise an error, as os is imported
             # in the script (above), but not in the component
             os.getcwd()
 
-        with self.assertRaisesRegex(ValueError,
-                                    r'Component component_with_func_imported_outside uses functions that are neither defined nor imported'):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Component component_with_func_imported_outside uses functions that are neither defined nor imported'
+        ):
             compiler.Compiler().compile(
                 pipeline_func=component_with_func_imported_outside,
                 package_path='/tmp/pipeline.yaml',
@@ -1285,9 +1288,11 @@ class TestWriteToFileTypes(parameterized.TestCase):
         def outside_func():
             pass
 
+        # disable yapf formatting to keep multiline component
+        # yapf: disable
         @dsl.component(
             packages_to_install="numpy"
-        )
+        ) # yapf: enable
         def component_with_func_defined_outside():
             outside_func()
         # This should raise an error since outside_func is not imported or defined in component
@@ -1298,9 +1303,11 @@ class TestWriteToFileTypes(parameterized.TestCase):
                 package_path='/tmp/pipeline.yaml',
                 validate=True)
 
+        # disable yapf formatting to keep multiline component
+        # yapf: disable
         @dsl.component(
-            base_image='python:3.11'        
-        )
+            base_image='python:3.11'
+        ) # yapf: enable
         def component_with_defined_func():
             def helper():
                 pass
