@@ -81,8 +81,8 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 	}
-	if !*c.cacheEnabled {
-		args = append(args, "--cache_enabled", "false")
+	if c.cacheDisabled {
+		args = append(args, "--cache_disabled", "true")
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)

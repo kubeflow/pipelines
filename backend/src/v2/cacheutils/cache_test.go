@@ -134,7 +134,7 @@ func TestGenerateCacheKey(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	cacheClient, err := NewClient(true)
+	cacheClient, err := NewClient(false)
 	require.NoError(t, err)
 	for _, test := range tests {
 
@@ -256,7 +256,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 			fingerPrint: "0a4cc1f15cdfad5170e1358518f7128c5278500a670db1b9a3f3d83b93db396e",
 		},
 	}
-	cacheClient, err := NewClient(true)
+	cacheClient, err := NewClient(false)
 	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

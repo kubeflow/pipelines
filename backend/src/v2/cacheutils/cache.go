@@ -68,8 +68,8 @@ type client struct {
 var _ Client = &client{}
 
 // NewClient creates a Client.
-func NewClient(cacheEnabled bool) (Client, error) {
-	if !cacheEnabled {
+func NewClient(cacheDisabled bool) (Client, error) {
+	if cacheDisabled {
 		return &disabledCacheClient{}, nil
 	}
 

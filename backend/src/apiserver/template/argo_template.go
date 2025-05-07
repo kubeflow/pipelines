@@ -93,8 +93,8 @@ type Argo struct {
 	wf *util.Workflow
 }
 
-func (t *Argo) IsCacheEnabled() bool {
-	return true
+func (t *Argo) IsCacheDisabled() bool {
+	return false
 }
 
 var _ Template = &Argo{}

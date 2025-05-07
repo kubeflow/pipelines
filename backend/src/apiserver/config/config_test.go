@@ -31,7 +31,7 @@ import (
 
 func fakeResourceManager() *resource.ResourceManager {
 	clientManager := resource.NewFakeClientManagerOrFatalV2()
-	resourceManager := resource.NewResourceManager(clientManager, resource.NewResourceManagerOptions(false, true))
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	return resourceManager
 }
 

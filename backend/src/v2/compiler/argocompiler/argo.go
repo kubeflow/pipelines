@@ -41,7 +41,7 @@ type Options struct {
 	// optional
 	PipelineRoot string
 	// optional
-	CacheEnabled *bool
+	CacheDisabled bool
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
 
@@ -132,8 +132,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf.Spec.SecurityContext = &k8score.PodSecurityContext{RunAsUser: runAsUser}
 	}
 
-	cacheEnabled := true
-
 	c := &workflowCompiler{
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
@@ -145,10 +143,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		job:             job,
 		spec:            spec,
 		executors:       deploy.GetExecutors(),
-		cacheEnabled:    &cacheEnabled,
 	}
 	if opts != nil {
-		c.cacheEnabled = opts.CacheEnabled
+		c.cacheDisabled = opts.CacheDisabled
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -183,7 +180,7 @@ type workflowCompiler struct {
 	driverCommand   []string
 	launcherImage   string
 	launcherCommand []string
-	cacheEnabled    *bool
+	cacheDisabled   bool
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

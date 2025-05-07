@@ -36,9 +36,9 @@ import (
 )
 
 type V2Spec struct {
-	spec         *pipelinespec.PipelineSpec
-	platformSpec *pipelinespec.PlatformSpec
-	cacheEnabled *bool
+	spec          *pipelinespec.PipelineSpec
+	platformSpec  *pipelinespec.PlatformSpec
+	cacheDisabled bool
 }
 
 var _ Template = &V2Spec{}
@@ -110,7 +110,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheEnabled: t.cacheEnabled})
+		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheDisabled: t.cacheDisabled})
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -155,8 +155,8 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 	return V2
 }
 
-func NewV2SpecTemplate(template []byte, cacheEnabled bool) (*V2Spec, error) {
-	v2Spec := &V2Spec{cacheEnabled: &cacheEnabled}
+func NewV2SpecTemplate(template []byte, cacheDisabled bool) (*V2Spec, error) {
+	v2Spec := &V2Spec{cacheDisabled: cacheDisabled}
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
@@ -315,7 +315,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheEnabled: options.CacheEnabled})
+		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheDisabled: options.CacheDisabled})
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -344,8 +344,8 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	return executionSpec, nil
 }
 
-func (t *V2Spec) IsCacheEnabled() bool {
-	return *t.cacheEnabled
+func (t *V2Spec) IsCacheDisabled() bool {
+	return t.cacheDisabled
 }
 
 func IsPlatformSpecWithKubernetesConfig(template []byte) bool {

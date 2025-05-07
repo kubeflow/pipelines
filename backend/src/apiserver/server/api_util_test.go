@@ -30,8 +30,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var resourceManagerOptions = resource.NewResourceManagerOptions(false, true)
-
 func TestValidateExperimentResourceReference(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
@@ -110,7 +108,7 @@ func TestValidateExperimentResourceReference_UnexpectedRelationship(t *testing.T
 
 func TestValidateExperimentResourceReference_ExperimentNotExist(t *testing.T) {
 	clients := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(clients, resourceManagerOptions)
+	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	defer clients.Close()
 	err := ValidateExperimentResourceReference(manager, validReference)
 	assert.NotNil(t, err)
@@ -185,7 +183,7 @@ func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineVersionId(t *t
 
 func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipelineVersionId(t *testing.T) {
 	clients := initWithExperimentsAndTwoPipelineVersions(t)
-	manager := resource.NewResourceManager(clients, resourceManagerOptions)
+	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	defer clients.Close()
 	spec := &apiv1beta1.PipelineSpec{
 		PipelineId: NonDefaultFakeUUID,

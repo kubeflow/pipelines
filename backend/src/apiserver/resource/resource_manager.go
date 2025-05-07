@@ -100,12 +100,8 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManagerOptions struct {
-	CollectMetrics bool  `json:"collect_metrics,omitempty"`
-	CacheEnabled   *bool `json:"cache_enabled,omitempty"`
-}
-
-func NewResourceManagerOptions(collectMetrics bool, cacheEnabled bool) *ResourceManagerOptions {
-	return &ResourceManagerOptions{CollectMetrics: collectMetrics, CacheEnabled: &cacheEnabled}
+	CollectMetrics bool `json:"collect_metrics,omitempty"`
+	CacheDisabled  bool `json:"cache_disabled,omitempty"`
 }
 
 type ResourceManager struct {
@@ -373,7 +369,7 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if pipelineSpecURI != "" {
 		pv.PipelineSpecURI = pipelineSpecURI
 	}
-	tmpl, err := template.New(pipelineSpecBytes, *r.options.CacheEnabled)
+	tmpl, err := template.New(pipelineSpecBytes, r.options.CacheDisabled)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
 	}
@@ -497,9 +493,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	run.RunDetails.CreatedAtInSec = r.time.Now().Unix()
 	runWorkflowOptions := template.RunWorkflowOptions{
-		RunId:        run.UUID,
-		RunAt:        run.RunDetails.CreatedAtInSec,
-		CacheEnabled: r.options.CacheEnabled,
+		RunId:         run.UUID,
+		RunAt:         run.RunDetails.CreatedAtInSec,
+		CacheDisabled: r.options.CacheDisabled,
 	}
 	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
 	if err != nil {
@@ -1096,7 +1092,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
 
-		tmpl, err := template.New(manifest, *r.options.CacheEnabled)
+		tmpl, err := template.New(manifest, r.options.CacheDisabled)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
@@ -1482,7 +1478,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
 		}
 	}
-	tmpl, err := template.New([]byte(manifest), *r.options.CacheEnabled)
+	tmpl, err := template.New([]byte(manifest), r.options.CacheDisabled)
 	if err != nil {
 		return nil, "", util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 	}
@@ -1641,7 +1637,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	}
 
 	// Create a template
-	tmpl, err := template.New(pipelineSpecBytes, *r.options.CacheEnabled)
+	tmpl, err := template.New(pipelineSpecBytes, r.options.CacheDisabled)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
 	}

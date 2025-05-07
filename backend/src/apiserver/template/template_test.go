@@ -283,12 +283,10 @@ func TestNewTemplate_V2(t *testing.T) {
 	var expectedSpec pipelinespec.PipelineSpec
 	err = protojson.Unmarshal(jsonData, &expectedSpec)
 	assert.Nil(t, err)
-	cacheEnabled := true
 	expectedTemplate := &V2Spec{
-		spec:         &expectedSpec,
-		cacheEnabled: &cacheEnabled,
+		spec: &expectedSpec,
 	}
-	templateV2Spec, err := New([]byte(template), cacheEnabled)
+	templateV2Spec, err := New([]byte(template), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }
@@ -313,13 +311,11 @@ func TestNewTemplate_WithPlatformSpec(t *testing.T) {
 	assert.Nil(t, err)
 	protojson.Unmarshal(jsonData, &expectedPlatformSpec)
 
-	cacheEnabled := true
 	expectedTemplate := &V2Spec{
 		spec:         &expectedPipelineSpec,
 		platformSpec: &expectedPlatformSpec,
-		cacheEnabled: &cacheEnabled,
 	}
-	templateV2Spec, err := New([]byte(template), cacheEnabled)
+	templateV2Spec, err := New([]byte(template), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }

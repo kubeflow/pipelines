@@ -556,8 +556,8 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
 	}
-	if !*c.cacheEnabled {
-		args = append(args, "--cache_enabled", "false")
+	if c.cacheDisabled {
+		args = append(args, "--cache_disabled", "true")
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)

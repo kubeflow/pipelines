@@ -52,8 +52,8 @@ type LauncherV2Options struct {
 	MLMDServerPort,
 	PipelineName,
 	RunID string
-	PublishLogs string
-	CacheEnabled *bool
+	PublishLogs   string
+	CacheDisabled bool
 }
 
 type LauncherV2 struct {
@@ -114,7 +114,7 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
-	cacheClient, err := cacheutils.NewClient(*opts.CacheEnabled)
+	cacheClient, err := cacheutils.NewClient(opts.CacheDisabled)
 	if err != nil {
 		return nil, err
 	}

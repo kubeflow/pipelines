@@ -44,7 +44,6 @@ func init() {
 type PipelineVersionsWebhook struct {
 	Client        ctrlclient.Client
 	ClientNoCache ctrlclient.Client
-	cacheEnabled  *bool
 }
 
 var _ ctrladmission.CustomValidator = &PipelineVersionsWebhook{}
@@ -102,7 +101,8 @@ func (p *PipelineVersionsWebhook) ValidateCreate(
 		return nil, newBadRequestError(fmt.Sprintf("The pipeline spec is invalid JSON: %v", err))
 	}
 
-	tmpl, err := template.NewV2SpecTemplate(pipelineSpec, *p.cacheEnabled)
+	// cache enabled or not doesn't matter in this context
+	tmpl, err := template.NewV2SpecTemplate(pipelineSpec, false)
 	if err != nil {
 		return nil, newBadRequestError(fmt.Sprintf("The pipeline spec is invalid: %v", err))
 	}
@@ -191,11 +191,11 @@ func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Objec
 
 // NewPipelineVersionWebhook returns the validating webhook and mutating webhook HTTP handlers
 func NewPipelineVersionWebhook(
-	client ctrlclient.Client, clientNoCache ctrlclient.Client, cacheEnabled bool,
+	client ctrlclient.Client, clientNoCache ctrlclient.Client,
 ) (http.Handler, http.Handler, error) {
 	validating, err := ctrladmission.StandaloneWebhook(
 		ctrladmission.WithCustomValidator(
-			scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client, ClientNoCache: clientNoCache, cacheEnabled: &cacheEnabled},
+			scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client, ClientNoCache: clientNoCache},
 		),
 		ctrladmission.StandaloneOptions{},
 	)
@@ -205,7 +205,7 @@ func NewPipelineVersionWebhook(
 
 	mutating, err := ctrladmission.StandaloneWebhook(
 		ctrladmission.WithCustomDefaulter(
-			scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client, ClientNoCache: clientNoCache, cacheEnabled: &cacheEnabled},
+			scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client, ClientNoCache: clientNoCache},
 		),
 		ctrladmission.StandaloneOptions{},
 	)
