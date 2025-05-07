@@ -40,6 +40,7 @@ import producer_consumer_param
 import subdagio
 import two_step_pipeline_containerized
 import yaml
+import pipeline_with_retry
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 5 * _MINUTE
@@ -170,6 +171,7 @@ class SampleTest(unittest.TestCase):
                      .loop_with_after_dependency_set),
             TestCase(
                 pipeline_func=collected_parameters.collected_param_pipeline),
+            TestCase(pipeline_func=pipeline_with_retry.retry_pipeline),
         ]
 
         with ThreadPoolExecutor() as executor:

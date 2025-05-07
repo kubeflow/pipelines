@@ -333,21 +333,25 @@ func hashValue(value interface{}) (string, error) {
 }
 
 const (
-	paramComponent        = "component"      // component spec
-	paramTask             = "task"           // task spec
-	paramContainer        = "container"      // container spec
-	paramImporter         = "importer"       // importer spec
-	paramRuntimeConfig    = "runtime-config" // job runtime config, pipeline level inputs
-	paramParentDagID      = "parent-dag-id"
-	paramExecutionID      = "execution-id"
-	paramIterationCount   = "iteration-count"
-	paramIterationIndex   = "iteration-index"
-	paramExecutorInput    = "executor-input"
-	paramDriverType       = "driver-type"
-	paramCachedDecision   = "cached-decision"   // indicate hit cache or not
-	paramPodSpecPatch     = "pod-spec-patch"    // a strategic patch merged with the pod spec
-	paramCondition        = "condition"         // condition = false -> skip the task
-	paramKubernetesConfig = "kubernetes-config" // stores Kubernetes config
+	paramComponent               = "component"      // component spec
+	paramTask                    = "task"           // task spec
+	paramContainer               = "container"      // container spec
+	paramImporter                = "importer"       // importer spec
+	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs
+	paramParentDagID             = "parent-dag-id"
+	paramExecutionID             = "execution-id"
+	paramIterationCount          = "iteration-count"
+	paramIterationIndex          = "iteration-index"
+	paramExecutorInput           = "executor-input"
+	paramDriverType              = "driver-type"
+	paramCachedDecision          = "cached-decision"            // indicate hit cache or not
+	paramPodSpecPatch            = "pod-spec-patch"             // a strategic patch merged with the pod spec
+	paramCondition               = "condition"                  // condition = false -> skip the task
+	paramKubernetesConfig        = "kubernetes-config"          // stores Kubernetes config
+	paramRetryMaxCount           = "retry-max-count"            // limit on number of retries
+	paramRetryBackOffDuration    = "retry-backoff-duration"     // duration of backoff between retries
+	paramRetryBackOffFactor      = "retry-backoff-factor"       // multiplier for backoff duration between retries
+	paramRetryBackOffMaxDuration = "retry-backoff-max-duration" // limit on backoff duration between retries
 )
 
 func runID() string {
