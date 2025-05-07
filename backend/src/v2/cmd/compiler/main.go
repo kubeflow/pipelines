@@ -36,7 +36,7 @@ var (
 	launcher         = flag.String("launcher", "", "v2 launcher image")
 	driver           = flag.String("driver", "", "v2 driver image")
 	pipelineRoot     = flag.String("pipeline_root", "", "pipeline root")
-	cacheEnabledFlag = flag.String("cache_enabled", "", "enable caching")
+	cacheEnabledFlag = flag.String("cache_enabled", "true", "enable caching")
 )
 
 func main() {
