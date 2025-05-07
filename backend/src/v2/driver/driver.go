@@ -821,25 +821,35 @@ func extendPodSpecPatch(
 					isSingleToleration := resolvedParam.GetStructValue() != nil
 					isListToleration := resolvedParam.GetListValue() != nil
 					if isSingleToleration {
-						paramJSON, err = resolvedParam.GetStructValue().MarshalJSON()
-						if err != nil {
-							return err
+						structVal := resolvedParam.GetStructValue()
+						if structVal != nil && len(structVal.Fields) > 0 {
+							paramJSON, err = resolvedParam.GetStructValue().MarshalJSON()
+							if err != nil {
+								return err
+							}
+							var singleToleration k8score.Toleration
+							if err = json.Unmarshal(paramJSON, &singleToleration); err != nil {
+								return fmt.Errorf("failed to marshal single toleration to json: %w", err)
+							}
+							k8sTolerations = append(k8sTolerations, singleToleration)
+						} else {
+							glog.V(4).Info("encountered empty tolerations struct, ignoring.")
 						}
-						var singleToleration k8score.Toleration
-						if err = json.Unmarshal(paramJSON, &singleToleration); err != nil {
-							return fmt.Errorf("failed to marshal single toleration to json: %w", err)
-						}
-						k8sTolerations = append(k8sTolerations, singleToleration)
 					} else if isListToleration {
-						paramJSON, err = resolvedParam.GetListValue().MarshalJSON()
-						if err != nil {
-							return err
+						listVal := resolvedParam.GetListValue()
+						if listVal != nil && len(listVal.Values) > 0 {
+							paramJSON, err = resolvedParam.GetListValue().MarshalJSON()
+							if err != nil {
+								return err
+							}
+							var k8sTolerationsList []k8score.Toleration
+							if err = json.Unmarshal(paramJSON, &k8sTolerationsList); err != nil {
+								return fmt.Errorf("failed to marshal list toleration to json: %w", err)
+							}
+							k8sTolerations = append(k8sTolerations, k8sTolerationsList...)
+						} else {
+							glog.V(4).Info("encountered empty tolerations list, ignoring.")
 						}
-						var k8sTolerationsList []k8score.Toleration
-						if err = json.Unmarshal(paramJSON, &k8sTolerationsList); err != nil {
-							return fmt.Errorf("failed to marshal list toleration to json: %w", err)
-						}
-						k8sTolerations = append(k8sTolerations, k8sTolerationsList...)
 					} else {
 						return fmt.Errorf("encountered unexpected toleration proto value, " +
 							"must be either struct or list type.")

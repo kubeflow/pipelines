@@ -2065,6 +2065,29 @@ func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
 				}),
 			},
 		},
+
+		{
+			"Valid - toleration json - empty component input",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				Tolerations: []*kubernetesplatform.Toleration{
+					{
+						TolerationJson: inputParamComponent("param_1"),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Tolerations: nil,
+			},
+			map[string]*structpb.Value{
+				"param_1": validValueStructOrPanic(map[string]interface{}{}),
+			},
+		},
+
 		{
 			"Valid - toleration json - multiple input types",
 			&kubernetesplatform.KubernetesExecutorConfig{
@@ -2290,6 +2313,28 @@ func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
 					"effect":            "NoSchedule",
 					"tolerationSeconds": 3604,
 				}),
+			},
+		},
+
+		{
+			"Valid - toleration json - empty toleration list",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				Tolerations: []*kubernetesplatform.Toleration{
+					{
+						TolerationJson: inputParamComponent("param_1"),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Tolerations: nil,
+			},
+			map[string]*structpb.Value{
+				"param_1": validListOfStructsOrPanic([]map[string]interface{}{}),
 			},
 		},
 	}
