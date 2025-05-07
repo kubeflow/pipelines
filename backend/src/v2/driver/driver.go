@@ -841,8 +841,8 @@ func extendPodSpecPatch(
 						}
 						k8sTolerations = append(k8sTolerations, k8sTolerationsList...)
 					} else {
-						return fmt.Errorf("encountered unexpected toleration proto value, "+
-							"must be either struct or list type: %w", err)
+						return fmt.Errorf("encountered unexpected toleration proto value, " +
+							"must be either struct or list type.")
 					}
 				} else {
 					k8sToleration.Key = toleration.Key
