@@ -1265,23 +1265,26 @@ class TestWriteToFileTypes(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=None, package_path='/tmp/pipeline.yaml')
 
+
+class TestCompileComponent(parameterized.TestCase):
+
     def test_validate_imports(self):
         """Test that import validation catches unimported and undefined functions."""
 
         import os
 
         @dsl.component
-        def component_with_func_imported_outside():
+        def component_with_module_imported_outside():
             # This should raise an error, as os is imported
             # in the script (above), but not in the component
             os.getcwd()
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Component component_with_func_imported_outside uses functions that are neither defined nor imported'
+                r'Component component_with_module_imported_outside uses functions that are neither defined nor imported'
         ):
             compiler.Compiler().compile(
-                pipeline_func=component_with_func_imported_outside,
+                pipeline_func=component_with_module_imported_outside,
                 package_path='/tmp/pipeline.yaml',
                 validate=True)
 
@@ -1332,8 +1335,20 @@ class TestWriteToFileTypes(parameterized.TestCase):
                 package_path=os.path.join(tmpdir, 'pipeline.yaml'),
                 validate=True)
 
+        @dsl.pipeline
+        def pipeline_with_faulty_component():
+            good_comp1 = component_with_imported_func()
+            bad_comp1 = component_with_func_defined_outside().after(good_comp1)
+            good_comp2 = component_with_defined_func().after(bad_comp1)
 
-class TestCompileComponent(parameterized.TestCase):
+        # This should raise an error since component_with_func_defined_outside uses outside_func
+        with self.assertRaisesRegex(ValueError,
+                                    r'Component component_with_func_defined_outside uses functions that are neither defined nor imported'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                compiler.Compiler().compile(
+                    pipeline_func=pipeline_with_faulty_component,
+                    package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                    validate=True)
 
     @parameterized.parameters(['.json', '.yaml', '.yml'])
     def test_compile_component_simple(self, extension: str):
