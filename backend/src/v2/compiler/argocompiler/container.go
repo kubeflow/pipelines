@@ -267,10 +267,11 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 		Template: c.addContainerExecutorTemplate(name, refName),
 		When:     when,
 		Arguments: wfapi.Arguments{
-			Parameters: []wfapi.Parameter{
+			Parameters: append([]wfapi.Parameter{
 				{Name: paramPodSpecPatch, Value: wfapi.AnyStringPtr(inputs.podSpecPatch)},
-				{Name: paramCachedDecision, Value: wfapi.AnyStringPtr(inputs.cachedDecision), Default: wfapi.AnyStringPtr("false")},
-			},
+				{Name: paramCachedDecision, Value: wfapi.AnyStringPtr(inputs.cachedDecision), Default: wfapi.AnyStringPtr("false")}},
+				c.getTaskRetryParametersWithValues(name)...,
+			),
 		},
 	}
 
@@ -289,8 +290,8 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 	nameContainerImpl := "system-container-impl"
 	taskRetrySpec := c.getTaskRetryPolicySpec(name)
 	if taskRetrySpec != nil {
-		nameContainerExecutor = name + "-" + nameContainerExecutor
-		nameContainerImpl = name + "-" + "system-container-impl"
+		nameContainerExecutor = "retry-" + nameContainerExecutor
+		nameContainerImpl = "retry-" + nameContainerImpl
 	}
 	_, ok := c.templates[nameContainerExecutor]
 	if ok {
@@ -299,20 +300,22 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 	container := &wfapi.Template{
 		Name: nameContainerExecutor,
 		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{
+			Parameters: append([]wfapi.Parameter{
 				{Name: paramPodSpecPatch},
-				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false")},
-			},
+				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false")}},
+				c.addParameterDefault(c.getTaskRetryParameters(name), "0")...,
+			),
 		},
 		DAG: &wfapi.DAGTemplate{
 			Tasks: []wfapi.DAGTask{{
 				Name:     "executor",
 				Template: nameContainerImpl,
 				Arguments: wfapi.Arguments{
-					Parameters: []wfapi.Parameter{{
+					Parameters: append([]wfapi.Parameter{{
 						Name:  paramPodSpecPatch,
-						Value: wfapi.AnyStringPtr(inputParameter(paramPodSpecPatch)),
-					}},
+						Value: wfapi.AnyStringPtr(inputParameter(paramPodSpecPatch))}},
+						c.addParameterInputPath(c.getTaskRetryParameters(name))...,
+					),
 				},
 				// When cached decision is true, the container
 				// implementation template will be skipped, but
@@ -335,12 +338,11 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 		args = append(args, "--publish_logs", value)
 	}
 	executor := &wfapi.Template{
-		Name:          nameContainerImpl,
-		RetryStrategy: c.getTaskRetryStrategy(name),
+		Name: nameContainerImpl,
 		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramPodSpecPatch},
-			},
+			Parameters: append([]wfapi.Parameter{
+				{Name: paramPodSpecPatch}},
+				c.getTaskRetryParameters(name)...),
 		},
 		// PodSpecPatch input param is where actual image, command and
 		// args come from. It is treated as a strategic merge patch on
@@ -448,6 +450,13 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 			Env:     commonEnvs,
 		},
 	}
+	// If retry policy is set, add retryStrategy to executor
+	if taskRetrySpec != nil {
+		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
+			inputParameter(paramRetryBackOffDuration),
+			inputParameter(paramRetryBackOffFactor),
+			inputParameter(paramRetryBackOffMaxDuration))
+	}
 	// Update pod metadata if it defined in the Kubernetes Spec
 	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
 
@@ -527,38 +536,71 @@ func (c *workflowCompiler) getTaskRetryPolicySpec(name string) *pipelinespec.Pip
 	return taskSpec.RetryPolicy
 }
 
-func (c *workflowCompiler) getTaskRetryStrategy(name string) *wfapi.RetryStrategy {
+func (c *workflowCompiler) getTaskRetryParameters(name string) []wfapi.Parameter {
 	retryPolicy := c.getTaskRetryPolicySpec(name)
 	if retryPolicy == nil {
 		return nil
 	}
+	// Create slice of parameters with "Name" field set.
+	parameters := []wfapi.Parameter{
+		{Name: paramRetryMaxCount},
+		{Name: paramRetryBackOffDuration},
+		{Name: paramRetryBackOffFactor},
+		{Name: paramRetryBackOffMaxDuration}}
+	return parameters
+}
 
-	argoBackOffDuration := "0"
-	backoffDuration := retryPolicy.GetBackoffDuration()
-	if backoffDuration != nil {
-		argoBackOffDuration = strconv.FormatInt(backoffDuration.Seconds, 10)
+func (c *workflowCompiler) getTaskRetryParametersWithValues(name string) []wfapi.Parameter {
+	retryPolicy := c.getTaskRetryPolicySpec(name)
+	if retryPolicy == nil {
+		return []wfapi.Parameter{}
 	}
+	// Create slice of all non-nil retryPolicy fields.
+	parameters := append(
+		[]wfapi.Parameter{},
+		wfapi.Parameter{
+			Name:  paramRetryMaxCount,
+			Value: wfapi.AnyStringPtr(retryPolicy.MaxRetryCount),
+		})
+	if retryPolicy.GetBackoffDuration() != nil {
+		retryBackOffDuration := wfapi.AnyStringPtr(retryPolicy.GetBackoffDuration().Seconds)
+		parameters = append(
+			parameters,
+			wfapi.Parameter{
+				Name:  paramRetryBackOffDuration,
+				Value: retryBackOffDuration})
+	}
+	parameters = append(
+		parameters,
+		wfapi.Parameter{
+			Name:  paramRetryBackOffFactor,
+			Value: wfapi.AnyStringPtr(retryPolicy.GetBackoffFactor()),
+		})
+	if retryPolicy.GetBackoffMaxDuration() != nil {
+		retryBackOffMaxDuration := wfapi.AnyStringPtr(retryPolicy.GetBackoffMaxDuration().Seconds)
+		parameters = append(
+			parameters,
+			wfapi.Parameter{
+				Name:  paramRetryBackOffMaxDuration,
+				Value: retryBackOffMaxDuration})
+	}
+	return parameters
+}
 
-	var argoMaxDuration string
-	backoffMaxDuration := retryPolicy.GetBackoffMaxDuration()
-	if backoffMaxDuration != nil {
-		argoMaxDuration = strconv.FormatInt(backoffMaxDuration.Seconds, 10)
+func (c *workflowCompiler) addParameterDefault(parameters []wfapi.Parameter, defaultValue string) []wfapi.Parameter {
+	// Set the "Default" field of each parameter in input slice with input defaultValue.
+	for i := range parameters {
+		parameters[i].Default = wfapi.AnyStringPtr(defaultValue)
 	}
-	backoff := &wfapi.Backoff{
-		Factor: &intstr.IntOrString{
-			Type:   intstr.Int,
-			IntVal: int32(retryPolicy.GetBackoffFactor()),
-		},
-		MaxDuration: argoMaxDuration,
-		Duration:    argoBackOffDuration,
+	return parameters
+}
+
+func (c *workflowCompiler) addParameterInputPath(parameters []wfapi.Parameter) []wfapi.Parameter {
+	// Format "Value" field of each parameter in input slice as '{{inputs.parameters.[parameter name]}}'
+	for i := range parameters {
+		parameters[i].Value = wfapi.AnyStringPtr(inputParameter(parameters[i].Name))
 	}
-	return &wfapi.RetryStrategy{
-		Limit: &intstr.IntOrString{
-			Type:   intstr.Int,
-			IntVal: retryPolicy.MaxRetryCount,
-		},
-		Backoff: backoff,
-	}
+	return parameters
 }
 
 // Extends the PodMetadata to include Kubernetes-specific executor config.
@@ -587,6 +629,26 @@ func extendPodMetadata(
 				podMetadata.Annotations = extendMetadataMap(podMetadata.Annotations, annotations)
 			}
 		}
+	}
+}
+
+func (c *workflowCompiler) getTaskRetryStrategyFromInput(maxCount string, backOffDuration string, backOffFactor string,
+	backOffMaxDuration string) *wfapi.RetryStrategy {
+	backoff := &wfapi.Backoff{
+		Factor: &intstr.IntOrString{
+			Type:   intstr.String,
+			StrVal: backOffFactor,
+		},
+		MaxDuration: backOffMaxDuration,
+		Duration:    backOffDuration,
+	}
+
+	return &wfapi.RetryStrategy{
+		Limit: &intstr.IntOrString{
+			Type:   intstr.String,
+			StrVal: maxCount,
+		},
+		Backoff: backoff,
 	}
 }
 

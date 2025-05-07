@@ -47,6 +47,7 @@
             "retryPolicy": {
               "backoffFactor": 2,
               "backoffMaxDuration": "3600s",
+              "backoffDuration": "1s",
               "maxRetryCount": 2
             },
             "inputs": {
