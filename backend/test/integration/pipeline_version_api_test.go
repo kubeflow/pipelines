@@ -327,7 +327,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes)
+	expected, err := pipelinetemplate.New(bytes, true)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template)
 }
@@ -360,7 +360,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes)
+	expected, err := pipelinetemplate.New(bytes, true)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template, "Discrepancy found in template's pipeline name. Created pipeline's name - %s.", pipeline.Name)
 }

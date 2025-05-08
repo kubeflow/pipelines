@@ -13,6 +13,10 @@ inputs:
     description: "If KFP should be deployed with proxy configuration"
     required: false
     default: false
+  cache_enabled:
+    description: "If KFP should be deployed with cache enabled globally"
+    required: false
+    default: 'true'
 
 runs:
   using: "composite"
@@ -47,6 +51,8 @@ runs:
 
         if [ "${{ inputs.proxy }}" = "true" ]; then
           ARGS="${ARGS} --proxy"
+        elif [ "${{inputs.cache_enabled }}" = "false" ]; then
+          ARGS="${ARGS} --cache-disabled"
         elif [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
           ARGS="${ARGS}  --deploy-k8s-native"
         fi
