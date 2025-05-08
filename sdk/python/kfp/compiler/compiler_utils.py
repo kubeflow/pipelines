@@ -14,15 +14,18 @@
 """Utility methods for compiler implementation that is IR-agnostic."""
 
 import ast
+import builtins
 import collections
 import copy
 import inspect
+import textwrap
 from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 from kfp import dsl
 from kfp.dsl import base_component
 from kfp.dsl import constants
 from kfp.dsl import for_loop
+from kfp.dsl import graph_component
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
@@ -867,33 +870,22 @@ def _memory_to_float(memory: str) -> float:
     return memory
 
 
-def validate_component_imports(component: base_component.BaseComponent) -> None:
-    """Validates that all functions used within a component are either defined
-    or imported within the component.
-
-    Args:
-        component: The component to validate.
-
-    Raises:
-        ValueError: If any function used in the component is not defined or imported.
-    """
+def validate_component_funcs_and_vars(
+        component: base_component.BaseComponent) -> None:
+    """Validates that all functions/variables used within a python-based
+    component are builtin, defined, or imported within the component."""
+    from kfp.dsl import python_component
     if not isinstance(component, python_component.PythonComponent):
         return
 
-    # Get the source code of the component function
     func = component.python_func
-    source = inspect.getsource(func)
+    try:
+        source = inspect.getsource(func)
+    except OSError:
+        raise ValueError(f'Cannot retrieve source for {func.__name__}')
 
-    # Remove any leading whitespace from each line
-    source_lines = source.split('\n')
-    min_indent = float('inf')
-    for line in source_lines:
-        if line.strip():
-            min_indent = min(min_indent, len(line) - len(line.lstrip()))
-    if min_indent != float('inf'):
-        source = '\n'.join(line[min_indent:] for line in source_lines)
-
-    # Remove the decorator line(s)
+    source = textwrap.dedent(source)
+    # Remove decorator lines
     source_lines = source.split('\n')
     while source_lines and source_lines[0].strip().startswith('@'):
         line = source_lines[0].strip()
@@ -912,63 +904,60 @@ def validate_component_imports(component: base_component.BaseComponent) -> None:
     # Parse the source code into an AST
     tree = ast.parse(source)
 
-    # Get all function definitions in the component
-    defined_functions = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef):
-            defined_functions.add(node.name)
+    defined = set()
+    imported = set()
+    used = set()
 
-    # Get all function calls and module accesses in the component
-    called_functions = set()
-    used_modules = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Name):
-                called_functions.add(node.func.id)
-            elif isinstance(node.func, ast.Attribute):
-                if isinstance(node.func.value, ast.Name):
-                    # For module.function() calls, we track both the module and the function
-                    used_modules.add(node.func.value.id)
-                    called_functions.add(
-                        f'{node.func.value.id}.{node.func.attr}')
-                else:
-                    called_functions.add(node.func.attr)
-        elif isinstance(node, ast.Attribute):
-            if isinstance(node.value, ast.Name):
-                # Track module accesses like 'os.path'
-                used_modules.add(node.value.id)
+    class Analyzer(ast.NodeVisitor):
 
-    # Get all imports in the component
-    imported_functions = set()
-    imported_modules = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for name in node.names:
-                imported_modules.add(name.name)
-                imported_functions.add(name.name)
-        elif isinstance(node, ast.ImportFrom):
-            module = node.module if node.module else ''
-            imported_modules.add(module)
-            for name in node.names:
-                imported_functions.add(name.name)
+        def visit_FunctionDef(self, node):
+            for arg in node.args.args:
+                defined.add(arg.arg)
+            for arg in getattr(node.args, 'posonlyargs', []):
+                defined.add(arg.arg)
+            for arg in getattr(node.args, 'kwonlyargs', []):
+                defined.add(arg.arg)
+            self.generic_visit(node)
 
-    # Check for undefined functions and unimported modules
-    undefined_functions = set()
-    for func_name in called_functions:
-        if '.' in func_name:
-            module_name = func_name.split('.')[0]
-            if module_name not in imported_modules:
-                undefined_functions.add(func_name)
-        elif func_name not in defined_functions and func_name not in imported_functions:
-            undefined_functions.add(func_name)
+        def visit_Import(self, node):
+            for n in node.names:
+                imported.add(n.asname or n.name.split('.')[0])
 
-    # Add any unimported modules to the undefined functions set
-    unimported_modules = used_modules - imported_modules
-    undefined_functions.update(unimported_modules)
+        def visit_ImportFrom(self, node):
+            for n in node.names:
+                imported.add(n.asname or n.name)
 
-    if undefined_functions:
+        def visit_Assign(self, node):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    defined.add(t.id)
+            self.generic_visit(node)
+
+        def visit_Name(self, node):
+            used.add(node.id)
+
+        def visit_With(self, node):
+            for item in node.items:
+                if isinstance(item.optional_vars, ast.Name):
+                    defined.add(item.optional_vars.id)
+            self.generic_visit(node)
+
+        def visit_For(self, node):
+            if isinstance(node.target, ast.Name):
+                defined.add(node.target.id)
+            self.generic_visit(node)
+
+    Analyzer().visit(tree)
+
+    allowed = defined | imported | set(func.__code__.co_varnames)
+    builtins_set = set(dir(builtins))
+    undefined = set()
+    for name in used:
+        if name not in allowed and name not in builtins_set:
+            undefined.add(name)
+    if undefined:
         raise ValueError(
-            f'Component {func.__name__} uses functions that are neither defined nor imported: {undefined_functions}'
+            f'Component {func.__name__} uses names that are neither defined nor imported in the function: {sorted(undefined)}'
         )
 
 
@@ -981,32 +970,53 @@ def validate_component(component: base_component.BaseComponent) -> None:
     Raises:
         ValueError: If any validation check fails.
     """
-    validate_component_imports(component)
+    validate_component_funcs_and_vars(component)
     # Add more validation checks here in the future
 
 
-def validate_pipeline_components(
+def recursively_validate_components(
         pipeline_func: base_component.BaseComponent) -> None:
-    """Validates all components used within a pipeline.
+    """Recursively validates all components and subcomponents in a pipeline or
+    component."""
 
-    Args:
-        pipeline_func: The pipeline function to validate components for.
+    if not isinstance(pipeline_func, base_component.BaseComponent):
+        raise TypeError(f'Expected a BaseComponent, got {type(pipeline_func)}')
 
-    Raises:
-        ValueError: If any component validation fails.
-    """
-    # Get the source code of the pipeline function
-    source = inspect.getsource(pipeline_func.python_func)
+    # Validate the component itself
+    validate_component(pipeline_func)
 
-    # Parse the source code into an AST
-    tree = ast.parse(source)
+    # If it's a GraphComponent (i.e., a pipeline), statically analyze its pipeline_func
+    if isinstance(pipeline_func, graph_component.GraphComponent) and hasattr(
+            pipeline_func, 'pipeline_func'):
+        pfunc = pipeline_func.pipeline_func
+        source = inspect.getsource(pfunc)
+        source = textwrap.dedent(source)
+        tree = ast.parse(source)
 
-    # Find all component instantiations in the pipeline
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call):
-            # Check if this is a component instantiation
-            if isinstance(node.func, ast.Name):
-                # Get the component from the pipeline's components dictionary
-                component_name = node.func.id
-                if component_name in pipeline_func.components:
-                    validate_component(pipeline_func.components[component_name])
+        # Find all component instantiations in the pipeline
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name):
+                    component_name = node.func.id
+                    # Get the component from the global or closure namespace
+                    component_obj = _get_component_from_func_scope(
+                        pfunc, component_name)
+                    if isinstance(component_obj, base_component.BaseComponent):
+                        # Recursively validate the component
+                        recursively_validate_components(component_obj)
+
+
+def _get_component_from_func_scope(pfunc, component_name):
+    # Try globals
+    if component_name in pfunc.__globals__:
+        return pfunc.__globals__[component_name]
+    # Try closure variables
+    if pfunc.__closure__ and pfunc.__code__.co_freevars:
+        closure_vars = {
+            var: cell.cell_contents
+            for var, cell in zip(pfunc.__code__.co_freevars, pfunc.__closure__)
+        }
+        if component_name in closure_vars:
+            return closure_vars[component_name]
+    # 3. Not found
+    return None

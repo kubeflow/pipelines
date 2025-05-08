@@ -1268,8 +1268,8 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
 class TestCompileComponent(parameterized.TestCase):
 
-    def test_validate_imports(self):
-        """Test that import validation catches unimported and undefined functions."""
+    def test_validate_component_funcs_and_vars(self):
+        """Test that validation catches unimported/undefined functions and closure variables (functions and non-functions)."""
 
         import os
 
@@ -1281,7 +1281,7 @@ class TestCompileComponent(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Component component_with_module_imported_outside uses functions that are neither defined nor imported'
+                r"Component component_with_module_imported_outside uses names that are neither defined nor imported in the function: \['os'\]"
         ):
             compiler.Compiler().compile(
                 pipeline_func=component_with_module_imported_outside,
@@ -1298,9 +1298,10 @@ class TestCompileComponent(parameterized.TestCase):
         ) # yapf: enable
         def component_with_func_defined_outside():
             outside_func()
+
         # This should raise an error since outside_func is not imported or defined in component
         with self.assertRaisesRegex(ValueError,
-                                    r'Component component_with_func_defined_outside uses functions that are neither defined nor imported'):
+                                    r"Component component_with_func_defined_outside uses names that are neither defined nor imported in the function: \['outside_func'\]"):
             compiler.Compiler().compile(
                 pipeline_func=component_with_func_defined_outside,
                 package_path='/tmp/pipeline.yaml',
@@ -1335,6 +1336,18 @@ class TestCompileComponent(parameterized.TestCase):
                 package_path=os.path.join(tmpdir, 'pipeline.yaml'),
                 validate=True)
 
+        # Test closure variable that is not a function
+        outside_var = 42
+        @dsl.component
+        def component_with_closure_var():
+            return outside_var
+        with self.assertRaisesRegex(ValueError,
+                                    r"Component component_with_closure_var uses names that are neither defined nor imported in the function: \['outside_var'\]"):
+            compiler.Compiler().compile(
+                pipeline_func=component_with_closure_var,
+                package_path='/tmp/pipeline.yaml',
+                validate=True)
+
         @dsl.pipeline
         def pipeline_with_faulty_component():
             good_comp1 = component_with_imported_func()
@@ -1343,7 +1356,7 @@ class TestCompileComponent(parameterized.TestCase):
 
         # This should raise an error since component_with_func_defined_outside uses outside_func
         with self.assertRaisesRegex(ValueError,
-                                    r'Component component_with_func_defined_outside uses functions that are neither defined nor imported'):
+                                    r"Component component_with_func_defined_outside uses names that are neither defined nor imported in the function: \['outside_func'\]"):
             with tempfile.TemporaryDirectory() as tmpdir:
                 compiler.Compiler().compile(
                     pipeline_func=pipeline_with_faulty_component,

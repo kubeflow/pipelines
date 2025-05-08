@@ -76,12 +76,8 @@ class Compiler:
                     f'decorator. Got: {type(pipeline_func)}')
 
             if validate:
-                # If this is a pipeline, validate all its components
-                if hasattr(pipeline_func, 'components'):
-                    compiler_utils.validate_pipeline_components(pipeline_func)
-                # If this is a single component, validate it directly
-                else:
-                    compiler_utils.validate_component(pipeline_func)
+                # Recursively validate all components and subcomponents
+                compiler_utils.recursively_validate_components(pipeline_func)
 
             pipeline_spec = builder.modify_pipeline_spec_with_override(
                 pipeline_spec=pipeline_func.pipeline_spec,
