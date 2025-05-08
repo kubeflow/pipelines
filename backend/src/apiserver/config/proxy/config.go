@@ -14,8 +14,9 @@
 package proxy
 
 import (
-	k8score "k8s.io/api/core/v1"
 	"os"
+
+	k8score "k8s.io/api/core/v1"
 )
 
 const (

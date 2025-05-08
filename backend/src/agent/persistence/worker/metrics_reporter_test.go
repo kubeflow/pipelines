@@ -46,7 +46,7 @@ func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeRunning,
@@ -72,7 +72,7 @@ func TestReportMetrics_NoRunID_NoOP(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:    "node-1",
 					Phase: workflowapi.NodeSucceeded,
 				},
@@ -99,7 +99,7 @@ func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
@@ -127,7 +127,7 @@ func TestReportMetrics_NoMetricsArtifact_NoOP(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
@@ -156,7 +156,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
@@ -220,7 +220,7 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
@@ -262,7 +262,7 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "MY_NAME-template-1-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
@@ -306,7 +306,7 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
@@ -349,7 +349,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
@@ -357,7 +357,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
 					},
 				},
-				"node-2": workflowapi.NodeStatus{
+				"node-2": {
 					ID:           "node-2",
 					TemplateName: "template-2",
 					Phase:        workflowapi.NodeSucceeded,
@@ -400,12 +400,12 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	expectedMetricsRequest := &api.ReportRunMetricsRequest{
 		RunId: "run-1",
 		Metrics: []*api.RunMetric{
-			&api.RunMetric{
+			{
 				Name:   "accuracy",
 				NodeId: "MY_NAME-template-2-2",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 0.77},
 			},
-			&api.RunMetric{
+			{
 				Name:   "logloss",
 				NodeId: "MY_NAME-template-2-2",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 1.2},
@@ -432,7 +432,7 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
@@ -473,7 +473,7 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
@@ -498,19 +498,19 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 		})
 	pipelineFake.StubReportRunMetrics(&api.ReportRunMetricsResponse{
 		Results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{
-			&api.ReportRunMetricsResponse_ReportRunMetricResult{
+			{
 				MetricNodeId: "node-1",
 				MetricName:   "accuracy",
 				Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_OK,
 			},
 			// Invalid argument error triggers permanent error
-			&api.ReportRunMetricsResponse_ReportRunMetricResult{
+			{
 				MetricNodeId: "node-1",
 				MetricName:   "log loss",
 				Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT,
 			},
 			// Internal error triggers transient error
-			&api.ReportRunMetricsResponse_ReportRunMetricResult{
+			{
 				MetricNodeId: "node-1",
 				MetricName:   "accuracy",
 				Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR,
@@ -537,7 +537,7 @@ func TestReportMetrics_Unauthorized(t *testing.T) {
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,

@@ -1,3 +1,5 @@
+version: "2"
+
 run:
   timeout: 30m
   skip-files:
@@ -11,17 +13,20 @@ linters:
   disable-all: true
   enable: # please keep this alphabetized
     - gocritic
-    - gosimple
     - govet
     - ineffassign
     - misspell
     - staticcheck
-    - stylecheck
     - unused
+  settings:
+    misspell:
+      locale: US
+    staticcheck:
+      checks:
+        - "all"
 
-linters-settings: # please keep this alphabetized
-  misspell:
-    locale: US
-  staticcheck:
-    checks:
-      - "all"
+formatters:
+  disable-all: true
+  enable:
+    - gofmt
+    - goimports

@@ -17,6 +17,10 @@ package objectstore
 import (
 	"context"
 	"fmt"
+	"os"
+	"reflect"
+	"testing"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -24,9 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-	"os"
-	"reflect"
-	"testing"
 
 	_ "gocloud.dev/blob/gcsblob"
 )
