@@ -106,6 +106,13 @@ func GenerateCacheKey(
 
 }
 
+type ClientInterface interface {
+	GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error)
+	CreateExecutionCache(ctx context.Context, task *api.Task) error
+}
+
+var _ ClientInterface = (*Client)(nil)
+
 // Client is an KFP service client.
 type Client struct {
 	svc api.TaskServiceClient

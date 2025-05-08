@@ -99,7 +99,11 @@ func run() error {
 		}
 		return nil
 	case "container":
-		launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), launcherV2Opts)
+		defaultLauncherV2Dependencies, err := component.DefaultLauncherV2Dependencies(launcherV2Opts.MLMDServerAddress, launcherV2Opts.MLMDServerPort)
+		if err != nil {
+			return err
+		}
+		launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), launcherV2Opts, defaultLauncherV2Dependencies)
 		if err != nil {
 			return err
 		}
