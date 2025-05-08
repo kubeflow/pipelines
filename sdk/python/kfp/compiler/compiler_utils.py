@@ -1030,6 +1030,16 @@ def recursively_validate_components(
 
 
 def _get_component_from_func_scope(pfunc, component_name):
+    """Retrieves a component object from a function's scope.
+    
+    Args:
+        pfunc: The function whose scope to search.
+        component_name: The name of the component to find.
+        
+    Returns:
+        base_component.BaseComponent: The component object if found in the function's 
+        global or closure scope, or None if not found.
+    """
     # Try globals
     if component_name in pfunc.__globals__:
         return pfunc.__globals__[component_name]
@@ -1041,5 +1051,5 @@ def _get_component_from_func_scope(pfunc, component_name):
         }
         if component_name in closure_vars:
             return closure_vars[component_name]
-    # 3. Not found
+    # Not found
     return None
