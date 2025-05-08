@@ -2,7 +2,11 @@ name: KFP upgrade tests
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - main
+      - stable
+      - 'rhoai-*'
 
   pull_request:
     paths:

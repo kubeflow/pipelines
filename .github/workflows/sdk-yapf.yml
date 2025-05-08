@@ -2,15 +2,27 @@ name: KFP SDK YAPF Tests
 
 on:
   push:
-    branches: [master]
-
-  pull_request:
+    branches:
+      - master
+      - main
+      - stable
+      - 'rhoai-*'
     paths:
       - 'sdk/python/**'
       - 'test/presubmit-yapf-sdk.sh'
       - '.github/workflows/sdk-yapf.yml'
       - '!**/*.md'
       - '!**/OWNERS'
+  pull_request:
+    branches:
+      - master
+      - main
+      - stable
+      - 'rhoai-*'
+    paths:
+      - 'sdk/python/**'
+      - 'test/presubmit-yapf-sdk.sh'
+      - '.github/workflows/sdk-yapf.yml'
 
 jobs:
   yapf-sdk:
