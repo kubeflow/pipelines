@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master
+      - main
+      - stable
+      - 'rhoai-*'
     paths:
       - 'sdk/python/**'
       - 'test/presubmit-yapf-sdk.sh'
@@ -11,6 +14,9 @@ on:
   pull_request:
     branches:
       - master
+      - main
+      - stable
+      - 'rhoai-*'
     paths:
       - 'sdk/python/**'
       - 'test/presubmit-yapf-sdk.sh'
