@@ -1348,11 +1348,39 @@ class TestCompileComponent(parameterized.TestCase):
                 package_path='/tmp/pipeline.yaml',
                 validate=True)
 
+        # Test that validate=True works for a non-python (YAML-based) component
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=VALID_PRODUCER_COMPONENT_SAMPLE,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                validate=True)
+
+        # Test that validate=True works for a pipeline with a faulty component
         @dsl.pipeline
-        def pipeline_with_faulty_component():
+        def pipeline_with_faulty_component(input_var: str):
             good_comp1 = component_with_imported_func()
+            good_comp2 = VALID_PRODUCER_COMPONENT_SAMPLE(input_param=input_var)
             bad_comp1 = component_with_func_defined_outside().after(good_comp1)
-            good_comp2 = component_with_defined_func().after(bad_comp1)
+            good_comp3 = component_with_defined_func().after(bad_comp1)
+
+        # This should raise an error since component_with_func_defined_outside uses outside_func
+        with self.assertRaisesRegex(ValueError,
+                                    r"Component component_with_func_defined_outside uses names that are neither defined nor imported in the function: \['outside_func'\]"):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                compiler.Compiler().compile(
+                    pipeline_func=pipeline_with_faulty_component,
+                    package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                    validate=True)
+
+        # Test that validate=True works for a pipeline with a faulty component
+        # under a parallelFor loop
+        @dsl.pipeline
+        def pipeline_with_faulty_component(input_var: str):
+            good_comp1 = component_with_imported_func()
+            with dsl.ParallelFor([1,2,3]) as item:
+                good_comp2 = VALID_PRODUCER_COMPONENT_SAMPLE(input_param=input_var)
+                bad_comp1 = component_with_func_defined_outside().after(good_comp1)
+                good_comp3 = component_with_defined_func().after(bad_comp1)
 
         # This should raise an error since component_with_func_defined_outside uses outside_func
         with self.assertRaisesRegex(ValueError,
