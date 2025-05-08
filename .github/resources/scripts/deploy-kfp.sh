@@ -27,6 +27,7 @@ source "${C_DIR}/helper-functions.sh"
 TEST_MANIFESTS=".github/resources/manifests/argo"
 PIPELINES_STORE="database"
 USE_PROXY=false
+CACHE_DISABLED=false
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -39,6 +40,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --proxy)
       USE_PROXY=true
+      shift
+      ;;
+    --cache-disabled)
+      CACHE_DISABLED=true
       shift
       ;;
   esac
@@ -69,13 +74,17 @@ if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
 fi
 
 # Manifests will be deployed according to the flag provided
-if $USE_PROXY; then
+if $CACHE_DISABLED; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/cache-disabled"
+elif $USE_PROXY; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
 elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
 else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
 fi
+
+echo "Deploying ${TEST_MANIFESTS}..."
 
 kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
@@ -95,4 +104,3 @@ fi
 collect_artifacts kubeflow
 
 echo "Finished KFP deployment."
-

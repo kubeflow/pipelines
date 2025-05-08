@@ -52,7 +52,8 @@ type LauncherV2Options struct {
 	MLMDServerPort,
 	PipelineName,
 	RunID string
-	PublishLogs string
+	PublishLogs   string
+	CacheDisabled bool
 }
 
 type LauncherV2 struct {
@@ -66,7 +67,7 @@ type LauncherV2 struct {
 	// clients
 	metadataClient metadata.ClientInterface
 	k8sClient      kubernetes.Interface
-	cacheClient    *cacheutils.Client
+	cacheClient    cacheutils.Client
 }
 
 // Client is the struct to hold the Kubernetes Clientset
@@ -113,7 +114,7 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
-	cacheClient, err := cacheutils.NewClient()
+	cacheClient, err := cacheutils.NewClient(opts.CacheDisabled)
 	if err != nil {
 		return nil, err
 	}
