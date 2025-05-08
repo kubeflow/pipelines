@@ -904,57 +904,80 @@ def validate_component_funcs_and_vars(
     # Parse the source code into an AST
     tree = ast.parse(source)
 
-    defined = set()
-    imported = set()
-    used = set()
+    # Sets to track variables in the component function
+    defined = set()  # Variables defined within the function
+    imported = set()  # Modules and names imported in the function
+    used = set()  # All names referenced in the function
 
     class Analyzer(ast.NodeVisitor):
+        """AST visitor that analyzes a component function to identify defined,
+        imported, and used names."""
 
         def visit_FunctionDef(self, node):
+            # Add function arguments to defined names
             for arg in node.args.args:
                 defined.add(arg.arg)
+            # Handle positional-only arguments (Python 3.8+)
             for arg in getattr(node.args, 'posonlyargs', []):
                 defined.add(arg.arg)
+            # Handle keyword-only arguments
             for arg in getattr(node.args, 'kwonlyargs', []):
                 defined.add(arg.arg)
+            # Continue visiting child nodes
             self.generic_visit(node)
 
         def visit_Import(self, node):
+            # Track imported module names
+            # For 'import x.y.z as w', we add 'w' if specified, otherwise 'x'
             for n in node.names:
                 imported.add(n.asname or n.name.split('.')[0])
 
         def visit_ImportFrom(self, node):
+            # Track names imported from modules
+            # For 'from x import y as z', we add 'z' if specified, otherwise 'y'
             for n in node.names:
                 imported.add(n.asname or n.name)
 
         def visit_Assign(self, node):
+            # Track variable assignments
             for t in node.targets:
                 if isinstance(t, ast.Name):
                     defined.add(t.id)
             self.generic_visit(node)
 
         def visit_Name(self, node):
+            # Track all name references
             used.add(node.id)
 
         def visit_With(self, node):
+            # Track variables defined in with statements
+            # e.g., 'with open(...) as f:'
             for item in node.items:
                 if isinstance(item.optional_vars, ast.Name):
                     defined.add(item.optional_vars.id)
             self.generic_visit(node)
 
         def visit_For(self, node):
+            # Track loop variables
+            # e.g., 'for i in range(10):'
             if isinstance(node.target, ast.Name):
                 defined.add(node.target.id)
             self.generic_visit(node)
 
+    # Run the analyzer on the AST
     Analyzer().visit(tree)
 
+    # Combine all allowed names
     allowed = defined | imported | set(func.__code__.co_varnames)
+    # Get built-in names (like print, len, etc.)
     builtins_set = set(dir(builtins))
+    # Find names that are used but not allowed
     undefined = set()
     for name in used:
         if name not in allowed and name not in builtins_set:
             undefined.add(name)
+
+    # Raise error if undefined names are found
     if undefined:
         raise ValueError(
             f'Component {func.__name__} uses names that are neither defined nor imported in the function: {sorted(undefined)}'
