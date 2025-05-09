@@ -88,6 +88,7 @@ jobs:
       env:
         PULL_NUMBER: ${{ github.event.pull_request.number }}
         REPO_NAME: ${{ github.repository }}
+        TARGET_BRANCH: ${{ github.ref_name }}
       run: |
         ./backend/src/v2/test/sample-test.sh
       continue-on-error: true
