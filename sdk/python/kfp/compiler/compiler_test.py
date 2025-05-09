@@ -838,6 +838,23 @@ implementation:
                 with dsl.ParallelFor(items=single_param_task.output) as item:
                     print_and_return(text=item)
 
+    def test_compile_parallel_for_with_param_and_depending_task(self):
+
+        @dsl.component
+        def print_op(s: str):
+            print(s)
+
+        @dsl.pipeline
+        def my_pipeline(param: str):
+            with dsl.ParallelFor(items=['a', 'b']) as item:
+                parallel_tasks = print_op(s=item)
+            print_op(s=param).after(parallel_tasks)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+
     def test_cannot_compile_parallel_for_with_single_artifact(self):
 
         with self.assertRaisesRegex(
