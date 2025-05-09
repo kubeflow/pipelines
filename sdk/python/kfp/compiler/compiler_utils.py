@@ -761,7 +761,9 @@ def get_dependencies(
                 # then make this validation dsl.Collected-aware
                 elif isinstance(upstream_parent_group, tasks_group.ParallelFor):
                     upstream_tasks_that_downstream_consumers_from = [
-                        channel.task.name for channel in task._channel_inputs
+                        channel.task.name
+                        for channel in task._channel_inputs
+                        if channel.task is not None
                     ]
                     has_data_exchange = upstream_task.name in upstream_tasks_that_downstream_consumers_from
                     # don't raise for .after
