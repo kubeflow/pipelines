@@ -777,6 +777,14 @@ export default class Buttons {
       `pipeline versions`,
     );
     const andMessage = pipelineMessage !== `` && pipelineVersionMessage !== `` ? ` and ` : ``;
+
+    // Create warning message about cascading deletion
+    let warningMessage = '';
+    if (selectedIds.length > 0) {
+      warningMessage = `Deleting ${pipelineMessage} will also delete all its versions. `;
+    }
+    warningMessage += `Are you sure you want to delete ${pipelineMessage}${andMessage}${pipelineVersionMessage}?`;
+
     this._props.updateDialog({
       buttons: [
         {
@@ -800,6 +808,7 @@ export default class Buttons {
           text: 'Delete',
         },
       ],
+      content: warningMessage,
       onClose: async () =>
         await this._deletePipelinesAndPipelineVersions(
           false,
@@ -807,7 +816,7 @@ export default class Buttons {
           selectedVersionIds,
           callback,
         ),
-      title: `Delete ` + pipelineMessage + andMessage + pipelineVersionMessage + `?`,
+      title: `Delete ${pipelineMessage}${andMessage}${pipelineVersionMessage}?`,
     });
   }
 
@@ -821,86 +830,141 @@ export default class Buttons {
       return;
     }
 
-    // Since confirmed, delete pipelines first and then pipeline versions from
-    // (other) pipelines.
-
-    // Delete pipelines.
-    const succeededfulIds: Set<string> = new Set<string>(selectedIds);
-    const unsuccessfulIds: string[] = [];
+    // Fetch all versions for selected pipelines
+    const pipelinesWithVersions = new Map<string, string[]>();
     const errorMessages: string[] = [];
-    await Promise.all(
-      selectedIds.map(async id => {
-        try {
-          await Apis.pipelineServiceApiV2.deletePipeline(id);
-        } catch (err) {
-          unsuccessfulIds.push(id);
-          succeededfulIds.delete(id);
-          const errorMessage = await errorToMessage(err);
-          errorMessages.push(`Failed to delete pipeline: ${id} with error: "${errorMessage}"`);
-        }
-      }),
-    );
 
-    // Remove successfully deleted pipelines from selectedVersionIds if exists.
-    const toBeDeletedVersionIds = Object.fromEntries(
-      Object.entries(selectedVersionIds).filter(
-        ([pipelineId, _]) => !succeededfulIds.has(pipelineId),
-      ),
-    );
+    for (const pipelineId of selectedIds) {
+      try {
+        const versions = await Apis.pipelineServiceApiV2.listPipelineVersions(pipelineId);
+        const versionIds = versions.pipeline_versions?.map(v => v.pipeline_version_id || '') || [];
+        const filteredVersionIds = versionIds.filter(id => id && id.trim() !== '');
+        pipelinesWithVersions.set(pipelineId, filteredVersionIds);
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        errorMessages.push(
+          `Failed to fetch versions for pipeline: ${pipelineId} with error: "${errorMessage}"`,
+        );
+      }
+    }
 
-    // Delete pipeline versions.
-    const unsuccessfulVersionIds: { [pipelineId: string]: string[] } = {};
-    await Promise.all(
-      // TODO: fix the no no return value bug
-      // eslint-disable-next-line array-callback-return
-      Object.keys(toBeDeletedVersionIds).map(pipelineId => {
-        toBeDeletedVersionIds[pipelineId].map(async versionId => {
+    // Delete each pipeline's versions first, then the pipeline itself
+    const unsuccessfulIds: string[] = [];
+    const successfulPipelineIds: Set<string> = new Set<string>();
+
+    for (const [pipelineId, versionIds] of pipelinesWithVersions.entries()) {
+      let allVersionsDeleted = true;
+
+      if (versionIds.length > 0) {
+        for (const versionId of versionIds) {
           try {
-            unsuccessfulVersionIds[pipelineId] = [];
             await Apis.pipelineServiceApiV2.deletePipelineVersion(pipelineId, versionId);
           } catch (err) {
-            unsuccessfulVersionIds[pipelineId].push(versionId);
             const errorMessage = await errorToMessage(err);
+            // Ignore "not found" errors as the version is already gone
+            if (errorMessage.includes('not found')) {
+              continue;
+            } else {
+              allVersionsDeleted = false;
+              errorMessages.push(
+                `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`,
+              );
+            }
+          }
+        }
+      }
+
+      // Delete pipeline if all versions were deleted
+      if (allVersionsDeleted) {
+        try {
+          await Apis.pipelineServiceApiV2.deletePipeline(pipelineId);
+          successfulPipelineIds.add(pipelineId);
+        } catch (err) {
+          unsuccessfulIds.push(pipelineId);
+          const errorMessage = await errorToMessage(err);
+          errorMessages.push(
+            `Failed to delete pipeline: ${pipelineId} with error: "${errorMessage}"`,
+          );
+        }
+      } else {
+        unsuccessfulIds.push(pipelineId);
+        errorMessages.push(
+          `Cannot delete pipeline: ${pipelineId} because not all versions were deleted successfully`,
+        );
+      }
+    }
+
+    // Delete individually selected versions
+    const unsuccessfulVersionIds: { [pipelineId: string]: string[] } = {};
+
+    for (const pipelineId in selectedVersionIds) {
+      if (pipelinesWithVersions.has(pipelineId)) {
+        continue;
+      }
+
+      unsuccessfulVersionIds[pipelineId] = [];
+      for (const versionId of selectedVersionIds[pipelineId]) {
+        try {
+          await Apis.pipelineServiceApiV2.deletePipelineVersion(pipelineId, versionId);
+        } catch (err) {
+          const errorMessage = await errorToMessage(err);
+          if (!errorMessage.includes('not found')) {
+            unsuccessfulVersionIds[pipelineId].push(versionId);
             errorMessages.push(
               `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`,
             );
           }
-        });
-      }),
-    );
+        }
+      }
+
+      if (unsuccessfulVersionIds[pipelineId].length === 0) {
+        delete unsuccessfulVersionIds[pipelineId];
+      }
+    }
+
+    const successfulPipelinesCount = successfulPipelineIds.size;
     const selectedVersionIdsCt = this._deepCountDictionary(selectedVersionIds);
     const unsuccessfulVersionIdsCt = this._deepCountDictionary(unsuccessfulVersionIds);
+    const successfulVersionsCount = selectedVersionIdsCt - unsuccessfulVersionIdsCt;
 
-    // Display successful and/or unsuccessful messages.
-    const pipelineMessage = this._nouns(succeededfulIds.size, `pipeline`, `pipelines`);
-    const pipelineVersionMessage = this._nouns(
-      selectedVersionIdsCt - unsuccessfulVersionIdsCt,
-      `pipeline version`,
-      `pipeline versions`,
-    );
-    const andMessage = pipelineMessage !== `` && pipelineVersionMessage !== `` ? ` and ` : ``;
-    if (pipelineMessage !== `` || pipelineVersionMessage !== ``) {
+    // Display success message
+    if (successfulPipelinesCount > 0 || successfulVersionsCount > 0) {
+      const pipelineMessage = this._nouns(successfulPipelinesCount, `pipeline`, `pipelines`);
+      const versionMessage = this._nouns(
+        successfulVersionsCount,
+        `pipeline version`,
+        `pipeline versions`,
+      );
+      const andMessage = pipelineMessage !== `` && versionMessage !== `` ? ` and ` : ``;
+
       this._props.updateSnackbar({
-        message: `Deletion succeeded for ` + pipelineMessage + andMessage + pipelineVersionMessage,
+        message: `Deletion succeeded for ${pipelineMessage}${andMessage}${versionMessage}`,
         open: true,
       });
     }
-    if (unsuccessfulIds.length > 0 || unsuccessfulVersionIdsCt > 0) {
+
+    // Show error dialog if needed
+    if (errorMessages.length > 0) {
       this._props.updateDialog({
         buttons: [{ text: 'Dismiss' }],
         content: errorMessages.join('\n\n'),
-        title: `Failed to delete some pipelines and/or some pipeline versions`,
+        title: `Failed to delete some pipelines and/or pipeline versions`,
       });
     }
 
-    // pipelines and pipeline versions that failed deletion will keep to be
-    // checked.
-    callback(undefined, unsuccessfulIds);
-    Object.keys(selectedVersionIds).map(pipelineId =>
-      callback(pipelineId, unsuccessfulVersionIds[pipelineId]),
-    );
+    // Update selection state
+    if (successfulPipelineIds.size > 0) {
+      callback(undefined, []);
+    }
 
-    // Refresh
+    // Clear version selections
+    for (const pipelineId in selectedVersionIds) {
+      if (!successfulPipelineIds.has(pipelineId)) {
+        callback(pipelineId, []);
+      }
+    }
+
+    // Refresh the UI
     this._refresh();
   }
 
