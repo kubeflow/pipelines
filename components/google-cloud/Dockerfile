@@ -40,5 +40,6 @@ RUN pip3 install -U google-cloud-notebooks
 # Install main package
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@google-cloud-pipeline-components-2.20.0#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
 
+
 # Note that components can override the container entry ponint.
 ENTRYPOINT ["python3","-m","google_cloud_pipeline_components.container.v1.aiplatform.remote_runner"]
