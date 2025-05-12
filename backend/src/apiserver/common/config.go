@@ -33,6 +33,13 @@ const (
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
 	GlobalKubernetesWebhookMode             string = "GLOBAL_KUBERNETES_WEBHOOK_MODE"
+	MetadataGrpcServiceServiceHost          string = "METADATA_GRPC_SERVICE_SERVICE_HOST"
+	MetadataGrpcServiceServicePort          string = "METADATA_GRPC_SERVICE_SERVICE_PORT"
+	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
+	SignedURLExpiryTimeSeconds              string = "SIGNED_URL_EXPIRY_TIME_SECONDS"
+	CaBundleMountPath                       string = "ARTIFACT_COPY_STEP_CABUNDLE_MOUNTPATH"
+	CaBundleConfigMapKey                    string = "ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_KEY"
+	CaBundleConfigMapName                   string = "ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_NAME"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -131,4 +138,30 @@ func GetTokenReviewAudience() string {
 
 func IsOnlyKubernetesWebhookMode() bool {
 	return GetBoolConfigWithDefault(GlobalKubernetesWebhookMode, false)
+}
+
+func GetMetadataGrpcServiceServiceHost() string {
+	return GetStringConfigWithDefault(MetadataGrpcServiceServiceHost, DefaultMetadataGrpcServiceServiceHost)
+}
+
+func GetMetadataGrpcServiceServicePort() string {
+	return GetStringConfigWithDefault(MetadataGrpcServiceServicePort, DefaultMetadataGrpcServiceServicePort)
+}
+
+func GetSignedURLExpiryTimeSeconds() int {
+	return GetIntConfigWithDefault(SignedURLExpiryTimeSeconds, DefaultSignedURLExpiryTimeSeconds)
+}
+
+func GetMetadataTLSEnabled() bool {
+	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
+}
+
+func GetCaCertPath() string {
+	caBundleMountPath := GetStringConfigWithDefault(CaBundleMountPath, "")
+	if caBundleMountPath != "" {
+		caBundleConfigMapKey := GetStringConfigWithDefault(CaBundleConfigMapKey, "")
+		return caBundleMountPath + "/" + caBundleConfigMapKey
+	} else {
+		return ""
+	}
 }

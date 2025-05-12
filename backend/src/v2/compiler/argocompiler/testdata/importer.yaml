@@ -41,9 +41,13 @@ spec:
       - --pod_uid
       - $(KFP_POD_UID)
       - --mlmd_server_address
-      - $(METADATA_GRPC_SERVICE_HOST)
+      - "metadata-grpc-service"
       - --mlmd_server_port
-      - $(METADATA_GRPC_SERVICE_PORT)
+      - "8080"
+      - --metadataTLSEnabled
+      - "false"
+      - "--ca_cert_path"
+      - ""
       command:
       - launcher-v2
       env:
@@ -131,10 +135,25 @@ spec:
       - ''
       - --no_proxy
       - ''
+      - --mlPipelineServiceTLSEnabled
+      - "false"
+      - --mlmd_server_address
+      - "metadata-grpc-service"
+      - --mlmd_server_port
+      - "8080"
+      - --metadataTLSEnabled
+      - "false"
+      - --ca_cert_path
+      - ""
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
       name: ""
+      env:
+        - name: ML_PIPELINE_SERVICE_HOST
+          value: ml-pipeline.kubeflow.svc.cluster.local
+        - name: ML_PIPELINE_SERVICE_PORT_GRPC
+          value: '8887'
       resources:
         limits:
           cpu: 500m

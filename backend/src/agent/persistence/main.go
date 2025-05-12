@@ -16,6 +16,7 @@ package main
 
 import (
 	"flag"
+	"strconv"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
@@ -29,23 +30,25 @@ import (
 )
 
 var (
-	masterURL                     string
-	logLevel                      string
-	kubeconfig                    string
-	initializeTimeout             time.Duration
-	timeout                       time.Duration
-	mlPipelineAPIServerName       string
-	mlPipelineAPIServerPort       string
-	mlPipelineAPIServerBasePath   string
-	mlPipelineServiceHttpPort     string
-	mlPipelineServiceGRPCPort     string
-	namespace                     string
-	ttlSecondsAfterWorkflowFinish int64
-	numWorker                     int
-	clientQPS                     float64
-	clientBurst                   int
-	executionType                 string
-	saTokenRefreshIntervalInSecs  int64
+	masterURL                      string
+	logLevel                       string
+	kubeconfig                     string
+	initializeTimeout              time.Duration
+	timeout                        time.Duration
+	mlPipelineAPIServerName        string
+	mlPipelineAPIServerPort        string
+	mlPipelineAPIServerBasePath    string
+	mlPipelineServiceHttpPort      string
+	mlPipelineServiceGRPCPort      string
+	mlPipelineServiceTLSEnabledStr string
+	namespace                      string
+	ttlSecondsAfterWorkflowFinish  int64
+	numWorker                      int
+	clientQPS                      float64
+	clientBurst                    int
+	executionType                  string
+	saTokenRefreshIntervalInSecs   int64
+	caCertPath                     string
 )
 
 const (
@@ -58,6 +61,7 @@ const (
 	mlPipelineAPIServerNameFlagName       = "mlPipelineAPIServerName"
 	mlPipelineAPIServerHttpPortFlagName   = "mlPipelineServiceHttpPort"
 	mlPipelineAPIServerGRPCPortFlagName   = "mlPipelineServiceGRPCPort"
+	mlPipelineAPIServerTLSEnabled         = "mlPipelineServiceTLSEnabled"
 	namespaceFlagName                     = "namespace"
 	ttlSecondsAfterWorkflowFinishFlagName = "ttlSecondsAfterWorkflowFinish"
 	numWorkerName                         = "numWorker"
@@ -65,6 +69,7 @@ const (
 	clientBurstFlagName                   = "clientBurst"
 	executionTypeFlagName                 = "executionType"
 	saTokenRefreshIntervalFlagName        = "saTokenRefreshIntervalInSecs"
+	caCertPathFlagName                    = "caCertPath"
 )
 
 const (
@@ -119,6 +124,11 @@ func main() {
 		log.Fatalf("Error starting Service Account Token Refresh Ticker due to: %v", err)
 	}
 
+	mlPipelineServiceTLSEnabled, err := strconv.ParseBool(mlPipelineServiceTLSEnabledStr)
+	if err != nil {
+		log.Fatalf("Error parsing boolean flag %s, please provide a valid bool value (true/false). %v", mlPipelineAPIServerTLSEnabled, err)
+	}
+
 	pipelineClient, err := client.NewPipelineClient(
 		initializeTimeout,
 		timeout,
@@ -126,7 +136,9 @@ func main() {
 		mlPipelineAPIServerBasePath,
 		mlPipelineAPIServerName,
 		mlPipelineServiceHttpPort,
-		mlPipelineServiceGRPCPort)
+		mlPipelineServiceGRPCPort,
+		mlPipelineServiceTLSEnabled,
+		caCertPath)
 	if err != nil {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
@@ -157,6 +169,7 @@ func init() {
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceHttpPort, mlPipelineAPIServerHttpPortFlagName, "8888", "Http Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
+	flag.StringVar(&mlPipelineServiceTLSEnabledStr, mlPipelineAPIServerTLSEnabled, "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
 		"/apis/v1beta1", "The base path for the ML pipeline API server.")
 	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
@@ -170,5 +183,5 @@ func init() {
 	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
 	flag.Int64Var(&saTokenRefreshIntervalInSecs, saTokenRefreshIntervalFlagName, DefaultSATokenRefresherIntervalInSecs, "Persistence agent service account token read interval in seconds. "+
 		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
-
+	flag.StringVar(&caCertPath, caCertPathFlagName, "", "The path to the CA certificate.")
 }

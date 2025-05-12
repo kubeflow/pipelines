@@ -18,10 +18,12 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -555,6 +557,11 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
+		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
+		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
+		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
+		"--ca_cert_path", common.GetCaCertPath(),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -587,9 +594,10 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
+			Env:       append(proxy.GetConfig().GetEnvVars(), MLPipelineServiceEnv...),
 		},
 	}
+	ConfigureCABundle(t)
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name

@@ -12,35 +12,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.23-alpine as builder
+# Build arguments
+ARG SOURCE_CODE=.
 
-# Needed musl-dev for github.com/mattn/go-sqlite3
-RUN apk update && apk upgrade && \
-    apk add --no-cache bash git openssh gcc musl-dev
+FROM registry.access.redhat.com/ubi9/go-toolset:1.23 as builder
 
-WORKDIR /go/src/github.com/kubeflow/pipelines
+## Build args to be used at this step
+ARG SOURCE_CODE
 
-COPY ./go.mod ./
-COPY ./go.sum ./
-COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
-COPY ./api/go.mod ./api/go.mod
+## Switch to root as required for some operations
+USER root
+
+RUN dnf upgrade -y && \
+    dnf install -y bash \
+                   git \
+                   openssh \
+                   gcc && \
+    dnf clean all && rm -rf /var/cache/yum
+
+COPY ${SOURCE_CODE}/go.mod ./
+COPY ${SOURCE_CODE}/go.sum ./
+COPY ${SOURCE_CODE}/kubernetes_platform/go.mod ./kubernetes_platform/go.mod
+COPY ${SOURCE_CODE}/api/go.mod ./api/go.mod
 
 RUN GO111MODULE=on go mod download
 
-COPY . .
+# Copy the source
+COPY ${SOURCE_CODE}/ ./
 
-RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
+RUN GO111MODULE=on CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime go build -tags strictfipsruntime -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
 
-FROM alpine:3.19
-
-RUN apk --no-cache add tzdata
-
-RUN adduser -S appuser
-USER appuser
-
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
 WORKDIR /bin
 
 COPY --from=builder /bin/controller /bin/controller
+RUN chmod +x /bin/controller
+
+RUN microdnf makecache && \
+     microdnf install -y tzdata.noarch
+
 ENV NAMESPACE ""
 ENV LOG_LEVEL info
 

@@ -128,7 +128,7 @@ type Template interface {
 	// Get workflow
 	RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
 
-	ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error)
+	ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error)
 }
 
 type RunWorkflowOptions struct {

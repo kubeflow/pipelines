@@ -1,0 +1,63 @@
+name: "Create a podman build"
+description: "This workflow can be used to create a podman build and push to quay.io from source branches."
+inputs:
+  IMAGE_REPO:
+    description: "Quay image repo name."
+    required: true
+  DOCKERFILE:
+    description: "Path to Dockerfile."
+    required: true
+  GH_REPO:
+    description: "GH org/repo that contains the dockerfile to source."
+    required: true
+  OVERWRITE:
+    default: "false"
+    description: "GH org/repo that contains the dockerfile to source."
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+      with:
+        repository: ${{ inputs.GH_REPO }}
+        ref: ${{ env.SOURCE_BRANCH }}
+        path: build
+    - name: Login to Quay.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ env.QUAY_ID }}
+        password: ${{ env.QUAY_TOKEN }}
+        registry: quay.io
+    # Tags in quay stick around as objects in api, when deleted quay adds "end_ts" time stamp on the tag.
+    # To determine a tag is deleted, we need to check for the presence of this tag.
+    # Also note there can be multiple tags created/deleted, thus we have 4 cases:
+    # Case 1: Only 1 tag was ever created "tags: [{name:..},]"   -- no end_ts field
+    # Case 2: No tag was ever created "tags: []"
+    # Case 3: >1 tags were created, but they were all deleted at some point [{name:..., end_ts,..},....]  -- note they all have "end_ts" field.
+    # Case 4: >1 tags were created, but the most recent one was never deleted (same as case 3, but the latest tag does not have "end_ts".
+    - name: Check if Image already exists
+      shell: bash
+      if: inputs.OVERWRITE == 'false'
+      env:
+        IMAGE: quay.io/${{ env.QUAY_ORG }}/${{ inputs.IMAGE_REPO }}:${{ env.TARGET_IMAGE_TAG }}
+      run: |
+        echo ${{ inputs.OVERWRITE }}
+
+        tags=$(curl --request GET 'https://quay.io/api/v1/repository/${{ env.QUAY_ORG }}/${{ inputs.IMAGE_REPO }}/tag/?specificTag=${{ env.TARGET_IMAGE_TAG }}')
+        latest_tag_has_end_ts=$(echo $tags | yq .tags - | yq 'sort_by(.start_ts) | reverse' - -P | yq .[0].end_ts -)
+        notempty=$(echo ${tags} | yq .tags - | yq any)
+
+        # Image only exists if there is a tag that does not have "end_ts" (i.e. it is still present).
+        if [[ "$notempty" == "true" && $latest_tag_has_end_ts == "null" ]]; then
+            echo "::error::The image ${{ env.IMAGE }} already exists"
+            exit 1
+        else
+            echo "Image does not exist...proceeding with build & push."
+        fi
+    - name: Build image
+      shell: bash
+      working-directory: build
+      env:
+        IMAGE: quay.io/${{ env.QUAY_ORG }}/${{ inputs.IMAGE_REPO }}:${{ env.TARGET_IMAGE_TAG }}
+      run: |
+          podman build . -f ${{ inputs.DOCKERFILE }} -t ${{ env.IMAGE }} && podman push ${{ env.IMAGE }}

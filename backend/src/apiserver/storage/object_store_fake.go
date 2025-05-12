@@ -14,7 +14,58 @@
 
 package storage
 
+import (
+	"net/url"
+	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	v1 "k8s.io/api/core/v1"
+)
+
+type fakeMinioObjectStore struct {
+	minioObjectStore *MinioObjectStore
+}
+
+func (m *fakeMinioObjectStore) GetPipelineKey(pipelineID string) string {
+	return m.minioObjectStore.GetPipelineKey(pipelineID)
+}
+
+func (m *fakeMinioObjectStore) AddFile(file []byte, filePath string) error {
+	return m.minioObjectStore.AddFile(file, filePath)
+}
+
+func (m *fakeMinioObjectStore) DeleteFile(filePath string) error {
+	return m.minioObjectStore.DeleteFile(filePath)
+}
+
+func (m *fakeMinioObjectStore) GetFile(filePath string) ([]byte, error) {
+	return m.minioObjectStore.GetFile(filePath)
+}
+
+func (m *fakeMinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
+	return m.minioObjectStore.AddAsYamlFile(o, filePath)
+}
+
+func (m *fakeMinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
+	return m.minioObjectStore.GetFromYamlFile(o, filePath)
+}
+
+func (m *fakeMinioObjectStore) GetSignedUrl(
+	bucketConfig *objectstore.Config, secret *v1.Secret, expiry time.Duration,
+	uri string, queryParams url.Values) (string, error) {
+
+	if queryParams.Get("response-content-disposition") == "inline" {
+		return "dummy-render-url", nil
+	}
+	return "dummy-signed-url", nil
+}
+
+func (m *fakeMinioObjectStore) GetObjectSize(*objectstore.Config, *v1.Secret, string) (int64, error) {
+	return 123, nil
+}
+
 // Return the object store with faked minio client.
 func NewFakeObjectStore() ObjectStoreInterface {
-	return NewMinioObjectStore(NewFakeMinioClient(), "", "pipelines", false)
+	newMinioObjectStore := NewMinioObjectStore(NewFakeMinioClient(), "", "pipelines", false)
+	return &fakeMinioObjectStore{newMinioObjectStore}
 }

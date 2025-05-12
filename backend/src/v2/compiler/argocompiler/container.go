@@ -27,16 +27,19 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	k8score "k8s.io/api/core/v1"
 )
 
 const (
-	volumeNameKFPLauncher = "kfp-launcher"
-	volumeNameCABundle    = "ca-bundle"
-	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
-	DriverImageEnvVar     = "V2_DRIVER_IMAGE"
+	volumeNameKFPLauncher  = "kfp-launcher"
+	volumeNameCABundle     = "ca-bundle"
+	LauncherImageEnvVar    = "V2_LAUNCHER_IMAGE"
+	LauncherCommandEnvVar  = "V2_LAUNCHER_COMMAND"
+	DefaultLauncherCommand = "launcher-v2"
+	DriverImageEnvVar      = "V2_DRIVER_IMAGE"
 	// DefaultLauncherImage & DefaultDriverImage are set as latest here
 	// but are overridden by environment variables set via k8s manifests.
 	// For releases, the manifest will have the correct release version set.
@@ -111,6 +114,14 @@ func GetDriverCommand() []string {
 		driverCommand = DefaultDriverCommand
 	}
 	return strings.Split(driverCommand, " ")
+}
+
+func GetLauncherCommand() []string {
+	launcherCommand := os.Getenv(LauncherCommandEnvVar)
+	if launcherCommand == "" {
+		launcherCommand = DefaultLauncherCommand
+	}
+	return strings.Split(launcherCommand, " ")
 }
 
 func GetPipelineRunAsUser() *int64 {
@@ -190,6 +201,11 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
+		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
+		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
+		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
+		"--ca_cert_path", common.GetCaCertPath(),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -222,9 +238,10 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
+			Env:       append(proxy.GetConfig().GetEnvVars(), MLPipelineServiceEnv...),
 		},
 	}
+
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name
@@ -384,7 +401,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 			Container: k8score.Container{
 				Name:    "kfp-launcher",
 				Image:   c.launcherImage,
-				Command: []string{"launcher-v2"},
+				Command: c.launcherCommand,
 				Args:    args,
 				VolumeMounts: []k8score.VolumeMount{
 					{
@@ -435,9 +452,10 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 				},
 			},
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     commonEnvs,
+			Env:     append(commonEnvs, MLPipelineServiceEnv...),
 		},
 	}
+	ConfigureCABundle(executor)
 	// Update pod metadata if it defined in the Kubernetes Spec
 	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
 
@@ -452,7 +470,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName str
 	caBundleMountPath := os.Getenv("EXECUTOR_CABUNDLE_MOUNTPATH")
 	if caBundleCfgMapName != "" && caBundleCfgMapKey != "" {
 		caFile := fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCfgMapKey)
-		var certDirectories = []string{
+		certDirectories := []string{
 			caBundleMountPath,
 			"/etc/ssl/certs",
 			"/etc/pki/tls/certs",

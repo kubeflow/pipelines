@@ -271,6 +271,11 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.runID,
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
+				false,
+				"unused-mlmd-server-address",
+				"unused-mlmd-server-port",
+				false,
+				"unused-ca-cert-path",
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -379,6 +384,11 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"1",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -419,6 +429,11 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"1",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -461,6 +476,11 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"1",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 	)
 	assert.Nil(t, err)
 
@@ -499,6 +519,11 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"1",
 		"true",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -708,6 +733,11 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.runID,
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
+				false,
+				"unused-mlmd-server-address",
+				"unused-mlmd-server-port",
+				false,
+				"unused-ca-cert-path",
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -898,6 +928,47 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 			nil,
 		},
 		{
+			"Valid - secret as volume (deprecated)",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretName:          "not-used",
+						SecretNameParameter: inputParamConstant("secret1"),
+						MountPath:           "/data/path",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "secret1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "secret1",
+						VolumeSource: k8score.VolumeSource{
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret1", Optional: &[]bool{false}[0]},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
 			"Valid - secret as volume",
 			&kubernetesplatform.KubernetesExecutorConfig{
 				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
@@ -1040,6 +1111,50 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 				},
 			},
 			nil,
+		},
+		{
+			"Valid - secret as volume: component input parameter",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretName:          "not-used",
+						SecretNameParameter: inputParamComponent("param_1"),
+						MountPath:           "/data/path",
+						Optional:            &[]bool{true}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "secret-name",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "secret-name",
+						VolumeSource: k8score.VolumeSource{
+							Secret: &k8score.SecretVolumeSource{SecretName: "secret-name", Optional: &[]bool{true}[0]},
+						},
+					},
+				},
+			},
+			map[string]*structpb.Value{
+				"param_1": structpb.NewStringValue("secret-name"),
+			},
 		},
 		{
 			"Valid - secret as volume: component input parameter",
@@ -1287,6 +1402,50 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 			nil,
 		},
 		{
+			"Valid - config map as volume (deprecated)",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
+					{
+						ConfigMapName:          "not-used",
+						ConfigMapNameParameter: inputParamConstant("cm1"),
+						MountPath:              "/data/path",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "cm1",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "cm1",
+						VolumeSource: k8score.VolumeSource{
+							ConfigMap: &k8score.ConfigMapVolumeSource{
+								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
+								Optional:             &[]bool{false}[0],
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
 			"Valid - config map as volume",
 			&kubernetesplatform.KubernetesExecutorConfig{
 				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
@@ -1322,7 +1481,8 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
 								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
-								Optional:             &[]bool{false}[0]},
+								Optional:             &[]bool{false}[0],
+							},
 						},
 					},
 				},
@@ -1490,6 +1650,97 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 				ConfigMapAsEnv: []*kubernetesplatform.ConfigMapAsEnv{
 					{
 						ConfigMapName: "my-cm",
+						KeyToEnv: []*kubernetesplatform.ConfigMapAsEnv_ConfigMapKeyToEnvMap{
+							{
+								ConfigMapKey: "foo",
+								EnvVar:       "CONFIG_MAP_VAR",
+							},
+						},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						Env: []k8score.EnvVar{
+							{
+								Name: "CONFIG_MAP_VAR",
+								ValueFrom: &k8score.EnvVarSource{
+									ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-cm"},
+										Key:                  "foo",
+										Optional:             nil,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - config map volume: component input parameter",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
+					{
+						ConfigMapName:          "not-used",
+						ConfigMapNameParameter: inputParamComponent("param_1"),
+						MountPath:              "/data/path",
+						Optional:               &[]bool{true}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "cm-name",
+								MountPath: "/data/path",
+							},
+						},
+					},
+				},
+				Volumes: []k8score.Volume{
+					{
+						Name: "cm-name",
+						VolumeSource: k8score.VolumeSource{
+							ConfigMap: &k8score.ConfigMapVolumeSource{
+								LocalObjectReference: k8score.LocalObjectReference{Name: "cm-name"},
+								Optional:             &[]bool{true}[0],
+							},
+						},
+					},
+				},
+			},
+			map[string]*structpb.Value{
+				"param_1": structpb.NewStringValue("cm-name"),
+			},
+		},
+		{
+			"Valid - config map as env (deprecated)",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsEnv: []*kubernetesplatform.ConfigMapAsEnv{
+					{
+						ConfigMapName:          "not-used",
+						ConfigMapNameParameter: inputParamConstant("my-cm"),
 						KeyToEnv: []*kubernetesplatform.ConfigMapAsEnv_ConfigMapKeyToEnvMap{
 							{
 								ConfigMapKey: "foo",
@@ -1876,6 +2127,30 @@ func Test_extendPodSpecPatch_ImagePullSecrets(t *testing.T) {
 				},
 			},
 			nil,
+		},
+		{
+			"Valid - multiple input parameter secret names",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ImagePullSecret: []*kubernetesplatform.ImagePullSecret{
+					{SecretName: "not-used1", SecretNameParameter: inputParamComponent("param_1")},
+					{SecretName: "not-used2", SecretNameParameter: inputParamComponent("param_2")},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				ImagePullSecrets: []k8score.LocalObjectReference{
+					{Name: "secret-name-1"},
+					{Name: "secret-name-2"},
+				},
+			},
+			map[string]*structpb.Value{
+				"param_1": structpb.NewStringValue("secret-name-1"),
+				"param_2": structpb.NewStringValue("secret-name-2"),
+			},
 		},
 		{
 			"Valid - multiple input parameter secret names",

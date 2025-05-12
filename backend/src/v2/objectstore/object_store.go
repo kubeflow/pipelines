@@ -212,6 +212,15 @@ func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localF
 	return nil
 }
 
+// ArtifactKeyFromURI extracts the object key from the artifact uri
+func ArtifactKeyFromURI(uri string) (string, error) {
+	ms := bucketPattern.FindStringSubmatch(uri)
+	if ms == nil || len(ms) != 5 {
+		return "", fmt.Errorf("parse uri failed: unrecognized uri format: %q", uri)
+	}
+	return strings.TrimPrefix(ms[3], "/"), nil
+}
+
 func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *SessionInfo, clientSet kubernetes.Interface) (client *gcp.HTTPClient, err error) {
 	params, err := StructuredGCSParams(sessionInfo.Params)
 	if err != nil {

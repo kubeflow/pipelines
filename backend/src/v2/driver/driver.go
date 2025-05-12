@@ -89,6 +89,18 @@ type Options struct {
 	PipelineLogLevel string
 
 	PublishLogs string
+
+	// set to true if ml pipeline server is serving over tls
+	MLPipelineTLSEnabled bool
+
+	MLMDServerAddress string
+
+	MLMDServerPort string
+
+	// set to true if MLMD server is serving over tls
+	MLMDTLSEnabled bool
+
+	CaCertPath string
 }
 
 // Identifying information used for error messages
@@ -386,6 +398,11 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.RunID,
 		opts.PipelineLogLevel,
 		opts.PublishLogs,
+		opts.MLPipelineTLSEnabled,
+		opts.MLMDServerAddress,
+		opts.MLMDServerPort,
+		opts.MLMDTLSEnabled,
+		opts.CaCertPath,
 	)
 	if err != nil {
 		return execution, err
@@ -450,6 +467,11 @@ func initPodSpecPatch(
 	runID string,
 	pipelineLogLevel string,
 	publishLogs string,
+	mlPipelineTLSEnabled bool,
+	mlmdServerAddress string,
+	mlmdServerPort string,
+	mlmdTLSEnabled bool,
+	caCertPath string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -484,10 +506,14 @@ func initPodSpecPatch(
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
 		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
+		mlmdServerAddress,
 		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		mlmdServerPort,
 		"--publish_logs", publishLogs,
+		"--metadataTLSEnabled", fmt.Sprintf("%v", mlmdTLSEnabled),
+		"--mlPipelineServiceTLSEnabled",
+		fmt.Sprintf("%v", mlPipelineTLSEnabled),
+		"--ca_cert_path", caCertPath,
 	}
 	if pipelineLogLevel != "1" {
 		// Add log level to user code launcher if not default (set to 1)
@@ -1300,7 +1326,6 @@ func collectOutputArtifactMetadataFromCache(ctx context.Context, executorInput *
 		registeredMLMDArtifacts = append(registeredMLMDArtifacts, outputArtifact)
 	}
 	return registeredMLMDArtifacts, nil
-
 }
 
 func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput) (string, error) {
@@ -2350,7 +2375,6 @@ func deletePVC(
 	mlmd *metadata.Client,
 	ecfg *metadata.ExecutionConfig,
 ) (createdExecution *metadata.Execution, status pb.Execution_State, err error) {
-
 	// Create execution regardless the operation succeeds or not
 	defer func() {
 		if createdExecution == nil {

@@ -17,9 +17,11 @@ package argocompiler
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
 )
@@ -77,10 +79,10 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
-		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
+		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
+		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
+		"--ca_cert_path", common.GetCaCertPath(),
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -100,13 +102,16 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		},
 		Container: &k8score.Container{
 			Image:     c.launcherImage,
-			Command:   []string{"launcher-v2"},
+			Command:   c.launcherCommand,
 			Args:      args,
 			EnvFrom:   []k8score.EnvFromSource{metadataEnvFrom},
 			Env:       commonEnvs,
 			Resources: driverResources,
 		},
 	}
+
+	ConfigureCABundle(importerTemplate)
+
 	c.templates[name] = importerTemplate
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *importerTemplate)
 	return name
