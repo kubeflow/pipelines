@@ -1,5 +1,9 @@
 ## Upcoming release
 
+## Release 2.20.1
+
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
 ## Release 2.20.0
 
 * Bump image for Structured Data pipelines.
