@@ -1,7 +1,7 @@
 repos:
   # other fast helpful checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v5.0.0
     hooks:
       - id: check-yaml
         args: [--allow-multiple-documents]
@@ -33,7 +33,7 @@ repos:
         language: python
         entry: pycln --all
   - repo: https://github.com/pycqa/isort
-    rev: 5.11.5
+    rev: 6.0.1
     hooks:
       - id: isort
         name: isort
@@ -43,7 +43,7 @@ repos:
     hooks:
       - id: yapf
   - repo: https://github.com/pycqa/docformatter
-    rev: v1.7.5
+    rev: v1.7.6
     hooks:
       - id: docformatter
         name: docformatter
