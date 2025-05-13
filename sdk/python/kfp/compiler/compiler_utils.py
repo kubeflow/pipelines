@@ -874,7 +874,7 @@ def validate_component_funcs_and_vars(
         component: base_component.BaseComponent) -> None:
     """Validates that all functions/variables used within a python-based
     component are builtin, defined, or imported within the component."""
-    from kfp.dsl import python_component
+
     if not isinstance(component, python_component.PythonComponent):
         return
 
