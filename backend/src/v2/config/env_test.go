@@ -16,11 +16,12 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/stretchr/testify/assert"
-	"os"
 	"sigs.k8s.io/yaml"
-	"testing"
 )
 
 type TestcaseData struct {

@@ -18,9 +18,10 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 
 	"encoding/json"
+	"strings"
+
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
-	"strings"
 )
 
 func UnmarshalJsonOrFail(data string, v interface{}) {

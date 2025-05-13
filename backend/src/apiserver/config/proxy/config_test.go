@@ -15,11 +15,12 @@ package proxy
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	k8score "k8s.io/api/core/v1"
-	"os"
-	"testing"
 )
 
 func TestNewConfigFromEnvVars(t *testing.T) {
