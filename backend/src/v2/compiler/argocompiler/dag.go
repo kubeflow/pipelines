@@ -630,8 +630,6 @@ func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 				if err := addDep(input.GetTaskOutputParameter().GetProducerTask()); err != nil {
 					return wrap(err)
 				}
-			case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
-				return wrap(fmt.Errorf("task final status not supported yet"))
 			default:
 				// other parameter input types do not introduce implicit dependencies
 			}

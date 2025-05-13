@@ -24,6 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -211,7 +212,7 @@ func resolveInputs(
 						return typeMismatch("list")
 					}
 				case *structpb.Value_StructValue:
-					if spec.GetParameterType() != pipelinespec.ParameterType_STRUCT {
+					if (spec.GetParameterType() != pipelinespec.ParameterType_STRUCT) && (spec.GetParameterType() != pipelinespec.ParameterType_TASK_FINAL_STATUS) {
 						return typeMismatch("struct")
 					}
 				default:
@@ -378,8 +379,42 @@ func resolveInputParameter(
 		default:
 			return nil, paramError(fmt.Errorf("param runtime value spec of type %T not implemented", t))
 		}
-	// TODO(Bobgy): implement the following cases
-	// case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
+	case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
+		tasks, err := getDAGTasks(ctx, dag, pipeline, mlmd, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(opts.Task.DependentTasks) < 1 {
+			return nil, fmt.Errorf("task %v has no dependent tasks", opts.Task.TaskInfo.GetName())
+		}
+		producer, ok := tasks[metadata.GetTaskNameWithDagID(opts.Task.DependentTasks[0], dag.Execution.GetID())]
+		if !ok {
+			return nil, fmt.Errorf("producer task, %v, not in tasks", producer.TaskName())
+		}
+		finalStatus := pipelinespec.PipelineTaskFinalStatus{
+			State:                   producer.GetExecution().GetLastKnownState().String(),
+			PipelineTaskName:        producer.TaskName(),
+			PipelineJobResourceName: opts.RunName,
+			//TODO: Implement fields "Message and "Code" below for Error status.
+			Error: &status.Status{},
+		}
+		finalStatusJSON, err := protojson.Marshal(&finalStatus)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal PipelineTaskFinalStatus: %w", err)
+		}
+
+		var finalStatusMap map[string]interface{}
+		if err := json.Unmarshal(finalStatusJSON, &finalStatusMap); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal JSON of PipelineTaskFinalStatus: %w", err)
+		}
+
+		finalStatusStruct, err := structpb.NewStruct(finalStatusMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create structpb.Struct: %w", err)
+		}
+
+		return structpb.NewStructValue(finalStatusStruct), nil
 	default:
 		return nil, paramError(fmt.Errorf("parameter spec of type %T not implemented yet", t))
 	}

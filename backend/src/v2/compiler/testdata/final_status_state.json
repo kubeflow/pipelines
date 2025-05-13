@@ -1,0 +1,126 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-echo-state": {
+        "executorLabel": "exec-echo-state",
+        "inputDefinitions": {
+          "parameters": {
+            "status": {
+              "parameterType": "TASK_FINAL_STATUS"
+            }
+          }
+        }
+      },
+      "comp-error": {
+        "executorLabel": "exec-error"
+      },
+      "comp-exit-handler-1": {
+        "dag": {
+          "tasks": {
+            "error": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-error"
+              },
+              "taskInfo": {
+                "name": "error"
+              }
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-echo-state": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "echo_state"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef echo_state(status: str):\n    print(status)\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        },
+        "exec-error": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "error"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef error():\n    raise RuntimeError(\"An error\")\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "my-pipeline"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "echo-state": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-echo-state"
+            },
+            "dependentTasks": [
+              "exit-handler-1"
+            ],
+            "inputs": {
+              "parameters": {
+                "status": {
+                  "taskFinalStatus": {
+                    "producerTask": "exit-handler-1"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "echo-state"
+            },
+            "triggerPolicy": {
+              "strategy": "ALL_UPSTREAM_TASKS_COMPLETED"
+            }
+          },
+          "exit-handler-1": {
+            "componentRef": {
+              "name": "comp-exit-handler-1"
+            },
+            "taskInfo": {
+              "name": "exit-handler-1"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-2.13.0"
+  }
+}
+

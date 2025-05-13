@@ -1,0 +1,395 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: my-pipeline-
+spec:
+  arguments:
+    parameters:
+      - name: components-5fb0b5a0325f074eb3e5ec2bfc2eb455d5c06dcad9bfd2b12283fc4ae282c618
+        value: '{"executorLabel":"exec-echo-state","inputDefinitions":{"parameters":{"status":{"parameterType":"TASK_FINAL_STATUS"}}}}'
+      - name: implementations-5fb0b5a0325f074eb3e5ec2bfc2eb455d5c06dcad9bfd2b12283fc4ae282c618
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","echo_state"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        echo_state(status: str):\n    print(status)\n\n"],"image":"python:3.9"}'
+      - name: components-08374905246ef9cc3f314d3e7eccc6bc57caafd6fed83e19fa18046b2b80fac7
+        value: '{"executorLabel":"exec-error"}'
+      - name: implementations-08374905246ef9cc3f314d3e7eccc6bc57caafd6fed83e19fa18046b2b80fac7
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","error"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        error():\n    raise RuntimeError(\"An error\")\n\n"],"image":"python:3.9"}'
+      - name: components-comp-exit-handler-1
+        value: '{"dag":{"tasks":{"error":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-error"},"taskInfo":{"name":"error"}}}}}'
+      - name: components-root
+        value: '{"dag":{"tasks":{"echo-state":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo-state"},"dependentTasks":["exit-handler-1"],"inputs":{"parameters":{"status":{"taskFinalStatus":{"producerTask":"exit-handler-1"}}}},"taskInfo":{"name":"echo-state"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}},"exit-handler-1":{"componentRef":{"name":"comp-exit-handler-1"},"taskInfo":{"name":"exit-handler-1"}}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+    - container:
+        args:
+          - --type
+          - CONTAINER
+          - --pipeline_name
+          - my-pipeline
+          - --run_id
+          - '{{workflow.uid}}'
+          - --run_name
+          - '{{workflow.name}}'
+          - --run_display_name
+          - ''
+          - --dag_execution_id
+          - '{{inputs.parameters.parent-dag-id}}'
+          - --component
+          - '{{inputs.parameters.component}}'
+          - --task
+          - '{{inputs.parameters.task}}'
+          - --container
+          - '{{inputs.parameters.container}}'
+          - --iteration_index
+          - '{{inputs.parameters.iteration-index}}'
+          - --cached_decision_path
+          - '{{outputs.parameters.cached-decision.path}}'
+          - --pod_spec_patch_path
+          - '{{outputs.parameters.pod-spec-patch.path}}'
+          - --condition_path
+          - '{{outputs.parameters.condition.path}}'
+          - --kubernetes_config
+          - '{{inputs.parameters.kubernetes-config}}'
+          - --http_proxy
+          - ""
+          - --https_proxy
+          - ""
+          - --no_proxy
+          - ""
+        command:
+          - driver
+        image: ghcr.io/kubeflow/kfp-driver
+        name: ""
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+      inputs:
+        parameters:
+          - name: component
+          - name: task
+          - name: container
+          - name: parent-dag-id
+          - default: "-1"
+            name: iteration-index
+          - default: ""
+            name: kubernetes-config
+      name: system-container-driver
+      outputs:
+        parameters:
+          - name: pod-spec-patch
+            valueFrom:
+              default: ""
+              path: /tmp/outputs/pod-spec-patch
+          - default: "false"
+            name: cached-decision
+            valueFrom:
+              default: "false"
+              path: /tmp/outputs/cached-decision
+          - name: condition
+            valueFrom:
+              default: "true"
+              path: /tmp/outputs/condition
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: pod-spec-patch
+                  value: '{{inputs.parameters.pod-spec-patch}}'
+            name: executor
+            template: system-container-impl
+            when: '{{inputs.parameters.cached-decision}} != true'
+      inputs:
+        parameters:
+          - name: pod-spec-patch
+          - default: "false"
+            name: cached-decision
+      name: system-container-executor
+      outputs: {}
+    - container:
+        command:
+          - should-be-overridden-during-runtime
+        env:
+          - name: KFP_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: KFP_POD_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+        envFrom:
+          - configMapRef:
+              name: metadata-grpc-configmap
+              optional: true
+        image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+        name: ""
+        resources: {}
+        volumeMounts:
+          - mountPath: /kfp-launcher
+            name: kfp-launcher
+          - mountPath: /gcs
+            name: gcs-scratch
+          - mountPath: /s3
+            name: s3-scratch
+          - mountPath: /minio
+            name: minio-scratch
+          - mountPath: /.local
+            name: dot-local-scratch
+          - mountPath: /.cache
+            name: dot-cache-scratch
+          - mountPath: /.config
+            name: dot-config-scratch
+      initContainers:
+        - args:
+            - --copy
+            - /kfp-launcher/launch
+          command:
+            - launcher-v2
+          image: ghcr.io/kubeflow/kfp-launcher
+          name: kfp-launcher
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+          volumeMounts:
+            - mountPath: /kfp-launcher
+              name: kfp-launcher
+      inputs:
+        parameters:
+          - name: pod-spec-patch
+      name: system-container-impl
+      outputs: {}
+      podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+      volumes:
+        - emptyDir: {}
+          name: kfp-launcher
+        - emptyDir: {}
+          name: gcs-scratch
+        - emptyDir: {}
+          name: s3-scratch
+        - emptyDir: {}
+          name: minio-scratch
+        - emptyDir: {}
+          name: dot-local-scratch
+        - emptyDir: {}
+          name: dot-cache-scratch
+        - emptyDir: {}
+          name: dot-config-scratch
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-08374905246ef9cc3f314d3e7eccc6bc57caafd6fed83e19fa18046b2b80fac7}}'
+                - name: task
+                  value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-error"},"taskInfo":{"name":"error"}}'
+                - name: container
+                  value: '{{workflow.parameters.implementations-08374905246ef9cc3f314d3e7eccc6bc57caafd6fed83e19fa18046b2b80fac7}}'
+                - name: parent-dag-id
+                  value: '{{inputs.parameters.parent-dag-id}}'
+            name: error-driver
+            template: system-container-driver
+          - arguments:
+              parameters:
+                - name: pod-spec-patch
+                  value: '{{tasks.error-driver.outputs.parameters.pod-spec-patch}}'
+                - default: "false"
+                  name: cached-decision
+                  value: '{{tasks.error-driver.outputs.parameters.cached-decision}}'
+            depends: error-driver.Succeeded
+            name: error
+            template: system-container-executor
+      inputs:
+        parameters:
+          - name: parent-dag-id
+      name: comp-exit-handler-1
+      outputs: {}
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-5fb0b5a0325f074eb3e5ec2bfc2eb455d5c06dcad9bfd2b12283fc4ae282c618}}'
+                - name: task
+                  value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo-state"},"dependentTasks":["exit-handler-1"],"inputs":{"parameters":{"status":{"taskFinalStatus":{"producerTask":"exit-handler-1"}}}},"taskInfo":{"name":"echo-state"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
+                - name: container
+                  value: '{{workflow.parameters.implementations-5fb0b5a0325f074eb3e5ec2bfc2eb455d5c06dcad9bfd2b12283fc4ae282c618}}'
+                - name: parent-dag-id
+                  value: '{{inputs.parameters.parent-dag-id}}'
+            name: echo-state-driver
+            template: system-container-driver
+          - arguments:
+              parameters:
+                - name: pod-spec-patch
+                  value: '{{tasks.echo-state-driver.outputs.parameters.pod-spec-patch}}'
+                - default: "false"
+                  name: cached-decision
+                  value: '{{tasks.echo-state-driver.outputs.parameters.cached-decision}}'
+            depends: echo-state-driver.Succeeded
+            name: echo-state
+            template: system-container-executor
+      inputs:
+        parameters:
+          - name: parent-dag-id
+      name: exit-hook-root-echo-state
+      outputs: {}
+    - container:
+        args:
+          - --type
+          - '{{inputs.parameters.driver-type}}'
+          - --pipeline_name
+          - my-pipeline
+          - --run_id
+          - '{{workflow.uid}}'
+          - --run_name
+          - '{{workflow.name}}'
+          - --run_display_name
+          - ''
+          - --dag_execution_id
+          - '{{inputs.parameters.parent-dag-id}}'
+          - --component
+          - '{{inputs.parameters.component}}'
+          - --task
+          - '{{inputs.parameters.task}}'
+          - --runtime_config
+          - '{{inputs.parameters.runtime-config}}'
+          - --iteration_index
+          - '{{inputs.parameters.iteration-index}}'
+          - --execution_id_path
+          - '{{outputs.parameters.execution-id.path}}'
+          - --iteration_count_path
+          - '{{outputs.parameters.iteration-count.path}}'
+          - --condition_path
+          - '{{outputs.parameters.condition.path}}'
+          - --http_proxy
+          - ""
+          - --https_proxy
+          - ""
+          - --no_proxy
+          - ""
+        command:
+          - driver
+        image: ghcr.io/kubeflow/kfp-driver
+        name: ""
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+      inputs:
+        parameters:
+          - name: component
+          - default: ""
+            name: runtime-config
+          - default: ""
+            name: task
+          - default: "0"
+            name: parent-dag-id
+          - default: "-1"
+            name: iteration-index
+          - default: DAG
+            name: driver-type
+      name: system-dag-driver
+      outputs:
+        parameters:
+          - name: execution-id
+            valueFrom:
+              path: /tmp/outputs/execution-id
+          - name: iteration-count
+            valueFrom:
+              default: "0"
+              path: /tmp/outputs/iteration-count
+          - name: condition
+            valueFrom:
+              default: "true"
+              path: /tmp/outputs/condition
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-comp-exit-handler-1}}'
+                - name: parent-dag-id
+                  value: '{{inputs.parameters.parent-dag-id}}'
+                - name: task
+                  value: '{"componentRef":{"name":"comp-exit-handler-1"},"taskInfo":{"name":"exit-handler-1"}}'
+            name: exit-handler-1-driver
+            template: system-dag-driver
+          - arguments:
+              parameters:
+                - name: parent-dag-id
+                  value: '{{tasks.exit-handler-1-driver.outputs.parameters.execution-id}}'
+                - name: condition
+                  value: '{{tasks.exit-handler-1-driver.outputs.parameters.condition}}'
+            depends: exit-handler-1-driver.Succeeded
+            hooks:
+              exit:
+                arguments:
+                  parameters:
+                    - name: parent-dag-id
+                      value: '{{inputs.parameters.parent-dag-id}}'
+                template: exit-hook-root-echo-state
+            name: exit-handler-1
+            template: comp-exit-handler-1
+      inputs:
+        parameters:
+          - name: parent-dag-id
+      name: root
+      outputs: {}
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-root}}'
+                - name: runtime-config
+                  value: '{}'
+                - name: driver-type
+                  value: ROOT_DAG
+            name: root-driver
+            template: system-dag-driver
+          - arguments:
+              parameters:
+                - name: parent-dag-id
+                  value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+                - name: condition
+                  value: ""
+            depends: root-driver.Succeeded
+            name: root
+            template: root
+      inputs: {}
+      name: entrypoint
+      outputs: {}
+

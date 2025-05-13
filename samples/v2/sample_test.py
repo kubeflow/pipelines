@@ -41,6 +41,7 @@ import subdagio
 import two_step_pipeline_containerized
 import yaml
 import pipeline_with_retry
+import pipeline_with_input_status_state
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 5 * _MINUTE
@@ -172,6 +173,7 @@ class SampleTest(unittest.TestCase):
             TestCase(
                 pipeline_func=collected_parameters.collected_param_pipeline),
             TestCase(pipeline_func=pipeline_with_retry.retry_pipeline),
+            TestCase(pipeline_func=pipeline_with_input_status_state.status_state_pipeline),
         ]
 
         with ThreadPoolExecutor() as executor:
