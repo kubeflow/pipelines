@@ -7,41 +7,68 @@ resources:
 - ../../cache-deployer
 - pipeline-install-config.yaml
 - mysql-secret.yaml
-vars:
-- fieldref:
-    fieldPath: metadata.namespace
-  name: kfp-namespace
-  objref:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: ml-pipeline
-- fieldref:
-    fieldPath: data.appName
-  name: kfp-app-name
-  objref:
-    apiVersion: v1
-    kind: ConfigMap
-    name: pipeline-install-config
-- fieldref:
-    fieldPath: data.appVersion
-  name: kfp-app-version
-  objref:
-    apiVersion: v1
-    kind: ConfigMap
-    name: pipeline-install-config
-- fieldref:
-    fieldPath: data.bucketName
-  name: kfp-artifact-bucket-name
-  objref:
-    apiVersion: v1
-    kind: ConfigMap
-    name: pipeline-install-config
-- fieldref:
-    fieldPath: data.defaultPipelineRoot
-  name: kfp-default-pipeline-root
-  objref:
-    apiVersion: v1
-    kind: ConfigMap
-    name: pipeline-install-config
 configurations:
 - params.yaml
+replacements:
+- source:
+    fieldPath: metadata.namespace
+    group: apps
+    kind: Deployment
+    name: ml-pipeline
+    version: v1
+  targets:
+  - select:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: ml-pipeline
+    fieldPaths:
+    - metadata.namespace
+- source:
+    fieldPath: data.appName
+    kind: ConfigMap
+    name: pipeline-install-config
+    version: v1
+  targets:
+  - select:
+      kind: ConfigMap
+      name: pipeline-install-config
+      version: v1
+    fieldPaths:
+    - data.appName
+- source:
+    fieldPath: data.appVersion
+    kind: ConfigMap
+    name: pipeline-install-config
+    version: v1
+  targets:
+  - select:
+      kind: ConfigMap
+      name: pipeline-install-config
+      version: v1
+    fieldPaths:
+    - data.appVersion
+- source:
+    fieldPath: data.bucketName
+    kind: ConfigMap
+    name: pipeline-install-config
+    version: v1
+  targets:
+  - select:
+      kind: ConfigMap
+      name: pipeline-install-config
+      version: v1
+    fieldPaths:
+    - data.bucketName
+- source:
+    fieldPath: data.defaultPipelineRoot
+    kind: ConfigMap
+    name: pipeline-install-config
+    version: v1
+  targets:
+  - fieldPaths:
+    - data.defaultPipelineRoot
+    select:
+      kind: ConfigMap
+      name: kfp-launcher
+      version: v1
