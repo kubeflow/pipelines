@@ -43,6 +43,7 @@ from kfp.dsl import pipeline_task
 from kfp.dsl import PipelineTaskFinalStatus
 from kfp.dsl import tasks_group
 from kfp.dsl import yaml_component
+from kfp.dsl.pipeline_config import PipelineConfig
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -4047,6 +4048,71 @@ class TestPlatformConfig(unittest.TestCase):
             def outer():
                 task = inner()
                 foo_platform_set_bar_feature(task, 12)
+
+
+class TestPipelineSemaphoreMutex(unittest.TestCase):
+
+    def test_pipeline_with_semaphore(self):
+        """Test that pipeline config correctly sets the semaphore key."""
+        config = PipelineConfig()
+        config.set_semaphore_key('semaphore')
+
+        @dsl.pipeline(pipeline_config=config)
+        def my_pipeline():
+            task = comp()
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+
+            with open(output_yaml, 'r') as f:
+                pipeline_docs = list(yaml.safe_load_all(f))
+
+        pipeline_spec = None
+        for doc in pipeline_docs:
+            if 'platforms' in doc:
+                pipeline_spec = doc
+                break
+
+        # # Debug statement to print the contents of the pipeline_spec
+        # print("Pipeline spec:", pipeline_spec)
+
+        if pipeline_spec:
+            kubernetes_spec = pipeline_spec['platforms']['kubernetes'][
+                'pipelineConfig']
+            assert kubernetes_spec['semaphoreKey'] == 'semaphore'
+
+    def test_pipeline_with_mutex(self):
+        """Test that pipeline config correctly sets the mutex name."""
+        config = PipelineConfig()
+        config.set_mutex_name('mutex')
+
+        @dsl.pipeline(pipeline_config=config)
+        def my_pipeline():
+            task = comp()
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+
+            with open(output_yaml, 'r') as f:
+                pipeline_docs = list(yaml.safe_load_all(f))
+
+        pipeline_spec = None
+        for doc in pipeline_docs:
+            if 'platforms' in doc:
+                pipeline_spec = doc
+                break
+
+        # # Debug statement to print the contents of the pipeline_spec
+        # print("Pipeline spec:", pipeline_spec)
+
+        if pipeline_spec:
+            kubernetes_spec = pipeline_spec['platforms']['kubernetes'][
+                'pipelineConfig']
+            assert kubernetes_spec['mutexName'] == 'mutex'
 
 
 class ExtractInputOutputDescription(unittest.TestCase):
