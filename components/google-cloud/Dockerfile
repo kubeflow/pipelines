@@ -18,6 +18,11 @@ RUN apt update && apt -y install git python3 \
   python3-pip \
   python3-setuptools
 
+# Patch the OS-level packages and remove unneeded dependencies to address
+# vulnerabilities.
+RUN apt update && apt -y upgrade
+RUN apt -y autoremove
+
 WORKDIR /root
 
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
