@@ -15,11 +15,8 @@
 package driver
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 	"regexp"
 )
@@ -55,66 +52,6 @@ func extractInputParameterFromChannel(inputChannel string) (string, error) {
 	}
 }
 
-// resolvePodSpecInputRuntimeParameter resolves runtime value that is intended to be
-// utilized within the Pod Spec. parameterValue takes the form of:
-// "{{$.inputs.parameters['pipelinechannel--someParameterName']}}"
-//
-// parameterValue is a runtime parameter value that has been resolved and included within
-// the executor input. Since the pod spec patch cannot dynamically update the underlying
-// container template's inputs in an Argo Workflow, this is a workaround for resolving
-// such parameters.
-//
-// If parameter value is not a parameter channel, then a constant value is assumed and
-// returned as is.
-func resolvePodSpecInputRuntimeParameter(parameterValue string, executorInput *pipelinespec.ExecutorInput) (string, error) {
-	if isInputParameterChannel(parameterValue) {
-		inputImage, err := extractInputParameterFromChannel(parameterValue)
-		if err != nil {
-			return "", err
-		}
-		if val, ok := executorInput.Inputs.ParameterValues[inputImage]; ok {
-			return val.GetStringValue(), nil
-		} else {
-			return "", fmt.Errorf("executorInput did not contain container Image input parameter")
-		}
-	}
-	return parameterValue, nil
-}
-
-// resolveK8sJsonParameter resolves a k8s JSON and unmarshal it
-// to the provided k8s resource.
-//
-// Parameters:
-//   - pipelineInputParamSpec: An input parameter spec that resolve to a valid JSON
-//   - inputParams: InputParams that contain resolution context for pipelineInputParamSpec
-//   - res: The k8s resource to unmarshal the json to
-func resolveK8sJsonParameter[k8sResource any](
-	ctx context.Context,
-	opts Options,
-	dag *metadata.DAG,
-	pipeline *metadata.Pipeline,
-	mlmd *metadata.Client,
-	pipelineInputParamSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	inputParams map[string]*structpb.Value,
-	res *k8sResource,
-) error {
-	resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
-		pipelineInputParamSpec, inputParams)
-	if err != nil {
-		return fmt.Errorf("failed to resolve k8s parameter: %w", err)
-	}
-	paramJSON, err := resolvedParam.GetStructValue().MarshalJSON()
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(paramJSON, &res)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal k8s Resource json "+
-			"ensure that k8s Resource json correctly adheres to its respective k8s spec: %w", err)
-	}
-	return nil
-}
-
 // inputParamConstant convert and return value as a RuntimeValue
 func inputParamConstant(value string) *pipelinespec.TaskInputsSpec_InputParameterSpec {
 	return &pipelinespec.TaskInputsSpec_InputParameterSpec{
@@ -147,5 +84,24 @@ func inputParamTaskOutput(producerTask, outputParamKey string) *pipelinespec.Tas
 				OutputParameterKey: outputParamKey,
 			},
 		},
+	}
+}
+
+// Get iteration items from a structpb.Value.
+// Return value may be
+// * a list of JSON serializable structs
+// * a list of structpb.Value
+func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
+	switch v := value.GetKind().(type) {
+	case *structpb.Value_ListValue:
+		return v.ListValue.GetValues(), nil
+	case *structpb.Value_StringValue:
+		listValue := structpb.Value{}
+		if err = listValue.UnmarshalJSON([]byte(v.StringValue)); err != nil {
+			return nil, err
+		}
+		return listValue.GetListValue().GetValues(), nil
+	default:
+		return nil, fmt.Errorf("value of type %T cannot be iterated", v)
 	}
 }
