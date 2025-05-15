@@ -9,18 +9,23 @@ resources:
 - ../third-party/argo/installs/namespace/cluster-scoped
 - ../base/pipeline/cluster-scoped
 - ../base/cache-deployer/cluster-scoped
-vars:
-# NOTE: var name must be unique globally to allow composition of multiple kustomize
-# packages. Therefore, we added prefix `kfp-cluster-scoped-` to distinguish it from
-# others.
-- fieldref:
-    fieldPath: metadata.namespace
-  name: kfp-cluster-scoped-namespace
-  objref:
-    # cache deployer sa's metadata.namespace will be first transformed by namespace field in kustomization.yaml
-    # so that we only need to change kustomization.yaml's namespace field for namespace customization.
-    apiVersion: v1
-    kind: ServiceAccount
-    name: kubeflow-pipelines-cache-deployer-sa
 configurations:
 - params.yaml
+replacements:
+# NOTE: repalcements (previously var was used) name must be unique globally to allow
+# composition of multiple kustomize packages. Therefore, we added prefix 
+# `kfp-cluster-scoped-` to distinguish it from others.
+- source:
+    # cache deployer sa's metadata.namespace will be first transformed by namespace field in kustomization.yaml
+    # so that we only need to change kustomization.yaml's namespace field for namespace customization.
+    fieldPath: metadata.namespace
+    kind: ServiceAccount
+    name: kubeflow-pipelines-cache-deployer-sa
+    version: v1
+  targets:
+  - fieldPaths:
+    - metadata.name
+    select:
+      kind: Namespace
+      name: $(kfp-cluster-scoped-namespace)
+      version: v1
