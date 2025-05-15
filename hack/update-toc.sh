@@ -21,12 +21,12 @@ set -o pipefail
 # cd to the root path
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "${ROOT}"
+PATH="${PATH}:${ROOT}/bin:$(go env GOPATH)/bin"
 
 echo "Updating tables of contents if necessary..."
 # Update tables of contents if necessary.
-find keps -name '*.md' \
-    | grep -Fxvf hack/.notableofcontents \
-    | xargs "${ROOT}/bin/mdtoc" --inplace --max-depth=5  || (
+find proposals -mindepth 2 -name '*.md' \
+    | xargs mdtoc --inplace --max-depth=5  || (
       echo "Failed generating TOC. If this failed silently and you are on mac, try 'brew install grep'"
       exit 1
     )
