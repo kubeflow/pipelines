@@ -117,6 +117,7 @@ type ClientManager struct {
 // Options to pass to Client Manager initialization
 type Options struct {
 	UsePipelineKubernetesStorage bool
+	GlobalKubernetesWebhookMode  bool
 	Context                      context.Context
 	WaitGroup                    *sync.WaitGroup
 }
@@ -210,7 +211,7 @@ func (c *ClientManager) init(options *Options) error {
 
 	var pipelineStoreForRef storage.PipelineStoreInterface
 
-	if options.UsePipelineKubernetesStorage || common.IsOnlyKubernetesWebhookMode() {
+	if options.UsePipelineKubernetesStorage || options.GlobalKubernetesWebhookMode {
 		glog.Info("Initializing controller client...")
 		restConfig, err := util.GetKubernetesConfig()
 		if err != nil {
@@ -219,7 +220,7 @@ func (c *ClientManager) init(options *Options) error {
 
 		var cacheConfig map[string]cache.Config
 
-		if !common.IsMultiUserMode() && common.GetPodNamespace() != "" && !common.IsOnlyKubernetesWebhookMode() {
+		if !common.IsMultiUserMode() && common.GetPodNamespace() != "" && !options.GlobalKubernetesWebhookMode {
 			cacheConfig = map[string]cache.Config{common.GetPodNamespace(): {}}
 		}
 
@@ -259,7 +260,7 @@ func (c *ClientManager) init(options *Options) error {
 
 		c.controllerClient = controllerClient
 		c.controllerClientNoCache = controllerClientNoCache
-		if common.IsOnlyKubernetesWebhookMode() {
+		if options.GlobalKubernetesWebhookMode {
 			return nil
 		}
 

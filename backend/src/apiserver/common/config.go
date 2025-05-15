@@ -32,7 +32,6 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
-	GlobalKubernetesWebhookMode             string = "GLOBAL_KUBERNETES_WEBHOOK_MODE"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -127,8 +126,4 @@ func GetKubeflowUserIDPrefix() string {
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
-}
-
-func IsOnlyKubernetesWebhookMode() bool {
-	return GetBoolConfigWithDefault(GlobalKubernetesWebhookMode, false)
 }
