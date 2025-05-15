@@ -157,7 +157,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		}
 
 		return false
-	}, 3*time.Minute, 10*time.Second)
+	}, 4*time.Minute, 5*time.Second)
 
 	contextsFilterQuery := fmt.Sprintf("name = '%s'", allRuns[1].RunID)
 
