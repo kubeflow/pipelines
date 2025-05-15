@@ -242,6 +242,8 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 	}
 
+	ConfigureCABundle(t)
+
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name
