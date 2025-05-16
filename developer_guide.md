@@ -131,7 +131,7 @@ Check [this](https://github.com/kubeflow/pipelines/blob/master/test/README.md) p
 You can inspect mysql database directly by running:
 
 ```bash
-kubectl run -it --rm --image=gcr.io/ml-pipeline/mysql:5.6 --restart=Never mysql-client -- mysql -h mysql
+kubectl run -it --rm --image=docker.io/library/mysql:8.4 --restart=Never mysql-client -- mysql -h mysql
 mysql> use mlpipeline;
 mysql> select * from jobs;
 ```
