@@ -69,7 +69,7 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 			continue
 		}
 
-		tasks, err := c.task(taskName, kfpTask, taskInputs{
+		tasks, err := c.task(name, taskName, kfpTask, taskInputs{
 			parentDagID: inputParameter(paramParentDagID),
 		})
 		if err != nil {
@@ -107,9 +107,9 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 	dag := &wfapi.Template{
 		Name: c.templateName(name),
 		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramParentDagID},
-			},
+			Parameters: append([]wfapi.Parameter{
+				{Name: paramParentDagID}},
+				c.getTaskRetryParameters(name, strings.Replace(name, "comp-", "", 1))...),
 		},
 		DAG: &wfapi.DAGTemplate{},
 	}
@@ -124,7 +124,7 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		exitTemplate := taskToExitTemplate[taskName]
 
 		tasks, err := c.task(
-			taskName, kfpTask, taskInputs{parentDagID: inputParameter(paramParentDagID), exitTemplate: exitTemplate},
+			name, taskName, kfpTask, taskInputs{parentDagID: inputParameter(paramParentDagID), exitTemplate: exitTemplate},
 		)
 		if err != nil {
 			return err
@@ -201,6 +201,12 @@ func (c *workflowCompiler) dagTask(name string, componentName string, inputs dag
 		}},
 	}
 
+	// if dag is a nested pipeline instead of root, add retry parameters to task arguments.
+	if name != "root" {
+		task.Arguments.Parameters = append(task.Arguments.Parameters,
+			c.getTaskRetryParametersWithValues("root", name)...)
+	}
+
 	addExitTask(task, inputs.exitTemplate, inputs.hookParentDagID)
 
 	return task
@@ -214,7 +220,7 @@ type taskInputs struct {
 }
 
 // parentDagID: placeholder for parent DAG execution ID
-func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec, inputs taskInputs) (tasks []wfapi.DAGTask, err error) {
+func (c *workflowCompiler) task(parentPipeline string, name string, task *pipelinespec.PipelineTaskSpec, inputs taskInputs) (tasks []wfapi.DAGTask, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("compiling task %q: %w", name, err)
@@ -237,7 +243,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	isIteratorTask := inputs.iterationIndex == "" &&
 		(task.GetParameterIterator() != nil || task.GetArtifactIterator() != nil)
 	if isIteratorTask {
-		return c.iteratorTask(name, task, taskSpecJson, inputs.parentDagID)
+		return c.iteratorTask(parentPipeline, name, task, taskSpecJson, inputs.parentDagID)
 	}
 	switch impl := componentSpec.GetImplementation().(type) {
 	case *pipelinespec.ComponentSpec_Dag:
@@ -304,7 +310,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				driver.Name = name
 				return []wfapi.DAGTask{*driver}, nil
 			}
-			executor := c.containerExecutorTask(name, containerExecutorInputs{
+			executor := c.containerExecutorTask(parentPipeline, name, containerExecutorInputs{
 				podSpecPatch:    driverOutputs.podSpecPatch,
 				cachedDecision:  driverOutputs.cached,
 				condition:       driverOutputs.condition,
@@ -336,7 +342,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	}
 }
 
-func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
+func (c *workflowCompiler) iteratorTask(parentPipeline string, name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("iterator task: %w", err)
@@ -344,7 +350,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	}()
 	componentName := task.GetComponentRef().GetName()
 	// Set up Loop Control Template
-	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJson, parentDagID)
+	iteratorTasks, err := c.iterationItemTask(parentPipeline, "iteration", task, taskJson, parentDagID)
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +392,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	return tasks, nil
 }
 
-func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
+func (c *workflowCompiler) iterationItemTask(parentPipeline string, name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("iterationItem task: %w", err)
@@ -412,7 +418,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 
 	iterationCount := intstr.FromString(driverOutputs.iterationCount)
 	iterationTasks, err := c.task(
-		"iteration-item",
+		parentPipeline, "iteration-item",
 		task,
 		taskInputs{
 			parentDagID:    inputParameter(paramParentDagID),
