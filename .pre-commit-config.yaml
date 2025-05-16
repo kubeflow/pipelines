@@ -26,7 +26,7 @@ repos:
   # add comment "noqa" to ignore an import that should not be removed
   # (e.g., for an import with desired side-effects)
   - repo: https://github.com/hadialqattan/pycln
-    rev: v2.1.1
+    rev: v2.5.0
     hooks:
       - id: pycln
         name: pycln
@@ -43,7 +43,7 @@ repos:
     hooks:
       - id: yapf
   - repo: https://github.com/pycqa/docformatter
-    rev: v1.4
+    rev: v1.7.7
     hooks:
       - id: docformatter
         name: docformatter
@@ -55,12 +55,20 @@ repos:
 
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.64.8
+    rev: v2.1.2
     hooks:
       - id: golangci-lint
         name: golangci-lint
         description: Fast linters runner for Go.
         entry: golangci-lint run --new-from-rev HEAD --fix
+        types: [go]
+        language: golang
+        require_serial: true
+        pass_filenames: false
+      - id: golangci-lint
+        name: golangci-lint fmt
+        description: Formatter for Go.
+        entry: golangci-lint fmt
         types: [go]
         language: golang
         require_serial: true

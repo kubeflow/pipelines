@@ -108,3 +108,14 @@ kind-load-driver-debug:
 
 .PHONY: kind-build-and-load-driver-debug
 kind-build-and-load-driver-debug: image_driver_debug kind-load-driver-debug
+
+.PHONY: lint-and-format
+lint-and-format: lint format
+
+.PHONY: lint
+lint:
+	golangci-lint run --new-from-rev HEAD --fix
+
+.PHONY: format
+format:
+	golangci-lint fmt

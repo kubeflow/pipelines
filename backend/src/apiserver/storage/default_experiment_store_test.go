@@ -15,8 +15,9 @@
 package storage
 
 import (
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 
 	"github.com/stretchr/testify/assert"
 )

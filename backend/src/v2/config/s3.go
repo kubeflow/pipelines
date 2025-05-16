@@ -16,9 +16,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"strconv"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 )
 
 type S3ProviderConfig struct {

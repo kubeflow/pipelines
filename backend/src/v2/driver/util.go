@@ -16,9 +16,10 @@ package driver
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/types/known/structpb"
-	"regexp"
 )
 
 // inputPipelineChannelPattern define a regex pattern to match the content within single quotes

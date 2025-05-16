@@ -15,8 +15,9 @@ package driver
 
 import (
 	"encoding/json"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/spf13/viper"

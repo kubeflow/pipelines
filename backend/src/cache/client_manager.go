@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"encoding/json"
+
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
