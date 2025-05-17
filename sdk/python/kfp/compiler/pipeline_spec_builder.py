@@ -2064,10 +2064,13 @@ def write_pipeline_spec_to_file(
 def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
                            platformSpec: pipeline_spec_pb2.PlatformSpec):
     # TODO: add pipeline config options (ttl, semaphore, etc.) to the dict
-    # json_format.ParseDict(
-    #     {'pipelineConfig': {
-    #         '<some pipeline config option>': pipelineConfig.<get that value>,
-    #     }}, platformSpec.platforms['kubernetes'])
+    if pipelineConfig and pipelineConfig.max_parallelism is not None and pipelineConfig.max_parallelism > 0:
+        js = {'pipelineConfig': {
+                'max_parallelism': pipelineConfig.max_parallelism,
+            }}
+        message = platformSpec.platforms['kubernetes']
+        json_format.ParseDict(
+            js, message)
 
     return platformSpec
 
