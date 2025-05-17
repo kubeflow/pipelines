@@ -16,10 +16,12 @@ locally."""
 
 from kfp.local.config import DockerRunner
 from kfp.local.config import init
+from kfp.local.config import PodmanRunner
 from kfp.local.config import SubprocessRunner
 
 __all__ = [
     'init',
     'SubprocessRunner',
     'DockerRunner',
+    'PodmanRunner',
 ]

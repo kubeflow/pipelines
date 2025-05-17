@@ -59,6 +59,20 @@ class DockerRunner:
             ) from e
 
 
+@dataclasses.dataclass
+class PodmanRunner:
+    """Runner that indicates that local tasks should be run as a container
+    using Podman."""
+
+    def __post_init__(self):
+        try:
+            import podman  # noqa
+        except ImportError as e:
+            raise ImportError(
+                f"Package 'podman' must be installed to use {PodmanRunner.__name__!r}. Install it using 'pip install podman'."
+            ) from e
+
+
 class LocalExecutionConfig:
     instance = None
 
@@ -78,7 +92,7 @@ class LocalExecutionConfig:
         pipeline_root: str,
         raise_on_error: bool,
     ) -> None:
-        permitted_runners = (SubprocessRunner, DockerRunner)
+        permitted_runners = (SubprocessRunner, DockerRunner, PodmanRunner)
         if not isinstance(runner, permitted_runners):
             raise ValueError(
                 f'Got unknown runner {runner} of type {runner.__class__.__name__}. Runner should be one of the following types: {". ".join(prunner.__name__ for prunner in permitted_runners)}.'
@@ -97,7 +111,7 @@ class LocalExecutionConfig:
 
 def init(
     # annotate with subclasses, not parent class, for more helpful ref docs
-    runner: Union[SubprocessRunner, DockerRunner],
+    runner: Union[SubprocessRunner, DockerRunner, PodmanRunner],
     pipeline_root: str = './local_outputs',
     raise_on_error: bool = True,
 ) -> None:
@@ -106,7 +120,7 @@ def init(
     Once called, components can be invoked locally outside of a pipeline definition.
 
     Args:
-        runner: The runner to use. Supported runners: kfp.local.SubprocessRunner and kfp.local.DockerRunner.
+        runner: The runner to use. Supported runners: kfp.local.SubprocessRunner, kfp.local.DockerRunner, and kfp.local.PodmanRunner.
         pipeline_root: Destination for task outputs.
         raise_on_error: If True, raises an exception when a local task execution fails. If False, fails gracefully and does not terminate the current program.
     """
