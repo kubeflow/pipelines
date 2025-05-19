@@ -24,6 +24,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -282,6 +283,74 @@ func TestUploadPipelineV2_NameValidation(t *testing.T) {
 	}
 }
 
+func TestUploadPipeline_NameAndNamespaceTooLong(t *testing.T) {
+	type testCase struct {
+		name       string
+		apiVersion string
+		uploadFunc func(http.ResponseWriter, *http.Request)
+		query      string
+		wantStatus int
+		wantErrMsg string
+	}
+
+	cases := []testCase{
+		{
+			name:       "v1 name too long",
+			apiVersion: "v1beta1",
+			uploadFunc: nil, // set in t.Run
+			query:      "?name=" + url.PathEscape(strings.Repeat("a", 129)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "Pipeline.Name length cannot exceed 128",
+		},
+		{
+			name:       "v1 namespace too long",
+			apiVersion: "v1beta1",
+			uploadFunc: nil,
+			query:      "?namespace=" + url.PathEscape(strings.Repeat("n", 64)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "Pipeline.Namespace length cannot exceed 63",
+		},
+		{
+			name:       "v2 name too long",
+			apiVersion: "v2beta1",
+			uploadFunc: nil,
+			query:      "?name=" + url.PathEscape(strings.Repeat("a", 129)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "Pipeline.Name length cannot exceed 128",
+		},
+		{
+			name:       "v2 namespace too long",
+			apiVersion: "v2beta1",
+			uploadFunc: nil,
+			query:      "?namespace=" + url.PathEscape(strings.Repeat("n", 64)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "Pipeline.Namespace length cannot exceed 63",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, server := setupClientManagerAndServer()
+			bytesBuffer, writer := setupWriter("")
+			setWriterWithBuffer("uploadfile", "hello.yaml",
+				"apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+			uploadFunc := tc.uploadFunc
+			if uploadFunc == nil {
+				if tc.apiVersion == "v1beta1" {
+					uploadFunc = server.UploadPipelineV1
+				} else {
+					uploadFunc = server.UploadPipeline
+				}
+			}
+			endpoint := fmt.Sprintf("/apis/%s/pipelines/upload%s", tc.apiVersion, tc.query)
+			resp := uploadPipeline(endpoint,
+				bytes.NewReader(bytesBuffer.Bytes()), writer, uploadFunc)
+			assert.Equal(t, tc.wantStatus, resp.Code)
+			assert.Contains(t, resp.Body.String(), tc.wantErrMsg)
+		})
+	}
+}
+
 func TestUploadPipeline_Tarball(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
@@ -504,6 +573,27 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 400, response.Code)
 	assert.Contains(t, response.Body.String(), "error parsing pipeline spec filename")
+}
+
+func TestUploadPipelineVersion_NameTooLong(t *testing.T) {
+	_, server := setupClientManagerAndServer()
+	// a valid workflow body
+	bytesBuffer, writer := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+	assert.Equal(t, 200, response.Code)
+
+	// a name too long（>127）
+	longName := strings.Repeat("a", 128)
+	endpoint := fmt.Sprintf("/apis/v1beta1/pipelines/upload_version?name=%s&pipelineid=%s",
+		url.PathEscape(longName), DefaultFakeUUID)
+
+	resp := uploadPipeline(endpoint,
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), "PipelineVersion.Name length cannot exceed")
 }
 
 func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {

@@ -31,17 +31,27 @@ const (
 )
 
 type Pipeline struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	UUID           string `gorm:"column:UUID; not null; primaryKey;type:varchar(64);"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"`
-	Name           string `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
-	DisplayName    string `gorm:"column:DisplayName; not null"`
-	Description    string `gorm:"column:Description; size:65535;"` // Same as below, set size to large number so it will be stored as longtext
+	// Name is limited to varchar(128) to ensure the composite index (Namespace, Name)
+	// stays within MySQL’s 767-byte prefix limit for indexable columns.
+	// MySQL uses utf8mb4 encoding by default, where each character can take up to 4 bytes.
+	// In the worst case: 63 (namespace) * 4 + 128 (name) * 4 = 764 bytes ≤ 767 bytes.
+	// https://dev.mysql.com/doc/refman/8.4/en/column-indexes.html
+	// Even though Namespace rarely uses its full 63-character capacity in practice,
+	// MySQL calculates index length based on declared size, not actual content.
+	// Therefore, keeping Name at varchar(128) is a safe upper bound.
+	Name        string `gorm:"column:Name; not null; uniqueIndex:namespace_name; type:varchar(128);"` // Index improves performance of the List and Get queries
+	DisplayName string `gorm:"column:DisplayName; not null"`
+	Description string `gorm:"column:Description; type:longtext; not null"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string         `gorm:"column:Parameters; size:65535;"`
+	Parameters string         `gorm:"column:Parameters; type:longtext;"`
 	Status     PipelineStatus `gorm:"column:Status; not null;"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	DefaultVersionId string `gorm:"column:DefaultVersionId;"` // deprecated
-	Namespace        string `gorm:"column:Namespace; unique_index:namespace_name; size:63;"`
+	// Namespace is restricted to varchar(63) due to Kubernetes' naming constraints:
+	// https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
+	Namespace string `gorm:"column:Namespace; uniqueIndex:namespace_name; type:varchar(63);"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {
@@ -80,6 +90,11 @@ func (p *Pipeline) APIToModelFieldMap() map[string]string {
 
 // GetModelName returns table name used as sort field prefix.
 func (p *Pipeline) GetModelName() string {
+	return "pipelines"
+}
+
+// TableName overrides GORM's table name inference.
+func (Pipeline) TableName() string {
 	return "pipelines"
 }
 

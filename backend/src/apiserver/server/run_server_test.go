@@ -1342,6 +1342,45 @@ func TestReportRunMetricsV1_PartialFailures(t *testing.T) {
 	assert.Equal(t, expectedResponse, response)
 }
 
+// Test length validation for ReportRunMetricsV1: Name and NodeId exceeding max length should return INVALID_ARGUMENT.
+func TestReportRunMetricsV1_LengthValidation(t *testing.T) {
+	httpServer := getMockServer(t)
+	defer httpServer.Close()
+
+	clientManager, resourceManager, runDetail := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	runServer := createRunServerV1(resourceManager)
+
+	// Prepare metrics: one valid, one with Name overflow, one with NodeId overflow.
+	validMetric := metricV1
+	longName := strings.Repeat("a", 192)
+	nameOverflow := &apiv1beta1.RunMetric{
+		Name:   longName,
+		NodeId: validMetric.NodeId,
+		Value:  validMetric.Value,
+		Format: validMetric.Format,
+	}
+	longNodeID := strings.Repeat("a", 192)
+	nodeOverflow := &apiv1beta1.RunMetric{
+		Name:   validMetric.Name,
+		NodeId: longNodeID,
+		Value:  validMetric.Value,
+		Format: validMetric.Format,
+	}
+
+	response, err := runServer.ReportRunMetricsV1(context.Background(), &apiv1beta1.ReportRunMetricsRequest{
+		RunId:   runDetail.UUID,
+		Metrics: []*apiv1beta1.RunMetric{validMetric, nameOverflow, nodeOverflow},
+	})
+	assert.Nil(t, err)
+
+	// Check statuses: valid metric OK, others INVALID_ARGUMENT.
+	results := response.GetResults()
+	assert.Equal(t, apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_OK, results[0].GetStatus())
+	assert.Equal(t, apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT, results[1].GetStatus())
+	assert.Equal(t, apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT, results[2].GetStatus())
+}
+
 func TestCanAccessRun_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")

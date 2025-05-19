@@ -147,27 +147,28 @@ type ResourceType string
 type Relationship string
 
 // Resource reference table models the relationship between resources in a loosely coupled way.
+// This model has a composite primary key consisting of ResourceUUID, ResourceType, and ReferenceType.
 type ResourceReference struct {
 	// ID of the resource object
-	ResourceUUID string `gorm:"column:ResourceUUID; not null; primary_key;"`
+	ResourceUUID string `gorm:"column:ResourceUUID; not null; primaryKey; type:varchar(191);"`
 
 	// The type of the resource object
-	ResourceType ResourceType `gorm:"column:ResourceType; not null; primary_key; index:referencefilter;"`
+	ResourceType ResourceType `gorm:"column:ResourceType; not null; primaryKey; index:referencefilter;"`
 
-	// The ID of the resource that been referenced to.
-	ReferenceUUID string `gorm:"column:ReferenceUUID; not null; index:referencefilter;"`
+	// The ID of the referenced resource.
+	ReferenceUUID string `gorm:"column:ReferenceUUID; not null; index:referencefilter; type:varchar(191);"`
 
-	// The name of the resource that been referenced to.
+	// The name of the referenced resource.
 	ReferenceName string `gorm:"column:ReferenceName; not null;"`
 
-	// The type of the resource that been referenced to.
-	ReferenceType ResourceType `gorm:"column:ReferenceType; not null; primary_key; index:referencefilter;"`
+	// The type of the referenced resource.
+	ReferenceType ResourceType `gorm:"column:ReferenceType; not null; primaryKey; index:referencefilter;"`
 
-	// The relationship between the resource object and the resource that been referenced to.
+	// The relationship between the resource object and the referenced resource.
 	Relationship Relationship `gorm:"column:Relationship; not null;"`
 
-	// The json formatted blob of the resource reference.
-	Payload string `gorm:"column:Payload; not null; size:65535;"`
+	// JSON-encoded metadata blob about the reference
+	Payload string `gorm:"column:Payload; not null; type: longtext"`
 }
 
 type ReferenceKey struct {

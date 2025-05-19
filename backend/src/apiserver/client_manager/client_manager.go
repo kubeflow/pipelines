@@ -24,19 +24,21 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/go-sql-driver/mysql"
+	mysqlStd "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/minio/minio-go/v7"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -320,31 +322,6 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-// addDisplayNameColumn adds a DisplayName column to the given table with a default value of Name.
-// It panics if this fails.
-func addDisplayNameColumn(db *gorm.DB, scope *gorm.Scope, quotedTableName string, driverName string) []error {
-	glog.Info("Adding DisplayName column to " + quotedTableName)
-
-	switch driverName {
-	case "mysql":
-		scope.Raw(
-			"ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255) NULL;",
-		).Exec()
-		scope.Raw("UPDATE " + quotedTableName + " SET DisplayName = Name").Exec()
-		scope.Raw("ALTER TABLE " + quotedTableName + " MODIFY COLUMN DisplayName VARCHAR(255) NOT NULL").Exec()
-	case "pgx":
-		scope.Raw(
-			"ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255);",
-		).Exec()
-		scope.Raw("UPDATE " + quotedTableName + " SET DisplayName = Name").Exec()
-		scope.Raw("ALTER TABLE " + quotedTableName + " ALTER COLUMN DisplayName SET NOT NULL").Exec()
-	}
-
-	scope.CommitOrRollback()
-
-	return db.GetErrors()
-}
-
 func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
@@ -352,186 +329,46 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	driverName := common.GetStringConfig("DBDriverName")
 	arg := initDBDriver(driverName, initConnectionTimeout)
 
+	var dialector gorm.Dialector
+	switch driverName {
+	case "mysql":
+		// DefaultStringSize dictates non-indexable string fields map to VARCHAR(255) for backward compatibility with GORM v1.
+		dialector = mysql.New(mysql.Config{
+			DSN:               arg,
+			DefaultStringSize: 255,
+		})
+	case "pgx":
+		dialector = postgres.Open(arg)
+	default:
+		glog.Fatalf("Unsupported driver %v", driverName)
+	}
+
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
-	db, err := gorm.Open(driverName, arg)
+	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
 
-	// If pipeline_versions table is introduced into DB for the first time,
-	// it needs initialization or data backfill.
-	var tableNames []string
-	initializePipelineVersions := true
-	db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
-	for _, tableName := range tableNames {
-		if tableName == "pipeline_versions" {
-			initializePipelineVersions = false
-			break
-		}
-	}
+	dialect := GetDialect(driverName)
 
-	if db.HasTable(&model.Pipeline{}) {
-		scope := db.NewScope(&model.Pipeline{})
-		if !scope.Dialect().HasColumn(scope.TableName(), "DisplayName") {
-			errs := addDisplayNameColumn(db, scope, scope.QuotedTableName(), driverName)
-			if len(errs) > 0 {
-				glog.Fatalf("Failed to add DisplayName column to the %s table. Error(s): %v", scope.TableName(), errs)
-			}
-		}
-	}
-
-	if db.HasTable(&model.PipelineVersion{}) {
-		scope := db.NewScope(&model.PipelineVersion{})
-		if !scope.Dialect().HasColumn(scope.TableName(), "DisplayName") {
-			errs := addDisplayNameColumn(db, scope, scope.QuotedTableName(), driverName)
-			if len(errs) > 0 {
-				glog.Fatalf("Failed to add DisplayName column to the %s table. Error(s): %v", scope.TableName(), errs)
-			}
-		}
-	}
-
-	// Create table
-	response := db.AutoMigrate(
-		&model.DBStatus{},
-		&model.DefaultExperiment{},
-		&model.Experiment{},
-		&model.Pipeline{},
-		&model.PipelineVersion{},
-		&model.Job{},
-		&model.Run{},
-		&model.RunMetric{},
-		&model.Task{},
-		&model.ResourceReference{},
-	)
-
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to initialize the databases. Error: %s", response.Error)
-	}
-
-	var textFormat string
-	switch driverName {
-	case "mysql":
-		textFormat = client.MYSQL_TEXT_FORMAT
-	case "pgx":
-		textFormat = client.PGX_TEXT_FORMAT
-	default:
-		glog.Fatalf("Unsupported database driver %s, please use `mysql` for MySQL, or `pgx` for PostgreSQL.", driverName)
-	}
-
-	response = db.Model(&model.Experiment{}).RemoveIndex("Name")
-	if response.Error != nil {
-		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.Pipeline{}).RemoveIndex("Name")
-	if response.Error != nil {
-		glog.Fatalf("Failed to drop unique key on pipeline name. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", textFormat)
-	if response.Error != nil {
-		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.Run{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.Run{}).AddIndex("experimentuuid_conditions_finishedatinsec", "ExperimentUUID", "Conditions", "FinishedAtInSec")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.Run{}).AddIndex("namespace_createatinsec", "Namespace", "CreatedAtInSec")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index namespace_createatinsec on run_details. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.Run{}).AddIndex("namespace_conditions_finishedatinsec", "Namespace", "Conditions", "FinishedAtInSec")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index namespace_conditions_finishedatinsec on run_details. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.Pipeline{}).AddUniqueIndex("name_namespace_index", "Name", "Namespace")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index name_namespace_index on run_details. Error: %s", response.Error)
-	}
-
-	switch driverName {
-	case "pgx":
-		response = db.Model(&model.RunMetric{}).
-			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
-		}
-		response = db.Model(&model.PipelineVersion{}).
-			AddForeignKey("\"PipelineId\"", "pipelines(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
-		}
-		response = db.Model(&model.Task{}).
-			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
-		}
-	case "mysql":
-		response = db.Model(&model.RunMetric{}).
-			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
-		}
-		response = db.Model(&model.PipelineVersion{}).
-			AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
-		}
-		response = db.Model(&model.Task{}).
-			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
-		}
-
-		// This is a workaround because AutoMigration does not detect that the column went from not null to nullable.
-		response = db.Model(&model.Job{}).ModifyColumn("WorkflowSpecManifest", client.MYSQL_TEXT_FORMAT_NULL)
-		if response.Error != nil {
-			glog.Fatalf("Failed to make the WorkflowSpecManifest column nullable on jobs. Error: %s", response.Error)
-		}
-	default:
-		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
-	}
-
-	// Data backfill for pipeline_versions if this is the first time for
-	// pipeline_versions to enter mlpipeline DB.
-	if initializePipelineVersions {
-		initPipelineVersionsFromPipelines(db)
-	}
-	err = backfillExperimentIDToRunTable(db)
+	legacy, err := isLegacySchema(db)
 	if err != nil {
-		glog.Fatalf("Failed to backfill experiment UUID in run_details table: %s", err)
+		glog.Fatalf("failed to detect schema version: %v", err)
+	}
+	if legacy {
+		// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
+		// clean up legacy indexes/constraints, and perform backfills.
+		util.TerminateIfError(runLegacyUpgradeFlow(db, dialect))
+	} else {
+		// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
+		// upgrades between >=2.15 versions.
+		util.TerminateIfError(autoMigrate(db))
 	}
 
-	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", textFormat)
-	if response.Error != nil {
-		glog.Fatalf("Failed to update pipeline description type. Error: %s", response.Error)
+	newdb, err := db.DB()
+	if err != nil {
+		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-
-	// Because PostgreSQL was supported later, there's no need to delete the relic index
-	if driverName == "mysql" {
-		// If the old unique index idx_pipeline_version_uuid_name on pipeline_versions exists, remove it.
-		rows, err := db.Raw(`show index from pipeline_versions where Key_name='idx_pipeline_version_uuid_name'`).Rows()
-		if err != nil {
-			glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
-		}
-		if err := rows.Err(); err != nil {
-			glog.Fatalf("Failed to query pipeline_version table's indices. Error: %s", err)
-		}
-		if rows.Next() {
-			db.Exec(`drop index idx_pipeline_version_uuid_name on pipeline_versions`)
-		}
-		defer rows.Close()
-	}
-
-	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
+	return storage.NewDB(newdb, storage.NewMySQLDialect())
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
@@ -539,7 +376,7 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 // 2) "pgx" for PostgreSQL
 func initDBDriver(driverName string, initConnectionTimeout time.Duration) string {
 	var sqlConfig, dbName string
-	var mysqlConfig *mysql.Config
+	var mysqlConfig *mysqlStd.Config
 	switch driverName {
 	case "mysql":
 		mysqlConfig = client.CreateMySQLConfig(
@@ -585,9 +422,10 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	util.TerminateIfError(err)
 
 	// Create database if not exist
+	dialect := GetDialect(driverName)
 	operation = func() error {
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", dbName))
-		if ignoreAlreadyExistError(driverName, err) != nil {
+		if ignoreAlreadyExistError(dialect, err) != nil {
 			return err
 		}
 		return nil
@@ -621,6 +459,482 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
 	}
 	return sqlConfig
+}
+
+func isLegacySchema(db *gorm.DB) (bool, error) {
+	if !db.Migrator().HasTable(&model.Pipeline{}) {
+		glog.Infof("Pipelines table not found. Assuming fresh install.")
+		return false, nil
+	}
+	length, ok, err := getColumnLength(db, &model.Pipeline{}, "UUID")
+	if err != nil {
+		return false, fmt.Errorf("detect schema version: %w", err)
+	}
+	return !ok || length > 64, nil
+}
+
+func runLegacyUpgradeFlow(db *gorm.DB, dialect SQLDialect) error {
+	glog.Infof("Detected legacy schema. Running upgrade flow.")
+	// Step 1: decide whether to backfill pipeline_versions
+	// If pipeline_versions table is introduced into DB for the first time,
+	// it needs initialization or data backfill.
+	var tableNames []string
+	initializePipelineVersions := true
+	db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
+	for _, tableName := range tableNames {
+		if tableName == "pipeline_versions" {
+			initializePipelineVersions = false
+			break
+		}
+	}
+	// Step 2: block upgrade if legacy data too long
+	if err := runPreflightLengthChecks(db, dialect, validation.LengthSpecs); err != nil {
+		return fmt.Errorf("preflight length check failed: %w", err)
+	}
+
+	// Step 3: drop all foreign key constraints which can block shrinking columns
+	if err := dropAllFKConstraints(db, dialect.Name); err != nil {
+		return fmt.Errorf("drop foreign key constraints failed: %w", err)
+	}
+
+	if err := dropLegacyIndexes(db, dialect); err != nil {
+		return fmt.Errorf("drop legacy indexes failed: %w", err)
+	}
+
+	// Step 4: shrink fields to meet new length constraints
+	// NOTE: In GORM v2, AutoMigrate performs full reconciliation for most fields,
+	// including type, size, and nullability. However, it will silently skip
+	// primary key columns due to database constraints.
+	//
+	// Therefore, shrinkColumns() is retained to ensure primary key fields like UUID
+	// are explicitly resized. While redundant for non-primary fields, shrinkColumns()
+	// shares a common metadata source (LengthSpecs) with API-layer validation,
+	// which helps avoid drift between schema and runtime logic.
+
+	if err := shrinkColumns(db, validation.LengthSpecs); err != nil {
+		return fmt.Errorf("shrink columns failed: %w", err)
+	}
+
+	// Step 5-1: Data backfill in pipelines table for DisplayName column
+	// Backfilling DisplayName column must be done before automigrate
+	// to comply with the NOT NULL constraint
+	if db.Migrator().HasTable(&model.Pipeline{}) {
+		if !db.Migrator().HasColumn(&model.Pipeline{}, "DisplayName") {
+			if err := addDisplayNameColumn(db, &model.Pipeline{}, dialect); err != nil {
+				return fmt.Errorf("failed to add DisplayName column to the %s table: %w", model.Pipeline{}.TableName(), err)
+			}
+		}
+	}
+	// Step5-2: Data backfill in pipeline_versions table for DisplayName column
+	if db.Migrator().HasTable(&model.PipelineVersion{}) {
+		if !db.Migrator().HasColumn(&model.PipelineVersion{}, "DisplayName") {
+			if err := addDisplayNameColumn(db, &model.PipelineVersion{}, dialect); err != nil {
+				return fmt.Errorf("failed to add DisplayName column to the %s table: %w", model.PipelineVersion{}.TableName(), err)
+			}
+		}
+	}
+
+	// Step 6: Run autoMigrate to add any missing FKs/constraints/columns/indexes and
+	// to reconcile field definitions (size/precision/nullability) where permitted by
+	// the DB. Primary-key length shrink is already handled in Step 4 (shrinkColumns),
+	// because AutoMigrate intentionally avoids altering primary keys.
+	if err := autoMigrate(db); err != nil {
+		return err
+	}
+
+	// Step 7: Data backfill for pipeline_versions if this is the first time for
+	// pipeline_versions to enter mlpipeline DB.
+	if initializePipelineVersions {
+		initPipelineVersionsFromPipelines(db)
+	}
+	err := backfillExperimentIDToRunTable(db)
+	if err != nil {
+		return fmt.Errorf("failed to backfill experiment UUID in run_details table: %s", err)
+	}
+
+	return nil
+}
+
+// autoMigrate runs the standard reconciliation for non-legacy schemas:
+// it is used for first-time installs on >=2.15 and for upgrades between
+// >=2.15 versions. Legacy upgrades call this after cleanup/shrinks.
+func autoMigrate(db *gorm.DB) error {
+	glog.Infof("Running AutoMigrate.")
+
+	if err := db.AutoMigrate(
+		&model.DBStatus{},
+		&model.DefaultExperiment{},
+		&model.Experiment{},
+		&model.Pipeline{},
+		&model.PipelineVersion{},
+		&model.Job{},
+		&model.Run{},
+		&model.RunMetric{},
+		&model.Task{},
+		&model.ResourceReference{},
+	); err != nil {
+		return fmt.Errorf("AutoMigrate failed: %w", err)
+	}
+
+	return nil
+}
+
+// getColumnLength returns the declared length for a column using GORM ColumnTypes.
+// If the dialect/type doesn't report a length (e.g., TEXT), ok=false.
+func getColumnLength(db *gorm.DB, mdl interface{}, column string) (length int64, ok bool, err error) {
+	colTypes, err := db.Migrator().ColumnTypes(mdl)
+	if err != nil {
+		return 0, false, err
+	}
+	for _, ct := range colTypes {
+		if strings.EqualFold(ct.Name(), column) {
+			l, okLen := ct.Length()
+			return l, okLen, nil
+		}
+	}
+	return 0, false, nil
+}
+
+// runPreflightLengthChecks scans existing data and aborts upgrade if any row exceeds the new Max length.
+// It must be called BEFORE AutoMigrate/DDL that shrinks column definitions.
+func runPreflightLengthChecks(db *gorm.DB, dialect SQLDialect, specs []validation.ColLenSpec) error {
+	quote := dialect.QuoteIdentifier
+
+	for _, s := range specs {
+		if !db.Migrator().HasTable(s.Model) {
+			continue
+		}
+		tableName, dbCol, err := FieldMeta(db, s.Model, s.Field)
+		if err != nil {
+			return fmt.Errorf("failed to resolve meta for %T.%s: %w", s.Model, s.Field, err)
+		}
+
+		var cnt int64
+		lengthFn := dialect.LengthFunc
+		where := fmt.Sprintf("%s(%s) > ?", lengthFn, quote(dbCol))
+		if err := db.Table(tableName).Where(where, s.Max).Count(&cnt).Error; err != nil {
+			return fmt.Errorf("preflight length check failed for %s.%s (count): %w", tableName, dbCol, err)
+		}
+		if cnt == 0 {
+			continue
+		}
+
+		type rowSample struct {
+			Val string
+		}
+		var samples []rowSample
+		if err := db.Table(tableName).
+			Select(dbCol+" as Val").
+			Where(where, s.Max).
+			Limit(5).
+			Scan(&samples).Error; err != nil {
+			return fmt.Errorf("preflight length check failed for %s.%s (sample): %w", tableName, dbCol, err)
+		}
+
+		var preview []string
+		for _, sm := range samples {
+			if len(sm.Val) > 50 {
+				preview = append(preview, sm.Val[:50]+"…")
+			} else {
+				preview = append(preview, sm.Val)
+			}
+		}
+
+		return fmt.Errorf(`[Preflight] %s.%s has %d rows with length > %d.
+		Reason: This column must stay indexable (e.g. MySQL utf8mb4 index key ≤ 767 bytes).Thus, KFP enforces a max of %d chars.
+		Action: Shorten these values before upgrading.
+		Find offenders with:
+		SELECT UUID, CHAR_LENGTH(%[2]s) AS L FROM %[1]s WHERE CHAR_LENGTH(%[2]s) > %[3]d;
+		Examples: %v`,
+			tableName, dbCol, cnt, s.Max, s.Max, preview)
+	}
+	return nil
+}
+
+// FieldMeta returns the table name and DB column name for the given model+field.
+func FieldMeta(db *gorm.DB, mdl interface{}, field string) (table string, dbCol string, err error) {
+	stmt := &gorm.Statement{DB: db}
+	if err = stmt.Parse(mdl); err != nil {
+		return "", "", err
+	}
+	f, ok := stmt.Schema.FieldsByName[field]
+	if !ok {
+		return stmt.Table, "", fmt.Errorf("field %s not found in %T", field, mdl)
+	}
+	return stmt.Table, f.DBName, nil
+}
+
+// dropAllFKConstraints drops all foreign key constraints from all tables for the given driver.
+// This is the minimal set of DDL needed to safely shrink indexed columns in legacy upgrades.
+func dropAllFKConstraints(db *gorm.DB, driverName string) error {
+	switch driverName {
+	case "mysql":
+		return dropAllMySQLFKConstraints(db)
+	case "pgx":
+		// PostgreSQL legacy path not implemented; no-op for now.
+		return nil
+	default:
+		return fmt.Errorf("DropAllFKConstraints not supported for driver: %s", driverName)
+	}
+}
+
+// dropAllMySQLFKConstraints drops all foreign key constraints from all tables in the current MySQL database.
+func dropAllMySQLFKConstraints(db *gorm.DB) error {
+	tables := []string{}
+	if err := db.Raw("SHOW TABLES").Scan(&tables).Error; err != nil {
+		return fmt.Errorf("failed to list tables: %w", err)
+	}
+
+	for _, table := range tables {
+		var foreignKeys []struct {
+			ConstraintName string `gorm:"column:CONSTRAINT_NAME"`
+		}
+		err := db.Raw(fmt.Sprintf(`
+			SELECT CONSTRAINT_NAME
+			FROM information_schema.TABLE_CONSTRAINTS
+			WHERE TABLE_SCHEMA = DATABASE()
+			  AND TABLE_NAME = '%s'
+			  AND CONSTRAINT_TYPE = 'FOREIGN KEY'`, table)).
+			Scan(&foreignKeys).Error
+		if err != nil {
+			glog.Warningf("failed to list foreign keys for table %s: %v", table, err)
+			continue
+		}
+
+		for _, fk := range foreignKeys {
+			glog.Infof("Dropping foreign key %s on table %s", fk.ConstraintName, table)
+			if err := db.Exec(fmt.Sprintf(
+				"ALTER TABLE `%s` DROP FOREIGN KEY `%s`", table, fk.ConstraintName,
+			)).Error; err != nil {
+				return fmt.Errorf("failed to drop foreign key %s on table %s: %w", fk.ConstraintName, table, err)
+			}
+		}
+	}
+	return nil
+}
+
+// dropLegacyIndexes removes a small, explicit set of legacy indexes that
+// conflict/duplicate with GORM tag definitions. MySQL only; PostgreSQL is no-op.
+func dropLegacyIndexes(db *gorm.DB, dialect SQLDialect) error {
+	switch dialect.Name {
+	case "mysql":
+		return dropLegacyIndexesMySQL(db)
+	case "pgx":
+		// No legacy cleanup needed for PostgreSQL per upstream note.
+		return nil
+	default:
+		return fmt.Errorf("dropLegacyIndexes: unsupported dialect %q", dialect.Name)
+	}
+}
+
+// dropLegacyIndexesMySQL removes a small, explicit set of legacy indexes on MySQL:
+// See https://github.com/kubeflow/pipelines/pull/12013
+// The function is idempotent: it queries information_schema/SHOW INDEX first and only drops/renames when needed.
+func dropLegacyIndexesMySQL(db *gorm.DB) error {
+	ixLogPrefix := "[legacy-index-cleanup] "
+
+	type idxRow struct {
+		IndexName string `gorm:"column:INDEX_NAME"`
+	}
+
+	// --- Rules 1 & 2: drop single-column unique index on Name for experiments/pipelines ---
+	for _, table := range []string{"experiments", "pipelines"} {
+		var rows []idxRow
+		// Find indexes that are UNIQUE, non-PRIMARY, and exactly one column which is Name.
+		q := fmt.Sprintf(`
+			SELECT INDEX_NAME
+			FROM information_schema.STATISTICS
+			WHERE TABLE_SCHEMA = DATABASE()
+			  AND TABLE_NAME = '%s'
+			GROUP BY INDEX_NAME
+			HAVING
+			  COUNT(*) = 1
+			  AND SUM(CASE WHEN COLUMN_NAME='Name' THEN 1 ELSE 0 END) = 1
+			  AND MAX(NON_UNIQUE) = 0
+			  AND MAX(INDEX_NAME <> 'PRIMARY') = 1;
+		`, table)
+
+		if err := db.Raw(q).Scan(&rows).Error; err != nil {
+			return fmt.Errorf("query single-column unique Name indexes on %s failed: %w", table, err)
+		}
+		for _, r := range rows {
+			glog.Infof("%s dropping single-column unique index %q on %s(Name)", ixLogPrefix, r.IndexName, table)
+			stmt := fmt.Sprintf("DROP INDEX `%s` ON `%s`", r.IndexName, table)
+			if err := db.Exec(stmt).Error; err != nil {
+				return fmt.Errorf("drop index %s on %s failed: %w", r.IndexName, table, err)
+			}
+		}
+	}
+
+	// --- Rule 3: drop legacy composite unique index on pipeline_versions if present ---
+	{
+		if db.Migrator().HasTable(&model.PipelineVersion{}) {
+			rows, err := db.Raw(`SHOW INDEX FROM pipeline_versions WHERE Key_name='idx_pipeline_version_uuid_name'`).Rows()
+			if err != nil {
+				return fmt.Errorf("query pipeline_versions indices failed: %w", err)
+			}
+			has := false
+			if err := rows.Err(); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("iterate pipeline_versions indices failed: %w", err)
+			}
+			if rows.Next() {
+				has = true
+			}
+			_ = rows.Close()
+			if has {
+				glog.Infof("%s dropping legacy composite unique index idx_pipeline_version_uuid_name on pipeline_versions", ixLogPrefix)
+				if err := db.Exec("DROP INDEX `idx_pipeline_version_uuid_name` ON `pipeline_versions`").Error; err != nil {
+					return fmt.Errorf("drop idx_pipeline_version_uuid_name on pipeline_versions failed: %w", err)
+				}
+			}
+		} else {
+			glog.Infof("%s skip pipeline_versions cleanup: table not found (fresh-introduced case)", ixLogPrefix)
+		}
+	}
+
+	// --- Rule 4: normalize pipelines(Name,Namespace) unique index to keep only `namespace_name` ---
+	{
+		var rows []idxRow
+		q := `
+			SELECT INDEX_NAME
+			FROM information_schema.STATISTICS
+			WHERE TABLE_SCHEMA = DATABASE()
+			  AND TABLE_NAME = 'pipelines'
+			GROUP BY INDEX_NAME
+			HAVING
+			  COUNT(*) = 2
+			  AND SUM(CASE WHEN SEQ_IN_INDEX=1 AND COLUMN_NAME='Name' THEN 1 ELSE 0 END) = 1
+			  AND SUM(CASE WHEN SEQ_IN_INDEX=2 AND COLUMN_NAME='Namespace' THEN 1 ELSE 0 END) = 1
+			  AND MAX(NON_UNIQUE) = 0;
+		`
+		if err := db.Raw(q).Scan(&rows).Error; err != nil {
+			return fmt.Errorf("query composite unique (Name,Namespace) indexes on pipelines failed: %w", err)
+		}
+		// Set of existing names for this composite index
+		has := map[string]bool{}
+		for _, r := range rows {
+			has[r.IndexName] = true
+		}
+
+		// Case A: both exist -> drop legacy name_namespace_index, keep namespace_name
+		if has["namespace_name"] && has["name_namespace_index"] {
+			glog.Infof("%s dropping duplicate unique index name_namespace_index on pipelines(Name,Namespace), keeping namespace_name", ixLogPrefix)
+			if err := db.Exec("DROP INDEX `name_namespace_index` ON `pipelines`").Error; err != nil {
+				return fmt.Errorf("drop name_namespace_index on pipelines failed: %w", err)
+			}
+		} else if !has["namespace_name"] && has["name_namespace_index"] {
+			// Case B: only legacy exists -> try rename to avoid rebuild; fallback to drop.
+			glog.Infof("%s renaming name_namespace_index -> namespace_name on pipelines(Name,Namespace)", ixLogPrefix)
+			if err := db.Exec("ALTER TABLE `pipelines` RENAME INDEX `name_namespace_index` TO `namespace_name`").Error; err != nil {
+				glog.Warningf("%s rename failed (%v); dropping name_namespace_index; AutoMigrate will recreate namespace_name", ixLogPrefix, err)
+				if err2 := db.Exec("DROP INDEX `name_namespace_index` ON `pipelines`").Error; err2 != nil {
+					return fmt.Errorf("drop name_namespace_index on pipelines failed after rename attempt: %w", err2)
+				}
+			}
+		}
+		// Case C/D: only namespace_name exists or none exist -> no-op
+	}
+
+	return nil
+}
+
+func shrinkColumns(db *gorm.DB, specs []validation.ColLenSpec) error {
+	for _, s := range specs {
+		if !db.Migrator().HasTable(s.Model) {
+			continue
+		}
+		if err := ensureColumnLength(db, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ensureColumnLength(db *gorm.DB, spec validation.ColLenSpec) error {
+
+	tableName, dbCol, err := FieldMeta(db, spec.Model, spec.Field)
+	if err != nil {
+		return fmt.Errorf("failed to resolve meta for %T.%s: %w", spec.Model, spec.Field, err)
+	}
+
+	// Current length
+	curLen, haveLen, err := getColumnLength(db, spec.Model, dbCol)
+	if err != nil {
+		return fmt.Errorf("columnTypes read failed for %s.%s: %w", tableName, dbCol, err)
+	}
+	if haveLen && curLen <= int64(spec.Max) {
+		return nil
+	}
+
+	// Alter via GORM
+	if err := db.Migrator().AlterColumn(spec.Model, spec.Field); err != nil {
+		return fmt.Errorf("AlterColumn failed for %s.%s (field=%s): %w", tableName, dbCol, spec.Field, err)
+	}
+
+	// Verify after alter
+	newLen, haveLen2, err := getColumnLength(db, spec.Model, dbCol)
+	if err != nil {
+		return fmt.Errorf("post-AlterColumn columnTypes read failed for %s.%s: %w", tableName, dbCol, err)
+	}
+	if haveLen2 && newLen > int64(spec.Max) {
+		return fmt.Errorf("after AlterColumn, %s.%s length=%d (> %d)", tableName, dbCol, newLen, spec.Max)
+	}
+	return nil
+}
+
+// addDisplayNameColumn ensures the DisplayName column exists on the given model's table,
+// backfills it from Name where missing, and then enforces NOT NULL.
+// It is safe to call multiple times (idempotent).
+func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) error {
+
+	table, dbCol, err := FieldMeta(db, mdl, "DisplayName")
+	if err != nil {
+		return fmt.Errorf("resolve meta for %T.DisplayName failed: %w", mdl, err)
+	}
+	// Only allow these tables to have DisplayName added to prevent accidental schema changes.
+	allowed := map[string]bool{
+		model.Pipeline{}.TableName():        true,
+		model.PipelineVersion{}.TableName(): true,
+	}
+	if !allowed[table] {
+		return fmt.Errorf("table %q is not allowed for DisplayName migration", table)
+	}
+
+	if db.Migrator().HasColumn(mdl, dbCol) {
+		return nil
+	}
+
+	q := dialect.QuoteIdentifier
+	quotedTable := q(table)
+	glog.Info("Adding DisplayName column to " + quotedTable)
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		var stmts []string
+		switch dialect.Name {
+		case "mysql":
+			stmts = []string{
+				"ALTER TABLE " + quotedTable + " ADD COLUMN " + q(dbCol) + " VARCHAR(255) NULL;",
+				"UPDATE " + quotedTable + " SET " + q(dbCol) + " = " + q("Name") + " WHERE " + q(dbCol) + " IS NULL;",
+				"ALTER TABLE " + quotedTable + " MODIFY COLUMN " + q(dbCol) + " VARCHAR(255) NOT NULL;",
+			}
+		case "pgx":
+			stmts = []string{
+				"ALTER TABLE " + quotedTable + " ADD COLUMN " + q(dbCol) + " VARCHAR(255);",
+				"UPDATE " + quotedTable + " SET " + q(dbCol) + " = " + q("Name") + " WHERE " + q(dbCol) + " IS NULL;",
+				"ALTER TABLE " + quotedTable + " ALTER COLUMN " + q(dbCol) + " SET NOT NULL;",
+			}
+		default:
+			return fmt.Errorf("unsupported driver: %s", dialect.Name)
+		}
+
+		for _, s := range stmts {
+			if err := tx.Exec(s).Error; err != nil {
+				return fmt.Errorf("exec failed for %q: %w", s, err)
+			}
+		}
+		return nil
+	})
 }
 
 func initMinioClient(ctx context.Context, initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
@@ -707,9 +1021,22 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	// On the other hand, pipeline and its pipeline versions created after
 	// pipeline version API is introduced will have different Ids; and the minio
 	// file will be put directly into the directories for pipeline versions.
-	tx.Exec(`INSERT INTO
-	pipeline_versions (UUID, Name, CreatedAtInSec, Parameters, Status, PipelineId)
-	SELECT UUID, Name, CreatedAtInSec, Parameters, Status, UUID FROM pipelines;`)
+	tx.Exec(`
+		INSERT INTO pipeline_versions
+			(UUID, Name, DisplayName, CreatedAtInSec, Parameters, Status, PipelineId, PipelineSpec, PipelineSpecURI)
+		SELECT
+			p.UUID,
+			p.Name,
+			p.Name AS DisplayName,
+			p.CreatedAtInSec,
+			COALESCE(p.Parameters, '{}') AS Parameters,
+			COALESCE(p.Status, 'READY')  AS Status,
+			p.UUID AS PipelineId,
+			'' AS PipelineSpec,
+			'' AS PipelineSpecURI
+		FROM pipelines p
+		LEFT JOIN pipeline_versions v ON v.UUID = p.UUID
+		WHERE v.UUID IS NULL;`)
 
 	// Step 2: modifiy pipelines table after pipeline_versions are populated.
 	tx.Exec("update pipelines set DefaultVersionId=UUID;")
@@ -719,7 +1046,11 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 
 func backfillExperimentIDToRunTable(db *gorm.DB) error {
 	// check if there is any row in the run table has experiment ID being empty
-	rows, err := db.CommonDB().Query("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1")
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	rows, err := sqlDB.Query("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1")
 	if err != nil {
 		return err
 	}
@@ -733,7 +1064,7 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 		return nil
 	}
 
-	_, err = db.CommonDB().Exec(`
+	_, err = sqlDB.Exec(`
 		UPDATE
 			run_details, resource_references
 		SET
@@ -749,11 +1080,8 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 
 // Returns the same error, if it's not "already exists" related.
 // Otherwise, return nil.
-func ignoreAlreadyExistError(driverName string, err error) error {
-	if driverName == "pgx" && err != nil && strings.Contains(err.Error(), client.PGX_EXIST_ERROR) {
-		return nil
-	}
-	if driverName == "mysql" && err != nil && strings.Contains(err.Error(), client.MYSQL_EXIST_ERROR) {
+func ignoreAlreadyExistError(dialect SQLDialect, err error) error {
+	if err != nil && strings.Contains(err.Error(), dialect.ExistDatabaseErrHint) {
 		return nil
 	}
 	return err
