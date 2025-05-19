@@ -1,10 +1,10 @@
-// Copyright 2019 The Kubeflow Authors
+// Copyright 2025 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+// https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,6 +14,17 @@
 
 package model
 
-type DefaultExperiment struct {
-	DefaultExperimentId string `gorm:"column:DefaultExperimentId; not null; primaryKey;"`
+import "gorm.io/gorm"
+
+// LongTextByDialect returns the correct database column type for large text
+// fields according to the current GORM dialector.
+// For MySQL it returns "longtext", and for PostgreSQL it returns "text".
+func LongTextByDialect(db *gorm.DB) string {
+	switch db.Name() {
+	case "mysql":
+		return "longtext"
+	case "postgres", "pgx":
+		return "text"
+	}
+	return ""
 }

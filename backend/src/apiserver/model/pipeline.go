@@ -16,6 +16,9 @@ package model
 
 import (
 	"fmt"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 // PipelineStatus a label for the status of the Pipeline.
@@ -31,17 +34,25 @@ const (
 )
 
 type Pipeline struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	UUID           string `gorm:"column:UUID; not null; primaryKey;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"`
-	Name           string `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
+	Name           string `gorm:"column:Name; not null; uniqueIndex:namespace_name; type:varchar(128);"` // Index improves performance of the List and Get queries
 	DisplayName    string `gorm:"column:DisplayName; not null"`
-	Description    string `gorm:"column:Description; size:65535;"` // Same as below, set size to large number so it will be stored as longtext
+	Description    string `gorm:"column:Description;"` // the previous comment says the 'size:65535' is set to Description and Parameters so they will be stored as longtext;
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string         `gorm:"column:Parameters; size:65535;"`
+	Parameters string         `gorm:"column:Parameters;"`
 	Status     PipelineStatus `gorm:"column:Status; not null;"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	DefaultVersionId string `gorm:"column:DefaultVersionId;"` // deprecated
-	Namespace        string `gorm:"column:Namespace; unique_index:namespace_name; size:63;"`
+	Namespace        string `gorm:"column:Namespace; uniqueIndex:namespace_name; type:varchar(63);"`
+}
+
+func (Pipeline) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	switch field.Name {
+	case "Description", "Parameters":
+		return LongTextByDialect(db)
+	}
+	return ""
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {
@@ -80,6 +91,11 @@ func (p *Pipeline) APIToModelFieldMap() map[string]string {
 
 // GetModelName returns table name used as sort field prefix.
 func (p *Pipeline) GetModelName() string {
+	return "pipelines"
+}
+
+// TableName overrides GORM's table name inference.
+func (Pipeline) TableName() string {
 	return "pipelines"
 }
 

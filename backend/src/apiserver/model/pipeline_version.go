@@ -16,6 +16,9 @@ package model
 
 import (
 	"fmt"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 // PipelineVersionStatus a label for the status of the Pipeline.
@@ -29,23 +32,38 @@ const (
 )
 
 type PipelineVersion struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	UUID           string `gorm:"column:UUID; not null; primaryKey;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
-	Name           string `gorm:"column:Name; not null; unique_index:idx_pipelineid_name;"`
-	DisplayName    string `gorm:"column:DisplayName; not null"`
+	// Explicitly specify varchar(127) and varchar(64) for PipelineId & Name
+	// so that the combined index (PipelineId + Name) do not exceed 767 bytes in utf8mb4,
+	// which ensures MySQL can create composite index on this column.
+	// In GORM v1, omitting type still allowed index creation due to default behavior.
+	// However, GORM v2 requires explicit type declaration for indexed string fields,
+	// otherwise it may default to longtext, which is not indexable in MySQL.
+	Name        string `gorm:"column:Name; not null; type:varchar(127); uniqueIndex:idx_pipelineid_name;"`
+	DisplayName string `gorm:"column:DisplayName; not null"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string `gorm:"column:Parameters; not null; size:65535;"` // deprecated
+	Parameters string `gorm:"column:Parameters; not null;"` // deprecated
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
-	PipelineId string `gorm:"column:PipelineId; not null; index; unique_index:idx_pipelineid_name;"`
-	// Pipeline   *Pipeline             `gorm:"foreignKey:PipelineId; constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Status PipelineVersionStatus `gorm:"column:Status; not null;"`
+	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
+	PipelineId string                `gorm:"column:PipelineId; not null; index; uniqueIndex:idx_pipelineid_name;type:varchar(64)"`
+	Pipeline   Pipeline              `gorm:"foreignKey:PipelineId;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'belongs to' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
+	Status     PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl   string `gorm:"column:CodeSourceUrl;"`
-	Description     string `gorm:"column:Description; size:65535;"`               // Set size to large number so it will be stored as longtext
-	PipelineSpec    string `gorm:"column:PipelineSpec; not null; size:33554432;"` // Same as common.MaxFileLength (32MB in server). Argo imposes 700kB limit
-	PipelineSpecURI string `gorm:"column:PipelineSpecURI; not null; size:65535;"` // Can store references to ObjectStore files
+	Description     string `gorm:"column:Description;"`               // the previous comment says the 'size:65535' is set so it will be stored as longtext;
+	PipelineSpec    string `gorm:"column:PipelineSpec; not null;"`    // Same as common.MaxFileLength (32MB in server). Argo imposes 700kB limit
+	PipelineSpecURI string `gorm:"column:PipelineSpecURI; not null;"` // Can store references to ObjectStore files
+}
+
+func (PipelineVersion) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	switch field.Name {
+	case "Parameters", "Description", "PipelineSpec", "PipelineSpecURI":
+		return LongTextByDialect(db)
+	}
+	return ""
 }
 
 func (p PipelineVersion) GetValueOfPrimaryKey() string {
@@ -82,6 +100,10 @@ func (p *PipelineVersion) GetModelName() string {
 	return "pipeline_versions"
 }
 
+// TableName overrides GORM's table name inference.
+func (PipelineVersion) TableName() string {
+	return "pipeline_versions"
+}
 func (p *PipelineVersion) GetField(name string) (string, bool) {
 	if field, ok := p.APIToModelFieldMap()[name]; ok {
 		return field, true

@@ -16,6 +16,9 @@ package model
 
 import (
 	"strings"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type (
@@ -205,22 +208,23 @@ func (Run) TableName() string {
 }
 
 type Run struct {
-	UUID        string `gorm:"column:UUID; not null; primary_key"`
+	UUID        string `gorm:"column:UUID; not null; primaryKey"`
 	DisplayName string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
 	K8SName     string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	Description string `gorm:"column:Description; not null;"`
 
-	Namespace      string `gorm:"column:Namespace; not null;"`
-	ExperimentId   string `gorm:"column:ExperimentUUID; not null;"`
+	Namespace      string `gorm:"column:Namespace; type:varchar(191); not null;index:namespace_createatinsec,priority:1;                                  index:namespace_conditions_finishedatinsec,priority:1"`
+	ExperimentId   string `gorm:"column:ExperimentUUID;type:varchar(191); not null; index:experimentuuid_createatinsec,priority:1; index:experimentuuid_conditions_finishedatinsec,priority:1"`
 	RecurringRunId string `gorm:"column:JobUUID; default:null;"`
 
 	StorageState   StorageState `gorm:"column:StorageState; not null;"`
 	ServiceAccount string       `gorm:"column:ServiceAccount; not null;"`
-	Metrics        []*RunMetric
+	Metrics        []*RunMetric `gorm:"foreignKey:RunUUID;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'has-many' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
 
 	// ResourceReferences are deprecated. Use Namespace, ExperimentId,
 	// RecurringRunId, PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
-	ResourceReferences []*ResourceReference
+	// gorm:"-" tag is added to avoid declaring a foreign key. Refer to Job model for reasons.
+	ResourceReferences []*ResourceReference `gorm:"-"`
 
 	PipelineSpec
 
@@ -301,30 +305,38 @@ func (r *Run) ToV2() *Run {
 
 // Stores runtime information about a pipeline run.
 type RunDetails struct {
-	CreatedAtInSec   int64 `gorm:"column:CreatedAtInSec; not null;"`
+	CreatedAtInSec   int64 `gorm:"column:CreatedAtInSec; not null;index:experimentuuid_createatinsec,priority:2; index:namespace_createatinsec,priority:2"`
 	ScheduledAtInSec int64 `gorm:"column:ScheduledAtInSec; default:0;"`
-	FinishedAtInSec  int64 `gorm:"column:FinishedAtInSec; default:0;"`
+	FinishedAtInSec  int64 `gorm:"column:FinishedAtInSec; default:0; index:experimentuuid_conditions_finishedatinsec,priority:3;index:namespace_conditions_finishedatinsec,priority:3"`
 	// Conditions were deprecated. Use State instead.
-	Conditions         string           `gorm:"column:Conditions; not null;"`
+	Conditions         string           `gorm:"column:Conditions; type:varchar(191); not null;  index:experimentuuid_conditions_finishedatinsec,priority:2;index:namespace_conditions_finishedatinsec,priority:2"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null; size:65535;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null; type: text;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	// Serialized runtime details of a run in v2beta1
-	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; size:33554432;"`
+	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null;"`
 	// Serialized Argo CRD in v1beta1
-	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null; size:33554432;"`
+	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null;"`
 	PipelineContextId       int64  `gorm:"column:PipelineContextId; default:0;"`
 	PipelineRunContextId    int64  `gorm:"column:PipelineRunContextId; default:0;"`
 	TaskDetails             []*Task
 }
 
+func (RunDetails) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	switch field.Name {
+	case "PipelineRuntimeManifest", "WorkflowRuntimeManifest":
+		return LongTextByDialect(db)
+	}
+	return ""
+}
+
 type RunMetric struct {
-	RunUUID     string  `gorm:"column:RunUUID; not null; primary_key;"`
-	NodeID      string  `gorm:"column:NodeID; not null; primary_key;"`
-	Name        string  `gorm:"column:Name; not null; primary_key;"`
+	RunUUID     string  `gorm:"column:RunUUID; not null; primaryKey;"`
+	NodeID      string  `gorm:"column:NodeID; not null; primaryKey;"`
+	Name        string  `gorm:"column:Name; not null; primaryKey;"`
 	NumberValue float64 `gorm:"column:NumberValue;"`
 	Format      string  `gorm:"column:Format;"`
-	Payload     string  `gorm:"column:Payload; not null; size:65535;"`
+	Payload     string  `gorm:"column:Payload; not null; type: text;"`
 }
 
 type RuntimeStatus struct {

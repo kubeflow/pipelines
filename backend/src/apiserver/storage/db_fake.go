@@ -16,20 +16,20 @@ package storage
 
 import (
 	"github.com/golang/glog"
-	"github.com/jinzhu/gorm"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	_ "github.com/mattn/go-sqlite3"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func NewFakeDB() (*DB, error) {
 	// Initialize GORM
-	db, err := gorm.Open("sqlite3", ":memory:")
+	dbInstance, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		return nil, util.Wrap(err, "Could not create the GORM database")
 	}
 	// Create tables
-	db.AutoMigrate(
+	if err := dbInstance.AutoMigrate(
 		&model.Experiment{},
 		&model.Job{},
 		&model.Pipeline{},
@@ -40,8 +40,15 @@ func NewFakeDB() (*DB, error) {
 		&model.Task{},
 		&model.DBStatus{},
 		&model.DefaultExperiment{},
-	)
-	return NewDB(db.DB(), NewSQLiteDialect()), nil
+	); err != nil {
+		return nil, util.Wrap(err, "Failed to automigrate models")
+	}
+
+	sqlDB, err := dbInstance.DB()
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get generic database object from GORM DB")
+	}
+	return NewDB(sqlDB, NewSQLiteDialect()), nil
 }
 
 func NewFakeDBOrFatal() *DB {

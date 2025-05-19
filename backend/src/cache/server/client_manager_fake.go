@@ -67,7 +67,11 @@ func (f *FakeClientManager) DB() *storage.DB {
 }
 
 func (f *FakeClientManager) Close() error {
-	return f.db.Close()
+	sqlDB, err := f.db.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }
 
 func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
