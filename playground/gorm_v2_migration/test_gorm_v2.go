@@ -32,6 +32,18 @@ type User struct {
 	Email string
 }
 
+
+type ResourceReference struct {
+	ID              uint64 `gorm:"primaryKey;autoIncrement"`
+	ResourceUUID    string `gorm:"column:ResourceUUID"`
+	ResourceType    string `gorm:"column:ResourceType"`
+	ReferenceUUID   string `gorm:"column:ReferenceUUID"`
+	ReferenceType   string `gorm:"column:ReferenceType"`
+	Relationship    string `gorm:"column:Relationship"`
+	CreatedAtInSec  int64  `gorm:"column:CreatedAtInSec"`
+	UpdatedAtInSec  int64  `gorm:"column:UpdatedAtInSec"`
+}
+
 func main() {
 	// Initialize GORM v2 with MySQL
 	dsn := "testuser:testpw@tcp(127.0.0.1:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"
@@ -44,6 +56,10 @@ func main() {
 	if err := db.AutoMigrate(&User{}); err != nil {
 		panic("failed to migrate")
 	}
+	if err := db.AutoMigrate(&ResourceReference{}); err != nil {
+		panic("failed to migrate ResourceReference")
+	}
+	fmt.Println("ResourceReference AutoMigrate successful.")
 
 	// Insert data
 	db.Create(&User{Name: "Alice", Email: "alice@example.com"})
@@ -75,4 +91,5 @@ func main() {
 	var tableNames []string
 	db.Raw("SHOW TABLES").Scan(&tableNames)
 	fmt.Printf("Tables in DB (via Raw): %v\n", tableNames)
+
 }
