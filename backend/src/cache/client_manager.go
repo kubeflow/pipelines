@@ -24,11 +24,12 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/jinzhu/gorm"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 const (
@@ -51,7 +52,12 @@ func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
 }
 
 func (c *ClientManager) Close() {
-	c.db.Close()
+	sqlDB, err := c.db.DB.DB()
+	if err != nil {
+		log.Printf("Failed to retrieve underlying sql.DB: %v", err)
+		return
+	}
+	sqlDB.Close()
 }
 
 func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientParameters) {
@@ -77,22 +83,22 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
-	db, err := gorm.Open(driverName, arg)
+	db, err := gorm.Open(mysql.Open(arg), &gorm.Config{})
 	util.TerminateIfError(err)
 
 	// Create table
-	response := db.AutoMigrate(&model.ExecutionCache{})
-	if response.Error != nil {
+	err = db.AutoMigrate(&model.ExecutionCache{})
+	if err != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
-	response = db.Model(&model.ExecutionCache{}).ModifyColumn("ExecutionOutput", "longtext")
-	if response.Error != nil {
-		glog.Fatalf("Failed to update the execution output type. Error: %s", response.Error)
+	err = db.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionOutput")
+	if err != nil {
+		glog.Fatalf("Failed to update the execution output type. Error: %s", err)
 	}
-	response = db.Model(&model.ExecutionCache{}).ModifyColumn("ExecutionTemplate", "longtext not null")
-	if response.Error != nil {
-		glog.Fatalf("Failed to update the execution template type. Error: %s", response.Error)
+	err = db.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionTemplate")
+	if err != nil {
+		glog.Fatalf("Failed to update the execution template type. Error: %s", err)
 	}
 
 	var tableNames []string
