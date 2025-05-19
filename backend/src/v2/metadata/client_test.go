@@ -17,10 +17,11 @@ package metadata_test
 import (
 	"context"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
 	"runtime/debug"
 	"sync"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"

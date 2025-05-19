@@ -15,10 +15,11 @@
 package driver
 
 import (
+	"testing"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/stretchr/testify/assert"
 	structpb "google.golang.org/protobuf/types/known/structpb"
-	"testing"
 )
 
 func Test_isInputParameterChannel(t *testing.T) {
