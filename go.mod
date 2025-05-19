@@ -23,15 +23,13 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
-	// Should match GRPC_GATEWAY_VERSION in backend/api/Dockerfile
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1
-	github.com/jackc/pgx/v5 v5.5.4
-	github.com/jinzhu/gorm v1.9.1
+	github.com/grpc-ecosystem/grpc-gateway v1.16.0
+	github.com/jackc/pgx/v5 v5.5.5
 	github.com/kubeflow/pipelines/api v0.0.0-20250102152816-873e9dedd766
 	github.com/kubeflow/pipelines/kubernetes_platform v0.0.0-20240725205754-d911c8b73b49
 	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20240416215826-da804407ad31
 	github.com/lestrrat-go/strftime v1.0.4
-	github.com/mattn/go-sqlite3 v1.14.19
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/minio/minio-go/v7 v7.0.94
 	github.com/peterhellberg/duration v0.0.0-20191119133758-ec6baeebcd10
 	github.com/pkg/errors v0.9.1
@@ -59,6 +57,10 @@ require (
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v3 v3.0.1
+	gorm.io/driver/mysql v1.5.7
+	gorm.io/driver/postgres v1.5.11
+	gorm.io/driver/sqlite v1.5.7
+	gorm.io/gorm v1.30.0
 	k8s.io/api v0.32.2
 	k8s.io/apimachinery v0.32.2
 	k8s.io/client-go v0.32.2
@@ -112,13 +114,10 @@ require (
 	github.com/cncf/xds/go v0.0.0-20250326154945-ae57f3c0d45f // indirect
 	github.com/colinmarc/hdfs/v2 v2.4.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/denisenkom/go-mssqldb v0.12.3 // indirect
 	github.com/doublerebel/bellows v0.0.0-20160303004610-f177d92a03d3 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
-	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
-	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
-	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
+	github.com/evanphx/json-patch v5.8.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/evilmonkeyinc/jsonpath v0.8.1 // indirect
 	github.com/expr-lang/expr v1.17.0 // indirect
