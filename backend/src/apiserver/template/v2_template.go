@@ -374,7 +374,7 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 	if runtimeConfig == nil {
 		if len(requiredParams) != 0 {
 			requiredParamNames := make([]string, 0)
-			for name, _ := range requiredParams {
+			for name := range requiredParams {
 				requiredParamNames = append(requiredParamNames, name)
 			}
 			return util.NewInvalidInputError(
@@ -436,7 +436,7 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 
 	// Verify that only required parameters are provided
 	extraParams := make([]string, 0)
-	for name, _ := range runtimeConfig.GetParameterValues() {
+	for name := range runtimeConfig.GetParameterValues() {
 		if _, ok := requiredParams[name]; !ok {
 			extraParams = append(extraParams, name)
 		}

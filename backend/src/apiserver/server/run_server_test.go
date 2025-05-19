@@ -1650,11 +1650,11 @@ func TestRetryRun(t *testing.T) {
 
 	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
 	v2RuntimeParams := map[string]*structpb.Value{
-		"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
-		"param2": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
-		"param3": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
-		"param4": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
-		"param5": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+		"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param2": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param3": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param4": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param5": {Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
 	}
 
 	pipelineSpecStruct := &structpb.Struct{}

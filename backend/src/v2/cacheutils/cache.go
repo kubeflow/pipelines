@@ -210,7 +210,7 @@ func (c *client) GenerateCacheKey(
 		cacheKey.OutputArtifactsSpec[outputArtifactName] = &outputArtifactWithUriWiped
 	}
 
-	for outputParameterName, _ := range outputs.GetParameters() {
+	for outputParameterName := range outputs.GetParameters() {
 		outputParameterType, ok := outputParametersTypeMap[outputParameterName]
 		if !ok {
 			return nil, fmt.Errorf("unknown parameter %q found in ExecutorInput_Outputs", outputParameterName)

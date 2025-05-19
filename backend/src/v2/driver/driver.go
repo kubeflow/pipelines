@@ -16,9 +16,10 @@ package driver
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"slices"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
