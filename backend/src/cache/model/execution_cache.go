@@ -20,7 +20,7 @@ type ExecutionCache struct {
 	ExecutionTemplate string `gorm:"column:ExecutionTemplate; not null;"`
 	ExecutionOutput   string `gorm:"column:ExecutionOutput; not null;"`
 	MaxCacheStaleness int64  `gorm:"column:MaxCacheStaleness; not null;"`
-	StartedAtInSec    int64  `gorm:"column:StartedAtInSec; not null;"`
+	StartedAtInSec    int64  `gorm:"column:StartedAtInSec; not null; index:idx_started_at_in_sec;"`
 	EndedAtInSec      int64  `gorm:"column:EndedAtInSec; not null;"`
 }
 
