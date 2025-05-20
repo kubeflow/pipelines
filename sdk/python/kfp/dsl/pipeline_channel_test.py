@@ -18,7 +18,7 @@ import unittest
 
 from absl.testing import parameterized
 from kfp import dsl
-from kfp.dsl import Artifact
+from kfp.dsl import Artifact, PipelineConfig
 from kfp.dsl import Dataset
 from kfp.dsl import Output
 from kfp.dsl import pipeline_channel
@@ -235,6 +235,20 @@ class TestOneOfAndCollectedNotComposable(unittest.TestCase):
 
 
 class TestOneOfRequiresSameType(unittest.TestCase):
+
+    def test_set_max_parallelism(self):
+
+        @dsl.component
+        def comp():
+            print('hello')
+
+        @dsl.pipeline(pipeline_config=PipelineConfig(3))
+        def my_pipeline():
+            comp()
+            comp()
+        print(my_pipeline)
+
+        self.assertEqual(my_pipeline.pipeline_config.max_parallelism,3)
 
     def test_same_parameter_type(self):
 

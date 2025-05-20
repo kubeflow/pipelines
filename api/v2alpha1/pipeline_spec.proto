@@ -1115,4 +1115,7 @@ message PipelineConfig {
   // Time to live configuration after the pipeline run is completed for
   // ephemeral resources created by the pipeline run.
   int32 resource_ttl = 3;
+
+  // Limits the maximum number of parallel tasks in pipeline. Unlimited by default.
+  int64 max_parallelism = 4;
 }
