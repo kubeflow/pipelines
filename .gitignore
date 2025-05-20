@@ -93,4 +93,3 @@ kubeconfig_dev-pipelines-api
 backend/Dockerfile.driver-debug
 
 backend/src/crd/kubernetes/bin
-playground/
