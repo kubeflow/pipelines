@@ -26,7 +26,7 @@ runs:
       with:
         cluster_name: kfp
         kubectl_version: ${{ inputs.k8s_version }}
-        version: v0.25.0
+        version: v0.29.0
         node_image: kindest/node:${{ inputs.k8s_version }}
 
     - name: Deploy Squid
