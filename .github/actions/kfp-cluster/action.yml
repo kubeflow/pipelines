@@ -22,7 +22,7 @@ runs:
   using: "composite"
   steps:
     - name: Create k8s Kind Cluster
-      uses: container-tools/kind-action@v2
+      uses: container-tools/kind-action@d69143e5f6afa8a8b34d8cdf37044b11d07b7728
       with:
         cluster_name: kfp
         kubectl_version: ${{ inputs.k8s_version }}
