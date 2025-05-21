@@ -1,4 +1,4 @@
-## Contributing to the `kfp` SDK
+# Contributing to the `kfp` SDK
 
 For developing KFP v2 SDK, use the `master` branch.
 
@@ -6,18 +6,18 @@ For developing KFP v1 SDK, use the [sdk/release-1.8 branch](https://github.com/k
 
 For general contribution guidelines including pull request conventions, see [pipelines/CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md).
 
-### Pre-requisites 
+## Pre-requisites
 
-Clone the repo: 
+Clone the repo:
 
 ```bash
 git clone https://github.com/kubeflow/pipelines.git && cd pipelines
 ```
 
-We suggest using a tool like [virtual env](https://docs.python.org/3/library/venv.html) or something similar for isolating 
-your environment and/or packages for you development environment. For this setup we'll stick with virtual env. 
+We suggest using a tool like [virtual env](https://docs.python.org/3/library/venv.html) or something similar for isolating
+your environment and/or packages for you development environment. For this setup we'll stick with virtual env.
 
-For supported python versions, see the sdk [setup.py](https://github.com/kubeflow/pipelines/blob/master/sdk/python/setup.py). 
+For supported python versions, see the sdk [setup.py](https://github.com/kubeflow/pipelines/blob/master/sdk/python/setup.py).
 
 ```bash
 # optional, replace with your tool of choice
@@ -47,11 +47,12 @@ The SDK also relies on a couple other python packages also found within KFP.
 These consists of the [api proto package](https://github.com/kubeflow/pipelines/tree/master/api) and the kfp [kubernetes_platform](https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform) package.
 
 For the proto code, we need protobuf-compiler to generate the python code. Read [here](../kubernetes_platform#dependencies) more about how to install this
-dependency. 
+dependency.
 
 You can install both packages either in development mode if you are planning to do active development on these, or simply do a regular install.
 
 To install the proto package:
+
 ```bash
 pushd api
 make generate python-dev # omit -dev for regular install
@@ -59,77 +60,93 @@ popd
 ```
 
 To install the kubernetes_platform package:
+
 ```bash
 pushd kubernetes_platform
 make python-dev # omit -dev for regular install
 popd
 ```
 
-### Testing
+## Testing
+
 We suggest running unit tests using [`pytest`](https://docs.pytest.org/en/7.1.x/). From the project root, the following runs all KFP SDK unit tests:
-```sh
+
+```bash
 pytest
 ```
 
 To run tests in parallel for faster execution, you can run the tests using the `pytest-xdist` plugin:
 
-```sh
+```bash
 pytest -n auto
 ```
 
-### Code Style
+## Code Style
+
 Dependencies for code style checks/changes can be found in the kfp SDK [requirements-dev.txt](https://github.com/kubeflow/pipelines/blob/master/sdk/python/requirements-dev.txt).
 
+### Style Guide [Required]
 
-#### Style Guide [Required]
 The KFP SDK follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html).
 
-#### Formatting [Required]
+### Formatting [Required]
+
 Please format your code using [yapf](https://github.com/google/yapf) according to the [`.style.yapf`](https://github.com/kubeflow/pipelines/blob/master/.style.yapf) file.
 
 From the project root, run the following code to format your code:
-```sh
+
+```bash
 yapf --in-place --recursive ./sdk/python
 ```
 
-#### Docformatter [Required]
+### Docformatter [Required]
+
 We encourage you to lint your docstrings using [docformatter](https://github.com/PyCQA/docformatter).
 
 From the project root, run the following code to lint your docstrings:
-```sh
+
+```bash
 docformatter --in-place --recursive ./sdk/python
 ```
 
-#### Formatting Imports [Required]
+### Formatting Imports [Required]
+
 Please organize your imports using [isort](https://pycqa.github.io/isort/index.html) according to the [`.isort.cfg`](https://github.com/kubeflow/pipelines/blob/master/.isort.cfg) file.
 
 From the project root, run the following code to format your code:
-```sh
+
+```bash
 isort sdk/python
 ```
 
-#### Pylint [Encouraged]
+### Pylint [Encouraged]
+
 We encourage you to lint your code using [pylint](https://pylint.org/) according to the project [`.pylintrc`](https://github.com/kubeflow/pipelines/blob/master/.pylintrc) file.
 
 From the project root, run the following code to lint your code:
-```sh
+
+```bash
 pylint ./sdk/python/kfp
 ```
 
 Note: `kfp` is not currently fully pylint-compliant. Consider substituting the path argument with the files touched by your development.
 
-#### Static Type Checking [Encouraged]
+### Static Type Checking [Encouraged]
+
 Please use [mypy](https://mypy.readthedocs.io/en/stable/) to check your type annotations.
 
 From the project root, run the following code to lint your docstrings:
-```sh
+
+```bash
 mypy ./sdk/python/kfp/
 ```
+
 Note: `kfp` is not currently fully mypy-compliant. Consider substituting the path argument with the files touched by your development.
 
+### Pre-commit [Recommended]
 
-#### Pre-commit [Recommended]
 Consider using [`pre-commit`](https://github.com/pre-commit/pre-commit) with the provided [`.pre-commit-config.yaml`](https://github.com/kubeflow/pipelines/blob/master/.pre-commit-config.yaml) to implement the above changes:
-```sh
+
+```bash
 pre-commit install
 ```
