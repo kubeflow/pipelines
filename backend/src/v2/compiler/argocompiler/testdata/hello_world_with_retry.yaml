@@ -461,6 +461,8 @@ spec:
       metadata: {}
       name: entrypoint
       outputs: {}
+  ttlStrategy:
+    secondsAfterCompletion: 30
 status:
   finishedAt: null
   startedAt: null
