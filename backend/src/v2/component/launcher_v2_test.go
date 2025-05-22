@@ -15,9 +15,12 @@ package component
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"os"
 	"testing"
+
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -106,7 +109,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 	}
 }
 
-func Test_executeV2_publishLogss(t *testing.T) {
+func Test_executeV2_publishLogs(t *testing.T) {
 	tests := []struct {
 		name          string
 		executorInput *pipelinespec.ExecutorInput
@@ -165,6 +168,75 @@ func Test_executeV2_publishLogss(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_executorInput_compileCmdAndArgs(t *testing.T) {
+	executorInputJSON := `{
+		"inputs": {
+			"parameterValues": {
+				"config": {
+					"category_ids": "{{$.inputs.parameters['pipelinechannel--category_ids']}}",
+					"dump_filename": "{{$.inputs.parameters['pipelinechannel--dump_filename']}}",
+					"sphinx_host": "{{$.inputs.parameters['pipelinechannel--sphinx_host']}}",
+					"sphinx_port": "{{$.inputs.parameters['pipelinechannel--sphinx_port']}}"
+				},
+				"pipelinechannel--category_ids": "116",
+				"pipelinechannel--dump_filename": "dump_filename_test.txt",
+				"pipelinechannel--sphinx_host": "sphinx-default-host.ru",
+				"pipelinechannel--sphinx_port": 9312
+			}
+		},
+		"outputs": {
+			"artifacts": {
+				"dataset": {
+					"artifacts": [{
+						"type": {
+							"schemaTitle": "system.Dataset",
+							"schemaVersion": "0.0.1"
+						},
+						"uri": "s3://aviflow-stage-kfp-artifacts/debug-component-pipeline/ae02034e-bd96-4b8a-a06b-55c99fe9eccb/sayhello/c98ac032-2448-4637-bf37-3ad1e13a112c/dataset"
+					}]
+				}
+			},
+			"outputFile": "/tmp/kfp_outputs/output_metadata.json"
+		}
+	}`
+
+	executorInput := &pipelinespec.ExecutorInput{}
+	err := protojson.Unmarshal([]byte(executorInputJSON), executorInput)
+
+	assert.NoError(t, err)
+
+	cmd := "sh"
+	args := []string{
+		"--executor_input", "{{$}}",
+		"--function_to_execute", "sayHello",
+	}
+	cmd, args, err = compileCmdAndArgs(executorInput, cmd, args)
+
+	assert.NoError(t, err)
+
+	var actualExecutorInput string
+	for i := 0; i < len(args)-1; i++ {
+		if args[i] == "--executor_input" {
+			actualExecutorInput = args[i+1]
+			break
+		}
+	}
+	assert.NotEmpty(t, actualExecutorInput, "--executor_input not found")
+
+	var parsed map[string]any
+	err = json.Unmarshal([]byte(actualExecutorInput), &parsed)
+	assert.NoError(t, err)
+
+	inputs := parsed["inputs"].(map[string]any)
+	paramValues := inputs["parameterValues"].(map[string]any)
+	config := paramValues["config"].(map[string]any)
+
+	assert.Equal(t, "116", config["category_ids"])
+	assert.Equal(t, "dump_filename_test.txt", config["dump_filename"])
+	assert.Equal(t, "sphinx-default-host.ru", config["sphinx_host"])
+	assert.Equal(t, "9312", config["sphinx_port"])
 }
 
 func Test_get_log_Writer(t *testing.T) {
