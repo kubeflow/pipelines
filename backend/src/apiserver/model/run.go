@@ -205,7 +205,7 @@ func (Run) TableName() string {
 }
 
 type Run struct {
-	UUID        string `gorm:"column:UUID; not null; primary_key"`
+	UUID        string `gorm:"column:UUID; not null; primaryKey"`
 	DisplayName string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
 	K8SName     string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	Description string `gorm:"column:Description; not null;"`
@@ -220,7 +220,7 @@ type Run struct {
 
 	// ResourceReferences are deprecated. Use Namespace, ExperimentId,
 	// RecurringRunId, PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
-	ResourceReferences []*ResourceReference
+	ResourceReferences []*ResourceReference `gorm:"foreignKey:ResourceUUID"`
 
 	PipelineSpec
 
