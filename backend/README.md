@@ -14,13 +14,25 @@ Before you begin, ensure you have:
 
 Note that you may need to restart your shell after installing these resources in order for the changes to take effect.
 
-## Building & Testing
+## Testing
 
 To run all unittests for backend:
 
 ```
 go test -v -cover ./backend/...
 ```
+
+If running a [local API server](#run-the-kfp-backend-locally-with-a-kind-cluster), you can run the integration tests
+with:
+
+```bash
+LOCAL_API_SERVER=true go test -v ./backend/test/v2/integration/... -namespace kubeflow -args -runIntegrationTests=true
+```
+
+To run a specific test, you can use the `-run` flag. For example, to run the `TestCacheSingleRun` test in the
+`TestCache` suite, you can use the `-run 'TestCache/TestCacheSingleRun'` flag to the above command.
+
+## Build
 
 The API server itself can be built using:
 
