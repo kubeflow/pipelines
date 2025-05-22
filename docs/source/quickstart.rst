@@ -5,7 +5,7 @@ This guide shows how to create, compile, and run a simple pipeline with Kubeflow
 
 Prerequisites
 -------------
-- Python 3.6+
+- Python 3.9+
 - A running Kubeflow Pipelines deployment (local or remote).
 
 Installation
