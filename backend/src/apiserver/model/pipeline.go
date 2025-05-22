@@ -31,17 +31,16 @@ const (
 )
 
 type Pipeline struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	UUID           string `gorm:"column:UUID; not null; primaryKey;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"`
-	Name           string `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
-	DisplayName    string `gorm:"column:DisplayName; not null"`
-	Description    string `gorm:"column:Description; size:65535;"` // Same as below, set size to large number so it will be stored as longtext
+	Name           string `gorm:"column:Name; not null; uniqueIndex:namespace_name; size:191"` // Index improves performance of the List ang Get queries
+	Description    string `gorm:"column:Description; type:text;"`                     // Same as below, set size to large number so it will be stored as longtext
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string         `gorm:"column:Parameters; size:65535;"`
+	Parameters string         `gorm:"column:Parameters; type:text;"`
 	Status     PipelineStatus `gorm:"column:Status; not null;"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	DefaultVersionId string `gorm:"column:DefaultVersionId;"` // deprecated
-	Namespace        string `gorm:"column:Namespace; unique_index:namespace_name; size:63;"`
+	Namespace        string `gorm:"column:Namespace; uniqueIndex:namespace_name; size:63;"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {
@@ -76,6 +75,11 @@ var pipelineAPIToModelFieldMap = map[string]string{
 // Pipeline.
 func (p *Pipeline) APIToModelFieldMap() map[string]string {
 	return pipelineAPIToModelFieldMap
+}
+
+// TableName overrides GORM default table name inference
+func (Pipeline) TableName() string {
+	return "pipelines"
 }
 
 // GetModelName returns table name used as sort field prefix.

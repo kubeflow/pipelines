@@ -86,7 +86,7 @@ func (s StatusState) ToV2() StatusState {
 }
 
 type Job struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	UUID           string `gorm:"column:UUID; not null; primaryKey;"`
 	DisplayName    string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
 	K8SName        string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	Namespace      string `gorm:"column:Namespace; not null;"`
@@ -100,7 +100,7 @@ type Job struct {
 	ExperimentId   string `gorm:"column:ExperimentUUID; not null;"`
 	// ResourceReferences are deprecated. Use Namespace, ExperimentId
 	// PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
-	ResourceReferences []*ResourceReference
+	ResourceReferences []*ResourceReference `gorm:"foreignKey:ResourceUUID"`
 	Trigger
 	PipelineSpec
 	Conditions string `gorm:"column:Conditions; not null;"`
