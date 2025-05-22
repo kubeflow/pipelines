@@ -76,8 +76,6 @@ func (s *ExecutionCacheStore) cleanDatabase(maximumCacheStaleness int64) (int64,
 		"DELETE FROM execution_caches WHERE StartedAtInSec < ?",
 		cutoffTime)
 
-	//defer result.Close()
-
 	if result.Error != nil {
 		return 0, fmt.Errorf("database cache expiration cleanup failed: %v", result.Error)
 	}
@@ -166,14 +164,14 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 			return nil, fmt.Errorf("failed to create new execution cache row for key: %s", executionCache.ExecutionCacheKey)
 		}
 
-		var rowinsert model.ExecutionCache
-		d := s.db.Create(&newExecutionCache).Scan(&rowinsert)
+		var rowInsert model.ExecutionCache
+		d := s.db.Create(&newExecutionCache).Scan(&rowInsert)
 		if d.Error != nil {
 			return nil, d.Error
 		}
 
-		log.Printf("cache entry created successfully with key: %s, template: %v, row id: %d", executionCache.ExecutionCacheKey, executionCache.ExecutionTemplate, rowinsert.ID)
-		return &rowinsert, nil
+		log.Printf("cache entry created successfully with key: %s, template: %v, row id: %d", executionCache.ExecutionCacheKey, executionCache.ExecutionTemplate, rowInsert.ID)
+		return &rowInsert, nil
 	} else {
 		log.Printf("%d row(s) already exist for cache key: %s", rowCount, executionCache.ExecutionCacheKey)
 		return executionCache, nil
