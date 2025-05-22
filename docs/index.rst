@@ -5,7 +5,7 @@ Kubeflow Pipelines (KFP)
 
     <p align="center">
       <a href="https://github.com/kubeflow/pipelines/actions">
-        <img alt="Build Status" src="https://github.com/kubeflow/pipelines/actions/workflows/unit-tests.yaml/badge.svg?branch=master" />
+        <img alt="Build Status" src="https://github.com/kubeflow/pipelines/actions/workflows/e2e-test.yml/badge.svg?branch=master" />
       </a>
       <a href="https://pypi.org/project/kfp"><img alt="PyPI version" src="https://img.shields.io/pypi/v/kfp.svg" /></a>
       <a href="https://img.shields.io/pypi/format/kfp"><img alt="Distribution format" src="https://img.shields.io/pypi/format/kfp.svg" /></a>
