@@ -31,7 +31,7 @@ runs:
 
     - name: Deploy Squid
       id: deploy-squid
-      if: ${{ (inputs.proxy == 'true' )}}
+      if: ${{ inputs.proxy == 'true' }}
       shell: bash
       run: ./.github/resources/squid/deploy-squid.sh
 
