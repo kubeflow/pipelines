@@ -16,14 +16,14 @@ from kfp import dsl, compiler
 
 
 @dsl.container_component
-def whalesay():
+def echo():
     return dsl.ContainerSpec(
-        image='docker/whalesay:latest',
-        command=['cowsay'],
+        image='public.ecr.aws/docker/library/python:3.12',
+        command=['echo'],
         args=['hello world'],
     )
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        whalesay, package_path=__file__.replace('.py', '.yaml'))
+        echo, package_path=__file__.replace('.py', '.yaml'))

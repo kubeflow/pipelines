@@ -1,11 +1,11 @@
 # PIPELINE DEFINITION
-# Name: whalesay
+# Name: echo
 # Inputs:
 #    param1: str [Default: 'hello']
 #    param2: str
 components:
-  comp-whalesay:
-    executorLabel: exec-whalesay
+  comp-echo:
+    executorLabel: exec-echo
     inputDefinitions:
       parameters:
         param1:
@@ -14,23 +14,23 @@ components:
           parameterType: STRING
 deploymentSpec:
   executors:
-    exec-whalesay:
+    exec-echo:
       container:
         args:
         - '{{$.inputs.parameters[''param1'']}}-{{$.inputs.parameters[''param2'']}}'
         command:
-        - cowsay
-        image: docker/whalesay:latest
+        - echo
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
-  name: whalesay
+  name: echo
 root:
   dag:
     tasks:
-      whalesay:
+      echo:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-whalesay
+          name: comp-echo
         inputs:
           parameters:
             param1:
@@ -38,7 +38,7 @@ root:
             param2:
               componentInputParameter: param2
         taskInfo:
-          name: whalesay
+          name: echo
   inputDefinitions:
     parameters:
       param1:
@@ -47,4 +47,4 @@ root:
       param2:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.13
+sdkVersion: kfp-2.13.0

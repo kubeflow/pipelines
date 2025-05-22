@@ -1,28 +1,28 @@
 # PIPELINE DEFINITION
-# Name: whalesay
+# Name: echo
 components:
-  comp-whalesay:
-    executorLabel: exec-whalesay
+  comp-echo:
+    executorLabel: exec-echo
 deploymentSpec:
   executors:
-    exec-whalesay:
+    exec-echo:
       container:
         args:
         - hello world
         command:
-        - cowsay
-        image: docker/whalesay:latest
+        - echo
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
-  name: whalesay
+  name: echo
 root:
   dag:
     tasks:
-      whalesay:
+      echo:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-whalesay
+          name: comp-echo
         taskInfo:
-          name: whalesay
+          name: echo
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.13
+sdkVersion: kfp-2.13.0
