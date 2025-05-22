@@ -72,7 +72,7 @@ jobs:
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.create-kfp-cluster.outcome != 'success'||steps.forward-api-port.outcome != 'success'||steps.upgrade-tests.outcome != 'success' || steps.upgrade-tests-v2.outcome != 'success' || steps.verification-tests.outcome != 'success' || steps.verification-tests-v2.outcome != 'success' }}
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.upgrade-tests.outcome != 'success' || steps.upgrade-tests-v2.outcome != 'success' || steps.verification-tests.outcome != 'success' || steps.verification-tests-v2.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
