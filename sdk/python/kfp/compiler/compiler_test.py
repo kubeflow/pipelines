@@ -43,6 +43,7 @@ from kfp.dsl import pipeline_task
 from kfp.dsl import PipelineTaskFinalStatus
 from kfp.dsl import tasks_group
 from kfp.dsl import yaml_component
+from kfp.dsl.pipeline_config import PipelineConfig
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -3891,6 +3892,35 @@ class TestPlatformConfig(unittest.TestCase):
         # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
         compile_and_reload(loaded_pipeline)
 
+    def test_resource_ttl(self):
+        config = PipelineConfig()
+        config.set_resource_ttl(3600)
+
+        @dsl.pipeline(pipeline_config=config)
+        def my_pipeline():
+            task = comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'kubernetes': {
+                        'pipelineConfig': {
+                            'resourceTtl': 3600
+                        }
+                    }
+                }
+            }, expected)
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
     def test_task_with_exit_handler(self):
 
         @dsl.pipeline
@@ -4863,7 +4893,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_elif_else_consumed(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf passed to a consumer task, and different output keys on dsl.OneOf channels."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        dsl.OneOf passed to a consumer task, and different output keys on
+        dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline():
@@ -5279,7 +5311,7 @@ class TestDslOneOf(unittest.TestCase):
                                  print_task_2.outputs['a'])
 
     def test_oneof_in_condition(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested one level"""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested one level."""
 
         @dsl.pipeline
         def roll_die_pipeline(repeat_on: str = 'Got heads!'):
@@ -5332,7 +5364,7 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_consumed_in_nested_groups(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested multiple levels"""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested multiple levels."""
 
         @dsl.pipeline
         def roll_die_pipeline(
