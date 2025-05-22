@@ -364,26 +364,16 @@ func executeV2(
 	}
 
 	// Fill in placeholders with runtime values.
-	placeholders, err := getPlaceholders(executorInputWithDefault)
+	compiledCmd, compiledArgs, err := compileCmdAndArgs(executorInputWithDefault, cmd, args)
 	if err != nil {
 		return nil, nil, err
-	}
-	for placeholder, replacement := range placeholders {
-		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
-	}
-	for i := range args {
-		arg := args[i]
-		for placeholder, replacement := range placeholders {
-			arg = strings.ReplaceAll(arg, placeholder, replacement)
-		}
-		args[i] = arg
 	}
 
 	executorOutput, err := execute(
 		ctx,
 		executorInput,
-		cmd,
-		args,
+		compiledCmd,
+		compiledArgs,
 		bucket,
 		bucketConfig,
 		namespace,
@@ -737,6 +727,31 @@ func fetchNonDefaultBuckets(
 
 }
 
+func compileCmdAndArgs(executorInput *pipelinespec.ExecutorInput, cmd string, args []string) (string, []string, error) {
+	placeholders, err := getPlaceholders(executorInput)
+
+	executorInputJSON, err := protojson.Marshal(executorInput)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
+	}
+	executorInputJSONKey := "{{$}}"
+	executorInputJSONString := string(executorInputJSON)
+
+	compiledCmd := strings.ReplaceAll(cmd, executorInputJSONKey, executorInputJSONString)
+	compiledArgs := make([]string, 0, len(args))
+	for placeholder, replacement := range placeholders {
+		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
+	}
+	for _, arg := range args {
+		compiledArgTemplate := strings.ReplaceAll(arg, executorInputJSONKey, executorInputJSONString)
+		for placeholder, replacement := range placeholders {
+			compiledArgTemplate = strings.ReplaceAll(compiledArgTemplate, placeholder, replacement)
+		}
+		compiledArgs = append(compiledArgs, compiledArgTemplate)
+	}
+	return compiledCmd, compiledArgs, nil
+}
+
 // Add executor input placeholders to provided map.
 func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders map[string]string, err error) {
 	defer func() {
@@ -745,11 +760,9 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		}
 	}()
 	placeholders = make(map[string]string)
-	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
 	}
-	placeholders["{{$}}"] = string(executorInputJSON)
 
 	// Read input artifact metadata.
 	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
