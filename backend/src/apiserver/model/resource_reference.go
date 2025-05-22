@@ -146,6 +146,10 @@ type ResourceType string
 // The relationship between two resource objects.
 type Relationship string
 
+func (ResourceReference) TableName() string {
+	return "resource_references"
+}
+
 // Resource reference table models the relationship between resources in a loosely coupled way.
 type ResourceReference struct {
 	// ID of the resource object

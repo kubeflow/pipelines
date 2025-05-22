@@ -57,7 +57,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	}
 
 	// Initialize GORM
-	db, err := storage.NewFakeDB()
+	db, err := storage.NewInMemoryTestDB()
 	if err != nil {
 		return nil, err
 	}
