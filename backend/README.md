@@ -246,6 +246,41 @@ command to use Delve and the Driver image to use debug image built previously.
 }
 ```
 
+Use the following configuration if using GoLand:
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch API server (Kind) (Debug Driver)",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/backend/src/apiserver",
+      "env": {
+        "POD_NAMESPACE": "kubeflow",
+        "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
+        "MINIO_SERVICE_SERVICE_HOST": "localhost",
+        "MINIO_SERVICE_SERVICE_PORT": "9000",
+        "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
+        "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
+        "V2_DRIVER_IMAGE": "kfp-driver:debug",
+        "V2_DRIVER_COMMAND": "dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec /bin/driver --"
+      },
+      "args": [
+        "--config",
+        "${workspaceFolder}/backend/src/apiserver/config",
+        "-logtostderr=true"
+      ]
+    }
+  ]
+}
+```
+
+
 #### Starting a Remote Debug Session
 
 Start by launching a pipeline. This will eventually create a Driver pod that is waiting for a remote debug connection.
