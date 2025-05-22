@@ -172,10 +172,11 @@ def cleanup_run_resources(run_id: str):
 
 def get_kfp_package_path() -> str:
     repo_name = os.environ.get('REPO_NAME', 'kubeflow/pipelines')
+    target_branch = os.environ.get('TARGET_BRANCH', 'master')
     if os.environ.get('PULL_NUMBER'):
         path = f'git+https://github.com/{repo_name}.git@refs/pull/{os.environ["PULL_NUMBER"]}/merge#subdirectory=sdk/python'
     else:
-        path = f'git+https://github.com/{repo_name}.git@master#subdirectory=sdk/python'
+        path = f'git+https://github.com/{repo_name}.git@{target_branch}#subdirectory=sdk/python'
     print(f'Using the following KFP package path for tests: {path}')
     return path
 
