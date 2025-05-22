@@ -101,6 +101,24 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/hello_world_cache_disabled.yaml",
 			compilerOptions:  argocompiler.Options{CacheDisabled: true},
 		},
+		// retry set at pipeline level only.
+		{
+			jobPath:          "../testdata/nested_pipeline_pipeline_retry.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/nested_pipeline_pipeline_retry.yaml",
+		},
+		// retry set at component level only.
+		{
+			jobPath:          "../testdata/nested_pipeline_sub_component_retry.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/nested_pipeline_sub_component_retry.yaml",
+		},
+		// retry set at both component and pipeline level.
+		{
+			jobPath:          "../testdata/nested_pipeline_all_level_retry.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/nested_pipeline_all_level_retry.yaml",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
