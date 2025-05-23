@@ -28,7 +28,7 @@ Use the `SubprocessRunner` for local execution without Docker:
 Writing a Simple Component
 --------------------------
 
-Define a lightweight component using the `@dsl.component` decorator:
+Define a lightweight component using the ``@dsl.component`` decorator:
 
 .. code-block:: python
 
