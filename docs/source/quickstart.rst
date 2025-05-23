@@ -49,7 +49,7 @@ You can run this component directly like a Python function:
 
 Writing and Running a Pipeline
 ---------------------------
-Define a pipeline using the `@dsl.pipeline` decorator:
+Define a pipeline using the ``@dsl.pipeline`` decorator:
 
 .. code-block:: python
 
