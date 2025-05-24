@@ -1,3 +1,5 @@
+.. _kfp-python-sdk:
+
 API Reference
 ==========================
 
