@@ -48,7 +48,8 @@ You can run this component directly like a Python function:
    assert task.output == "Hello, World!"
 
 Writing and Running a Pipeline
----------------------------
+------------------------------
+
 Define a pipeline using the ``@dsl.pipeline`` decorator:
 
 .. code-block:: python
@@ -98,6 +99,7 @@ Running the pipeline
 You can run the pipeline locally with Python:
 
 .. code-block:: bash
+
    python my_pipeline.py
 
 
