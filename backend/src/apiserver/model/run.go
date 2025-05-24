@@ -319,9 +319,9 @@ type RunDetails struct {
 }
 
 type RunMetric struct {
-	RunUUID     string  `gorm:"column:RunUUID; not null; primary_key;"`
-	NodeID      string  `gorm:"column:NodeID; not null; primary_key;"`
-	Name        string  `gorm:"column:Name; not null; primary_key;"`
+	RunUUID     string  `gorm:"column:RunUUID; not null; primaryKey;"`
+	NodeID      string  `gorm:"column:NodeID; not null; primaryKey;"`
+	Name        string  `gorm:"column:Name; not null; primaryKey;"`
 	NumberValue float64 `gorm:"column:NumberValue;"`
 	Format      string  `gorm:"column:Format;"`
 	Payload     string  `gorm:"column:Payload; not null; size:65535;"`

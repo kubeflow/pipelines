@@ -29,16 +29,16 @@ const (
 )
 
 type PipelineVersion struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key;"`
+	UUID           string `gorm:"column:UUID; not null; primaryKey;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
-	Name           string `gorm:"column:Name; not null; unique_index:idx_pipelineid_name;"`
+	Name           string `gorm:"column:Name; not null; uniqueIndex:idx_pipelineid_name;"`
 	DisplayName    string `gorm:"column:DisplayName; not null"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	Parameters string `gorm:"column:Parameters; not null; size:65535;"` // deprecated
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
-	PipelineId string `gorm:"column:PipelineId; not null; index; unique_index:idx_pipelineid_name;"`
+	PipelineId string `gorm:"column:PipelineId; not null; index; uniqueIndex:idx_pipelineid_name;"`
 	// Pipeline   *Pipeline             `gorm:"foreignKey:PipelineId; constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Status PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
