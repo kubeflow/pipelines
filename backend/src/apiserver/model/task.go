@@ -19,7 +19,7 @@ import (
 )
 
 type Task struct {
-	UUID      string `gorm:"column:UUID; not null; primary_key"`
+	UUID      string `gorm:"column:UUID; not null; primaryKey"`
 	Namespace string `gorm:"column:Namespace; not null;"`
 	// PipelineName was deprecated. Use RunId instead.
 	PipelineName       string           `gorm:"column:PipelineName; not null;"`
