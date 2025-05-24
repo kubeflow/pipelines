@@ -139,15 +139,11 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 	newExecutionCache.StartedAtInSec = now
 	// TODO: ended time need to be modified after demo version.
 	newExecutionCache.EndedAtInSec = now
-
-	ok := s.db.NewRecord(newExecutionCache)
-	if !ok {
-		return nil, fmt.Errorf("Failed to create a new execution cache")
-	}
+	// GORM v2 removed NewRecord(); it was unreliable as it only checked whether the primary key was zero.
 	var rowInsert model.ExecutionCache
 	d := s.db.Create(&newExecutionCache).Scan(&rowInsert)
 	if d.Error != nil {
-		return nil, d.Error
+		return nil, fmt.Errorf("Failed to create a new execution cache: %w", d.Error)
 	}
 	log.Println("Cache entry created with cache key: " + newExecutionCache.ExecutionCacheKey)
 	log.Println(newExecutionCache.ExecutionTemplate)
