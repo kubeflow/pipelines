@@ -307,12 +307,12 @@ type RunDetails struct {
 	// Conditions were deprecated. Use State instead.
 	Conditions         string           `gorm:"column:Conditions; not null;"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null; size:65535;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null; type: text;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	// Serialized runtime details of a run in v2beta1
-	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; size:33554432;"`
+	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; type: longtext;"`
 	// Serialized Argo CRD in v1beta1
-	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null; size:33554432;"`
+	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null; type: longtext;"`
 	PipelineContextId       int64  `gorm:"column:PipelineContextId; default:0;"`
 	PipelineRunContextId    int64  `gorm:"column:PipelineRunContextId; default:0;"`
 	TaskDetails             []*Task
@@ -324,7 +324,7 @@ type RunMetric struct {
 	Name        string  `gorm:"column:Name; not null; primaryKey;"`
 	NumberValue float64 `gorm:"column:NumberValue;"`
 	Format      string  `gorm:"column:Format;"`
-	Payload     string  `gorm:"column:Payload; not null; size:65535;"`
+	Payload     string  `gorm:"column:Payload; not null; type: text;"`
 }
 
 type RuntimeStatus struct {
