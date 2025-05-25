@@ -31,10 +31,10 @@ const (
 type PipelineVersion struct {
 	UUID           string `gorm:"column:UUID; not null; primaryKey;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
-	Name           string `gorm:"column:Name; not null; uniqueIndex:idx_pipelineid_name;"`
+	Name           string `gorm:"column:Name; not null; type:varchar(255); uniqueIndex:idx_pipelineid_name;"`
 	DisplayName    string `gorm:"column:DisplayName; not null"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string `gorm:"column:Parameters; not null; size:65535;"` // deprecated
+	Parameters string `gorm:"column:Parameters; not null; type:text;"` // deprecated
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
@@ -43,9 +43,9 @@ type PipelineVersion struct {
 	Status PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl   string `gorm:"column:CodeSourceUrl;"`
-	Description     string `gorm:"column:Description; size:65535;"`               // Set size to large number so it will be stored as longtext
-	PipelineSpec    string `gorm:"column:PipelineSpec; not null; size:33554432;"` // Same as common.MaxFileLength (32MB in server). Argo imposes 700kB limit
-	PipelineSpecURI string `gorm:"column:PipelineSpecURI; not null; size:65535;"` // Can store references to ObjectStore files
+	Description     string `gorm:"column:Description; type:text;"`                // Set size to large number so it will be stored as longtext
+	PipelineSpec    string `gorm:"column:PipelineSpec; not null; type:longtext;"` // Same as common.MaxFileLength (32MB in server). Argo imposes 700kB limit
+	PipelineSpecURI string `gorm:"column:PipelineSpecURI; not null; type:text;"`  // Can store references to ObjectStore files
 }
 
 func (p PipelineVersion) GetValueOfPrimaryKey() string {
