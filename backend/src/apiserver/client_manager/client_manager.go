@@ -418,15 +418,6 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to initialize the databases. Error: %s", response.Error)
 	}
 
-	// var textFormat string
-	// switch driverName {
-	// case "mysql":
-	// 	textFormat = client.MYSQL_TEXT_FORMAT
-	// case "pgx":
-	// 	textFormat = client.PGX_TEXT_FORMAT
-	// default:
-	// 	glog.Fatalf("Unsupported database driver %s, please use `mysql` for MySQL, or `pgx` for PostgreSQL.", driverName)
-	// }
 
 	response = db.Migrator().DropIndex(&model.Experiment{}, "Name")
 	if response != nil {
@@ -443,29 +434,15 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response)
 	}
 
-	// GORM v2 CreateIndex for named indexes (fields defined in struct tags)
-	var count int64
-	db.Raw("SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'run_details' AND index_name = 'experimentuuid_createatinsec'").Scan(&count)
-	if count == 0 {
-		if err := db.Exec("CREATE INDEX experimentuuid_createatinsec ON run_details (ExperimentUUID, CreatedAtInSec)").Error; err != nil {
-			glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", err)
-		}
-	}
-
-	if err := db.Migrator().CreateIndex(&model.Run{}, "experimentuuid_conditions_finishedatinsec"); err != nil {
-		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", err)
-	}
-	if err := db.Migrator().CreateIndex(&model.Run{}, "namespace_createatinsec"); err != nil {
-		glog.Fatalf("Failed to create index namespace_createatinsec on run_details. Error: %s", err)
-	}
-	if err := db.Migrator().CreateIndex(&model.Run{}, "namespace_conditions_finishedatinsec"); err != nil {
-		glog.Fatalf("Failed to create index namespace_conditions_finishedatinsec on run_details. Error: %s", err)
-	}
-
-	if err := db.Migrator().CreateIndex(&model.Pipeline{}, "name_namespace_index"); err != nil {
-		glog.Fatalf("Failed to create index name_namespace_index on run_details. Error: %s", err)
-	}
-
+	// NOTE: Manual AddIndex/AddUniqueIndex calls have been removed.
+	// All index definitions are now declared via GORM struct tags in the model types:
+	//   – experimentuuid_createatinsec
+	//   – experimentuuid_conditions_finishedatinsec
+	//   – namespace_createatinsec
+	//   – namespace_conditions_finishedatinsec
+	//   – name_namespace_index
+	// See the `index:` and `uniqueIndex:` tags in model.Run, model.RunDetails, and model.Pipeline.
+	
 	switch driverName {
 	case "pgx":
 		db.Exec(`ALTER TABLE run_metrics ADD CONSTRAINT fk_run_metrics_runuuid FOREIGN KEY ("RunUUID") REFERENCES run_details("UUID") ON DELETE CASCADE ON UPDATE CASCADE`)

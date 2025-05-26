@@ -210,8 +210,8 @@ type Run struct {
 	K8SName     string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	Description string `gorm:"column:Description; not null;"`
 
-	Namespace      string `gorm:"column:Namespace; not null;"`
-	ExperimentId   string `gorm:"column:ExperimentUUID;type:varchar(191); not null;"`
+	Namespace      string `gorm:"column:Namespace; type:varchar(191); not null;index:namespace_createatinsec,priority:1;                                  index:namespace_conditions_finishedatinsec,priority:1"`
+	ExperimentId   string `gorm:"column:ExperimentUUID;type:varchar(191); not null; index:experimentuuid_createatinsec,priority:1; index:experimentuuid_conditions_finishedatinsec,priority:1"`
 	RecurringRunId string `gorm:"column:JobUUID; default:null;"`
 
 	StorageState   StorageState `gorm:"column:StorageState; not null;"`
@@ -301,11 +301,11 @@ func (r *Run) ToV2() *Run {
 
 // Stores runtime information about a pipeline run.
 type RunDetails struct {
-	CreatedAtInSec   int64 `gorm:"column:CreatedAtInSec; not null;"`
+	CreatedAtInSec   int64 `gorm:"column:CreatedAtInSec; not null;index:experimentuuid_createatinsec,priority:2; index:namespace_createatinsec,priority:2"`
 	ScheduledAtInSec int64 `gorm:"column:ScheduledAtInSec; default:0;"`
-	FinishedAtInSec  int64 `gorm:"column:FinishedAtInSec; default:0;"`
+	FinishedAtInSec  int64 `gorm:"column:FinishedAtInSec; default:0; index:experimentuuid_conditions_finishedatinsec,priority:3;index:namespace_conditions_finishedatinsec,priority:3"`
 	// Conditions were deprecated. Use State instead.
-	Conditions         string           `gorm:"column:Conditions; not null;"`
+	Conditions         string           `gorm:"column:Conditions; type:varchar(191); not null;  index:experimentuuid_conditions_finishedatinsec,priority:2;index:namespace_conditions_finishedatinsec,priority:2"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
 	StateHistoryString string           `gorm:"column:StateHistory; default:null; type: text;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
