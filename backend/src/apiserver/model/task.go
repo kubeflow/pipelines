@@ -23,7 +23,7 @@ type Task struct {
 	Namespace string `gorm:"column:Namespace; not null;"`
 	// PipelineName was deprecated. Use RunId instead.
 	PipelineName       string           `gorm:"column:PipelineName; not null;"`
-	RunId              string           `gorm:"column:RunUUID; not null;"`
+	RunId              string           `gorm:"column:RunUUID; type:varchar(191); not null;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	PodName            string           `gorm:"column:PodName; not null;"`
 	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
 	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`

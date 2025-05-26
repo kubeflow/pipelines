@@ -26,7 +26,7 @@ type Experiment struct {
 
 // Note: Experiment.StorageState can have values: "STORAGE_STATE_UNSPECIFIED", "AVAILABLE" or "ARCHIVED"
 
-func (e Experiment) GetValueOfPrimaryKey() string {
+func (e Experiment) GetValueOfPrimaryKey() string { 
 	return e.UUID
 }
 
