@@ -418,7 +418,6 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to initialize the databases. Error: %s", response.Error)
 	}
 
-
 	response = db.Migrator().DropIndex(&model.Experiment{}, "Name")
 	if response != nil {
 		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response)
@@ -441,23 +440,15 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	//   – namespace_createatinsec
 	//   – namespace_conditions_finishedatinsec
 	//   – name_namespace_index
-	// See the `index:` and `uniqueIndex:` tags in model.Run, model.RunDetails, and model.Pipeline.
+	// See the `index:` and `uniqueIndex:` tags in model.Run and model.Pipeline.
 	
-	switch driverName {
-	case "pgx":
-		db.Exec(`ALTER TABLE run_metrics ADD CONSTRAINT fk_run_metrics_runuuid FOREIGN KEY ("RunUUID") REFERENCES run_details("UUID") ON DELETE CASCADE ON UPDATE CASCADE`)
-		db.Exec(`ALTER TABLE pipeline_versions ADD CONSTRAINT fk_pipeline_versions_pipelineid FOREIGN KEY ("PipelineId") REFERENCES pipelines("UUID") ON DELETE CASCADE ON UPDATE CASCADE`)
-		db.Exec(`ALTER TABLE tasks ADD CONSTRAINT fk_tasks_runuuid FOREIGN KEY ("RunUUID") REFERENCES run_details("UUID") ON DELETE CASCADE ON UPDATE CASCADE`)
-	case "mysql":
-		db.Exec(`ALTER TABLE run_metrics ADD CONSTRAINT fk_run_metrics_runuuid FOREIGN KEY (RunUUID) REFERENCES run_details(UUID) ON DELETE CASCADE ON UPDATE CASCADE`)
-		db.Exec(`ALTER TABLE pipeline_versions ADD CONSTRAINT fk_pipeline_versions_pipelineid FOREIGN KEY (PipelineId) REFERENCES pipelines(UUID) ON DELETE CASCADE ON UPDATE CASCADE`)
-		db.Exec(`ALTER TABLE tasks ADD CONSTRAINT fk_tasks_runuuid FOREIGN KEY (RunUUID) REFERENCES run_details(UUID) ON DELETE CASCADE ON UPDATE CASCADE`)
+	// Manual ALTER TABLE … ADD CONSTRAINT calls have been removed.
+	// Foreign key constraints are now defined and managed by GORM via struct tags
+	// on RunMetric.RunUUID, PipelineVersion.PipelineId, Task.RunUUID, etc.). 
+	// This ensures a single source of truth for schema definitions and avoids duplicate or out-of-sync DDL.
 
-		// Removed invalid ModifyColumn on Job.WorkflowSpecManifest.
-		// This field never existed on Job; original reference likely confused with PipelineSpec.
-	default:
-		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
-	}
+	// Removed invalid ModifyColumn on Job.WorkflowSpecManifest.
+	// This field never existed on Job; original reference likely confused with PipelineSpec.
 
 	// Data backfill for pipeline_versions if this is the first time for
 	// pipeline_versions to enter mlpipeline DB.
