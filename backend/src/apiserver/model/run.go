@@ -211,7 +211,7 @@ type Run struct {
 	Description string `gorm:"column:Description; not null;"`
 
 	Namespace      string `gorm:"column:Namespace; not null;"`
-	ExperimentId   string `gorm:"column:ExperimentUUID; not null;"`
+	ExperimentId   string `gorm:"column:ExperimentUUID;type:varchar(191); not null;"`
 	RecurringRunId string `gorm:"column:JobUUID; default:null;"`
 
 	StorageState   StorageState `gorm:"column:StorageState; not null;"`
