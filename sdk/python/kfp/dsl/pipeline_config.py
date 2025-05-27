@@ -13,11 +13,56 @@
 # limitations under the License.
 """Pipeline-level config options."""
 
+from typing import Any, Dict, Optional
+
+
+class KubernetesWorkspaceConfig:
+    """Configuration for Kubernetes-specific workspace settings.
+
+    Use this to override the default PersistentVolumeClaim (PVC) configuration
+    used when running pipelines on a Kubernetes cluster.
+
+    Attributes:
+        pvcSpecPatch: A dictionary of fields to patch onto the default PVC spec
+                      (e.g., 'storageClassName', 'accessModes').
+    """
+
+    def __init__(self, pvc_spec_patch: Optional[Dict[str, Any]] = None):
+        self.pvc_spec_patch = pvc_spec_patch or {}
+
+    def set_pvc_spec_patch(self, patch: Dict[str, Any]):
+        self.pvc_spec_patch = patch
+
+
+class WorkspaceConfig:
+    """Configuration for a shared workspace that persists during the pipeline
+    run.
+
+    Attributes:
+        size (str): The size of the workspace (e.g., '250Gi').
+        See https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/ for valid quantity formats.
+        kubernetes: (Optional) Kubernetes-specific configuration for the underlying PVC.
+    """
+
+    def __init__(self,
+                 size: str,
+                 kubernetes: Optional[KubernetesWorkspaceConfig] = None):
+        self.size = size
+        self.kubernetes = kubernetes or KubernetesWorkspaceConfig()
+
+    def set_size(self, size: str):
+        self.size = size.strip()
+
+    def set_kubernetes_config(self,
+                              kubernetes_config: KubernetesWorkspaceConfig):
+        self.kubernetes = kubernetes_config
+
 
 class PipelineConfig:
     """PipelineConfig contains pipeline-level config options."""
 
     def __init__(self):
-        pass
+        self.workspace = None
 
-    # TODO add pipeline level configs
+    def set_workspace(self, workspace: WorkspaceConfig):
+        self.workspace = workspace
