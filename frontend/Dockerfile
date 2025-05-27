@@ -21,10 +21,6 @@ RUN mkdir -p ./server/dist && \
     echo ${DATE} > ./server/dist/BUILD_DATE && \
     echo ${TAG_NAME} > ./server/dist/TAG_NAME
 
-# Generate the dependency licenses files (one for the UI and one for the webserver),
-# concatenate them to one file under ./src/server
-RUN ./scripts/yarn-licenses.sh
-
 FROM node:22.13-alpine
 
 COPY --from=build ./src/frontend/server /server

@@ -1,6 +1,5 @@
 BUILD=build
 MOD_ROOT=..
-CSV_PATH=backend/third_party_licenses
 KIND_NAME ?= dev-pipelines-api
 
 CERT_MANAGER_VERSION ?= v1.16.2
@@ -78,6 +77,25 @@ install-cert-manager:
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml
 	kubectl wait deployment -n cert-manager cert-manager --for condition=Available=True --timeout=180s
 	kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=180s
+
+# Creates a Kind cluster and Deploys a standalone KFP instance
+# In the Kubeflow namespace.
+.PHONY: kind-cluster-agnostic
+kind-cluster-agnostic:
+	# Deploy Kind Cluster
+	kind create cluster --name $(KIND_NAME)
+	kubectl config use-context kind-$(KIND_NAME)
+	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
+	# Deploy cluster resources required by KFP
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
+	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
+	# Deploy KFP
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic
+	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
+	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
+	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/ml-pipeline
+	# Switch to Kubeflow namespace context
+	kubectl config set-context --current --namespace=kubeflow
 
 .PHONY: dev-kind-cluster
 dev-kind-cluster:
