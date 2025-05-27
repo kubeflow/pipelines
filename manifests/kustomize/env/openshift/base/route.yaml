@@ -1,0 +1,18 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: ml-pipeline-ui
+  namespace: kubeflow
+  labels:
+    app: ml-pipeline-ui
+spec:
+  to:
+    kind: Service
+    name: ml-pipeline-ui
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
