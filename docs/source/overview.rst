@@ -49,9 +49,8 @@ Importer Components are a special "pre-baked" component provided by KFP which al
 
 What is a compiled pipeline?
 ----------------------------
-A compiled pipeline, often referred to as an IR YAML, is an Intermediate Representation of a compiled pipeline or component.
+A compiled pipeline, often referred to as an IR YAML, is an intermediate representation (IR) of a compiled pipeline or component. The IR YAML is not intended to be written directly.
 
-the IR YAML is not intended to be written directly.
 While IR YAML is not intended to be easily human-readable, you can still inspect it if you know a bit about its contents:
 
 .. _pipelines: #what-is-a-pipeline
