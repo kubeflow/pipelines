@@ -1,0 +1,117 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubeflow
+labels:
+  - includeSelectors: true
+    pairs:
+      application-crd-id: kubeflow-pipelines
+resources:
+  - ../../../cluster-scoped-resources
+  - ../../../env/platform-agnostic
+  - route.yaml
+
+patches:
+  # Turn off V1 components
+  - path: patches/viewer-crd.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline-viewer-crd
+  - path: patches/visualizationserver.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline-visualizationserver
+  - path: patches/cache-server.yaml
+    target:
+      kind: Deployment
+      name: cache-server
+  - path: patches/cache-deployer.yaml
+    target:
+      kind: Deployment
+      name: cache-deployer-deployment
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: cache-server
+      version: v1
+
+  # Openshift provides its own default restricted SCC's
+  # Thus the following can be omitted:
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: metadata-envoy-deployment
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: metadata-grpc-deployment
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: metadata-writer
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: minio
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: ml-pipeline
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps #
+      kind: Deployment
+      name: ml-pipeline-persistenceagent
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: ml-pipeline-scheduledworkflow
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: ml-pipeline-ui
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: ml-pipeline-viewer-crd
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: ml-pipeline-visualizationserver
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
+      name: mysql
+      version: v1
+  - path: patches/remove-sc-pod.json
+    target:
+      group: apps
+      kind: Deployment
+      name: mysql
+      version: v1
+  - path: patches/remove-sc-pod.json
+    target:
+      group: apps
+      kind: Deployment
+      name: minio
+      version: v1
