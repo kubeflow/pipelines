@@ -34,13 +34,13 @@ jobs:
 
     - name: Run Webhook Integration Tests
       id: tests
-      if: ${{ (steps.create-kfp-cluster.outcome == 'success' )}}
+      if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
       run: |
         make -C backend/test/integration test-webhook
       continue-on-error: true
 
     - name: Collect failed logs
-      if: ${{ (steps.create-kfp-cluster.outcome != 'success' ) || ( steps.tests.outcome != 'success' )}}
+      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.tests.outcome != 'success' }}
       run: |
         ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
         exit 1

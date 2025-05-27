@@ -39,40 +39,40 @@ jobs:
 
       - name: Forward API port
         id: forward-api-port
-        if: ${{ (steps.create-kfp-cluster.outcome == 'success' )}}
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
         continue-on-error: true
 
       - name: Prepare upgrade tests
         id: upgrade-tests
-        if: ${{ (steps.forward-api-port.outcome == 'success' )}}
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: backend/test/integration
         run: go test -v ./... -namespace kubeflow -args -runUpgradeTests=true -testify.m=Prepare
         continue-on-error: true
 
       - name: Prepare verification tests
         id: verification-tests
-        if: ${{ (steps.forward-api-port.outcome == 'success' )}}
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: backend/test/integration
         run: go test -v ./... -namespace kubeflow -args -runUpgradeTests=true -testify.m=Verify
         continue-on-error: true
 
       - name: Prepare upgrade tests v2
         id: upgrade-tests-v2
-        if: ${{ (steps.forward-api-port.outcome == 'success' )}}
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: backend/test/v2/integration/
         run: go test -v ./... -namespace kubeflow -args -runUpgradeTests=true -testify.m=Prepare
         continue-on-error: true
       
       - name: Prepare verification tests v2
         id: verification-tests-v2
-        if: ${{ (steps.forward-api-port.outcome == 'success' )}}
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: backend/test/v2/integration
         run: go test -v ./... -namespace kubeflow -args -runUpgradeTests=true -testify.m=Verify
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ (steps.create-kfp-cluster.outcome != 'success') || (steps.forward-api-port.outcome != 'success') || (steps.upgrade-tests.outcome != 'success' ) || ( steps.upgrade-tests-v2.outcome != 'success' ) || ( steps.verification-tests.outcome != 'success' ) || ( steps.verification-tests-v2.outcome != 'success' )}}
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.upgrade-tests.outcome != 'success' || steps.upgrade-tests-v2.outcome != 'success' || steps.verification-tests.outcome != 'success' || steps.verification-tests-v2.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
