@@ -70,7 +70,7 @@ autodoc_default_options = {
 }
 
 html_theme = 'sphinx_immaterial'
-html_title = 'KFP SDK API Reference'
+html_title = 'Kubeflow Pipelines (KFP)'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
 html_logo = '_static/kubeflow.png'
