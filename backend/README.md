@@ -35,7 +35,7 @@ docker build -f backend/Dockerfile . --tag $API_SERVER_IMAGE
 ```
 ### Deploying the APIServer (from the image you built) on Kubernetes
 
-First, push your image to a registry that is accessible from your Kubernetes cluster. 
+First, push your image to a registry that is accessible from your Kubernetes cluster.
 
 Then, run:
 ```
@@ -218,6 +218,7 @@ make -C kind-build-and-load-driver-debug
 You may use the following VS Code `launch.json` file to run the API server which overrides the Driver
 command to use Delve and the Driver image to use debug image built previously.
 
+VSCode configuration:
 ```json
 {
     "version": "0.2.0",
@@ -246,6 +247,26 @@ command to use Delve and the Driver image to use debug image built previously.
 }
 ```
 
+GoLand configuration:
+1. Create a new Go Build configuration
+2. Set **Run Kind** to Directory and set **Directory** to /backend/src/apiserver absolute path
+3. Set the following environment variables
+
+   | Argument                                     | Value     |
+   |----------------------------------------------|-----------|
+   | POD_NAMESPACE                                | kubeflow  |
+   | DBCONFIG_MYSQLCONFIG_HOST                    | localhost |
+   | MINIO_SERVICE_SERVICE_HOST                   | localhost |
+   | MINIO_SERVICE_SERVICE_PORT                   | 9000      |
+   | METADATA_GRPC_SERVICE_SERVICE_HOST           | localhost |
+   | METADATA_GRPC_SERVICE_SERVICE_PORT           | 8080      |
+   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST | localhost |
+   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT | 8888      |
+   | V2_LAUNCHER_IMAGE                            | localhost |
+   | V2_DRIVER_IMAGE                              | localhost |
+   | V2_DRIVER_COMMAND                            | dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec /bin/driver -- |
+4. Set the following program arguments: --config ./backend/src/apiserver/config -logtostderr=true --sampleconfig ./backend/src/apiserver/config/test_sample_config.json
+
 #### Starting a Remote Debug Session
 
 Start by launching a pipeline. This will eventually create a Driver pod that is waiting for a remote debug connection.
@@ -266,6 +287,7 @@ kubectl -n kubeflow port-forward <driver pod name> 2345:2345
 Set a breakpoint on the Driver code in VS Code. Then remotely connect to the Delve debug session with the following VS
 Code `launch.json` file:
 
+VSCode configuration:
 ```json
 {
     "version": "0.2.0",
@@ -283,6 +305,11 @@ Code `launch.json` file:
 }
 ```
 
+GoLand configuration:
+1. Create a new Go Remote configuration and title it "Delve debug session"
+2. Set **Host** to localhost
+3. Set **Port** to 2345
+
 Once the Driver pod succeeds, the remote debug session will close. Then repeat the process of forwarding the port
 of subsequent Driver pods and starting remote debug sessions in VS Code until the pipeline completes.
 
@@ -295,7 +322,7 @@ pod.
 
 The Kubeflow Pipelines API server typically runs over HTTPS when deployed in a Kubernetes cluster. However, during local development, it operates over HTTP, which Kubernetes admission webhooks do not support (they require HTTPS). This incompatibility prevents webhooks from functioning correctly in a local Kind cluster.
 
-To resolve this, a webhook proxy acts as a bridge, allowing webhooks to communicate with the API server even when it runs over HTTP. 
+To resolve this, a webhook proxy acts as a bridge, allowing webhooks to communicate with the API server even when it runs over HTTP.
 
 This is used by default when using the `dev-kind-cluster` Make target.
 
@@ -307,13 +334,11 @@ Run the following to delete the cluster (once you are finished):
 kind delete clusters dev-pipelines-api
 ```
 
-## Contributing   
+## Contributing
 ### Code Style
-          
+
 Backend codebase follows the [Google's Go Style Guide](https://google.github.io/styleguide/go/). Please, take time to get familiar with the [best practices](https://google.github.io/styleguide/go/best-practices). It is not intended to be exhaustive, but it often helps minimizing guesswork among developers and keep codebase uniform and consistent.
 
 We use [golangci-lint](https://golangci-lint.run/) tool that can catch common mistakes locally (see detailed configuration [here](https://github.com/kubeflow/pipelines/blob/master/.golangci.yaml)). It can be [conveniently integrated](https://golangci-lint.run/usage/integrations/) with multiple popular IDEs such as VS Code or Vim.
 
 Finally, it is advised to install [pre-commit](https://pre-commit.com/) in order to automate linter checks (see configuration [here](https://github.com/kubeflow/pipelines/blob/master/.pre-commit-config.yaml))
-
-
