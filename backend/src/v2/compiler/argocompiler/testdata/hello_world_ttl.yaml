@@ -36,7 +36,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -61,8 +61,6 @@ spec:
       - ''
       - --no_proxy
       - ''
-      - --cache_disabled
-      - 'true'
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -156,8 +154,6 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
-      - --cache_disabled
-      - "true"
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher
@@ -234,7 +230,7 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
@@ -257,8 +253,6 @@ spec:
       - ''
       - --no_proxy
       - ''
-      - --cache_disabled
-      - 'true'
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -324,7 +318,7 @@ spec:
     name: entrypoint
     outputs: {}
   ttlStrategy:
-    secondsAfterCompletion: 30
+    secondsAfterCompletion: 60
 status:
   finishedAt: null
   startedAt: null
