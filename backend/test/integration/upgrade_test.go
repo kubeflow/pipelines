@@ -286,11 +286,19 @@ func (s *UpgradeTests) PreparePipelines() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
+	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+	}
+
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
-		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
-			PipelineURL: "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip",
-		}},
+		Body: &pipeline_model.APIPipeline{
+			URL: &pipeline_model.APIURL{
+				PipelineURL: pipelineURL,
+			},
+		},
 	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
