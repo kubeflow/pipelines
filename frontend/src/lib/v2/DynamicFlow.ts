@@ -275,7 +275,9 @@ export function updateFlowElementsState(
         (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
         // Use ExecutionHelpers.getName() which reads display_name from MLMD custom properties
-        (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(executions[0]);
+        (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(
+          executions[0],
+        );
       }
     } else if (NodeTypeNames.ARTIFACT === elem.type) {
       let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
