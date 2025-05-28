@@ -18,6 +18,9 @@ update:
 	dsl-compile-v2 --py "$(V2_SAMPLES)/hello_world.py" --output "hello_world.json"
 	dsl-compile-v2 --py "$(V2_SAMPLES)/producer_consumer_param.py" --output "producer_consumer_param.json"
 	dsl-compile-v2 --py "$(CORE_SAMPLES)/exit_handler/exit_handler.py" --output "exit_handler.json"
+	dsl-compile-v2 --py "nested_pipeline_all_level_retry.py" --output "nested_pipeline_all_level_retry.json"
+	dsl-compile-v2 --py "nested_pipeline_pipeline_retry.py" --output "nested_pipeline_pipeline_retry.json"
+	dsl-compile-v2 --py "nested_pipeline_sub_component_retry.py" --output "nested_pipeline_sub_component_retry.json"
 	# currently commented, because v2 compiler generates duplicate component definitions
 	# the commited component_used_twice.json file is hand edited.
 	# dsl-compile-v2 --py "component_used_twice.py" --output "component_used_twice.json"
