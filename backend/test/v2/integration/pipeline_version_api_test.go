@@ -16,6 +16,7 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -156,13 +157,19 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipelineVersion.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
+	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+	}
+
 	time.Sleep(1 * time.Second)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: pipelineId,
 		Body: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "arguments",
 			PackageURL: &pipeline_model.V2beta1URL{
-				PipelineURL: "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip",
+				PipelineURL: pipelineURL,
 			},
 			PipelineID: pipelineId,
 		},
@@ -292,7 +299,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	actual_bytes, err := json.Marshal(pipelineVersion.PipelineSpec)
 	require.Nil(t, err)
 	// Override pipeline name, then compare
-	assert.Equal(t, string(expected_bytes), strings.Replace(string(actual_bytes), "pipeline/test_pipeline", "whalesay", 1))
+	assert.Equal(t, string(expected_bytes), strings.Replace(string(actual_bytes), "pipeline/test_pipeline", "echo", 1))
 }
 
 func (s *PipelineVersionApiTest) TestV2Spec() {
@@ -326,7 +333,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	actual_bytes, err := json.Marshal(v2Version.PipelineSpec)
 	require.Nil(t, err)
 	// Override pipeline name, then compare
-	assert.Equal(t, string(expected_bytes), strings.Replace(string(actual_bytes), "pipeline/test-v2-pipeline", "whalesay", 1))
+	assert.Equal(t, string(expected_bytes), strings.Replace(string(actual_bytes), "pipeline/test-v2-pipeline", "echo", 1))
 }
 
 func TestPipelineVersionAPI(t *testing.T) {

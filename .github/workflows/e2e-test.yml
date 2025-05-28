@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: Initialization tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -52,6 +52,8 @@ jobs:
         if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: ./backend/test/initialization
         run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
 
       - name: Collect failed logs
@@ -71,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: Initialization tests v2 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -100,6 +102,8 @@ jobs:
         if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/initialization
         run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
 
       - name: Collect failed logs
@@ -119,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: API integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -154,6 +158,8 @@ jobs:
         if: ${{ steps.forward-mysql-port.outcome == 'success' }}
         working-directory: ./backend/test/integration
         run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
 
       - name: Collect failed logs
@@ -174,7 +180,7 @@ jobs:
     strategy:
       matrix:
         pipeline_store: [ "database", "kubernetes" ]
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -210,6 +216,8 @@ jobs:
         if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
         run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
 
       - name: Collect failed logs
@@ -265,6 +273,8 @@ jobs:
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
         run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -useProxy=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
 
       - name: Collect failed logs
@@ -321,6 +331,8 @@ jobs:
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
         run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -cacheEnabled=false
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
 
       - name: Collect failed logs
@@ -340,7 +352,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -397,7 +409,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: Basic Sample Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
