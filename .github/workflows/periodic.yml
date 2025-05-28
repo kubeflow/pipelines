@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.13", "v1.33.1" ]
     name: Periodic Functional Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout repository

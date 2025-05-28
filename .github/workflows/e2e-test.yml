@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.13", "v1.33.1" ]
     name: Initialization tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.13", "v1.33.1" ]
     name: Initialization tests v2 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -107,7 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.13", "v1.33.1" ]
     name: API integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.13", "v1.33.1" ]
     name: API integration tests v2 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -194,7 +194,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0" ]
+        k8s_version: [ "v1.30.13", "v1.33.1" ]
     name: API integration tests v2 with proxy - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -244,7 +244,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.13", "v1.33.1" ]
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -293,7 +293,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.30.13", "v1.33.1" ]
     name: Basic Sample Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
