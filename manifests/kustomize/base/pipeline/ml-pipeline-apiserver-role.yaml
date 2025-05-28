@@ -38,6 +38,20 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - kubeflow.org
+  resources:
+  - scheduledworkflows/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - pipelines
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - authorization.k8s.io
   resources:
   - subjectaccessreviews
@@ -49,33 +63,3 @@ rules:
   - tokenreviews
   verbs:
   - create
-- apiGroups:
-  - tekton.dev
-  resources:
-  - pipelineruns
-  - taskruns
-  - conditions
-  - runs
-  - tasks
-  - customruns
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - custom.tekton.dev
-  resources:
-  - pipelineloops
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-  

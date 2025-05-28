@@ -36,6 +36,20 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - kubeflow.org
+  resources:
+  - scheduledworkflows/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - pipelines
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - authorization.k8s.io
   resources:
   - subjectaccessreviews

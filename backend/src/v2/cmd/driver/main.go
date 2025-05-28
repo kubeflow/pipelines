@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -36,10 +38,14 @@ import (
 )
 
 const (
-	driverTypeArg = "type"
-	ROOT_DAG      = "ROOT_DAG"
-	DAG           = "DAG"
-	CONTAINER     = "CONTAINER"
+	driverTypeArg      = "type"
+	httpProxyArg       = "http_proxy"
+	httpsProxyArg      = "https_proxy"
+	noProxyArg         = "no_proxy"
+	unsetProxyArgValue = "unset"
+	ROOT_DAG           = "ROOT_DAG"
+	DAG                = "DAG"
+	CONTAINER          = "CONTAINER"
 )
 
 var (
@@ -71,6 +77,12 @@ var (
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
 	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
+
+	// proxy
+	httpProxy   = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
+	httpsProxy  = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
+	noProxy     = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
+	publishLogs = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 
 	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
 	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
@@ -105,6 +117,15 @@ func validate() error {
 	if *driverType == "" {
 		return fmt.Errorf("argument --%s must be specified", driverTypeArg)
 	}
+	if *httpProxy == unsetProxyArgValue {
+		return fmt.Errorf("argument --%s is required but can be an empty value", httpProxyArg)
+	}
+	if *httpsProxy == unsetProxyArgValue {
+		return fmt.Errorf("argument --%s is required but can be an empty value", httpsProxyArg)
+	}
+	if *noProxy == unsetProxyArgValue {
+		return fmt.Errorf("argument --%s is required but can be an empty value", noProxyArg)
+	}
 	// validation responsibility lives in driver itself, so we do not validate all other args
 	return nil
 }
@@ -119,6 +140,9 @@ func drive() (err error) {
 	if err = validate(); err != nil {
 		return err
 	}
+
+	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
+
 	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJson))
 	componentSpec := &pipelinespec.ComponentSpec{}
 	if err := util.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
@@ -182,6 +206,7 @@ func drive() (err error) {
 		DAGExecutionID:       *dagExecutionID,
 		IterationIndex:       *iterationIndex,
 		PipelineLogLevel:     *logLevel,
+		PublishLogs:          *publishLogs,
 		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
 		MLMDServerAddress:    *mlmdServerAddress,
 		MLMDServerPort:       *mlmdServerPort,

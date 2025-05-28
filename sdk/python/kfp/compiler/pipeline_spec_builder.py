@@ -651,27 +651,62 @@ def build_container_spec_for_task(
                 for name, value in (task.container_spec.env or {}).items()
             ]))
 
+    # All the fields with the resource_ prefix are newer fields to support pipeline input parameters. The below code
+    # will check if the value is a placeholder and if not, it will also set the value on the old deprecated fields
+    # without the resource_ prefix to work on older KFP installations.
     if task.container_spec.resources is not None:
         if task.container_spec.resources.cpu_request is not None:
-            container_spec.resources.resource_cpu_request = convert_to_placeholder(
+            placeholder = convert_to_placeholder(
                 task.container_spec.resources.cpu_request)
+            container_spec.resources.resource_cpu_request = placeholder
+
+            if task.container_spec.resources.cpu_request == placeholder:
+                container_spec.resources.cpu_request = compiler_utils._cpu_to_float(
+                    task.container_spec.resources.cpu_request)
         if task.container_spec.resources.cpu_limit is not None:
-            container_spec.resources.resource_cpu_limit = convert_to_placeholder(
+            placeholder = convert_to_placeholder(
                 task.container_spec.resources.cpu_limit)
+            container_spec.resources.resource_cpu_limit = placeholder
+
+            if task.container_spec.resources.cpu_limit == placeholder:
+                container_spec.resources.cpu_limit = compiler_utils._cpu_to_float(
+                    task.container_spec.resources.cpu_limit)
         if task.container_spec.resources.memory_request is not None:
-            container_spec.resources.resource_memory_request = convert_to_placeholder(
+            placeholder = convert_to_placeholder(
                 task.container_spec.resources.memory_request)
+            container_spec.resources.resource_memory_request = placeholder
+
+            if task.container_spec.resources.memory_request == placeholder:
+                container_spec.resources.memory_request = compiler_utils._memory_to_float(
+                    task.container_spec.resources.memory_request)
         if task.container_spec.resources.memory_limit is not None:
-            container_spec.resources.resource_memory_limit = convert_to_placeholder(
+            placeholder = convert_to_placeholder(
                 task.container_spec.resources.memory_limit)
+            container_spec.resources.resource_memory_limit = placeholder
+
+            if task.container_spec.resources.memory_limit == placeholder:
+                container_spec.resources.memory_limit = compiler_utils._memory_to_float(
+                    task.container_spec.resources.memory_limit)
         if task.container_spec.resources.accelerator_count is not None:
+            ac_type = None
+            ac_type_placholder = convert_to_placeholder(
+                task.container_spec.resources.accelerator_type)
+            if task.container_spec.resources.accelerator_type == ac_type_placholder:
+                ac_type = task.container_spec.resources.accelerator_type
+
+            ac_count = None
+            ac_count_placeholder = convert_to_placeholder(
+                task.container_spec.resources.accelerator_count)
+            if task.container_spec.resources.accelerator_count == ac_count_placeholder:
+                ac_count = int(task.container_spec.resources.accelerator_count)
+
             container_spec.resources.accelerator.CopyFrom(
                 pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
                 .ResourceSpec.AcceleratorConfig(
-                    resource_type=convert_to_placeholder(
-                        task.container_spec.resources.accelerator_type),
-                    resource_count=convert_to_placeholder(
-                        task.container_spec.resources.accelerator_count),
+                    resource_type=ac_type_placholder,
+                    resource_count=ac_count_placeholder,
+                    type=ac_type,
+                    count=ac_count,
                 ))
 
     return container_spec
@@ -1739,9 +1774,17 @@ def _merge_component_spec(
 ) -> None:
     """Merges component spec from a sub pipeline spec into the main config.
 
-    During the merge we need to ensure all component specs have unique component
+    During the merge we need to ensure all component specs have a unique component
     name, that means we might need to update the `component_ref` referenced from
     task specs in sub_pipeline_spec.
+
+    Uniqueness is determined by existing component names in main_pipeline_spec
+    and sub_pipeline_spec.
+
+    Renaming is first done in place, specifically in a LIFO order. This is to avoid
+    a rename causing a name collision with a later rename. Then, the actual merge
+    of component specs is done in a second pass. This ensures all component specs
+    are in the final state at the time of merging.
 
     Args:
         main_pipeline_spec: The main pipeline spec to merge into.
@@ -1766,18 +1809,22 @@ def _merge_component_spec(
             if task_spec.component_ref.name == old_component_ref:
                 task_spec.component_ref.name = new_component_ref
 
-    # Do all the renaming in place, then do the acutal merge of component specs
-    # in a second pass. This would ensure all component specs are in the final
-    # state at the time of merging.
     old_name_to_new_name = {}
-    for component_name, component_spec in sub_pipeline_spec.components.items():
+    existing_main_comp_names = list(main_pipeline_spec.components.keys())
+    for component_name, _ in sub_pipeline_spec.components.items():
         old_component_name = component_name
+        current_comp_name_collection = [
+            key for pair in old_name_to_new_name.items() for key in pair
+        ]
         new_component_name = utils.make_name_unique_by_adding_index(
             name=component_name,
-            collection=list(main_pipeline_spec.components.keys()),
+            collection=existing_main_comp_names + current_comp_name_collection,
             delimiter='-')
         old_name_to_new_name[old_component_name] = new_component_name
 
+    ordered_names = enumerate(old_name_to_new_name.items())
+    lifo_ordered_names = sorted(ordered_names, key=lambda x: x[0], reverse=True)
+    for _, (old_component_name, new_component_name) in lifo_ordered_names:
         if new_component_name != old_component_name:
             _rename_component_refs(
                 pipeline_spec=sub_pipeline_spec,

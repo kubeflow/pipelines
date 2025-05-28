@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Dockerfile for building the source code of cache_server
-FROM golang:1.22.12-alpine3.21 as builder
+FROM golang:1.23-alpine as builder
 
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc musl-dev
@@ -22,6 +22,8 @@ WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
 COPY ./go.sum ./
+COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
+COPY ./api/go.mod ./api/go.mod
 
 RUN GO111MODULE=on go mod download
 
@@ -29,7 +31,7 @@ COPY . .
 
 RUN GO111MODULE=on go build -o /bin/cache_server backend/src/cache/*.go
 
-FROM alpine:3.19
+FROM alpine
 
 RUN adduser -S appuser
 USER appuser

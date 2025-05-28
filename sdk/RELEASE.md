@@ -2,11 +2,41 @@
 
 ## Features
 
+* feat(sdk): add upload pipeline and upload pipeline version from pipeline function (#11804)
+
 ## Breaking changes
 
 ## Deprecations
 
 ## Bug fixes and other changes
+
+* Depends on `google-cloud-storage>=2.2.1,<4` [\#11735](https://github.com/kubeflow/pipelines/pull/11735)
+
+## Documentation updates
+
+# 2.12.2
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* fix(sdk): Add SDK support for setting resource limits on older KFP versions (#11839)
+
+# 2.12.1
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* Depends on `kfp-server-api>=2.1.0,<2.5.0` [\#11685](https://github.com/kubeflow/pipelines/pull/11685)
 
 ## Documentation updates
 

@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      containers:
+        - name: ml-pipeline-api-server
+          ports:
+          - containerPort: 8443
+            name: webhook
+          image: domain.local/apiserver:local
+          command:
+            - "/bin/apiserver"
+          args:
+            - "--config=/config"
+            - "--sampleconfig=/config/sample_config.json"
+            - "-logtostderr=true"
+            - "--webhookTLSCertPath=/etc/webhook/certs/tls.crt"
+            - "--webhookTLSKeyPath=/etc/webhook/certs/tls.key"
+            - "--pipelinesStoreKubernetes=true"
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: kfp-api-webhook-cert

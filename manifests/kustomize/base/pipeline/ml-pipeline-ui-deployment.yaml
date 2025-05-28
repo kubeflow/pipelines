@@ -15,6 +15,9 @@ spec:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       volumes:
       - name: config-volume
         configMap:
@@ -31,8 +34,6 @@ spec:
           readOnly: true
         securityContext:
           allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
           runAsNonRoot: true
           runAsUser: 1000
           runAsGroup: 0

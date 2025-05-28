@@ -14,7 +14,6 @@ spec:
     metadata:
       labels:
         app: metacontroller
-      annotations:
         sidecar.istio.io/inject: "false"
     spec:
       containers:
@@ -38,7 +37,7 @@ spec:
               port: 8081
               path: /readyz
           securityContext:
-            seccompProfile: 
+            seccompProfile:
               type: RuntimeDefault
             capabilities:
               drop:

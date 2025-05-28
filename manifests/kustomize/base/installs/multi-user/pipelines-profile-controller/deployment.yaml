@@ -6,12 +6,22 @@ spec:
   replicas: 1
   template:
     metadata:
-      annotations:
+      labels:
         sidecar.istio.io/inject: "false"
     spec:
       containers:
       - name: profile-controller
-        image: python:3.9
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        image: public.ecr.aws/docker/library/python:3.12
         command: ["python", "/hooks/sync.py"]
         envFrom:
         - configMapRef:

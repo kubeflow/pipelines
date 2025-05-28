@@ -15,6 +15,7 @@ package argocompiler
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"sort"
 	"strconv"
@@ -553,6 +554,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--execution_id_path", outputPath(paramExecutionID),
 		"--iteration_count_path", outputPath(paramIterationCount),
 		"--condition_path", outputPath(paramCondition),
+		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
+		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
+		"--no_proxy", proxy.GetConfig().GetNoProxy(),
 		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
 		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
 		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
@@ -561,6 +565,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
+	}
+	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
+		args = append(args, "--publish_logs", value)
 	}
 
 	t := &wfapi.Template{
@@ -585,9 +592,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		Container: &k8score.Container{
 			Image:     c.driverImage,
 			Command:   c.driverCommand,
-			Env:       MLPipelineServiceEnv,
 			Args:      args,
 			Resources: driverResources,
+			Env:       append(proxy.GetConfig().GetEnvVars(), MLPipelineServiceEnv...),
 		},
 	}
 	ConfigureCABundle(t)

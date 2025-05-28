@@ -42,11 +42,12 @@ func main() {
 	noSpec := specPath == nil || *specPath == ""
 	noJob := jobPath == nil || *jobPath == ""
 	if noSpec && noJob {
-		glog.Exitf("spec or job must be specified")
+		glog.Exitf("argument --spec or --job must be specified")
 	}
 	if !noSpec && !noJob {
-		glog.Exitf("spec and job cannot be specified at the same time")
+		glog.Exitf("argument --spec and --job cannot be specified at the same time")
 	}
+
 	var job *pipelinespec.PipelineJob
 	var err error
 	if !noSpec {

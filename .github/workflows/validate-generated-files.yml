@@ -18,6 +18,8 @@ on:
       - 'api/**/*.go'
       - 'kubernetes_platform/**/*.proto'
       - 'kubernetes_platform/**/*.go'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   validate-generated-files:

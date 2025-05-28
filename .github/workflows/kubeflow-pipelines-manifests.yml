@@ -10,7 +10,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/kubeflow-pipelines-manifests.yml'
-      - 'manifests/kustomize/**'     
+      - 'manifests/kustomize/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   kubeflow-pipelines-manifests:    

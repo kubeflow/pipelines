@@ -4,8 +4,10 @@ resources:
   - cache-deployer-role.yaml
   - cache-deployer-rolebinding.yaml
   - cache-deployer-deployment.yaml
-commonLabels:
-  app: cache-deployer
 images:
   - name: ghcr.io/kubeflow/kfp-cache-deployer
-    newTag: 2.4.0
+    newTag: 2.5.0
+labels:
+  - includeSelectors: true
+    pairs:
+      app: cache-deployer

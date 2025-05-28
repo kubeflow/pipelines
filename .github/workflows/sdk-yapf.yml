@@ -11,6 +11,8 @@ on:
       - 'sdk/python/**'
       - 'test/presubmit-yapf-sdk.sh'
       - '.github/workflows/sdk-yapf.yml'
+      - '!**/*.md'
+      - '!**/OWNERS'
   pull_request:
     branches:
       - master

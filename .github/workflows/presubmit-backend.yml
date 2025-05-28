@@ -16,6 +16,8 @@ on:
     paths:
       - 'backend/**'
       - 'test/presubmit-backend-test.sh'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   backend-tests:

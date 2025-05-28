@@ -16,7 +16,7 @@
 ARG SOURCE_CODE=.
 ARG CI_CONTAINER_VERSION="unknown"
 
-FROM registry.access.redhat.com/ubi9/go-toolset:1.22 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.23 as builder
 
 ## Build args to be used at this step
 ARG SOURCE_CODE

@@ -12,6 +12,8 @@ on:
       - 'sdk/**'
       - 'test/presubmit-tests-sdk.sh'
       - '.github/workflows/kfp-sdk-tests.yml'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   sdk-tests:

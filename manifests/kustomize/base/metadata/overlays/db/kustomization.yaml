@@ -12,13 +12,13 @@ patches:
 - path: patches/metadata-grpc-deployment.yaml
 
 configMapGenerator:
-- name: metadata-db-parameters
-  envs:
+- envs:
   - params.env
+  name: metadata-db-parameters
 secretGenerator:
-- name: metadata-db-secrets
-  envs:
+- envs:
   - secrets.env
+  name: metadata-db-secrets
 generatorOptions:
   disableNameSuffixHash: true
 
@@ -29,10 +29,10 @@ images:
   newTag: 8.0.3
 
 vars:
-- name: MLMD_DB_HOST
+- fieldref:
+    fieldPath: metadata.name
+  name: MLMD_DB_HOST
   objref:
+    apiVersion: v1
     kind: Service
     name: metadata-db
-    apiVersion: v1
-  fieldref:
-    fieldpath: metadata.name

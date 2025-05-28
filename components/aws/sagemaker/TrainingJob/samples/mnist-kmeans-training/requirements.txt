@@ -1,4 +1,4 @@
 numpy==1.23.1
 boto3==1.14.12
-sagemaker==2.1.0
+sagemaker==2.237.3
 kfp==1.8.13

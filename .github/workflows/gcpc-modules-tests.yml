@@ -12,6 +12,8 @@ on:
     paths:
       - '.github/workflows/gcpc-modules-tests.yml'
       - 'sdk/python/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   all-gcpc-tests:

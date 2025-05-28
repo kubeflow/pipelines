@@ -16,6 +16,8 @@ on:
       - 'samples/**'
       - 'samples/core/dataflow/**'
       - 'samples/core/parameterized_tfx_oss/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   samples:
@@ -64,20 +66,28 @@ jobs:
       run: make python && pip install python/dist/*.whl
 
     - name: Create KFP cluster
+      id: create-kfp-cluster
       uses: ./.github/actions/kfp-cluster
       with:
         k8s_version: ${{ matrix.k8s_version }}
+      continue-on-error: true
 
     - name: Build and upload the sample Modelcar image to Kind
+      id: build-sample-modelcar-image
+      if: ${{ (steps.create-kfp-cluster.outcome == 'success' )}}
       run: |
         docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
         kind --name kfp load docker-image registry.domain.local/modelcar:test
+      continue-on-error: true
 
     - name: Forward API port
+      id: forward-api-port
+      if: ${{ (steps.build-sample-modelcar-image.outcome == 'success' )}}
       run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
 
     - name: Run Samples Tests
       id: tests
+      if: ${{ (steps.forward-api-port.outcome == 'success' )}}
       env:
         PULL_NUMBER: ${{ github.event.pull_request.number }}
         REPO_NAME: ${{ github.repository }}
@@ -86,7 +96,7 @@ jobs:
       continue-on-error: true
 
     - name: Collect failed logs
-      if: steps.tests.outcome != 'success'
+      if: ${{ (steps.create-kfp-cluster.outcome != 'success' ) || ( steps.tests.outcome != 'success' )}}
       run: | 
         ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
         exit 1

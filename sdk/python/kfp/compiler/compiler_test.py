@@ -909,6 +909,48 @@ implementation:
             ]):
                 task = print_and_return(text='Hello')
 
+    def test_pipeline_reusing_other_pipeline_multiple_times(self):
+
+        @dsl.pipeline()
+        def reusable_pipeline():
+            print_op(message='Reused pipeline')
+
+        @dsl.pipeline()
+        def do_something_else_pipeline():
+            print_op(message='Do something else pipeline')
+
+            reusable_pipeline()
+
+        @dsl.pipeline()
+        def orchestrator_pipeline():
+            reusable_pipeline()
+
+            do_something_else_pipeline()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=orchestrator_pipeline, package_path=output_yaml)
+            self.assertTrue(os.path.exists(output_yaml))
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+                tasks = [
+                    comp.get('dag', {}).get('tasks', {})
+                    for comp in pipeline_spec['components'].values()
+                ]
+                component_refs = [[
+                    x.get('componentRef', {}).get('name')
+                    for x in task.values()
+                ]
+                                  for task in tasks]
+                all_component_refs = [
+                    item for sublist in component_refs for item in sublist
+                ]
+                counted_refs = collections.Counter(all_component_refs)
+                print(counted_refs)
+                self.assertEqual(1, max(counted_refs.values()))
+
     def test_pipeline_with_parameterized_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
@@ -3527,6 +3569,9 @@ class TestResourceConfig(unittest.TestCase):
         self.assertEqual(
             '5', dict_format['deploymentSpec']['executors']['exec-return-1-2']
             ['container']['resources']['resourceCpuLimit'])
+        self.assertEqual(
+            5.0, dict_format['deploymentSpec']['executors']['exec-return-1-2']
+            ['container']['resources']['cpuLimit'])
         self.assertNotIn(
             'memoryLimit', dict_format['deploymentSpec']['executors']
             ['exec-return-1-2']['container']['resources'])
@@ -3534,6 +3579,9 @@ class TestResourceConfig(unittest.TestCase):
         self.assertEqual(
             '50G', dict_format['deploymentSpec']['executors']['exec-return-1-3']
             ['container']['resources']['resourceMemoryLimit'])
+        self.assertEqual(
+            50.0, dict_format['deploymentSpec']['executors']['exec-return-1-3']
+            ['container']['resources']['memoryLimit'])
         self.assertNotIn(
             'cpuLimit', dict_format['deploymentSpec']['executors']
             ['exec-return-1-3']['container']['resources'])
@@ -3542,14 +3590,61 @@ class TestResourceConfig(unittest.TestCase):
             '2', dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['resourceCpuRequest'])
         self.assertEqual(
+            2.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            ['container']['resources']['cpuRequest'])
+        self.assertEqual(
             '5', dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['resourceCpuLimit'])
+        self.assertEqual(
+            5.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            ['container']['resources']['cpuLimit'])
         self.assertEqual(
             '4G', dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['resourceMemoryRequest'])
         self.assertEqual(
+            4.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            ['container']['resources']['memoryRequest'])
+        self.assertEqual(
             '50G', dict_format['deploymentSpec']['executors']['exec-return-1-4']
             ['container']['resources']['resourceMemoryLimit'])
+        self.assertEqual(
+            50.0, dict_format['deploymentSpec']['executors']['exec-return-1-4']
+            ['container']['resources']['memoryLimit'])
+
+    def test_cpu_memory_input_parameter(self):
+
+        @dsl.pipeline
+        def simple_pipeline(
+            cpu_request: str,
+            cpu_limt: str,
+            memory_request: str,
+            memory_limit: str,
+            ac_type: str,
+            ac_count: int,
+        ):
+            return_1().set_cpu_request(cpu_request)\
+                .set_cpu_limit(cpu_limt)\
+                .set_memory_request(memory_request)\
+                .set_memory_limit(memory_limit)\
+                .set_accelerator_limit(ac_count)\
+                .set_accelerator_type(ac_type)
+
+        dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
+        resources = dict_format['deploymentSpec']['executors']['exec-return-1'][
+            'container']['resources']
+
+        self.assertIn('resourceCpuRequest', resources)
+        self.assertNotIn('cpuRequest', resources)
+        self.assertIn('resourceCpuLimit', resources)
+        self.assertNotIn('cpuLimit', resources)
+        self.assertIn('resourceMemoryRequest', resources)
+        self.assertNotIn('memoryRequest', resources)
+        self.assertIn('resourceMemoryLimit', resources)
+        self.assertNotIn('memoryLimit', resources)
+        self.assertIn('resourceType', resources['accelerator'])
+        self.assertNotIn('type', resources['accelerator'])
+        self.assertIn('resourceCount', resources['accelerator'])
+        self.assertNotIn('count', resources['accelerator'])
 
 
 class TestPlatformConfig(unittest.TestCase):

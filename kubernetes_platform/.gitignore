@@ -1,1 +1,2 @@
-**/*pb2*.py
+dist/*
+kfp_kubernetes.egg-info/*

@@ -24,7 +24,19 @@ C_DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$C_DIR" ]]; then C_DIR="$PWD"; fi
 source "${C_DIR}/helper-functions.sh"
 
+USE_PROXY=false
+
+while getopts ":p-:" OPT; do
+    case $OPT in
+        -) [ "$OPTARG" = "proxy" ] && USE_PROXY=true || { echo "Unknown option --$OPTARG"; exit 1; };;
+        \?) echo "Invalid option: -$OPTARG" >&2; exit 1;;
+    esac
+done
+
+shift $((OPTIND-1))
+
 kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
+kubectl apply -k "manifests/kustomize/base/crds"
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
@@ -32,8 +44,27 @@ then
   exit $EXIT_CODE
 fi
 
+#Install cert-manager
+make -C ./backend install-cert-manager || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Failed to deploy cert-manager."
+  exit $EXIT_CODE
+fi
+
 # Deploy manifest
 TEST_MANIFESTS=".github/resources/manifests/argo"
+
+if [[ "$PIPELINE_STORE" == "kubernetes" ]]; then
+  TEST_MANIFESTS=".github/resources/manifests/kubernetes-native"
+fi
+
+if $USE_PROXY; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
+else
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
+fi
+
 kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then

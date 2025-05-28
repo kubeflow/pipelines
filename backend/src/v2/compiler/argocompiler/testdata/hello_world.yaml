@@ -55,15 +55,21 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
-      - "--mlPipelineServiceTLSEnabled"
+      - --http_proxy
+      - ''
+      - --https_proxy
+      - ''
+      - --no_proxy
+      - ''
+      - --mlPipelineServiceTLSEnabled
       - "false"
-      - "--mlmd_server_address"
+      - --mlmd_server_address
       - "metadata-grpc-service"
-      - "--mlmd_server_port"
+      - --mlmd_server_port
       - "8080"
-      - "--metadataTLSEnabled"
+      - --metadataTLSEnabled
       - "false"
-      - "--ca_cert_path"
+      - --ca_cert_path
       - ""
       command:
       - driver
@@ -260,15 +266,21 @@ spec:
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
-      - "--mlPipelineServiceTLSEnabled"
+      - --http_proxy
+      - ''
+      - --https_proxy
+      - ''
+      - --no_proxy
+      - ''
+      - --mlPipelineServiceTLSEnabled
       - "false"
-      - "--mlmd_server_address"
+      - --mlmd_server_address
       - "metadata-grpc-service"
-      - "--mlmd_server_port"
+      - --mlmd_server_port
       - "8080"
-      - "--metadataTLSEnabled"
+      - --metadataTLSEnabled
       - "false"
-      - "--ca_cert_path"
+      - --ca_cert_path
       - ""
       env:
         - name: ML_PIPELINE_SERVICE_HOST

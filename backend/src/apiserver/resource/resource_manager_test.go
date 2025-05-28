@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"net/url"
 	"strings"
 	"testing"
@@ -56,6 +57,7 @@ func strPtr(i string) *string {
 
 func initEnvVars() {
 	viper.Set(common.PodNamespace, "ns1")
+	proxy.InitializeConfigWithEmptyForTests()
 }
 
 type FakeBadObjectStore struct{}

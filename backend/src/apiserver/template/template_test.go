@@ -16,6 +16,7 @@ package template
 
 import (
 	"encoding/json"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"strings"
 	"testing"
@@ -172,6 +173,8 @@ func TestToSwfCRDResourceGeneratedName_EmptyName(t *testing.T) {
 }
 
 func TestScheduledWorkflow(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
 	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
 	v2Template, _ := New([]byte(v2SpecHelloWorldYAML))
 

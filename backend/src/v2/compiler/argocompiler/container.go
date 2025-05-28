@@ -20,6 +20,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
@@ -31,18 +34,23 @@ import (
 )
 
 const (
-	volumeNameKFPLauncher    = "kfp-launcher"
-	volumeNameCABundle       = "ca-bundle"
-	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:2.4.0"
-	LauncherImageEnvVar      = "V2_LAUNCHER_IMAGE"
-	LauncherCommandEnvVar    = "V2_LAUNCHER_COMMAND"
-	DefaultLauncherCommand   = "launcher-v2"
-	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:2.4.0"
-	DriverImageEnvVar        = "V2_DRIVER_IMAGE"
+	volumeNameKFPLauncher  = "kfp-launcher"
+	volumeNameCABundle     = "ca-bundle"
+	LauncherImageEnvVar    = "V2_LAUNCHER_IMAGE"
+	LauncherCommandEnvVar  = "V2_LAUNCHER_COMMAND"
+	DefaultLauncherCommand = "launcher-v2"
+	DriverImageEnvVar      = "V2_DRIVER_IMAGE"
+	// DefaultLauncherImage & DefaultDriverImage are set as latest here
+	// but are overridden by environment variables set via k8s manifests.
+	// For releases, the manifest will have the correct release version set.
+	// this is to avoid hardcoding releases in code here.
+	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:latest"
+	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:latest"
 	DefaultDriverCommand     = "driver"
 	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
 	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
 	PipelineLogLevelEnvVar   = "PIPELINE_LOG_LEVEL"
+	PublishLogsEnvVar        = "PUBLISH_LOGS"
 	gcsScratchLocation       = "/gcs"
 	gcsScratchName           = "gcs-scratch"
 	s3ScratchLocation        = "/s3"
@@ -190,6 +198,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
 		"--condition_path", outputPath(paramCondition),
 		"--kubernetes_config", inputValue(paramKubernetesConfig),
+		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
+		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
+		"--no_proxy", proxy.GetConfig().GetNoProxy(),
 		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
 		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
 		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
@@ -198,6 +209,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
+	}
+	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
+		args = append(args, "--publish_logs", value)
 	}
 
 	t := &wfapi.Template{
@@ -222,9 +236,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		Container: &k8score.Container{
 			Image:     c.driverImage,
 			Command:   c.driverCommand,
-			Env:       MLPipelineServiceEnv,
 			Args:      args,
 			Resources: driverResources,
+			Env:       append(proxy.GetConfig().GetEnvVars(), MLPipelineServiceEnv...),
 		},
 	}
 
@@ -259,7 +273,7 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 	}
 	task := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerExecutorTemplate(refName),
+		Template: c.addContainerExecutorTemplate(name, refName),
 		When:     when,
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
@@ -278,10 +292,15 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 // any container component task.
 // During runtime, it's expected that pod-spec-patch will specify command, args
 // and resources etc, that are different for different tasks.
-func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
+func (c *workflowCompiler) addContainerExecutorTemplate(name string, refName string) string {
 	// container template is parent of container implementation template
 	nameContainerExecutor := "system-container-executor"
 	nameContainerImpl := "system-container-impl"
+	taskRetrySpec := c.getTaskRetryPolicySpec(name)
+	if taskRetrySpec != nil {
+		nameContainerExecutor = name + "-" + nameContainerExecutor
+		nameContainerImpl = name + "-" + "system-container-impl"
+	}
 	_, ok := c.templates[nameContainerExecutor]
 	if ok {
 		return nameContainerExecutor
@@ -321,8 +340,12 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
+	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
+		args = append(args, "--publish_logs", value)
+	}
 	executor := &wfapi.Template{
-		Name: nameContainerImpl,
+		Name:          nameContainerImpl,
+		RetryStrategy: c.getTaskRetryStrategy(name),
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramPodSpecPatch},
@@ -500,6 +523,52 @@ func (c *workflowCompiler) addContainerExecutorTemplate(refName string) string {
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
 	return nameContainerExecutor
+}
+
+func (c *workflowCompiler) getTaskRetryPolicySpec(name string) *pipelinespec.PipelineTaskSpec_RetryPolicy {
+	if c.spec == nil || c.spec.Root == nil || c.spec.Root.GetDag() == nil {
+		return nil
+	}
+	rootDag := c.spec.Root.GetDag()
+	taskSpec := rootDag.Tasks[name]
+	if taskSpec == nil {
+		return nil
+	}
+	return taskSpec.RetryPolicy
+}
+
+func (c *workflowCompiler) getTaskRetryStrategy(name string) *wfapi.RetryStrategy {
+	retryPolicy := c.getTaskRetryPolicySpec(name)
+	if retryPolicy == nil {
+		return nil
+	}
+
+	argoBackOffDuration := "0"
+	backoffDuration := retryPolicy.GetBackoffDuration()
+	if backoffDuration != nil {
+		argoBackOffDuration = strconv.FormatInt(backoffDuration.Seconds, 10)
+	}
+
+	var argoMaxDuration string
+	backoffMaxDuration := retryPolicy.GetBackoffMaxDuration()
+	if backoffMaxDuration != nil {
+		argoMaxDuration = strconv.FormatInt(backoffMaxDuration.Seconds, 10)
+	}
+	backoff := &wfapi.Backoff{
+		Factor: &intstr.IntOrString{
+			Type:   intstr.Int,
+			IntVal: int32(retryPolicy.GetBackoffFactor()),
+		},
+		MaxDuration: argoMaxDuration,
+		Duration:    argoBackOffDuration,
+	}
+	return &wfapi.RetryStrategy{
+		Limit: &intstr.IntOrString{
+			Type:   intstr.Int,
+			IntVal: retryPolicy.MaxRetryCount,
+		},
+		Backoff: backoff,
+	}
 }
 
 // Extends the PodMetadata to include Kubernetes-specific executor config.

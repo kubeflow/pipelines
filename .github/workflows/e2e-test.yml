@@ -19,6 +19,8 @@ on:
       - 'proxy/**'
       - 'manifests/kustomize/**'
       - 'test/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   initialization-tests-v1:
@@ -53,7 +55,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
@@ -95,7 +97,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
@@ -140,7 +142,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
@@ -182,7 +184,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
@@ -190,6 +192,56 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
+
+  api-integration-tests-v2-with-proxy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [ "v1.31.0" ]
+    name: API integration tests v2 with proxy - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          proxy: 'true'
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ (steps.create-kfp-cluster.outcome == 'success' )}}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: API integration tests v2
+        id: tests
+        if: ${{ (steps.forward-api-port.outcome == 'success' )}}
+        working-directory: ./backend/test/v2/integration
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -useProxy=true
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ (steps.create-kfp-cluster.outcome != 'success' ) || ( steps.forward-api-port.outcome != 'success' ) || ( steps.tests.outcome != 'success' )}}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns squid --output /tmp/tmp_squid_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-with-proxy-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
 
   frontend-integration-test:
@@ -231,7 +283,7 @@ jobs:
       - name: Collect failed logs
         if: steps.tests.outcome != 'success'
         run: |
-          ./.github/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results

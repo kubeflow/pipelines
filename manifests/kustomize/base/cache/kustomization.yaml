@@ -6,8 +6,10 @@ resources:
   - cache-rolebinding.yaml
   - cache-sa.yaml
   - cache-service.yaml
-commonLabels:
-  app: cache-server
 images:
   - name: ghcr.io/kubeflow/kfp-cache-server
-    newTag: 2.4.0
+    newTag: 2.5.0
+labels:
+  - includeSelectors: true
+    pairs:
+      app: cache-server

@@ -14,6 +14,8 @@ on:
       - '.github/resources/**'
       - 'backend/**'
       - 'manifests/kustomize/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   upgrade-test:

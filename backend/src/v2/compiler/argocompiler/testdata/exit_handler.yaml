@@ -74,6 +74,12 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ''
+      - --https_proxy
+      - ''
+      - --no_proxy
+      - ''
       - --mlPipelineServiceTLSEnabled
       - 'false'
       - --mlmd_server_address
@@ -333,6 +339,12 @@ spec:
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ''
+      - --https_proxy
+      - ''
+      - --no_proxy
+      - ''
       - --mlPipelineServiceTLSEnabled
       - 'false'
       - --mlmd_server_address

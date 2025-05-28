@@ -55,11 +55,9 @@ spec:
           name: mysql
         securityContext:
           allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
           runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
+          runAsUser: 999
+          runAsGroup: 999
           capabilities:
             drop:
             - ALL
@@ -67,9 +65,14 @@ spec:
         - mountPath: /var/lib/mysql
           name: mysql-persistent-storage
         resources:
-            requests:
-              cpu: 100m
-              memory: 800Mi
+          requests:
+            cpu: 100m
+            memory: 800Mi
+      securityContext:
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       volumes:
       - name: mysql-persistent-storage
         persistentVolumeClaim:

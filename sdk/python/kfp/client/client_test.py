@@ -17,6 +17,7 @@ import os
 import tempfile
 import textwrap
 import unittest
+from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -421,6 +422,45 @@ class TestClient(parameterized.TestCase):
                         description='description',
                         namespace='ns1')
 
+    def test_upload_pipeline_from_pipeline_func(self):
+
+        @component
+        def return_bool(boolean: bool) -> bool:
+            return boolean
+
+        @pipeline(name='test-upload', description='description')
+        def pipeline_test_upload_without_name(boolean: bool = True):
+            return_bool(boolean=boolean)
+
+        fake_tmpdir = '/fake/tmp'
+        fake_pipeline_path = os.path.join(fake_tmpdir, 'pipeline.yaml')
+        expected_result = MagicMock()
+
+        with patch('tempfile.TemporaryDirectory') as mock_tempdir, \
+             patch('kfp.compiler.Compiler.compile') as mock_compile, \
+             patch.object(self.client, 'upload_pipeline', return_value=expected_result) as mock_upload:
+
+            mock_tempdir.return_value.__enter__.return_value = fake_tmpdir
+
+            result = self.client.upload_pipeline_from_pipeline_func(
+                pipeline_func=pipeline_test_upload_without_name,
+                pipeline_name='test-pipeline',
+                description='A test pipeline',
+                namespace='test-ns')
+
+            mock_compile.assert_called_once_with(
+                pipeline_func=pipeline_test_upload_without_name,
+                package_path=fake_pipeline_path,
+            )
+
+            mock_upload.assert_called_once_with(
+                pipeline_package_path=fake_pipeline_path,
+                pipeline_name='test-pipeline',
+                description='A test pipeline',
+                namespace='test-ns')
+
+            self.assertEqual(result, expected_result)
+
     @parameterized.parameters([
         'pipeline',
         'my-pipeline',
@@ -465,6 +505,47 @@ class TestClient(parameterized.TestCase):
                         pipeline_name=pipeline_name,
                         description='description',
                         namespace='ns1')
+
+    def test_upload_pipeline_version_from_pipeline_func(self):
+
+        @component
+        def return_bool(boolean: bool) -> bool:
+            return boolean
+
+        @pipeline(name='test-upload', description='description')
+        def pipeline_test_upload_without_name(boolean: bool = True):
+            return_bool(boolean=boolean)
+
+        fake_tmpdir = '/mock/tmp'
+        fake_pipeline_path = os.path.join(fake_tmpdir, 'pipeline.yaml')
+        expected_result = MagicMock()
+
+        with patch('tempfile.TemporaryDirectory') as mock_tempdir, \
+             patch('kfp.compiler.Compiler.compile') as mock_compile, \
+             patch.object(self.client, 'upload_pipeline_version', return_value=expected_result) as mock_upload_version:
+
+            mock_tempdir.return_value.__enter__.return_value = fake_tmpdir
+
+            result = self.client.upload_pipeline_version_from_pipeline_func(
+                pipeline_func=pipeline_test_upload_without_name,
+                pipeline_version_name='v1.0',
+                pipeline_id='pipeline123',
+                pipeline_name='test-pipeline',
+                description='A test pipeline version')
+
+            mock_compile.assert_called_once_with(
+                pipeline_func=pipeline_test_upload_without_name,
+                package_path=fake_pipeline_path,
+            )
+
+            mock_upload_version.assert_called_once_with(
+                pipeline_package_path=fake_pipeline_path,
+                pipeline_version_name='v1.0',
+                pipeline_id='pipeline123',
+                pipeline_name='test-pipeline',
+                description='A test pipeline version')
+
+            self.assertEqual(result, expected_result)
 
 
 if __name__ == '__main__':

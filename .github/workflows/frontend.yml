@@ -16,6 +16,8 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   frontend-tests:

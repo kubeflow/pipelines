@@ -88,7 +88,7 @@ pods on the cluster using the `ml-pipeline` `Service`.
 
 #### Provisioning the Cluster
 
-To provision the kind cluster, run the following from the Git repository's root directory,:
+To provision the kind cluster, run the following from the Git repository's root directory:
 
 ```bash
 make -C backend dev-kind-cluster
@@ -123,7 +123,9 @@ server locally:
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
         "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888"
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
+        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
       },
       "args": [
         "--config",
@@ -235,8 +237,9 @@ command to use Delve and the Driver image to use debug image built previously.
                 "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
                 "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
                 "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
+                "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
                 "V2_DRIVER_IMAGE": "kfp-driver:debug",
-                "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --",
+                "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --"
             }
         }
     ]
@@ -287,6 +290,14 @@ For debugging a specific Driver pod, you'll need to continuously port forward an
 without a breakpoint so that Delve will continue execution until the Driver pod you are interested in starts up. At that
 point, you can set a break point, port forward, and connect to the remote debug session to debug that specific Driver
 pod.
+
+### Using a Webhook Proxy for Local Development in a Kind Cluster
+
+The Kubeflow Pipelines API server typically runs over HTTPS when deployed in a Kubernetes cluster. However, during local development, it operates over HTTP, which Kubernetes admission webhooks do not support (they require HTTPS). This incompatibility prevents webhooks from functioning correctly in a local Kind cluster.
+
+To resolve this, a webhook proxy acts as a bridge, allowing webhooks to communicate with the API server even when it runs over HTTP. 
+
+This is used by default when using the `dev-kind-cluster` Make target.
 
 ### Deleting the Kind Cluster
 

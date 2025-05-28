@@ -13,6 +13,8 @@ on:
       - 'sdk/python/**'
       - 'test/presubmit-test-sdk-upgrade.sh'
       - '.github/workflows/sdk-upgrade.yml'
+      - '!**/*.md'
+      - '!**/OWNERS'
 
 jobs:
   test-upgrade-kfp-sdk:
