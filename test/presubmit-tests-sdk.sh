@@ -23,11 +23,16 @@ python3 -m pip install --upgrade pip
 python3 -m pip install -r sdk/python/requirements.txt
 python3 -m pip install -r sdk/python/requirements-dev.txt
 python3 -m pip install setuptools
+python3 -m pip install wheel==0.42.0
 python3 -m pip install coveralls==1.9.2
 python3 -m pip install --upgrade protobuf
 
 python3 -m pip install sdk/python
-
+# regenerate the kfp-pipeline-spec
+cd api/
+make clean python
+cd ..
+python3 -m pip install -I api/v2alpha1/python # install the local kfp-pipeline-spec
 pytest sdk/python/kfp --cov=kfp
 
 set +x
