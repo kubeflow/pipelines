@@ -560,7 +560,6 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	e := &pb.Execution{
 		TypeId: &typeID,
 		CustomProperties: map[string]*pb.Value{
-			// We should support overriding display name in the future, for now it defaults to task name.
 			keyDisplayName: StringValue(config.DisplayName),
 			keyTaskName:    StringValue(config.TaskName),
 		},
