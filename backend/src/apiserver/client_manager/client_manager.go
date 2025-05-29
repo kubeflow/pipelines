@@ -441,10 +441,10 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	//   – namespace_conditions_finishedatinsec
 	//   – name_namespace_index
 	// See the `index:` and `uniqueIndex:` tags in model.Run and model.Pipeline.
-	
-	// Manual ALTER TABLE … ADD CONSTRAINT calls have been removed.
-	// Foreign key constraints are now defined and managed by GORM via struct tags
-	// on RunMetric.RunUUID, PipelineVersion.PipelineId, Task.RunUUID, etc.). 
+
+	// Manual AddForeignKey() calls have been removed.
+	// Foreign key constraints are now defined and managed by GORM via struct tags 'constraint'
+	// on RunMetric.RunUUID, PipelineVersion.PipelineId, Task.RunUUID, etc.).
 	// This ensures a single source of truth for schema definitions and avoids duplicate or out-of-sync DDL.
 
 	// Removed invalid ModifyColumn on Job.WorkflowSpecManifest.

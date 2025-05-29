@@ -39,8 +39,9 @@ type PipelineVersion struct {
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
 	PipelineId string `gorm:"column:PipelineId; not null; index; uniqueIndex:idx_pipelineid_name;"`
-	// Pipeline   *Pipeline             `gorm:"foreignKey:PipelineId; constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Status PipelineVersionStatus `gorm:"column:Status; not null;"`
+	// This replaces the legacy AddForeignKey constraint previously defined in client_manager.go
+	Pipeline Pipeline              `gorm:"foreignKey:PipelineId;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
+	Status   PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl   string `gorm:"column:CodeSourceUrl;"`
 	Description     string `gorm:"column:Description; type:text;"`                // Set size to large number so it will be stored as longtext
