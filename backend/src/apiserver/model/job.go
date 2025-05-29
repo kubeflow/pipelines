@@ -98,9 +98,15 @@ type Job struct {
 	UpdatedAtInSec int64  `gorm:"column:UpdatedAtInSec; default:0;"`
 	Enabled        bool   `gorm:"column:Enabled; not null;"`
 	ExperimentId   string `gorm:"column:ExperimentUUID; not null;"`
+
 	// ResourceReferences are deprecated. Use Namespace, ExperimentId
 	// PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
-	ResourceReferences []*ResourceReference `gorm:"foreignKey:ResourceUUID"`
+
+	// ResourceReferences are logical links to other KFP resources.
+	// These references are not unidirectional (i.e., no clear ownership),
+	// so we avoid declaring a foreign key. The field is excluded from GORM mapping
+	// to prevent auto-inferred relations and schema validation errors.
+	ResourceReferences []*ResourceReference `gorm:"-"`
 	Trigger
 	PipelineSpec
 	Conditions string `gorm:"column:Conditions; not null;"`
