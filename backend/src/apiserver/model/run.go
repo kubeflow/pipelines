@@ -325,6 +325,7 @@ type RunMetric struct {
 	NumberValue float64 `gorm:"column:NumberValue;"`
 	Format      string  `gorm:"column:Format;"`
 	Payload     string  `gorm:"column:Payload; not null; type: text;"`
+	RunFK       *Run    `gorm:"foreignKey:RunUUID;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"` // // This replaces the legacy AddForeignKey constraint previously defined in client_manager.go
 }
 
 type RuntimeStatus struct {
