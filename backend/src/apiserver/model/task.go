@@ -22,8 +22,10 @@ type Task struct {
 	UUID      string `gorm:"column:UUID; not null; primaryKey"`
 	Namespace string `gorm:"column:Namespace; not null;"`
 	// PipelineName was deprecated. Use RunId instead.
-	PipelineName       string           `gorm:"column:PipelineName; not null;"`
-	RunId              string           `gorm:"column:RunUUID; type:varchar(191); not null;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	PipelineName string `gorm:"column:PipelineName; not null;"`
+	RunId        string `gorm:"column:RunUUID; type:varchar(191); not null;"`
+	// This replaces the legacy AddForeignKey constraint previously defined in client_manager.go
+	Run                Run              `gorm:"foreignKey:RunUUID;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
 	PodName            string           `gorm:"column:PodName; not null;"`
 	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
 	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`
