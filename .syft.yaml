@@ -1,0 +1,13 @@
+# Only the Go backend components are part of the final container image so other components in the monorepo should not be
+# part of any generated SBOM from Syft.
+exclude:
+- ./.github
+- ./components/**
+- ./frontend/**
+- ./samples/**
+- ./test/**
+- ./tools/**
+- ./**/package.json
+- ./**/package-lock.json
+- ./**/*requirements*.txt
+- ./**/setup.py

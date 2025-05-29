@@ -21,6 +21,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 )
 
 type FakeClientManager struct {
@@ -39,6 +40,7 @@ type FakeClientManager struct {
 	k8sCoreClientFake             *client.FakeKuberneteCoreClient
 	SubjectAccessReviewClientFake client.SubjectAccessReviewInterface
 	tokenReviewClientFake         client.TokenReviewInterface
+	metadataClient                metadata.ClientInterface
 	logArchive                    archive.LogArchiveInterface
 	time                          util.TimeInterface
 	uuid                          util.UUIDGeneratorInterface
@@ -80,6 +82,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		SubjectAccessReviewClientFake: client.NewFakeSubjectAccessReviewClient(),
 		tokenReviewClientFake:         client.NewFakeTokenReviewClient(),
 		logArchive:                    archive.NewLogArchive("/logs", "main.log"),
+		metadataClient:                metadata.NewFakeClient(),
 		time:                          time,
 		uuid:                          uuid,
 		AuthenticatorsFake:            auth.GetAuthenticators(client.NewFakeTokenReviewClient()),
@@ -179,6 +182,10 @@ func (f *FakeClientManager) SubjectAccessReviewClient() client.SubjectAccessRevi
 
 func (f *FakeClientManager) TokenReviewClient() client.TokenReviewInterface {
 	return f.tokenReviewClientFake
+}
+
+func (f *FakeClientManager) MetadataClient() metadata.ClientInterface {
+	return f.metadataClient
 }
 
 func (f *FakeClientManager) Authenticators() []auth.Authenticator {

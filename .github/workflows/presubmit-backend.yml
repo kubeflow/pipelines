@@ -4,9 +4,15 @@ on:
   push:
     branches:
       - master
+      - main
+      - stable
+      - 'rhoai-*'
   pull_request:
     branches:
       - master
+      - main
+      - stable
+      - 'rhoai-*'
     paths:
       - 'backend/**'
       - 'test/presubmit-backend-test.sh'

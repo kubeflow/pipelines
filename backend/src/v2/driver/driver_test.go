@@ -268,6 +268,11 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				false,
+				"unused-mlmd-server-address",
+				"unused-mlmd-server-port",
+				false,
+				"unused-ca-cert-path",
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -377,6 +382,11 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -418,6 +428,11 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -461,6 +476,11 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 	)
 	assert.Nil(t, err)
 
@@ -500,6 +520,11 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"1",
 		"true",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -621,6 +646,11 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				false,
+				"unused-mlmd-server-address",
+				"unused-mlmd-server-port",
+				false,
+				"unused-ca-cert-path",
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)

@@ -1,8 +1,18 @@
 approvers:
-  - chensun
-  - droctothorpe
+  - accorvin
+  - DharmitD
+  - dsp-developers
+  - gmfrasca
   - HumairAK
-  - james-jwu
+  - rimolive
+  - mprahl
 reviewers:
-  - chensun
+  - DharmitD
+  - gmfrasca
+  - hbelmiro
   - HumairAK
+  - rimolive
+  - VaniHaripriya
+  - mprahl
+emeritus_approvers:
+  - harshad16

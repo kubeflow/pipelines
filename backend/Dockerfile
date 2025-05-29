@@ -1,4 +1,4 @@
-# Copyright 2021-2022 The Kubeflow Authors
+# Copyright 2021-2024 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,24 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 1. Build api server application
-FROM golang:1.23-bookworm as builder
-RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
-WORKDIR /go/src/github.com/kubeflow/pipelines
+# Build arguments
+ARG SOURCE_CODE=.
 
-COPY ./go.mod ./
-COPY ./go.sum ./
-COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
-COPY ./api/go.mod ./api/go.mod
+FROM registry.access.redhat.com/ubi9/go-toolset:1.23 as builder
+
+USER root
+
+RUN dnf install -y cmake clang openssl
+
+COPY ${SOURCE_CODE}/go.mod ./
+COPY ${SOURCE_CODE}/go.sum ./
+COPY ${SOURCE_CODE}/kubernetes_platform/go.mod ./kubernetes_platform/go.mod
+COPY ${SOURCE_CODE}/api/go.mod ./api/go.mod
 
 RUN GO111MODULE=on go mod download
 
-COPY . .
-RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+# Copy the source
+COPY ${SOURCE_CODE}/ ./
+
+RUN GO111MODULE=on CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime go build -tags strictfipsruntime -o /bin/apiserver ./backend/src/apiserver/ && \
+    dnf clean all
 
 # 2. Compile preloaded pipeline samples
-FROM python:3.9 as compiler
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
+FROM registry.access.redhat.com/ubi9/python-39:9.5 as compiler
+USER root
+RUN dnf install -y python3-setuptools jq
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
@@ -53,29 +61,22 @@ RUN set -e; \
     echo "Compiling: \"$pipeline_py\"" && python3 "$pipeline_py" && echo -n "Output: " && ls "$pipeline_py.yaml"; \
     done
 
-# 3. Start api web server
-FROM debian:stable
-
-ARG COMMIT_SHA=unknown
-ENV COMMIT_SHA=${COMMIT_SHA}
-ARG TAG_NAME=unknown
-ENV TAG_NAME=${TAG_NAME}
-ENV LOG_LEVEL info 
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
 
 WORKDIR /bin
 
-# Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
-RUN apt-get update && apt-get install -y ca-certificates wget
-
-COPY backend/src/apiserver/config/ /config
+COPY --from=builder /opt/app-root/src/backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
 
 COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver
 
-# Pin sample doc links to the commit that built the backend image
-RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \
-    sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i /config/sample_config.json
+USER root
+
+# Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
+RUN microdnf install -y ca-certificates wget
+
+USER 1001
 
 # Expose apiserver port
 EXPOSE 8888
