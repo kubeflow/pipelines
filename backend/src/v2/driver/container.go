@@ -191,6 +191,11 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.PipelineLogLevel,
 		opts.PublishLogs,
 		strconv.FormatBool(opts.CacheDisabled),
+		opts.MLPipelineTLSEnabled,
+		opts.MLMDServerAddress,
+		opts.MLMDServerPort,
+		opts.MLMDTLSEnabled,
+		opts.CaCertPath,
 	)
 	if err != nil {
 		return execution, err

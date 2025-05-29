@@ -31,8 +31,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
-	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"

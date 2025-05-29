@@ -70,7 +70,7 @@ type client struct {
 var _ Client = &client{}
 
 // NewClient creates a Client.
-func NewClient(cacheDisabled bool) (Client, error) {
+func NewClient(cacheDisabled bool, mlPipelineServiceTLSEnabled bool) (Client, error) {
 	if cacheDisabled {
 		return &disabledCacheClient{}, nil
 	}

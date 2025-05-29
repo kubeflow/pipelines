@@ -34,12 +34,10 @@ import (
 )
 
 const (
-	volumeNameKFPLauncher  = "kfp-launcher"
-	volumeNameCABundle     = "ca-bundle"
-	LauncherImageEnvVar    = "V2_LAUNCHER_IMAGE"
-	LauncherCommandEnvVar  = "V2_LAUNCHER_COMMAND"
-	DefaultLauncherCommand = "launcher-v2"
-	DriverImageEnvVar      = "V2_DRIVER_IMAGE"
+	volumeNameKFPLauncher = "kfp-launcher"
+	volumeNameCABundle    = "ca-bundle"
+	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
+	DriverImageEnvVar     = "V2_DRIVER_IMAGE"
 	// DefaultLauncherImage & DefaultDriverImage are set as latest here
 	// but are overridden by environment variables set via k8s manifests.
 	// For releases, the manifest will have the correct release version set.

@@ -61,10 +61,25 @@ spec:
       - ''
       - --no_proxy
       - ''
+      - --mlPipelineServiceTLSEnabled
+      - "false"
+      - --mlmd_server_address
+      - "metadata-grpc-service"
+      - --mlmd_server_port
+      - "8080"
+      - --metadataTLSEnabled
+      - "false"
+      - --ca_cert_path
+      - ""
       - --cache_disabled
       - 'true'
       command:
       - driver
+      env:
+      - name: ML_PIPELINE_SERVICE_HOST
+        value: "ml-pipeline.kubeflow.svc.cluster.local"
+      - name: ML_PIPELINE_SERVICE_PORT_GRPC
+        value: "8887"
       image: ghcr.io/kubeflow/kfp-driver
       name: ""
       resources:
@@ -130,6 +145,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: ML_PIPELINE_SERVICE_HOST
+        value: "ml-pipeline.kubeflow.svc.cluster.local"
+      - name: ML_PIPELINE_SERVICE_PORT_GRPC
+        value: "8887"
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -257,10 +276,25 @@ spec:
       - ''
       - --no_proxy
       - ''
+      - --mlPipelineServiceTLSEnabled
+      - "false"
+      - --mlmd_server_address
+      - "metadata-grpc-service"
+      - --mlmd_server_port
+      - "8080"
+      - --metadataTLSEnabled
+      - "false"
+      - --ca_cert_path
+      - ""
       - --cache_disabled
       - 'true'
       command:
       - driver
+      env:
+      - name: ML_PIPELINE_SERVICE_HOST
+        value: "ml-pipeline.kubeflow.svc.cluster.local"
+      - name: ML_PIPELINE_SERVICE_PORT_GRPC
+        value: "8887"
       image: ghcr.io/kubeflow/kfp-driver
       name: ""
       resources:
