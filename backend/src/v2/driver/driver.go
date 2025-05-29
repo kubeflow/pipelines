@@ -456,7 +456,7 @@ func validateNonRoot(opts Options) error {
 	if opts.Component == nil {
 		return fmt.Errorf("component spec is required")
 	}
-	if opts.Task.GetTaskInfo().GetTaskName() == "" {
+	if opts.Task.GetTaskInfo().GetName() == "" {
 		return fmt.Errorf("task spec is required")
 	}
 	if opts.RuntimeConfig != nil {
