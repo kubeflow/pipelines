@@ -220,7 +220,7 @@ type Run struct {
 
 	// ResourceReferences are deprecated. Use Namespace, ExperimentId,
 	// RecurringRunId, PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
-	ResourceReferences []*ResourceReference `gorm:"foreignKey:ResourceUUID"`
+	ResourceReferences []*ResourceReference `gorm:"-"`
 
 	PipelineSpec
 
