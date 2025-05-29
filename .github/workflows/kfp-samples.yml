@@ -33,6 +33,15 @@ jobs:
       with:
         python-version: 3.9
 
+    - name: Free up space in /dev/root
+      run: |
+        echo "Disk usage before clean up:"
+        df -h
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        echo "Disk usage after clean up:"
+        df -h
+
     - name: apt-get update
       run: sudo apt-get update
 
