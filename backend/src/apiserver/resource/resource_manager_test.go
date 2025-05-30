@@ -18,11 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"

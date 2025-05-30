@@ -18,12 +18,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/minio/minio-go/v6"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/minio/minio-go/v6"
 
 	"github.com/cenkalti/backoff"
 	"github.com/go-sql-driver/mysql"

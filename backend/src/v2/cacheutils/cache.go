@@ -7,9 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
+
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
-	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"

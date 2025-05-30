@@ -20,10 +20,11 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
