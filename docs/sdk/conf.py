@@ -237,7 +237,7 @@ epub_exclude_files = ['search.html']
 
 # # -- Extension configuration -------------------------------------------------
 readme_path = os.path.join(
-    os.path.abspath(os.path.dirname(os.path.dirname(__file__))), 'sdk',
+    os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'sdk',
     'python', 'README.md')
 
 
