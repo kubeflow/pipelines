@@ -968,6 +968,32 @@ implementation:
                 print(counted_refs)
                 self.assertEqual(1, max(counted_refs.values()))
 
+    def test_pipeline_task_depending_on_nested_conditional_task(self):
+
+        @dsl.component
+        def dummy_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='test-nested-condition-pipeline')
+        def my_pipeline(should_run_op: bool):
+            with dsl.If(
+                    should_run_op == should_run_op,
+                    name='always_true') as outer_cond_obj:
+                with dsl.If(should_run_op == True, name='optional_condition'):
+                    dummy_op(message='Task inside inner condition')
+
+            downstream_op = dummy_op(message='Downstream task')
+            downstream_op.after(outer_cond_obj)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_yaml_success = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path=output_yaml_success,
+                pipeline_parameters={'should_run_op': True},
+            )
+            self.assertTrue(os.path.exists(output_yaml_success))
+
     def test_pipeline_with_parameterized_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
