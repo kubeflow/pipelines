@@ -183,14 +183,14 @@ def server_factory(visualization_server_image,
                 return {"status": {}, "attachments": []}
 
             if disable_istio_sidecar:
-                istio_sidecar_annotation = {"sidecar.istio.io/inject": "false"}
+                istio_sidecar_label = ', "sidecar.istio.io/inject": "false"'
             else:
-                istio_sidecar_annotation = {}
+                istio_sidecar_label = ""
 
             desired_resources = load_desired_resources(
                 namespace=namespace,
                 kfp_default_pipeline_root=kfp_default_pipeline_root,
-                istio_sidecar_annotation=istio_sidecar_annotation,
+                istio_sidecar_label=istio_sidecar_label,
                 visualization_server_image=visualization_server_image,
                 visualization_server_tag=visualization_server_tag,
                 frontend_image=frontend_image,

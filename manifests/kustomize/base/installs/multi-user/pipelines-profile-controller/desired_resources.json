@@ -31,9 +31,8 @@
             "template": {
                 "metadata": {
                     "labels": {
-                        "app": "ml-pipeline-visualizationserver"
-                    },
-                    "annotations": {{istio_sidecar_annotation}}
+                        "app": "ml-pipeline-visualizationserver"{{istio_sidecar_label}}
+                    }
                 },
                 "spec": {
                     "containers": [{
@@ -138,9 +137,8 @@
             "template": {
                 "metadata": {
                     "labels": {
-                        "app": "ml-pipeline-ui-artifact"
-                    },
-                    "annotations": {{istio_sidecar_annotation}}
+                        "app": "ml-pipeline-ui-artifact"{{istio_sidecar_label}}
+                    }
                 },
                 "spec": {
                     "containers": [{
