@@ -24,6 +24,7 @@ import (
 
 // PipelineSpec defines the desired state of Pipeline.
 type PipelineSpec struct {
+	DisplayName string `json:"displayName,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
@@ -54,6 +55,7 @@ func FromPipelineModel(pipeline model.Pipeline) Pipeline {
 			UID:       types.UID(pipeline.UUID),
 		},
 		Spec: PipelineSpec{
+			DisplayName: pipeline.DisplayName,
 			Description: pipeline.Description,
 		},
 	}
@@ -62,8 +64,14 @@ func FromPipelineModel(pipeline model.Pipeline) Pipeline {
 func (p *Pipeline) ToModel() *model.Pipeline {
 	pipelineStatus := model.PipelineCreating
 
+	displayName := p.Spec.DisplayName
+	if displayName == "" {
+		displayName = p.Name
+	}
+
 	return &model.Pipeline{
 		Name:           p.Name,
+		DisplayName:    displayName,
 		Description:    p.Spec.Description,
 		Namespace:      p.Namespace,
 		UUID:           string(p.UID),
@@ -81,7 +89,7 @@ func (p *Pipeline) GetField(name string) interface{} {
 	case "pipelines.Name":
 		return p.Name
 	case "pipelines.display_name":
-		return p.Name
+		return p.Spec.DisplayName
 	case "pipelines.created_at":
 		return p.CreationTimestamp
 	case "description":

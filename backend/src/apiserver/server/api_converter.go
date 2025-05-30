@@ -146,21 +146,35 @@ func toApiExperiments(experiments []*model.Experiment) []*apiv2beta1.Experiment 
 // Converts API pipeline to its internal representation.
 // Supports both v1beta1 abd v2beta1 API.
 func toModelPipeline(p interface{}) (*model.Pipeline, error) {
-	var name, namespace, description string
+	var name, displayName, namespace, description string
 	switch apiPipeline := p.(type) {
 	case *apiv1beta1.Pipeline:
 		namespace = getNamespaceFromResourceReferenceV1(apiPipeline.GetResourceReferences())
 		name = apiPipeline.GetName()
+		displayName = name
 		description = apiPipeline.GetDescription()
 	case *apiv2beta1.Pipeline:
 		namespace = apiPipeline.GetNamespace()
-		name = apiPipeline.GetDisplayName()
+		name = apiPipeline.GetName()
+		displayName = apiPipeline.GetDisplayName()
 		description = apiPipeline.GetDescription()
 	default:
 		return nil, util.NewUnknownApiVersionError("Pipeline", p)
 	}
+
+	// Previously display_name was the required API field and name didn't exist. Name is now the required API field
+	// but if display_name is provided, we use it as the name.
+	if name == "" {
+		name = displayName
+	}
+	// If display_name is not provided, we use the name as the display_name for backward compatibility and convenience.
+	if displayName == "" {
+		displayName = name
+	}
+
 	return &model.Pipeline{
 		Name:        name,
+		DisplayName: displayName,
 		Namespace:   namespace,
 		Description: description,
 		Status:      model.PipelineCreating,
@@ -277,7 +291,8 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 
 	return &apiv2beta1.Pipeline{
 		PipelineId:  pipeline.UUID,
-		DisplayName: pipeline.Name,
+		Name:        pipeline.Name,
+		DisplayName: pipeline.DisplayName,
 		Description: pipeline.Description,
 		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
 		Namespace:   pipeline.Namespace,
@@ -310,7 +325,7 @@ func toApiPipelines(pipelines []*model.Pipeline) []*apiv2beta1.Pipeline {
 // Supports both v1beta1 abd v2beta1 API.
 // Note: supports v1beta1 API pipeline's conversion based on default pipeline version.
 func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
-	var name, description, pipelineId, pipelineUrl, codeUrl string
+	var name, displayName, description, pipelineId, pipelineUrl, codeUrl string
 	switch p := p.(type) {
 	case *apiv1beta1.PipelineVersion:
 		apiPipelineVersionV1 := p
@@ -320,6 +335,7 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 		pipelineUrl = apiPipelineVersionV1.GetPackageUrl().GetPipelineUrl()
 		codeUrl = apiPipelineVersionV1.GetCodeSourceUrl()
 		name = apiPipelineVersionV1.GetName()
+		displayName = name
 		pipelineId = getPipelineIdFromResourceReferencesV1(apiPipelineVersionV1.GetResourceReferences())
 		description = apiPipelineVersionV1.GetDescription()
 	case *apiv2beta1.PipelineVersion:
@@ -327,7 +343,8 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 		if apiPipelineVersionV2.GetPackageUrl() == nil || len(apiPipelineVersionV2.GetPackageUrl().GetPipelineUrl()) == 0 {
 			return nil, util.NewInvalidInputError("Failed to convert v2beta1 API pipeline version to its internal representation due to missing pipeline URL")
 		}
-		name = apiPipelineVersionV2.GetDisplayName()
+		name = apiPipelineVersionV2.GetName()
+		displayName = apiPipelineVersionV2.GetDisplayName()
 		pipelineId = apiPipelineVersionV2.GetPipelineId()
 		pipelineUrl = apiPipelineVersionV2.GetPackageUrl().GetPipelineUrl()
 		codeUrl = apiPipelineVersionV2.GetCodeSourceUrl()
@@ -335,8 +352,20 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 	default:
 		return nil, util.NewUnknownApiVersionError("PipelineVersion", p)
 	}
+
+	// Previously display_name was the required API field and name didn't exist. Name is now the required API field
+	// but if display_name is provided, we use it as the name.
+	if name == "" {
+		name = displayName
+	}
+	// If display_name is not provided, we use the name as the display_name for backward compatibility and convenience.
+	if displayName == "" {
+		displayName = name
+	}
+
 	return &model.PipelineVersion{
 		Name:            name,
+		DisplayName:     displayName,
 		PipelineId:      pipelineId,
 		PipelineSpecURI: pipelineUrl,
 		CodeSourceUrl:   codeUrl,
@@ -423,7 +452,8 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 	apiPipelineVersion := &apiv2beta1.PipelineVersion{
 		PipelineId:        pv.PipelineId,
 		PipelineVersionId: pv.UUID,
-		DisplayName:       pv.Name,
+		Name:              pv.Name,
+		DisplayName:       pv.DisplayName,
 		Description:       pv.Description,
 		CreatedAt:         &timestamp.Timestamp{Seconds: pv.CreatedAtInSec},
 	}

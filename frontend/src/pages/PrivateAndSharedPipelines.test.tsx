@@ -56,6 +56,7 @@ function newMockPipeline(): V2beta1Pipeline {
   return {
     pipeline_id: 'run-pipeline-id',
     display_name: 'mock pipeline name',
+    name: 'mock-pipeline-name',
     created_at: new Date('2022-09-21T13:53:59Z'),
     description: 'mock pipeline description',
   };

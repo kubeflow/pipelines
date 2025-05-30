@@ -22,6 +22,7 @@ import { Apis, PipelineSortKeys } from 'src/lib/Apis';
 import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
 import TestUtils from 'src/TestUtils';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
 
 function generateProps(): PipelinesDialogV2Props {
   return {
@@ -32,9 +33,10 @@ function generateProps(): PipelinesDialogV2Props {
     namespace: 'ns',
     pipelineSelectorColumns: [
       {
+        customRenderer: NameWithTooltip,
         flex: 1,
         label: 'Pipeline name',
-        sortKey: PipelineSortKeys.NAME,
+        sortKey: PipelineSortKeys.DISPLAY_NAME,
       },
       { label: 'Description', flex: 2 },
       { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
@@ -57,11 +59,13 @@ function generatePageProps(): PageProps {
 
 const oldPipeline: V2beta1Pipeline = {
   pipeline_id: 'old-run-pipeline-id',
+  name: 'old-mock-pipeline-name',
   display_name: 'old mock pipeline name',
 };
 
 const newPipeline: V2beta1Pipeline = {
   pipeline_id: 'new-run-pipeline-id',
+  name: 'new-mock-pipeline-name',
   display_name: 'new mock pipeline name',
 };
 
@@ -94,6 +98,7 @@ describe('PipelinesDialog', () => {
     await TestUtils.flushPromises();
 
     expect(listPipelineSpy).toHaveBeenCalledWith('ns', '', 10, 'created_at desc', '');
+    // Verify the display names are shown instead of the names
     screen.getByText('old mock pipeline name');
     screen.getByText('new mock pipeline name');
   });
@@ -107,6 +112,7 @@ describe('PipelinesDialog', () => {
     await TestUtils.flushPromises();
 
     expect(listPipelineSpy).toHaveBeenCalledWith(undefined, '', 10, 'created_at desc', '');
+    // Verify the display names are shown instead of the names
     screen.getByText('old mock pipeline name');
     screen.getByText('new mock pipeline name');
   });

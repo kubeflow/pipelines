@@ -37,7 +37,10 @@ exports[`ResourceSelector displays resource selector 1`] = `
           "error": undefined,
           "id": "some-id-1",
           "otherFields": Array [
-            "test-1 name",
+            Object {
+              "display_name": undefined,
+              "name": "test-1 name",
+            },
             "test-1 description",
             "2/2/2018, 3:04:05 AM",
           ],
@@ -46,7 +49,10 @@ exports[`ResourceSelector displays resource selector 1`] = `
           "error": undefined,
           "id": "some-2-id",
           "otherFields": Array [
-            "test-2 name",
+            Object {
+              "display_name": undefined,
+              "name": "test-2 name",
+            },
             "test-2 description",
             "11/9/2018, 8:07:06 AM",
           ],

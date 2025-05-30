@@ -313,7 +313,7 @@ Object {
                     <a
                       class="link"
                       href="/pipelines/details/run-pipeline-id"
-                      title="mock pipeline name"
+                      title="Name: mock-pipeline-name"
                     >
                       mock pipeline name
                     </a>
@@ -411,7 +411,7 @@ Object {
                     <a
                       class="link"
                       href="/pipelines/details/run-pipeline-id"
-                      title="mock pipeline name"
+                      title="Name: mock-pipeline-name"
                     >
                       mock pipeline name
                     </a>
@@ -844,7 +844,7 @@ Object {
                   <a
                     class="link"
                     href="/pipelines/details/run-pipeline-id"
-                    title="mock pipeline name"
+                    title="Name: mock-pipeline-name"
                   >
                     mock pipeline name
                   </a>
@@ -942,7 +942,7 @@ Object {
                   <a
                     class="link"
                     href="/pipelines/details/run-pipeline-id"
-                    title="mock pipeline name"
+                    title="Name: mock-pipeline-name"
                   >
                     mock pipeline name
                   </a>
@@ -1385,7 +1385,7 @@ Object {
                   <a
                     class="link"
                     href="/pipelines/details/run-pipeline-id"
-                    title="mock pipeline name"
+                    title="Name: mock-pipeline-name"
                   >
                     mock pipeline name
                   </a>
@@ -1483,7 +1483,7 @@ Object {
                   <a
                     class="link"
                     href="/pipelines/details/run-pipeline-id"
-                    title="mock pipeline name"
+                    title="Name: mock-pipeline-name"
                   >
                     mock pipeline name
                   </a>
@@ -1868,7 +1868,7 @@ Object {
                 <a
                   class="link"
                   href="/pipelines/details/run-pipeline-id"
-                  title="mock pipeline name"
+                  title="Name: mock-pipeline-name"
                 >
                   mock pipeline name
                 </a>
@@ -1966,7 +1966,7 @@ Object {
                 <a
                   class="link"
                   href="/pipelines/details/run-pipeline-id"
-                  title="mock pipeline name"
+                  title="Name: mock-pipeline-name"
                 >
                   mock pipeline name
                 </a>

@@ -34,6 +34,7 @@ type PipelineVersionSpec struct {
 	Description   string `json:"description,omitempty"`
 	CodeSourceURL string `json:"codeSourceURL,omitempty"`
 	PipelineName  string `json:"pipelineName,omitempty"`
+	DisplayName   string `json:"displayName,omitempty"`
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Schemaless
 	// +kubebuilder:pruning:PreserveUnknownFields
@@ -128,6 +129,7 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 			},
 		},
 		Spec: PipelineVersionSpec{
+			DisplayName:     pipelineVersion.DisplayName,
 			Description:     pipelineVersion.Description,
 			PipelineSpec:    pipelineSpec,
 			PipelineName:    pipeline.Name,
@@ -163,10 +165,16 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 		}
 	}
 
+	displayName := p.Spec.DisplayName
+	if displayName == "" {
+		displayName = p.Name
+	}
+
 	return &model.PipelineVersion{
 		UUID:            string(p.UID),
 		CreatedAtInSec:  p.CreationTimestamp.Unix(),
 		Name:            p.Name,
+		DisplayName:     displayName,
 		Parameters:      "",
 		PipelineId:      string(pipelineID),
 		Status:          pipelineVersionStatus,
@@ -241,6 +249,8 @@ func (p *PipelineVersion) GetField(name string) interface{} {
 		return p.Name
 	case "pipeline_versions.CreatedAtInSec":
 		return p.CreationTimestamp
+	case "pipeline_versions.DisplayName":
+		return p.Spec.DisplayName
 	case "pipeline_versions.Description":
 		return p.Spec.Description
 	case "pipeline_versions.pipelineSpec":

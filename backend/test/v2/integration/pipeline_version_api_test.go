@@ -109,6 +109,8 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", pipelineParams)
 	require.Nil(t, err)
 	assert.Equal(t, "test-pipeline", pipeline.DisplayName)
+	// Verify that the pipeline name defaults to the display name for backwards compatibility.
+	assert.Equal(t, "test-pipeline", pipeline.Name)
 
 	/* ---------- Get pipeline id ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{})
@@ -136,6 +138,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: pipelineId,
 		Body: &pipeline_model.V2beta1PipelineVersion{
+			Name:        "sequential-v2",
 			DisplayName: "sequential",
 			PackageURL: &pipeline_model.V2beta1URL{
 				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
@@ -144,6 +147,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 		},
 	})
 	require.Nil(t, err)
+	assert.Equal(t, "sequential-v2", sequentialPipelineVersion.Name)
 	assert.Equal(t, "sequential", sequentialPipelineVersion.DisplayName)
 
 	/* ---------- Upload pipeline version zip ---------- */
@@ -187,6 +191,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	for _, p := range pipelineVersions {
 		assert.NotNil(t, *p)
 		assert.NotNil(t, p.CreatedAt)
+		assert.Contains(t, []string{"test-pipeline" /*default version created with pipeline*/, "sequential-v2", "arguments", "arguments-parameters.yaml", "zip-arguments-parameters"}, p.Name)
 		assert.Contains(t, []string{"test-pipeline" /*default version created with pipeline*/, "sequential", "arguments", "arguments-parameters.yaml", "zip-arguments-parameters"}, p.DisplayName)
 	}
 
