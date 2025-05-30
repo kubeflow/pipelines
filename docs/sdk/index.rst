@@ -1,9 +1,9 @@
 Kubeflow Pipelines (KFP) 
 ====================================
 
-.. mdinclude:: ../sdk/python/README.md
+.. mdinclude:: ../../sdk/python/README.md
 
-.. mdinclude:: Architecture.md
+.. mdinclude:: ./Architecture.md
 
 .. toctree::
    :caption: Contents

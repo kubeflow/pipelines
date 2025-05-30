@@ -14,8 +14,8 @@
 # limitations under the License.
 # install requirements
 
-pushd ..
-pip install -r docs/requirements.txt
+pushd ../..
+pip install -r docs/sdk/requirements.txt
 popd
 
 # build docs
