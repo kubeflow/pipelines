@@ -37,7 +37,7 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 		watcher, err := k8sCore.PodClient(namespaceToWatch).Watch(ctx, listOptions)
 
 		if err != nil {
-			log.Printf("Watcher error:" + err.Error())
+			log.Printf("%s", "Watcher error:"+err.Error())
 		}
 
 		for event := range watcher.ResultChan() {
@@ -45,7 +45,7 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 			if event.Type == watch.Error {
 				continue
 			}
-			log.Printf((*pod).GetName())
+			log.Printf("%s", (*pod).GetName())
 
 			if !isPodCompletedAndSucceeded(pod) {
 				log.Printf("Pod %s is not completed or not in successful status.", pod.ObjectMeta.Name)
@@ -102,7 +102,7 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 			}
 			err = patchCacheID(ctx, k8sCore, pod, namespaceToWatch, cacheEntryCreated.ID)
 			if err != nil {
-				log.Printf(err.Error())
+				log.Printf("%s", err.Error())
 			}
 		}
 	}

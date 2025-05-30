@@ -173,7 +173,7 @@ func celParseJson(arg ref.Val) ref.Val {
 	var result interface{}
 	err := json.Unmarshal([]byte(str), &result)
 	if err != nil {
-		return types.NewErr(fmt.Sprintf("failed to unmarshal JSON: %s", err.Error()))
+		return types.NewErr("%s", fmt.Sprintf("failed to unmarshal JSON: %s", err.Error()))
 	}
 	return types.DefaultTypeAdapter.NativeToValue(result)
 }

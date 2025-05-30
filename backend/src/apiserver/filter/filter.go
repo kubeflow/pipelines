@@ -213,31 +213,31 @@ func replaceMapKeys(m map[string][]interface{}, keyMap map[string]string, prefix
 
 func (f *Filter) FilterK8sPipelines(pipeline v2beta1.Pipeline) (bool, error) {
 	if len(f.eq) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "eq"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "eq"))
 	}
 
 	if len(f.neq) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "neq"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "neq"))
 	}
 
 	if len(f.gt) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gt"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "gt"))
 	}
 
 	if len(f.gte) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gte"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "gte"))
 	}
 
 	if len(f.lt) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lt"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "lt"))
 	}
 
 	if len(f.lte) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lte"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "lte"))
 	}
 
 	if len(f.in) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "in"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "in"))
 	}
 
 	for k := range f.substring {
@@ -253,31 +253,31 @@ func (f *Filter) FilterK8sPipelines(pipeline v2beta1.Pipeline) (bool, error) {
 
 func (f *Filter) FilterK8sPipelineVersions(pipelineVersion v2beta1.PipelineVersion) (bool, error) {
 	if len(f.eq) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "eq"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "eq"))
 	}
 
 	if len(f.neq) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "neq"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "neq"))
 	}
 
 	if len(f.gt) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gt"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "gt"))
 	}
 
 	if len(f.gte) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gte"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "gte"))
 	}
 
 	if len(f.lt) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lt"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "lt"))
 	}
 
 	if len(f.lte) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lte"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "lte"))
 	}
 
 	if len(f.in) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "in"))
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "in"))
 	}
 
 	for k := range f.substring {
