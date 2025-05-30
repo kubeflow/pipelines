@@ -14,6 +14,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v3
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '>=1.24.2'
     - uses: pre-commit/action@v3.0.1
       # This is set to only run the golangci-lint pre-commit hooks 
       # Remove in a later PR to run all hooks

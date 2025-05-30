@@ -185,7 +185,7 @@ func toApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVe
 	if params == nil {
 		return &apiv1beta1.Pipeline{
 			Id:    pipeline.UUID,
-			Error: util.NewInternalServerError(util.NewInvalidInputError(fmt.Sprintf("Failed to convert parameters: %s", pipelineVersion.Parameters)), "Failed to convert a model pipeline to v1beta1 API pipeline").Error(),
+			Error: util.NewInternalServerError(util.NewInvalidInputError("%s", fmt.Sprintf("Failed to convert parameters: %s", pipelineVersion.Parameters)), "Failed to convert a model pipeline to v1beta1 API pipeline").Error(),
 		}
 	}
 	if len(params) == 0 {

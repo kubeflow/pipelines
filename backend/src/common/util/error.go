@@ -107,19 +107,19 @@ func NewUserError(err error, internalMessage string, externalMessage string) *Us
 	if apiError, ok := err.(*runtime.APIError); ok {
 		if apiError.Code == API_CODE_NOT_FOUND {
 			return newUserError(
-				errors.Wrapf(err, internalMessage),
+				errors.Wrapf(err, "%s", internalMessage),
 				fmt.Sprintf("%v: %v", externalMessage, "Resource not found"),
 				codes.Code(apiError.Code))
 		} else {
 			return newUserError(
-				errors.Wrapf(err, internalMessage),
+				errors.Wrapf(err, "%s", internalMessage),
 				fmt.Sprintf("%v. Raw error from the service: %v", externalMessage, err.Error()),
 				codes.Code(apiError.Code))
 		}
 	}
 
 	return newUserError(
-		errors.Wrapf(err, internalMessage),
+		errors.Wrapf(err, "%s", internalMessage),
 		fmt.Sprintf("%v. Raw error from the service: %v", externalMessage, err.Error()),
 		codes.Internal)
 }
@@ -349,7 +349,7 @@ func Wrap(err error, message string) error {
 	case *UserError:
 		return err.wrap(message)
 	default:
-		return errors.Wrapf(err, message)
+		return errors.Wrapf(err, "%s", message)
 	}
 }
 

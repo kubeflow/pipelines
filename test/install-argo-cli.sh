@@ -19,7 +19,7 @@ set -ex
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="${DIR}/.."
 ARGO_VERSION="$(cat ${REPO_ROOT}/third_party/argo/VERSION)"
-# ARGO_VERSION=v3.5.14
+# ARGO_VERSION=v3.6.7
 OS=${OS:-"linux-amd64"}
 
 # if argo is not installed

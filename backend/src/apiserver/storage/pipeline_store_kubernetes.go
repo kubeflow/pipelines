@@ -510,7 +510,7 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 
 	err := k.client.List(ctx, &pipelineVersions, listOptions...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, errMsg)
+		return nil, util.NewInternalServerError(err, "%s", errMsg)
 	}
 
 	// If there is no pipeline version ID filter, then just return the results
@@ -527,7 +527,7 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 	// Fallback to not using the cache if the specific pipeline version is missing
 	err = k.clientNoCache.List(ctx, &pipelineVersions, listOptions...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, errMsg)
+		return nil, util.NewInternalServerError(err, "%s", errMsg)
 	}
 
 	for _, pipelineVersion := range pipelineVersions.Items {

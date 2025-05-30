@@ -118,6 +118,11 @@ func (FakePodClient) ProxyGet(scheme string, name string, port string, path stri
 	return nil
 }
 
+func (FakePodClient) UpdateResize(ctx context.Context, podName string, pod *corev1.Pod, opts v1.UpdateOptions) (result *corev1.Pod, err error) {
+	glog.Error("This fake method is not yet implemented")
+	return nil, nil
+}
+
 type FakeBadPodClient struct {
 	FakePodClient
 }

@@ -98,7 +98,7 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 	var tableNames []string
 	db.Raw(`show tables`).Pluck("Tables_in_caches", &tableNames)
 	for _, tableName := range tableNames {
-		log.Printf(tableName)
+		log.Printf("%s", tableName)
 	}
 
 	return storage.NewDB(db)
