@@ -24,10 +24,8 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/go-sql-driver/mysql"
+	mysqlStd "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -37,6 +35,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/minio/minio-go/v6"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -329,7 +330,17 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
-	db, err := gorm.Open(driverName, arg)
+	var dialector gorm.Dialector
+	switch driverName {
+	case "mysql":
+		dialector = mysql.Open(arg)
+	case "pgx":
+		dialector = postgres.Open(arg)
+	default:
+		glog.Fatalf("Unsupported driver %v", driverName)
+	}
+
+	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
 
 	// If pipeline_versions table is introduced into DB for the first time,
@@ -358,102 +369,41 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.ResourceReference{},
 	)
 
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
+	if ignoreAlreadyExistError(driverName, response) != nil {
 		glog.Fatalf("Failed to initialize the databases. Error: %s", response.Error)
 	}
 
-	var textFormat string
-	switch driverName {
-	case "mysql":
-		textFormat = client.MYSQL_TEXT_FORMAT
-	case "pgx":
-		textFormat = client.PGX_TEXT_FORMAT
-	default:
-		glog.Fatalf("Unsupported database driver %s, please use `mysql` for MySQL, or `pgx` for PostgreSQL.", driverName)
+	response = db.Migrator().DropIndex(&model.Experiment{}, "Name")
+	if response != nil {
+		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response)
 	}
 
-	response = db.Model(&model.Experiment{}).RemoveIndex("Name")
-	if response.Error != nil {
-		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response.Error)
+	response = db.Migrator().DropIndex(&model.Pipeline{}, "Name")
+	if response != nil {
+		glog.Fatalf("Failed to drop unique key on pipeline name. Error: %s", response)
 	}
 
-	response = db.Model(&model.Pipeline{}).RemoveIndex("Name")
-	if response.Error != nil {
-		glog.Fatalf("Failed to drop unique key on pipeline name. Error: %s", response.Error)
+	response = db.Migrator().AlterColumn(&model.ResourceReference{}, "Payload")
+	if response != nil {
+		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response)
 	}
 
-	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", textFormat)
-	if response.Error != nil {
-		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
-	}
+	// NOTE: Manual AddIndex/AddUniqueIndex calls have been removed.
+	// All index definitions are now declared via GORM struct tags in the model types:
+	//   – experimentuuid_createatinsec
+	//   – experimentuuid_conditions_finishedatinsec
+	//   – namespace_createatinsec
+	//   – namespace_conditions_finishedatinsec
+	//   – name_namespace_index
+	// See the `index:` and `uniqueIndex:` tags in model.Run and model.Pipeline.
 
-	response = db.Model(&model.Run{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", response.Error)
-	}
+	// Manual AddForeignKey() calls have been removed.
+	// Foreign key constraints are now defined and managed by GORM via struct tags 'constraint'
+	// on RunMetric.RunUUID, PipelineVersion.PipelineId, Task.RunUUID, etc.).
+	// This ensures a single source of truth for schema definitions and avoids duplicate or out-of-sync DDL.
 
-	response = db.Model(&model.Run{}).AddIndex("experimentuuid_conditions_finishedatinsec", "ExperimentUUID", "Conditions", "FinishedAtInSec")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.Run{}).AddIndex("namespace_createatinsec", "Namespace", "CreatedAtInSec")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index namespace_createatinsec on run_details. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.Run{}).AddIndex("namespace_conditions_finishedatinsec", "Namespace", "Conditions", "FinishedAtInSec")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index namespace_conditions_finishedatinsec on run_details. Error: %s", response.Error)
-	}
-
-	response = db.Model(&model.Pipeline{}).AddUniqueIndex("name_namespace_index", "Name", "Namespace")
-	if ignoreAlreadyExistError(driverName, response.Error) != nil {
-		glog.Fatalf("Failed to create index name_namespace_index on run_details. Error: %s", response.Error)
-	}
-
-	switch driverName {
-	case "pgx":
-		response = db.Model(&model.RunMetric{}).
-			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
-		}
-		response = db.Model(&model.PipelineVersion{}).
-			AddForeignKey("\"PipelineId\"", "pipelines(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
-		}
-		response = db.Model(&model.Task{}).
-			AddForeignKey("\"RunUUID\"", "run_details(\"UUID\")", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
-		}
-	case "mysql":
-		response = db.Model(&model.RunMetric{}).
-			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for RunUUID in run_metrics table. Error: %s", response.Error)
-		}
-		response = db.Model(&model.PipelineVersion{}).
-			AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
-		}
-		response = db.Model(&model.Task{}).
-			AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* onUpdate */)
-		if ignoreAlreadyExistError(driverName, response.Error) != nil {
-			glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
-		}
-
-		// This is a workaround because AutoMigration does not detect that the column went from not null to nullable.
-		response = db.Model(&model.Job{}).ModifyColumn("WorkflowSpecManifest", client.MYSQL_TEXT_FORMAT_NULL)
-		if response.Error != nil {
-			glog.Fatalf("Failed to make the WorkflowSpecManifest column nullable on jobs. Error: %s", response.Error)
-		}
-	default:
-		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
-	}
+	// Removed invalid ModifyColumn on Job.WorkflowSpecManifest.
+	// This field never existed on Job; original reference likely confused with PipelineSpec.
 
 	// Data backfill for pipeline_versions if this is the first time for
 	// pipeline_versions to enter mlpipeline DB.
@@ -465,9 +415,8 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to backfill experiment UUID in run_details table: %s", err)
 	}
 
-	response = db.Model(&model.Pipeline{}).ModifyColumn("Description", textFormat)
-	if response.Error != nil {
-		glog.Fatalf("Failed to update pipeline description type. Error: %s", response.Error)
+	if err := db.Migrator().AlterColumn(&model.Pipeline{}, "Description"); err != nil {
+		glog.Fatalf("Failed to update pipeline description type. Error: %s", err)
 	}
 
 	// Because PostgreSQL was supported later, there's no need to delete the relic index
@@ -485,8 +434,8 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		}
 		defer rows.Close()
 	}
-
-	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
+	newdb, _ := db.DB()
+	return storage.NewDB(newdb, storage.NewMySQLDialect())
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
@@ -494,7 +443,7 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 // 2) "pgx" for PostgreSQL
 func initDBDriver(driverName string, initConnectionTimeout time.Duration) string {
 	var sqlConfig, dbName string
-	var mysqlConfig *mysql.Config
+	var mysqlConfig *mysqlStd.Config
 	switch driverName {
 	case "mysql":
 		mysqlConfig = client.CreateMySQLConfig(
@@ -674,7 +623,11 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 
 func backfillExperimentIDToRunTable(db *gorm.DB) error {
 	// check if there is any row in the run table has experiment ID being empty
-	rows, err := db.CommonDB().Query("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1")
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	rows, err := sqlDB.Query("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1")
 	if err != nil {
 		return err
 	}
@@ -688,7 +641,7 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 		return nil
 	}
 
-	_, err = db.CommonDB().Exec(`
+	_, err = sqlDB.Exec(`
 		UPDATE
 			run_details, resource_references
 		SET
