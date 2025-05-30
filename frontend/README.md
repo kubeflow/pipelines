@@ -55,11 +55,12 @@ kubectl -n kubeflow scale --replicas=0 deployment/ml-pipeline-ui
 
 You can confirm that the previous [http://127.0.0.1:3000] link no longer works.
 
-Now navigate to the KFP frontend folder and install your NPM dependencies: 
+Now navigate to the KFP frontend folder, install and build your NPM dependencies: 
 
 ```bash
 cd ${WORKING_DIRECTORY}/frontend
 npm ci
+npm run build
 ```
 
 Now run the following: 
