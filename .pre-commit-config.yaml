@@ -25,13 +25,6 @@ repos:
 
   # add comment "noqa" to ignore an import that should not be removed
   # (e.g., for an import with desired side-effects)
-  - repo: https://github.com/hadialqattan/pycln
-    rev: v2.5.0
-    hooks:
-      - id: pycln
-        name: pycln
-        language: python
-        entry: pycln --all
   - repo: https://github.com/pycqa/isort
     rev: 5.11.5
     hooks:

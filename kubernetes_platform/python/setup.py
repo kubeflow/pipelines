@@ -27,7 +27,6 @@ DEV_REQUIREMENTS = [
     'isort==5.10.1',
     'mypy==0.941',
     'pre-commit==2.19.0',
-    'pycln==2.1.1',
     'pytest==7.1.2',
     'pytest-xdist==2.5.0',
     'yapf==0.32.0',
