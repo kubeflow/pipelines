@@ -43,6 +43,9 @@ from kfp.dsl import pipeline_task
 from kfp.dsl import PipelineTaskFinalStatus
 from kfp.dsl import tasks_group
 from kfp.dsl import yaml_component
+from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
+from kfp.dsl.pipeline_config import PipelineConfig
+from kfp.dsl.pipeline_config import WorkspaceConfig
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -4047,6 +4050,49 @@ class TestPlatformConfig(unittest.TestCase):
             def outer():
                 task = inner()
                 foo_platform_set_bar_feature(task, 12)
+
+
+class TestPipelineWorkspaceConfig(unittest.TestCase):
+
+    def test_pipeline_with_workspace_config(self):
+        """Test that pipeline config correctly sets the workspace field."""
+        config = PipelineConfig()
+        kubernetes_config = KubernetesWorkspaceConfig(
+            pvc_spec_patch={'accessModes': ['ReadWriteOnce']})
+        workspace_config = WorkspaceConfig(
+            size='10Gi', kubernetes=kubernetes_config)
+        config.set_workspace(workspace_config)
+
+        @dsl.pipeline(pipeline_config=config)
+        def my_pipeline():
+            task = comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'platforms': {
+                    'kubernetes': {
+                        'pipelineConfig': {
+                            'workspace': {
+                                'size': '10Gi',
+                                'kubernetes': {
+                                    'pvcSpecPatch': {
+                                        'accessModes': ['ReadWriteOnce']
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, expected)
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
 
 
 class ExtractInputOutputDescription(unittest.TestCase):
