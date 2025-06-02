@@ -32,4 +32,11 @@ Access the route via:
 echo https://$(oc get routes -n kubeflow ml-pipeline-ui --template={{.spec.host}})
 ```
 
+## Clean up
+To delete the `kubeflow` Openshift Project:
+
+```bash
+oc -n kubeflow delete -k .
+```
+
 [oc]: https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/cli_tools/openshift-cli-oc
