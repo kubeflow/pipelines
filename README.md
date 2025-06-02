@@ -5,6 +5,7 @@
 [![SDK Package version](https://img.shields.io/pypi/v/kfp?color=%2334D058&label=pypi%20package)](https://pypi.org/project/kfp)
 [![SDK Supported Python versions](https://img.shields.io/pypi/pyversions/kfp.svg?color=%2334D058)](https://pypi.org/project/kfp)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9938/badge)](https://www.bestpractices.dev/projects/9938)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kubeflow/pipelines)
 
 ## Overview of the Kubeflow pipelines service
 
@@ -17,6 +18,10 @@ The Kubeflow pipelines service has the following goals:
 * End to end orchestration: enabling and simplifying the orchestration of end to end machine learning pipelines
 * Easy experimentation: making it easy for you to try numerous ideas and techniques, and manage your various trials/experiments.
 * Easy re-use: enabling you to re-use components and pipelines to quickly cobble together end to end solutions, without having to re-build each time.
+
+
+## Deep Wiki
+Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines).
 
 ## Installation
 
