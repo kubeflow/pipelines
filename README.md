@@ -19,10 +19,6 @@ The Kubeflow pipelines service has the following goals:
 * Easy experimentation: making it easy for you to try numerous ideas and techniques, and manage your various trials/experiments.
 * Easy re-use: enabling you to re-use components and pipelines to quickly cobble together end to end solutions, without having to re-build each time.
 
-
-## Deep Wiki
-Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines).
-
 ## Installation
 
 * Kubeflow Pipelines can be installed as part of the [Kubeflow Platform](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-platform). Alternatively you can deploy [Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/) as a standalone service.
@@ -38,6 +34,11 @@ See the various ways you can [use the Kubeflow Pipelines SDK](https://kubeflow-p
 See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/components/pipelines/reference/api/kubeflow-pipeline-api-spec/) for API specification.
 
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/stable/) when writing pipelines using the Python SDK.
+
+## Deep Wiki
+Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines). 
+
+> :warning: Please note, this is AI generated and may not have completely accurate information.
 
 ## Contributing to Kubeflow Pipelines
 
