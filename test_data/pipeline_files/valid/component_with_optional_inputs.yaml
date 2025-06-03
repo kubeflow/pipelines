@@ -1,0 +1,141 @@
+# PIPELINE DEFINITION
+# Name: v2-component-optional-input
+# Inputs:
+#    input_str4: str
+#    input_str5: str [Default: 'Some pipeline default']
+#    input_str6: str
+components:
+  comp-component-op:
+    executorLabel: exec-component-op
+    inputDefinitions:
+      parameters:
+        input_bool1:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        input_bool2:
+          isOptional: true
+          parameterType: BOOLEAN
+        input_dict:
+          defaultValue:
+            a: 1.0
+          isOptional: true
+          parameterType: STRUCT
+        input_int:
+          defaultValue: 100.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        input_list:
+          defaultValue:
+          - '123'
+          isOptional: true
+          parameterType: LIST
+        input_str1:
+          defaultValue: string default value
+          isOptional: true
+          parameterType: STRING
+        input_str2:
+          isOptional: true
+          parameterType: STRING
+        input_str3:
+          isOptional: true
+          parameterType: STRING
+        input_str4_from_pipeline:
+          defaultValue: Some component default
+          isOptional: true
+          parameterType: STRING
+        input_str5_from_pipeline:
+          defaultValue: Some component default
+          isOptional: true
+          parameterType: STRING
+        input_str6_from_pipeline:
+          isOptional: true
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_op(\n    input_str1: Optional[str] = 'string default\
+          \ value',\n    input_str2: Optional[str] = None,\n    input_str3: Optional[str]\
+          \ = None,\n    input_str4_from_pipeline: Optional[str] = \"Some component\
+          \ default\",\n    input_str5_from_pipeline: Optional[str] = \"Some component\
+          \ default\",\n    input_str6_from_pipeline: Optional[str] = None,\n    input_bool1:\
+          \ Optional[bool] = True,\n    input_bool2: Optional[bool] = None,\n    input_dict:\
+          \ Optional[Dict[str, int]] = {\"a\": 1},\n    input_list: Optional[List[str]]\
+          \ = [\"123\"],\n    input_int: Optional[int] = 100,\n):\n    print(f'input_str1:\
+          \ {input_str1}, type: {type(input_str1)}')\n    print(f'input_str2: {input_str2},\
+          \ type: {type(input_str2)}')\n    print(f'input_str3: {input_str3}, type:\
+          \ {type(input_str3)}')\n    print(f'input_str4_from_pipeline: {input_str4_from_pipeline},\
+          \ type: {type(input_str4_from_pipeline)}')\n    print(f'input_str5_from_pipeline:\
+          \ {input_str5_from_pipeline}, type: {type(input_str5_from_pipeline)}')\n\
+          \    print(f'input_str6_from_pipeline: {input_str6_from_pipeline}, type:\
+          \ {type(input_str6_from_pipeline)}')\n    print(f'input_bool1: {input_bool1},\
+          \ type: {type(input_bool1)}')\n    print(f'input_bool2: {input_bool2}, type:\
+          \ {type(input_bool2)}')\n    print(f'input_bool: {input_dict}, type: {type(input_dict)}')\n\
+          \    print(f'input_bool: {input_list}, type: {type(input_list)}')\n    print(f'input_bool:\
+          \ {input_int}, type: {type(input_int)}')\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: v2-component-optional-input
+root:
+  dag:
+    tasks:
+      component-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-op
+        inputs:
+          parameters:
+            input_str1:
+              runtimeValue:
+                constant: Hello
+            input_str2:
+              runtimeValue:
+                constant: World
+            input_str4_from_pipeline:
+              componentInputParameter: input_str4
+            input_str5_from_pipeline:
+              componentInputParameter: input_str5
+            input_str6_from_pipeline:
+              componentInputParameter: input_str6
+        taskInfo:
+          name: component-op
+  inputDefinitions:
+    parameters:
+      input_str4:
+        isOptional: true
+        parameterType: STRING
+      input_str5:
+        defaultValue: Some pipeline default
+        isOptional: true
+        parameterType: STRING
+      input_str6:
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
