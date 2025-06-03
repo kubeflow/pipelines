@@ -2063,11 +2063,12 @@ def write_pipeline_spec_to_file(
 
 def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
                            platformSpec: pipeline_spec_pb2.PlatformSpec):
-    # TODO: add pipeline config options (ttl, semaphore, etc.) to the dict
-    # json_format.ParseDict(
-    #     {'pipelineConfig': {
-    #         '<some pipeline config option>': pipelineConfig.<get that value>,
-    #     }}, platformSpec.platforms['kubernetes'])
+    pipeline_config_json = json_format.ParseDict(
+        {
+            'pipelineConfig': {
+                'resource_ttl': pipelineConfig.get_resource_ttl(),
+            }
+        }, platformSpec.platforms['kubernetes'])
 
     return platformSpec
 
