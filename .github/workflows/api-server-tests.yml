@@ -1,0 +1,166 @@
+# This workflow runs tests to verify all the API Server REST Endpoints
+name: API Server Tests
+env:
+  API_TESTS_DIR: "./backend/test/v2/api"
+  TESTS_LABEL: "ApiServerTests"
+  NUMBER_OF_PARALLEL_NODES: 15
+  NAMESPACE: "kubeflow"
+
+on:
+  push:
+    branches: [master]
+
+  workflow_dispatch:
+    inputs:
+      test_label:
+        description: "Test label that you want to filter on and run"
+        default: 'ApiServerTests'
+        required: true
+        type: string
+      number_of_parallel_tests:
+        description: "Number of ginkgo nodes that you want run in parallel, it essentially is equivalent to number of parallel tests with some caveats"
+        default: 10
+        required: true
+        type: number
+      namespace:
+        description: "Namespace where you want to create your pipelines in"
+        default: "kubeflow"
+        required: true
+        type: string
+
+  pull_request:
+    paths:
+      - '.github/workflows/api-server-tests.yml'
+      - '.github/resources/**'
+      - 'backend/api/v2beta1/**'
+      - 'backend/src/**'
+      - 'backend/metadata_writer/**'
+      - 'backend/test/v2/api/**'
+      - 'manifests/kustomize/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
+  api-test:
+    if: github.event.pull_request.draft == false
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: ["v1.31.0"]
+        pipeline_store: [ "database", "kubernetes" ]
+        cache_enabled: [ "true", "false" ]
+        proxy: [false]
+        include:
+          - pipeline_store: "database"
+            k8s_version: "v1.31.0"
+            cache_enabled: true
+            proxy: true
+          - pipeline_store: "database"
+            k8s_version: "v1.29.2"
+            cache_enabled: true
+          - pipeline_store: "kubernetes"
+            k8s_version: "v1.29.2"
+            cache_enabled: true
+      fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
+    name: KFP API Server tests - K8sVersion=${{ matrix.k8s_version }} pipelineStore=${{ matrix.pipeline_store }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          pipeline_store: ${{ matrix.pipeline_store }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          proxy: ${{ matrix.proxy }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          multi_user: ${{ matrix.multi_user }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: API Server API Tests
+        id: api-tests
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        working-directory: ${{ env.API_TESTS_DIR }}
+        env:
+          PIPELINE_STORE: ${{ matrix.pipeline_store }}
+        run: |
+          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          TEST_LABEL=${{ env.TESTS_LABEL }}
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
+            TEST_LABEL=${{ inputs.test_label }}
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+          PROXY=${{ matrix.proxy }}
+          if [ -n PROXY ]; then
+            PROXY=false
+          fi
+          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=$NUMBER_OF_NODES -v --label-filter=$TEST_LABEL -- -namespace=$NAMESPACE -useProxy=$PROXY -cacheEnabled=${{ matrix.cache_enabled }}
+        continue-on-error: true
+
+      - name: Collect Pod logs in case of Test Failures
+        id: collect-logs
+        if: ${{ steps.api-tests.outcome != 'success' || steps.create-kfp-cluster.outcome != 'success' }}
+        run: |
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+          ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
+
+      - name: Publish Test Summary
+        id: publish
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+        with:
+          files: |
+            ${{ env.API_TESTS_DIR }}/reports/*.xml
+
+      - name: Install Junit2Html plugin and generate report
+        if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+        run: |
+          go run github.com/alexec/junit2html@latest < ${{ env.API_TESTS_DIR }}/reports/junit.xml > ${{ env.API_TESTS_DIR }}/reports/test-report.html
+        continue-on-error: true
+
+      - name: Generate UUID
+        id: uuid_gen
+        run: echo "uuid=$(uuidgen)" >> $GITHUB_OUTPUT
+
+      - name: Upload HTML Report
+        id: upload
+        uses: actions/upload-artifact@v4
+        if: (!cancelled())
+        with:
+          name: HTML Report - ${{ github.run_id }}_${{ github.job }}_${{ steps.uuid_gen.outputs.uuid }}
+          path: ${{ env.API_TESTS_DIR }}/reports/test-report.html
+        continue-on-error: true
+
+      - name: Mark Workflow failure if test step failed
+        if: steps.api-tests.outcome != 'success' && !cancelled()
+        run: exit 1
+
+      - name: Mark Workflow failure if test reporting failed
+        if: (steps.api-tests-manual.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
+        run: exit 1
+
