@@ -68,26 +68,16 @@ spec:
           - name: DISABLE_GKE_METADATA
             value: "true"
         readinessProbe:
-          exec:
-            command:
-              - wget
-              - -q # quiet
-              - -S # show server response
-              - -O
-              - "-" # Redirect output to stdout
-              - http://localhost:3000/apis/v1beta1/healthz
+          httpGet:
+            path: /apis/v1beta1/healthz
+            port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
         livenessProbe:
-          exec:
-            command:
-              - wget
-              - -q # quiet
-              - -S # show server response
-              - -O
-              - "-" # Redirect output to stdout
-              - http://localhost:3000/apis/v1beta1/healthz
+          httpGet:
+            path: /apis/v1beta1/healthz
+            port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
