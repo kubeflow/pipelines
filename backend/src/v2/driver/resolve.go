@@ -142,6 +142,7 @@ func resolveInputs(
 		}
 		return nil
 	}
+	isDagDriver := opts.Container == nil && opts.Task != nil
 	handleParamTypeValidationAndConversion := func() error {
 		// TODO(Bobgy): verify whether there are inputs not in the inputs spec.
 		for name, spec := range inputsSpec.GetParameters() {
@@ -193,7 +194,12 @@ func resolveInputs(
 				}
 				switch v := value.GetKind().(type) {
 				case *structpb.Value_NullValue:
-					return fmt.Errorf("got null for input parameter %q", name)
+					// If dag driver, allow input null parameter.
+					if isDagDriver {
+						return nil
+					} else {
+						return fmt.Errorf("got null for input parameter %q", name)
+					}
 				case *structpb.Value_StringValue:
 					// TODO(Bobgy): consider whether we support parsing string as JSON for any other types.
 					if spec.GetParameterType() != pipelinespec.ParameterType_STRING {
@@ -269,7 +275,25 @@ func resolveInputs(
 		}
 		return inputs, nil
 	}
+	// A DAG driver (not Root DAG driver) indicates this is likely the start of a nested pipeline.
+	// Handle omitted optional pipeline input parameters similar to how they are handled on the root pipeline.
+	if isDagDriver {
+		for name, paramSpec := range opts.Component.GetInputDefinitions().GetParameters() {
+			_, ok := task.Inputs.GetParameters()[name]
+			if !ok && paramSpec.IsOptional {
+				if paramSpec.GetDefaultValue() != nil {
+					// If no value was input, pass along the default value to the component.
+					//inputs.ParameterValues[name], _ = structpb.NewValue(paramSpec.GetDefaultValue())
+					inputs.ParameterValues[name] = paramSpec.GetDefaultValue()
+				} else {
+					//  If no default value is set, pass along the null value to the component.
+					//	This is analogous to a pipeline run being submitted without optional pipeline input parameters.
+					inputs.ParameterValues[name] = structpb.NewNullValue()
+				}
 
+			}
+		}
+	}
 	// Handle parameters.
 	for name, paramSpec := range task.GetInputs().GetParameters() {
 		v, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams)
