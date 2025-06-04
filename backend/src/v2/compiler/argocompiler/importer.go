@@ -82,6 +82,9 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 	}
+	if c.cacheDisabled {
+		args = append(args, "--cache_disabled", "true")
+	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -100,7 +103,7 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		},
 		Container: &k8score.Container{
 			Image:     c.launcherImage,
-			Command:   []string{"launcher-v2"},
+			Command:   c.launcherCommand,
 			Args:      args,
 			EnvFrom:   []k8score.EnvFromSource{metadataEnvFrom},
 			Env:       commonEnvs,

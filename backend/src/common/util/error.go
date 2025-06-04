@@ -275,7 +275,7 @@ func (e *UserError) wrap(message string) *UserError {
 func (e *UserError) Log() {
 	switch e.externalStatusCode {
 	case codes.Aborted, codes.InvalidArgument, codes.NotFound, codes.Internal:
-		glog.Infof("%+v", e.internalError)
+		glog.Infof("%v", e.internalError)
 	default:
 		glog.Errorf("%+v", e.internalError)
 	}

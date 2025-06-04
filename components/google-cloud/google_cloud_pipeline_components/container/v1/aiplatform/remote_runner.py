@@ -15,7 +15,7 @@
 
 import argparse
 import ast
-from distutils import util as distutil
+from distutils import util as distutil  # pytype: disable=import-error
 import inspect
 import json
 import os

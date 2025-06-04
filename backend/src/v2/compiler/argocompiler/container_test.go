@@ -18,6 +18,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
@@ -59,7 +61,7 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 				},
 			}
 
-			c.addContainerExecutorTemplate("test-ref", "comp-test-ref")
+			c.addContainerExecutorTemplate(&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}})
 			assert.NotEmpty(t, "system-container-impl", "Template name should not be empty")
 
 			executorTemplate, exists := c.templates["system-container-impl"]

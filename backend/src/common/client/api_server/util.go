@@ -64,7 +64,17 @@ func toWorkflowTestOnly(workflow string) *workflowapi.Workflow {
 }
 
 func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
-	*httptransport.Runtime, error) {
+	*httptransport.Runtime, error,
+) {
+	if os.Getenv("LOCAL_API_SERVER") == "true" {
+		httpClient := http.DefaultClient
+		runtime := httptransport.NewWithClient("localhost:8888", "", []string{"http"}, httpClient)
+		if debug {
+			runtime.SetDebug(true)
+		}
+		return runtime, nil
+	}
+
 	// Creating k8 client
 	k8Client, config, namespace, err := util.GetKubernetesClientFromClientConfig(clientConfig)
 	if err != nil {

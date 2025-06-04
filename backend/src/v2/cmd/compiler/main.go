@@ -30,11 +30,12 @@ import (
 var (
 	// The spec flag is added to make running a pipeline with default parameters easier.
 	// Backend compiler should only accept PipelineJob.
-	specPath     = flag.String("spec", "", "path to pipeline spec file")
-	jobPath      = flag.String("job", "", "path to pipeline job file")
-	launcher     = flag.String("launcher", "", "v2 launcher image")
-	driver       = flag.String("driver", "", "v2 driver image")
-	pipelineRoot = flag.String("pipeline_root", "", "pipeline root")
+	specPath          = flag.String("spec", "", "path to pipeline spec file")
+	jobPath           = flag.String("job", "", "path to pipeline job file")
+	launcher          = flag.String("launcher", "", "v2 launcher image")
+	driver            = flag.String("driver", "", "v2 driver image")
+	pipelineRoot      = flag.String("pipeline_root", "", "pipeline root")
+	cacheDisabledFlag = flag.Bool("cache_disabled", false, "disable caching")
 )
 
 func main() {
@@ -69,6 +70,7 @@ func compile(job *pipelinespec.PipelineJob) error {
 		DriverImage:   *driver,
 		LauncherImage: *launcher,
 		PipelineRoot:  *pipelineRoot,
+		CacheDisabled: *cacheDisabledFlag,
 	})
 	if err != nil {
 		return err

@@ -36,7 +36,7 @@ func getDefaultUploadedPipeline() *model.APIPipeline {
 		CreatedAt:   strfmt.NewDateTime(),
 		Name:        "PIPELINE_NAME",
 		Description: "PIPELINE_DESCRIPTION",
-		Parameters: []*model.APIParameter{&model.APIParameter{
+		Parameters: []*model.APIParameter{{
 			Name:  "PARAM_NAME",
 			Value: "PARAM_VALUE",
 		}},

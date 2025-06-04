@@ -173,7 +173,7 @@ class TestTolerationsJSON:
         # checks that a pipeline input for
         # tasks is supported
         @dsl.pipeline
-        def my_pipeline(toleration_input: str):
+        def my_pipeline(toleration_input: dict):
             task = comp()
             kubernetes.add_toleration_json(
                 task,
@@ -204,7 +204,7 @@ class TestTolerationsJSON:
         # checks that multiple pipeline inputs for
         # different tasks are supported
         @dsl.pipeline
-        def my_pipeline(toleration_input_1: str, toleration_input_2: str):
+        def my_pipeline(toleration_input_1: dict, toleration_input_2: list):
             t1 = comp()
             kubernetes.add_toleration_json(
                 t1,
@@ -248,6 +248,79 @@ class TestTolerationsJSON:
                                     }
                                 ]
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_component_pipeline_input_three(self):
+        # check list or dict types for add
+        # toleration json
+        @dsl.pipeline
+        def my_pipeline(toleration_input: dict):
+            t1 = comp()
+            kubernetes.add_toleration_json(
+                t1,
+                toleration_json=toleration_input,
+            )
+            kubernetes.add_toleration_json(
+                t1,
+                toleration_json={
+                    "key": "key3",
+                    "operator": "Equal",
+                    "value": "value3",
+                    "effect": "NoSchedule"
+                },
+            )
+            kubernetes.add_toleration_json(
+                t1,
+                toleration_json=[
+                    {
+                        "key": "key1",
+                        "operator": "Equal",
+                        "value": "value1",
+                        "effect": "NoSchedule"
+                    },
+                    {
+                        "key": "key2",
+                        "operator": "Exists",
+                        "effect": "NoExecute"
+                    }
+                ],
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'tolerations': [
+                                    {
+                                        'tolerationJson': {
+                                            'componentInputParameter': 'toleration_input'
+                                        }
+                                    },
+                                    {
+                                        'key': 'key3',
+                                        'operator': 'Equal',
+                                        'value': 'value3',
+                                        'effect': 'NoSchedule',
+                                    },
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
+                                        'effect': 'NoSchedule',
+                                    },
+                                    {
+                                        'key': 'key2',
+                                        'operator': 'Exists',
+                                        'effect': 'NoExecute',
+                                    },
+                                ]
+                            },
                         }
                     }
                 }

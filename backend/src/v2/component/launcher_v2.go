@@ -52,7 +52,8 @@ type LauncherV2Options struct {
 	MLMDServerPort,
 	PipelineName,
 	RunID string
-	PublishLogs string
+	PublishLogs   string
+	CacheDisabled bool
 }
 
 type LauncherV2 struct {
@@ -66,7 +67,7 @@ type LauncherV2 struct {
 	// clients
 	metadataClient metadata.ClientInterface
 	k8sClient      kubernetes.Interface
-	cacheClient    *cacheutils.Client
+	cacheClient    cacheutils.Client
 }
 
 // Client is the struct to hold the Kubernetes Clientset
@@ -113,7 +114,7 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
-	cacheClient, err := cacheutils.NewClient()
+	cacheClient, err := cacheutils.NewClient(opts.CacheDisabled)
 	if err != nil {
 		return nil, err
 	}
@@ -139,29 +140,31 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 		}
 
 		// Following the convention of downloadArtifacts in the launcher to only look at the first in the list.
-		inputArtifact := artifactList.Artifacts[0]
+		for _, artifact := range artifactList.Artifacts {
+			inputArtifact := artifact
 
-		// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
-		// be set on inputArtifact.
-		if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
-			continue
-		}
+			// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
+			// be set on inputArtifact.
+			if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+				continue
+			}
 
-		localPath, err := LocalPathForURI(inputArtifact.Uri)
-		if err != nil {
-			continue
-		}
+			localPath, err := LocalPathForURI(inputArtifact.Uri)
+			if err != nil {
+				continue
+			}
 
-		glog.Infof("Stopping Modelcar container for artifact %s", inputArtifact.Uri)
+			glog.Infof("Stopping Modelcar container for artifact %s", inputArtifact.Uri)
 
-		launcherCompleteFile := strings.TrimSuffix(localPath, "/models") + "/launcher-complete"
-		_, err = os.Create(launcherCompleteFile)
-		if err != nil {
-			glog.Errorf(
-				"Failed to stop the artifact %s by creating %s: %v", inputArtifact.Uri, launcherCompleteFile, err,
-			)
+			launcherCompleteFile := strings.TrimSuffix(localPath, "/models") + "/launcher-complete"
+			_, err = os.Create(launcherCompleteFile)
+			if err != nil {
+				glog.Errorf(
+					"Failed to stop the artifact %s by creating %s: %v", inputArtifact.Uri, launcherCompleteFile, err,
+				)
 
-			continue
+				continue
+			}
 		}
 	}
 }
@@ -361,26 +364,16 @@ func executeV2(
 	}
 
 	// Fill in placeholders with runtime values.
-	placeholders, err := getPlaceholders(executorInputWithDefault)
+	compiledCmd, compiledArgs, err := compileCmdAndArgs(executorInputWithDefault, cmd, args)
 	if err != nil {
 		return nil, nil, err
-	}
-	for placeholder, replacement := range placeholders {
-		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
-	}
-	for i := range args {
-		arg := args[i]
-		for placeholder, replacement := range placeholders {
-			arg = strings.ReplaceAll(arg, placeholder, replacement)
-		}
-		args[i] = arg
 	}
 
 	executorOutput, err := execute(
 		ctx,
 		executorInput,
-		cmd,
-		args,
+		compiledCmd,
+		compiledArgs,
 		bucket,
 		bucketConfig,
 		namespace,
@@ -636,51 +629,53 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
-		inputArtifact := artifactList.Artifacts[0]
-
-		localPath, err := LocalPathForURI(inputArtifact.Uri)
-		if err != nil {
-			glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
-
-			continue
-		}
-
-		// OCI artifacts are accessed via shared storage of a Modelcar
-		if strings.HasPrefix(inputArtifact.Uri, "oci://") {
-			err := waitForModelcar(inputArtifact.Uri, localPath)
+		for _, artifact := range artifactList.Artifacts {
+			// Iterating through the artifact list allows for collected artifacts to be properly consumed.
+			inputArtifact := artifact
+			localPath, err := LocalPathForURI(inputArtifact.Uri)
 			if err != nil {
-				return err
+				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
+
+				continue
 			}
 
-			continue
-		}
+			// OCI artifacts are accessed via shared storage of a Modelcar
+			if strings.HasPrefix(inputArtifact.Uri, "oci://") {
+				err := waitForModelcar(inputArtifact.Uri, localPath)
+				if err != nil {
+					return err
+				}
 
-		// Copy artifact to local storage.
-		copyErr := func(err error) error {
-			return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", name, inputArtifact.Uri, err)
-		}
-		// TODO: Selectively copy artifacts for which .path was actually specified
-		// on the command line.
-		bucket := defaultBucket
-		bucketConfig := defaultBucketConfig
-		if !strings.HasPrefix(inputArtifact.Uri, defaultBucketConfig.PrefixedBucket()) {
-			nonDefaultBucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(inputArtifact.Uri)
+				continue
+			}
+
+			// Copy artifact to local storage.
+			copyErr := func(err error) error {
+				return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", name, inputArtifact.Uri, err)
+			}
+			// TODO: Selectively copy artifacts for which .path was actually specified
+			// on the command line.
+			bucket := defaultBucket
+			bucketConfig := defaultBucketConfig
+			if !strings.HasPrefix(inputArtifact.Uri, defaultBucketConfig.PrefixedBucket()) {
+				nonDefaultBucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(inputArtifact.Uri)
+				if err != nil {
+					return fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, inputArtifact.GetUri(), err)
+				}
+				nonDefaultBucket, ok := nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()]
+				if !ok {
+					return fmt.Errorf("failed to get bucket when downloading input artifact %s with bucket key %s: %w", name, nonDefaultBucketConfig.PrefixedBucket(), err)
+				}
+				bucket = nonDefaultBucket
+				bucketConfig = nonDefaultBucketConfig
+			}
+			blobKey, err := bucketConfig.KeyFromURI(inputArtifact.Uri)
 			if err != nil {
-				return fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, inputArtifact.GetUri(), err)
+				return copyErr(err)
 			}
-			nonDefaultBucket, ok := nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()]
-			if !ok {
-				return fmt.Errorf("failed to get bucket when downloading input artifact %s with bucket key %s: %w", name, nonDefaultBucketConfig.PrefixedBucket(), err)
+			if err := objectstore.DownloadBlob(ctx, bucket, localPath, blobKey); err != nil {
+				return copyErr(err)
 			}
-			bucket = nonDefaultBucket
-			bucketConfig = nonDefaultBucketConfig
-		}
-		blobKey, err := bucketConfig.KeyFromURI(inputArtifact.Uri)
-		if err != nil {
-			return copyErr(err)
-		}
-		if err := objectstore.DownloadBlob(ctx, bucket, localPath, blobKey); err != nil {
-			return copyErr(err)
 		}
 
 	}
@@ -732,6 +727,31 @@ func fetchNonDefaultBuckets(
 
 }
 
+func compileCmdAndArgs(executorInput *pipelinespec.ExecutorInput, cmd string, args []string) (string, []string, error) {
+	placeholders, err := getPlaceholders(executorInput)
+
+	executorInputJSON, err := protojson.Marshal(executorInput)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
+	}
+	executorInputJSONKey := "{{$}}"
+	executorInputJSONString := string(executorInputJSON)
+
+	compiledCmd := strings.ReplaceAll(cmd, executorInputJSONKey, executorInputJSONString)
+	compiledArgs := make([]string, 0, len(args))
+	for placeholder, replacement := range placeholders {
+		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
+	}
+	for _, arg := range args {
+		compiledArgTemplate := strings.ReplaceAll(arg, executorInputJSONKey, executorInputJSONString)
+		for placeholder, replacement := range placeholders {
+			compiledArgTemplate = strings.ReplaceAll(compiledArgTemplate, placeholder, replacement)
+		}
+		compiledArgs = append(compiledArgs, compiledArgTemplate)
+	}
+	return compiledCmd, compiledArgs, nil
+}
+
 // Add executor input placeholders to provided map.
 func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders map[string]string, err error) {
 	defer func() {
@@ -740,11 +760,9 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		}
 	}()
 	placeholders = make(map[string]string)
-	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
 	}
-	placeholders["{{$}}"] = string(executorInputJSON)
 
 	// Read input artifact metadata.
 	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {

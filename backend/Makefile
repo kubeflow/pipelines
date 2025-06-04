@@ -1,12 +1,18 @@
 BUILD=build
 MOD_ROOT=..
-CSV_PATH=backend/third_party_licenses
 KIND_NAME ?= dev-pipelines-api
 
 CERT_MANAGER_VERSION ?= v1.16.2
 
 # Container Build Params
-CONTAINER_ENGINE ?= docker
+CONTAINER_ENGINE ?= $(shell \
+	if command -v docker >/dev/null 2>&1; then \
+		echo docker; \
+	elif command -v podman >/dev/null 2>&1; then \
+		echo podman; \
+	fi \
+)
+
 # IMG_REGISTRY can be used to automatically prepend registry details. e.g. "quay.io/kubeflow/"
 IMG_REGISTRY ?=
 IMG_TAG_APISERVER         ?= apiserver
@@ -72,13 +78,36 @@ install-cert-manager:
 	kubectl wait deployment -n cert-manager cert-manager --for condition=Available=True --timeout=180s
 	kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=180s
 
+# Creates a Kind cluster and Deploys a standalone KFP instance
+# In the Kubeflow namespace.
+.PHONY: kind-cluster-agnostic
+kind-cluster-agnostic:
+	# Deploy Kind Cluster
+	kind create cluster --name $(KIND_NAME)
+	kubectl config use-context kind-$(KIND_NAME)
+	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
+	# Deploy cluster resources required by KFP
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
+	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
+	# Deploy KFP
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic
+	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
+	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
+	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/ml-pipeline
+	# Switch to Kubeflow namespace context
+	kubectl config set-context --current --namespace=kubeflow
+
 .PHONY: dev-kind-cluster
 dev-kind-cluster:
 	${CONTAINER_ENGINE} build -t ${IMG_TAG_WEBHOOK_PROXY} -f $(CURDIR)/../tools/kind/Dockerfile.webhook-proxy $(CURDIR)/../tools/kind
 	-kind create cluster --name $(KIND_NAME) --config $(CURDIR)/../tools/kind/kind-config.yaml
 	kubectl config use-context kind-$(KIND_NAME)
 	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
-	kind --name $(KIND_NAME) load docker-image ${IMG_TAG_WEBHOOK_PROXY}
+	@if [ "${CONTAINER_ENGINE}" = "docker" ]; then \
+		kind --name ${KIND_NAME} load docker-image ${IMG_TAG_WEBHOOK_PROXY}; \
+	else \
+		bash -c "kind load --name ${KIND_NAME} image-archive <( ${CONTAINER_ENGINE} save ${IMG_TAG_WEBHOOK_PROXY})"; \
+	fi
 	$(MAKE) install-cert-manager
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
 	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
@@ -89,7 +118,22 @@ dev-kind-cluster:
 
 .PHONY: kind-load-driver-debug
 kind-load-driver-debug:
-	kind --name $(KIND_NAME) load docker-image ${IMG_TAG_DRIVER}:debug
+	@if [ "${CONTAINER_ENGINE}" = "docker" ]; then \
+		kind --name ${KIND_NAME} load docker-image ${IMG_TAG_DRIVER}:debug
+	else \
+		bash -c "kind load --name ${KIND_NAME} image-archive <( ${CONTAINER_ENGINE} save ${IMG_TAG_DRIVER})"; \
+	fi
 
 .PHONY: kind-build-and-load-driver-debug
 kind-build-and-load-driver-debug: image_driver_debug kind-load-driver-debug
+
+.PHONY: lint-and-format
+lint-and-format: lint format
+
+.PHONY: lint
+lint:
+	golangci-lint run --new-from-rev HEAD --fix
+
+.PHONY: format
+format:
+	golangci-lint fmt

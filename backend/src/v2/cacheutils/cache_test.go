@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
@@ -133,10 +135,12 @@ func TestGenerateCacheKey(t *testing.T) {
 			wantErr: false,
 		},
 	}
+	cacheClient, err := NewClient(false)
+	require.NoError(t, err)
 	for _, test := range tests {
 
 		t.Run(test.name, func(t *testing.T) {
-			got, err := GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image)
+			got, err := cacheClient.GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image)
 			if (err != nil) != test.wantErr {
 				t.Errorf("GenerateCacheKey() error = %v", err)
 				return
@@ -253,11 +257,13 @@ func TestGenerateFingerPrint(t *testing.T) {
 			fingerPrint: "0a4cc1f15cdfad5170e1358518f7128c5278500a670db1b9a3f3d83b93db396e",
 		},
 	}
+	cacheClient, err := NewClient(false)
+	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fingerPrint, err := GenerateFingerPrint(cacheKey)
+			fingerPrint, err := cacheClient.GenerateFingerPrint(cacheKey)
 			assert.Nil(t, err)
-			testFingerPrint, err := GenerateFingerPrint(test.cacheKey)
+			testFingerPrint, err := cacheClient.GenerateFingerPrint(test.cacheKey)
 			assert.Nil(t, err)
 			assert.Equal(t, fingerPrint == testFingerPrint, test.wantEqual)
 			assert.Equal(t, test.fingerPrint, testFingerPrint)

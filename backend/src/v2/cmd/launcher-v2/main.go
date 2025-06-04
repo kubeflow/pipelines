@@ -43,6 +43,7 @@ var (
 	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	logLevel          = flag.String("log_level", "1", "The verbosity level to log.")
 	publishLogs       = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+	cacheDisabledFlag = flag.Bool("cache_disabled", false, "Disable cache globally.")
 )
 
 func main() {
@@ -81,6 +82,7 @@ func run() error {
 		PipelineName:      *pipelineName,
 		RunID:             *runID,
 		PublishLogs:       *publishLogs,
+		CacheDisabled:     *cacheDisabledFlag,
 	}
 
 	switch *executorType {

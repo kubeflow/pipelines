@@ -42,7 +42,7 @@ func getDefaultPipeline(id string) *pipelinemodel.APIPipeline {
 		Description: "PIPELINE_DESCRIPTION",
 		ID:          id,
 		Name:        "PIPELINE_NAME",
-		Parameters: []*pipelinemodel.APIParameter{&pipelinemodel.APIParameter{
+		Parameters: []*pipelinemodel.APIParameter{{
 			Name:  "PARAM_NAME",
 			Value: "PARAM_VALUE",
 		}},

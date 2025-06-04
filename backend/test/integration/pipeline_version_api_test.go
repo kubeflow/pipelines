@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -145,7 +146,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 		Body: &pipeline_model.APIPipelineVersion{
 			Name: "sequential",
 			PackageURL: &pipeline_model.APIURL{
-				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml",
+				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
 			},
 			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
@@ -170,11 +171,17 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
+	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/resources/arguments.pipeline.zip"
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/backend/test/resources/arguments.pipeline.zip", pullNumber)
+	}
+
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionV1Params{
 		Body: &pipeline_model.APIPipelineVersion{
 			Name: "arguments",
 			PackageURL: &pipeline_model.APIURL{
-				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
+				PipelineURL: pipelineURL,
 			},
 			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
@@ -205,7 +212,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 				[]*pipeline_model.APIParameter{
 					{Name: "param1", Value: "hello"}, // Default value in the pipeline template
 					{Name: "param2"},                 // No default value in the pipeline
-				})
+				}, "Found wrong parameters in the pipeline version: %s", p.Name)
 		}
 	}
 
@@ -320,14 +327,14 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 		[]*pipeline_model.APIParameter{
 			{Name: "param1", Value: "hello"},
 			{Name: "param2"},
-		})
+		}, "Found wrong parameters in the pipeline version: %s", pipelineVersion.Name)
 
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetPipelineVersionTemplate(&params.PipelineServiceGetPipelineVersionTemplateParams{VersionID: argumentYAMLPipelineVersion.ID})
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes)
+	expected, err := pipelinetemplate.New(bytes, true)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template)
 }
@@ -360,7 +367,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes)
+	expected, err := pipelinetemplate.New(bytes, true)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template, "Discrepancy found in template's pipeline name. Created pipeline's name - %s.", pipeline.Name)
 }

@@ -295,6 +295,11 @@ describe('NewRunV2', () => {
 
   beforeEach(() => {});
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
   it('Fulfill default run value (start a new run)', async () => {
     const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
     getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -1271,6 +1276,308 @@ describe('NewRunV2', () => {
           open: true,
         });
       });
+    });
+  });
+
+  describe('"Always Use Latest" checkbox functionality', () => {
+    it('should be disabled when no pipeline is selected', async () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={undefined}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={undefined}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+      // switch to recurring mode
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
+      expect(checkbox.disabled).toBe(true);
+    });
+
+    it('should be hidden and version selector should be required in one-off run mode', async () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+      // make sure in one-off mode
+      const oneOffSwitcher = screen.getByLabelText('One-off');
+      fireEvent.click(oneOffSwitcher);
+      // Verify checkbox is not rendered (hidden)
+      const checkboxes = screen.queryAllByLabelText('Always use the latest pipeline version');
+      expect(checkboxes.length).toBe(0);
+      // verify version selector is enabled and required
+      const chooseBtn = document.getElementById('choosePipelineVersionBtn');
+      expect(chooseBtn.disabled).toBe(false);
+      const actualInput = screen.getByTestId('pipeline-version-input-field');
+      expect(actualInput.hasAttribute('required')).toBe(true);
+    });
+
+    it('should make version selector required if checkbox is unchecked in recurring run', async () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+      // switch to recurring mode
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      // make sure the checkbox is unchecked
+      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
+      expect(checkbox.checked).toBe(false);
+
+      // verify the version selector is enabled and required
+      const chooseBtn = document.getElementById('choosePipelineVersionBtn');
+      expect(chooseBtn.disabled).toBe(false);
+      const actualInput = screen.getByTestId('pipeline-version-input-field');
+      expect(actualInput.hasAttribute('required')).toBe(true);
+    });
+
+    it('should be checkable in recurring run mode. The default state is unchecked.', async () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      // Switch to recurring mode
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      // verify the checkbox is enabled in recurring run mode
+      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
+      expect(checkbox.disabled).toBe(false);
+
+      // verify the checkbox is unchecked by default
+      expect(checkbox.checked).toBe(false);
+
+      // verify the checkbox is checkable
+      fireEvent.click(checkbox);
+      expect(checkbox.checked).toBe(true);
+
+      // verify version selector is not required when checkbox is enabled
+      await waitFor(() => {
+        const actualInput = screen.getByTestId('pipeline-version-input-field');
+        expect(actualInput.hasAttribute('required')).toBe(false);
+      });
+    });
+
+    it('should clear version selection and disable version selector when checked', async () => {
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+      // switch to recurring mode
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      // Verify version is initially set
+      await screen.findByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME);
+
+      // Find and check the "Always Use Latest" checkbox
+      const alwaysUseLatestCheckbox = screen.getByLabelText(
+        'Always use the latest pipeline version',
+      );
+      fireEvent.click(alwaysUseLatestCheckbox);
+
+      // Verify version selection is cleared
+      const versionSelectorInput = screen.getByText('Pipeline Version');
+      expect(versionSelectorInput).toBeTruthy();
+      await waitFor(() => {
+        expect(screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME)).toBeNull();
+      });
+
+      // Verify choose button is disabled
+      const chooseBtn = document.getElementById('choosePipelineVersionBtn');
+      expect(chooseBtn.disabled).toBe(true);
+    });
+
+    it('should submit correct payload with only pipeline_id when checked', async () => {
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+      // switch to recurring mode
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      // Find and check the "Always Use Latest" checkbox
+      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
+      fireEvent.click(checkbox);
+
+      // Click start button
+      const startButton = await screen.findByText('Start');
+      fireEvent.click(startButton);
+
+      // Verify API call contains only pipeline_id
+      await waitFor(() => {
+        expect(createRecurringRunSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pipeline_version_reference: {
+              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+            },
+          }),
+        );
+      });
+
+      // Verify API call does not contain pipeline_version_id
+      await waitFor(() => {
+        expect(createRecurringRunSpy).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            pipeline_version_reference: expect.objectContaining({
+              pipeline_version_id: expect.anything(),
+            }),
+          }),
+        );
+      });
+    });
+
+    it('should submit full version info when unchecked', async () => {
+      jest.resetAllMocks();
+      // Mock API calls
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
+      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+      // switch to recurring mode
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      // make sure the checkbox is unchecked
+      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
+      expect(checkbox.checked).toBe(false);
+
+      // Click start button
+      const startButton = await screen.findByText('Start');
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(false);
+      });
+
+      fireEvent.click(startButton);
+
+      // Verify API call contains both pipeline_id and pipeline_version_id
+      await waitFor(
+        () => {
+          expect(createRecurringRunSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+              pipeline_version_reference: {
+                pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+                pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+              },
+            }),
+          );
+        },
+        { timeout: 3000 },
+      );
     });
   });
 });

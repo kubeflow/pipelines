@@ -1,6 +1,9 @@
 approvers:
   - chensun
   - connor-mccarthy
+  - hbelmiro
+  - HumairAK
+  - mprahl
+  - rimolive
 reviewers:
-  - chensun
-  - connor-mccarthy
+  - mprahl
