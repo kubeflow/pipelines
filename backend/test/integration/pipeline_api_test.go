@@ -31,6 +31,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // This test suit tests various methods to import pipeline to pipeline system, including
@@ -243,14 +244,20 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, _ := pipelinetemplate.New(bytes, true)
+	defaultPVC := &corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteMany,
+		},
+		StorageClassName: util.StringPointer("my-storage"),
+	}
+	expected, _ := pipelinetemplate.New(bytes, true, defaultPVC)
 	assert.Equal(t, expected, template)
 
 	template, err = s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
 	bytes, err = os.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, _ = pipelinetemplate.New(bytes, true)
+	expected, _ = pipelinetemplate.New(bytes, true, nil)
 	assert.Equal(t, expected, template)
 }
 
