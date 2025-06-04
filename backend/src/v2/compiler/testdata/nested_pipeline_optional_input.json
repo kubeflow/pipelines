@@ -1,0 +1,171 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-component-a": {
+        "executorLabel": "exec-component-a",
+        "inputDefinitions": {
+          "parameters": {
+            "componentInput1": {
+              "defaultValue": "Input 1 - component",
+              "isOptional": true,
+              "parameterType": "STRING"
+            }
+          }
+        }
+      },
+      "comp-component-b": {
+        "executorLabel": "exec-component-b",
+        "inputDefinitions": {
+          "parameters": {
+            "componentInput2": {
+              "defaultValue": "Input 2 -component",
+              "isOptional": true,
+              "parameterType": "STRING"
+            }
+          }
+        }
+      },
+      "comp-nested-pipeline": {
+        "dag": {
+          "tasks": {
+            "component-a": {
+              "cachingOptions": {},
+              "componentRef": {
+                "name": "comp-component-a"
+              },
+              "inputs": {
+                "parameters": {
+                  "componentInput1": {
+                    "componentInputParameter": "nestedInput1"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "component-a"
+              }
+            },
+            "component-b": {
+              "cachingOptions": {},
+              "componentRef": {
+                "name": "comp-component-b"
+              },
+              "inputs": {
+                "parameters": {
+                  "componentInput2": {
+                    "componentInputParameter": "nestedInput2"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "component-b"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "nestedInput1": {
+              "defaultValue": "Input 1 - nested pipeline",
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "nestedInput2": {
+              "defaultValue": "Input 2 -nested pipeline",
+              "isOptional": true,
+              "parameterType": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-component-a": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "component_a"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef component_a(componentInput1: str = 'Input 1 - component'):\n    print(componentInput1)\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        },
+        "exec-component-b": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "component_b"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef component_b(componentInput2: str = 'Input 2 -component'):\n    print(componentInput2)\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "nested-pipeline": {
+            "cachingOptions": {},
+            "componentRef": {
+              "name": "comp-nested-pipeline"
+            },
+            "inputs": {
+              "parameters": {
+                "nestedInput1": {
+                  "componentInputParameter": "input1"
+                },
+                "nestedInput2": {
+                  "componentInputParameter": "input2"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "nested-pipeline"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "input1": {
+            "defaultValue": "Input 1 - pipeline",
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
+          "input2": {
+            "defaultValue": "Input 2 - pipeline",
+            "isOptional": true,
+            "parameterType": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-2.13.0"
+  }
+}
+

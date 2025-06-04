@@ -83,7 +83,21 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			}
 		}
 	}
-
+	// fill nested pipeline and component default parameters to PipelineJob
+	for _, componentSpec := range spec.Components {
+		if componentSpec.GetInputDefinitions() != nil {
+			for param, paramSpec := range componentSpec.GetInputDefinitions().GetParameters() {
+				_, ok = job.RuntimeConfig.ParameterValues[param]
+				if !ok {
+					if paramSpec.GetDefaultValue() != nil {
+						job.RuntimeConfig.ParameterValues[param] = paramSpec.GetDefaultValue()
+					} else if paramSpec.IsOptional {
+						job.RuntimeConfig.ParameterValues[param] = structpb.NewNullValue()
+					}
+				}
+			}
+		}
+	}
 	var kubernetesSpec *pipelinespec.SinglePlatformSpec
 	if kubernetesSpecArg != nil {
 		// clone kubernetesSpecArg, because we don't want to change it

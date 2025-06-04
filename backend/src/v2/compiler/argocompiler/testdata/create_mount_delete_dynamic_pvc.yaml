@@ -366,7 +366,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
-            value: '{}'
+            value: '{"parameterValues":{"annotations":null,"pvc_name":null,"pvc_name_suffix":null,"storage_class_name":"","volume_name":null}}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver

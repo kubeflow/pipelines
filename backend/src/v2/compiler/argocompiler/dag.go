@@ -19,6 +19,8 @@ import (
 	"sort"
 	"strings"
 
+	"google.golang.org/protobuf/types/known/structpb"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -222,6 +224,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 		}
 	}()
 	componentName := task.GetComponentRef().GetName()
+	component := c.spec.Components[componentName]
 	componentSpec, found := c.spec.Components[componentName]
 	if !found {
 		return nil, fmt.Errorf("component spec for %q not found", componentName)
@@ -230,25 +233,63 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	if err != nil {
 		return nil, err
 	}
+	runtimeConfigParams := c.job.GetRuntimeConfig().GetParameterValues()
+	taskRuntimeConfig := map[string]*structpb.Value{}
+	isIteratorTask := inputs.iterationIndex == "" &&
+		(task.GetParameterIterator() != nil || task.GetArtifactIterator() != nil)
+	isNestedPipeline := component.GetDag() != nil
+	// Set component input as task input for non-iterative nested pipelines, and add runtime values for input parameters.
+	if component.InputDefinitions != nil && isNestedPipeline && !isIteratorTask {
+		artifacts := map[string]*pipelinespec.TaskInputsSpec_InputArtifactSpec{}
+		for artifact := range component.InputDefinitions.GetArtifacts() {
+			_, ok := task.GetInputs().GetArtifacts()[artifact]
+			if !ok {
+				artifacts[artifact] = &pipelinespec.TaskInputsSpec_InputArtifactSpec{
+					Kind: &pipelinespec.TaskInputsSpec_InputArtifactSpec_ComponentInputArtifact{
+						ComponentInputArtifact: artifact,
+					},
+				}
+			}
+		}
+		parameters := map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{}
+		for param := range component.InputDefinitions.GetParameters() {
+			_, ok := task.Inputs.GetParameters()[param]
+			if !ok {
+				parameters[param] = &pipelinespec.TaskInputsSpec_InputParameterSpec{
+					Kind: &pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter{
+						ComponentInputParameter: param,
+					},
+				}
+				if runtimeConfigParams != nil {
+					taskRuntimeConfig[param] = runtimeConfigParams[param]
+				}
+			}
+		}
+		if len(parameters) > 0 || len(artifacts) > 0 {
+			task.Inputs = &pipelinespec.TaskInputsSpec{
+				Artifacts:  artifacts,
+				Parameters: parameters}
+		}
+	}
 	taskSpecJson, err := stablyMarshalJSON(task)
 	if err != nil {
 		return nil, err
 	}
 	// For iterator task, we need to use argo withSequence to iterate.
-	isIteratorTask := inputs.iterationIndex == "" &&
-		(task.GetParameterIterator() != nil || task.GetArtifactIterator() != nil)
 	if isIteratorTask {
 		return c.iteratorTask(name, task, taskSpecJson, inputs.parentDagID)
 	}
 	switch impl := componentSpec.GetImplementation().(type) {
 	case *pipelinespec.ComponentSpec_Dag:
 		driverTaskName := name + "-driver"
-		driver, driverOutputs, err := c.dagDriverTask(driverTaskName, dagDriverInputs{
+		driverInputs := dagDriverInputs{
 			parentDagID:    inputs.parentDagID,
 			component:      componentSpecPlaceholder,
 			task:           taskSpecJson,
 			iterationIndex: inputs.iterationIndex,
-		})
+		}
+		driverInputs.runtimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{ParameterValues: taskRuntimeConfig}
+		driver, driverOutputs, err := c.dagDriverTask(driverTaskName, driverInputs)
 		if err != nil {
 			return nil, err
 		}
@@ -499,7 +540,7 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 			Value: wfapi.AnyStringPtr(inputs.parentDagID),
 		})
 	}
-	if inputs.runtimeConfig != nil {
+	if inputs.runtimeConfig != nil && name == "root-driver" {
 		runtimeConfigJson, err := stablyMarshalJSON(inputs.runtimeConfig)
 		if err != nil {
 			return nil, nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
