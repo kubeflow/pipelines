@@ -1,0 +1,28 @@
+# PIPELINE DEFINITION
+# Name: echo
+components:
+  comp-echo:
+    executorLabel: exec-echo
+deploymentSpec:
+  executors:
+    exec-echo:
+      container:
+        args:
+        - hello world
+        command:
+        - echo
+        image: public.ecr.aws/docker/library/python:3.12
+pipelineInfo:
+  name: 
+root:
+  dag:
+    tasks:
+      echo:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo
+        taskInfo:
+          name: echo
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
