@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -32,10 +33,11 @@ const (
 	pipeline_with_args_name   = "arguments-parameters.yaml"
 )
 
-var pipelineDir = "positive"
+var pipelineDir string
 var expectedPipeline *model.V2beta1Pipeline
 var createdPipelines []*model.V2beta1Pipeline
 var testStartTime strfmt.DateTime
+var uploadParams *upload_params.UploadPipelineParams
 
 var _ = BeforeEach(func() {
 	log.Printf("################### Setup before each test #####################")
@@ -43,6 +45,7 @@ var _ = BeforeEach(func() {
 	createdPipelines = []*model.V2beta1Pipeline{}
 	expectedPipeline = new(model.V2beta1Pipeline)
 	expectedPipeline.CreatedAt = testStartTime
+	uploadParams = upload_params.NewUploadPipelineParams()
 	//expectedPipeline.Namespace = *namespace
 })
 
@@ -56,10 +59,21 @@ var _ = AfterEach(func() {
 })
 
 var _ = Describe("Verify Pipeline Upload >", Label("Positive"), func() {
-
+	pipelineDir = "positive"
 	/* Positive Scenarios of uploading a "yaml" pipeline file */
 	Context("Upload a pipeline and verify pipeline metadata after upload >", func() {
 		It(fmt.Sprintf("Upload %s pipeline", hello_world_pipeline_name), Label("Smoke"), func() {
+			createPipelineAndVerify(hello_world_pipeline_name)
+		})
+
+		It(fmt.Sprintf("Upload %s pipeline with custom name and description", hello_world_pipeline_name), func() {
+			description := "Some pipeline description"
+			pipelineName := strconv.FormatInt(time.Now().UnixNano(), 10)
+			namespace := *namespace
+			uploadParams.SetDescription(&description)
+			uploadParams.SetNamespace(&namespace)
+			uploadParams.SetName(&pipelineName)
+			expectedPipeline.Description = description
 			createPipelineAndVerify(hello_world_pipeline_name)
 		})
 
@@ -84,8 +98,11 @@ var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative"), func() {
 	/* Negative scenarios of uploading a pipeline  */
 	Context("Upload a failing pipeline and verify the error in the response >", func() {
 		It("Upload a pipeline twice and verify that it should fail the second time", func() {
-			createPipelineAndVerify(pipeline_with_args_name)
-			uploadPipelineAndVerifyFailure(pipeline_with_args_name, "Failed to upload pipeline")
+			pipelineDir = "positive"
+			pipelineName := strconv.FormatInt(time.Now().UnixNano(), 10)
+			uploadParams.SetName(&pipelineName)
+			createPipelineAndVerify(hello_world_pipeline_name)
+			uploadPipelineAndVerifyFailure(hello_world_pipeline_name, "Failed to upload pipeline")
 		})
 
 		for _, scenario := range errorScenario {
@@ -98,14 +115,20 @@ var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative"), func() {
 })
 
 func createPipeline(pipelineName string) (*model.V2beta1Pipeline, error) {
-	pipelineFile := "../resources/pipelines/" + pipelineDir + "/" + pipelineName
+	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineName)
+	if (*uploadParams).Name != nil {
+		pipelineName = *uploadParams.Name
+	}
 	log.Printf("Creating pipeline with name=%s, from file %s", pipelineName, pipelineFile)
-	return pipelineUploadClient.UploadFile(pipelineFile, upload_params.NewUploadPipelineParams())
+	return pipelineUploadClient.UploadFile(pipelineFile, uploadParams)
 }
 
 func createPipelineAndVerify(pipelineName string) {
 	createdPipeline, err := createPipeline(pipelineName)
 	Expect(err).NotTo(HaveOccurred())
+	if (*uploadParams).Name != nil {
+		pipelineName = *uploadParams.Name
+	}
 	expectedPipeline.DisplayName = pipelineName
 	createdPipelines = append(createdPipelines, createdPipeline)
 	matcher.MatchPipelines(createdPipeline, expectedPipeline)
