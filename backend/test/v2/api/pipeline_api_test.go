@@ -55,11 +55,11 @@ var _ = AfterEach(func() {
 	}
 })
 
-var _ = Describe("Verify Pipeline Upload >", func() {
+var _ = Describe("Verify Pipeline Upload >", Label("Positive"), func() {
 
 	/* Positive Scenarios of uploading a "yaml" pipeline file */
 	Context("Upload a pipeline and verify pipeline metadata after upload >", func() {
-		It(fmt.Sprintf("Upload %s pipeline", hello_world_pipeline_name), func() {
+		It(fmt.Sprintf("Upload %s pipeline", hello_world_pipeline_name), Label("Smoke"), func() {
 			createPipelineAndVerify(hello_world_pipeline_name)
 		})
 
@@ -69,7 +69,7 @@ var _ = Describe("Verify Pipeline Upload >", func() {
 	})
 })
 
-var _ = Describe("Verify Pipeline Upload Failure >", func() {
+var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative"), func() {
 	errorScenario := []struct {
 		pipeline_name          string
 		expected_error_message string
