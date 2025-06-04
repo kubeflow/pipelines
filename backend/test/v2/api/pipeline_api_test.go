@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"log"
-	"slices"
 	"time"
 )
 
@@ -33,12 +32,15 @@ const (
 	pipeline_with_args_name   = "arguments-parameters.yaml"
 )
 
+var pipelineDir = "positive"
 var expectedPipeline *model.V2beta1Pipeline
 var createdPipelines []*model.V2beta1Pipeline
 var testStartTime strfmt.DateTime
 
 var _ = BeforeEach(func() {
+	log.Printf("################### Setup before each test #####################")
 	testStartTime, _ = strfmt.ParseDateTime(time.Now().Format(time.DateTime))
+	createdPipelines = []*model.V2beta1Pipeline{}
 	expectedPipeline = new(model.V2beta1Pipeline)
 	expectedPipeline.CreatedAt = testStartTime
 	//expectedPipeline.Namespace = *namespace
@@ -46,16 +48,17 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	// Delete pipelines created during the test
-	for i, pipeline := range createdPipelines {
+	log.Printf("################### Cleanup after each test #####################")
+	log.Printf("Deleting %d pipeline(s)", len(createdPipelines))
+	for _, pipeline := range createdPipelines {
 		utils.DeletePipeline(pipelineClient, pipeline.PipelineID)
-		createdPipelines = slices.Delete(createdPipelines, i, i+1)
 	}
 })
 
-var _ = Describe("Verify Pipeline APIs", func() {
+var _ = Describe("Verify Pipeline Upload >", func() {
 
-	/* Test 1:  */
-	Context("Upload a pipeline and verify pipeline metadata after upload", func() {
+	/* Positive Scenarios of uploading a "yaml" pipeline file */
+	Context("Upload a pipeline and verify pipeline metadata after upload >", func() {
 		It(fmt.Sprintf("Upload %s pipeline", hello_world_pipeline_name), func() {
 			createPipelineAndVerify(hello_world_pipeline_name)
 		})
@@ -63,17 +66,39 @@ var _ = Describe("Verify Pipeline APIs", func() {
 		It(fmt.Sprintf("Upload %s pipeline", pipeline_with_args_name), func() {
 			createPipelineAndVerify(pipeline_with_args_name)
 		})
+	})
+})
 
-		It(fmt.Sprintf("Upload duplicate pipeline with name '%s' pipeline", pipeline_with_args_name), func() {
+var _ = Describe("Verify Pipeline Upload Failure >", func() {
+	errorScenario := []struct {
+		pipeline_name          string
+		expected_error_message string
+	}{
+		{"empty_file.yaml", "Failed to upload pipeline"},
+		{"empty_zip.zip", "Failed to upload pipeline"},
+		{"invalid_yaml.yaml", "Failed to upload pipeline"},
+		{"no_name.yaml", "Failed to upload pipeline"},
+		{"wrong_format.png", "Failed to upload pipeline"},
+	}
+
+	/* Negative scenarios of uploading a pipeline  */
+	Context("Upload a failing pipeline and verify the error in the response >", func() {
+		It("Upload a pipeline twice and verify that it should fail the second time", func() {
 			createPipelineAndVerify(pipeline_with_args_name)
-			_, err := createPipeline(pipeline_with_args_name)
-			Expect(err.Error()).To(ContainSubstring("Failed to upload pipeline"))
+			uploadPipelineAndVerifyFailure(pipeline_with_args_name, "Failed to upload pipeline")
 		})
+
+		for _, scenario := range errorScenario {
+			It("Upload a pipeline and verify the failure", func() {
+				pipelineDir = "negative"
+				uploadPipelineAndVerifyFailure(scenario.pipeline_name, scenario.expected_error_message)
+			})
+		}
 	})
 })
 
 func createPipeline(pipelineName string) (*model.V2beta1Pipeline, error) {
-	pipelineFile := "../resources/" + pipelineName
+	pipelineFile := "../resources/pipelines/" + pipelineDir + "/" + pipelineName
 	log.Printf("Creating pipeline with name=%s, from file %s", pipelineName, pipelineFile)
 	return pipelineUploadClient.UploadFile(pipelineFile, upload_params.NewUploadPipelineParams())
 }
@@ -84,4 +109,11 @@ func createPipelineAndVerify(pipelineName string) {
 	expectedPipeline.DisplayName = pipelineName
 	createdPipelines = append(createdPipelines, createdPipeline)
 	matcher.MatchPipelines(createdPipeline, expectedPipeline)
+}
+
+func uploadPipelineAndVerifyFailure(pipelineName string, errorMessage string) {
+	_, err := createPipeline(pipelineName)
+	log.Printf("Verifying error in the response")
+	Expect(err).To(HaveOccurred())
+	Expect(err.Error()).To(ContainSubstring(errorMessage))
 }
