@@ -1,0 +1,17 @@
+{
+    "platforms": {
+      "kubernetes": {
+        "pipelineConfig": {
+          "workspace": {
+            "size": "250Gi",
+            "kubernetes": {
+              "pvcSpecPatch": {
+                "accessModes": ["ReadWriteMany"],
+                "storageClassName": "super-fast-storage"
+              }
+            }
+          }
+        }     
+      }
+    }
+  }
