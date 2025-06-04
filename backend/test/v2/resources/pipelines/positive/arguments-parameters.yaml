@@ -1,0 +1,50 @@
+# PIPELINE DEFINITION
+# Name: echo
+# Inputs:
+#    param1: str [Default: 'hello']
+#    param2: str
+components:
+  comp-echo:
+    executorLabel: exec-echo
+    inputDefinitions:
+      parameters:
+        param1:
+          parameterType: STRING
+        param2:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-echo:
+      container:
+        args:
+        - '{{$.inputs.parameters[''param1'']}}-{{$.inputs.parameters[''param2'']}}'
+        command:
+        - echo
+        image: public.ecr.aws/docker/library/python:3.12
+pipelineInfo:
+  name: echo
+root:
+  dag:
+    tasks:
+      echo:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo
+        inputs:
+          parameters:
+            param1:
+              componentInputParameter: param1
+            param2:
+              componentInputParameter: param2
+        taskInfo:
+          name: echo
+  inputDefinitions:
+    parameters:
+      param1:
+        defaultValue: hello
+        parameterType: STRING
+      param2:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
