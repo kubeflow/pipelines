@@ -222,6 +222,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 		}
 	}()
 	componentName := task.GetComponentRef().GetName()
+	component := c.spec.Components[componentName]
 	componentSpec, found := c.spec.Components[componentName]
 	if !found {
 		return nil, fmt.Errorf("component spec for %q not found", componentName)
@@ -229,6 +230,24 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	componentSpecPlaceholder, err := c.useComponentSpec(componentName)
 	if err != nil {
 		return nil, err
+	}
+	if component.InputDefinitions != nil {
+		parameters := map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{}
+		for param := range component.InputDefinitions.Parameters {
+			if _, ok := task.Inputs.GetParameters()[param]; ok {
+				parameters[param] = &pipelinespec.TaskInputsSpec_InputParameterSpec{
+					Kind: task.Inputs.GetParameters()[param].Kind,
+				}
+			} else {
+				parameters[param] = &pipelinespec.TaskInputsSpec_InputParameterSpec{
+					Kind: &pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter{
+						ComponentInputParameter: param,
+					},
+				}
+			}
+		}
+		task.Inputs = &pipelinespec.TaskInputsSpec{
+			Parameters: parameters}
 	}
 	taskSpecJson, err := stablyMarshalJSON(task)
 	if err != nil {
@@ -246,6 +265,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 		driver, driverOutputs, err := c.dagDriverTask(driverTaskName, dagDriverInputs{
 			parentDagID:    inputs.parentDagID,
 			component:      componentSpecPlaceholder,
+			runtimeConfig:  c.job.GetRuntimeConfig(),
 			task:           taskSpecJson,
 			iterationIndex: inputs.iterationIndex,
 		})
@@ -499,7 +519,7 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 			Value: wfapi.AnyStringPtr(inputs.parentDagID),
 		})
 	}
-	if inputs.runtimeConfig != nil {
+	if inputs.runtimeConfig != nil && name == "root-driver" {
 		runtimeConfigJson, err := stablyMarshalJSON(inputs.runtimeConfig)
 		if err != nil {
 			return nil, nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
@@ -510,6 +530,19 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 		}, wfapi.Parameter{
 			Name:  paramDriverType,
 			Value: wfapi.AnyStringPtr("ROOT_DAG"),
+		})
+	}
+	if inputs.runtimeConfig != nil && name != "root-driver" {
+		runtimeConfigJson, err := stablyMarshalJSON(inputs.runtimeConfig)
+		if err != nil {
+			return nil, nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
+		}
+		params = append(params, wfapi.Parameter{
+			Name:  paramRuntimeConfig,
+			Value: wfapi.AnyStringPtr(runtimeConfigJson),
+		}, wfapi.Parameter{
+			Name:  paramDriverType,
+			Value: wfapi.AnyStringPtr("DAG"),
 		})
 	}
 	if inputs.task != "" {

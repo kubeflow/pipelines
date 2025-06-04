@@ -42,6 +42,9 @@ import two_step_pipeline_containerized
 import yaml
 import pipeline_with_retry
 import pipeline_with_input_status_state
+from samples.v2 import nested_pipeline_child_optional_input, nested_pipeline_component_optional_input, \
+    nested_pipeline_parent_and_child_and_component_optional_input, nested_pipeline_parent_and_child_optional_input, \
+    nested_pipeline_parent_optional_input
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 5 * _MINUTE
@@ -174,6 +177,12 @@ class SampleTest(unittest.TestCase):
                 pipeline_func=collected_parameters.collected_param_pipeline),
             TestCase(pipeline_func=pipeline_with_retry.retry_pipeline),
             TestCase(pipeline_func=pipeline_with_input_status_state.status_state_pipeline),
+
+            TestCase(pipeline_func=nested_pipeline_child_optional_input.pipeline),
+            TestCase(pipeline_func=nested_pipeline_component_optional_input.pipeline),
+            TestCase(pipeline_func=nested_pipeline_parent_and_child_and_component_optional_input.pipeline),
+            TestCase(pipeline_func=nested_pipeline_parent_and_child_optional_input.pipeline),
+            TestCase(pipeline_func=nested_pipeline_parent_optional_input.pipeline),
         ]
 
         with ThreadPoolExecutor() as executor:
