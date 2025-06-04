@@ -1104,6 +1104,25 @@ message PlatformDeploymentConfig {
   map<string, google.protobuf.Struct> executors = 1;
 }
 
+message WorkspaceConfig {
+  // Size of the workspace
+  // Example: "250Gi"
+  // See https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/ for valid quantity formats
+  string size = 1;
+
+  // Kubernetes specific configuration for the workspace
+  optional KubernetesWorkspaceConfig kubernetes = 2;
+}
+
+message KubernetesWorkspaceConfig {
+  // Patch of a PersistentVolumeClaim (PVC) spec to override defaults set on the API server for the workspace PVC
+  // Example: {
+  //   "storageClassName": "super-fast-storage",
+  //   "accessModes": ["ReadWriteMany"]
+  // }
+  optional google.protobuf.Struct pvc_spec_patch = 1;
+}
+
 // Spec for pipeline-level config options. See PipelineConfig DSL class.
 message PipelineConfig {
   // Name of the semaphore key to control pipeline concurrency
@@ -1115,4 +1134,8 @@ message PipelineConfig {
   // Time to live configuration after the pipeline run is completed for
   // ephemeral resources created by the pipeline run.
   int32 resource_ttl = 3;
+
+  // Configuration for a shared storage workspace that persists for the duration of the pipeline run.
+  // The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
+  optional WorkspaceConfig workspace = 4;
 }

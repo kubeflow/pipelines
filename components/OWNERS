@@ -1,9 +1,6 @@
 approvers:
-  - IronPan
-  - neuromage
-  - SinaChavoshi
+  - HumairAK
+  - chensun
 reviewers:
-  - IronPan
-  - neuromage
-  - SinaChavoshi
-  - animeshsingh
+  - mprahl
+  - droctothorpe

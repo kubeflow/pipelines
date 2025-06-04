@@ -1,0 +1,12 @@
+[
+  {
+    "op": "add",
+    "path": "/spec/ports/-",
+    "value": {
+      "name": "webhook",
+      "port": 8443,
+      "protocol": "TCP",
+      "targetPort": 8443
+    }
+  }
+]

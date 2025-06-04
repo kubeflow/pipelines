@@ -17,10 +17,11 @@ package argocompiler_test
 import (
 	"flag"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/google/go-cmp/cmp"
@@ -40,6 +41,7 @@ func Test_argo_compiler(t *testing.T) {
 		platformSpecPath string // path of possible input PlatformSpec to compile
 		argoYAMLPath     string // path of expected output argo workflow YAML
 		envVars          map[string]string
+		compilerOptions  argocompiler.Options
 	}{
 		{
 			jobPath:          "../testdata/hello_world_with_retry.json",
@@ -88,6 +90,35 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/hello_world_log_level.yaml",
 			envVars:          map[string]string{"PIPELINE_LOG_LEVEL": "3"},
 		},
+		{
+			jobPath:          "../testdata/hello_world_with_retry_all_args.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/hello_world_with_retry_all_args.yaml",
+		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/hello_world_cache_disabled.yaml",
+			compilerOptions:  argocompiler.Options{CacheDisabled: true},
+		},
+		// retry set at pipeline level only.
+		{
+			jobPath:          "../testdata/nested_pipeline_pipeline_retry.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/nested_pipeline_pipeline_retry.yaml",
+		},
+		// retry set at component level only.
+		{
+			jobPath:          "../testdata/nested_pipeline_sub_component_retry.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/nested_pipeline_sub_component_retry.yaml",
+		},
+		// retry set at both component and pipeline level.
+		{
+			jobPath:          "../testdata/nested_pipeline_all_level_retry.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/nested_pipeline_all_level_retry.yaml",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
@@ -111,7 +142,7 @@ func Test_argo_compiler(t *testing.T) {
 
 			job, platformSpec := load(t, tt.jobPath, tt.platformSpecPath)
 			if *update {
-				wf, err := argocompiler.Compile(job, platformSpec, nil)
+				wf, err := argocompiler.Compile(job, platformSpec, &tt.compilerOptions)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -128,7 +159,7 @@ func Test_argo_compiler(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			wf, err := argocompiler.Compile(job, platformSpec, nil)
+			wf, err := argocompiler.Compile(job, platformSpec, &tt.compilerOptions)
 			if err != nil {
 				t.Error(err)
 			}

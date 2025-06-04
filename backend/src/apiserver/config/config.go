@@ -17,6 +17,9 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -25,8 +28,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/grpc/codes"
-	"os"
-	"time"
 )
 
 // deprecated
@@ -124,7 +125,7 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 		}
 
 		// Create pipeline if it does not already exist
-		p, fetchErr := resourceManager.GetPipelineByNameAndNamespace(cfg.Name, "")
+		p, fetchErr := resourceManager.GetPipelineByNameAndNamespace(cfg.Name, common.GetPodNamespace())
 		if fetchErr != nil {
 			if util.IsUserErrorCodeMatch(fetchErr, codes.NotFound) {
 				p, configErr = resourceManager.CreatePipeline(&model.Pipeline{

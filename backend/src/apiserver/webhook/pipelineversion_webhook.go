@@ -42,7 +42,8 @@ func init() {
 }
 
 type PipelineVersionsWebhook struct {
-	Client ctrlclient.Client
+	Client        ctrlclient.Client
+	ClientNoCache ctrlclient.Client
 }
 
 var _ ctrladmission.CustomValidator = &PipelineVersionsWebhook{}
@@ -57,24 +58,41 @@ func newBadRequestError(msg string) *apierrors.StatusError {
 	}
 }
 
-func (p *PipelineVersionsWebhook) ValidateCreate(
-	ctx context.Context, obj runtime.Object,
-) (warnings ctrladmission.Warnings, err error) {
-	pipelineVersion, ok := obj.(*k8sapi.PipelineVersion)
-	if !ok {
-		return nil, newBadRequestError(fmt.Sprintf("Expected a PipelineVersion object but got %T", pipelineVersion))
+func (p *PipelineVersionsWebhook) getPipeline(ctx context.Context, namespace string, name string) (*k8sapi.Pipeline, error) {
+	pipeline := &k8sapi.Pipeline{}
+	nsName := types.NamespacedName{Namespace: namespace, Name: name}
+	err := p.Client.Get(ctx, nsName, pipeline)
+	if err == nil {
+		return pipeline, nil
 	}
 
-	pipeline := &k8sapi.Pipeline{}
+	if !apierrors.IsNotFound(err) {
+		return nil, newBadRequestError(fmt.Sprintf("Failed to get the Pipeline %s/%s: %v", namespace, name, err))
+	}
 
-	err = p.Client.Get(
-		ctx, types.NamespacedName{Namespace: pipelineVersion.Namespace, Name: pipelineVersion.Spec.PipelineName}, pipeline,
-	)
+	// Fallback to not using the cache
+	err = p.ClientNoCache.Get(ctx, nsName, pipeline)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
 		}
 
+		return nil, newBadRequestError(fmt.Sprintf("Failed to get the Pipeline %s/%s: %v", namespace, name, err))
+	}
+
+	return pipeline, nil
+}
+
+func (p *PipelineVersionsWebhook) ValidateCreate(
+	ctx context.Context, obj runtime.Object,
+) (ctrladmission.Warnings, error) {
+	pipelineVersion, ok := obj.(*k8sapi.PipelineVersion)
+	if !ok {
+		return nil, newBadRequestError(fmt.Sprintf("Expected a PipelineVersion object but got %T", pipelineVersion))
+	}
+
+	_, err := p.getPipeline(ctx, pipelineVersion.Namespace, pipelineVersion.Spec.PipelineName)
+	if err != nil {
 		return nil, err
 	}
 
@@ -83,7 +101,8 @@ func (p *PipelineVersionsWebhook) ValidateCreate(
 		return nil, newBadRequestError(fmt.Sprintf("The pipeline spec is invalid JSON: %v", err))
 	}
 
-	tmpl, err := template.NewV2SpecTemplate(pipelineSpec)
+	// cache enabled or not doesn't matter in this context
+	tmpl, err := template.NewV2SpecTemplate(pipelineSpec, false)
 	if err != nil {
 		return nil, newBadRequestError(fmt.Sprintf("The pipeline spec is invalid: %v", err))
 	}
@@ -131,15 +150,8 @@ func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Objec
 		}
 	}
 
-	pipeline := &k8sapi.Pipeline{}
-	nsName := types.NamespacedName{Namespace: pipelineVersion.Namespace, Name: pipelineVersion.Spec.PipelineName}
-
-	err := p.Client.Get(ctx, nsName, pipeline)
+	pipeline, err := p.getPipeline(ctx, pipelineVersion.Namespace, pipelineVersion.Spec.PipelineName)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return newBadRequestError("The spec.pipelineName doesn't map to an existing Pipeline object")
-		}
-
 		return err
 	}
 
@@ -178,9 +190,13 @@ func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Objec
 }
 
 // NewPipelineVersionWebhook returns the validating webhook and mutating webhook HTTP handlers
-func NewPipelineVersionWebhook(client ctrlclient.Client) (http.Handler, http.Handler, error) {
+func NewPipelineVersionWebhook(
+	client ctrlclient.Client, clientNoCache ctrlclient.Client,
+) (http.Handler, http.Handler, error) {
 	validating, err := ctrladmission.StandaloneWebhook(
-		ctrladmission.WithCustomValidator(scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client}),
+		ctrladmission.WithCustomValidator(
+			scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client, ClientNoCache: clientNoCache},
+		),
 		ctrladmission.StandaloneOptions{},
 	)
 	if err != nil {
@@ -188,7 +204,9 @@ func NewPipelineVersionWebhook(client ctrlclient.Client) (http.Handler, http.Han
 	}
 
 	mutating, err := ctrladmission.StandaloneWebhook(
-		ctrladmission.WithCustomDefaulter(scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client}),
+		ctrladmission.WithCustomDefaulter(
+			scheme, &k8sapi.PipelineVersion{}, &PipelineVersionsWebhook{Client: client, ClientNoCache: clientNoCache},
+		),
 		ctrladmission.StandaloneOptions{},
 	)
 	if err != nil {

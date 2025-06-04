@@ -16,16 +16,15 @@ from kfp import dsl, compiler
 
 
 @dsl.container_component
-def whalesay(param1: str, param2: str):
+def echo(param1: str, param2: str):
     return dsl.ContainerSpec(
-        image='docker/whalesay:latest',
-        command=['cowsay'],
+        image='public.ecr.aws/docker/library/python:3.12',
+        command=['echo'],
         args=[f'{param1}-{param2}'],
     )
 
-
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        whalesay,
+        echo,
         package_path=__file__.replace('.py', '.yaml'),
         pipeline_parameters={'param1': 'hello'})

@@ -37,7 +37,8 @@ type ResourceReferenceStoreInterface interface {
 }
 
 type ResourceReferenceStore struct {
-	db *DB
+	db            *DB
+	pipelineStore PipelineStoreInterface
 }
 
 // Create a resource reference.
@@ -78,8 +79,18 @@ func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId str
 	case model.ExperimentResourceType:
 		selectBuilder = sq.Select("1").From("experiments").Where(sq.Eq{"uuid": referenceId})
 	case model.PipelineVersionResourceType:
+		if s.pipelineStore != nil {
+			pv, _ := s.pipelineStore.GetPipelineVersion(referenceId)
+
+			return pv != nil
+		}
 		selectBuilder = sq.Select("1").From("pipeline_versions").Where(sq.Eq{"uuid": referenceId})
 	case model.PipelineResourceType:
+		if s.pipelineStore != nil {
+			p, _ := s.pipelineStore.GetPipeline(referenceId)
+
+			return p != nil
+		}
 		selectBuilder = sq.Select("1").From("pipelines").Where(sq.Eq{"uuid": referenceId})
 	case model.NamespaceResourceType:
 		// This function is called to check the data validity when the data are transformed according to the DB schema.
@@ -176,6 +187,8 @@ func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReferenc
 	return references, nil
 }
 
-func NewResourceReferenceStore(db *DB) *ResourceReferenceStore {
-	return &ResourceReferenceStore{db: db}
+func NewResourceReferenceStore(db *DB, pipelineStore PipelineStoreInterface) *ResourceReferenceStore {
+	// If pipelineStore is specified and it is not nil, it will be used instead of the DB.
+	// This will make pipelines and pipeline versions to get stored in K8s instead of Database.
+	return &ResourceReferenceStore{db: db, pipelineStore: pipelineStore}
 }

@@ -1,15 +1,15 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- cache-deployment.yaml
-- cache-role.yaml
-- cache-rolebinding.yaml
-- cache-sa.yaml
-- cache-service.yaml
+  - cache-deployment.yaml
+  - cache-role.yaml
+  - cache-rolebinding.yaml
+  - cache-sa.yaml
+  - cache-service.yaml
 images:
-- name: ghcr.io/kubeflow/kfp-cache-server
-  newTag: 2.4.1
+  - name: ghcr.io/kubeflow/kfp-cache-server
+    newTag: 2.5.0
 labels:
-- includeSelectors: true
-  pairs:
-    app: cache-server
+  - includeSelectors: true
+    pairs:
+      app: cache-server

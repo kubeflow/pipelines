@@ -1,7 +1,6 @@
 # KEP-11551: Introducing a Kubernetes Native API for Pipelines and Pipeline Versions
 
 <!-- toc -->
-
 - [Summary](#summary)
 - [Motivation](#motivation)
   - [Goals](#goals)
@@ -16,6 +15,10 @@
     - [Migration](#migration)
 - [Design Details](#design-details)
   - [Custom Resource Definitions](#custom-resource-definitions)
+  - [Go Types](#go-types)
+    - [Pipelines](#pipelines)
+    - [Pipeline Versions](#pipeline-versions)
+    - [Anything Type](#anything-type)
   - [Kubeflow Pipelines API Server](#kubeflow-pipelines-api-server)
     - [Webhooks](#webhooks)
       - [Validating Webhook](#validating-webhook)
@@ -30,7 +33,8 @@
 - [Alternatives](#alternatives)
   - [Sync from Kubernetes to the Database](#sync-from-kubernetes-to-the-database)
   - [A Kubernetes Aggregation Layer API Server](#a-kubernetes-aggregation-layer-api-server)
-  <!-- /toc -->
+  - [Use Argo Workflows Directly](#use-argo-workflows-directly)
+<!-- /toc -->
 
 ## Summary
 

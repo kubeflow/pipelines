@@ -14,28 +14,19 @@
 
 from kfp import dsl, compiler
 
-
 @dsl.container_component
-def download(url: str, downloaded: dsl.OutputPath(str)):
-    return dsl.ContainerSpec(
-        image='google/cloud-sdk',
-        command=['sh', '-c'],
-        args=[f'gsutil cp {url} {downloaded}'],
-    )
-
-
-@dsl.container_component
-def echo(downloaded: str):
+def echo(message: str):
     return dsl.ContainerSpec(
         image='library/bash',
         command=['sh', '-c'],
-        args=[f'echo {downloaded}'],
+        args=[f'echo {message}'],
     )
 
 
 @dsl.pipeline
-def sequential(url: str):
-    echo(downloaded=download(url=url).outputs['downloaded'])
+def sequential(param1: str, param2: str):
+    echo(message=param1)
+    echo(message=param2)
 
 
 if __name__ == '__main__':

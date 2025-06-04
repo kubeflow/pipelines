@@ -1,7 +1,6 @@
 approvers:
   - chensun
-  - dushyanthsc
-  - IronPan
+  - HumairAK
 reviewers:
-  - chensun
-  - dushyanthsc
+  - mprahl
+  - droctothorpe

@@ -37,18 +37,18 @@ spec:
         # mysql_native_password plugin implements native authentication; that is, authentication based on the password 
         # hashing method in use from before the introduction of pluggable authentication in MySQL 8.0.
         #
-        # As default_authentication_plugin option is deprecated in MySQL 8.0.27 this needs to be replaced with
-        # appropriate authentication_policy in the next upgrade. See more details:
-        # https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_default_authentication_plugin
-        # https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_authentication_policy
-        - --default-authentication-plugin=mysql_native_password
+        # The mysql_native_password authentication plugin is deprecated as of MySQL 8.0.34, disabled by default
+        # in MySQL 8.4, and removed as of MySQL 9.0.0:
+        # https://dev.mysql.com/doc/refman/8.4/en/native-pluggable-authentication.html
+        - --authentication-policy=mysql_native_password
+        - --mysql-native-password=ON
         # Disable binlog as the logs grow fast and eat up all disk spaces eventually. And KFP doesn't currently utilize binlog.
         # https://dev.mysql.com/doc/refman/8.0/en/replication-options-binary-log.html#option_mysqld_log-bin
         - --disable-log-bin
         env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
-        image: gcr.io/ml-pipeline/mysql:8.0.26
+        image: mysql:8.4
         name: mysql
         ports:
         - containerPort: 3306

@@ -1,10 +1,11 @@
 package client
 
 import (
-	log "github.com/sirupsen/logrus"
 	"os"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type TokenRefresherInterface interface {

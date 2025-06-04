@@ -272,7 +272,7 @@ func (s *UpgradeTests) PreparePipelines() {
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml",
+			PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
 		}},
 	})
 	require.Nil(t, err)
@@ -286,11 +286,19 @@ func (s *UpgradeTests) PreparePipelines() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
+	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+	}
+
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
-		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
-		}},
+		Body: &pipeline_model.APIPipeline{
+			URL: &pipeline_model.APIURL{
+				PipelineURL: pipelineURL,
+			},
+		},
 	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
@@ -320,7 +328,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes)
+	expected, err := pipelinetemplate.New(bytes, true)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template)
 }
@@ -535,20 +543,20 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 
 	/* ---------- Create a new recurring run based on the second oldest pipeline version and belonging to the second oldest experiment ---------- */
 	createJobRequest := &jobparams.JobServiceCreateJobParams{Body: &job_model.APIJob{
-		Name:        "sequential job from pipeline version",
-		Description: "a recurring run from an old pipeline version",
+		Description:    "a recurring run from an old pipeline version",
+		Enabled:        true,
+		MaxConcurrency: 10,
+		Name:           "sequential job from pipeline version",
 		ResourceReferences: []*job_model.APIResourceReference{
 			{
 				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiments[1].ID},
 				Relationship: job_model.APIRelationshipOWNER,
 			},
 			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelines[1].DefaultVersion.ID},
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelines[0].DefaultVersion.ID},
 				Relationship: job_model.APIRelationshipCREATOR,
 			},
 		},
-		MaxConcurrency: 10,
-		Enabled:        true,
 	}}
 	createdJob, err := s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)

@@ -84,7 +84,7 @@ class V2beta1PipelineVersionReference(object):
     def pipeline_version_id(self):
         """Gets the pipeline_version_id of this V2beta1PipelineVersionReference.  # noqa: E501
 
-        Input. Required. Unique ID of an existing pipeline version.  # noqa: E501
+        Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.  # noqa: E501
 
         :return: The pipeline_version_id of this V2beta1PipelineVersionReference.  # noqa: E501
         :rtype: str
@@ -95,7 +95,7 @@ class V2beta1PipelineVersionReference(object):
     def pipeline_version_id(self, pipeline_version_id):
         """Sets the pipeline_version_id of this V2beta1PipelineVersionReference.
 
-        Input. Required. Unique ID of an existing pipeline version.  # noqa: E501
+        Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.  # noqa: E501
 
         :param pipeline_version_id: The pipeline_version_id of this V2beta1PipelineVersionReference.  # noqa: E501
         :type pipeline_version_id: str

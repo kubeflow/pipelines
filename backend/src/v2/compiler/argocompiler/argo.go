@@ -19,8 +19,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -40,6 +41,8 @@ type Options struct {
 	DriverImage string
 	// optional
 	PipelineRoot string
+	// optional
+	CacheDisabled bool
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
 
@@ -134,14 +137,16 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		launcherImage: GetLauncherImage(),
-		driverImage:   GetDriverImage(),
-		driverCommand: GetDriverCommand(),
-		job:           job,
-		spec:          spec,
-		executors:     deploy.GetExecutors(),
+		launcherImage:   GetLauncherImage(),
+		launcherCommand: GetLauncherCommand(),
+		driverImage:     GetDriverImage(),
+		driverCommand:   GetDriverCommand(),
+		job:             job,
+		spec:            spec,
+		executors:       deploy.GetExecutors(),
 	}
 	if opts != nil {
+		c.cacheDisabled = opts.CacheDisabled
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -170,11 +175,13 @@ type workflowCompiler struct {
 	spec      *pipelinespec.PipelineSpec
 	executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec
 	// state
-	wf            *wfapi.Workflow
-	templates     map[string]*wfapi.Template
-	driverImage   string
-	driverCommand []string
-	launcherImage string
+	wf              *wfapi.Workflow
+	templates       map[string]*wfapi.Template
+	driverImage     string
+	driverCommand   []string
+	launcherImage   string
+	launcherCommand []string
+	cacheDisabled   bool
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
@@ -331,21 +338,25 @@ func hashValue(value interface{}) (string, error) {
 }
 
 const (
-	paramComponent        = "component"      // component spec
-	paramTask             = "task"           // task spec
-	paramContainer        = "container"      // container spec
-	paramImporter         = "importer"       // importer spec
-	paramRuntimeConfig    = "runtime-config" // job runtime config, pipeline level inputs
-	paramParentDagID      = "parent-dag-id"
-	paramExecutionID      = "execution-id"
-	paramIterationCount   = "iteration-count"
-	paramIterationIndex   = "iteration-index"
-	paramExecutorInput    = "executor-input"
-	paramDriverType       = "driver-type"
-	paramCachedDecision   = "cached-decision"   // indicate hit cache or not
-	paramPodSpecPatch     = "pod-spec-patch"    // a strategic patch merged with the pod spec
-	paramCondition        = "condition"         // condition = false -> skip the task
-	paramKubernetesConfig = "kubernetes-config" // stores Kubernetes config
+	paramComponent               = "component"      // component spec
+	paramTask                    = "task"           // task spec
+	paramContainer               = "container"      // container spec
+	paramImporter                = "importer"       // importer spec
+	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs
+	paramParentDagID             = "parent-dag-id"
+	paramExecutionID             = "execution-id"
+	paramIterationCount          = "iteration-count"
+	paramIterationIndex          = "iteration-index"
+	paramExecutorInput           = "executor-input"
+	paramDriverType              = "driver-type"
+	paramCachedDecision          = "cached-decision"            // indicate hit cache or not
+	paramPodSpecPatch            = "pod-spec-patch"             // a strategic patch merged with the pod spec
+	paramCondition               = "condition"                  // condition = false -> skip the task
+	paramKubernetesConfig        = "kubernetes-config"          // stores Kubernetes config
+	paramRetryMaxCount           = "retry-max-count"            // limit on number of retries
+	paramRetryBackOffDuration    = "retry-backoff-duration"     // duration of backoff between retries
+	paramRetryBackOffFactor      = "retry-backoff-factor"       // multiplier for backoff duration between retries
+	paramRetryBackOffMaxDuration = "retry-backoff-max-duration" // limit on backoff duration between retries
 )
 
 func runID() string {
