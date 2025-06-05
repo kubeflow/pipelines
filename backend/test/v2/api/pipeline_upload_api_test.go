@@ -15,6 +15,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-openapi/strfmt"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -24,9 +25,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"log"
+	"os"
+	"sigs.k8s.io/yaml"
 	"strconv"
 	"time"
 )
+
+// ####################################################################################################################################################################
+// ################################################################### CLASS VARIABLES ################################################################################
+// ####################################################################################################################################################################
 
 const (
 	helloWorldPipelineFileName = "hello-world.yaml"
@@ -41,6 +48,10 @@ var expectedPipeline *model.V2beta1Pipeline
 var createdPipelines []*model.V2beta1Pipeline
 var testStartTime strfmt.DateTime
 var uploadParams *upload_params.UploadPipelineParams
+
+// ####################################################################################################################################################################
+// ################################################################### SET AND TEARDOWN ################################################################################
+// ####################################################################################################################################################################
 
 var _ = BeforeEach(func() {
 	log.Printf("################### Setup before each test #####################")
@@ -62,7 +73,15 @@ var _ = AfterEach(func() {
 	}
 })
 
-var _ = Describe("Verify Pipeline Upload >", Label("Positive"), func() {
+// ####################################################################################################################################################################
+// ################################################################### TESTS ################################################################################
+// ####################################################################################################################################################################
+
+// ################################################################################################################
+// ########################################################## POSITIVE TESTS ######################################
+// ################################################################################################################
+
+var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload"), func() {
 	pipelineDir = "positive"
 	pipelineFiles := []string{helloWorldPipelineFileName, pipelineWithArgsFileName, zipPipelineFileName, tarPipelineFileName}
 
@@ -70,22 +89,40 @@ var _ = Describe("Verify Pipeline Upload >", Label("Positive"), func() {
 	Context("Upload a pipeline and verify pipeline metadata after upload >", func() {
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), Label("Smoke"), func() {
-				createPipelineAndVerify(pipelineFile, &pipelineGeneratedName)
+				uploadPipelineAndVerify(pipelineFile, &pipelineGeneratedName)
 			})
 		}
 
 		It(fmt.Sprintf("Upload %s pipeline with custom name and description", helloWorldPipelineFileName), func() {
 			description := "Some pipeline description"
-			namespace := *namespace
 			uploadParams.SetDescription(&description)
-			uploadParams.SetNamespace(&namespace)
 			expectedPipeline.Description = description
-			createPipelineAndVerify(helloWorldPipelineFileName, &pipelineGeneratedName)
+			uploadPipelineAndVerify(helloWorldPipelineFileName, &pipelineGeneratedName)
 		})
 	})
 })
 
-var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative"), func() {
+var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "PipelineUpload"), func() {
+	pipelineDir = "positive"
+
+	/* Positive Scenarios of uploading a pipeline file */
+	Context("Upload a pipeline and upload the same pipeline to change version >", func() {
+		const pipelineFile = helloWorldPipelineFileName
+		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the same file", pipelineFile), Label("Smoke"), func() {
+			uploadPipelineAndChangePipelineVersion(pipelineFile, pipelineFile)
+		})
+		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the different file %s", pipelineFile, pipelineWithArgsFileName), Label("Smoke"), func() {
+			uploadPipelineAndChangePipelineVersion(pipelineFile, pipelineWithArgsFileName)
+		})
+
+	})
+})
+
+// ################################################################################################################
+// ########################################################## NEGATIVE TESTS ######################################
+// ################################################################################################################
+
+var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload"), func() {
 	errorScenario := []struct {
 		pipeline_name          string
 		expected_error_message string
@@ -103,7 +140,7 @@ var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative"), func() {
 	Context("Upload a failing pipeline and verify the error in the response >", func() {
 		It("Upload a pipeline twice and verify that it should fail the second time", func() {
 			pipelineDir = "positive"
-			createdPipeline := createPipelineAndVerify(helloWorldPipelineFileName, &pipelineGeneratedName)
+			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineFileName, &pipelineGeneratedName)
 			uploadPipelineAndVerifyFailure(helloWorldPipelineFileName, &(createdPipeline.DisplayName), "Failed to upload pipeline")
 		})
 
@@ -116,16 +153,76 @@ var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative"), func() {
 	})
 })
 
-func createPipeline(pipelineFileName string, pipelineName *string) (*model.V2beta1Pipeline, error) {
+var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "PipelineUpload"), func() {
+	pipelineDir = "positive"
+
+	/* Positive Scenarios of uploading a pipeline file */
+	Context("Upload a pipeline and try changing the version with a different name >", func() {
+		const pipelineFileName = helloWorldPipelineFileName
+		It(fmt.Sprintf("Upload %s pipeline version with same name", pipelineFileName), func() {
+			createdPipeline := uploadPipelineAndVerify(pipelineFileName, &pipelineGeneratedName)
+
+			parameters := upload_params.NewUploadPipelineVersionParams()
+			parameters.Pipelineid = &(createdPipeline.PipelineID)
+			parameters.SetName(&createdPipeline.DisplayName)
+			uploadPipelineVersionAndVerifyFailure(pipelineFileName, parameters, "Failed to upload pipeline version")
+		})
+		It(fmt.Sprintf("Upload %s pipeline version with fake pipeline id", pipelineFileName), func() {
+			uploadPipelineAndVerify(pipelineFileName, &pipelineGeneratedName)
+
+			parameters := upload_params.NewUploadPipelineVersionParams()
+			fakePipelineId := "12345"
+			parameters.Pipelineid = &fakePipelineId
+			uploadPipelineVersionAndVerifyFailure(pipelineFileName, parameters, "Failed to upload pipeline version")
+		})
+	})
+})
+
+// ####################################################################################################################################################################
+// ################################################################### UTILITY METHODS ################################################################################
+// ####################################################################################################################################################################
+
+/*
+A common method that creates a pipeline and then creates a new pipeline version
+@param pipelineFileNameForCreation - pipeline file name for initial pipeline upload
+@param pipelineFileNameWhenChangingVersion - the pipeline file name that you wish to upload when creating a new version
+*/
+func uploadPipelineAndChangePipelineVersion(pipelineFileNameForCreation string, pipelineFileNameWhenChangingVersion string) {
+	createdPipeline := uploadPipelineAndVerify(pipelineFileNameForCreation, &pipelineGeneratedName)
+
+	// Construct a payload to create new pipeline version
+	parameters := upload_params.NewUploadPipelineVersionParams()
+	expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+	descriptionNew := "Some changed pipeline description"
+	pipelineNameNew := createdPipeline.DisplayName + "-1"
+	parameters.Pipelineid = &(createdPipeline.PipelineID)
+	parameters.SetDescription(&descriptionNew)
+	parameters.SetName(&pipelineNameNew)
+
+	// Construct expected Pipeline Spec from the uploaded file
+	pipelineVersionFilePath := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileNameWhenChangingVersion)
+	pipelineSpec, err := os.ReadFile(pipelineVersionFilePath)
+	Expect(err).NotTo(HaveOccurred())
+	jsonSpecFromFile, _ := yaml.YAMLToJSON(pipelineSpec)
+
+	// Construct expected pipeline version object for comparison
+	expectedPipelineVersion.Description = descriptionNew
+	json.Unmarshal(jsonSpecFromFile, &expectedPipelineVersion.PipelineSpec)
+	expectedPipelineVersion.DisplayName = pipelineNameNew
+	uploadPipelineVersionAndVerify(pipelineFileNameWhenChangingVersion, parameters, expectedPipelineVersion)
+}
+
+func uploadPipeline(pipelineFileName string, pipelineName *string) (*model.V2beta1Pipeline, error) {
 	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileName)
 	uploadParams.SetName(pipelineName)
 	expectedPipeline.DisplayName = *pipelineName
-	log.Printf("Creating pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
+	log.Printf("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
 	return pipelineUploadClient.UploadFile(pipelineFile, uploadParams)
 }
 
-func createPipelineAndVerify(pipelineFileName string, pipelineName *string) *model.V2beta1Pipeline {
-	createdPipeline, err := createPipeline(pipelineFileName, pipelineName)
+func uploadPipelineAndVerify(pipelineFileName string, pipelineName *string) *model.V2beta1Pipeline {
+	createdPipeline, err := uploadPipeline(pipelineFileName, pipelineName)
+	log.Printf("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())
 	createdPipelines = append(createdPipelines, createdPipeline)
 	matcher.MatchPipelines(createdPipeline, expectedPipeline)
@@ -133,7 +230,28 @@ func createPipelineAndVerify(pipelineFileName string, pipelineName *string) *mod
 }
 
 func uploadPipelineAndVerifyFailure(pipelineFileName string, pipelineName *string, errorMessage string) {
-	_, err := createPipeline(pipelineFileName, pipelineName)
+	_, err := uploadPipeline(pipelineFileName, pipelineName)
+	log.Printf("Verifying error in the response")
+	Expect(err).To(HaveOccurred())
+	Expect(err.Error()).To(ContainSubstring(errorMessage))
+}
+
+func uploadPipelineVersion(pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion, error) {
+	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileName)
+	log.Printf("Uploading pipeline version for pipeline with id=%s, from file %s", *parameters.Pipelineid, pipelineFile)
+	return pipelineUploadClient.UploadPipelineVersion(pipelineFile, parameters)
+}
+
+func uploadPipelineVersionAndVerify(pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams, expectedPipelineVersion *model.V2beta1PipelineVersion) *model.V2beta1PipelineVersion {
+	createdPipelineVersion, err := uploadPipelineVersion(pipelineFileName, parameters)
+	log.Printf("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
+	Expect(err).NotTo(HaveOccurred())
+	matcher.MatchPipelineVersions(createdPipelineVersion, expectedPipelineVersion)
+	return createdPipelineVersion
+}
+
+func uploadPipelineVersionAndVerifyFailure(pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams, errorMessage string) {
+	_, err := uploadPipelineVersion(pipelineFileName, parameters)
 	log.Printf("Verifying error in the response")
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
