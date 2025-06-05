@@ -140,7 +140,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef get_pvc_name() -> str:\n    return 'static-pvc-name'\n\n"
+          \ *\n\ndef get_pvc_name() -> str:\n    return 'static-pvc-name-cmdepfto'\n\n"
         image: python:3.9
 pipelineInfo:
   name: my-pipeline

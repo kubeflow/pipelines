@@ -16,12 +16,13 @@ package argocompiler
 
 import (
 	"fmt"
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	k8score "k8s.io/api/core/v1"
 	"os"
 	"strconv"
 	"strings"
+
+	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	k8score "k8s.io/api/core/v1"
 )
 
 const (

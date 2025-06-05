@@ -15,11 +15,12 @@ package argocompiler
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -312,7 +313,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				condition:       driverOutputs.condition,
 				exitTemplate:    inputs.exitTemplate,
 				hookParentDagID: inputs.parentDagID,
-			}, task.GetComponentRef().GetName())
+			}, task)
 			executor.Depends = depends([]string{driverTaskName})
 			return []wfapi.DAGTask{*driver, *executor}, nil
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Importer:
@@ -562,6 +563,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
 		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
 		"--ca_cert_path", common.GetCaCertPath(),
+	}
+	if c.cacheDisabled {
+		args = append(args, "--cache_disabled", "true")
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)

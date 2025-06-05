@@ -1,5 +1,59 @@
 # Changelog
 
+## [2.5.0](https://github.com/kubeflow/pipelines/compare/2.4.1...2.5.0) (2025-04-29)
+
+
+### Features
+
+* **backend:** Add a mutating webhook for the PipelineVersion kind (#11782) ([c9be64d](https://github.com/kubeflow/pipelines/commit/c9be64dca362a33dcfad186fe579066a646a6df1))
+* **backend:** Add the ability to set a proxy for accessing external resources (#11771) ([6e3548f](https://github.com/kubeflow/pipelines/commit/6e3548f33e226ba374e4d43a175ae8ac9018e268))
+* **backend:** Add types for KFP Kubernete Native API (#11672) ([0d9a7b0](https://github.com/kubeflow/pipelines/commit/0d9a7b00e926130b07058ea71148fbb9cab69d2b))
+* **backend:** Create a validating webhook for the PipelineVersion kind (#11774) ([2efcde5](https://github.com/kubeflow/pipelines/commit/2efcde5efd3952b91ea79a5ee6dbf064282f719a))
+* **backend:** implement logs as artifacts (#11762) ([cd3e747](https://github.com/kubeflow/pipelines/commit/cd3e747b5de3d7e1e338e309cc57311dd4a91258))
+* **backend:** implement logs as artifacts + CI updates (#11809) ([464ca39](https://github.com/kubeflow/pipelines/commit/464ca3974fbbc46e022f863e49c4fbaabd1a8265))
+* **backend/sdk:** Add input parameterization for various k8s resources  (#11770) ([fd1b48b](https://github.com/kubeflow/pipelines/commit/fd1b48b4712038afe8a78e37843672d4773dc080))
+* **proto:** Add TTL fields to KFP IR yaml proto (#11758) ([c5aba41](https://github.com/kubeflow/pipelines/commit/c5aba41bcaf3c214d984db4571c1ecae4a0d551d))
+* **sdk:** add upload pipeline and upload pipeline version from pipeline function (#11804) ([1ad4f60](https://github.com/kubeflow/pipelines/commit/1ad4f608a0b9dea2362cf89f9cf7abdebf20e080))
+
+
+### Bug Fixes
+
+* **backend:** Fix run submissions with OwnerReferencesPermissionEnforcement on (#11821) ([69ba50b](https://github.com/kubeflow/pipelines/commit/69ba50b3fb03bd8441f833950a6c77835a2d47a1))
+* **backend:** fixed Dockerfile (#11841) ([d38418e](https://github.com/kubeflow/pipelines/commit/d38418efeadec3ea3bea55b3373bcc311dacc135))
+* **backend:** Include missing go.mod for cacheserver/viewercontroller images (#11776) ([715ed40](https://github.com/kubeflow/pipelines/commit/715ed40b92f9bca521f94e0df5201425d9d30866))
+* **components:** Set tensorboard_experiment_name to random uuid when uploading plots in Starry Net pipeline ([cc56d04](https://github.com/kubeflow/pipelines/commit/cc56d04c46d01666a8e091b124473c2654e1b6d3))
+* **deployment:** Update kustomize manifests to use new label and patch syntax (#11733) ([230c1b8](https://github.com/kubeflow/pipelines/commit/230c1b8f1332ffab575b2e69b65d9a6958167195))
+* **deps:** widen urllib3 upper bound to <3.0.0 (#11819) ([866ff35](https://github.com/kubeflow/pipelines/commit/866ff3556a4454ccb52f1594bbca4167a04c0d3e))
+* **docs:** Remove Podman as backend README pre-req (#11824) ([88cff55](https://github.com/kubeflow/pipelines/commit/88cff559142e5a985cf31620f07b71244645cb4a))
+* **docs:** Use the latest driver and launcher images in the dev environment (#11820) ([92e4921](https://github.com/kubeflow/pipelines/commit/92e4921c4cce8155093bf7e332abfbf03bd6eaef))
+* **local:** warn about oci:// not supported too (#11794) ([564522c](https://github.com/kubeflow/pipelines/commit/564522c42de9136dec67f1bf29590bdd64bf2333))
+* **metadata-writer:** use mlmd_store.get_context_types() instead of workaround (#11753) ([35041ef](https://github.com/kubeflow/pipelines/commit/35041ef2bd4d9b3261f1250f5803786ed9e453fe))
+* **sdk:** Add SDK support for setting resource limits on older KFP versions (#11839) ([f9d487c](https://github.com/kubeflow/pipelines/commit/f9d487cb605727f357f58783db298d96898b24d1))
+* **sdk:** allow google-cloud-storage < 4 (#11735) ([bd4fc5c](https://github.com/kubeflow/pipelines/commit/bd4fc5c6677402d5f2d9ac45481ac86f25da4640))
+* **sdk:** avoid conflicting component names in DAG when reusing pipelines (#11071) ([d1b15ef](https://github.com/kubeflow/pipelines/commit/d1b15ef4da33cbeafa491564318c7e2a68dc431f))
+* **tests:** free up space in some test runners (#11818) ([478ca08](https://github.com/kubeflow/pipelines/commit/478ca089012e64edd371feff4ece9d0d156d4710))
+* minio fsgroup for popular clusters (#11734) ([8d0ae53](https://github.com/kubeflow/pipelines/commit/8d0ae5381e8366905c90009c56fd0e4807e94f0f))
+
+
+### Other Pull Requests
+
+* Fix Integration tests ([0359551](https://github.com/kubeflow/pipelines/commit/0359551b7601165ba8bf7cc24fdc1858224c0d2d))
+* add list or dict support for add toleration json ([fb18235](https://github.com/kubeflow/pipelines/commit/fb182355f08e41eff1ac530be1afac0bad69e15d))
+* add backend support for toleration lists. ([90909fc](https://github.com/kubeflow/pipelines/commit/90909fc0ef58b71362017a3e48c924b38c389183))
+* switch selenium image to ghcr ([7529bbe](https://github.com/kubeflow/pipelines/commit/7529bbeba7f245366ca1cbc280169e20a7100a6a))
+* add missing release note updates to sdk main branch (#11842) ([611d582](https://github.com/kubeflow/pipelines/commit/611d5820049dc51ddf261d7d1368c4858dad5159))
+* fix component retry test (#11836) ([598826e](https://github.com/kubeflow/pipelines/commit/598826e1ccfecb5f34716876053a22cdc6605ae4))
+* **chore:** add cleanup resources to sdk execution tests (#11823) ([eee4986](https://github.com/kubeflow/pipelines/commit/eee4986f180cd4e7469a65a3c5f4ffbf3ec0b46c))
+* update driver & launcher image handling (#11533) ([38a4653](https://github.com/kubeflow/pipelines/commit/38a46533fcd47aa31e825109e2bf6940d127910a))
+* **chore:** add image builds for default branch (#11800) ([eacb586](https://github.com/kubeflow/pipelines/commit/eacb586f6225bb277642f4977552f799850e06a1))
+* fix setup env for kfp k8s lib tests (#11798) ([f10c7bf](https://github.com/kubeflow/pipelines/commit/f10c7bfbbcf01eb25f2fa8a437da62bbf07dc1f5))
+* Handle optional pipeline inputs in the driver (#11788) ([bb7a108](https://github.com/kubeflow/pipelines/commit/bb7a1082c4c5a3fb308aac2bf37bab476c3c4df6))
+* Fix recurring run output when always using latest (#11790) ([048f283](https://github.com/kubeflow/pipelines/commit/048f28332b6a0b6684632e76dcb284de2f81d829))
+* increase stale action timers (#11792) ([ade8a2d](https://github.com/kubeflow/pipelines/commit/ade8a2d072efa9897a5a0173316836236d629238))
+* Fix PSS restricted warnings (#11751) ([01999b8](https://github.com/kubeflow/pipelines/commit/01999b8fea23db52da0f633e475c457fc06ca531))
+* fix(CI) Github action is vulnerable to code execution via `comment body` (#11772) ([95c3f2c](https://github.com/kubeflow/pipelines/commit/95c3f2c04d8f19b8b656ddbda046ed9f2c81130a))
+* Fix Istio sidecar injection by moving from annotations to labels (#11750) ([df4e9c2](https://github.com/kubeflow/pipelines/commit/df4e9c2bf5b645f4a3fa831b073846eae5eaceb7))
+
 ## [2.5.0](https://github.com/kubeflow/pipelines/compare/2.3.0...2.5.0) (2025-04-28)
 
 

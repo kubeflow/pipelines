@@ -20,10 +20,11 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
@@ -79,10 +80,11 @@ var (
 	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
 
 	// proxy
-	httpProxy   = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
-	httpsProxy  = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
-	noProxy     = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
-	publishLogs = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+	httpProxy         = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
+	httpsProxy        = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
+	noProxy           = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
+	publishLogs       = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+	cacheDisabledFlag = flag.Bool("cache_disabled", false, "Disable cache globally.")
 
 	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
 	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
@@ -190,8 +192,7 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-
-	cacheClient, err := cacheutils.NewClient(mlPipelineServiceTLSEnabled)
+	cacheClient, err := cacheutils.NewClient(*cacheDisabledFlag, mlPipelineServiceTLSEnabled)
 	if err != nil {
 		return err
 	}
@@ -207,6 +208,7 @@ func drive() (err error) {
 		IterationIndex:       *iterationIndex,
 		PipelineLogLevel:     *logLevel,
 		PublishLogs:          *publishLogs,
+		CacheDisabled:        *cacheDisabledFlag,
 		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
 		MLMDServerAddress:    *mlmdServerAddress,
 		MLMDServerPort:       *mlmdServerPort,

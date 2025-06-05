@@ -5,7 +5,7 @@ resources:
   - ../no-proxy
 
 patches:
-  - path: proxy-env.yaml
+  - path: cache-env.yaml
     target:
       kind: Deployment
       name: ml-pipeline

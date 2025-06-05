@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -136,11 +137,19 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
+	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+	}
+
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineV1Params{
-		Body: &model.APIPipeline{URL: &model.APIURL{
-			PipelineURL: "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip",
-		}},
+		Body: &model.APIPipeline{
+			URL: &model.APIURL{
+				PipelineURL: pipelineURL,
+			},
+		},
 	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
@@ -234,14 +243,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, _ := pipelinetemplate.New(bytes)
+	expected, _ := pipelinetemplate.New(bytes, true)
 	assert.Equal(t, expected, template)
 
 	template, err = s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
 	bytes, err = os.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, _ = pipelinetemplate.New(bytes)
+	expected, _ = pipelinetemplate.New(bytes, true)
 	assert.Equal(t, expected, template)
 }
 

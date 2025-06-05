@@ -23,14 +23,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
@@ -307,6 +308,20 @@ func (e *Execution) FingerPrint() string {
 		return ""
 	}
 	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
+}
+
+// GetTaskNameWithDagID appends the taskName with its parent dag id. This is
+// used to help avoid collisions when creating the taskMap for downstream input
+// resolution.
+func GetTaskNameWithDagID(taskName string, dagID int64) string {
+	return fmt.Sprintf("%s_%d", taskName, dagID)
+}
+
+// GetParallelForTaskName appends the taskName with an iteration index. This is
+// used to help further avoid collisions with parallelFor tasks with the taskMap
+// for downstream input resolution.
+func GetParallelForTaskName(taskName string, iterationIndex int64) string {
+	return fmt.Sprintf("%s_idx_%d", taskName, iterationIndex)
 }
 
 // GenerateOutputURI appends the specified paths to the pipeline root.
@@ -848,9 +863,10 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	// Documentation on query syntax:
 	// https://github.com/google/ml-metadata/blob/839c3501a195d340d2855b6ffdb2c4b0b49862c9/ml_metadata/proto/metadata_store.proto#L831
 	// If filter is set to true, the MLMD call will only grab executions for the current DAG, else it would grab all the execution for the context which includes sub-DAGs.
+	parentDAGID := dag.Execution.GetID()
 	parentDAGFilter := ""
 	if filter {
-		parentDAGFilter = fmt.Sprintf("custom_properties.parent_dag_id.int_value = %v", dag.Execution.GetID())
+		parentDAGFilter = fmt.Sprintf("custom_properties.parent_dag_id.int_value = %v", parentDAGID)
 	}
 
 	// Note, because MLMD does not have index on custom properties right now, we
@@ -874,14 +890,39 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 		glog.V(4).Infof("execs: %v", execs)
 		for _, e := range execs {
 			execution := &Execution{execution: e}
-			taskName := execution.TaskName()
+			glog.V(4).Infof("taskName before DAG injection: %s", execution.TaskName())
+			// Sometimes components in nested DAGs have identical task names. We
+			// update all task names to include the DAG ID to avoid potential
+			// key collisions in the executions map.
+			taskName := GetTaskNameWithDagID(execution.TaskName(), parentDAGID)
+			glog.V(4).Infof("taskName after DAG Injection: %s", taskName)
+			glog.V(4).Infof("execution: %s", execution)
 			if taskName == "" {
 				if e.GetCustomProperties()[keyParentDagID] != nil {
 					return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
 				}
-				// When retrieving executions without the parentDAGFilter, the rootDAG execution is supplied but does not have an associated TaskName nor is the parentDagID set, therefore we won't include it in the executionsMap.
+				// When retrieving executions without the parentDAGFilter, the
+				// rootDAG execution is supplied but does not have an associated
+				// TaskName nor is the parentDagID set, therefore we won't
+				// include it in the executionsMap.
 				continue
 			}
+			// Handle for parallelFor subdags & their tasks that consume the
+			// values from the iterator. Within a ParallelFor DAG, the iteration
+			// DAGs share the same name. In order to avoid collisions in the
+			// taskMap, the iteration index will be appended to the taskName.
+			// This also fortifies against potential collisions of tasks across
+			// iterations.
+			if e.GetCustomProperties()[keyIterationIndex] != nil {
+				taskName = GetParallelForTaskName(taskName, e.GetCustomProperties()[keyIterationIndex].GetIntValue())
+
+			} else if dag.Execution.GetExecution().GetCustomProperties()[keyIterationIndex] != nil {
+				// Handle for tasks within a parallelFor subdag that do not
+				// consume the values from the iterator as input but rather the
+				// output of a task that does.
+				taskName = GetParallelForTaskName(taskName, dag.Execution.GetExecution().GetCustomProperties()[keyIterationIndex].GetIntValue())
+			}
+
 			existing, ok := executionsMap[taskName]
 			if ok {
 				// TODO: The failure to handle this results in a specific edge

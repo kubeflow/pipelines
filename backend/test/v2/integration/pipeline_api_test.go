@@ -15,6 +15,8 @@
 package integration
 
 import (
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -151,6 +153,12 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
+	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+	}
+
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineParams{
 		Body: &model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
@@ -160,19 +168,19 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 		&params.PipelineServiceCreatePipelineVersionParams{
 			PipelineID: argumentUrlPipeline.PipelineID,
 			Body: &model.V2beta1PipelineVersion{
-				DisplayName: "argumentUrl-v1",
+				DisplayName: "argumenturl-v1",
 				Description: "1st version of argument url pipeline",
 				PipelineID:  sequentialPipeline.PipelineID,
 				PackageURL: &model.V2beta1URL{
-					PipelineURL: "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip",
+					PipelineURL: pipelineURL,
 				},
 			},
 		})
 	require.Nil(t, err)
-	assert.Equal(t, "argumentUrl-v1", argumentUrlPipelineVersion.DisplayName)
+	assert.Equal(t, "argumenturl-v1", argumentUrlPipelineVersion.DisplayName)
 	assert.Equal(t, "1st version of argument url pipeline", argumentUrlPipelineVersion.Description)
 	assert.Equal(t, argumentUrlPipeline.PipelineID, argumentUrlPipelineVersion.PipelineID)
-	assert.Equal(t, "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip", argumentUrlPipelineVersion.PackageURL.PipelineURL)
+	assert.Equal(t, pipelineURL, argumentUrlPipelineVersion.PackageURL.PipelineURL)
 
 	/* ---------- Verify list pipeline works ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{})

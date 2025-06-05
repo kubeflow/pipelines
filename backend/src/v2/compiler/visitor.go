@@ -73,7 +73,7 @@ func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePl
 		visitor:        v,
 		visited:        make(map[string]bool),
 	}
-	return state.dfs(RootComponentName, spec.GetRoot())
+	return state.dfs(RootComponentName, spec.GetRoot(), nil)
 }
 
 type pipelineDFS struct {
@@ -85,7 +85,7 @@ type pipelineDFS struct {
 	visited map[string]bool
 }
 
-func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec) error {
+func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, componentTask *pipelinespec.PipelineTaskSpec) error {
 	// each component is only visited once
 	// TODO(Bobgy): return an error when circular reference detected
 	if state.visited[name] {
@@ -154,7 +154,10 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 		if !ok {
 			return componentError(fmt.Errorf("cannot find component ref name=%q", refName))
 		}
-		err := state.dfs(refName, subComponent)
+		if task.GetRetryPolicy() == nil && componentTask != nil {
+			task.RetryPolicy = componentTask.GetRetryPolicy()
+		}
+		err := state.dfs(refName, subComponent, task)
 		if err != nil {
 			return err
 		}

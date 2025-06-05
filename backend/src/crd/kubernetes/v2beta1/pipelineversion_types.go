@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"gopkg.in/yaml.v3"
@@ -37,6 +38,8 @@ type PipelineVersionSpec struct {
 	// +kubebuilder:validation:Schemaless
 	// +kubebuilder:pruning:PreserveUnknownFields
 	PipelineSpec PipelineIRSpec `json:"pipelineSpec"`
+
+	PipelineSpecURI string `json:"pipelineSpecURI,omitempty"`
 }
 
 func ToPipelineSpec(p *PipelineIRSpec) (*pipelinespec.PipelineSpec, error) {
@@ -125,10 +128,11 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 			},
 		},
 		Spec: PipelineVersionSpec{
-			Description:   pipelineVersion.Description,
-			PipelineSpec:  pipelineSpec,
-			PipelineName:  pipeline.Name,
-			CodeSourceURL: pipelineVersion.CodeSourceUrl,
+			Description:     pipelineVersion.Description,
+			PipelineSpec:    pipelineSpec,
+			PipelineName:    pipeline.Name,
+			CodeSourceURL:   pipelineVersion.CodeSourceUrl,
+			PipelineSpecURI: pipelineVersion.PipelineSpecURI,
 		},
 	}, nil
 }
@@ -160,14 +164,16 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 	}
 
 	return &model.PipelineVersion{
-		UUID:           string(p.UID),
-		CreatedAtInSec: p.CreationTimestamp.Unix(),
-		Name:           p.Name,
-		PipelineId:     string(pipelineID),
-		Description:    p.Spec.Description,
-		PipelineSpec:   string(pipelineSpec),
-		Status:         pipelineVersionStatus,
-		CodeSourceUrl:  p.Spec.CodeSourceURL,
+		UUID:            string(p.UID),
+		CreatedAtInSec:  p.CreationTimestamp.Unix(),
+		Name:            p.Name,
+		Parameters:      "",
+		PipelineId:      string(pipelineID),
+		Status:          pipelineVersionStatus,
+		CodeSourceUrl:   p.Spec.CodeSourceURL,
+		Description:     p.Spec.Description,
+		PipelineSpec:    string(pipelineSpec),
+		PipelineSpecURI: p.Spec.PipelineSpecURI,
 	}, nil
 }
 
@@ -222,6 +228,25 @@ func (in *PipelineIRSpec) DeepCopyInto(out *PipelineIRSpec) {
 
 	if in.Value != nil {
 		out.Value = runtime.DeepCopyJSONValue(in.Value)
+	}
+}
+
+func (p *PipelineVersion) GetField(name string) interface{} {
+	switch name {
+	case "pipeline_versions.UUID":
+		return p.UID
+	case "pipeline_versions.pipeline_version_id":
+		return p.OwnerReferences[0].UID
+	case "pipeline_versions.Name":
+		return p.Name
+	case "pipeline_versions.CreatedAtInSec":
+		return p.CreationTimestamp
+	case "pipeline_versions.Description":
+		return p.Spec.Description
+	case "pipeline_versions.pipelineSpec":
+		return p.Spec.PipelineSpec
+	default:
+		return nil
 	}
 }
 

@@ -59,6 +59,24 @@
             "taskInfo": {
               "name": "hello-world"
             }
+          },
+          "hello-world-non-retry": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-hello-world"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "componentInputParameter": "text"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "hello-world-2"
+            }
           }
         }
       },
@@ -81,3 +99,4 @@
     }
   }
 }
+

@@ -16,8 +16,9 @@ package server
 
 import (
 	"context"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"

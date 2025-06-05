@@ -294,6 +294,12 @@ func (s *UpgradeTests) PreparePipelines() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
+	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+	}
+
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&pipeline_params.PipelineServiceCreatePipelineParams{
 		Body: &pipeline_model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
@@ -305,7 +311,7 @@ func (s *UpgradeTests) PreparePipelines() {
 		Body: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "arguments",
 			PackageURL: &pipeline_model.V2beta1URL{
-				PipelineURL: "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip",
+				PipelineURL: pipelineURL,
 			},
 			PipelineID: argumentUrlPipeline.PipelineID,
 		},
@@ -346,7 +352,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	actual_bytes, err := json.Marshal(pipelineVersion.PipelineSpec)
 	require.Nil(t, err)
 	// Override pipeline name, then compare
-	assert.Equal(t, string(expected_bytes), strings.Replace(string(actual_bytes), "pipeline/arguments-parameters.yaml", "whalesay", 1))
+	assert.Equal(t, string(expected_bytes), strings.Replace(string(actual_bytes), "pipeline/arguments-parameters.yaml", "echo", 1))
 }
 
 func (s *UpgradeTests) PrepareRuns() {

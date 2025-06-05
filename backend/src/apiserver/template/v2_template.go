@@ -36,9 +36,12 @@ import (
 )
 
 type V2Spec struct {
-	spec         *pipelinespec.PipelineSpec
-	platformSpec *pipelinespec.PlatformSpec
+	spec          *pipelinespec.PipelineSpec
+	platformSpec  *pipelinespec.PlatformSpec
+	cacheDisabled bool
 }
+
+var _ Template = &V2Spec{}
 
 var Launcher = ""
 
@@ -110,7 +113,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheDisabled: t.cacheDisabled})
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -155,8 +158,8 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 	return V2
 }
 
-func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
-	var v2Spec V2Spec
+func NewV2SpecTemplate(template []byte, cacheDisabled bool) (*V2Spec, error) {
+	v2Spec := &V2Spec{cacheDisabled: cacheDisabled}
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
@@ -224,7 +227,7 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 	if v2Spec.spec == nil {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "no pipeline spec is provided")
 	}
-	return &v2Spec, nil
+	return v2Spec, nil
 }
 
 func (t *V2Spec) Bytes() []byte {
@@ -315,7 +318,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, nil)
+		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheDisabled: options.CacheDisabled})
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -344,6 +347,10 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	return executionSpec, nil
 }
 
+func (t *V2Spec) IsCacheDisabled() bool {
+	return t.cacheDisabled
+}
+
 func IsPlatformSpecWithKubernetesConfig(template []byte) bool {
 	var platformSpec pipelinespec.PlatformSpec
 	templateJson, err := yaml.YAMLToJSON(template)
@@ -370,7 +377,7 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 	if runtimeConfig == nil {
 		if len(requiredParams) != 0 {
 			requiredParamNames := make([]string, 0)
-			for name, _ := range requiredParams {
+			for name := range requiredParams {
 				requiredParamNames = append(requiredParamNames, name)
 			}
 			return util.NewInvalidInputError(
@@ -432,7 +439,7 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 
 	// Verify that only required parameters are provided
 	extraParams := make([]string, 0)
-	for name, _ := range runtimeConfig.GetParameterValues() {
+	for name := range runtimeConfig.GetParameterValues() {
 		if _, ok := requiredParams[name]; !ok {
 			extraParams = append(extraParams, name)
 		}

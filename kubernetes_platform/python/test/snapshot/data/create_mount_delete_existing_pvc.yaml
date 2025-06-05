@@ -135,7 +135,7 @@ root:
                 - ReadWriteOnce
             pvc_name:
               runtimeValue:
-                constant: static-pvc-name
+                constant: static-pvc-name-cmdep
             size:
               runtimeValue:
                 constant: 5Gi

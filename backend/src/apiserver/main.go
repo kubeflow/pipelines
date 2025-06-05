@@ -72,6 +72,8 @@ var (
 	sampleConfigPath              = flag.String("sampleconfig", "", "Path to samples")
 	collectMetricsFlag            = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
 	usePipelinesKubernetesStorage = flag.Bool("pipelinesStoreKubernetes", false, "Store and run pipeline versions in Kubernetes")
+	disableWebhook                = flag.Bool("disableWebhook", false, "Set this if pipelinesStoreKubernetes is on but using a global webhook in a separate pod")
+	globalKubernetesWebhookMode   = flag.Bool("globalKubernetesWebhookMode", false, "Set this to run exclusively in Kubernetes Webhook mode")
 	tlsCertPath                   = flag.String("tlsCertPath", "", "Path to the public tls cert.")
 	tlsCertKeyPath                = flag.String("tlsCertKeyPath", "", "Path to the private tls key cert.")
 )
@@ -110,6 +112,18 @@ func main() {
 		template.Launcher = common.GetStringConfig(launcherEnv)
 	}
 
+	backgroundCtx, backgroundCancel := context.WithCancel(signals.SetupSignalHandler())
+	defer backgroundCancel()
+
+	wg := sync.WaitGroup{}
+
+	options := &cm.Options{
+		UsePipelineKubernetesStorage: *usePipelinesKubernetesStorage,
+		GlobalKubernetesWebhookMode:  *globalKubernetesWebhookMode,
+		Context:                      backgroundCtx,
+		WaitGroup:                    &wg,
+	}
+
 	tlsConfig, err := initCerts()
 	if err != nil {
 		glog.Fatalf("Failed to parse Cert paths. Err: %v", err)
@@ -134,23 +148,23 @@ func main() {
 
 	ctrllog.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Level: zapLevel})))
 
-	clientManager, err := cm.NewClientManager()
+	clientManager, err := cm.NewClientManager(options)
 	if err != nil {
 		glog.Fatalf("Failed to initialize ClientManager: %v", err)
 	}
 
 	defer clientManager.Close()
+	webhookOnlyMode := *globalKubernetesWebhookMode
 
-	backgroundCtx, backgroundCancel := context.WithCancel(signals.SetupSignalHandler())
-	defer backgroundCancel()
+	if (*usePipelinesKubernetesStorage && !*disableWebhook) || webhookOnlyMode {
+		if *disableWebhook && webhookOnlyMode {
+			glog.Fatalf("Invalid configuration: globalKubernetesWebhookMode is enabled but the webhook is disabled")
+		}
 
-	wg := sync.WaitGroup{}
-
-	webhookOnlyMode := common.IsOnlyKubernetesWebhookMode()
-
-	if *usePipelinesKubernetesStorage || webhookOnlyMode {
 		wg.Add(1)
-		webhookServer, err := startWebhook(clientManager.ControllerClient(), &wg)
+		webhookServer, err := startWebhook(
+			clientManager.ControllerClient(true), clientManager.ControllerClient(false), &wg,
+		)
 		if err != nil {
 			glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
 		}
@@ -169,11 +183,15 @@ func main() {
 			wg.Wait()
 			return
 		}
+
 	}
 
 	resourceManager := resource.NewResourceManager(
-		&clientManager,
-		&resource.ResourceManagerOptions{CollectMetrics: *collectMetricsFlag},
+		clientManager,
+		&resource.ResourceManagerOptions{
+			CollectMetrics: *collectMetricsFlag,
+			CacheDisabled:  !common.GetBoolConfigWithDefault("CacheEnabled", true),
+		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
 	if err != nil {
@@ -345,7 +363,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager, tlsConfig *tls.Co
 	glog.Info("Http Proxy started")
 }
 
-func startWebhook(controllerClient ctrlclient.Client, wg *sync.WaitGroup) (*http.Server, error) {
+func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *sync.WaitGroup) (*http.Server, error) {
 	glog.Info("Starting the Kubernetes webhooks...")
 
 	tlsCertPath := *webhookTLSCertPath
@@ -353,7 +371,7 @@ func startWebhook(controllerClient ctrlclient.Client, wg *sync.WaitGroup) (*http
 
 	topMux := mux.NewRouter()
 
-	pvValidateWebhook, pvMutateWebhook, err := webhook.NewPipelineVersionWebhook(controllerClient)
+	pvValidateWebhook, pvMutateWebhook, err := webhook.NewPipelineVersionWebhook(client, clientNoCahe)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate the Kubernetes webhook: %v", err)
 	}

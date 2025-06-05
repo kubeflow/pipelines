@@ -21,12 +21,13 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -86,7 +87,7 @@ func Test_GetPipeline(t *testing.T) {
 	runId := runUuid.String()
 	client, err := metadata.NewClient(testMlmdServerAddress, testMlmdServerPort, false, "unused-ca-cert-path")
 	fatalIf(err)
-	mlmdClient, err := NewTestMlmdClient()
+	mlmdClient, err := testutils.NewTestMlmdClient(testMlmdServerAddress, testMlmdServerPort)
 	fatalIf(err)
 
 	pipeline, err := client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource, pipelineRoot, "")
@@ -349,14 +350,4 @@ func newUUIDOrFatal(t *testing.T) string {
 		t.Fatalf("uuid.NewRandom failed: %v", err)
 	}
 	return uuid.String()
-}
-
-func NewTestMlmdClient() (pb.MetadataStoreServiceClient, error) {
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", testMlmdServerAddress, testMlmdServerPort),
-		grpc.WithInsecure(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("NewMlmdClient() failed: %w", err)
-	}
-	return pb.NewMetadataStoreServiceClient(conn), nil
 }

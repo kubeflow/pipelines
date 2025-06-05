@@ -18,6 +18,8 @@ on:
       - 'api/**/*.go'
       - 'kubernetes_platform/**/*.proto'
       - 'kubernetes_platform/**/*.go'
+      - 'backend/src/crd/kubernetes/**/*.go'
+      - 'manifests/kustomize/base/crds/*.yaml'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -52,7 +54,10 @@ jobs:
       - name: Generate kfp-kubernetes proto files from source
         working-directory: ./kubernetes_platform
         run: make clean all
-      
+
+      - name: Generate K8s Native API CRDs
+        working-directory: ./backend/src/crd/kubernetes
+        run: make generate manifests
+
       - name: Check for Changes
         run: make check-diff
-          

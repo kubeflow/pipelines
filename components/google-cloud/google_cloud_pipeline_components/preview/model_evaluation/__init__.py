@@ -18,15 +18,8 @@ from google_cloud_pipeline_components.preview.model_evaluation.feature_attributi
 from google_cloud_pipeline_components.preview.model_evaluation.feature_attribution_graph_component import feature_attribution_graph_component as FeatureAttributionGraphComponentOp
 from google_cloud_pipeline_components.preview.model_evaluation.model_bias_component import detect_model_bias as DetectModelBiasOp
 from google_cloud_pipeline_components.preview.model_evaluation.model_evaluation_import_component import model_evaluation_import as ModelImportEvaluationOp
-from google_cloud_pipeline_components.v1.model_evaluation.evaluation_llm_classification_pipeline import evaluation_llm_classification_pipeline
-from google_cloud_pipeline_components.v1.model_evaluation.evaluation_llm_text_generation_pipeline import evaluation_llm_text_generation_pipeline
-from google_cloud_pipeline_components.v1.model_evaluation.model_based_llm_evaluation.autosxs.autosxs_pipeline import autosxs_pipeline
-
 
 __all__ = [
-    'autosxs_pipeline',
-    'evaluation_llm_classification_pipeline',
-    'evaluation_llm_text_generation_pipeline',
     'ModelEvaluationFeatureAttributionOp',
     'FeatureAttributionGraphComponentOp',
     'DetectModelBiasOp',

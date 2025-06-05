@@ -41,6 +41,8 @@ type Options struct {
 	DriverImage string
 	// optional
 	PipelineRoot string
+	// optional
+	CacheDisabled bool
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
 
@@ -151,6 +153,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	c.mlPipelineServiceTLSEnabled = mlPipelineTLSEnabled
 
 	if opts != nil {
+		c.cacheDisabled = opts.CacheDisabled
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -185,6 +188,7 @@ type workflowCompiler struct {
 	driverCommand               []string
 	launcherImage               string
 	launcherCommand             []string
+	cacheDisabled               bool
 	mlPipelineServiceTLSEnabled bool
 }
 
@@ -342,21 +346,25 @@ func hashValue(value interface{}) (string, error) {
 }
 
 const (
-	paramComponent        = "component"      // component spec
-	paramTask             = "task"           // task spec
-	paramContainer        = "container"      // container spec
-	paramImporter         = "importer"       // importer spec
-	paramRuntimeConfig    = "runtime-config" // job runtime config, pipeline level inputs
-	paramParentDagID      = "parent-dag-id"
-	paramExecutionID      = "execution-id"
-	paramIterationCount   = "iteration-count"
-	paramIterationIndex   = "iteration-index"
-	paramExecutorInput    = "executor-input"
-	paramDriverType       = "driver-type"
-	paramCachedDecision   = "cached-decision"   // indicate hit cache or not
-	paramPodSpecPatch     = "pod-spec-patch"    // a strategic patch merged with the pod spec
-	paramCondition        = "condition"         // condition = false -> skip the task
-	paramKubernetesConfig = "kubernetes-config" // stores Kubernetes config
+	paramComponent               = "component"      // component spec
+	paramTask                    = "task"           // task spec
+	paramContainer               = "container"      // container spec
+	paramImporter                = "importer"       // importer spec
+	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs
+	paramParentDagID             = "parent-dag-id"
+	paramExecutionID             = "execution-id"
+	paramIterationCount          = "iteration-count"
+	paramIterationIndex          = "iteration-index"
+	paramExecutorInput           = "executor-input"
+	paramDriverType              = "driver-type"
+	paramCachedDecision          = "cached-decision"            // indicate hit cache or not
+	paramPodSpecPatch            = "pod-spec-patch"             // a strategic patch merged with the pod spec
+	paramCondition               = "condition"                  // condition = false -> skip the task
+	paramKubernetesConfig        = "kubernetes-config"          // stores Kubernetes config
+	paramRetryMaxCount           = "retry-max-count"            // limit on number of retries
+	paramRetryBackOffDuration    = "retry-backoff-duration"     // duration of backoff between retries
+	paramRetryBackOffFactor      = "retry-backoff-factor"       // multiplier for backoff duration between retries
+	paramRetryBackOffMaxDuration = "retry-backoff-max-duration" // limit on backoff duration between retries
 )
 
 func runID() string {

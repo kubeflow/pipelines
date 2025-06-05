@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.30.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: KFP Webhooks - K8s ${{ matrix.k8s_version }}
 
     steps:
@@ -29,19 +29,18 @@ jobs:
       uses: ./.github/actions/kfp-cluster
       with:
         k8s_version: ${{ matrix.k8s_version }}
-      env:
-        PIPELINE_STORE: kubernetes
+        pipeline_store: kubernetes
       continue-on-error: true
 
     - name: Run Webhook Integration Tests
       id: tests
-      if: ${{ (steps.create-kfp-cluster.outcome == 'success' )}}
+      if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
       run: |
         make -C backend/test/integration test-webhook
       continue-on-error: true
 
     - name: Collect failed logs
-      if: ${{ (steps.create-kfp-cluster.outcome != 'success' ) || ( steps.tests.outcome != 'success' )}}
+      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.tests.outcome != 'success' }}
       run: |
         ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
         exit 1
