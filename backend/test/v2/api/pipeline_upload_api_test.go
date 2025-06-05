@@ -18,8 +18,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-openapi/strfmt"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	matcher "github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -124,8 +126,8 @@ var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "Pipeline
 
 var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload"), func() {
 	errorScenario := []struct {
-		pipeline_name          string
-		expected_error_message string
+		pipelineFileName     string
+		expectedErrorMessage string
 	}{
 		{"empty_file.yaml", "Failed to upload pipeline"},
 		{"empty_zip.zip", "Failed to upload pipeline"},
@@ -145,9 +147,9 @@ var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "Pipeline
 		})
 
 		for _, scenario := range errorScenario {
-			It("Upload a pipeline and verify the failure", func() {
+			It(fmt.Sprintf("Upload a %s pipeline and verify the failure", scenario.pipelineFileName), func() {
 				pipelineDir = "negative"
-				uploadPipelineAndVerifyFailure(scenario.pipeline_name, &pipelineGeneratedName, scenario.expected_error_message)
+				uploadPipelineAndVerifyFailure(scenario.pipelineFileName, &pipelineGeneratedName, scenario.expectedErrorMessage)
 			})
 		}
 	})
@@ -225,7 +227,10 @@ func uploadPipelineAndVerify(pipelineFileName string, pipelineName *string) *mod
 	log.Printf("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())
 	createdPipelines = append(createdPipelines, createdPipeline)
-	matcher.MatchPipelines(createdPipeline, expectedPipeline)
+
+	createdPipelineFromDB := getPipeline(createdPipeline.PipelineID)
+	Expect(createdPipelineFromDB).To(Equal(*createdPipeline))
+	matcher.MatchPipelines(&createdPipelineFromDB, expectedPipeline)
 	return createdPipeline
 }
 
@@ -255,4 +260,45 @@ func uploadPipelineVersionAndVerifyFailure(pipelineFileName string, parameters *
 	log.Printf("Verifying error in the response")
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
+	pipelineCreated := findPipelineByName(pipelineGeneratedName)
+	Expect(pipelineCreated).To(BeFalse())
+}
+
+/*
+Get pipeline via GET pipeline end point call, so that we retreive the values from DB
+*/
+func getPipeline(pipelineId string) model.V2beta1Pipeline {
+	params := new(pipeline_service.PipelineServiceGetPipelineParams)
+	params.PipelineID = pipelineId
+	pipeline, err := pipelineClient.Get(params)
+	Expect(err).NotTo(HaveOccurred())
+	return model.V2beta1Pipeline{
+		DisplayName: pipeline.DisplayName,
+		Description: pipeline.Description,
+		PipelineID:  pipeline.PipelineID,
+		CreatedAt:   pipeline.CreatedAt,
+		Namespace:   pipeline.Namespace,
+	}
+}
+
+/*
+Get all pipelines and filter by name, if the pipeline exists, return true otherwise false
+*/
+func findPipelineByName(pipelineName string) bool {
+	requestedNumberOfPipelinesPerPage := 1000
+	params := new(pipeline_service.PipelineServiceListPipelinesParams)
+	params.Namespace = namespace
+	params.PageSize = util.Int32Pointer(int32(requestedNumberOfPipelinesPerPage))
+	pipelines, size, _, err := pipelineClient.List(params)
+	Expect(err).NotTo(HaveOccurred())
+	if size < requestedNumberOfPipelinesPerPage {
+		for _, pipeline := range pipelines {
+			if pipeline.DisplayName == pipelineName {
+				return true
+			} else {
+				return false
+			}
+		}
+	}
+	return false
 }
