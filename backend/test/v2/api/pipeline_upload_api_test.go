@@ -29,11 +29,14 @@ import (
 )
 
 const (
-	hello_world_pipeline_name = "hello-world.yaml"
-	pipeline_with_args_name   = "arguments-parameters.yaml"
+	helloWorldPipelineFileName = "hello-world.yaml"
+	pipelineWithArgsFileName   = "arguments-parameters.yaml"
+	zipPipelineFileName        = "arguments.pipeline.zip"
+	tarPipelineFileName        = "tar-pipeline.tar.gz"
 )
 
 var pipelineDir string
+var pipelineGeneratedName string
 var expectedPipeline *model.V2beta1Pipeline
 var createdPipelines []*model.V2beta1Pipeline
 var testStartTime strfmt.DateTime
@@ -45,6 +48,7 @@ var _ = BeforeEach(func() {
 	createdPipelines = []*model.V2beta1Pipeline{}
 	expectedPipeline = new(model.V2beta1Pipeline)
 	expectedPipeline.CreatedAt = testStartTime
+	pipelineGeneratedName = "apitest-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	uploadParams = upload_params.NewUploadPipelineParams()
 	//expectedPipeline.Namespace = *namespace
 })
@@ -60,25 +64,23 @@ var _ = AfterEach(func() {
 
 var _ = Describe("Verify Pipeline Upload >", Label("Positive"), func() {
 	pipelineDir = "positive"
-	/* Positive Scenarios of uploading a "yaml" pipeline file */
-	Context("Upload a pipeline and verify pipeline metadata after upload >", func() {
-		It(fmt.Sprintf("Upload %s pipeline", hello_world_pipeline_name), Label("Smoke"), func() {
-			createPipelineAndVerify(hello_world_pipeline_name)
-		})
+	pipelineFiles := []string{helloWorldPipelineFileName, pipelineWithArgsFileName, zipPipelineFileName, tarPipelineFileName}
 
-		It(fmt.Sprintf("Upload %s pipeline with custom name and description", hello_world_pipeline_name), func() {
+	/* Positive Scenarios of uploading a pipeline file */
+	Context("Upload a pipeline and verify pipeline metadata after upload >", func() {
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), Label("Smoke"), func() {
+				createPipelineAndVerify(pipelineFile, &pipelineGeneratedName)
+			})
+		}
+
+		It(fmt.Sprintf("Upload %s pipeline with custom name and description", helloWorldPipelineFileName), func() {
 			description := "Some pipeline description"
-			pipelineName := strconv.FormatInt(time.Now().UnixNano(), 10)
 			namespace := *namespace
 			uploadParams.SetDescription(&description)
 			uploadParams.SetNamespace(&namespace)
-			uploadParams.SetName(&pipelineName)
 			expectedPipeline.Description = description
-			createPipelineAndVerify(hello_world_pipeline_name)
-		})
-
-		It(fmt.Sprintf("Upload %s pipeline", pipeline_with_args_name), func() {
-			createPipelineAndVerify(pipeline_with_args_name)
+			createPipelineAndVerify(helloWorldPipelineFileName, &pipelineGeneratedName)
 		})
 	})
 })
@@ -93,49 +95,45 @@ var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative"), func() {
 		{"invalid_yaml.yaml", "Failed to upload pipeline"},
 		{"no_name.yaml", "Failed to upload pipeline"},
 		{"wrong_format.png", "Failed to upload pipeline"},
+		{"invalid-tar.tar.gz", "Failed to upload pipeline"},
+		{"invalid-zip.zip", "Failed to upload pipeline"},
 	}
 
 	/* Negative scenarios of uploading a pipeline  */
 	Context("Upload a failing pipeline and verify the error in the response >", func() {
 		It("Upload a pipeline twice and verify that it should fail the second time", func() {
 			pipelineDir = "positive"
-			pipelineName := strconv.FormatInt(time.Now().UnixNano(), 10)
-			uploadParams.SetName(&pipelineName)
-			createPipelineAndVerify(hello_world_pipeline_name)
-			uploadPipelineAndVerifyFailure(hello_world_pipeline_name, "Failed to upload pipeline")
+			createdPipeline := createPipelineAndVerify(helloWorldPipelineFileName, &pipelineGeneratedName)
+			uploadPipelineAndVerifyFailure(helloWorldPipelineFileName, &(createdPipeline.DisplayName), "Failed to upload pipeline")
 		})
 
 		for _, scenario := range errorScenario {
 			It("Upload a pipeline and verify the failure", func() {
 				pipelineDir = "negative"
-				uploadPipelineAndVerifyFailure(scenario.pipeline_name, scenario.expected_error_message)
+				uploadPipelineAndVerifyFailure(scenario.pipeline_name, &pipelineGeneratedName, scenario.expected_error_message)
 			})
 		}
 	})
 })
 
-func createPipeline(pipelineName string) (*model.V2beta1Pipeline, error) {
-	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineName)
-	if (*uploadParams).Name != nil {
-		pipelineName = *uploadParams.Name
-	}
-	log.Printf("Creating pipeline with name=%s, from file %s", pipelineName, pipelineFile)
+func createPipeline(pipelineFileName string, pipelineName *string) (*model.V2beta1Pipeline, error) {
+	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileName)
+	uploadParams.SetName(pipelineName)
+	expectedPipeline.DisplayName = *pipelineName
+	log.Printf("Creating pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
 	return pipelineUploadClient.UploadFile(pipelineFile, uploadParams)
 }
 
-func createPipelineAndVerify(pipelineName string) {
-	createdPipeline, err := createPipeline(pipelineName)
+func createPipelineAndVerify(pipelineFileName string, pipelineName *string) *model.V2beta1Pipeline {
+	createdPipeline, err := createPipeline(pipelineFileName, pipelineName)
 	Expect(err).NotTo(HaveOccurred())
-	if (*uploadParams).Name != nil {
-		pipelineName = *uploadParams.Name
-	}
-	expectedPipeline.DisplayName = pipelineName
 	createdPipelines = append(createdPipelines, createdPipeline)
 	matcher.MatchPipelines(createdPipeline, expectedPipeline)
+	return createdPipeline
 }
 
-func uploadPipelineAndVerifyFailure(pipelineName string, errorMessage string) {
-	_, err := createPipeline(pipelineName)
+func uploadPipelineAndVerifyFailure(pipelineFileName string, pipelineName *string, errorMessage string) {
+	_, err := createPipeline(pipelineFileName, pipelineName)
 	log.Printf("Verifying error in the response")
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
