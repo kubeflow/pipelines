@@ -22,6 +22,7 @@ import (
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	. "github.com/kubeflow/pipelines/backend/test/v2/api/constants"
 	matcher "github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -83,14 +84,14 @@ var _ = AfterEach(func() {
 // ########################################################## POSITIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload"), func() {
+var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload", S1.String()), func() {
 	pipelineDir = "positive"
 	pipelineFiles := []string{helloWorldPipelineFileName, pipelineWithArgsFileName, zipPipelineFileName, tarPipelineFileName}
 
 	/* Positive Scenarios of uploading a pipeline file */
 	Context("Upload a pipeline and verify pipeline metadata after upload >", func() {
 		for _, pipelineFile := range pipelineFiles {
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), Label("Smoke"), func() {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), Label(SMOKE.String()), func() {
 				uploadPipelineAndVerify(pipelineFile, &pipelineGeneratedName)
 			})
 		}
@@ -104,16 +105,16 @@ var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload")
 	})
 })
 
-var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "PipelineUpload"), func() {
+var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "PipelineUpload", S1.String()), func() {
 	pipelineDir = "positive"
 
 	/* Positive Scenarios of uploading a pipeline file */
 	Context("Upload a pipeline and upload the same pipeline to change version >", func() {
 		const pipelineFile = helloWorldPipelineFileName
-		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the same file", pipelineFile), Label("Smoke"), func() {
+		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the same file", pipelineFile), Label(SMOKE.String()), func() {
 			uploadPipelineAndChangePipelineVersion(pipelineFile, pipelineFile)
 		})
-		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the different file %s", pipelineFile, pipelineWithArgsFileName), Label("Smoke"), func() {
+		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the different file %s", pipelineFile, pipelineWithArgsFileName), func() {
 			uploadPipelineAndChangePipelineVersion(pipelineFile, pipelineWithArgsFileName)
 		})
 
