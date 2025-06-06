@@ -9,8 +9,8 @@ const (
 )
 
 var severityName = map[Severity]string{
-	S1: "BLOCKER",
-	S2: "CRITICAL",
+	S1: "CRITICAL",
+	S2: "MEDIUM",
 	S3: "TRIVIAL",
 }
 

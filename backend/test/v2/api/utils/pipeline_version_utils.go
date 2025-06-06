@@ -19,22 +19,39 @@ import (
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"os"
+	"sigs.k8s.io/yaml"
 )
+
+/*
+Construct expected Pipeline Spec from the uploaded file
+*/
+func JsonFromYAML(pipelineFilePath string) []byte {
+	pipelineSpec, err := os.ReadFile(pipelineFilePath)
+	Expect(err).NotTo(HaveOccurred())
+	jsonSpecFromFile, errDataConvertion := yaml.YAMLToJSON(pipelineSpec)
+	Expect(errDataConvertion).NotTo(HaveOccurred())
+	return jsonSpecFromFile
+}
 
 func ListPipelineVersions(client *api_server.PipelineClient, pipelineId string) (
 	[]*pipeline_model.V2beta1PipelineVersion, int, string, error,
 ) {
+	ginkgo.GinkgoWriter.Printf("Listing pipeline versions for pipeline %s", pipelineId)
 	parameters := &pipeline_params.PipelineServiceListPipelineVersionsParams{PipelineID: pipelineId}
 	return client.ListPipelineVersions(parameters)
 }
 
 func DeletePipelineVersion(client *api_server.PipelineClient, pipelineId string, pipelineVersionId string) {
+	ginkgo.GinkgoWriter.Printf("Deleting pipeline versions for pipeline %s with version id=%s", pipelineId, pipelineVersionId)
 	err := client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineId, PipelineVersionID: pipelineVersionId})
 	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Pipeline version with id=%s of pipelineId=%s failed", pipelineVersionId, pipelineId))
 }
 
 func DeleteAllPipelineVersions(client *api_server.PipelineClient, pipelineId string) {
+	ginkgo.GinkgoWriter.Printf("Deleting all pipeline versions for pipeline %s", pipelineId)
 	pipelineVersions, _, _, err := ListPipelineVersions(client, pipelineId)
 	Expect(err).NotTo(HaveOccurred(), "Error occurred while listing pipeline versions")
 	for _, pv := range pipelineVersions {
