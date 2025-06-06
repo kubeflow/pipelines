@@ -1,6 +1,7 @@
 package api
 
 import (
+	"flag"
 	"github.com/golang/glog"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	test "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
@@ -11,6 +12,7 @@ import (
 
 var pipelineUploadClient *api_server.PipelineUploadClient
 var pipelineClient *api_server.PipelineClient
+var parallelProcesses = flag.Int("parallelProcesses", 1, "Number of tests to parallel in parallel")
 
 var _ = BeforeSuite(func() {
 
@@ -48,5 +50,12 @@ var _ = BeforeSuite(func() {
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "API Tests Suite")
+	suiteConfig, reporterConfig := GinkgoConfiguration()
+	suiteConfig.ParallelTotal = *parallelProcesses
+	suiteConfig.EmitSpecProgress = true
+	suiteConfig.FailFast = false
+	reporterConfig.Verbose = true
+	reporterConfig.GithubOutput = true
+	reporterConfig.ShowNodeEvents = true
+	RunSpecs(t, "API Tests Suite", suiteConfig, reporterConfig)
 }

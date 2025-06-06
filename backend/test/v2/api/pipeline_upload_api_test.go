@@ -18,18 +18,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-openapi/strfmt"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	. "github.com/kubeflow/pipelines/backend/test/v2/api/constants"
 	matcher "github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"log"
-	"os"
-	"sigs.k8s.io/yaml"
 	"strconv"
 	"time"
 )
@@ -57,7 +52,7 @@ var uploadParams *upload_params.UploadPipelineParams
 // ####################################################################################################################################################################
 
 var _ = BeforeEach(func() {
-	log.Printf("################### Setup before each test #####################")
+	GinkgoWriter.Printf("################### Setup before each test #####################")
 	testStartTime, _ = strfmt.ParseDateTime(time.Now().Format(time.DateTime))
 	createdPipelines = []*model.V2beta1Pipeline{}
 	expectedPipeline = new(model.V2beta1Pipeline)
@@ -69,8 +64,8 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	// Delete pipelines created during the test
-	log.Printf("################### Cleanup after each test #####################")
-	log.Printf("Deleting %d pipeline(s)", len(createdPipelines))
+	GinkgoWriter.Printf("################### Cleanup after each test #####################")
+	GinkgoWriter.Printf("Deleting %d pipeline(s)", len(createdPipelines))
 	for _, pipeline := range createdPipelines {
 		utils.DeletePipeline(pipelineClient, pipeline.PipelineID)
 	}
@@ -204,9 +199,7 @@ func uploadPipelineAndChangePipelineVersion(pipelineFileNameForCreation string, 
 
 	// Construct expected Pipeline Spec from the uploaded file
 	pipelineVersionFilePath := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileNameWhenChangingVersion)
-	pipelineSpec, err := os.ReadFile(pipelineVersionFilePath)
-	Expect(err).NotTo(HaveOccurred())
-	jsonSpecFromFile, _ := yaml.YAMLToJSON(pipelineSpec)
+	jsonSpecFromFile := utils.JsonFromYAML(pipelineVersionFilePath)
 
 	// Construct expected pipeline version object for comparison
 	expectedPipelineVersion.Description = descriptionNew
@@ -219,17 +212,17 @@ func uploadPipeline(pipelineFileName string, pipelineName *string) (*model.V2bet
 	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileName)
 	uploadParams.SetName(pipelineName)
 	expectedPipeline.DisplayName = *pipelineName
-	log.Printf("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
+	GinkgoWriter.Printf("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
 	return pipelineUploadClient.UploadFile(pipelineFile, uploadParams)
 }
 
 func uploadPipelineAndVerify(pipelineFileName string, pipelineName *string) *model.V2beta1Pipeline {
 	createdPipeline, err := uploadPipeline(pipelineFileName, pipelineName)
-	log.Printf("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
+	GinkgoWriter.Printf("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())
 	createdPipelines = append(createdPipelines, createdPipeline)
 
-	createdPipelineFromDB := getPipeline(createdPipeline.PipelineID)
+	createdPipelineFromDB := utils.GetPipeline(pipelineClient, createdPipeline.PipelineID)
 	Expect(createdPipelineFromDB).To(Equal(*createdPipeline))
 	matcher.MatchPipelines(&createdPipelineFromDB, expectedPipeline)
 	return createdPipeline
@@ -237,20 +230,20 @@ func uploadPipelineAndVerify(pipelineFileName string, pipelineName *string) *mod
 
 func uploadPipelineAndVerifyFailure(pipelineFileName string, pipelineName *string, errorMessage string) {
 	_, err := uploadPipeline(pipelineFileName, pipelineName)
-	log.Printf("Verifying error in the response")
+	GinkgoWriter.Printf("Verifying error in the response")
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
 }
 
 func uploadPipelineVersion(pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion, error) {
 	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileName)
-	log.Printf("Uploading pipeline version for pipeline with id=%s, from file %s", *parameters.Pipelineid, pipelineFile)
+	GinkgoWriter.Printf("Uploading pipeline version for pipeline with id=%s, from file %s", *parameters.Pipelineid, pipelineFile)
 	return pipelineUploadClient.UploadPipelineVersion(pipelineFile, parameters)
 }
 
 func uploadPipelineVersionAndVerify(pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams, expectedPipelineVersion *model.V2beta1PipelineVersion) *model.V2beta1PipelineVersion {
 	createdPipelineVersion, err := uploadPipelineVersion(pipelineFileName, parameters)
-	log.Printf("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
+	GinkgoWriter.Printf("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())
 	matcher.MatchPipelineVersions(createdPipelineVersion, expectedPipelineVersion)
 	return createdPipelineVersion
@@ -258,48 +251,9 @@ func uploadPipelineVersionAndVerify(pipelineFileName string, parameters *upload_
 
 func uploadPipelineVersionAndVerifyFailure(pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams, errorMessage string) {
 	_, err := uploadPipelineVersion(pipelineFileName, parameters)
-	log.Printf("Verifying error in the response")
+	GinkgoWriter.Printf("Verifying error in the response")
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
-	pipelineCreated := findPipelineByName(pipelineGeneratedName)
+	pipelineCreated := utils.FindPipelineByName(pipelineClient, pipelineGeneratedName)
 	Expect(pipelineCreated).To(BeFalse())
-}
-
-/*
-Get pipeline via GET pipeline end point call, so that we retreive the values from DB
-*/
-func getPipeline(pipelineId string) model.V2beta1Pipeline {
-	params := new(pipeline_service.PipelineServiceGetPipelineParams)
-	params.PipelineID = pipelineId
-	pipeline, err := pipelineClient.Get(params)
-	Expect(err).NotTo(HaveOccurred())
-	return model.V2beta1Pipeline{
-		DisplayName: pipeline.DisplayName,
-		Description: pipeline.Description,
-		PipelineID:  pipeline.PipelineID,
-		CreatedAt:   pipeline.CreatedAt,
-		Namespace:   pipeline.Namespace,
-	}
-}
-
-/*
-Get all pipelines and filter by name, if the pipeline exists, return true otherwise false
-*/
-func findPipelineByName(pipelineName string) bool {
-	requestedNumberOfPipelinesPerPage := 1000
-	params := new(pipeline_service.PipelineServiceListPipelinesParams)
-	params.Namespace = namespace
-	params.PageSize = util.Int32Pointer(int32(requestedNumberOfPipelinesPerPage))
-	pipelines, size, _, err := pipelineClient.List(params)
-	Expect(err).NotTo(HaveOccurred())
-	if size < requestedNumberOfPipelinesPerPage {
-		for _, pipeline := range pipelines {
-			if pipeline.DisplayName == pipelineName {
-				return true
-			} else {
-				return false
-			}
-		}
-	}
-	return false
 }
