@@ -11,7 +11,7 @@ exports[`PipelineList renders a list of one pipeline 1`] = `
           "customRenderer": [Function],
           "flex": 1,
           "label": "Pipeline name",
-          "sortKey": "name",
+          "sortKey": "display_name",
         },
         Object {
           "customRenderer": [Function],
@@ -36,9 +36,65 @@ exports[`PipelineList renders a list of one pipeline 1`] = `
           "expandState": undefined,
           "id": undefined,
           "otherFields": Array [
-            "pipeline1",
+            Object {
+              "display_name": "pipeline1",
+              "name": "pipeline1",
+            },
             "test pipeline description",
             "9/22/2018, 11:05:48 AM",
+          ],
+        },
+      ]
+    }
+    selectedIds={Array []}
+    toggleExpansion={[Function]}
+    updateSelection={[Function]}
+  />
+</div>
+`;
+
+exports[`PipelineList renders a list of one pipeline with a display name that is not the same as the name 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline name",
+          "sortKey": "display_name",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 3,
+          "label": "Description",
+        },
+        Object {
+          "flex": 1,
+          "label": "Uploaded on",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    filterLabel="Filter pipelines"
+    getExpandComponent={[Function]}
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "expandState": undefined,
+          "id": undefined,
+          "otherFields": Array [
+            Object {
+              "display_name": "Pipeline One",
+              "name": "pipeline1",
+            },
+            undefined,
+            "-",
           ],
         },
       ]
@@ -61,7 +117,7 @@ exports[`PipelineList renders a list of one pipeline with error 1`] = `
           "customRenderer": [Function],
           "flex": 1,
           "label": "Pipeline name",
-          "sortKey": "name",
+          "sortKey": "display_name",
         },
         Object {
           "customRenderer": [Function],
@@ -86,7 +142,10 @@ exports[`PipelineList renders a list of one pipeline with error 1`] = `
           "expandState": undefined,
           "id": undefined,
           "otherFields": Array [
-            "pipeline1",
+            Object {
+              "display_name": "pipeline1",
+              "name": "pipeline1",
+            },
             "test pipeline description",
             "9/22/2018, 11:05:48 AM",
           ],
@@ -111,7 +170,7 @@ exports[`PipelineList renders a list of one pipeline with no description or crea
           "customRenderer": [Function],
           "flex": 1,
           "label": "Pipeline name",
-          "sortKey": "name",
+          "sortKey": "display_name",
         },
         Object {
           "customRenderer": [Function],
@@ -136,7 +195,10 @@ exports[`PipelineList renders a list of one pipeline with no description or crea
           "expandState": undefined,
           "id": undefined,
           "otherFields": Array [
-            "pipeline1",
+            Object {
+              "display_name": "pipeline1",
+              "name": "pipeline1",
+            },
             undefined,
             "-",
           ],
@@ -161,7 +223,7 @@ exports[`PipelineList renders an empty list with empty state message 1`] = `
           "customRenderer": [Function],
           "flex": 1,
           "label": "Pipeline name",
-          "sortKey": "name",
+          "sortKey": "display_name",
         },
         Object {
           "customRenderer": [Function],

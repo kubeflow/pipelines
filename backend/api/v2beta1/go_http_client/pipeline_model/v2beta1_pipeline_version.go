@@ -31,7 +31,7 @@ type V2beta1PipelineVersion struct {
 	// This is ignored in CreatePipelineAndVersion API.
 	Description string `json:"description,omitempty"`
 
-	// Required input field. Pipeline version name provided by user.
+	// Required if name is not provided. Pipeline version display name provided by user.
 	// This is ignored in CreatePipelineAndVersion API.
 	DisplayName string `json:"display_name,omitempty"`
 
@@ -40,6 +40,10 @@ type V2beta1PipelineVersion struct {
 	// Client has the flexibility of choosing how to handle the error.
 	// This is especially useful during List() calls.
 	Error *GooglerpcStatus `json:"error,omitempty"`
+
+	// Required if display_name is not provided. Pipeline version name provided by user.
+	// This is ignored in CreatePipelineAndVersion API.
+	Name string `json:"name,omitempty"`
 
 	// Input. Required. The URL to the source of the pipeline version.
 	// This is required when creating the pipeine version through

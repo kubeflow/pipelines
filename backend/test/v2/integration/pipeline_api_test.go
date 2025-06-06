@@ -106,6 +106,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	helloPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", upload_params.NewUploadPipelineParams())
 	require.Nil(t, err)
 	assert.Equal(t, "hello-world.yaml", helloPipeline.DisplayName)
+	// Verify that the pipeline name defaults to the display name for backwards compatibility.
+	assert.Equal(t, "hello-world.yaml", helloPipeline.Name)
 
 	/* ---------- Upload pipelines YAML ---------- */
 	time.Sleep(1 * time.Second)
@@ -123,6 +125,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	sequentialPipeline, err := s.pipelineClient.CreatePipelineAndVersion(&params.PipelineServiceCreatePipelineAndVersionParams{
 		Body: &model.V2beta1CreatePipelineAndVersionRequest{
 			Pipeline: &model.V2beta1Pipeline{
+				Name:        "sequential-v2",
 				DisplayName: "sequential",
 				Description: "sequential pipeline",
 			},
@@ -134,12 +137,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 		},
 	})
 	require.Nil(t, err)
+	assert.Equal(t, "sequential-v2", sequentialPipeline.Name)
 	assert.Equal(t, "sequential", sequentialPipeline.DisplayName)
 	assert.Equal(t, "sequential pipeline", sequentialPipeline.Description)
 	sequentialPipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.PipelineServiceListPipelineVersionsParams{PipelineID: sequentialPipeline.PipelineID})
 	require.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, 1, len(sequentialPipelineVersions))
+	assert.Equal(t, "sequential-v2", sequentialPipelineVersions[0].Name)
 	assert.Equal(t, "sequential", sequentialPipelineVersions[0].DisplayName)
 	assert.Equal(t, "sequential pipeline", sequentialPipelineVersions[0].Description)
 	assert.Equal(t, sequentialPipeline.PipelineID, sequentialPipelineVersions[0].PipelineID)

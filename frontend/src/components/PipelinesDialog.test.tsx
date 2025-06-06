@@ -22,6 +22,7 @@ import { Apis, PipelineSortKeys } from '../lib/Apis';
 import { ApiListPipelinesResponse, ApiPipeline } from '../apis/pipeline';
 import TestUtils from '../TestUtils';
 import { BuildInfoContext } from '../lib/BuildInfo';
+import { NameWithTooltip } from './CustomTableNameColumn';
 
 function generateProps(): PipelinesDialogProps {
   return {
@@ -32,9 +33,10 @@ function generateProps(): PipelinesDialogProps {
     namespace: 'ns',
     pipelineSelectorColumns: [
       {
+        customRenderer: NameWithTooltip,
         flex: 1,
         label: 'Pipeline name',
-        sortKey: PipelineSortKeys.NAME,
+        sortKey: PipelineSortKeys.DISPLAY_NAME,
       },
       { label: 'Description', flex: 2 },
       { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },

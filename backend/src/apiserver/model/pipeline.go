@@ -34,7 +34,8 @@ type Pipeline struct {
 	UUID           string `gorm:"column:UUID; not null; primary_key;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"`
 	Name           string `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
-	Description    string `gorm:"column:Description; size:65535;"`                     // Same as below, set size to large number so it will be stored as longtext
+	DisplayName    string `gorm:"column:DisplayName; not null"`
+	Description    string `gorm:"column:Description; size:65535;"` // Same as below, set size to large number so it will be stored as longtext
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	Parameters string         `gorm:"column:Parameters; size:65535;"`
 	Status     PipelineStatus `gorm:"column:Status; not null;"`
@@ -62,10 +63,10 @@ func (p *Pipeline) DefaultSortField() string {
 }
 
 var pipelineAPIToModelFieldMap = map[string]string{
-	"id":           "UUID", // v1beta1 API
-	"pipeline_id":  "UUID", // v2beta1 API
-	"name":         "Name", // v1beta1 API
-	"display_name": "Name", // v2beta1 API
+	"id":           "UUID",        // v1beta1 API
+	"pipeline_id":  "UUID",        // v2beta1 API
+	"name":         "Name",        // v1beta1 API
+	"display_name": "DisplayName", // v2beta1 API
 	"created_at":   "CreatedAtInSec",
 	"description":  "Description",
 	"namespace":    "Namespace",
@@ -95,6 +96,8 @@ func (p *Pipeline) GetFieldValue(name string) interface{} {
 		return p.UUID
 	case "Name":
 		return p.Name
+	case "DisplayName":
+		return p.DisplayName
 	case "CreatedAtInSec":
 		return p.CreatedAtInSec
 	case "Description":

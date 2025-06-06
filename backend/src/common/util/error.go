@@ -205,6 +205,15 @@ func NewBadRequestError(err error, externalFormat string, a ...interface{}) *Use
 		codes.Aborted)
 }
 
+func NewBadKubernetesNameError(objectType string) *UserError {
+	return NewBadRequestError(
+		fmt.Errorf(
+			"%s names must consist of lower case alphanumeric characters, '-' or '.', and must start and end with "+
+				"an alphanumeric character", objectType),
+		fmt.Sprintf("Invalid %s name", objectType),
+	)
+}
+
 func NewFailedPreconditionError(err error, externalFormat string, a ...interface{}) *UserError {
 	externalMessage := fmt.Sprintf(externalFormat, a...)
 	return newUserError(

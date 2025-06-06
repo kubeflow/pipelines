@@ -332,9 +332,14 @@ func (s *UpgradeTests) VerifyPipelines() {
 	// During upgrade, default pipelines may be installed, so we only verify the
 	// 4 oldest pipelines here.
 	assert.True(t, len(pipelines) >= 4)
+	// Ensure the display name is the same as the name after upgrade.
+	assert.Equal(t, "arguments-parameters.yaml", pipelines[0].Name)
 	assert.Equal(t, "arguments-parameters.yaml", pipelines[0].DisplayName)
+	assert.Equal(t, "sequential", pipelines[1].Name)
 	assert.Equal(t, "sequential", pipelines[1].DisplayName)
+	assert.Equal(t, "zip-arguments-parameters", pipelines[2].Name)
 	assert.Equal(t, "zip-arguments-parameters", pipelines[2].DisplayName)
+	assert.Equal(t, "arguments.pipeline.zip", pipelines[3].Name)
 	assert.Equal(t, "arguments.pipeline.zip", pipelines[3].DisplayName)
 
 	/* ---------- Verify pipeline spec ---------- */

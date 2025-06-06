@@ -201,11 +201,17 @@ export interface V2beta1Pipeline {
    */
   pipeline_id?: string;
   /**
-   * Required input field. Pipeline name provided by user.
+   * Required input field. Pipeline display name provided by user.
    * @type {string}
    * @memberof V2beta1Pipeline
    */
   display_name?: string;
+  /**
+   * Required input field. Pipeline name provided by user.
+   * @type {string}
+   * @memberof V2beta1Pipeline
+   */
+  name?: string;
   /**
    * Optional input field. A short description of the pipeline.
    * @type {string}
@@ -256,6 +262,12 @@ export interface V2beta1PipelineVersion {
    * @memberof V2beta1PipelineVersion
    */
   display_name?: string;
+  /**
+   * Required input field. Pipeline version name provided by user.
+   * @type {string}
+   * @memberof V2beta1PipelineVersion
+   */
+  name?: string;
   /**
    * Optional input field. Short description of the pipeline version.
    * @type {string}

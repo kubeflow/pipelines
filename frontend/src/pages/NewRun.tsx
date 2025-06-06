@@ -149,7 +149,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       customRenderer: NameWithTooltip,
       flex: 1,
       label: 'Pipeline name',
-      sortKey: PipelineSortKeys.NAME,
+      sortKey: PipelineSortKeys.DISPLAY_NAME,
     },
     { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
@@ -160,7 +160,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       customRenderer: NameWithTooltip,
       flex: 2,
       label: 'Version name',
-      sortKey: PipelineVersionSortKeys.NAME,
+      sortKey: PipelineVersionSortKeys.DISPLAY_NAME,
     },
     // TODO(jingzhang36): version doesn't have description field; remove it and
     // fix the rendering.
@@ -946,6 +946,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       const uploadedPipeline =
         method === ImportMethod.LOCAL
           ? await Apis.uploadPipeline(
+              name,
               name,
               description || '',
               file!,

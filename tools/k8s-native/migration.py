@@ -120,7 +120,7 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
     display_name = pipeline.get('display_name')
 
     # Clean and convert the pipeline name to be k8s-compatible
-    pipeline_name = utils.maybe_rename_for_k8s(pipeline.get('display_name', 'unnamed'))
+    pipeline_name = utils.maybe_rename_for_k8s(pipeline.get('name', 'unnamed'))
     versions = pipeline_versions
 
     # Create the Pipeline object
@@ -132,7 +132,9 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
             "namespace": namespace,
             "annotations": {
                 "pipelines.kubeflow.org/original-id": original_id,
-                "pipelines.kubeflow.org/display-name": display_name
+            },
+            "spec": {
+                "displayName": display_name
             }
         }
     }
@@ -140,8 +142,9 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
 
      # Create a PipelineVersion object for each version
     for i, version in enumerate(versions):
-        version_display_name = version.get("display_name", f"v{i}")
-        pipeline_version_name = get_version_name(pipeline_name, version_display_name, i, add_prefix)        
+        version_name = version.get("name", f"v{i}")
+        version_display_name = version.get("display_name", version_name)
+        pipeline_version_name = get_version_name(pipeline_name, version_name, i, add_prefix)
         pipeline_spec = version.get("pipeline_spec", {})
         pipeline_version_id = version.get("pipeline_version_id")
         
@@ -153,12 +156,12 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
                 "namespace": namespace,
                 "annotations": {
                     "pipelines.kubeflow.org/original-id": pipeline_version_id,
-                    "pipelines.kubeflow.org/display-name": version_display_name
                 }
             },
             "spec": {
                 "pipelineName": pipeline_name,
-                "pipelineSpec": pipeline_spec
+                "pipelineSpec": pipeline_spec,
+                "displayName": version_display_name,
             }
         }
         k8s_objects.append(pipeline_version_obj)
