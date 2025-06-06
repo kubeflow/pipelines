@@ -328,16 +328,24 @@ class Executor:
             # `Optional[str]`. In this case, we need to strip off the part
             # `Optional[]` to get the actual parameter type.
             v = type_annotations.maybe_strip_optional_from_annotation(v)
-
             if v == task_final_status.PipelineTaskFinalStatus:
                 value = self.get_input_parameter_value(k)
+
+                # PipelineTaskFinalStatus field names pipelineJobResourceName and pipelineTaskName are deprecated. Support for these fields will be removed at a later date.
+                pipline_job_resource_name = 'pipelineJobResourceName'
+                if value.get(pipline_job_resource_name) is None:
+                    pipline_job_resource_name = 'pipeline_job_resource_name'
+                pipeline_task_name = 'pipelineTaskName'
+                if value.get(pipeline_task_name) is None:
+                    pipeline_task_name = 'pipeline_task_name'
+
                 func_kwargs[k] = task_final_status.PipelineTaskFinalStatus(
                     state=value.get('state'),
                     pipeline_job_resource_name=value.get(
-                        'pipelineJobResourceName'),
-                    pipeline_task_name=value.get('pipelineTaskName'),
-                    error_code=value.get('error').get('code', None),
-                    error_message=value.get('error').get('message', None),
+                        pipline_job_resource_name),
+                    pipeline_task_name=value.get(pipeline_task_name),
+                    error_code=value.get('error', {}).get('code', None),
+                    error_message=value.get('error', {}).get('message', None),
                 )
 
             elif type_annotations.is_list_of_artifacts(v):

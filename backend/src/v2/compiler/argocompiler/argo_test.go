@@ -119,6 +119,11 @@ func Test_argo_compiler(t *testing.T) {
 			platformSpecPath: "",
 			argoYAMLPath:     "testdata/nested_pipeline_all_level_retry.yaml",
 		},
+		{
+			jobPath:          "../testdata/final_status_state.json",
+			platformSpecPath: "",
+			argoYAMLPath:     "testdata/final_status_state.yaml",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
