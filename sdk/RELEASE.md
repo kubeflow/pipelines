@@ -5,6 +5,7 @@
 ## Breaking changes
 
 ## Deprecations
+* PipelineTaskFinalStatus field names pipelineJobResourceName and pipelineTaskName are deprecated. Support for these fields will be removed at a later date.
 
 ## Bug fixes and other changes
 
