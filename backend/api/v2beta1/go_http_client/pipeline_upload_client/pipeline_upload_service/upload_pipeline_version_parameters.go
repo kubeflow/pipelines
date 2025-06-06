@@ -63,6 +63,8 @@ type UploadPipelineVersionParams struct {
 
 	/*Description*/
 	Description *string
+	/*DisplayName*/
+	DisplayName *string
 	/*Name*/
 	Name *string
 	/*Pipelineid*/
@@ -122,6 +124,17 @@ func (o *UploadPipelineVersionParams) SetDescription(description *string) {
 	o.Description = description
 }
 
+// WithDisplayName adds the displayName to the upload pipeline version params
+func (o *UploadPipelineVersionParams) WithDisplayName(displayName *string) *UploadPipelineVersionParams {
+	o.SetDisplayName(displayName)
+	return o
+}
+
+// SetDisplayName adds the displayName to the upload pipeline version params
+func (o *UploadPipelineVersionParams) SetDisplayName(displayName *string) {
+	o.DisplayName = displayName
+}
+
 // WithName adds the name to the upload pipeline version params
 func (o *UploadPipelineVersionParams) WithName(name *string) *UploadPipelineVersionParams {
 	o.SetName(name)
@@ -173,6 +186,22 @@ func (o *UploadPipelineVersionParams) WriteToRequest(r runtime.ClientRequest, re
 		qDescription := qrDescription
 		if qDescription != "" {
 			if err := r.SetQueryParam("description", qDescription); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.DisplayName != nil {
+
+		// query param display_name
+		var qrDisplayName string
+		if o.DisplayName != nil {
+			qrDisplayName = *o.DisplayName
+		}
+		qDisplayName := qrDisplayName
+		if qDisplayName != "" {
+			if err := r.SetQueryParam("display_name", qDisplayName); err != nil {
 				return err
 			}
 		}

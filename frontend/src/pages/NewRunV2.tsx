@@ -738,7 +738,7 @@ const PIPELINE_SELECTOR_COLUMNS = [
     customRenderer: NameWithTooltip,
     flex: 1,
     label: 'Pipeline name',
-    sortKey: PipelineSortKeys.NAME,
+    sortKey: PipelineSortKeys.DISPLAY_NAME,
   },
   { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
   { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },

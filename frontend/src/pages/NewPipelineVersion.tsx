@@ -39,6 +39,7 @@ import PrivateSharedSelector from 'src/components/PrivateSharedSelector';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
+import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -48,7 +49,9 @@ interface NewPipelineVersionState {
   pipelineDescription: string;
   pipelineId?: string;
   pipelineName?: string;
+  pipelineDisplayName?: string;
   pipelineVersionName: string;
+  pipelineVersionDisplayName: string;
   pipelineVersionDescription: string;
   pipeline?: V2beta1Pipeline;
 
@@ -108,6 +111,8 @@ const css = stylesheet({
   },
 });
 
+const getK8sNameRegex = () => /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
+
 const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
@@ -115,11 +120,18 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
 export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelineVersionState> {
   private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
+  private _pipelineVersionDisplayNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
+  private _pipelineDisplayNameRef = React.createRef<HTMLInputElement>();
   private _pipelineDescriptionRef = React.createRef<HTMLInputElement>();
 
   private pipelineSelectorColumns = [
-    { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
+    {
+      label: 'Pipeline name',
+      flex: 1,
+      sortKey: PipelineSortKeys.DISPLAY_NAME,
+      customRenderer: NameWithTooltip,
+    },
     { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
   ];
@@ -148,8 +160,10 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       pipelineDescription: '',
       pipelineId: '',
       pipelineName: '',
+      pipelineDisplayName: '',
       pipelineSelectorOpen: false,
       pipelineVersionName: '',
+      pipelineVersionDisplayName: '',
       pipelineVersionDescription: '',
       validationError: '',
       isPrivate,
@@ -168,7 +182,9 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     const {
       packageUrl,
       pipelineName,
+      pipelineDisplayName,
       pipelineVersionName,
+      pipelineVersionDisplayName,
       pipelineVersionDescription,
       isbeingCreated,
       validationError,
@@ -180,6 +196,8 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       fileName,
       dropzoneActive,
     } = this.state;
+
+    const buildInfo = this.props.buildInfo;
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
@@ -198,7 +216,9 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   newPipeline: true,
                   pipelineDescription: '',
                   pipelineName: '',
+                  pipelineDisplayName: '',
                   pipelineVersionName: '',
+                  pipelineVersionDisplayName: '',
                 })
               }
             />
@@ -214,7 +234,9 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   pipelineDescription: '',
                   pipelineVersionDescription: '',
                   pipelineName: '',
+                  pipelineDisplayName: '',
                   pipelineVersionName: '',
+                  pipelineVersionDisplayName: '',
                 })
               }
             />
@@ -238,12 +260,27 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 id='newPipelineName'
                 value={pipelineName}
                 required={true}
-                label='Pipeline Name'
+                label={
+                  'Pipeline Name' +
+                  (buildInfo?.pipelineStore === 'kubernetes' ? ' (Kubernetes object name)' : '')
+                }
                 variant='outlined'
                 inputRef={this._pipelineNameRef}
                 onChange={this.handleChange('pipelineName')}
                 autoFocus={true}
               />
+              {buildInfo?.pipelineStore === 'kubernetes' && (
+                <Input
+                  id='newPipelineDisplayName'
+                  value={pipelineDisplayName}
+                  required={false}
+                  label='Pipeline Display Name'
+                  variant='outlined'
+                  inputRef={this._pipelineDisplayNameRef}
+                  onChange={this.handleChange('pipelineDisplayName')}
+                  autoFocus={true}
+                />
+              )}
               <Input
                 id='pipelineDescription'
                 value={pipelineDescription}
@@ -264,7 +301,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               <div>Upload pipeline version with the specified package.</div>
               {/* Select pipeline */}
               <Input
-                value={pipelineName}
+                value={pipelineDisplayName || pipelineName}
                 required={true}
                 label='Pipeline'
                 disabled={true}
@@ -306,7 +343,10 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               {/* Set pipeline version name */}
               <Input
                 id='pipelineVersionName'
-                label='Pipeline Version name'
+                label={
+                  'Pipeline Version Name' +
+                  (buildInfo?.pipelineStore === 'kubernetes' ? ' (Kubernetes object name)' : '')
+                }
                 inputRef={this._pipelineVersionNameRef}
                 required={true}
                 onChange={this.handleChange('pipelineVersionName')}
@@ -314,6 +354,18 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 autoFocus={true}
                 variant='outlined'
               />
+              {buildInfo?.pipelineStore === 'kubernetes' && (
+                <Input
+                  id='pipelineVersionDisplayName'
+                  label='Pipeline Version Display Name'
+                  inputRef={this._pipelineVersionDisplayNameRef}
+                  required={false}
+                  onChange={this.handleChange('pipelineVersionDisplayName')}
+                  value={pipelineVersionDisplayName}
+                  autoFocus={true}
+                  variant='outlined'
+                />
+              )}
               <Input
                 id='pipelineVersionDescription'
                 value={pipelineVersionDescription}
@@ -520,12 +572,13 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       {
         pipeline,
         pipelineId: (pipeline && pipeline.pipeline_id) || '',
-        pipelineName: (pipeline && pipeline.display_name) || '',
+        pipelineName: (pipeline && pipeline.name) || '',
+        pipelineDisplayName: (pipeline && pipeline.display_name) || '',
         pipelineSelectorOpen: false,
         // Suggest a version name based on pipeline name
         pipelineVersionName:
           (pipeline &&
-            pipeline.display_name +
+            pipeline.name +
               '-version-at-' +
               currDate
                 .toISOString()
@@ -559,6 +612,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         if (this.state.newPipeline && this.state.importMethod === ImportMethod.LOCAL) {
           const pipelineResponse = await Apis.uploadPipelineV2(
             this.state.pipelineName!,
+            this.state.pipelineDisplayName!,
             this.state.pipelineDescription,
             this.state.file!,
             namespace,
@@ -578,6 +632,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
           const newPipeline: V2beta1Pipeline = {
             description: this.state.pipelineDescription,
             display_name: this.state.pipelineName,
+            name: this.state.pipelineName,
             namespace,
           };
           const createPipelineResponse = await Apis.pipelineServiceApiV2.createPipeline(
@@ -620,6 +675,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       }
       return Apis.uploadPipelineVersionV2(
         this.state.pipelineVersionName,
+        this.state.pipelineVersionDisplayName,
         this.state.pipelineId!,
         this.state.file,
         this.state.pipelineVersionDescription,
@@ -628,7 +684,8 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       // this.state.importMethod === ImportMethod.URL
       let newPipeline: V2beta1PipelineVersion = {
         pipeline_id: this.state.pipelineId,
-        display_name: this.state.pipelineVersionName,
+        display_name: this.state.pipelineVersionDisplayName,
+        name: this.state.pipelineVersionName,
         description: this.state.pipelineVersionDescription,
         package_url: { pipeline_url: this.state.packageUrl },
       };
@@ -658,15 +715,29 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         if (!pipelineName) {
           throw new Error('Pipeline name is required');
         }
+        if (this.props.buildInfo?.pipelineStore === 'kubernetes') {
+          if (!getK8sNameRegex().test(pipelineName)) {
+            throw new Error(
+              'Pipeline name must match Kubernetes naming pattern: lowercase letters, numbers, hyphens, and dots',
+            );
+          }
+        }
       } else {
         if (!pipeline) {
           throw new Error('Pipeline is required');
         }
         if (!pipelineVersionName) {
-          throw new Error('Pipeline version name is required');
+          throw new Error('Pipeline version name name is required');
         }
         if (pipelineVersionName && pipelineVersionName.length > 100) {
           throw new Error('Pipeline version name must contain no more than 100 characters');
+        }
+        if (this.props.buildInfo?.pipelineStore === 'kubernetes') {
+          if (!getK8sNameRegex().test(pipelineVersionName)) {
+            throw new Error(
+              'Pipeline version name must match Kubernetes naming pattern: lowercase letters, numbers, hyphens, and dots',
+            );
+          }
         }
         if (!packageUrl && !fileName) {
           throw new Error('Please specify either package url or file in .yaml, .zip, or .tar.gz');

@@ -395,6 +395,15 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	} else if p.Name == "" {
 		p.Name = pv.Name
 	}
+
+	if pv.DisplayName == "" {
+		pv.DisplayName = pv.Name
+	}
+
+	if p.DisplayName == "" {
+		p.DisplayName = p.Name
+	}
+
 	// Parse parameters
 	paramsJSON, err := tmpl.ParametersJSON()
 	if err != nil {

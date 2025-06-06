@@ -126,7 +126,11 @@ describe('ResourceSelector', () => {
     expect(tree.state('rows')).toEqual([
       {
         id: 'an-id',
-        otherFields: ['a name', 'a description', '2/2/2018, 3:04:05 AM'],
+        otherFields: [
+          { display_name: undefined, name: 'a name' },
+          'a description',
+          '2/2/2018, 3:04:05 AM',
+        ],
       },
     ]);
   });

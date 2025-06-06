@@ -180,7 +180,7 @@ func main() {
 	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
 	go startRpcServer(resourceManager)
 	// This is blocking
-	startHttpProxy(resourceManager)
+	startHttpProxy(resourceManager, *usePipelinesKubernetesStorage)
 	backgroundCancel()
 	wg.Wait()
 }
@@ -251,12 +251,20 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	glog.Info("RPC server started")
 }
 
-func startHttpProxy(resourceManager *resource.ResourceManager) {
+func startHttpProxy(resourceManager *resource.ResourceManager, usePipelinesKubernetesStorage bool) {
 	glog.Info("Starting Http Proxy")
 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	var pipelineStore string
+
+	if usePipelinesKubernetesStorage {
+		pipelineStore = "kubernetes"
+	} else {
+		pipelineStore = "database"
+	}
 
 	// Create gRPC HTTP MUX and register services for v1beta1 api.
 	runtimeMux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher))
@@ -295,7 +303,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	topMux.HandleFunc("/apis/v2beta1/pipelines/upload_version", sharedPipelineUploadServer.UploadPipelineVersion)
 	topMux.HandleFunc("/apis/v2beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`", "multi_user":`+strconv.FormatBool(common.IsMultiUserMode())+`}`)
+		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`", "multi_user":`+strconv.FormatBool(common.IsMultiUserMode())+`, "pipeline_store": "`+pipelineStore+`"}`)
 	})
 
 	// log streaming is provided via HTTP.

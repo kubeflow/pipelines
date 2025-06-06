@@ -299,7 +299,12 @@ Object {
                         class="cell"
                         style="width: 25%;"
                       >
-                        mock pipeline name
+                        <span
+                          class=""
+                          title="Name: mock pipeline name"
+                        >
+                          mock pipeline name
+                        </span>
                       </div>
                       <div
                         class="cell"
@@ -357,7 +362,12 @@ Object {
                         class="cell"
                         style="width: 25%;"
                       >
-                        mock pipeline name
+                        <span
+                          class=""
+                          title="Name: mock pipeline name"
+                        >
+                          mock pipeline name
+                        </span>
                       </div>
                       <div
                         class="cell"
@@ -820,7 +830,12 @@ Object {
                         class="cell"
                         style="width: 25%;"
                       >
-                        mock pipeline name
+                        <span
+                          class=""
+                          title="Name: mock pipeline name"
+                        >
+                          mock pipeline name
+                        </span>
                       </div>
                       <div
                         class="cell"
@@ -878,7 +893,12 @@ Object {
                         class="cell"
                         style="width: 25%;"
                       >
-                        mock pipeline name
+                        <span
+                          class=""
+                          title="Name: mock pipeline name"
+                        >
+                          mock pipeline name
+                        </span>
                       </div>
                       <div
                         class="cell"

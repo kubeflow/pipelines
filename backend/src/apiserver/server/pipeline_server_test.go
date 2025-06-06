@@ -36,18 +36,23 @@ import (
 )
 
 func TestBuildPipelineName_QueryStringNotEmpty(t *testing.T) {
-	pipelineName := buildPipelineName("pipeline one", "file one")
+	pipelineName := buildPipelineName("pipeline one", "", "file one")
 	assert.Equal(t, "pipeline one", pipelineName)
 }
 
 func TestBuildPipelineName(t *testing.T) {
-	pipelineName := buildPipelineName("", "file one")
+	pipelineName := buildPipelineName("", "", "file one")
 	assert.Equal(t, "file one", pipelineName)
 }
 
 func TestBuildPipelineName_empty(t *testing.T) {
-	newName := buildPipelineName("", "")
+	newName := buildPipelineName("", "", "")
 	assert.Empty(t, newName)
+}
+
+func TestBuildPipelineName_display_name(t *testing.T) {
+	newName := buildPipelineName("", "My display name", "filename")
+	assert.Equal(t, "My display name", newName)
 }
 
 func TestCreatePipelineV1_YAML(t *testing.T) {
@@ -652,10 +657,12 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			"Valid - single user",
 			DefaultFakeIdOne,
 			&apiv2.Pipeline{
+				Name:        "Pipeline #1",
 				DisplayName: "Pipeline #1",
 				Namespace:   "namespace1",
 			},
 			&apiv2.Pipeline{
+				Name:        "Pipeline #1",
 				DisplayName: "Pipeline #1",
 				Namespace:   "",
 			},
@@ -666,9 +673,11 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			"Valid - empty namespace",
 			DefaultFakeIdTwo,
 			&apiv2.Pipeline{
+				Name:        "Pipeline 2",
 				DisplayName: "Pipeline 2",
 			},
 			&apiv2.Pipeline{
+				Name:        "Pipeline 2",
 				DisplayName: "Pipeline 2",
 				Namespace:   "",
 			},
@@ -693,7 +702,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			},
 			nil,
 			true,
-			"pipeline's name cannot be empty",
+			"name is required",
 		},
 	}
 	for _, tt := range tests {
@@ -745,6 +754,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 			&apiv2.Pipeline{
 				PipelineId:  DefaultFakeUUID,
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				Name:        "User's pipeline 1",
 				DisplayName: "User's pipeline 1",
 				Description: "Pipeline built by a user",
 				Namespace:   "",
@@ -754,6 +764,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 				CreatedAtInSec: 2,
 				PipelineId:     DefaultFakeUUID,
 				Name:           "User's pipeline 1",
+				DisplayName:    "User's pipeline 1",
 				Description:    "Pipeline built by a user",
 				Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 				Status:         model.PipelineVersionReady,
@@ -778,6 +789,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 			&apiv2.Pipeline{
 				PipelineId:  DefaultFakeUUID,
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				Name:        "User's pipeline 1",
 				DisplayName: "User's pipeline 1",
 				Description: "Pipeline built by a user",
 				Namespace:   "",
@@ -787,6 +799,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 				CreatedAtInSec: 2,
 				PipelineId:     DefaultFakeUUID,
 				Name:           "User's pipeline 1",
+				DisplayName:    "User's pipeline 1",
 				Parameters:     "[]",
 				Description:    "Pipeline built by a user",
 				Status:         model.PipelineVersionReady,
@@ -811,6 +824,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 			&apiv2.Pipeline{
 				PipelineId:  DefaultFakeUUID,
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				Name:        "User's pipeline 1",
 				DisplayName: "User's pipeline 1",
 				Description: "Pipeline built by a user",
 				Namespace:   "",
@@ -820,6 +834,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 				CreatedAtInSec: 2,
 				PipelineId:     DefaultFakeUUID,
 				Name:           "User's pipeline 1",
+				DisplayName:    "User's pipeline 1",
 				Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 				Description:    "Pipeline built by a user",
 				Status:         model.PipelineVersionReady,

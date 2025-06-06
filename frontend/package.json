@@ -103,6 +103,7 @@
     "@storybook/preset-create-react-app": "^3.2.0",
     "@storybook/react": "^6.3.6",
     "@testing-library/dom": "^8.6.0",
+    "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^11.2.6",
     "@testing-library/user-event": "^13.2.1",
     "@types/d3": "^5.0.0",

@@ -65,6 +65,7 @@ describe('PipelineList', () => {
       pipelines: range(n).map(i => ({
         pipeline_id: 'test-pipeline-id' + i,
         display_name: 'test pipeline name' + i,
+        name: 'test-pipeline-name' + i,
       })),
     }));
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} namespace='test-ns' />);
@@ -99,6 +100,7 @@ describe('PipelineList', () => {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           description: 'test pipeline description',
           display_name: 'pipeline1',
+          name: 'pipeline1',
           parameters: [],
         },
       ],
@@ -113,6 +115,22 @@ describe('PipelineList', () => {
       displayPipelines: [
         {
           display_name: 'pipeline1',
+          name: 'pipeline1',
+          parameters: [],
+        },
+      ],
+    });
+    await listPipelinesSpy;
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a list of one pipeline with a display name that is not the same as the name', async () => {
+    tree = shallow(<PipelineList {...generateProps()} />);
+    tree.setState({
+      displayPipelines: [
+        {
+          display_name: 'Pipeline One',
+          name: 'pipeline1',
           parameters: [],
         },
       ],
@@ -130,6 +148,7 @@ describe('PipelineList', () => {
           description: 'test pipeline description',
           error: 'oops! could not load pipeline',
           display_name: 'pipeline1',
+          name: 'pipeline1',
           parameters: [],
         },
       ],
@@ -139,12 +158,14 @@ describe('PipelineList', () => {
   });
 
   it('calls Apis to list pipelines, sorted by creation time in descending order', async () => {
-    listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ display_name: 'pipeline1' }] }));
+    listPipelinesSpy.mockImplementationOnce(() => ({
+      pipelines: [{ display_name: 'pipeline1', name: 'pipeline1' }],
+    }));
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} namespace='test-ns' />);
     await listPipelinesSpy;
     expect(listPipelinesSpy).toHaveBeenLastCalledWith('test-ns', '', 10, 'created_at desc', '');
     expect(tree.state()).toHaveProperty('displayPipelines', [
-      { expandState: 0, display_name: 'pipeline1' },
+      { expandState: 0, display_name: 'pipeline1', name: 'pipeline1' },
     ]);
   });
 
@@ -208,7 +229,9 @@ describe('PipelineList', () => {
     updateBannerSpy.mockReset();
 
     const refreshBtn = instance.getInitialToolbarState().actions[ButtonKeys.REFRESH];
-    listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ display_name: 'pipeline1' }] }));
+    listPipelinesSpy.mockImplementationOnce(() => ({
+      pipelines: [{ display_name: 'pipeline1', name: 'pipeline1' }],
+    }));
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
@@ -503,6 +526,7 @@ describe('PipelineList', () => {
       pipeline_versions: [
         {
           display_name: 'test-pipeline-id1_name',
+          name: 'test-pipeline-id1_name',
           pipeline_id: 'test-pipeline-id1',
           pipeline_version_id: 'test-pipeline-version-id1',
         },

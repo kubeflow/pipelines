@@ -95,10 +95,12 @@ describe('NewRun', () => {
     return {
       id: 'original-run-pipeline-id',
       name: 'original mock pipeline name',
+      display_name: 'original mock pipeline name',
       parameters: [],
       default_version: {
         id: 'original-run-pipeline-version-id',
         name: 'original mock pipeline version name',
+        display_name: 'original mock pipeline version name',
       },
     };
   }
@@ -107,6 +109,7 @@ describe('NewRun', () => {
     return {
       id: 'unoriginal-run-pipeline-id',
       name: 'unoriginal mock pipeline name',
+      display_name: 'unoriginal mock pipeline name',
       parameters: [
         {
           name: 'set value',
@@ -120,6 +123,7 @@ describe('NewRun', () => {
       default_version: {
         id: 'original-run-pipeline-version-id',
         name: 'original mock pipeline version name',
+        display_name: 'original mock pipeline version name',
       },
     };
   }
@@ -128,6 +132,7 @@ describe('NewRun', () => {
     return {
       id: 'original-run-pipeline-version-id',
       name: 'original mock pipeline version name',
+      display_name: 'original mock pipeline version name',
     };
   }
 
@@ -553,9 +558,9 @@ describe('NewRun', () => {
       newPipeline.default_version = newPipelineVersion;
 
       newPipeline.id = 'new-pipeline-id';
-      newPipeline.name = 'new-pipeline';
+      newPipeline.display_name = newPipeline.name = 'new-pipeline';
       newPipelineVersion.id = 'new-pipeline-version-id';
-      newPipelineVersion.name = 'new-pipeline-params';
+      newPipelineVersion.display_name = newPipelineVersion.name = 'new-pipeline-params';
 
       const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
       const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
@@ -727,7 +732,7 @@ describe('NewRun', () => {
 
       const newPipeline = newMockPipeline();
       newPipeline.id = 'new-pipeline-id';
-      newPipeline.name = 'new-pipeline';
+      newPipeline.display_name = newPipeline.name = 'new-pipeline';
 
       const listPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
       listPipelineSpy.mockImplementation(() => {
@@ -740,11 +745,11 @@ describe('NewRun', () => {
 
       const oldPipelineVersion = newMockPipelineVersion();
       oldPipelineVersion.id = 'pipeline-version-id';
-      oldPipelineVersion.name = 'pipeline-version';
+      oldPipelineVersion.display_name = oldPipelineVersion.name = 'pipeline-version';
 
       const latestPipelineVersion = newMockPipelineVersion();
       latestPipelineVersion.id = 'latest-pipeline-version-id';
-      latestPipelineVersion.name = 'latest-pipeline-version';
+      latestPipelineVersion.display_name = latestPipelineVersion.name = 'latest-pipeline-version';
 
       const listPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
       listPipelineVersionSpy.mockImplementation(() => {
@@ -792,9 +797,15 @@ describe('NewRun', () => {
       });
       fireEvent.click(choosePipelineVersionButton);
 
+      // Wait for the modal to open and pipeline versions to load
+      await waitFor(() => {
+        expect(listPipelineVersionSpy).toHaveBeenCalled();
+      });
+
       const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
       getPipelineVersionSpy.mockImplementationOnce(() => latestPipelineVersion);
 
+      // Find and click the pipeline version in the modal
       const expectedPipelineVersion = await screen.findByText(latestPipelineVersion.name);
       fireEvent.click(expectedPipelineVersion);
 
@@ -805,6 +816,7 @@ describe('NewRun', () => {
       const usePipelineVersionBtn = screen.getByText('Use this pipeline version');
       fireEvent.click(usePipelineVersionBtn);
 
+      // Verify the selected pipeline version is displayed
       await screen.findByDisplayValue(latestPipelineVersion.name);
       await screen.findByDisplayValue((content, _) =>
         content.startsWith(`Run of ${latestPipelineVersion.name}`),
@@ -1642,9 +1654,10 @@ describe('NewRun', () => {
       pipelineWithParams.default_version = pipelineVersionWithParams;
 
       pipelineWithParams.id = 'pipeline-with-params-id';
-      pipelineWithParams.name = 'pipeline-with-params';
+      pipelineWithParams.display_name = pipelineWithParams.name = 'pipeline-with-params';
       pipelineVersionWithParams.id = 'pipeline-version-with-params-id';
-      pipelineVersionWithParams.name = 'pipeline-version-with-params';
+      pipelineVersionWithParams.display_name = pipelineVersionWithParams.name =
+        'pipeline-version-with-params';
       pipelineVersionWithParams.parameters = [
         { name: 'param-1', value: 'prefilled value 1' },
         { name: 'param-2', value: 'prefilled value 2' },

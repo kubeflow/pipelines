@@ -182,6 +182,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p1",
+				DisplayName: "p1",
 				Description: "This is a pipeline1",
 				Status:      model.PipelineCreating,
 			},
@@ -202,6 +203,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p2",
+				DisplayName: "p2",
 				Description: "This is a pipeline2",
 				Status:      model.PipelineCreating,
 			},
@@ -222,6 +224,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p3",
+				DisplayName: "p3",
 				Description: "This is a pipeline3",
 				Status:      model.PipelineCreating,
 				Namespace:   "ns1",
@@ -243,6 +246,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p4",
+				DisplayName: "p4",
 				Description: "This is a pipeline4",
 				Status:      model.PipelineCreating,
 				Namespace:   "ns1",
@@ -264,6 +268,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p5",
+				DisplayName: "p5",
 				Description: "This is a pipeline5",
 				Status:      model.PipelineCreating,
 				Namespace:   "",
@@ -280,6 +285,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p6",
+				DisplayName: "p6",
 				Description: "This is a pipeline6",
 				Status:      model.PipelineCreating,
 				Namespace:   "",
@@ -297,6 +303,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p7",
+				DisplayName: "p7",
 				Description: "This is a pipeline7",
 				Status:      model.PipelineCreating,
 				Namespace:   "ns2",
@@ -313,6 +320,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "",
+				DisplayName: "",
 				Description: "This is a pipeline8",
 				Status:      model.PipelineCreating,
 				Namespace:   "ns3",
@@ -736,6 +744,7 @@ func TestToModelPipelineVersion(t *testing.T) {
 			},
 			&model.PipelineVersion{
 				Name:            "Version 2 v2beta1",
+				DisplayName:     "Version 2 v2beta1",
 				PipelineId:      "pipeline 333",
 				PipelineSpecURI: "http://package/3333",
 				CodeSourceUrl:   "http://repo/3333",
@@ -911,12 +920,14 @@ func TestToApiPipeline(t *testing.T) {
 			&model.Pipeline{
 				UUID:           "p1",
 				Name:           "pipeline1",
+				DisplayName:    "pipeline1",
 				Description:    "This is pipeline1",
 				Namespace:      "ns1",
 				CreatedAtInSec: 1,
 			},
 			&apiv2beta1.Pipeline{
 				PipelineId:  "p1",
+				Name:        "pipeline1",
 				DisplayName: "pipeline1",
 				Description: "This is pipeline1",
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
@@ -939,6 +950,7 @@ func TestToApiPipeline(t *testing.T) {
 			"empty uuid",
 			&model.Pipeline{
 				Name:           "pipeline1",
+				DisplayName:    "pipeline1",
 				Description:    "This is pipeline1",
 				Namespace:      "ns1",
 				CreatedAtInSec: 1,
@@ -957,6 +969,7 @@ func TestToApiPipeline(t *testing.T) {
 			&model.Pipeline{
 				UUID:        "p1",
 				Name:        "pipeline1",
+				DisplayName: "pipeline1",
 				Description: "This is pipeline1",
 				Namespace:   "ns1",
 			},
@@ -993,11 +1006,13 @@ func TestToApiPipeline(t *testing.T) {
 			&model.Pipeline{
 				UUID:           "p1",
 				Name:           "pipeline1",
+				DisplayName:    "pipeline1",
 				Description:    "This is pipeline1",
 				CreatedAtInSec: 1,
 			},
 			&apiv2beta1.Pipeline{
 				PipelineId:  "p1",
+				Name:        "pipeline1",
 				DisplayName: "pipeline1",
 				Description: "This is pipeline1",
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
@@ -1017,6 +1032,7 @@ func TestToApiPipelines(t *testing.T) {
 		{
 			UUID:           "p1",
 			Name:           "pipeline1",
+			DisplayName:    "pipeline1",
 			Description:    "This is pipeline1",
 			Namespace:      "ns1",
 			CreatedAtInSec: 1,
@@ -1024,6 +1040,7 @@ func TestToApiPipelines(t *testing.T) {
 		nil,
 		{
 			Name:           "pipeline1",
+			DisplayName:    "pipeline1",
 			Description:    "This is pipeline1",
 			Namespace:      "ns1",
 			CreatedAtInSec: 1,
@@ -1031,6 +1048,7 @@ func TestToApiPipelines(t *testing.T) {
 		{
 			UUID:        "p1",
 			Name:        "pipeline1",
+			DisplayName: "pipeline1",
 			Description: "This is pipeline1",
 			Namespace:   "ns1",
 		},
@@ -1043,6 +1061,7 @@ func TestToApiPipelines(t *testing.T) {
 		{
 			UUID:           "p1",
 			Name:           "pipeline1",
+			DisplayName:    "pipeline1",
 			Description:    "This is pipeline1",
 			CreatedAtInSec: 1,
 		},
@@ -1051,6 +1070,7 @@ func TestToApiPipelines(t *testing.T) {
 	expectedPipelines := []*apiv2beta1.Pipeline{
 		{
 			PipelineId:  "p1",
+			Name:        "pipeline1",
 			DisplayName: "pipeline1",
 			Description: "This is pipeline1",
 			CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
@@ -1092,6 +1112,7 @@ func TestToApiPipelines(t *testing.T) {
 		},
 		{
 			PipelineId:  "p1",
+			Name:        "pipeline1",
 			DisplayName: "pipeline1",
 			Description: "This is pipeline1",
 			CreatedAt:   &timestamppb.Timestamp{Seconds: 1},

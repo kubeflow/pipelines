@@ -32,6 +32,7 @@ type PipelineVersion struct {
 	UUID           string `gorm:"column:UUID; not null; primary_key;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
 	Name           string `gorm:"column:Name; not null; unique_index:idx_pipelineid_name;"`
+	DisplayName    string `gorm:"column:DisplayName; not null"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	Parameters string `gorm:"column:Parameters; not null; size:65535;"` // deprecated
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
@@ -65,10 +66,10 @@ func (p *PipelineVersion) DefaultSortField() string {
 // PipelineVersion.
 func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 	return map[string]string{
-		"id":                  "UUID", // v1beta1 API
-		"pipeline_version_id": "UUID", // v2beta1 API
-		"name":                "Name", // v1beta1 API
-		"display_name":        "Name", // v2beta1 API
+		"id":                  "UUID",        // v1beta1 API
+		"pipeline_version_id": "UUID",        // v2beta1 API
+		"name":                "Name",        // v1beta1 API
+		"display_name":        "DisplayName", // v2beta1 API
 		"created_at":          "CreatedAtInSec",
 		"status":              "Status",
 		"description":         "Description",  // v2beta1 API
@@ -94,6 +95,8 @@ func (p *PipelineVersion) GetFieldValue(name string) interface{} {
 		return p.UUID
 	case "Name":
 		return p.Name
+	case "DisplayName":
+		return p.DisplayName
 	case "CreatedAtInSec":
 		return p.CreatedAtInSec
 	case "Status":

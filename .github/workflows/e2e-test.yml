@@ -218,6 +218,7 @@ jobs:
         run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
+          PIPELINE_STORE: ${{ matrix.pipeline_store }}
         continue-on-error: true
 
       - name: Collect failed logs
