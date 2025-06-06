@@ -63,6 +63,8 @@ type UploadPipelineParams struct {
 
 	/*Description*/
 	Description *string
+	/*DisplayName*/
+	DisplayName *string
 	/*Name*/
 	Name *string
 	/*Namespace*/
@@ -122,6 +124,17 @@ func (o *UploadPipelineParams) SetDescription(description *string) {
 	o.Description = description
 }
 
+// WithDisplayName adds the displayName to the upload pipeline params
+func (o *UploadPipelineParams) WithDisplayName(displayName *string) *UploadPipelineParams {
+	o.SetDisplayName(displayName)
+	return o
+}
+
+// SetDisplayName adds the displayName to the upload pipeline params
+func (o *UploadPipelineParams) SetDisplayName(displayName *string) {
+	o.DisplayName = displayName
+}
+
 // WithName adds the name to the upload pipeline params
 func (o *UploadPipelineParams) WithName(name *string) *UploadPipelineParams {
 	o.SetName(name)
@@ -173,6 +186,22 @@ func (o *UploadPipelineParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		qDescription := qrDescription
 		if qDescription != "" {
 			if err := r.SetQueryParam("description", qDescription); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.DisplayName != nil {
+
+		// query param display_name
+		var qrDisplayName string
+		if o.DisplayName != nil {
+			qrDisplayName = *o.DisplayName
+		}
+		qDisplayName := qrDisplayName
+		if qDisplayName != "" {
+			if err := r.SetQueryParam("display_name", qDisplayName); err != nil {
 				return err
 			}
 		}

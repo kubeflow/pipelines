@@ -81,6 +81,7 @@ describe('PipelineVersionList', () => {
         {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           display_name: 'pipelineversion1',
+          name: 'pipelineversion1',
         } as V2beta1PipelineVersion,
       ],
     });
@@ -95,6 +96,7 @@ describe('PipelineVersionList', () => {
         {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           display_name: 'pipelineversion1',
+          name: 'pipelineversion1',
           description: 'pipelineversion1 description',
         } as V2beta1PipelineVersion,
       ],
@@ -109,6 +111,7 @@ describe('PipelineVersionList', () => {
       pipelines: [
         {
           display_name: 'pipelineversion1',
+          name: 'pipelineversion1',
         } as V2beta1PipelineVersion,
       ],
     });
@@ -124,6 +127,7 @@ describe('PipelineVersionList', () => {
           created_at: new Date(2018, 8, 22, 11, 5, 48),
           error: 'oops! could not load pipeline',
           display_name: 'pipeline1',
+          name: 'pipeline1',
           parameters: [],
         } as V2beta1PipelineVersion,
       ],

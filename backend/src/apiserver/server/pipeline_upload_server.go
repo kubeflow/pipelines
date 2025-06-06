@@ -38,6 +38,7 @@ import (
 const (
 	FormFileKey               = "uploadfile"
 	NameQueryStringKey        = "name"
+	DisplayNameQueryStringKey = "display_name"
 	DescriptionQueryStringKey = "description"
 	NamespaceStringQuery      = "namespace"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
@@ -118,15 +119,23 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	}
 
 	fileNameQueryString := r.URL.Query().Get(NameQueryStringKey)
-	pipelineName := buildPipelineName(fileNameQueryString, header.Filename)
+	displayNameQueryString := r.URL.Query().Get(DisplayNameQueryStringKey)
+	pipelineName := buildPipelineName(fileNameQueryString, displayNameQueryString, header.Filename)
+	displayName := displayNameQueryString
+	if displayName == "" {
+		displayName = pipelineName
+	}
+
 	pipeline := &model.Pipeline{
 		Name:        pipelineName,
+		DisplayName: displayName,
 		Description: r.URL.Query().Get(DescriptionQueryStringKey),
 		Namespace:   pipelineNamespace,
 	}
 
 	pipelineVersion := &model.PipelineVersion{
 		Name:         pipeline.Name,
+		DisplayName:  pipeline.DisplayName,
 		Description:  pipeline.Description,
 		PipelineSpec: string(pipelineFile),
 	}
@@ -221,10 +230,18 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 
 	// If new version's name is not included in query string, use file name.
 	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
-	pipelineVersionName := buildPipelineName(versionNameQueryString, header.Filename)
+	versionDisplayNameQueryString := r.URL.Query().Get(DisplayNameQueryStringKey)
+	pipelineVersionName := buildPipelineName(versionNameQueryString, versionDisplayNameQueryString, header.Filename)
+
+	displayName := versionDisplayNameQueryString
+	if displayName == "" {
+		displayName = pipelineVersionName
+	}
+
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:         pipelineVersionName,
+			DisplayName:  displayName,
 			Description:  r.URL.Query().Get(DescriptionQueryStringKey),
 			PipelineId:   pipelineId,
 			PipelineSpec: string(pipelineFile),

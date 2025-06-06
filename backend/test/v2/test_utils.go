@@ -15,12 +15,14 @@
 package test
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"github.com/golang/glog"
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
@@ -32,6 +34,7 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -166,6 +169,34 @@ func DeleteAllPipelineVersions(client *api_server.PipelineClient, t *testing.T, 
 	assert.Nil(t, err)
 	for _, pv := range pipelineVersions {
 		assert.Nil(t, client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineId, PipelineVersionID: pv.PipelineVersionID}))
+	}
+
+	// Wait for pipeline versions to be deleted. In Kubernetes mode, there can be a slight delay before the cache is
+	// updated.
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// This should be a ContextDeadlineExceeded error and causes the test to fail.
+			require.Nil(t, ctx.Err(), "Pipeline versions have not been deleted after 5 seconds")
+
+			return
+		default:
+			pipelineVersions, _, _, err = ListPipelineVersions(client, pipelineId)
+			if err != nil {
+				glog.Errorf("Error listing pipeline versions, will retry: %v", err)
+
+				continue
+			}
+
+			if len(pipelineVersions) == 0 {
+				return
+			}
+
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 }
 

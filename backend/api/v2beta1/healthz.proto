@@ -73,4 +73,6 @@ message GetHealthzResponse {
   // 
   // Returns if KFP in multi-user mode
   bool multi_user = 3;
+  // Returns the pipeline storage type (database or kubernetes)
+  string pipeline_store = 4;
 }

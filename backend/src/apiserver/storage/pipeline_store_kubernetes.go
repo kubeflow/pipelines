@@ -221,6 +221,8 @@ func (k *PipelineStoreKubernetes) CreatePipeline(pipeline *model.Pipeline) (*mod
 		return nil, util.NewAlreadyExistError(
 			"Failed to create a new pipeline. The name %v already exists. Please specify a new name", pipeline.Name,
 		)
+	} else if k8serrors.IsInvalid(err) && strings.Contains(err.Error(), "metadata.name") {
+		return nil, util.NewBadKubernetesNameError("pipeline")
 	} else if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create the pipeline")
 	}
@@ -563,6 +565,8 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 			"Failed to create a new pipeline version. The name %v already exists. Please specify a new name",
 			pipelineVersion.Name,
 		)
+	} else if k8serrors.IsInvalid(err) && strings.Contains(err.Error(), "metadata.name") {
+		return nil, util.NewBadKubernetesNameError("pipeline version")
 	} else if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create the pipeline version")
 	}

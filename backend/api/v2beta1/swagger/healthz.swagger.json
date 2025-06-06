@@ -83,6 +83,10 @@
           "type": "boolean",
           "description": "Returns if KFP in multi-user mode",
           "title": "TODO(gkcalat): redesign this service to return status\nand move server configuration into a separate service\nTODO(gkcalat): rename or deprecate v1beta1 HealthzService"
+        },
+        "pipeline_store": {
+          "type": "string",
+          "title": "Returns the pipeline storage type (database or kubernetes)"
         }
       }
     }

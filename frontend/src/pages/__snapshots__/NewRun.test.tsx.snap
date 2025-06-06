@@ -52,7 +52,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             "customRenderer": [Function],
             "flex": 1,
             "label": "Pipeline name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -121,7 +121,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 "customRenderer": [Function],
                 "flex": 2,
                 "label": "Version name",
-                "sortKey": "name",
+                "sortKey": "display_name",
               },
               Object {
                 "customRenderer": [Function],
@@ -541,7 +541,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             "customRenderer": [Function],
             "flex": 1,
             "label": "Pipeline name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -610,7 +610,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 "customRenderer": [Function],
                 "flex": 2,
                 "label": "Version name",
-                "sortKey": "name",
+                "sortKey": "display_name",
               },
               Object {
                 "customRenderer": [Function],
@@ -1030,7 +1030,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
             "customRenderer": [Function],
             "flex": 1,
             "label": "Pipeline name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -1099,7 +1099,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 "customRenderer": [Function],
                 "flex": 2,
                 "label": "Version name",
-                "sortKey": "name",
+                "sortKey": "display_name",
               },
               Object {
                 "customRenderer": [Function],
@@ -1537,7 +1537,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             "customRenderer": [Function],
             "flex": 1,
             "label": "Pipeline name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -1606,7 +1606,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 "customRenderer": [Function],
                 "flex": 2,
                 "label": "Version name",
-                "sortKey": "name",
+                "sortKey": "display_name",
               },
               Object {
                 "customRenderer": [Function],
@@ -2026,7 +2026,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             "customRenderer": [Function],
             "flex": 1,
             "label": "Pipeline name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -2095,7 +2095,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 "customRenderer": [Function],
                 "flex": 2,
                 "label": "Version name",
-                "sortKey": "name",
+                "sortKey": "display_name",
               },
               Object {
                 "customRenderer": [Function],
@@ -2513,7 +2513,7 @@ exports[`NewRun renders the new run page 1`] = `
             "customRenderer": [Function],
             "flex": 1,
             "label": "Pipeline name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -2582,7 +2582,7 @@ exports[`NewRun renders the new run page 1`] = `
                 "customRenderer": [Function],
                 "flex": 2,
                 "label": "Version name",
-                "sortKey": "name",
+                "sortKey": "display_name",
               },
               Object {
                 "customRenderer": [Function],
@@ -3002,7 +3002,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             "customRenderer": [Function],
             "flex": 1,
             "label": "Pipeline name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -3071,7 +3071,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 "customRenderer": [Function],
                 "flex": 2,
                 "label": "Version name",
-                "sortKey": "name",
+                "sortKey": "display_name",
               },
               Object {
                 "customRenderer": [Function],
@@ -3509,7 +3509,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             "customRenderer": [Function],
             "flex": 1,
             "label": "Pipeline name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -3578,7 +3578,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 "customRenderer": [Function],
                 "flex": 2,
                 "label": "Version name",
-                "sortKey": "name",
+                "sortKey": "display_name",
               },
               Object {
                 "customRenderer": [Function],

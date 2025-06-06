@@ -550,7 +550,11 @@
         },
         "display_name": {
           "type": "string",
-          "description": "Required input field. Pipeline name provided by user."
+          "description": "Required if name is not provided. Pipeline display name provided by user."
+        },
+        "name": {
+          "type": "string",
+          "description": "Required if display_name is not provided. Pipeline name provided by user."
         },
         "description": {
           "type": "string",
@@ -584,7 +588,11 @@
         },
         "display_name": {
           "type": "string",
-          "description": "Required input field. Pipeline version name provided by user.\nThis is ignored in CreatePipelineAndVersion API."
+          "description": "Required if name is not provided. Pipeline version display name provided by user.\nThis is ignored in CreatePipelineAndVersion API."
+        },
+        "name": {
+          "type": "string",
+          "description": "Required if display_name is not provided. Pipeline version name provided by user.\nThis is ignored in CreatePipelineAndVersion API."
         },
         "description": {
           "type": "string",

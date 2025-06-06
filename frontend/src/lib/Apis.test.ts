@@ -120,7 +120,7 @@ describe('Apis', () => {
     };
     const spy = fetchSpy(JSON.stringify(expectedBuildInfo));
     const actualBuildInfo = await Apis.getBuildInfo();
-    expect(spy).toHaveBeenCalledWith('apis/v1beta1/healthz', { credentials: 'same-origin' });
+    expect(spy).toHaveBeenCalledWith('apis/v2beta1/healthz', { credentials: 'same-origin' });
     expect(actualBuildInfo).toEqual(expectedBuildInfo);
   });
 
@@ -300,6 +300,7 @@ describe('Apis', () => {
     const spy = fetchSpy(JSON.stringify({ name: 'resultName' }));
     const result = await Apis.uploadPipeline(
       'test pipeline name',
+      'test display name',
       'test description',
       new File([], 'test name'),
     );
@@ -307,6 +308,8 @@ describe('Apis', () => {
     expect(spy).toHaveBeenCalledWith(
       'apis/v1beta1/pipelines/upload?name=' +
         encodeURIComponent('test pipeline name') +
+        '&display_name=' +
+        encodeURIComponent('test display name') +
         '&description=' +
         encodeURIComponent('test description'),
       {

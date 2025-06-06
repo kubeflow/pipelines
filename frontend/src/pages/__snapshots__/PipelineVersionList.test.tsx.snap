@@ -20,7 +20,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             "customRenderer": [Function],
             "flex": 1,
             "label": "Version name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -42,7 +42,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
           Object {
             "id": "test-pipeline-version-id0",
             "otherFields": Array [
-              "test pipeline version name0",
+              Object {
+                "display_name": "test pipeline version name0",
+                "name": undefined,
+              },
               undefined,
               "-",
             ],
@@ -50,7 +53,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
           Object {
             "id": "test-pipeline-version-id1",
             "otherFields": Array [
-              "test pipeline version name1",
+              Object {
+                "display_name": "test pipeline version name1",
+                "name": undefined,
+              },
               undefined,
               "-",
             ],
@@ -3401,7 +3407,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                       "customRenderer": [Function],
                       "flex": 1,
                       "label": "Version name",
-                      "sortKey": "name",
+                      "sortKey": "display_name",
                     },
                     Object {
                       "customRenderer": [Function],
@@ -3419,7 +3425,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   Object {
                     "id": "test-pipeline-version-id0",
                     "otherFields": Array [
-                      "test pipeline version name0",
+                      Object {
+                        "display_name": "test pipeline version name0",
+                        "name": undefined,
+                      },
                       undefined,
                       "-",
                     ],
@@ -3438,7 +3447,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   <WithStyles(Tooltip)
                     enterDelay={300}
                     placement="bottom-start"
-                    title="test pipeline version name0"
+                    title="Name: "
                   >
                     <Tooltip
                       TransitionComponent={[Function]}
@@ -3825,7 +3834,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                           },
                         }
                       }
-                      title="test pipeline version name0"
+                      title="Name: "
                     >
                       <RootRef
                         rootRef={[Function]}
@@ -3841,7 +3850,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                           onTouchEnd={[Function]}
                           onTouchStart={[Function]}
                           replace={false}
-                          title="test pipeline version name0"
+                          title="Name: "
                           to="/pipelines/details/pipeline/version/test-pipeline-version-id0?"
                         >
                           <a
@@ -3855,7 +3864,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                             onMouseOver={[Function]}
                             onTouchEnd={[Function]}
                             onTouchStart={[Function]}
-                            title="test pipeline version name0"
+                            title="Name: "
                           >
                             test pipeline version name0
                           </a>
@@ -3866,7 +3875,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                           <a
                             class="link"
                             href="/pipelines/details/pipeline/version/test-pipeline-version-id0"
-                            title="test pipeline version name0"
+                            title="Name: "
                           >
                             test pipeline version name0
                           </a>
@@ -4630,7 +4639,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                       "customRenderer": [Function],
                       "flex": 1,
                       "label": "Version name",
-                      "sortKey": "name",
+                      "sortKey": "display_name",
                     },
                     Object {
                       "customRenderer": [Function],
@@ -4648,7 +4657,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   Object {
                     "id": "test-pipeline-version-id1",
                     "otherFields": Array [
-                      "test pipeline version name1",
+                      Object {
+                        "display_name": "test pipeline version name1",
+                        "name": undefined,
+                      },
                       undefined,
                       "-",
                     ],
@@ -4667,7 +4679,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   <WithStyles(Tooltip)
                     enterDelay={300}
                     placement="bottom-start"
-                    title="test pipeline version name1"
+                    title="Name: "
                   >
                     <Tooltip
                       TransitionComponent={[Function]}
@@ -5054,7 +5066,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                           },
                         }
                       }
-                      title="test pipeline version name1"
+                      title="Name: "
                     >
                       <RootRef
                         rootRef={[Function]}
@@ -5070,7 +5082,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                           onTouchEnd={[Function]}
                           onTouchStart={[Function]}
                           replace={false}
-                          title="test pipeline version name1"
+                          title="Name: "
                           to="/pipelines/details/pipeline/version/test-pipeline-version-id1?"
                         >
                           <a
@@ -5084,7 +5096,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                             onMouseOver={[Function]}
                             onTouchEnd={[Function]}
                             onTouchStart={[Function]}
-                            title="test pipeline version name1"
+                            title="Name: "
                           >
                             test pipeline version name1
                           </a>
@@ -5095,7 +5107,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                           <a
                             class="link"
                             href="/pipelines/details/pipeline/version/test-pipeline-version-id1"
-                            title="test pipeline version name1"
+                            title="Name: "
                           >
                             test pipeline version name1
                           </a>
@@ -7017,7 +7029,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             "customRenderer": [Function],
             "flex": 1,
             "label": "Version name",
-            "sortKey": "name",
+            "sortKey": "display_name",
           },
           Object {
             "customRenderer": [Function],
@@ -7039,7 +7051,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
           Object {
             "id": "test-pipeline-version-id0",
             "otherFields": Array [
-              "test pipeline version name0",
+              Object {
+                "display_name": "test pipeline version name0",
+                "name": undefined,
+              },
               undefined,
               "-",
             ],
@@ -7047,7 +7062,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
           Object {
             "id": "test-pipeline-version-id1",
             "otherFields": Array [
-              "test pipeline version name1",
+              Object {
+                "display_name": "test pipeline version name1",
+                "name": undefined,
+              },
               undefined,
               "-",
             ],
@@ -7055,7 +7073,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
           Object {
             "id": "test-pipeline-version-id2",
             "otherFields": Array [
-              "test pipeline version name2",
+              Object {
+                "display_name": "test pipeline version name2",
+                "name": undefined,
+              },
               undefined,
               "-",
             ],
@@ -10406,7 +10427,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                       "customRenderer": [Function],
                       "flex": 1,
                       "label": "Version name",
-                      "sortKey": "name",
+                      "sortKey": "display_name",
                     },
                     Object {
                       "customRenderer": [Function],
@@ -10424,7 +10445,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   Object {
                     "id": "test-pipeline-version-id0",
                     "otherFields": Array [
-                      "test pipeline version name0",
+                      Object {
+                        "display_name": "test pipeline version name0",
+                        "name": undefined,
+                      },
                       undefined,
                       "-",
                     ],
@@ -10443,7 +10467,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   <WithStyles(Tooltip)
                     enterDelay={300}
                     placement="bottom-start"
-                    title="test pipeline version name0"
+                    title="Name: "
                   >
                     <Tooltip
                       TransitionComponent={[Function]}
@@ -10830,7 +10854,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           },
                         }
                       }
-                      title="test pipeline version name0"
+                      title="Name: "
                     >
                       <RootRef
                         rootRef={[Function]}
@@ -10846,7 +10870,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           onTouchEnd={[Function]}
                           onTouchStart={[Function]}
                           replace={false}
-                          title="test pipeline version name0"
+                          title="Name: "
                           to="/pipelines/details/pipeline/version/test-pipeline-version-id0?"
                         >
                           <a
@@ -10860,7 +10884,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                             onMouseOver={[Function]}
                             onTouchEnd={[Function]}
                             onTouchStart={[Function]}
-                            title="test pipeline version name0"
+                            title="Name: "
                           >
                             test pipeline version name0
                           </a>
@@ -10871,7 +10895,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           <a
                             class="link"
                             href="/pipelines/details/pipeline/version/test-pipeline-version-id0"
-                            title="test pipeline version name0"
+                            title="Name: "
                           >
                             test pipeline version name0
                           </a>
@@ -11635,7 +11659,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                       "customRenderer": [Function],
                       "flex": 1,
                       "label": "Version name",
-                      "sortKey": "name",
+                      "sortKey": "display_name",
                     },
                     Object {
                       "customRenderer": [Function],
@@ -11653,7 +11677,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   Object {
                     "id": "test-pipeline-version-id1",
                     "otherFields": Array [
-                      "test pipeline version name1",
+                      Object {
+                        "display_name": "test pipeline version name1",
+                        "name": undefined,
+                      },
                       undefined,
                       "-",
                     ],
@@ -11672,7 +11699,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   <WithStyles(Tooltip)
                     enterDelay={300}
                     placement="bottom-start"
-                    title="test pipeline version name1"
+                    title="Name: "
                   >
                     <Tooltip
                       TransitionComponent={[Function]}
@@ -12059,7 +12086,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           },
                         }
                       }
-                      title="test pipeline version name1"
+                      title="Name: "
                     >
                       <RootRef
                         rootRef={[Function]}
@@ -12075,7 +12102,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           onTouchEnd={[Function]}
                           onTouchStart={[Function]}
                           replace={false}
-                          title="test pipeline version name1"
+                          title="Name: "
                           to="/pipelines/details/pipeline/version/test-pipeline-version-id1?"
                         >
                           <a
@@ -12089,7 +12116,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                             onMouseOver={[Function]}
                             onTouchEnd={[Function]}
                             onTouchStart={[Function]}
-                            title="test pipeline version name1"
+                            title="Name: "
                           >
                             test pipeline version name1
                           </a>
@@ -12100,7 +12127,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           <a
                             class="link"
                             href="/pipelines/details/pipeline/version/test-pipeline-version-id1"
-                            title="test pipeline version name1"
+                            title="Name: "
                           >
                             test pipeline version name1
                           </a>
@@ -12864,7 +12891,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                       "customRenderer": [Function],
                       "flex": 1,
                       "label": "Version name",
-                      "sortKey": "name",
+                      "sortKey": "display_name",
                     },
                     Object {
                       "customRenderer": [Function],
@@ -12882,7 +12909,10 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   Object {
                     "id": "test-pipeline-version-id2",
                     "otherFields": Array [
-                      "test pipeline version name2",
+                      Object {
+                        "display_name": "test pipeline version name2",
+                        "name": undefined,
+                      },
                       undefined,
                       "-",
                     ],
@@ -12901,7 +12931,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   <WithStyles(Tooltip)
                     enterDelay={300}
                     placement="bottom-start"
-                    title="test pipeline version name2"
+                    title="Name: "
                   >
                     <Tooltip
                       TransitionComponent={[Function]}
@@ -13288,7 +13318,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           },
                         }
                       }
-                      title="test pipeline version name2"
+                      title="Name: "
                     >
                       <RootRef
                         rootRef={[Function]}
@@ -13304,7 +13334,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           onTouchEnd={[Function]}
                           onTouchStart={[Function]}
                           replace={false}
-                          title="test pipeline version name2"
+                          title="Name: "
                           to="/pipelines/details/pipeline/version/test-pipeline-version-id2?"
                         >
                           <a
@@ -13318,7 +13348,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                             onMouseOver={[Function]}
                             onTouchEnd={[Function]}
                             onTouchStart={[Function]}
-                            title="test pipeline version name2"
+                            title="Name: "
                           >
                             test pipeline version name2
                           </a>
@@ -13329,7 +13359,7 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           <a
                             class="link"
                             href="/pipelines/details/pipeline/version/test-pipeline-version-id2"
-                            title="test pipeline version name2"
+                            title="Name: "
                           >
                             test pipeline version name2
                           </a>
@@ -15240,7 +15270,7 @@ exports[`PipelineVersionList renders a list of one pipeline version 1`] = `
           "customRenderer": [Function],
           "flex": 1,
           "label": "Version name",
-          "sortKey": "name",
+          "sortKey": "display_name",
         },
         Object {
           "customRenderer": [Function],
@@ -15262,7 +15292,10 @@ exports[`PipelineVersionList renders a list of one pipeline version 1`] = `
         Object {
           "id": undefined,
           "otherFields": Array [
-            "pipelineversion1",
+            Object {
+              "display_name": "pipelineversion1",
+              "name": "pipelineversion1",
+            },
             undefined,
             "9/22/2018, 11:05:48 AM",
           ],
@@ -15282,7 +15315,7 @@ exports[`PipelineVersionList renders a list of one pipeline version with descrip
           "customRenderer": [Function],
           "flex": 1,
           "label": "Version name",
-          "sortKey": "name",
+          "sortKey": "display_name",
         },
         Object {
           "customRenderer": [Function],
@@ -15304,7 +15337,10 @@ exports[`PipelineVersionList renders a list of one pipeline version with descrip
         Object {
           "id": undefined,
           "otherFields": Array [
-            "pipelineversion1",
+            Object {
+              "display_name": "pipelineversion1",
+              "name": "pipelineversion1",
+            },
             "pipelineversion1 description",
             "9/22/2018, 11:05:48 AM",
           ],
@@ -15324,7 +15360,7 @@ exports[`PipelineVersionList renders a list of one pipeline version with error 1
           "customRenderer": [Function],
           "flex": 1,
           "label": "Version name",
-          "sortKey": "name",
+          "sortKey": "display_name",
         },
         Object {
           "customRenderer": [Function],
@@ -15346,7 +15382,10 @@ exports[`PipelineVersionList renders a list of one pipeline version with error 1
         Object {
           "id": undefined,
           "otherFields": Array [
-            "pipeline1",
+            Object {
+              "display_name": "pipeline1",
+              "name": "pipeline1",
+            },
             undefined,
             "9/22/2018, 11:05:48 AM",
           ],
@@ -15366,7 +15405,7 @@ exports[`PipelineVersionList renders a list of one pipeline version without crea
           "customRenderer": [Function],
           "flex": 1,
           "label": "Version name",
-          "sortKey": "name",
+          "sortKey": "display_name",
         },
         Object {
           "customRenderer": [Function],
@@ -15397,7 +15436,7 @@ exports[`PipelineVersionList renders an empty list with empty state message 1`] 
           "customRenderer": [Function],
           "flex": 1,
           "label": "Version name",
-          "sortKey": "name",
+          "sortKey": "display_name",
         },
         Object {
           "customRenderer": [Function],

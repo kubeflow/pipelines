@@ -107,6 +107,11 @@ type PipelineServer struct {
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pipeline) (*model.Pipeline, error) {
 	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
+
+	if pipeline.Name == "" {
+		return nil, util.NewInvalidInputError("name is required")
+	}
+
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: pipeline.Namespace,
@@ -125,7 +130,12 @@ func (s *PipelineServer) createPipeline(ctx context.Context, pipeline *model.Pip
 func (s *PipelineServer) createPipelineAndPipelineVersion(ctx context.Context, pipeline *model.Pipeline, pipelineUrlStr string) (*model.Pipeline, *model.PipelineVersion, error) {
 	// Resolve name and namespace
 	pipelineFileName := path.Base(pipelineUrlStr)
-	pipeline.Name = buildPipelineName(pipeline.Name, pipelineFileName)
+
+	pipeline.Name = buildPipelineName(pipeline.Name, pipeline.DisplayName, pipelineFileName)
+	if pipeline.DisplayName == "" {
+		pipeline.DisplayName = pipeline.Name
+	}
+
 	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
 
 	// Check authorization
@@ -142,6 +152,7 @@ func (s *PipelineServer) createPipelineAndPipelineVersion(ctx context.Context, p
 	// Create a pipeline version with the same name and description
 	pipelineVersion := &model.PipelineVersion{
 		Name:            pipeline.Name,
+		DisplayName:     pipeline.DisplayName,
 		PipelineSpecURI: pipelineUrlStr,
 		Description:     pipeline.Description,
 		Status:          model.PipelineVersionCreating,
@@ -558,6 +569,10 @@ func (s *PipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineI
 // Validates a pipeline version before creating a record in the DB.
 // Requires Name and PipelineId to be non-empty and presence of PipelineSpec or a valid URI to the pipeline spec.
 func (s *PipelineServer) validatePipelineVersionBeforeCreating(p *model.PipelineVersion) error {
+	if p.Name == "" {
+		return util.NewInvalidInputError("name is required")
+	}
+
 	if p.PipelineSpec != "" {
 		return nil
 	}
@@ -616,6 +631,10 @@ func (s *PipelineServer) createPipelineVersion(ctx context.Context, pv *model.Pi
 	// Fail if parent pipeline id is missing
 	if pv.PipelineId == "" {
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due empty parent pipeline id")
+	}
+
+	if pv.Name == "" {
+		return nil, util.NewInvalidInputError("name is required")
 	}
 
 	// Check authorization
@@ -1041,12 +1060,17 @@ func (s *PipelineServer) canAccessPipeline(ctx context.Context, pipelineId strin
 	return nil
 }
 
-// This method extract the common logic of naming the pipeline.
-// API caller can either explicitly name the pipeline through query string ?name=foobar.
-// or API server can use the file name by default.
-func buildPipelineName(pipelineName string, fileName string) string {
-	if pipelineName == "" {
-		pipelineName = fileName
+// buildPipelineName extracts the common logic of naming the pipeline.
+// The API caller can either explicitly name the pipeline through query strings ?name=foobar and/or
+// ?display_name=foobar, or the API server can use the file name by default.
+func buildPipelineName(pipelineName string, pipelineDisplayName string, fileName string) string {
+	if pipelineName != "" {
+		return pipelineName
 	}
-	return pipelineName
+
+	if pipelineDisplayName != "" {
+		return pipelineDisplayName
+	}
+
+	return fileName
 }
