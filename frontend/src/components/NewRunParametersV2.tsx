@@ -298,9 +298,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
             };
 
             return (
-              <div>
+              <div key={k}>
                 <ParamEditor
-                  key={k}
                   id={k}
                   onChange={value => {
                     let allInputsValid: boolean = true;

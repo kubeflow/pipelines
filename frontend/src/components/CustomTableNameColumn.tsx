@@ -22,12 +22,14 @@ import Tooltip from '@material-ui/core/Tooltip';
  * Common name custom renderer that shows a tooltip when hovered. The tooltip helps if there isn't
  * enough space to show the entire name in limited space.
  */
-export const NameWithTooltip: React.FC<CustomRendererProps<string>> = (
-  props: CustomRendererProps<string>,
-) => {
+export const NameWithTooltip: React.FC<CustomRendererProps<{
+  display_name?: string;
+  name?: string;
+}>> = (props: CustomRendererProps<{ display_name?: string; name?: string }>) => {
+  // props.value.name is the only option for v1 pipelines, which is why it's the fallback.
   return (
-    <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
-      <span>{props.value || ''}</span>
+    <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
+      <span>{props.value?.display_name || props.value?.name || ''}</span>
     </Tooltip>
   );
 };

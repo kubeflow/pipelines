@@ -34,12 +34,14 @@ var (
 		"pipelines.UUID",
 		"pipelines.CreatedAtInSec",
 		"pipelines.Name",
+		"pipelines.DisplayName",
 		"pipelines.Description",
 		"pipelines.Status",
 		"pipelines.Namespace",
 		"pipeline_versions.UUID",
 		"pipeline_versions.CreatedAtInSec",
 		"pipeline_versions.Name",
+		"pipeline_versions.DisplayName",
 		"pipeline_versions.Parameters",
 		"pipeline_versions.PipelineId",
 		"pipeline_versions.Status",
@@ -55,6 +57,7 @@ var (
 		"pipelines.UUID",
 		"pipelines.CreatedAtInSec",
 		"pipelines.Name",
+		"pipelines.DisplayName",
 		"pipelines.Description",
 		"pipelines.Status",
 		"pipelines.Namespace",
@@ -66,6 +69,7 @@ var (
 		"pipeline_versions.UUID",
 		"pipeline_versions.CreatedAtInSec",
 		"pipeline_versions.Name",
+		"pipeline_versions.DisplayName",
 		"pipeline_versions.Parameters",
 		"pipeline_versions.PipelineId",
 		"pipeline_versions.Status",
@@ -384,21 +388,23 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*mo
 	var pipelines []*model.Pipeline
 	var pipelineVersions []*model.PipelineVersion
 	for rows.Next() {
-		var uuid, name, description string
+		var uuid, name, displayName, description string
 		var namespace sql.NullString
 		var status model.PipelineStatus
-		var versionUUID, versionName, versionParameters, versionPipelineId, versionCodeSourceUrl, versionStatus, versionDescription, pipelineSpec, pipelineSpecURI sql.NullString
+		var versionUUID, versionName, versionDisplayName, versionParameters, versionPipelineId, versionCodeSourceUrl, versionStatus, versionDescription, pipelineSpec, pipelineSpecURI sql.NullString
 		var createdAtInSec, versionCreatedAtInSec sql.NullInt64
 		if err := rows.Scan(
 			&uuid,
 			&createdAtInSec,
 			&name,
+			&displayName,
 			&description,
 			&status,
 			&namespace,
 			&versionUUID,
 			&versionCreatedAtInSec,
 			&versionName,
+			&versionDisplayName,
 			&versionParameters,
 			&versionPipelineId,
 			&versionStatus,
@@ -415,6 +421,7 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*mo
 				UUID:           uuid,
 				CreatedAtInSec: createdAtInSec.Int64,
 				Name:           name,
+				DisplayName:    displayName,
 				Description:    description,
 				Status:         status,
 				Namespace:      namespace.String,
@@ -426,6 +433,7 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*mo
 				UUID:            versionUUID.String,
 				CreatedAtInSec:  versionCreatedAtInSec.Int64,
 				Name:            versionName.String,
+				DisplayName:     versionDisplayName.String,
 				Parameters:      versionParameters.String,
 				PipelineId:      versionPipelineId.String,
 				Status:          model.PipelineVersionStatus(versionStatus.String),
@@ -443,12 +451,13 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*mo
 func (s *PipelineStore) scanPipelinesRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 	var pipelines []*model.Pipeline
 	for rows.Next() {
-		var uuid, name, status, description, namespace sql.NullString
+		var uuid, name, displayName, status, description, namespace sql.NullString
 		var createdAtInSec sql.NullInt64
 		if err := rows.Scan(
 			&uuid,
 			&createdAtInSec,
 			&name,
+			&displayName,
 			&description,
 			&status,
 			&namespace,
@@ -462,6 +471,7 @@ func (s *PipelineStore) scanPipelinesRows(rows *sql.Rows) ([]*model.Pipeline, er
 					UUID:           uuid.String,
 					CreatedAtInSec: createdAtInSec.Int64,
 					Name:           name.String,
+					DisplayName:    displayName.String,
 					Description:    description.String,
 					Status:         model.PipelineStatus(status.String),
 					Namespace:      namespace.String,
@@ -553,6 +563,7 @@ func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *
 				"UUID":           newPipeline.UUID,
 				"CreatedAtInSec": newPipeline.CreatedAtInSec,
 				"Name":           newPipeline.Name,
+				"DisplayName":    newPipeline.DisplayName,
 				"Description":    newPipeline.Description,
 				"Status":         string(newPipeline.Status),
 				"Namespace":      newPipeline.Namespace,
@@ -572,6 +583,7 @@ func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *
 				"UUID":            newPipelineVersion.UUID,
 				"CreatedAtInSec":  newPipelineVersion.CreatedAtInSec,
 				"Name":            newPipelineVersion.Name,
+				"DisplayName":     newPipelineVersion.DisplayName,
 				"Parameters":      newPipelineVersion.Parameters,
 				"PipelineId":      newPipelineVersion.PipelineId,
 				"Status":          string(newPipelineVersion.Status),
@@ -638,6 +650,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 				"UUID":           newPipeline.UUID,
 				"CreatedAtInSec": newPipeline.CreatedAtInSec,
 				"Name":           newPipeline.Name,
+				"DisplayName":    newPipeline.DisplayName,
 				"Description":    newPipeline.Description,
 				"Status":         string(newPipeline.Status),
 				"Namespace":      newPipeline.Namespace,
@@ -727,6 +740,7 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 				"UUID":            newPipelineVersion.UUID,
 				"CreatedAtInSec":  newPipelineVersion.CreatedAtInSec,
 				"Name":            newPipelineVersion.Name,
+				"DisplayName":     newPipelineVersion.DisplayName,
 				"Parameters":      newPipelineVersion.Parameters,
 				"PipelineId":      newPipelineVersion.PipelineId,
 				"Status":          string(newPipelineVersion.Status),
@@ -870,12 +884,13 @@ func (s *PipelineStore) getPipelineVersionByCol(colName, colVal string, status m
 func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.PipelineVersion, error) {
 	var pipelineVersions []*model.PipelineVersion
 	for rows.Next() {
-		var uuid, name, parameters, pipelineId, codeSourceUrl, status, description, pipelineSpec, pipelineSpecURI sql.NullString
+		var uuid, name, displayName, parameters, pipelineId, codeSourceUrl, status, description, pipelineSpec, pipelineSpecURI sql.NullString
 		var createdAtInSec sql.NullInt64
 		if err := rows.Scan(
 			&uuid,
 			&createdAtInSec,
 			&name,
+			&displayName,
 			&parameters,
 			&pipelineId,
 			&status,
@@ -893,6 +908,7 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 					UUID:            uuid.String,
 					CreatedAtInSec:  createdAtInSec.Int64,
 					Name:            name.String,
+					DisplayName:     displayName.String,
 					Parameters:      parameters.String,
 					PipelineId:      pipelineId.String,
 					CodeSourceUrl:   codeSourceUrl.String,

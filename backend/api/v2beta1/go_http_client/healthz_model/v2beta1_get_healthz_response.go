@@ -21,6 +21,9 @@ type V2beta1GetHealthzResponse struct {
 	//
 	// Returns if KFP in multi-user mode
 	MultiUser bool `json:"multi_user,omitempty"`
+
+	// Returns the pipeline storage type (database or kubernetes)
+	PipelineStore string `json:"pipeline_store,omitempty"`
 }
 
 // Validate validates this v2beta1 get healthz response

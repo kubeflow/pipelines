@@ -22,6 +22,7 @@ import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
+import '@testing-library/jest-dom';
 
 class TestNewPipelineVersion extends NewPipelineVersion {
   public _pipelineSelectorClosed = super._pipelineSelectorClosed;
@@ -227,6 +228,9 @@ describe('NewPipelineVersion', () => {
       (tree.instance() as TestNewPipelineVersion).handleChange('pipelineVersionName')({
         target: { value: 'test version name' },
       });
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineVersionDisplayName')({
+        target: { value: 'test version display name' },
+      });
       (tree.instance() as TestNewPipelineVersion).handleChange('pipelineVersionDescription')({
         target: { value: 'some description' },
       });
@@ -244,7 +248,8 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineVersionSpy).toHaveBeenCalledTimes(1);
       expect(createPipelineVersionSpy).toHaveBeenLastCalledWith('original-run-pipeline-id', {
         pipeline_id: 'original-run-pipeline-id',
-        display_name: 'test version name',
+        name: 'test version name',
+        display_name: 'test version display name',
         description: 'some description',
         package_url: {
           pipeline_url: 'https://dummy_package_url',
@@ -303,6 +308,7 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineSpy).toHaveBeenCalledTimes(1);
       expect(createPipelineSpy).toHaveBeenLastCalledWith({
         description: 'test pipeline description',
+        name: 'test pipeline name',
         display_name: 'test pipeline name',
       });
     });
@@ -335,6 +341,7 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineSpy).toHaveBeenCalledTimes(1);
       expect(createPipelineSpy).toHaveBeenLastCalledWith({
         description: 'test pipeline description',
+        name: 'test pipeline name',
         display_name: 'test pipeline name',
         namespace: 'ns',
       });
@@ -369,6 +376,7 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineSpy).toHaveBeenCalledTimes(1);
       expect(createPipelineSpy).toHaveBeenLastCalledWith({
         description: 'test pipeline description',
+        name: 'test pipeline name',
         display_name: 'test pipeline name',
       });
     });
@@ -398,6 +406,7 @@ describe('NewPipelineVersion', () => {
 
       expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
         'test pipeline name',
+        '',
         'test pipeline description',
         file,
         undefined,
@@ -434,6 +443,7 @@ describe('NewPipelineVersion', () => {
 
       expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
         'test pipeline name',
+        '',
         'test pipeline description',
         file,
         'ns',
@@ -470,6 +480,7 @@ describe('NewPipelineVersion', () => {
 
       expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
         'test pipeline name',
+        '',
         'test pipeline description',
         file,
         undefined,
@@ -482,9 +493,130 @@ describe('NewPipelineVersion', () => {
           {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.pipeline_id}`)}
         />,
       );
-      const pipelineVersionNameInput = await screen.findByLabelText(/Pipeline Version name/);
+      const pipelineVersionNameInput = await screen.findByLabelText(/Pipeline Version Name/);
       fireEvent.change(pipelineVersionNameInput, { target: { value: 'new-pipeline-name' } });
       expect(pipelineVersionNameInput.closest('input')?.value).toBe('new-pipeline-name');
+    });
+
+    describe('kubernetes pipeline store', () => {
+      beforeEach(() => {
+        // Mock the API response for pipeline store
+        jest.spyOn(Apis.pipelineServiceApi, 'getPipeline').mockResolvedValue({
+          name: 'test-pipeline',
+        });
+      });
+
+      it('shows pipeline display name field when pipeline store is kubernetes', async () => {
+        render(
+          <NewPipelineVersion {...generateProps()} buildInfo={{ pipelineStore: 'kubernetes' }} />,
+        );
+
+        // Select the first radio button for "Create a new pipeline"
+        const createNewPipelineBtns = screen.getAllByLabelText(/Create a new pipeline/);
+        fireEvent.click(createNewPipelineBtns[0]);
+
+        // Pipeline display name field should be visible
+        const pipelineDisplayNameInput = await screen.findByLabelText(/Pipeline Display Name/);
+        expect(pipelineDisplayNameInput).toBeInTheDocument();
+
+        // Pipeline name field should have Kubernetes object name label
+        const pipelineNameInput = await screen.findByLabelText(
+          /Pipeline Name \(Kubernetes object name\)/,
+        );
+        expect(pipelineNameInput).toBeInTheDocument();
+      });
+
+      it('shows pipeline version display name field when pipeline store is kubernetes', async () => {
+        render(
+          <NewPipelineVersion {...generateProps()} buildInfo={{ pipelineStore: 'kubernetes' }} />,
+        );
+
+        // Select the second radio button for "Create a new pipeline version under an existing pipeline"
+        const createVersionBtns = screen.getAllByLabelText(
+          /Create a new pipeline version under an existing pipeline/,
+        );
+        fireEvent.click(createVersionBtns[0]);
+
+        // Pipeline version display name field should be visible
+        const pipelineVersionDisplayNameInput = await screen.findByLabelText(
+          /Pipeline Version Display Name/,
+        );
+        expect(pipelineVersionDisplayNameInput).toBeInTheDocument();
+
+        // Pipeline version name field should have Kubernetes object name label
+        const pipelineVersionNameInput = await screen.findByLabelText(
+          /Pipeline Version Name \(Kubernetes object name\)/,
+        );
+        expect(pipelineVersionNameInput).toBeInTheDocument();
+      });
+
+      it('allows updating pipeline display name', async () => {
+        render(
+          <NewPipelineVersion {...generateProps()} buildInfo={{ pipelineStore: 'kubernetes' }} />,
+        );
+
+        // Select the first radio button for "Create a new pipeline"
+        const createNewPipelineBtns = screen.getAllByLabelText(/Create a new pipeline/);
+        fireEvent.click(createNewPipelineBtns[0]);
+
+        // Update the display name
+        const pipelineDisplayNameInput = await screen.findByLabelText(/Pipeline Display Name/);
+        fireEvent.change(pipelineDisplayNameInput, {
+          target: { value: 'Test Pipeline Display Name' },
+        });
+        expect(pipelineDisplayNameInput).toHaveValue('Test Pipeline Display Name');
+      });
+
+      it('allows updating pipeline version display name', async () => {
+        render(
+          <NewPipelineVersion {...generateProps()} buildInfo={{ pipelineStore: 'kubernetes' }} />,
+        );
+
+        // Select the second radio button for "Create a new pipeline version under an existing pipeline"
+        const createVersionBtns = screen.getAllByLabelText(
+          /Create a new pipeline version under an existing pipeline/,
+        );
+        fireEvent.click(createVersionBtns[0]);
+
+        // Update the display name
+        const pipelineVersionDisplayNameInput = await screen.findByLabelText(
+          /Pipeline Version Display Name/,
+        );
+        fireEvent.change(pipelineVersionDisplayNameInput, {
+          target: { value: 'Test Version Display Name' },
+        });
+        expect(pipelineVersionDisplayNameInput).toHaveValue('Test Version Display Name');
+      });
+
+      it('shows error message for invalid pipeline name', async () => {
+        render(
+          <NewPipelineVersion {...generateProps()} buildInfo={{ pipelineStore: 'kubernetes' }} />,
+        );
+
+        // Select the first radio button for "Create a new pipeline"
+        const createNewPipelineBtns = screen.getAllByLabelText(/Create a new pipeline/);
+        fireEvent.click(createNewPipelineBtns[0]);
+
+        // Select "Import by url" and enter a mock URL
+        const importByUrlBtn = screen.getByLabelText(/Import by url/);
+        fireEvent.click(importByUrlBtn);
+        const packageUrlInput = screen.getByLabelText(/Package Url/);
+        fireEvent.change(packageUrlInput, {
+          target: { value: 'https://example.com/pipeline.yaml' },
+        });
+
+        // Enter an invalid pipeline name (uppercase letters)
+        const pipelineNameInput = await screen.findByLabelText(
+          /Pipeline Name \(Kubernetes object name\)/,
+        );
+        fireEvent.change(pipelineNameInput, { target: { value: 'Invalid-Name' } });
+
+        // Error message should be displayed
+        const errorMessage = await screen.findByText(
+          /Pipeline name must match Kubernetes naming pattern/,
+        );
+        expect(errorMessage).toBeInTheDocument();
+      });
     });
   });
 });

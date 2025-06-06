@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"os"
 	"testing"
 
 	"github.com/golang/glog"
@@ -71,6 +72,13 @@ func (s *HealthzApiTest) TestHealthzAPI() {
 	healthzResp, err := s.healthzClient.GetHealthz()
 	assert.Nil(t, err)
 	assert.NotNil(t, healthzResp)
+
+	pipelineStore := os.Getenv("PIPELINE_STORE")
+	if pipelineStore == "" {
+		pipelineStore = "database"
+	}
+
+	assert.Equal(t, pipelineStore, healthzResp.PipelineStore)
 }
 
 func TestHealthzAPI(t *testing.T) {

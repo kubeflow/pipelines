@@ -51,6 +51,7 @@ export interface BuildInfo {
   buildDate?: string;
   frontendCommitHash?: string;
   frontendTagName?: string;
+  pipelineStore?: string;
 }
 
 // Hack types from https://github.com/microsoft/TypeScript/issues/1897#issuecomment-557057387
@@ -259,7 +260,7 @@ export class Apis {
    * Retrieve various information about the build.
    */
   public static async getBuildInfo(): Promise<BuildInfo> {
-    return await this._fetchAndParse<BuildInfo>('/healthz', v1beta1Prefix);
+    return await this._fetchAndParse<BuildInfo>('/healthz', v2beta1Prefix);
   }
 
   /**
@@ -403,15 +404,16 @@ export class Apis {
    */
   public static async uploadPipeline(
     pipelineName: string,
+    pipelineDisplayName: string,
     pipelineDescription: string,
     pipelineData: File,
     namespace?: string,
   ): Promise<ApiPipeline> {
     const fd = new FormData();
     fd.append('uploadfile', pipelineData, pipelineData.name);
-    let query = `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
-      pipelineDescription,
-    )}`;
+    let query = `name=${encodeURIComponent(pipelineName)}&display_name=${encodeURIComponent(
+      pipelineDisplayName,
+    )}&description=${encodeURIComponent(pipelineDescription)}`;
 
     if (namespace) {
       query = `${query}&namespace=${encodeURIComponent(namespace)}`;
@@ -426,6 +428,7 @@ export class Apis {
 
   public static async uploadPipelineVersion(
     versionName: string,
+    versionDisplayName: string,
     pipelineId: string,
     versionData: File,
     description?: string,
@@ -436,6 +439,7 @@ export class Apis {
       '/pipelines/upload_version',
       v1beta1Prefix,
       `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
+        `&display_name=${encodeURIComponent(versionDisplayName)}` +
         (description ? `&description=${encodeURIComponent(description)}` : ''),
       {
         body: fd,
@@ -447,15 +451,16 @@ export class Apis {
 
   public static async uploadPipelineV2(
     pipelineName: string,
+    pipelineDisplayName: string,
     pipelineDescription: string,
     pipelineData: File,
     namespace?: string,
   ): Promise<V2beta1Pipeline> {
     const fd = new FormData();
     fd.append('uploadfile', pipelineData, pipelineData.name);
-    let query = `name=${encodeURIComponent(pipelineName)}&description=${encodeURIComponent(
-      pipelineDescription,
-    )}`;
+    let query = `name=${encodeURIComponent(pipelineName)}&display_name=${encodeURIComponent(
+      pipelineDisplayName,
+    )}&description=${encodeURIComponent(pipelineDescription)}`;
 
     if (namespace) {
       query = `${query}&namespace=${encodeURIComponent(namespace)}`;
@@ -470,6 +475,7 @@ export class Apis {
 
   public static async uploadPipelineVersionV2(
     versionName: string,
+    versionDisplayName: string,
     pipelineId: string,
     versionData: File,
     description?: string,
@@ -480,6 +486,7 @@ export class Apis {
       '/pipelines/upload_version',
       v2beta1Prefix,
       `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
+        `&display_name=${encodeURIComponent(versionDisplayName)}` +
         (description ? `&description=${encodeURIComponent(description)}` : ''),
       {
         body: fd,
@@ -571,6 +578,7 @@ export enum PipelineSortKeys {
   CREATED_AT = 'created_at',
   ID = 'id',
   NAME = 'name',
+  DISPLAY_NAME = 'display_name',
 }
 
 // Valid sortKeys as specified by the backend.
@@ -593,4 +601,5 @@ export enum ExperimentSortKeys {
 export enum PipelineVersionSortKeys {
   CREATED_AT = 'created_at',
   NAME = 'name',
+  DISPLAY_NAME = 'display_name',
 }

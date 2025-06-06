@@ -320,6 +320,31 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
+// addDisplayNameColumn adds a DisplayName column to the given table with a default value of Name.
+// It panics if this fails.
+func addDisplayNameColumn(db *gorm.DB, scope *gorm.Scope, quotedTableName string, driverName string) []error {
+	glog.Info("Adding DisplayName column to " + quotedTableName)
+
+	switch driverName {
+	case "mysql":
+		scope.Raw(
+			"ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255) NULL;",
+		).Exec()
+		scope.Raw("UPDATE " + quotedTableName + " SET DisplayName = Name").Exec()
+		scope.Raw("ALTER TABLE " + quotedTableName + " MODIFY COLUMN DisplayName VARCHAR(255) NOT NULL").Exec()
+	case "pgx":
+		scope.Raw(
+			"ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255);",
+		).Exec()
+		scope.Raw("UPDATE " + quotedTableName + " SET DisplayName = Name").Exec()
+		scope.Raw("ALTER TABLE " + quotedTableName + " ALTER COLUMN DisplayName SET NOT NULL").Exec()
+	}
+
+	scope.CommitOrRollback()
+
+	return db.GetErrors()
+}
+
 func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
@@ -341,6 +366,26 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		if tableName == "pipeline_versions" {
 			initializePipelineVersions = false
 			break
+		}
+	}
+
+	if db.HasTable(&model.Pipeline{}) {
+		scope := db.NewScope(&model.Pipeline{})
+		if !scope.Dialect().HasColumn(scope.TableName(), "DisplayName") {
+			errs := addDisplayNameColumn(db, scope, scope.QuotedTableName(), driverName)
+			if len(errs) > 0 {
+				glog.Fatalf("Failed to add DisplayName column to the %s table. Error(s): %v", scope.TableName(), errs)
+			}
+		}
+	}
+
+	if db.HasTable(&model.PipelineVersion{}) {
+		scope := db.NewScope(&model.PipelineVersion{})
+		if !scope.Dialect().HasColumn(scope.TableName(), "DisplayName") {
+			errs := addDisplayNameColumn(db, scope, scope.QuotedTableName(), driverName)
+			if len(errs) > 0 {
+				glog.Fatalf("Failed to add DisplayName column to the %s table. Error(s): %v", scope.TableName(), errs)
+			}
 		}
 	}
 

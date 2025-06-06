@@ -26,6 +26,7 @@ export interface HealthzStats {
   buildDate: string;
   frontendCommitHash: string;
   frontendTagName: string;
+  pipelineStore: string;
 }
 
 /**
@@ -83,6 +84,7 @@ export function getHealthzHandler(options: {
       healthzStats.apiServerTagName = serverStatus.tag_name;
       healthzStats.apiServerMultiUser = serverStatus.multi_user;
       healthzStats.multi_user = serverStatus.multi_user;
+      healthzStats.pipelineStore = serverStatus.pipeline_store;
     } catch (e) {
       healthzStats.apiServerReady = false;
     }
