@@ -35,7 +35,7 @@ func singleHeaderFromMetadata(ctx context.Context, header string) (string, error
 	}
 	if len(values) != 1 {
 		msg := fmt.Sprintf("Request header error: unexpected number of '%s' headers. Expect 1 got %d", header, len(values))
-		return "", util.NewBadRequestError(errors.New(msg), msg)
+		return "", util.NewBadRequestError(errors.New(msg), "%s", msg)
 	}
 	return values[0], nil
 }
@@ -50,7 +50,7 @@ func singlePrefixedHeaderFromMetadata(ctx context.Context, header string, prefix
 	}
 	if !strings.HasPrefix(val, prefix) {
 		msg := fmt.Sprintf("Header '%s' is incorrectly formatted. Expected prefix '%s'", header, prefix)
-		return "", util.NewBadRequestError(errors.New(msg), msg)
+		return "", util.NewBadRequestError(errors.New(msg), "%s", msg)
 	}
 	return strings.TrimPrefix(val, prefix), nil
 }
