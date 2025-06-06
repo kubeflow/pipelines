@@ -20,14 +20,13 @@ import (
 	"log"
 	"strconv"
 
-	model "github.com/kubeflow/pipelines/backend/src/cache/model"
+	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type ExecutionCacheStoreInterface interface {
 	GetExecutionCache(executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error)
 	CreateExecutionCache(*model.ExecutionCache) (*model.ExecutionCache, error)
-	DeleteExecutionCache(executionCacheKey string) error
 }
 
 type ExecutionCacheStore struct {
@@ -46,12 +45,12 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheS
 	}
 	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ?", executionCacheKey).Rows()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
+		return nil, fmt.Errorf("Failed to get execution cache: %q, err: %v", executionCacheKey, err)
 	}
 	defer r.Close()
 	executionCaches, err := s.scanRows(r, cacheStaleness)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
+		return nil, fmt.Errorf("Failed to scan rows on execution cache: %q, err: %v", executionCacheKey, err)
 	}
 	if len(executionCaches) == 0 {
 		return nil, fmt.Errorf("Execution cache not found with cache key: %q", executionCacheKey)
@@ -69,14 +68,20 @@ func (s *ExecutionCacheStore) cleanDatabase(maximumCacheStaleness int64) (int64,
 	if maximumCacheStaleness < 0 {
 		return 0, nil
 	}
-	log.Printf("Cleaning cache entries older than maximumCacheStaleness=%d", maximumCacheStaleness)
-	db := s.db.Exec(
-		"DELETE FROM execution_caches WHERE " +
-			strconv.FormatInt(int64(s.time.Now().UTC().Unix()), 10) + " - StartedAtInSec" +
-			" > " + strconv.FormatInt(int64(maximumCacheStaleness), 10) + ";")
-	return db.RowsAffected, db.Error
-}
 
+	log.Printf("Cleaning cache entries older than maximumCacheStaleness=%d", maximumCacheStaleness)
+
+	cutoffTime := s.time.Now().UTC().Unix() - maximumCacheStaleness
+	result := s.db.Exec(
+		"DELETE FROM execution_caches WHERE StartedAtInSec < ?",
+		cutoffTime)
+
+	if result.Error != nil {
+		return 0, fmt.Errorf("database cache expiration cleanup failed: %v", result.Error)
+	}
+
+	return result.RowsAffected, nil
+}
 func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podCacheStaleness int64) ([]*model.ExecutionCache, error) {
 	var executionCaches []*model.ExecutionCache
 	for rows.Next() {
@@ -131,36 +136,46 @@ func getLatestCacheEntry(executionCaches []*model.ExecutionCache) (*model.Execut
 }
 
 func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.ExecutionCache) (*model.ExecutionCache, error) {
-	log.Println("Input cache: " + executionCache.ExecutionCacheKey)
-	newExecutionCache := *executionCache
-	log.Println("New cache key: " + newExecutionCache.ExecutionCacheKey)
-	now := s.time.Now().UTC().Unix()
+	log.Printf("checking for existing row with cache key: %s before insertion", executionCache.ExecutionCacheKey)
 
-	newExecutionCache.StartedAtInSec = now
-	// TODO: ended time need to be modified after demo version.
-	newExecutionCache.EndedAtInSec = now
+	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ?", executionCache.ExecutionCacheKey).Rows()
+	if err != nil {
+		log.Printf("failed to get execution cache with key: %s, err: %v", executionCache.ExecutionCacheKey, err)
+		return nil, err
+	}
 
-	ok := s.db.NewRecord(newExecutionCache)
-	if !ok {
-		return nil, fmt.Errorf("Failed to create a new execution cache")
-	}
-	var rowInsert model.ExecutionCache
-	d := s.db.Create(&newExecutionCache).Scan(&rowInsert)
-	if d.Error != nil {
-		return nil, d.Error
-	}
-	log.Println("Cache entry created with cache key: " + newExecutionCache.ExecutionCacheKey)
-	log.Println(newExecutionCache.ExecutionTemplate)
-	log.Println(rowInsert.ID)
-	return &rowInsert, nil
-}
+	rowCount := 0
 
-func (s *ExecutionCacheStore) DeleteExecutionCache(executionCacheID string) error {
-	db := s.db.Delete(&model.ExecutionCache{}, "ID = ?", executionCacheID)
-	if db.Error != nil {
-		return db.Error
+	for r.Next() {
+		rowCount++
 	}
-	return nil
+	log.Printf("number of rows returned for existing rows check: %d", rowCount)
+
+	if rowCount == 0 {
+		log.Printf("creating new exec cache row for key: %s", executionCache.ExecutionCacheKey)
+		newExecutionCache := *executionCache
+		now := s.time.Now().UTC().Unix()
+
+		newExecutionCache.StartedAtInSec = now
+		newExecutionCache.EndedAtInSec = now
+
+		ok := s.db.NewRecord(&newExecutionCache)
+		if !ok {
+			return nil, fmt.Errorf("failed to create new execution cache row for key: %s", executionCache.ExecutionCacheKey)
+		}
+
+		var rowInsert model.ExecutionCache
+		d := s.db.Create(&newExecutionCache).Scan(&rowInsert)
+		if d.Error != nil {
+			return nil, d.Error
+		}
+
+		log.Printf("cache entry created successfully with key: %s, template: %v, row id: %d", executionCache.ExecutionCacheKey, executionCache.ExecutionTemplate, rowInsert.ID)
+		return &rowInsert, nil
+	} else {
+		log.Printf("%d row(s) already exist for cache key: %s", rowCount, executionCache.ExecutionCacheKey)
+		return executionCache, nil
+	}
 }
 
 // factory function for execution cache store
