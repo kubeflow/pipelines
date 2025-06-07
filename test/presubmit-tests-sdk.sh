@@ -33,6 +33,7 @@ cd api/
 make clean python
 cd ..
 python3 -m pip install -I api/v2alpha1/python # install the local kfp-pipeline-spec
+pip show kfp-pipeline-spec
 pytest sdk/python/kfp --cov=kfp
 
 set +x
