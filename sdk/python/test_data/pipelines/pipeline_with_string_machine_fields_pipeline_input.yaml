@@ -3,8 +3,8 @@
 # Inputs:
 #    accelerator_limit: str [Default: '1']
 #    accelerator_type: str [Default: 'NVIDIA_TESLA_P4']
-#    cpu_limit: str [Default: '2000m']
-#    memory_limit: str [Default: '10G']
+#    cpu_limit: str [Default: '4000m']
+#    memory_limit: str [Default: '15G']
 components:
   comp-sum-numbers:
     executorLabel: exec-sum-numbers
@@ -32,7 +32,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -46,8 +46,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef sum_numbers(a: int, b:int) -> int:\n    return a + b\n\n"
-        image: python:3.8
+          \ *\n\ndef sum_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
+        image: python:3.9
         resources:
           accelerator:
             resourceCount: '{{$.inputs.parameters[''pipelinechannel--accelerator_limit'']}}'
@@ -94,6 +94,7 @@ root:
               componentInputParameter: memory_limit
         taskInfo:
           name: sum-numbers
+          taskName: sum-numbers
   inputDefinitions:
     parameters:
       accelerator_limit:
@@ -105,12 +106,12 @@ root:
         isOptional: true
         parameterType: STRING
       cpu_limit:
-        defaultValue: 2000m
+        defaultValue: 4000m
         isOptional: true
         parameterType: STRING
       memory_limit:
-        defaultValue: 10G
+        defaultValue: 15G
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.8.0
+sdkVersion: kfp-2.13.0
