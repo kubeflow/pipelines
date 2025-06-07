@@ -47,6 +47,7 @@ components:
                 componentInputArtifact: dataset
           taskInfo:
             name: python-artifact-printer
+            taskName: python-artifact-printer
     inputDefinitions:
       artifacts:
         dataset:
@@ -68,6 +69,7 @@ components:
                 componentInputArtifact: dataset
           taskInfo:
             name: python-artifact-printer
+            taskName: python-artifact-printer
     inputDefinitions:
       artifacts:
         dataset:
@@ -126,7 +128,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -157,7 +159,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -192,6 +194,7 @@ root:
               componentInputArtifact: dataset1
         taskInfo:
           name: custom-artifact-printer
+          taskName: custom-artifact-printer
       custom-artifact-printer-2:
         cachingOptions:
           enableCache: true
@@ -199,6 +202,7 @@ root:
           name: comp-custom-artifact-printer-2
         taskInfo:
           name: custom-artifact-printer-2
+          taskName: custom-artifact-printer-2
       importer:
         cachingOptions:
           enableCache: true
@@ -211,6 +215,7 @@ root:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
         taskInfo:
           name: importer
+          taskName: importer
       inner-pipeline:
         cachingOptions:
           enableCache: true
@@ -226,6 +231,7 @@ root:
                 producerTask: importer
         taskInfo:
           name: inner-pipeline
+          taskName: inner-pipeline
       inner-pipeline-2:
         cachingOptions:
           enableCache: true
@@ -233,6 +239,7 @@ root:
           name: comp-inner-pipeline-2
         taskInfo:
           name: inner-pipeline-2
+          taskName: inner-pipeline-2
   inputDefinitions:
     artifacts:
       dataset1:
@@ -241,4 +248,4 @@ root:
           schemaVersion: 0.0.1
         isOptional: true
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

@@ -26,7 +26,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -63,6 +63,7 @@ root:
           name: comp-output-metrics
         taskInfo:
           name: output-metrics
+          taskName: output-metrics
   outputDefinitions:
     artifacts:
       metrics:
@@ -70,4 +71,4 @@ root:
           schemaTitle: system.Metrics
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.9.0
+sdkVersion: kfp-2.13.0

@@ -17,6 +17,7 @@ components:
                 componentInputParameter: pipelinechannel--message
           taskInfo:
             name: print-op
+            taskName: print-op
     inputDefinitions:
       parameters:
         pipelinechannel--message:
@@ -83,6 +84,7 @@ root:
               componentInputParameter: message
         taskInfo:
           name: exit-op
+          taskName: exit-op
         triggerPolicy:
           strategy: ALL_UPSTREAM_TASKS_COMPLETED
   inputDefinitions:
@@ -92,4 +94,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

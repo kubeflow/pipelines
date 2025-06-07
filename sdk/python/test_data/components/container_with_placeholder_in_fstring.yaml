@@ -50,6 +50,7 @@ root:
               componentInputParameter: text1
         taskInfo:
           name: container-with-placeholder-in-fstring
+          taskName: container-with-placeholder-in-fstring
   inputDefinitions:
     parameters:
       text1:
@@ -63,4 +64,4 @@ root:
           schemaTitle: system.Artifact
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

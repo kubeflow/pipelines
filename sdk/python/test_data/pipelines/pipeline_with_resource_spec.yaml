@@ -90,6 +90,7 @@ root:
               componentInputParameter: input_location
         taskInfo:
           name: ingestion
+          taskName: ingestion
       trainer:
         cachingOptions:
           enableCache: true
@@ -110,6 +111,7 @@ root:
               componentInputParameter: optimizer
         taskInfo:
           name: trainer
+          taskName: trainer
   inputDefinitions:
     parameters:
       input_location:
@@ -125,4 +127,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.12.1
+sdkVersion: kfp-2.13.0
