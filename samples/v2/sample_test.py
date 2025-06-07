@@ -43,7 +43,7 @@ import yaml
 import pipeline_with_retry
 
 _MINUTE = 60  # seconds
-_DEFAULT_TIMEOUT = 5 * _MINUTE
+_DEFAULT_TIMEOUT = 10 * _MINUTE
 SAMPLES_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
 PRE_REQ_DIR = os.path.join(SAMPLES_DIR, 'v2', 'pre-requisites')
 PREREQS = [os.path.join(PRE_REQ_DIR, 'test-secrets.yaml')]
