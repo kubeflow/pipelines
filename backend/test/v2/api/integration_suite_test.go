@@ -2,19 +2,30 @@ package api
 
 import (
 	"flag"
-	"github.com/golang/glog"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	test "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
+	"log"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
 var pipelineUploadClient *api_server.PipelineUploadClient
 var pipelineClient *api_server.PipelineClient
-var parallelProcesses = flag.Int("parallelProcesses", 1, "Number of tests to parallel in parallel")
+var parallelProcesses = flag.Int("parallelProcesses", 10, "Number of tests to parallel in parallel")
+var testReportDirectory = "reports"
+var junitReportFilename = "junit.xml"
+var jsonReportFilename = "report.json"
 
 var _ = BeforeSuite(func() {
+	err := os.MkdirAll(testReportDirectory, 0755)
+	if err != nil {
+		GinkgoWriter.Printf("Error creating reports directory: %s", testReportDirectory)
+		return
+	}
 
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
@@ -37,14 +48,30 @@ var _ = BeforeSuite(func() {
 		}
 	}
 
-	var err error
 	pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
-		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
+		GinkgoWriter.Printf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
 	pipelineClient, err = newPipelineClient()
 	if err != nil {
-		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
+		GinkgoWriter.Printf("Failed to get pipeline client. Error: %s", err.Error())
+	}
+})
+
+var _ = BeforeEach(func() {
+	GinkgoT().Name()
+})
+
+var _ = AfterSuite(func() {
+	GinkgoWriter.ClearTeeWriters()
+})
+
+var _ = ReportAfterEach(func(specReport types.SpecReport) {
+	if specReport.Failed() {
+		log.Printf("Test failed... Capture pod logs if you want to")
+		AddReportEntry("Pod Log", "Pod Logs")
+	} else {
+		log.Printf("Test passed")
 	}
 })
 
@@ -57,5 +84,7 @@ func TestAPIs(t *testing.T) {
 	reporterConfig.Verbose = true
 	reporterConfig.GithubOutput = true
 	reporterConfig.ShowNodeEvents = true
+	reporterConfig.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
+	reporterConfig.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
 	RunSpecs(t, "API Tests Suite", suiteConfig, reporterConfig)
 }
