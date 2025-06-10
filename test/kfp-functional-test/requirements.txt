@@ -76,7 +76,7 @@ pyyaml==6.0.1
     # via
     #   kfp
     #   kubernetes
-requests==2.32.2
+requests==2.32.4
     # via
     #   google-api-core
     #   google-cloud-storage
