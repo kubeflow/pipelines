@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubeflow
+
+resources:
+- seaweedfs/
+- ../../../apps/pipeline/upstream/env/cert-manager/platform-agnostic-multi-user
+configMapGenerator:
+- name: kubeflow-pipelines-profile-controller-code
+  behavior: replace
+  files:
+  - pipeline-profile-controller/sync.py
+patches:
+- path: minio-service-patch.yaml
+- path: pipeline-profile-controller/deployment.yaml
+- path: argo-workflow-controller/workflow-controller-configmap-patch.yaml
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ml-pipeline-ui
+    spec:
+      template:
+        spec:
+          containers:
+          - name: ml-pipeline-ui
+            env:
+            - name: ARTIFACTS_SERVICE_PROXY_ENABLED
+              value: 'false'
+    $patch: merge
