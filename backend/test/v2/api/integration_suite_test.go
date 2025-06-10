@@ -1,7 +1,6 @@
 package api
 
 import (
-	"flag"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	test "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -15,7 +14,6 @@ import (
 
 var pipelineUploadClient *api_server.PipelineUploadClient
 var pipelineClient *api_server.PipelineClient
-var parallelProcesses = flag.Int("parallelProcesses", 10, "Number of tests to parallel in parallel")
 var testLogsDirectory = "logs"
 var testReportDirectory = "reports"
 var junitReportFilename = "junit.xml"
@@ -63,22 +61,19 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-var _ = BeforeEach(func() {
+var _ = ReportAfterEach(func(specReport types.SpecReport) {
+	stdOutput := specReport.CapturedGinkgoWriterOutput
 	testName := GinkgoT().Name()
 	testLogFile := filepath.Join(testLogsDirectory, testName+".log")
 	logFile, err := os.Create(testLogFile)
 	if err != nil {
 		GinkgoWriter.Printf("Failed to create log file due to: %s", err.Error())
 	}
-	defer logFile.Close()
-	GinkgoWriter.TeeTo(logFile)
-})
-
-var _ = AfterSuite(func() {
-	GinkgoWriter.ClearTeeWriters()
-})
-
-var _ = ReportAfterEach(func(specReport types.SpecReport) {
+	_, err = logFile.Write([]byte(stdOutput))
+	if err != nil {
+		GinkgoWriter.Printf("Failed to write to the log file, due to: %s", err.Error())
+	}
+	logFile.Close()
 	if specReport.Failed() {
 		log.Printf("Test failed... Capture pod logs if you want to")
 		AddReportEntry("Pod Log", "Pod Logs")
@@ -90,7 +85,6 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 	suiteConfig, reporterConfig := GinkgoConfiguration()
-	suiteConfig.ParallelTotal = *parallelProcesses
 	suiteConfig.EmitSpecProgress = true
 	suiteConfig.FailFast = false
 	reporterConfig.Verbose = true
