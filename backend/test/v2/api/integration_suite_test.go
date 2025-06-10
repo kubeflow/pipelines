@@ -16,17 +16,22 @@ import (
 var pipelineUploadClient *api_server.PipelineUploadClient
 var pipelineClient *api_server.PipelineClient
 var parallelProcesses = flag.Int("parallelProcesses", 10, "Number of tests to parallel in parallel")
+var testLogsDirectory = "logs"
 var testReportDirectory = "reports"
 var junitReportFilename = "junit.xml"
 var jsonReportFilename = "report.json"
 
 var _ = BeforeSuite(func() {
-	err := os.MkdirAll(testReportDirectory, 0755)
+	err := os.MkdirAll(testLogsDirectory, 0755)
+	if err != nil {
+		GinkgoWriter.Printf("Error creating logs directory: %s", testLogsDirectory)
+		return
+	}
+	err = os.MkdirAll(testReportDirectory, 0755)
 	if err != nil {
 		GinkgoWriter.Printf("Error creating reports directory: %s", testReportDirectory)
 		return
 	}
-
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
@@ -59,7 +64,14 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	GinkgoT().Name()
+	testName := GinkgoT().Name()
+	testLogFile := filepath.Join(testLogsDirectory, testName+".log")
+	logFile, err := os.Create(testLogFile)
+	if err != nil {
+		GinkgoWriter.Printf("Failed to create log file due to: %s", err.Error())
+	}
+	defer logFile.Close()
+	GinkgoWriter.TeeTo(logFile)
 })
 
 var _ = AfterSuite(func() {
