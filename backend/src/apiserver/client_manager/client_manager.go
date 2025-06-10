@@ -322,28 +322,44 @@ func (c *ClientManager) Close() {
 }
 
 // addDisplayNameColumn adds a DisplayName column to the given table with a default value of Name.
-// It panics if this fails.
-func addDisplayNameColumn(db *gorm.DB, scope *gorm.Scope, quotedTableName string, driverName string) []error {
+// It returns an error if this fails.
+// Refactored to GORM v2: removed gorm.Scope and GetErrors(), which are deprecated in v2.
+// Now uses direct Exec() calls and accumulates errors manually.
+func addDisplayNameColumn(db *gorm.DB, quotedTableName string, driverName string) error {
 	glog.Info("Adding DisplayName column to " + quotedTableName)
+
+	var err error
 
 	switch driverName {
 	case "mysql":
-		scope.Raw(
-			"ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255) NULL;",
-		).Exec()
-		scope.Raw("UPDATE " + quotedTableName + " SET DisplayName = Name").Exec()
-		scope.Raw("ALTER TABLE " + quotedTableName + " MODIFY COLUMN DisplayName VARCHAR(255) NOT NULL").Exec()
+		err = db.Exec("ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255) NULL;").Error
+		if err != nil {
+			return err
+		}
+		err = db.Exec("UPDATE " + quotedTableName + " SET DisplayName = Name").Error
+		if err != nil {
+			return err
+		}
+		err = db.Exec("ALTER TABLE " + quotedTableName + " MODIFY COLUMN DisplayName VARCHAR(255) NOT NULL").Error
+		if err != nil {
+			return err
+		}
 	case "pgx":
-		scope.Raw(
-			"ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255);",
-		).Exec()
-		scope.Raw("UPDATE " + quotedTableName + " SET DisplayName = Name").Exec()
-		scope.Raw("ALTER TABLE " + quotedTableName + " ALTER COLUMN DisplayName SET NOT NULL").Exec()
+		err = db.Exec("ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255);").Error
+		if err != nil {
+			return err
+		}
+		err = db.Exec("UPDATE " + quotedTableName + " SET DisplayName = Name").Error
+		if err != nil {
+			return err
+		}
+		err = db.Exec("ALTER TABLE " + quotedTableName + " ALTER COLUMN DisplayName SET NOT NULL").Error
+		if err != nil {
+			return err
+		}
 	}
 
-	scope.CommitOrRollback()
-
-	return db.GetErrors()
+	return nil
 }
 
 func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
@@ -380,22 +396,25 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		}
 	}
 
-	if db.HasTable(&model.Pipeline{}) {
-		scope := db.NewScope(&model.Pipeline{})
-		if !scope.Dialect().HasColumn(scope.TableName(), "DisplayName") {
-			errs := addDisplayNameColumn(db, scope, scope.QuotedTableName(), driverName)
-			if len(errs) > 0 {
-				glog.Fatalf("Failed to add DisplayName column to the %s table. Error(s): %v", scope.TableName(), errs)
+	// Refactored for GORM v2: HasTable() moved to Migrator(), CurrentTable() removed.
+	// Table name inferred manually by NamingStrategy from model.
+	namer := db.NamingStrategy
+	if db.Migrator().HasTable(&model.Pipeline{}) {
+		quotedTableName := namer.TableName("pipeline")
+		hasColumn := db.Migrator().HasColumn(&model.Pipeline{}, "DisplayName")
+		if !hasColumn {
+			if err := addDisplayNameColumn(db, quotedTableName, driverName); err != nil {
+				glog.Fatalf("Failed to add DisplayName column to the %s table. Error: %v", quotedTableName, err)
 			}
 		}
 	}
 
-	if db.HasTable(&model.PipelineVersion{}) {
-		scope := db.NewScope(&model.PipelineVersion{})
-		if !scope.Dialect().HasColumn(scope.TableName(), "DisplayName") {
-			errs := addDisplayNameColumn(db, scope, scope.QuotedTableName(), driverName)
-			if len(errs) > 0 {
-				glog.Fatalf("Failed to add DisplayName column to the %s table. Error(s): %v", scope.TableName(), errs)
+	if db.Migrator().HasTable(&model.PipelineVersion{}) {
+		quotedTableName := namer.TableName("pipeline_versions")
+		hasColumn := db.Migrator().HasColumn(&model.PipelineVersion{}, "DisplayName")
+		if !hasColumn {
+			if err := addDisplayNameColumn(db, quotedTableName, driverName); err != nil {
+				glog.Fatalf("Failed to add DisplayName column to the %s table. Error: %v", quotedTableName, err)
 			}
 		}
 	}

@@ -164,8 +164,8 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 		var rowInsert model.ExecutionCache
 		d := s.db.Create(&newExecutionCache).Scan(&rowInsert)
 		if d.Error != nil {
-        return nil, fmt.Errorf("Failed to create a new execution cache: %w", d.Error)
-    	}
+			return nil, fmt.Errorf("failed to create a new execution cache: %w", d.Error)
+		}
 
 		log.Printf("cache entry created successfully with key: %s, template: %v, row id: %d", executionCache.ExecutionCacheKey, executionCache.ExecutionTemplate, rowInsert.ID)
 		return &rowInsert, nil
