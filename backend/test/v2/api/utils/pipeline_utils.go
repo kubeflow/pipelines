@@ -21,7 +21,7 @@ import (
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	. "github.com/onsi/ginkgo/v2"
+	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 	. "github.com/onsi/gomega"
 )
 
@@ -29,7 +29,7 @@ func ListPipelines(client *api_server.PipelineClient) (
 	[]*pipeline_model.V2beta1Pipeline, int, string, error,
 ) {
 	parameters := &pipeline_params.PipelineServiceListPipelinesParams{}
-	GinkgoWriter.Printf("Listing all pipelines")
+	logger.Log("Listing all pipelines")
 	return client.List(parameters)
 }
 
@@ -37,12 +37,12 @@ func ListPipelines(client *api_server.PipelineClient) (
 Delete a pipeline by id
 */
 func DeletePipeline(client *api_server.PipelineClient, pipelineId string) {
-	GinkgoWriter.Printf("Deleting all pipeline version of pipeline with id=%s", pipelineId)
+	logger.Log("Deleting all pipeline version of pipeline with id=%s", pipelineId)
 	DeleteAllPipelineVersions(client, pipelineId)
-	GinkgoWriter.Printf("Deleting pipeline with id=%s", pipelineId)
+	logger.Log("Deleting pipeline with id=%s", pipelineId)
 	err := client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineId})
 	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineId))
-	GinkgoWriter.Printf("Pipeline with id=%s, DELETED", pipelineId)
+	logger.Log("Pipeline with id=%s, DELETED", pipelineId)
 }
 
 /*
@@ -60,7 +60,7 @@ func DeleteAllPipelines(client *api_server.PipelineClient) {
 			DeleteAllPipelineVersions(client, pId)
 			deletedPipelines[pId] = true
 		}
-		GinkgoWriter.Printf("Deleting pipeline with id=%s", pId)
+		logger.Log("Deleting pipeline with id=%s", pId)
 		Expect(client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pId})).NotTo(HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pId))
 	}
 	for _, isRemoved := range deletedPipelines {
@@ -74,7 +74,7 @@ Get pipeline via GET pipeline end point call, so that we retreive the values fro
 func GetPipeline(client *api_server.PipelineClient, pipelineId string) model.V2beta1Pipeline {
 	params := new(pipeline_params.PipelineServiceGetPipelineParams)
 	params.PipelineID = pipelineId
-	GinkgoWriter.Printf("Get pipeline with id=%s", pipelineId)
+	logger.Log("Get pipeline with id=%s", pipelineId)
 	pipeline, err := client.Get(params)
 	Expect(err).NotTo(HaveOccurred())
 	return model.V2beta1Pipeline{
@@ -93,10 +93,10 @@ func FindPipelineByName(client *api_server.PipelineClient, pipelineName string) 
 	requestedNumberOfPipelinesPerPage := 1000
 	params := new(pipeline_params.PipelineServiceListPipelinesParams)
 	params.PageSize = util.Int32Pointer(int32(requestedNumberOfPipelinesPerPage))
-	GinkgoWriter.Printf("Get all pipelines")
+	logger.Log("Get all pipelines")
 	pipelines, size, _, err := client.List(params)
 	Expect(err).NotTo(HaveOccurred())
-	GinkgoWriter.Printf("Finding pipeline with name=%s", pipelineName)
+	logger.Log("Finding pipeline with name=%s", pipelineName)
 	if size < requestedNumberOfPipelinesPerPage {
 		for _, pipeline := range pipelines {
 			if pipeline.DisplayName == pipelineName {
