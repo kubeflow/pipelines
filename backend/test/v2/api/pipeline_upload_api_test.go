@@ -21,6 +21,7 @@ import (
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	. "github.com/kubeflow/pipelines/backend/test/v2/api/constants"
+	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 	matcher "github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -51,7 +52,7 @@ var uploadParams *upload_params.UploadPipelineParams
 // ####################################################################################################################################################################
 
 var _ = BeforeEach(func() {
-	GinkgoWriter.Printf("################### Setup before each test #####################")
+	logger.Log("################### Setup before each test #####################")
 	testStartTime, _ = strfmt.ParseDateTime(time.Now().Format(time.DateTime))
 	createdPipelines = []*model.V2beta1Pipeline{}
 	expectedPipeline = new(model.V2beta1Pipeline)
@@ -63,8 +64,8 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	// Delete pipelines created during the test
-	GinkgoWriter.Printf("################### Cleanup after each test #####################")
-	GinkgoWriter.Printf("Deleting %d pipeline(s)", len(createdPipelines))
+	logger.Log("################### Cleanup after each test #####################")
+	logger.Log("Deleting %d pipeline(s)", len(createdPipelines))
 	for _, pipeline := range createdPipelines {
 		utils.DeletePipeline(pipelineClient, pipeline.PipelineID)
 	}
@@ -211,13 +212,13 @@ func uploadPipeline(pipelineDir string, pipelineFileName string, pipelineName *s
 	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileName)
 	uploadParams.SetName(pipelineName)
 	expectedPipeline.DisplayName = *pipelineName
-	GinkgoWriter.Printf("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
+	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
 	return pipelineUploadClient.UploadFile(pipelineFile, uploadParams)
 }
 
 func uploadPipelineAndVerify(pipelineDir string, pipelineFileName string, pipelineName *string) *model.V2beta1Pipeline {
 	createdPipeline, err := uploadPipeline(pipelineDir, pipelineFileName, pipelineName)
-	GinkgoWriter.Printf("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
+	logger.Log("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())
 	createdPipelines = append(createdPipelines, createdPipeline)
 
@@ -229,20 +230,20 @@ func uploadPipelineAndVerify(pipelineDir string, pipelineFileName string, pipeli
 
 func uploadPipelineAndVerifyFailure(pipelineDir string, pipelineFileName string, pipelineName *string, errorMessage string) {
 	_, err := uploadPipeline(pipelineDir, pipelineFileName, pipelineName)
-	GinkgoWriter.Printf("Verifying error in the response")
+	logger.Log("Verifying error in the response")
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
 }
 
 func uploadPipelineVersion(pipelineDir string, pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion, error) {
 	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileName)
-	GinkgoWriter.Printf("Uploading pipeline version for pipeline with id=%s, from file %s", *parameters.Pipelineid, pipelineFile)
+	logger.Log("Uploading pipeline version for pipeline with id=%s, from file %s", *parameters.Pipelineid, pipelineFile)
 	return pipelineUploadClient.UploadPipelineVersion(pipelineFile, parameters)
 }
 
 func uploadPipelineVersionAndVerify(pipelineDir string, pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams, expectedPipelineVersion *model.V2beta1PipelineVersion) *model.V2beta1PipelineVersion {
 	createdPipelineVersion, err := uploadPipelineVersion(pipelineDir, pipelineFileName, parameters)
-	GinkgoWriter.Printf("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
+	logger.Log("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())
 	matcher.MatchPipelineVersions(createdPipelineVersion, expectedPipelineVersion)
 	return createdPipelineVersion
@@ -250,7 +251,7 @@ func uploadPipelineVersionAndVerify(pipelineDir string, pipelineFileName string,
 
 func uploadPipelineVersionAndVerifyFailure(pipelineDir string, pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams, errorMessage string) {
 	_, err := uploadPipelineVersion(pipelineDir, pipelineFileName, parameters)
-	GinkgoWriter.Printf("Verifying error in the response")
+	logger.Log("Verifying error in the response")
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
 }
