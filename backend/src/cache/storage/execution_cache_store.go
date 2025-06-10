@@ -159,19 +159,19 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 		newExecutionCache.StartedAtInSec = now
 		newExecutionCache.EndedAtInSec = now
 
-		// GORM v2 removed NewRecord(); it was unreliable as it only checked whether the primary key was zero.
+		// GORM v2 removed NewRecord(); it was unreliable as it only checked whether the primary key was 0 / "" / nil
 
 		var rowInsert model.ExecutionCache
 		d := s.db.Create(&newExecutionCache).Scan(&rowInsert)
 		if d.Error != nil {
-			return nil, fmt.Errorf("failed to create a new execution cache: %w", d.Error)
+			return nil, fmt.Errorf("failed to create new execution cache: %w", d.Error)
 		}
 
 		log.Printf("cache entry created successfully with key: %s, template: %v, row id: %d", executionCache.ExecutionCacheKey, executionCache.ExecutionTemplate, rowInsert.ID)
 		return &rowInsert, nil
 	} else {
-		log.Printf("%d row(s) already exist for cache key: %s", rowCount, executionCache.ExecutionCacheKey)
-		return executionCache, nil
+		// return an error to prevent returning non-inserted user-provided structs and align with the unit test
+		return nil, fmt.Errorf("execution cache with key %s already exists, failed to create new execution cache", executionCache.ExecutionCacheKey)
 	}
 }
 
