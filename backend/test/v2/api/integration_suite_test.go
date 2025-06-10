@@ -2,6 +2,7 @@ package api
 
 import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 	test "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
@@ -22,12 +23,12 @@ var jsonReportFilename = "report.json"
 var _ = BeforeSuite(func() {
 	err := os.MkdirAll(testLogsDirectory, 0755)
 	if err != nil {
-		GinkgoWriter.Printf("Error creating logs directory: %s", testLogsDirectory)
+		logger.Log("Error creating logs directory: %s", testLogsDirectory)
 		return
 	}
 	err = os.MkdirAll(testReportDirectory, 0755)
 	if err != nil {
-		GinkgoWriter.Printf("Error creating reports directory: %s", testReportDirectory)
+		logger.Log("Error creating reports directory: %s", testReportDirectory)
 		return
 	}
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
@@ -53,11 +54,11 @@ var _ = BeforeSuite(func() {
 
 	pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
-		GinkgoWriter.Printf("Failed to get pipeline upload client. Error: %s", err.Error())
+		logger.Log("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
 	pipelineClient, err = newPipelineClient()
 	if err != nil {
-		GinkgoWriter.Printf("Failed to get pipeline client. Error: %s", err.Error())
+		logger.Log("Failed to get pipeline client. Error: %s", err.Error())
 	}
 })
 
@@ -67,16 +68,18 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 	testLogFile := filepath.Join(testLogsDirectory, testName+".log")
 	logFile, err := os.Create(testLogFile)
 	if err != nil {
-		GinkgoWriter.Printf("Failed to create log file due to: %s", err.Error())
+		logger.Log("Failed to create log file due to: %s", err.Error())
 	}
 	_, err = logFile.Write([]byte(stdOutput))
 	if err != nil {
-		GinkgoWriter.Printf("Failed to write to the log file, due to: %s", err.Error())
+		logger.Log("Failed to write to the log file, due to: %s", err.Error())
 	}
 	logFile.Close()
 	if specReport.Failed() {
 		log.Printf("Test failed... Capture pod logs if you want to")
 		AddReportEntry("Pod Log", "Pod Logs")
+		AddReportEntry("Test Log", stdOutput)
+
 	} else {
 		log.Printf("Test passed")
 	}
