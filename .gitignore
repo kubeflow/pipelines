@@ -96,3 +96,5 @@ backend/src/crd/kubernetes/bin
 
 **/allure-*
 **/*.html
+reports/
+logs/
