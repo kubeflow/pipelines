@@ -74,6 +74,7 @@ components:
                 componentInputArtifact: in_datasets1
           taskInfo:
             name: add
+            taskName: add
         add-2:
           cachingOptions:
             enableCache: true
@@ -85,6 +86,7 @@ components:
                 componentInputArtifact: in_datasets2
           taskInfo:
             name: add-2
+            taskName: add-2
         add-two-ints:
           cachingOptions:
             enableCache: true
@@ -105,6 +107,7 @@ components:
                   producerTask: add-2
           taskInfo:
             name: add-two-ints
+            taskName: add-two-ints
     inputDefinitions:
       artifacts:
         in_datasets1:
@@ -143,6 +146,7 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-3
           taskInfo:
             name: double-2
+            taskName: double-2
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-3:
@@ -204,6 +208,7 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-1
           taskInfo:
             name: double
+            taskName: double
         for-loop-4:
           componentRef:
             name: comp-for-loop-4
@@ -285,7 +290,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -317,7 +322,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -349,7 +354,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -381,7 +386,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -411,7 +416,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -463,6 +468,7 @@ root:
                 producerTask: for-loop-2
         taskInfo:
           name: add-two-lists-of-datasets
+          taskName: add-two-lists-of-datasets
       for-loop-2:
         componentRef:
           name: comp-for-loop-2
@@ -494,4 +500,4 @@ root:
           schemaTitle: system.Dataset
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

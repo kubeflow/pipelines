@@ -3,18 +3,18 @@ name: KFP Samples
 on:
   push:
     branches:
-      - master
+    - master
   pull_request:
     paths:
-      - '.github/resources/**'
-      - '.github/workflows/kfp-samples.yml'
-      - '.github/workflows/kubeflow-pipelines-integration-v2.yml'
-      - 'backend/**'
-      - 'samples/**'
-      - 'samples/core/dataflow/**'
-      - 'samples/core/parameterized_tfx_oss/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+    - '.github/resources/**'
+    - '.github/workflows/kfp-samples.yml'
+    - '.github/workflows/kubeflow-pipelines-integration-v2.yml'
+    - 'backend/**'
+    - 'samples/**'
+    - 'samples/core/dataflow/**'
+    - 'samples/core/parameterized_tfx_oss/**'
+    - '!**/*.md'
+    - '!**/OWNERS'
 
 jobs:
   samples:
@@ -59,17 +59,17 @@ jobs:
     - name: Install protobuf
       run: pip3 install protobuf==4.25.3
 
+    - name: Generate, Build, and Install Kubernetes API proto files & packages
+      working-directory: ./kubernetes_platform
+      run: make python && pip install python/dist/*.whl
+
     - name: Generate API proto files
       working-directory: ./api
       run: make python
 
     - name: Install kfp-pipeline-spec from source
       run: |
-        python3 -m pip install api/v2alpha1/python
-
-    - name: Generate, Build, and Install Kubernetes API proto files & packages
-      working-directory: ./kubernetes_platform
-      run: make python && pip install python/dist/*.whl
+        python3 -m pip install -I api/v2alpha1/python
 
     - name: Create KFP cluster
       id: create-kfp-cluster
@@ -104,7 +104,7 @@ jobs:
 
     - name: Collect failed logs
       if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.tests.outcome != 'success' }}
-      run: | 
+      run: |
         ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
         exit 1
 
