@@ -350,6 +350,11 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 	if p.Name == "" {
 		return nil, util.NewInvalidInputError("pipeline's name cannot be empty")
 	}
+
+	if p.DisplayName == "" {
+		p.DisplayName = p.Name
+	}
+
 	// Create a record in KFP DB (only pipelines table)
 	newPipeline, err := r.pipelineStore.CreatePipeline(p)
 	if err != nil {
@@ -1697,6 +1702,11 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		}
 		pv.Name = pipelineSpecName
 	}
+
+	if pv.DisplayName == "" {
+		pv.DisplayName = pv.Name
+	}
+
 	// Parse parameters
 	paramsJSON, err := tmpl.ParametersJSON()
 	if err != nil {

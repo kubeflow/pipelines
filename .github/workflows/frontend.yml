@@ -18,6 +18,7 @@ on:
       - '.github/workflows/frontend.yml'
       - '!**/*.md'
       - '!**/OWNERS'
+      - 'backend/src/apiserver/config/sample_config.json'
 
 jobs:
   frontend-tests:
