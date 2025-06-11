@@ -31,8 +31,8 @@ jobs:
     - name: Install protobuf-compiler
       run: sudo apt-get install protobuf-compiler -y
 
-    - name: Install Wheel
-      run: pip3 install wheel==0.42.0
+    - name: Install Wheel & setuptools
+      run: pip3 install wheel==0.42.0 setuptools
 
     - name: Generate API proto files
       working-directory: ./api

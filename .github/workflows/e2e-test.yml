@@ -438,6 +438,11 @@ jobs:
       if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
       run: pip3 install -r ./test/sample-test/requirements.txt
 
+    - name: Install protobuf-compiler
+      id: install-protobuf-compiler
+      if: ${{ steps.apt-get-update.outcome == 'success' }}
+      run: sudo apt-get install protobuf-compiler -y
+
     - name: Generate API proto files
       working-directory: ./api
       run: make python

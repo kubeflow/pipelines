@@ -59,13 +59,13 @@ jobs:
     - name: Install protobuf
       run: pip3 install protobuf==4.25.3
 
-    - name: Generate, Build, and Install Kubernetes API proto files & packages
-      working-directory: ./kubernetes_platform
-      run: make python && pip install python/dist/*.whl
-
     - name: Generate API proto files
       working-directory: ./api
       run: make python
+
+    - name: Generate, Build, and Install Kubernetes API proto files & packages
+      working-directory: ./kubernetes_platform
+      run: make python && pip install python/dist/*.whl
 
     - name: Install kfp-pipeline-spec from source
       run: |
