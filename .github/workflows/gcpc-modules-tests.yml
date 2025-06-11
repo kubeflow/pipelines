@@ -40,6 +40,9 @@ jobs:
     - name: Install python sdk
       run: pip install sdk/python
 
+    - name: Install google-cloud component
+      run: pip install components/google-cloud
+
     - name: Generate API proto files
       working-directory: ./api
       run: make clean python
@@ -47,9 +50,6 @@ jobs:
     - name: Install kfp-pipeline-spec from source
       run: |
         python3 -m pip install -I api/v2alpha1/python
-
-    - name: Install google-cloud component
-      run: pip install components/google-cloud
 
     - name: Install Pytest
       run: pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
