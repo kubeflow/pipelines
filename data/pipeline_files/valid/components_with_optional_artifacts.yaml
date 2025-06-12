@@ -1,0 +1,244 @@
+# PIPELINE DEFINITION
+# Name: optional-artifact-pipeline
+# Inputs:
+#    dataset1: system.Dataset
+components:
+  comp-custom-artifact-printer:
+    executorLabel: exec-custom-artifact-printer
+    inputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isOptional: true
+  comp-custom-artifact-printer-2:
+    executorLabel: exec-custom-artifact-printer-2
+    inputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isOptional: true
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-inner-pipeline:
+    dag:
+      tasks:
+        python-artifact-printer:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-python-artifact-printer
+          inputs:
+            artifacts:
+              artifact:
+                componentInputArtifact: dataset
+          taskInfo:
+            name: python-artifact-printer
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isOptional: true
+  comp-inner-pipeline-2:
+    dag:
+      tasks:
+        python-artifact-printer:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-python-artifact-printer-2
+          inputs:
+            artifacts:
+              artifact:
+                componentInputArtifact: dataset
+          taskInfo:
+            name: python-artifact-printer
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isOptional: true
+  comp-python-artifact-printer:
+    executorLabel: exec-python-artifact-printer
+    inputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isOptional: true
+  comp-python-artifact-printer-2:
+    executorLabel: exec-python-artifact-printer-2
+    inputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isOptional: true
+deploymentSpec:
+  executors:
+    exec-custom-artifact-printer:
+      container:
+        command:
+        - '{"IfPresent": {"InputName": "artifact", "Then": ["echo", "{{$.inputs.artifacts[''artifact''].uri}}"],
+          "Else": ["echo", "No artifact provided!"]}}'
+        image: alpine
+    exec-custom-artifact-printer-2:
+      container:
+        command:
+        - '{"IfPresent": {"InputName": "artifact", "Then": ["echo", "{{$.inputs.artifacts[''artifact''].uri}}"],
+          "Else": ["echo", "No artifact provided!"]}}'
+        image: alpine
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-python-artifact-printer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - python_artifact_printer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef python_artifact_printer(artifact: Optional[Input[Artifact]] =\
+          \ None):\n    if artifact is not None:\n        print(artifact.name)\n \
+          \       print(artifact.uri)\n        print(artifact.metadata)\n    else:\n\
+          \        print('No artifact provided!')\n\n"
+        image: python:3.9
+    exec-python-artifact-printer-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - python_artifact_printer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef python_artifact_printer(artifact: Optional[Input[Artifact]] =\
+          \ None):\n    if artifact is not None:\n        print(artifact.name)\n \
+          \       print(artifact.uri)\n        print(artifact.metadata)\n    else:\n\
+          \        print('No artifact provided!')\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: optional-artifact-pipeline
+root:
+  dag:
+    tasks:
+      custom-artifact-printer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-custom-artifact-printer
+        inputs:
+          artifacts:
+            artifact:
+              componentInputArtifact: dataset1
+        taskInfo:
+          name: custom-artifact-printer
+      custom-artifact-printer-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-custom-artifact-printer-2
+        taskInfo:
+          name: custom-artifact-printer-2
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        taskInfo:
+          name: importer
+      inner-pipeline:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-inner-pipeline
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+        taskInfo:
+          name: inner-pipeline
+      inner-pipeline-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-inner-pipeline-2
+        taskInfo:
+          name: inner-pipeline-2
+  inputDefinitions:
+    artifacts:
+      dataset1:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+        isOptional: true
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

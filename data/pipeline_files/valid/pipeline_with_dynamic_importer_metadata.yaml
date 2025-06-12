@@ -1,0 +1,186 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-importer
+# Inputs:
+#    int_input: int [Default: 1.0]
+#    name: str [Default: 'default-name']
+#    pipeline_input_artifact_uri: str [Default: 'gs://ml-pipeline-playground/shakespeare1.txt']
+#    pipeline_input_image_uri: str [Default: 'us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest']
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        metadata:
+          parameterType: STRING
+        metadata-2:
+          parameterType: STRING
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-importer-2:
+    executorLabel: exec-importer-2
+    inputDefinitions:
+      parameters:
+        metadata:
+          parameterType: STRING
+        metadata-2:
+          parameterType: STRING
+        metadata-3:
+          parameterType: NUMBER_INTEGER
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-make-name:
+    executorLabel: exec-make-name
+    inputDefinitions:
+      parameters:
+        name:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          runtimeParameter: uri
+        metadata:
+          containerSpec:
+            imageUri: '{{$.inputs.parameters[''metadata-2'']}}'
+          name:
+          - '{{$.inputs.parameters[''metadata'']}}'
+          - alias-name
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-importer-2:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        metadata:
+          containerSpec:
+            imageUri: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
+          list-of-data:
+          - '{{$.inputs.parameters[''metadata'']}}'
+          - '{{$.inputs.parameters[''metadata-2'']}}'
+          - '{{$.inputs.parameters[''metadata-3'']}}'
+          name: prefix-{{$.inputs.parameters['metadata']}}
+          '{{$.inputs.parameters[''metadata'']}}': '{{$.inputs.parameters[''metadata'']}}'
+          '{{$.inputs.parameters[''metadata-2'']}}': us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-make-name:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - make_name
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef make_name(name: str) -> str:\n    return name\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-importer
+root:
+  dag:
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            metadata:
+              componentInputParameter: name
+            metadata-2:
+              componentInputParameter: pipeline_input_image_uri
+            uri:
+              componentInputParameter: pipeline_input_artifact_uri
+        taskInfo:
+          name: importer
+      importer-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-2
+        dependentTasks:
+        - make-name
+        inputs:
+          parameters:
+            metadata:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: make-name
+            metadata-2:
+              componentInputParameter: name
+            metadata-3:
+              componentInputParameter: int_input
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        taskInfo:
+          name: importer-2
+      make-name:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-make-name
+        inputs:
+          parameters:
+            name:
+              runtimeValue:
+                constant: a-different-name
+        taskInfo:
+          name: make-name
+  inputDefinitions:
+    parameters:
+      int_input:
+        defaultValue: 1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      name:
+        defaultValue: default-name
+        isOptional: true
+        parameterType: STRING
+      pipeline_input_artifact_uri:
+        defaultValue: gs://ml-pipeline-playground/shakespeare1.txt
+        isOptional: true
+        parameterType: STRING
+      pipeline_input_image_uri:
+        defaultValue: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

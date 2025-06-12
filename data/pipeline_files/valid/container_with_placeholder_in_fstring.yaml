@@ -1,0 +1,66 @@
+# PIPELINE DEFINITION
+# Name: container-with-placeholder-in-fstring
+# Inputs:
+#    text1: str [Default: 'text!']
+# Outputs:
+#    output_artifact: system.Artifact
+components:
+  comp-container-with-placeholder-in-fstring:
+    executorLabel: exec-container-with-placeholder-in-fstring
+    inputDefinitions:
+      parameters:
+        text1:
+          defaultValue: text!
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-container-with-placeholder-in-fstring:
+      container:
+        command:
+        - my_program
+        - prefix-{{$.inputs.parameters['text1']}}
+        - '{{$.outputs.artifacts[''output_artifact''].uri}}/0'
+        image: python:3.9
+pipelineInfo:
+  name: container-with-placeholder-in-fstring
+root:
+  dag:
+    outputs:
+      artifacts:
+        output_artifact:
+          artifactSelectors:
+          - outputArtifactKey: output_artifact
+            producerSubtask: container-with-placeholder-in-fstring
+    tasks:
+      container-with-placeholder-in-fstring:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-container-with-placeholder-in-fstring
+        inputs:
+          parameters:
+            text1:
+              componentInputParameter: text1
+        taskInfo:
+          name: container-with-placeholder-in-fstring
+  inputDefinitions:
+    parameters:
+      text1:
+        defaultValue: text!
+        isOptional: true
+        parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      output_artifact:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

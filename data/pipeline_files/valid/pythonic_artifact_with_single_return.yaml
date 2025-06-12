@@ -1,0 +1,123 @@
+# PIPELINE DEFINITION
+# Name: make-language-model-pipeline
+# Outputs:
+#    Output: system.Model
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-make-language-model:
+    executorLabel: exec-make-language-model
+    inputDefinitions:
+      artifacts:
+        text_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        metadata:
+          key: value
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-make-language-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - make_language_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'dill==0.3.7'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef make_language_model(text_dataset: Dataset) -> Model:\n    # dill\
+          \ allows pickling objects belonging to a function's local namespace\n  \
+          \  import dill\n\n    with open(text_dataset.path) as f:\n        text =\
+          \ f.read()\n\n    # insert train on text here #\n\n    def dummy_model(x:\
+          \ str) -> str:\n        return x\n\n    model = Model(\n        uri=dsl.get_uri(suffix='model'),\n\
+          \        metadata={'data': text_dataset.name},\n    )\n\n    with open(model.path,\
+          \ 'wb') as f:\n        dill.dump(dummy_model, f)\n\n    return model\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: make-language-model-pipeline
+root:
+  dag:
+    outputs:
+      artifacts:
+        Output:
+          artifactSelectors:
+          - outputArtifactKey: Output
+            producerSubtask: make-language-model
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        taskInfo:
+          name: importer
+      make-language-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-make-language-model
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            text_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+        taskInfo:
+          name: make-language-model
+  outputDefinitions:
+    artifacts:
+      Output:
+        artifactType:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
