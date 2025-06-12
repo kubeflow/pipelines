@@ -1,0 +1,86 @@
+# PIPELINE DEFINITION
+# Name: add-numbers
+# Inputs:
+#    a: int
+#    b: int
+# Outputs:
+#    Output: int
+components:
+  comp-add-numbers:
+    executorLabel: exec-add-numbers
+    inputDefinitions:
+      parameters:
+        a:
+          parameterType: NUMBER_INTEGER
+        b:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-add-numbers:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add_numbers
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: add-numbers
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: add-numbers
+    tasks:
+      add-numbers:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-numbers
+        inputs:
+          parameters:
+            a:
+              componentInputParameter: a
+            b:
+              componentInputParameter: b
+        taskInfo:
+          name: add-numbers
+  inputDefinitions:
+    parameters:
+      a:
+        parameterType: NUMBER_INTEGER
+      b:
+        parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

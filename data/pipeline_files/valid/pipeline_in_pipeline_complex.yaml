@@ -1,0 +1,248 @@
+# PIPELINE DEFINITION
+# Name: pipeline-in-pipeline-complex
+# Inputs:
+#    msg: str [Default: 'Hello']
+components:
+  comp-condition-1:
+    dag:
+      tasks:
+        print-op2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op2
+          inputs:
+            parameters:
+              msg:
+                runtimeValue:
+                  constant: world
+          taskInfo:
+            name: print-op2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--print-op1-Output:
+          parameterType: STRING
+  comp-condition-2:
+    dag:
+      tasks:
+        print-op:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op
+          inputs:
+            parameters:
+              msg:
+                runtimeValue:
+                  constant: Bye!
+          taskInfo:
+            name: print-op
+    inputDefinitions:
+      parameters:
+        pipelinechannel--print-op1-Output:
+          parameterType: STRING
+  comp-for-loop-2:
+    dag:
+      tasks:
+        inner-pipeline:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-inner-pipeline
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: inner-pipeline
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+  comp-inner-pipeline:
+    dag:
+      tasks:
+        condition-1:
+          componentRef:
+            name: comp-condition-1
+          dependentTasks:
+          - print-op1
+          inputs:
+            parameters:
+              pipelinechannel--print-op1-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: print-op1
+          taskInfo:
+            name: condition-1
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--print-op1-Output']
+              == 'Hello'
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          dependentTasks:
+          - print-op1
+          inputs:
+            parameters:
+              pipelinechannel--print-op1-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: print-op1
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--print-op1-Output']
+              != 'Hello'
+        print-op1:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op1-2
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: msg
+          taskInfo:
+            name: print-op1
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+  comp-print-op:
+    executorLabel: exec-print-op
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+  comp-print-op1:
+    executorLabel: exec-print-op1
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-op1-2:
+    executorLabel: exec-print-op1-2
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-op2:
+    executorLabel: exec-print-op2
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-print-op:
+      container:
+        command:
+        - echo
+        - '{{$.inputs.parameters[''msg'']}}'
+        image: alpine
+    exec-print-op1:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op1
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op1(msg: str) -> str:\n    print(msg)\n    return msg\n\
+          \n"
+        image: python:3.9
+    exec-print-op1-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op1
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op1(msg: str) -> str:\n    print(msg)\n    return msg\n\
+          \n"
+        image: python:3.9
+    exec-print-op2:
+      container:
+        command:
+        - echo
+        - '{{$.inputs.parameters[''msg'']}}'
+        image: alpine
+pipelineInfo:
+  name: pipeline-in-pipeline-complex
+root:
+  dag:
+    tasks:
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '["Hello", "world!"]'
+        taskInfo:
+          name: for-loop-2
+      print-op1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op1
+        inputs:
+          parameters:
+            msg:
+              componentInputParameter: msg
+        taskInfo:
+          name: print-op1
+  inputDefinitions:
+    parameters:
+      msg:
+        defaultValue: Hello
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

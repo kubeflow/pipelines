@@ -1,0 +1,84 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-env
+components:
+  comp-print-env:
+    executorLabel: exec-print-env
+  comp-print-env-op:
+    executorLabel: exec-print-env-op
+deploymentSpec:
+  executors:
+    exec-print-env:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$ENV1"
+
+          echo "$ENV2"
+
+          echo "$ENV3"
+
+          '
+        env:
+        - name: ENV1
+          value: val0
+        - name: ENV2
+          value: val2
+        - name: ENV3
+          value: val3
+        image: alpine
+    exec-print-env-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_env_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_env_op():\n    import os\n    print('ENV1', os.environ.get('ENV1'))\n\
+          \    print('ENV2', os.environ.get('ENV2'))\n\n"
+        env:
+        - name: ENV1
+          value: val1
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-env
+root:
+  dag:
+    tasks:
+      print-env:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-env
+        taskInfo:
+          name: print-env
+      print-env-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-env-op
+        taskInfo:
+          name: print-env-op
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

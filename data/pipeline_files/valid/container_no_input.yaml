@@ -1,0 +1,27 @@
+# PIPELINE DEFINITION
+# Name: container-no-input
+components:
+  comp-container-no-input:
+    executorLabel: exec-container-no-input
+deploymentSpec:
+  executors:
+    exec-container-no-input:
+      container:
+        command:
+        - echo
+        - hello world
+        image: python:3.9
+pipelineInfo:
+  name: container-no-input
+root:
+  dag:
+    tasks:
+      container-no-input:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-container-no-input
+        taskInfo:
+          name: container-no-input
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
