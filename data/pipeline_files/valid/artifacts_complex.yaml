@@ -1,0 +1,497 @@
+# PIPELINE DEFINITION
+# Name: math-pipeline
+# Inputs:
+#    threshold: int [Default: 2.0]
+# Outputs:
+#    datasets: system.Dataset
+#    sum: system.Dataset
+components:
+  comp-add:
+    executorLabel: exec-add
+    inputDefinitions:
+      artifacts:
+        in_datasets:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-add-2:
+    executorLabel: exec-add-2
+    inputDefinitions:
+      artifacts:
+        in_datasets:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-add-two-ints:
+    executorLabel: exec-add-two-ints
+    inputDefinitions:
+      artifacts:
+        in_dataset1:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        in_dataset2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-add-two-lists-of-datasets:
+    dag:
+      outputs:
+        artifacts:
+          Output:
+            artifactSelectors:
+            - outputArtifactKey: out_dataset
+              producerSubtask: add-two-ints
+      tasks:
+        add:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add
+          inputs:
+            artifacts:
+              in_datasets:
+                componentInputArtifact: in_datasets1
+          taskInfo:
+            name: add
+        add-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add-2
+          inputs:
+            artifacts:
+              in_datasets:
+                componentInputArtifact: in_datasets2
+          taskInfo:
+            name: add-2
+        add-two-ints:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add-two-ints
+          dependentTasks:
+          - add
+          - add-2
+          inputs:
+            artifacts:
+              in_dataset1:
+                taskOutputArtifact:
+                  outputArtifactKey: out_dataset
+                  producerTask: add
+              in_dataset2:
+                taskOutputArtifact:
+                  outputArtifactKey: out_dataset
+                  producerTask: add-2
+          taskInfo:
+            name: add-two-ints
+    inputDefinitions:
+      artifacts:
+        in_datasets1:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+        in_datasets2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-condition-5:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--double-2-out_dataset:
+            artifactSelectors:
+            - outputArtifactKey: out_dataset
+              producerSubtask: double-2
+      tasks:
+        double-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double-2
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-3
+          taskInfo:
+            name: double-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-3:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--threshold:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--double-2-out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-double:
+    executorLabel: exec-double
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-double-2:
+    executorLabel: exec-double-2
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-for-loop-2:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--double-2-out_dataset:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--double-2-out_dataset
+              producerSubtask: for-loop-4
+          pipelinechannel--double-out_dataset:
+            artifactSelectors:
+            - outputArtifactKey: out_dataset
+              producerSubtask: double
+      tasks:
+        double:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: double
+        for-loop-4:
+          componentRef:
+            name: comp-for-loop-4
+          inputs:
+            parameters:
+              pipelinechannel--threshold:
+                componentInputParameter: pipelinechannel--threshold
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-3
+            items:
+              raw: '[1, 2, 3]'
+          taskInfo:
+            name: for-loop-4
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--threshold:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--double-2-out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+        pipelinechannel--double-out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-for-loop-4:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--double-2-out_dataset:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--double-2-out_dataset
+              producerSubtask: condition-5
+      tasks:
+        condition-5:
+          componentRef:
+            name: comp-condition-5
+          inputs:
+            parameters:
+              pipelinechannel--loop-item-param-3:
+                componentInputParameter: pipelinechannel--loop-item-param-3
+              pipelinechannel--threshold:
+                componentInputParameter: pipelinechannel--threshold
+          taskInfo:
+            name: condition-5
+          triggerPolicy:
+            condition: int(inputs.parameter_values['pipelinechannel--loop-item-param-3'])
+              >= int(inputs.parameter_values['pipelinechannel--threshold'])
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-3:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--threshold:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--double-2-out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+deploymentSpec:
+  executors:
+    exec-add:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(\n    in_datasets: Input[List[Dataset]],\n    out_dataset:\
+          \ Output[Dataset],\n):\n    nums = []\n    for dataset in in_datasets:\n\
+          \        with open(dataset.path) as f:\n            nums.append(int(f.read()))\n\
+          \    with open(out_dataset.path, 'w') as f:\n        f.write(str(sum(nums)))\n\
+          \n"
+        image: python:3.9
+    exec-add-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(\n    in_datasets: Input[List[Dataset]],\n    out_dataset:\
+          \ Output[Dataset],\n):\n    nums = []\n    for dataset in in_datasets:\n\
+          \        with open(dataset.path) as f:\n            nums.append(int(f.read()))\n\
+          \    with open(out_dataset.path, 'w') as f:\n        f.write(str(sum(nums)))\n\
+          \n"
+        image: python:3.9
+    exec-add-two-ints:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add_two_ints
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add_two_ints(\n    in_dataset1: Input[Dataset],\n    in_dataset2:\
+          \ Input[Dataset],\n    out_dataset: Output[Dataset],\n):\n    with open(in_dataset1.path)\
+          \ as f:\n        in_dataset1 = int(f.read())\n\n    with open(in_dataset2.path)\
+          \ as f:\n        in_dataset2 = int(f.read())\n\n    with open(out_dataset.path,\
+          \ 'w') as f:\n        f.write(str(in_dataset1 + in_dataset2))\n\n"
+        image: python:3.9
+    exec-double:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(\n    num: int,\n    out_dataset: Output[Dataset],\n):\n\
+          \    with open(out_dataset.path, 'w') as f:\n        f.write(str(2 * num))\n\
+          \n"
+        image: python:3.9
+    exec-double-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(\n    num: int,\n    out_dataset: Output[Dataset],\n):\n\
+          \    with open(out_dataset.path, 'w') as f:\n        f.write(str(2 * num))\n\
+          \n"
+        image: python:3.9
+pipelineInfo:
+  name: math-pipeline
+root:
+  dag:
+    outputs:
+      artifacts:
+        datasets:
+          artifactSelectors:
+          - outputArtifactKey: pipelinechannel--double-out_dataset
+            producerSubtask: for-loop-2
+        sum:
+          artifactSelectors:
+          - outputArtifactKey: Output
+            producerSubtask: add-two-lists-of-datasets
+    tasks:
+      add-two-lists-of-datasets:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-two-lists-of-datasets
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          artifacts:
+            in_datasets1:
+              taskOutputArtifact:
+                outputArtifactKey: pipelinechannel--double-out_dataset
+                producerTask: for-loop-2
+            in_datasets2:
+              taskOutputArtifact:
+                outputArtifactKey: pipelinechannel--double-2-out_dataset
+                producerTask: for-loop-2
+        taskInfo:
+          name: add-two-lists-of-datasets
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        inputs:
+          parameters:
+            pipelinechannel--threshold:
+              componentInputParameter: threshold
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '[1, 2, 3]'
+        taskInfo:
+          name: for-loop-2
+  inputDefinitions:
+    parameters:
+      threshold:
+        defaultValue: 2.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    artifacts:
+      datasets:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+        isArtifactList: true
+      sum:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

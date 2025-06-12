@@ -1,0 +1,494 @@
+# PIPELINE DEFINITION
+# Name: math-pipeline
+# Outputs:
+#    Output: int
+components:
+  comp-add-two-numbers:
+    executorLabel: exec-add-two-numbers
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: LIST
+        y:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-double:
+    executorLabel: exec-double
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-double-2:
+    executorLabel: exec-double-2
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-for-loop-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-2-Output:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--double-2-Output
+              producerSubtask: for-loop-4
+          pipelinechannel--double-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double
+      tasks:
+        double:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: double
+        for-loop-4:
+          componentRef:
+            name: comp-for-loop-4
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-3
+            items:
+              raw: '[4, 5, 6]'
+          taskInfo:
+            name: for-loop-4
+        simple-add:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-simple-add
+          dependentTasks:
+          - for-loop-4
+          inputs:
+            parameters:
+              nums:
+                taskOutputParameter:
+                  outputParameterKey: pipelinechannel--double-2-Output
+                  producerTask: for-loop-4
+          taskInfo:
+            name: simple-add
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-2-Output:
+          parameterType: LIST
+        pipelinechannel--double-Output:
+          parameterType: LIST
+  comp-for-loop-4:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-2-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double-2
+      tasks:
+        double-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double-2
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-3
+          taskInfo:
+            name: double-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-3:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-2-Output:
+          parameterType: LIST
+  comp-for-loop-6:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--nested-add-2-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: nested-add-2
+          pipelinechannel--simple-add-2-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: simple-add-2
+      tasks:
+        nested-add-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-nested-add-2
+          inputs:
+            parameters:
+              nums:
+                componentInputParameter: pipelinechannel--for-loop-2-pipelinechannel--double-2-Output
+          taskInfo:
+            name: nested-add-2
+        simple-add-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-simple-add-2
+          inputs:
+            parameters:
+              nums:
+                componentInputParameter: pipelinechannel--for-loop-2-pipelinechannel--double-Output
+          taskInfo:
+            name: simple-add-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--for-loop-2-pipelinechannel--double-2-Output:
+          parameterType: LIST
+        pipelinechannel--for-loop-2-pipelinechannel--double-Output:
+          parameterType: LIST
+        pipelinechannel--loop-item-param-5:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--nested-add-2-Output:
+          parameterType: LIST
+        pipelinechannel--simple-add-2-Output:
+          parameterType: LIST
+  comp-nested-add:
+    executorLabel: exec-nested-add
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-nested-add-2:
+    executorLabel: exec-nested-add-2
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-simple-add:
+    executorLabel: exec-simple-add
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-simple-add-2:
+    executorLabel: exec-simple-add-2
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-add-two-numbers:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add_two_numbers
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add_two_numbers(x: List[int], y: List[int]) -> int:\n    return\
+          \ sum(x) + sum(y)\n\n"
+        image: python:3.9
+    exec-double:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+        image: python:3.9
+    exec-double-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+        image: python:3.9
+    exec-nested-add:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - nested_add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
+          \    return sum(itertools.chain(*nums))\n\n"
+        image: python:3.9
+    exec-nested-add-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - nested_add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
+          \    return sum(itertools.chain(*nums))\n\n"
+        image: python:3.9
+    exec-simple-add:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - simple_add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+        image: python:3.9
+    exec-simple-add-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - simple_add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: math-pipeline
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: add-two-numbers
+    tasks:
+      add-two-numbers:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-two-numbers
+        dependentTasks:
+        - for-loop-6
+        inputs:
+          parameters:
+            x:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--simple-add-2-Output
+                producerTask: for-loop-6
+            y:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--nested-add-2-Output
+                producerTask: for-loop-6
+        taskInfo:
+          name: add-two-numbers
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '[1, 2, 3]'
+        taskInfo:
+          name: for-loop-2
+      for-loop-6:
+        componentRef:
+          name: comp-for-loop-6
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          parameters:
+            pipelinechannel--for-loop-2-pipelinechannel--double-2-Output:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-2-Output
+                producerTask: for-loop-2
+            pipelinechannel--for-loop-2-pipelinechannel--double-Output:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-Output
+                producerTask: for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-5
+          items:
+            raw: '[0, 0, 0]'
+        taskInfo:
+          name: for-loop-6
+      nested-add:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-nested-add
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          parameters:
+            nums:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-2-Output
+                producerTask: for-loop-2
+        taskInfo:
+          name: nested-add
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

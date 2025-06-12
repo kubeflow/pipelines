@@ -1,0 +1,232 @@
+# PIPELINE DEFINITION
+# Name: math-pipeline
+# Inputs:
+#    threshold: int [Default: 2.0]
+# Outputs:
+#    Output: list
+components:
+  comp-add:
+    executorLabel: exec-add
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-condition-3:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double
+      tasks:
+        double:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: double
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--threshold:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-Output:
+          parameterType: LIST
+  comp-condition-4:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--add-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: add
+      tasks:
+        add:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add
+          inputs:
+            parameters:
+              nums:
+                componentInputParameter: pipelinechannel--for-loop-2-pipelinechannel--double-Output
+          taskInfo:
+            name: add
+    inputDefinitions:
+      parameters:
+        pipelinechannel--for-loop-2-pipelinechannel--double-Output:
+          parameterType: LIST
+        pipelinechannel--threshold:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--add-Output:
+          parameterType: LIST
+  comp-double:
+    executorLabel: exec-double
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-for-loop-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-Output:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--double-Output
+              producerSubtask: condition-3
+      tasks:
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            parameters:
+              pipelinechannel--loop-item-param-1:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+              pipelinechannel--threshold:
+                componentInputParameter: pipelinechannel--threshold
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: int(inputs.parameter_values['pipelinechannel--loop-item-param-1'])
+              >= int(inputs.parameter_values['pipelinechannel--threshold'])
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--threshold:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-Output:
+          parameterType: LIST
+deploymentSpec:
+  executors:
+    exec-add:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+        image: python:3.9
+    exec-double:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: math-pipeline
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: pipelinechannel--add-Output
+            producerSubtask: condition-4
+    tasks:
+      condition-4:
+        componentRef:
+          name: comp-condition-4
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          parameters:
+            pipelinechannel--for-loop-2-pipelinechannel--double-Output:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-Output
+                producerTask: for-loop-2
+            pipelinechannel--threshold:
+              componentInputParameter: threshold
+        taskInfo:
+          name: condition-4
+        triggerPolicy:
+          condition: int(inputs.parameter_values['pipelinechannel--threshold']) ==
+            2
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        inputs:
+          parameters:
+            pipelinechannel--threshold:
+              componentInputParameter: threshold
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '[1, 2, 3]'
+        taskInfo:
+          name: for-loop-2
+  inputDefinitions:
+    parameters:
+      threshold:
+        defaultValue: 2.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: LIST
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

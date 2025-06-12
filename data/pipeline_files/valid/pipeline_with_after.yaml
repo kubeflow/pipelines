@@ -1,0 +1,107 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-after
+components:
+  comp-print-text:
+    executorLabel: exec-print-text
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+  comp-print-text-2:
+    executorLabel: exec-print-text-2
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+  comp-print-text-3:
+    executorLabel: exec-print-text-3
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-print-text:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$0"
+
+          '
+        - '{{$.inputs.parameters[''text'']}}'
+        image: alpine
+    exec-print-text-2:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$0"
+
+          '
+        - '{{$.inputs.parameters[''text'']}}'
+        image: alpine
+    exec-print-text-3:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$0"
+
+          '
+        - '{{$.inputs.parameters[''text'']}}'
+        image: alpine
+pipelineInfo:
+  name: pipeline-with-after
+root:
+  dag:
+    tasks:
+      print-text:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-text
+        inputs:
+          parameters:
+            text:
+              runtimeValue:
+                constant: 1st task
+        taskInfo:
+          name: print-text
+      print-text-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-text-2
+        dependentTasks:
+        - print-text
+        inputs:
+          parameters:
+            text:
+              runtimeValue:
+                constant: 2nd task
+        taskInfo:
+          name: print-text-2
+      print-text-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-text-3
+        dependentTasks:
+        - print-text
+        - print-text-2
+        inputs:
+          parameters:
+            text:
+              runtimeValue:
+                constant: 3rd task
+        taskInfo:
+          name: print-text-3
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

@@ -1,0 +1,27 @@
+# PIPELINE DEFINITION
+# Name: v2-container-component-no-input
+components:
+  comp-hello-world-container:
+    executorLabel: exec-hello-world-container
+deploymentSpec:
+  executors:
+    exec-hello-world-container:
+      container:
+        command:
+        - echo
+        - hello world
+        image: python:3.9
+pipelineInfo:
+  name: v2-container-component-no-input
+root:
+  dag:
+    tasks:
+      hello-world-container:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world-container
+        taskInfo:
+          name: hello-world-container
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

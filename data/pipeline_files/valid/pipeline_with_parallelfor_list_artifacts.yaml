@@ -1,0 +1,420 @@
+# PIPELINE DEFINITION
+# Name: pipeline-parallelfor-artifacts
+components:
+  comp-for-loop-1:
+    dag:
+      tasks:
+        print-artifact-name:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-artifact-name
+          inputs:
+            artifacts:
+              artifact:
+                componentInputArtifact: pipelinechannel--make-artifacts-Output-loop-item
+          taskInfo:
+            name: print-artifact-name
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--make-artifacts-Output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isArtifactList: true
+        pipelinechannel--make-artifacts-Output-loop-item:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-for-loop-1-2:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--make-artifact-Output:
+            artifactSelectors:
+            - outputArtifactKey: Output
+              producerSubtask: make-artifact
+      tasks:
+        make-artifact:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-make-artifact
+          inputs:
+            parameters:
+              data:
+                componentInputParameter: pipelinechannel--texts-loop-item
+          taskInfo:
+            name: make-artifact
+    inputDefinitions:
+      parameters:
+        pipelinechannel--texts:
+          parameterType: LIST
+        pipelinechannel--texts-loop-item:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--make-artifact-Output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-for-loop-1-3:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--make-dataset-Output:
+            artifactSelectors:
+            - outputArtifactKey: Output
+              producerSubtask: make-dataset
+      tasks:
+        make-dataset:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-make-dataset
+          inputs:
+            parameters:
+              data:
+                componentInputParameter: pipelinechannel--texts-loop-item
+          taskInfo:
+            name: make-dataset
+    inputDefinitions:
+      parameters:
+        pipelinechannel--texts:
+          parameterType: LIST
+        pipelinechannel--texts-loop-item:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--make-dataset-Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-for-loop-2:
+    dag:
+      tasks:
+        print-artifact-name-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-artifact-name-2
+          inputs:
+            artifacts:
+              artifact:
+                componentInputArtifact: pipelinechannel--make-datasets-Output-loop-item
+          taskInfo:
+            name: print-artifact-name-2
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--make-datasets-Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+        pipelinechannel--make-datasets-Output-loop-item:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-make-artifact:
+    executorLabel: exec-make-artifact
+    inputDefinitions:
+      parameters:
+        data:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-make-artifacts:
+    dag:
+      outputs:
+        artifacts:
+          Output:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--make-artifact-Output
+              producerSubtask: for-loop-1
+      tasks:
+        for-loop-1:
+          componentRef:
+            name: comp-for-loop-1-2
+          inputs:
+            parameters:
+              pipelinechannel--texts:
+                componentInputParameter: texts
+          parameterIterator:
+            itemInput: pipelinechannel--texts-loop-item
+            items:
+              inputParameter: pipelinechannel--texts
+          taskInfo:
+            name: for-loop-1
+    inputDefinitions:
+      parameters:
+        texts:
+          defaultValue:
+          - Hello
+          - ','
+          - ' '
+          - world!
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-make-dataset:
+    executorLabel: exec-make-dataset
+    inputDefinitions:
+      parameters:
+        data:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-make-datasets:
+    dag:
+      outputs:
+        artifacts:
+          Output:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--make-dataset-Output
+              producerSubtask: for-loop-1
+      tasks:
+        for-loop-1:
+          componentRef:
+            name: comp-for-loop-1-3
+          inputs:
+            parameters:
+              pipelinechannel--texts:
+                componentInputParameter: texts
+          parameterIterator:
+            itemInput: pipelinechannel--texts-loop-item
+            items:
+              inputParameter: pipelinechannel--texts
+          taskInfo:
+            name: for-loop-1
+    inputDefinitions:
+      parameters:
+        texts:
+          defaultValue:
+          - Hello
+          - ','
+          - ' '
+          - world!
+          isOptional: true
+          parameterType: LIST
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-print-artifact-name:
+    executorLabel: exec-print-artifact-name
+    inputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-artifact-name-2:
+    executorLabel: exec-print-artifact-name-2
+    inputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-make-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - make_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef make_artifact(data: str) -> Artifact:\n    artifact = Artifact(uri=dsl.get_uri(),\
+          \ metadata={'length': len(data)})\n    with open(artifact.path, 'w') as\
+          \ f:\n        f.write(data)\n    return artifact\n\n"
+        image: python:3.9
+    exec-make-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - make_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef make_dataset(data: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
+          \ metadata={'length': len(data)})\n    with open(dataset.path, 'w') as f:\n\
+          \        f.write(data)\n    return dataset\n\n"
+        image: python:3.9
+    exec-print-artifact-name:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_artifact_name
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
+          \    return artifact.name\n\n"
+        image: python:3.9
+    exec-print-artifact-name-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_artifact_name
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
+          \    return artifact.name\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-parallelfor-artifacts
+root:
+  dag:
+    tasks:
+      for-loop-1:
+        artifactIterator:
+          itemInput: pipelinechannel--make-artifacts-Output-loop-item
+          items:
+            inputArtifact: pipelinechannel--make-artifacts-Output
+        componentRef:
+          name: comp-for-loop-1
+        dependentTasks:
+        - make-artifacts
+        inputs:
+          artifacts:
+            pipelinechannel--make-artifacts-Output:
+              taskOutputArtifact:
+                outputArtifactKey: Output
+                producerTask: make-artifacts
+        taskInfo:
+          name: for-loop-1
+      for-loop-2:
+        artifactIterator:
+          itemInput: pipelinechannel--make-datasets-Output-loop-item
+          items:
+            inputArtifact: pipelinechannel--make-datasets-Output
+        componentRef:
+          name: comp-for-loop-2
+        dependentTasks:
+        - make-datasets
+        inputs:
+          artifacts:
+            pipelinechannel--make-datasets-Output:
+              taskOutputArtifact:
+                outputArtifactKey: Output
+                producerTask: make-datasets
+        taskInfo:
+          name: for-loop-2
+      make-artifacts:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-make-artifacts
+        taskInfo:
+          name: make-artifacts
+      make-datasets:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-make-datasets
+        taskInfo:
+          name: make-datasets
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
