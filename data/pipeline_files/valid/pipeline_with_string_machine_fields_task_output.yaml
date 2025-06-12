@@ -1,0 +1,265 @@
+# PIPELINE DEFINITION
+# Name: pipeline
+components:
+  comp-accelerator-limit:
+    executorLabel: exec-accelerator-limit
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-accelerator-type:
+    executorLabel: exec-accelerator-type
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-cpu-limit:
+    executorLabel: exec-cpu-limit
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-memory-limit:
+    executorLabel: exec-memory-limit
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-sum-numbers:
+    executorLabel: exec-sum-numbers
+    inputDefinitions:
+      parameters:
+        a:
+          parameterType: NUMBER_INTEGER
+        b:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-accelerator-limit:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - accelerator_limit
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef accelerator_limit() -> str:\n    return '1'\n\n"
+        image: python:3.8
+    exec-accelerator-type:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - accelerator_type
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef accelerator_type() -> str:\n    return 'NVIDIA_TESLA_P4'\n\n"
+        image: python:3.8
+    exec-cpu-limit:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - cpu_limit
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef cpu_limit() -> str:\n    return '4000m'\n\n"
+        image: python:3.8
+    exec-memory-limit:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - memory_limit
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef memory_limit() -> str:\n    return '15G'\n\n"
+        image: python:3.8
+    exec-sum-numbers:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - sum_numbers
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef sum_numbers(a: int, b:int) -> int:\n    return a + b\n\n"
+        image: python:3.8
+        resources:
+          accelerator:
+            resourceCount: '{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}'
+            resourceType: '{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}'
+          resourceCpuLimit: '{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}'
+          resourceMemoryLimit: '{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}'
+pipelineInfo:
+  name: pipeline
+root:
+  dag:
+    tasks:
+      accelerator-limit:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-accelerator-limit
+        taskInfo:
+          name: accelerator-limit
+      accelerator-type:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-accelerator-type
+        taskInfo:
+          name: accelerator-type
+      cpu-limit:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-cpu-limit
+        taskInfo:
+          name: cpu-limit
+      memory-limit:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-memory-limit
+        taskInfo:
+          name: memory-limit
+      sum-numbers:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-sum-numbers
+        inputs:
+          parameters:
+            a:
+              runtimeValue:
+                constant: 1.0
+            accelerator_count:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}'
+            accelerator_type:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}'
+            b:
+              runtimeValue:
+                constant: 2.0
+            cpu_limit:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}'
+            memory_limit:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}'
+            pipelinechannel--accelerator-limit-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: accelerator-limit
+            pipelinechannel--accelerator-type-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: accelerator-type
+            pipelinechannel--cpu-limit-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: cpu-limit
+            pipelinechannel--memory-limit-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: memory-limit
+        taskInfo:
+          name: sum-numbers
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.8.0

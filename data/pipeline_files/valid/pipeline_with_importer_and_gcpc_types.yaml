@@ -1,0 +1,75 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-importer-and-gcpc-type
+components:
+  comp-consumer-op:
+    executorLabel: exec-consumer-op
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: google.VertexDataset
+            schemaVersion: 0.0.1
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: google.VertexDataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-consumer-op:
+      container:
+        args:
+        - '{{$.inputs.artifacts[''dataset''].path}}'
+        command:
+        - cmd
+        image: dummy
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        metadata:
+          key: value
+        typeSchema:
+          schemaTitle: google.VertexDataset
+          schemaVersion: 0.0.1
+pipelineInfo:
+  name: pipeline-with-importer-and-gcpc-type
+root:
+  dag:
+    tasks:
+      consumer-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-consumer-op
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+        taskInfo:
+          name: consumer-op
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        taskInfo:
+          name: importer
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
