@@ -440,8 +440,11 @@ jobs:
 
     - name: Install protobuf-compiler
       id: install-protobuf-compiler
-      if: ${{ steps.apt-get-update.outcome == 'success' }}
       run: sudo apt-get install protobuf-compiler -y
+      
+    - name: Install Wheel
+      id: install-wheel
+      run: pip3 install wheel==0.42.0 setuptools
 
     - name: Generate API proto files
       working-directory: ./api
