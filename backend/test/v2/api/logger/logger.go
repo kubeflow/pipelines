@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+
 	"github.com/onsi/ginkgo/v2"
 )
 

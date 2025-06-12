@@ -1,0 +1,95 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-task-final-status-yaml
+# Inputs:
+#    message: str [Default: 'Hello World!']
+components:
+  comp-exit-handler-1:
+    dag:
+      tasks:
+        print-op:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op
+          inputs:
+            parameters:
+              message:
+                componentInputParameter: pipelinechannel--message
+          taskInfo:
+            name: print-op
+    inputDefinitions:
+      parameters:
+        pipelinechannel--message:
+          parameterType: STRING
+  comp-exit-op:
+    executorLabel: exec-exit-op
+    inputDefinitions:
+      parameters:
+        status:
+          isOptional: true
+          parameterType: TASK_FINAL_STATUS
+        user_input:
+          parameterType: STRING
+  comp-print-op:
+    executorLabel: exec-print-op
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-exit-op:
+      container:
+        command:
+        - echo
+        - 'user input:'
+        - '{{$.inputs.parameters[''user_input'']}}'
+        - 'pipeline status:'
+        - '{{$.inputs.parameters[''status'']}}'
+        image: python:3.9
+    exec-print-op:
+      container:
+        command:
+        - echo
+        - '{{$.inputs.parameters[''message'']}}'
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-task-final-status-yaml
+root:
+  dag:
+    tasks:
+      exit-handler-1:
+        componentRef:
+          name: comp-exit-handler-1
+        inputs:
+          parameters:
+            pipelinechannel--message:
+              componentInputParameter: message
+        taskInfo:
+          name: my-pipeline
+      exit-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-exit-op
+        dependentTasks:
+        - exit-handler-1
+        inputs:
+          parameters:
+            status:
+              taskFinalStatus:
+                producerTask: exit-handler-1
+            user_input:
+              componentInputParameter: message
+        taskInfo:
+          name: exit-op
+        triggerPolicy:
+          strategy: ALL_UPSTREAM_TASKS_COMPLETED
+  inputDefinitions:
+    parameters:
+      message:
+        defaultValue: Hello World!
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

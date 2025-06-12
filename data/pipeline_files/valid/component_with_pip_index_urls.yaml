@@ -1,0 +1,51 @@
+# PIPELINE DEFINITION
+# Name: v2-component-pip-index-urls
+components:
+  comp-component-op:
+    executorLabel: exec-component-op
+deploymentSpec:
+  executors:
+    exec-component-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location --index-url https://pypi.org/simple\
+          \ --trusted-host https://pypi.org/simple 'kfp==2.7.0' '--no-deps' 'typing-extensions>=3.7.4,<5;\
+          \ python_version<\"3.9\"'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ --index-url https://pypi.org/simple --trusted-host https://pypi.org/simple\
+          \ 'yapf' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_op():\n    import yapf\n    print(dir(yapf))\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: v2-component-pip-index-urls
+root:
+  dag:
+    tasks:
+      component-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-op
+        taskInfo:
+          name: component-op
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
