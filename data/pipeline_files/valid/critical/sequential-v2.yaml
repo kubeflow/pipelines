@@ -1,0 +1,76 @@
+# PIPELINE DEFINITION
+# Name: sequential
+# Inputs:
+#    url: str
+components:
+  comp-download:
+    executorLabel: exec-download
+    inputDefinitions:
+      parameters:
+        url:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        downloaded:
+          parameterType: STRING
+  comp-echo:
+    executorLabel: exec-echo
+    inputDefinitions:
+      parameters:
+        downloaded:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-download:
+      container:
+        args:
+        - gsutil cp {{$.inputs.parameters['url']}} {{$.outputs.parameters['downloaded'].output_file}}
+        command:
+        - sh
+        - -c
+        image: google/cloud-sdk
+    exec-echo:
+      container:
+        args:
+        - echo {{$.inputs.parameters['downloaded']}}
+        command:
+        - sh
+        - -c
+        image: library/bash
+pipelineInfo:
+  name: sequential
+root:
+  dag:
+    tasks:
+      download:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-download
+        inputs:
+          parameters:
+            url:
+              componentInputParameter: url
+        taskInfo:
+          name: download
+      echo:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo
+        dependentTasks:
+        - download
+        inputs:
+          parameters:
+            downloaded:
+              taskOutputParameter:
+                outputParameterKey: downloaded
+                producerTask: download
+        taskInfo:
+          name: echo
+  inputDefinitions:
+    parameters:
+      url:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13

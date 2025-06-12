@@ -1,0 +1,116 @@
+# PIPELINE DEFINITION
+# Name: pipeline
+# Inputs:
+#    accelerator_limit: str [Default: '1']
+#    accelerator_type: str [Default: 'NVIDIA_TESLA_P4']
+#    cpu_limit: str [Default: '2000m']
+#    memory_limit: str [Default: '10G']
+components:
+  comp-sum-numbers:
+    executorLabel: exec-sum-numbers
+    inputDefinitions:
+      parameters:
+        a:
+          parameterType: NUMBER_INTEGER
+        b:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-sum-numbers:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - sum_numbers
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef sum_numbers(a: int, b:int) -> int:\n    return a + b\n\n"
+        image: python:3.8
+        resources:
+          accelerator:
+            resourceCount: '{{$.inputs.parameters[''pipelinechannel--accelerator_limit'']}}'
+            resourceType: '{{$.inputs.parameters[''pipelinechannel--accelerator_type'']}}'
+          resourceCpuLimit: '{{$.inputs.parameters[''pipelinechannel--cpu_limit'']}}'
+          resourceMemoryLimit: '{{$.inputs.parameters[''pipelinechannel--memory_limit'']}}'
+pipelineInfo:
+  name: pipeline
+root:
+  dag:
+    tasks:
+      sum-numbers:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-sum-numbers
+        inputs:
+          parameters:
+            a:
+              runtimeValue:
+                constant: 1.0
+            accelerator_count:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--accelerator_limit'']}}'
+            accelerator_type:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--accelerator_type'']}}'
+            b:
+              runtimeValue:
+                constant: 2.0
+            cpu_limit:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--cpu_limit'']}}'
+            memory_limit:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--memory_limit'']}}'
+            pipelinechannel--accelerator_limit:
+              componentInputParameter: accelerator_limit
+            pipelinechannel--accelerator_type:
+              componentInputParameter: accelerator_type
+            pipelinechannel--cpu_limit:
+              componentInputParameter: cpu_limit
+            pipelinechannel--memory_limit:
+              componentInputParameter: memory_limit
+        taskInfo:
+          name: sum-numbers
+  inputDefinitions:
+    parameters:
+      accelerator_limit:
+        defaultValue: '1'
+        isOptional: true
+        parameterType: STRING
+      accelerator_type:
+        defaultValue: NVIDIA_TESLA_P4
+        isOptional: true
+        parameterType: STRING
+      cpu_limit:
+        defaultValue: 2000m
+        isOptional: true
+        parameterType: STRING
+      memory_limit:
+        defaultValue: 10G
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.8.0

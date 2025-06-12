@@ -1,0 +1,367 @@
+# PIPELINE DEFINITION
+# Name: math-pipeline
+# Outputs:
+#    Output: int
+components:
+  comp-add:
+    executorLabel: exec-add
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-add-pipeline:
+    dag:
+      outputs:
+        parameters:
+          out1:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: add
+          out2:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--echo-and-return-Output
+              producerSubtask: for-loop-2
+      tasks:
+        add:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add
+          inputs:
+            parameters:
+              nums:
+                componentInputParameter: nums
+          taskInfo:
+            name: add
+        for-loop-2:
+          componentRef:
+            name: comp-for-loop-2-2
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-1
+            items:
+              raw: '["m", "a", "t", "h"]'
+          taskInfo:
+            name: for-loop-2
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        out1:
+          parameterType: NUMBER_INTEGER
+        out2:
+          parameterType: LIST
+  comp-double:
+    executorLabel: exec-double
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-double-pipeline:
+    dag:
+      outputs:
+        parameters:
+          Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double
+      tasks:
+        double:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: num
+          taskInfo:
+            name: double
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-echo-and-return:
+    executorLabel: exec-echo-and-return
+    inputDefinitions:
+      parameters:
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-for-loop-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-pipeline-Output:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--double-pipeline-Output
+              producerSubtask: for-loop-4
+      tasks:
+        for-loop-4:
+          componentRef:
+            name: comp-for-loop-4
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-3
+            items:
+              raw: '[1, 2, 3]'
+          taskInfo:
+            name: for-loop-4
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-pipeline-Output:
+          parameterType: LIST
+  comp-for-loop-2-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--echo-and-return-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: echo-and-return
+      tasks:
+        echo-and-return:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-echo-and-return
+          inputs:
+            parameters:
+              string:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: echo-and-return
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--echo-and-return-Output:
+          parameterType: LIST
+  comp-for-loop-4:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-pipeline-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double-pipeline
+      tasks:
+        double-pipeline:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double-pipeline
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-3
+          taskInfo:
+            name: double-pipeline
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-3:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-pipeline-Output:
+          parameterType: LIST
+  comp-join-and-print:
+    executorLabel: exec-join-and-print
+    inputDefinitions:
+      parameters:
+        strings:
+          parameterType: LIST
+deploymentSpec:
+  executors:
+    exec-add:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(nums: List[List[int]]) -> int:\n    import itertools\n  \
+          \  return sum(itertools.chain(*nums))\n\n"
+        image: python:3.9
+    exec-double:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+        image: python:3.9
+    exec-echo-and-return:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - echo_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef echo_and_return(string: str) -> str:\n    print(string)\n   \
+          \ return string\n\n"
+        image: python:3.9
+    exec-join-and-print:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - join_and_print
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef join_and_print(strings: List[str]):\n    print(''.join(strings))\n\
+          \n"
+        image: python:3.9
+pipelineInfo:
+  name: math-pipeline
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: out1
+            producerSubtask: add-pipeline
+    tasks:
+      add-pipeline:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-pipeline
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          parameters:
+            nums:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-pipeline-Output
+                producerTask: for-loop-2
+        taskInfo:
+          name: add-pipeline
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '[1, 2, 3]'
+        taskInfo:
+          name: for-loop-2
+      join-and-print:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-join-and-print
+        dependentTasks:
+        - add-pipeline
+        inputs:
+          parameters:
+            strings:
+              taskOutputParameter:
+                outputParameterKey: out2
+                producerTask: add-pipeline
+        taskInfo:
+          name: join-and-print
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
