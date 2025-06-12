@@ -1,0 +1,159 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-google-types
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: google.VertexDataset
+            schemaVersion: 0.0.0
+  comp-model-consumer:
+    executorLabel: exec-model-consumer
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: google.VertexDataset
+            schemaVersion: 0.0.0
+        model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.0
+  comp-model-producer:
+    executorLabel: exec-model-producer
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: google.VertexModel
+            schemaVersion: 0.0.0
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        metadata:
+          key: value
+        typeSchema:
+          schemaTitle: google.VertexDataset
+          schemaVersion: 0.0.0
+    exec-model-consumer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - model_consumer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'aiplatform'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\nfrom aiplatform import VertexModel\nfrom aiplatform import VertexDataset\n\
+          \ndef model_consumer(model: Input[VertexModel],\n                   dataset:\
+          \ Input[VertexDataset]):\n    print('Model')\n    print('artifact.type:\
+          \ ', type(model))\n    print('artifact.name: ', model.name)\n    print('artifact.uri:\
+          \ ', model.uri)\n    print('artifact.metadata: ', model.metadata)\n\n  \
+          \  print('Dataset')\n    print('artifact.type: ', type(dataset))\n    print('artifact.name:\
+          \ ', dataset.name)\n    print('artifact.uri: ', dataset.uri)\n    print('artifact.metadata:\
+          \ ', dataset.metadata)\n\n"
+        image: python:3.9
+    exec-model-producer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - model_producer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'aiplatform'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\nimport aiplatform\n\ndef model_producer(model: Output[aiplatform.VertexModel]):\n\
+          \n    assert isinstance(model, aiplatform.VertexModel), type(model)\n  \
+          \  with open(model.path, 'w') as f:\n        f.write('my model')\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-google-types
+root:
+  dag:
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        taskInfo:
+          name: importer
+      model-consumer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-model-consumer
+        dependentTasks:
+        - importer
+        - model-producer
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+            model:
+              taskOutputArtifact:
+                outputArtifactKey: model
+                producerTask: model-producer
+        taskInfo:
+          name: model-consumer
+      model-producer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-model-producer
+        taskInfo:
+          name: model-producer
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

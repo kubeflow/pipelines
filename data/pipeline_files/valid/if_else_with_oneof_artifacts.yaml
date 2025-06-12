@@ -1,0 +1,380 @@
+# PIPELINE DEFINITION
+# Name: outer-pipeline
+components:
+  comp-condition-2:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--param-to-artifact-a:
+            artifactSelectors:
+            - outputArtifactKey: a
+              producerSubtask: param-to-artifact
+      tasks:
+        param-to-artifact:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-param-to-artifact
+          inputs:
+            parameters:
+              val:
+                componentInputParameter: pipelinechannel--flip-coin-Output
+          taskInfo:
+            name: param-to-artifact
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-coin-Output:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--param-to-artifact-a:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-condition-3:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--param-to-artifact-2-a:
+            artifactSelectors:
+            - outputArtifactKey: a
+              producerSubtask: param-to-artifact-2
+      tasks:
+        param-to-artifact-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-param-to-artifact-2
+          inputs:
+            parameters:
+              val:
+                componentInputParameter: pipelinechannel--flip-coin-Output
+          taskInfo:
+            name: param-to-artifact-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-coin-Output:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--param-to-artifact-2-a:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-condition-branches-1:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--condition-branches-1-oneof-1:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--param-to-artifact-a
+              producerSubtask: condition-2
+            - outputArtifactKey: pipelinechannel--param-to-artifact-2-a
+              producerSubtask: condition-3
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            parameters:
+              pipelinechannel--flip-coin-Output:
+                componentInputParameter: pipelinechannel--flip-coin-Output
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--flip-coin-Output']
+              == 'heads'
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            parameters:
+              pipelinechannel--flip-coin-Output:
+                componentInputParameter: pipelinechannel--flip-coin-Output
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
+              == ''heads'')'
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-coin-Output:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--condition-branches-1-oneof-1:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-flip-coin:
+    executorLabel: exec-flip-coin
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-flip-coin-pipeline:
+    dag:
+      outputs:
+        artifacts:
+          Output:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--condition-branches-1-oneof-1
+              producerSubtask: condition-branches-1
+      tasks:
+        condition-branches-1:
+          componentRef:
+            name: comp-condition-branches-1
+          dependentTasks:
+          - flip-coin
+          inputs:
+            parameters:
+              pipelinechannel--flip-coin-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: flip-coin
+          taskInfo:
+            name: condition-branches-1
+        flip-coin:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-flip-coin
+          taskInfo:
+            name: flip-coin
+        print-artifact:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-artifact
+          dependentTasks:
+          - condition-branches-1
+          inputs:
+            artifacts:
+              a:
+                taskOutputArtifact:
+                  outputArtifactKey: pipelinechannel--condition-branches-1-oneof-1
+                  producerTask: condition-branches-1
+          taskInfo:
+            name: print-artifact
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-param-to-artifact:
+    executorLabel: exec-param-to-artifact
+    inputDefinitions:
+      parameters:
+        val:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        a:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-param-to-artifact-2:
+    executorLabel: exec-param-to-artifact-2
+    inputDefinitions:
+      parameters:
+        val:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        a:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-print-artifact:
+    executorLabel: exec-print-artifact
+    inputDefinitions:
+      artifacts:
+        a:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-print-artifact-2:
+    executorLabel: exec-print-artifact-2
+    inputDefinitions:
+      artifacts:
+        a:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-flip-coin:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flip_coin
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flip_coin() -> str:\n    import random\n    return 'heads' if\
+          \ random.randint(0, 1) == 0 else 'tails'\n\n"
+        image: python:3.9
+    exec-param-to-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - param_to_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef param_to_artifact(val: str, a: Output[Artifact]):\n    with open(a.path,\
+          \ 'w') as f:\n        f.write(val)\n\n"
+        image: python:3.9
+    exec-param-to-artifact-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - param_to_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef param_to_artifact(val: str, a: Output[Artifact]):\n    with open(a.path,\
+          \ 'w') as f:\n        f.write(val)\n\n"
+        image: python:3.9
+    exec-print-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_artifact(a: Input[Artifact]):\n    with open(a.path) as\
+          \ f:\n        print(f.read())\n\n"
+        image: python:3.9
+    exec-print-artifact-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_artifact(a: Input[Artifact]):\n    with open(a.path) as\
+          \ f:\n        print(f.read())\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: outer-pipeline
+root:
+  dag:
+    tasks:
+      flip-coin-pipeline:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-flip-coin-pipeline
+        taskInfo:
+          name: flip-coin-pipeline
+      print-artifact:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-artifact-2
+        dependentTasks:
+        - flip-coin-pipeline
+        inputs:
+          artifacts:
+            a:
+              taskOutputArtifact:
+                outputArtifactKey: Output
+                producerTask: flip-coin-pipeline
+        taskInfo:
+          name: print-artifact
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

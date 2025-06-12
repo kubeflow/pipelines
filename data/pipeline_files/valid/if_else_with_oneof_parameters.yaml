@@ -1,0 +1,313 @@
+# PIPELINE DEFINITION
+# Name: flip-coin-pipeline
+# Outputs:
+#    Output: str
+components:
+  comp-condition-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--print-and-return-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: print-and-return
+      tasks:
+        print-and-return:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-and-return
+          inputs:
+            parameters:
+              text:
+                runtimeValue:
+                  constant: Got heads!
+          taskInfo:
+            name: print-and-return
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-coin-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--print-and-return-Output:
+          parameterType: STRING
+  comp-condition-3:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--print-and-return-2-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: print-and-return-2
+      tasks:
+        print-and-return-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-and-return-2
+          inputs:
+            parameters:
+              text:
+                runtimeValue:
+                  constant: Got tails!
+          taskInfo:
+            name: print-and-return-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-coin-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--print-and-return-2-Output:
+          parameterType: STRING
+  comp-condition-branches-1:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--condition-branches-1-oneof-1:
+            valueFromOneof:
+              parameterSelectors:
+              - outputParameterKey: pipelinechannel--print-and-return-Output
+                producerSubtask: condition-2
+              - outputParameterKey: pipelinechannel--print-and-return-2-Output
+                producerSubtask: condition-3
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            parameters:
+              pipelinechannel--flip-coin-Output:
+                componentInputParameter: pipelinechannel--flip-coin-Output
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--flip-coin-Output']
+              == 'heads'
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            parameters:
+              pipelinechannel--flip-coin-Output:
+                componentInputParameter: pipelinechannel--flip-coin-Output
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
+              == ''heads'')'
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-coin-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--condition-branches-1-oneof-1:
+          parameterType: STRING
+  comp-flip-coin:
+    executorLabel: exec-flip-coin
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-and-return:
+    executorLabel: exec-print-and-return
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-and-return-2:
+    executorLabel: exec-print-and-return-2
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-and-return-3:
+    executorLabel: exec-print-and-return-3
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-flip-coin:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flip_coin
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flip_coin() -> str:\n    import random\n    return 'heads' if\
+          \ random.randint(0, 1) == 0 else 'tails'\n\n"
+        image: python:3.9
+    exec-print-and-return:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.9
+    exec-print-and-return-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.9
+    exec-print-and-return-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: flip-coin-pipeline
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: pipelinechannel--condition-branches-1-oneof-1
+            producerSubtask: condition-branches-1
+    tasks:
+      condition-branches-1:
+        componentRef:
+          name: comp-condition-branches-1
+        dependentTasks:
+        - flip-coin
+        inputs:
+          parameters:
+            pipelinechannel--flip-coin-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: flip-coin
+        taskInfo:
+          name: condition-branches-1
+      flip-coin:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-flip-coin
+        taskInfo:
+          name: flip-coin
+      print-and-return-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-and-return-3
+        dependentTasks:
+        - condition-branches-1
+        inputs:
+          parameters:
+            text:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--condition-branches-1-oneof-1
+                producerTask: condition-branches-1
+        taskInfo:
+          name: print-and-return-3
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

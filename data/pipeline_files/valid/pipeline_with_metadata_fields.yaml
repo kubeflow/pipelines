@@ -1,0 +1,179 @@
+# PIPELINE DEFINITION
+# Name: dataset-concatenator
+# Description: A pipeline that joins string to in_dataset.
+# Inputs:
+#    in_dataset: system.Dataset
+#    string: str
+# Outputs:
+#    Output: system.Dataset
+components:
+  comp-dataset-joiner:
+    executorLabel: exec-dataset-joiner
+    inputDefinitions:
+      artifacts:
+        dataset_a:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: First dataset.
+        dataset_b:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: Second dataset.
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: The concatenated dataset.
+      parameters:
+        Output:
+          description: The concatenated string.
+          parameterType: STRING
+  comp-str-to-dataset:
+    executorLabel: exec-str-to-dataset
+    inputDefinitions:
+      parameters:
+        string:
+          description: The string.
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: The dataset.
+deploymentSpec:
+  executors:
+    exec-dataset-joiner:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - dataset_joiner
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef dataset_joiner(\n    dataset_a: Input[Dataset],\n    dataset_b:\
+          \ Input[Dataset],\n    out_dataset: Output[Dataset],\n) -> str:\n    \"\"\
+          \"Concatenate dataset_a and dataset_b.\n\n    Also returns the concatenated\
+          \ string.\n\n    Args:\n        dataset_a: First dataset.\n        dataset_b:\
+          \ Second dataset.\n\n    Returns:\n        out_dataset: The concatenated\
+          \ dataset.\n        Output: The concatenated string.\n    \"\"\"\n    with\
+          \ open(dataset_a.path) as f:\n        content_a = f.read()\n\n    with open(dataset_b.path)\
+          \ as f:\n        content_b = f.read()\n\n    concatenated_string = content_a\
+          \ + content_b\n    with open(out_dataset.path, 'w') as f:\n        f.write(concatenated_string)\n\
+          \n    return concatenated_string\n\n"
+        image: python:3.9
+    exec-str-to-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - str_to_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef str_to_dataset(string: str, dataset: Output[Dataset]):\n    \"\
+          \"\"Convert string to dataset.\n\n    Args:\n        string: The string.\n\
+          \n    Returns:\n        dataset: The dataset.\n    \"\"\"\n    with open(dataset.path,\
+          \ 'w') as f:\n        f.write(string)\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: A pipeline that joins string to in_dataset.
+  displayName: Concatenation pipeline
+  name: dataset-concatenator
+root:
+  dag:
+    outputs:
+      artifacts:
+        Output:
+          artifactSelectors:
+          - outputArtifactKey: out_dataset
+            producerSubtask: dataset-joiner
+    tasks:
+      dataset-joiner:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-dataset-joiner
+        dependentTasks:
+        - str-to-dataset
+        inputs:
+          artifacts:
+            dataset_a:
+              taskOutputArtifact:
+                outputArtifactKey: dataset
+                producerTask: str-to-dataset
+            dataset_b:
+              componentInputArtifact: in_dataset
+        taskInfo:
+          name: dataset-joiner
+      str-to-dataset:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-str-to-dataset
+        inputs:
+          parameters:
+            string:
+              componentInputParameter: string
+        taskInfo:
+          name: str-to-dataset
+  inputDefinitions:
+    artifacts:
+      in_dataset:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+        description: Dataset to which to concatenate string.
+    parameters:
+      string:
+        description: String to concatenate to in_artifact.
+        parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      Output:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+        description: The final concatenated dataset.
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

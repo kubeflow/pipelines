@@ -1,0 +1,36 @@
+# PIPELINE DEFINITION
+# Name: one-step-pipeline-with-concat-placeholder
+components:
+  comp-component-with-concat-placeholder:
+    executorLabel: exec-component-with-concat-placeholder
+    inputDefinitions:
+      parameters:
+        input_prefix:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-with-concat-placeholder:
+      container:
+        args:
+        - --arg0
+        - '{"Concat": ["{{$.inputs.parameters[''input_prefix'']}}", "some value"]}'
+        image: gcr.io/my-project/my-image
+pipelineInfo:
+  name: one-step-pipeline-with-concat-placeholder
+root:
+  dag:
+    tasks:
+      component-with-concat-placeholder:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-with-concat-placeholder
+        inputs:
+          parameters:
+            input_prefix:
+              runtimeValue:
+                constant: 'some prefix:'
+        taskInfo:
+          name: component-with-concat-placeholder
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

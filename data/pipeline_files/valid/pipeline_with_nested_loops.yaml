@@ -1,0 +1,265 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-nested-loops
+# Inputs:
+#    loop_parameter: list [Default: [{'p_b': 'hello', 'p_a': [{'q_a': '1'}, {'q_a': '2'}]}, {'p_b': 'halo', 'p_a': [{'q_a': '11'}, {'q_a': '22'}]}]]
+components:
+  comp-for-loop-1:
+    dag:
+      tasks:
+        for-loop-2:
+          componentRef:
+            name: comp-for-loop-2
+          inputs:
+            parameters:
+              pipelinechannel--loop_parameter-loop-item:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+              pipelinechannel--loop_parameter-loop-item-subvar-p_a:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+                parameterExpressionSelector: parseJson(string_value)["p_a"]
+          parameterIterator:
+            itemInput: pipelinechannel--loop_parameter-loop-item-subvar-p_a-loop-item
+            items:
+              inputParameter: pipelinechannel--loop_parameter-loop-item-subvar-p_a
+          taskInfo:
+            name: for-loop-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+  comp-for-loop-2:
+    dag:
+      tasks:
+        print-op:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item-subvar-p_a-loop-item
+                parameterExpressionSelector: parseJson(string_value)["q_a"]
+          taskInfo:
+            name: print-op
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+        pipelinechannel--loop_parameter-loop-item-subvar-p_a:
+          parameterType: STRING
+        pipelinechannel--loop_parameter-loop-item-subvar-p_a-loop-item:
+          parameterType: STRING
+  comp-for-loop-4:
+    dag:
+      tasks:
+        for-loop-6:
+          componentRef:
+            name: comp-for-loop-6
+          inputs:
+            parameters:
+              pipelinechannel--loop-item-param-3:
+                componentInputParameter: pipelinechannel--loop-item-param-3
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-5
+            items:
+              raw: '["100", "200", "300"]'
+          taskInfo:
+            name: for-loop-6
+        print-op-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op-2
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop-item-param-3
+          taskInfo:
+            name: print-op-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-3:
+          parameterType: STRING
+  comp-for-loop-6:
+    dag:
+      tasks:
+        print-op-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op-3
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop-item-param-3
+              msg2:
+                componentInputParameter: pipelinechannel--loop-item-param-5
+          taskInfo:
+            name: print-op-3
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-3:
+          parameterType: STRING
+        pipelinechannel--loop-item-param-5:
+          parameterType: STRING
+  comp-print-op:
+    executorLabel: exec-print-op
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-op-2:
+    executorLabel: exec-print-op-2
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-op-3:
+    executorLabel: exec-print-op-3
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-print-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-op-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-op-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-nested-loops
+root:
+  dag:
+    tasks:
+      for-loop-1:
+        componentRef:
+          name: comp-for-loop-1
+        inputs:
+          parameters:
+            pipelinechannel--loop_parameter:
+              componentInputParameter: loop_parameter
+        parameterIterator:
+          itemInput: pipelinechannel--loop_parameter-loop-item
+          items:
+            inputParameter: pipelinechannel--loop_parameter
+        taskInfo:
+          name: for-loop-1
+      for-loop-4:
+        componentRef:
+          name: comp-for-loop-4
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-3
+          items:
+            raw: '["1", "2"]'
+        taskInfo:
+          name: for-loop-4
+  inputDefinitions:
+    parameters:
+      loop_parameter:
+        defaultValue:
+        - p_a:
+          - q_a: '1'
+          - q_a: '2'
+          p_b: hello
+        - p_a:
+          - q_a: '11'
+          - q_a: '22'
+          p_b: halo
+        isOptional: true
+        parameterType: LIST
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

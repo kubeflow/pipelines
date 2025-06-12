@@ -1,0 +1,216 @@
+# PIPELINE DEFINITION
+# Name: math-pipeline
+# Outputs:
+#    Output: system.Dataset
+components:
+  comp-add:
+    executorLabel: exec-add
+    inputDefinitions:
+      artifacts:
+        in_datasets:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-add-container:
+    executorLabel: exec-add-container
+    inputDefinitions:
+      artifacts:
+        in_datasets:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-double:
+    executorLabel: exec-double
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-for-loop-2:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--double-out_dataset:
+            artifactSelectors:
+            - outputArtifactKey: out_dataset
+              producerSubtask: double
+      tasks:
+        double:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: double
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--double-out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+deploymentSpec:
+  executors:
+    exec-add:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]):\n\
+          \    nums = []\n    for dataset in in_datasets:\n        with open(dataset.path)\
+          \ as f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,\
+          \ 'w') as f:\n        f.write(str(sum(nums)))\n\n"
+        image: python:3.9
+    exec-add-container:
+      container:
+        args:
+        - "\nimport argparse\nimport json\nimport os\n\ndef main(in_datasets, out_dataset_uri):\n\
+          \    in_dicts = json.loads(in_datasets)\n    uris = [d['uri'] for d in in_dicts]\n\
+          \    total = 0\n    for uri in uris:\n        with open(uri.replace('gs://',\
+          \ '/gcs/')) as f:\n            total += int(f.read())\n\n    outpath = out_dataset_uri.replace('gs://',\
+          \ '/gcs/')\n    os.makedirs(os.path.dirname(outpath), exist_ok=True)\n \
+          \   with open(outpath, 'w') as f:\n        f.write(str(total))\n\nparser\
+          \ = argparse.ArgumentParser()\nparser.add_argument('in_datasets')\nparser.add_argument('out_dataset_uri')\n\
+          args = parser.parse_args()\n\nmain(args.in_datasets, args.out_dataset_uri)\n"
+        - '{{$.inputs.artifacts[''in_datasets'']}}'
+        - '{{$.outputs.artifacts[''out_dataset''].uri}}'
+        command:
+        - python
+        - -c
+        image: python:3.9
+    exec-double:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(num: int, out_dataset: Output[Dataset]):\n    with open(out_dataset.path,\
+          \ 'w') as f:\n        f.write(str(2 * num))\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: math-pipeline
+root:
+  dag:
+    outputs:
+      artifacts:
+        Output:
+          artifactSelectors:
+          - outputArtifactKey: pipelinechannel--double-out_dataset
+            producerSubtask: for-loop-2
+    tasks:
+      add:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          artifacts:
+            in_datasets:
+              taskOutputArtifact:
+                outputArtifactKey: pipelinechannel--double-out_dataset
+                producerTask: for-loop-2
+        taskInfo:
+          name: add
+      add-container:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-container
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          artifacts:
+            in_datasets:
+              taskOutputArtifact:
+                outputArtifactKey: pipelinechannel--double-out_dataset
+                producerTask: for-loop-2
+        taskInfo:
+          name: add-container
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '[1, 2, 3]'
+        taskInfo:
+          name: for-loop-2
+  outputDefinitions:
+    artifacts:
+      Output:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+        isArtifactList: true
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

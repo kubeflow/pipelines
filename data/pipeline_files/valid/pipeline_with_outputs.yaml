@@ -1,0 +1,210 @@
+# PIPELINE DEFINITION
+# Name: pipeline-in-pipeline
+# Inputs:
+#    msg: str [Default: 'Hello']
+# Outputs:
+#    Output: system.Artifact
+components:
+  comp-inner-pipeline:
+    dag:
+      outputs:
+        artifacts:
+          data:
+            artifactSelectors:
+            - outputArtifactKey: data
+              producerSubtask: print-op2
+        parameters:
+          msg:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: print-op1
+      tasks:
+        print-op1:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op1-2
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: msg
+          taskInfo:
+            name: print-op1
+        print-op2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op2
+          dependentTasks:
+          - print-op1
+          inputs:
+            parameters:
+              msg:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: print-op1
+          taskInfo:
+            name: print-op2
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        data:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        msg:
+          parameterType: STRING
+  comp-print-op1:
+    executorLabel: exec-print-op1
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-op1-2:
+    executorLabel: exec-print-op1-2
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-op2:
+    executorLabel: exec-print-op2
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        data:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-print-op1:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op1
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op1(msg: str) -> str:\n    print(msg)\n    return msg\n\
+          \n"
+        image: python:3.9
+    exec-print-op1-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op1
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op1(msg: str) -> str:\n    print(msg)\n    return msg\n\
+          \n"
+        image: python:3.9
+    exec-print-op2:
+      container:
+        args:
+        - '{{$.inputs.parameters[''msg'']}}'
+        - '{{$.outputs.artifacts[''data''].path}}'
+        command:
+        - sh
+        - -c
+        - mkdir --parents $(dirname "$1") && echo "$0" > "$1"
+        image: alpine
+pipelineInfo:
+  name: pipeline-in-pipeline
+root:
+  dag:
+    outputs:
+      artifacts:
+        Output:
+          artifactSelectors:
+          - outputArtifactKey: data
+            producerSubtask: inner-pipeline
+    tasks:
+      inner-pipeline:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-inner-pipeline
+        inputs:
+          parameters:
+            msg:
+              runtimeValue:
+                constant: world
+        taskInfo:
+          name: inner-pipeline
+      print-op1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op1
+        inputs:
+          parameters:
+            msg:
+              componentInputParameter: msg
+        taskInfo:
+          name: print-op1
+  inputDefinitions:
+    parameters:
+      msg:
+        defaultValue: Hello
+        isOptional: true
+        parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      Output:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

@@ -1,0 +1,1051 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-loops-and-conditions-multi-layers
+# Inputs:
+#    loop_parameter: list [Default: [{'B_b': ['A', 'B'], 'A_a': 'heads'}, {'B_b': ['X', 'Y', 'Z'], 'A_a': 'tails'}]]
+#    msg: str [Default: 'hello']
+components:
+  comp-args-generator-op:
+    executorLabel: exec-args-generator-op
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-args-generator-op-2:
+    executorLabel: exec-args-generator-op-2
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-condition-1:
+    dag:
+      tasks:
+        args-generator-op-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-args-generator-op-2
+          taskInfo:
+            name: args-generator-op-2
+        for-loop-2:
+          componentRef:
+            name: comp-for-loop-2
+          dependentTasks:
+          - args-generator-op-2
+          inputs:
+            parameters:
+              pipelinechannel--args-generator-op-2-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: args-generator-op-2
+              pipelinechannel--args-generator-op-Output:
+                componentInputParameter: pipelinechannel--args-generator-op-Output
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+              pipelinechannel--loop_parameter:
+                componentInputParameter: pipelinechannel--loop_parameter
+              pipelinechannel--msg:
+                componentInputParameter: pipelinechannel--msg
+          parameterIterator:
+            itemInput: pipelinechannel--args-generator-op-Output-loop-item
+            items:
+              inputParameter: pipelinechannel--args-generator-op-Output
+          taskInfo:
+            name: for-loop-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--args-generator-op-Output:
+          parameterType: LIST
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--msg:
+          parameterType: STRING
+  comp-condition-13:
+    dag:
+      tasks:
+        print-text-8:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-text-8
+          inputs:
+            parameters:
+              msg:
+                runtimeValue:
+                  constant: '1'
+          taskInfo:
+            name: print-text-8
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--loop-item-param-11:
+          parameterType: STRING
+  comp-condition-15:
+    dag:
+      tasks:
+        for-loop-16:
+          componentRef:
+            name: comp-for-loop-16
+          inputs:
+            parameters:
+              pipelinechannel--loop_parameter-loop-item:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+              pipelinechannel--loop_parameter-loop-item-subvar-B_b:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+                parameterExpressionSelector: parseJson(string_value)["B_b"]
+          parameterIterator:
+            itemInput: pipelinechannel--loop_parameter-loop-item-subvar-B_b-loop-item
+            items:
+              inputParameter: pipelinechannel--loop_parameter-loop-item-subvar-B_b
+          taskInfo:
+            name: for-loop-16
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+        pipelinechannel--loop_parameter-loop-item-subvar-A_a:
+          parameterType: STRING
+  comp-condition-3:
+    dag:
+      tasks:
+        print-text-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-text-2
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["B_b"]
+          taskInfo:
+            name: print-text-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--args-generator-op-Output-loop-item:
+          parameterType: STRING
+        pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+  comp-condition-4:
+    dag:
+      tasks:
+        print-text-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-text-3
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["B_b"]
+          taskInfo:
+            name: print-text-3
+    inputDefinitions:
+      parameters:
+        pipelinechannel--args-generator-op-Output-loop-item:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+  comp-condition-5:
+    dag:
+      tasks:
+        for-loop-7:
+          componentRef:
+            name: comp-for-loop-7
+          inputs:
+            parameters:
+              pipelinechannel--args-generator-op-Output-loop-item:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-6
+            items:
+              raw: '[{"a": "-1"}, {"a": "-2"}]'
+          taskInfo:
+            name: for-loop-7
+    inputDefinitions:
+      parameters:
+        pipelinechannel--args-generator-op-Output-loop-item:
+          parameterType: STRING
+        pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+  comp-flip-coin-op:
+    executorLabel: exec-flip-coin-op
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-for-loop-10:
+    dag:
+      tasks:
+        print-text-6:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-text-6
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+              msg2:
+                componentInputParameter: pipelinechannel--args-generator-op-2-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["A_a"]
+          taskInfo:
+            name: print-text-6
+    inputDefinitions:
+      parameters:
+        pipelinechannel--args-generator-op-2-Output:
+          parameterType: LIST
+        pipelinechannel--args-generator-op-2-Output-loop-item:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+  comp-for-loop-12:
+    dag:
+      tasks:
+        condition-13:
+          componentRef:
+            name: comp-condition-13
+          inputs:
+            parameters:
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+              pipelinechannel--loop-item-param-11:
+                componentInputParameter: pipelinechannel--loop-item-param-11
+          taskInfo:
+            name: condition-13
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--loop-item-param-11']
+              == '1'
+        print-text-7:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-text-7
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop-item-param-11
+          taskInfo:
+            name: print-text-7
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--loop-item-param-11:
+          parameterType: STRING
+  comp-for-loop-14:
+    dag:
+      tasks:
+        condition-15:
+          componentRef:
+            name: comp-condition-15
+          inputs:
+            parameters:
+              pipelinechannel--loop_parameter-loop-item:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+              pipelinechannel--loop_parameter-loop-item-subvar-A_a:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+                parameterExpressionSelector: parseJson(string_value)["A_a"]
+          taskInfo:
+            name: condition-15
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--loop_parameter-loop-item-subvar-A_a']
+              == 'heads'
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+  comp-for-loop-16:
+    dag:
+      tasks:
+        print-text-9:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-text-9
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item-subvar-B_b-loop-item
+          taskInfo:
+            name: print-text-9
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+        pipelinechannel--loop_parameter-loop-item-subvar-B_b:
+          parameterType: STRING
+        pipelinechannel--loop_parameter-loop-item-subvar-B_b-loop-item:
+          parameterType: STRING
+  comp-for-loop-2:
+    dag:
+      tasks:
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            parameters:
+              pipelinechannel--args-generator-op-Output-loop-item:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["A_a"]
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a']
+              == 'heads'
+        condition-4:
+          componentRef:
+            name: comp-condition-4
+          inputs:
+            parameters:
+              pipelinechannel--args-generator-op-Output-loop-item:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+          taskInfo:
+            name: condition-4
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--flip-coin-op-Output']
+              == 'heads'
+        condition-5:
+          componentRef:
+            name: comp-condition-5
+          inputs:
+            parameters:
+              pipelinechannel--args-generator-op-Output-loop-item:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["A_a"]
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+          taskInfo:
+            name: condition-5
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a']
+              == 'tails'
+        for-loop-12:
+          componentRef:
+            name: comp-for-loop-12
+          inputs:
+            parameters:
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-11
+            items:
+              raw: '["1", "2"]'
+          taskInfo:
+            name: for-loop-12
+        for-loop-8:
+          componentRef:
+            name: comp-for-loop-8
+          inputs:
+            parameters:
+              pipelinechannel--args-generator-op-Output-loop-item:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+              pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item
+                parameterExpressionSelector: parseJson(string_value)["B_b"]
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+          parameterIterator:
+            itemInput: pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b-loop-item
+            items:
+              inputParameter: pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b
+          taskInfo:
+            name: for-loop-8
+        for-loop-9:
+          componentRef:
+            name: comp-for-loop-9
+          inputs:
+            parameters:
+              pipelinechannel--args-generator-op-2-Output:
+                componentInputParameter: pipelinechannel--args-generator-op-2-Output
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+              pipelinechannel--loop_parameter:
+                componentInputParameter: pipelinechannel--loop_parameter
+          parameterIterator:
+            itemInput: pipelinechannel--loop_parameter-loop-item
+            items:
+              inputParameter: pipelinechannel--loop_parameter
+          taskInfo:
+            name: for-loop-9
+        print-text:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-text
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--msg
+          taskInfo:
+            name: print-text
+    inputDefinitions:
+      parameters:
+        pipelinechannel--args-generator-op-2-Output:
+          parameterType: LIST
+        pipelinechannel--args-generator-op-Output:
+          parameterType: LIST
+        pipelinechannel--args-generator-op-Output-loop-item:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--msg:
+          parameterType: STRING
+  comp-for-loop-7:
+    dag:
+      tasks:
+        print-struct:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-struct
+          inputs:
+            parameters:
+              struct:
+                componentInputParameter: pipelinechannel--loop-item-param-6
+          taskInfo:
+            name: print-struct
+    inputDefinitions:
+      parameters:
+        pipelinechannel--args-generator-op-Output-loop-item:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--loop-item-param-6:
+          parameterType: STRUCT
+  comp-for-loop-8:
+    dag:
+      tasks:
+        print-text-4:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-text-4
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b-loop-item
+          taskInfo:
+            name: print-text-4
+    inputDefinitions:
+      parameters:
+        pipelinechannel--args-generator-op-Output-loop-item:
+          parameterType: STRING
+        pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b:
+          parameterType: STRING
+        pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b-loop-item:
+          parameterType: STRING
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+  comp-for-loop-9:
+    dag:
+      tasks:
+        for-loop-10:
+          componentRef:
+            name: comp-for-loop-10
+          inputs:
+            parameters:
+              pipelinechannel--args-generator-op-2-Output:
+                componentInputParameter: pipelinechannel--args-generator-op-2-Output
+              pipelinechannel--flip-coin-op-Output:
+                componentInputParameter: pipelinechannel--flip-coin-op-Output
+              pipelinechannel--loop_parameter-loop-item:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+          parameterIterator:
+            itemInput: pipelinechannel--args-generator-op-2-Output-loop-item
+            items:
+              inputParameter: pipelinechannel--args-generator-op-2-Output
+          taskInfo:
+            name: for-loop-10
+        print-text-5:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-text-5
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop_parameter-loop-item
+          taskInfo:
+            name: print-text-5
+    inputDefinitions:
+      parameters:
+        pipelinechannel--args-generator-op-2-Output:
+          parameterType: LIST
+        pipelinechannel--flip-coin-op-Output:
+          parameterType: STRING
+        pipelinechannel--loop_parameter:
+          parameterType: LIST
+        pipelinechannel--loop_parameter-loop-item:
+          parameterType: STRING
+  comp-print-struct:
+    executorLabel: exec-print-struct
+    inputDefinitions:
+      parameters:
+        struct:
+          parameterType: STRUCT
+  comp-print-text:
+    executorLabel: exec-print-text
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-text-2:
+    executorLabel: exec-print-text-2
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-text-3:
+    executorLabel: exec-print-text-3
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-text-4:
+    executorLabel: exec-print-text-4
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-text-5:
+    executorLabel: exec-print-text-5
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-text-6:
+    executorLabel: exec-print-text-6
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-text-7:
+    executorLabel: exec-print-text-7
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-text-8:
+    executorLabel: exec-print-text-8
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+  comp-print-text-9:
+    executorLabel: exec-print-text-9
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-args-generator-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - args_generator_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef args_generator_op() -> list:\n    return [\n        {\n     \
+          \       'A_a': '1',\n            'B_b': ['2', '20'],\n        },\n     \
+          \   {\n            'A_a': '10',\n            'B_b': ['22', '222'],\n   \
+          \     },\n    ]\n\n"
+        image: python:3.9
+    exec-args-generator-op-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - args_generator_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef args_generator_op() -> list:\n    return [\n        {\n     \
+          \       'A_a': '1',\n            'B_b': ['2', '20'],\n        },\n     \
+          \   {\n            'A_a': '10',\n            'B_b': ['22', '222'],\n   \
+          \     },\n    ]\n\n"
+        image: python:3.9
+    exec-flip-coin-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flip_coin_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
+          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
+          \ 1) == 0 else 'tails'\n    return result\n\n"
+        image: python:3.9
+    exec-print-struct:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_struct
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_struct(struct: dict):\n    print(struct)\n\n"
+        image: python:3.9
+    exec-print-text:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-text-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-text-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-text-4:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-text-5:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-text-6:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-text-7:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-text-8:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+    exec-print-text-9:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_text(msg: str, msg2: Optional[str] = None):\n    print(f'msg:\
+          \ {msg}, msg2: {msg2}')\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-loops-and-conditions-multi-layers
+root:
+  dag:
+    tasks:
+      args-generator-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-args-generator-op
+        taskInfo:
+          name: args-generator-op
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - args-generator-op
+        - flip-coin-op
+        inputs:
+          parameters:
+            pipelinechannel--args-generator-op-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: args-generator-op
+            pipelinechannel--flip-coin-op-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: flip-coin-op
+            pipelinechannel--loop_parameter:
+              componentInputParameter: loop_parameter
+            pipelinechannel--msg:
+              componentInputParameter: msg
+        taskInfo:
+          name: condition-1
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--flip-coin-op-Output']
+            != 'no-such-result'
+      flip-coin-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-flip-coin-op
+        taskInfo:
+          name: flip-coin-op
+      for-loop-14:
+        componentRef:
+          name: comp-for-loop-14
+        inputs:
+          parameters:
+            pipelinechannel--loop_parameter:
+              componentInputParameter: loop_parameter
+        parameterIterator:
+          itemInput: pipelinechannel--loop_parameter-loop-item
+          items:
+            inputParameter: pipelinechannel--loop_parameter
+        taskInfo:
+          name: for-loop-14
+  inputDefinitions:
+    parameters:
+      loop_parameter:
+        defaultValue:
+        - A_a: heads
+          B_b:
+          - A
+          - B
+        - A_a: tails
+          B_b:
+          - X
+          - Y
+          - Z
+        isOptional: true
+        parameterType: LIST
+      msg:
+        defaultValue: hello
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

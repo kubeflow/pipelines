@@ -1,0 +1,420 @@
+# PIPELINE DEFINITION
+# Name: outer-pipeline
+# Outputs:
+#    Output: str
+components:
+  comp-condition-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--print-and-return-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: print-and-return
+      tasks:
+        print-and-return:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-and-return
+          inputs:
+            parameters:
+              text:
+                runtimeValue:
+                  constant: Got heads!
+          taskInfo:
+            name: print-and-return
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-three-sided-die-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--print-and-return-Output:
+          parameterType: STRING
+  comp-condition-3:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--print-and-return-2-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: print-and-return-2
+      tasks:
+        print-and-return-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-and-return-2
+          inputs:
+            parameters:
+              text:
+                runtimeValue:
+                  constant: Got tails!
+          taskInfo:
+            name: print-and-return-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-three-sided-die-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--print-and-return-2-Output:
+          parameterType: STRING
+  comp-condition-4:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--special-print-and-return-output_key:
+            valueFromParameter:
+              outputParameterKey: output_key
+              producerSubtask: special-print-and-return
+      tasks:
+        special-print-and-return:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-special-print-and-return
+          inputs:
+            parameters:
+              text:
+                runtimeValue:
+                  constant: Draw!
+          taskInfo:
+            name: special-print-and-return
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-three-sided-die-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--special-print-and-return-output_key:
+          parameterType: STRING
+  comp-condition-branches-1:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--condition-branches-1-oneof-1:
+            valueFromOneof:
+              parameterSelectors:
+              - outputParameterKey: pipelinechannel--print-and-return-Output
+                producerSubtask: condition-2
+              - outputParameterKey: pipelinechannel--print-and-return-2-Output
+                producerSubtask: condition-3
+              - outputParameterKey: pipelinechannel--special-print-and-return-output_key
+                producerSubtask: condition-4
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            parameters:
+              pipelinechannel--flip-three-sided-die-Output:
+                componentInputParameter: pipelinechannel--flip-three-sided-die-Output
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--flip-three-sided-die-Output']
+              == 'heads'
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            parameters:
+              pipelinechannel--flip-three-sided-die-Output:
+                componentInputParameter: pipelinechannel--flip-three-sided-die-Output
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+              == ''heads'') && inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+              == ''tails'''
+        condition-4:
+          componentRef:
+            name: comp-condition-4
+          inputs:
+            parameters:
+              pipelinechannel--flip-three-sided-die-Output:
+                componentInputParameter: pipelinechannel--flip-three-sided-die-Output
+          taskInfo:
+            name: condition-4
+          triggerPolicy:
+            condition: '!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+              == ''heads'') && !(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+              == ''tails'')'
+    inputDefinitions:
+      parameters:
+        pipelinechannel--flip-three-sided-die-Output:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--condition-branches-1-oneof-1:
+          parameterType: STRING
+  comp-flip-three-sided-die:
+    executorLabel: exec-flip-three-sided-die
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-and-return:
+    executorLabel: exec-print-and-return
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-and-return-2:
+    executorLabel: exec-print-and-return-2
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-and-return-3:
+    executorLabel: exec-print-and-return-3
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-roll-die-pipeline:
+    dag:
+      outputs:
+        parameters:
+          Output:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--condition-branches-1-oneof-1
+              producerSubtask: condition-branches-1
+      tasks:
+        condition-branches-1:
+          componentRef:
+            name: comp-condition-branches-1
+          dependentTasks:
+          - flip-three-sided-die
+          inputs:
+            parameters:
+              pipelinechannel--flip-three-sided-die-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: flip-three-sided-die
+          taskInfo:
+            name: condition-branches-1
+        flip-three-sided-die:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-flip-three-sided-die
+          taskInfo:
+            name: flip-three-sided-die
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-special-print-and-return:
+    executorLabel: exec-special-print-and-return
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output_key:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-flip-three-sided-die:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flip_three_sided_die
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flip_three_sided_die() -> str:\n    import random\n    val =\
+          \ random.randint(0, 2)\n\n    if val == 0:\n        return 'heads'\n   \
+          \ elif val == 1:\n        return 'tails'\n    else:\n        return 'draw'\n\
+          \n"
+        image: python:3.9
+    exec-print-and-return:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.9
+    exec-print-and-return-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.9
+    exec-print-and-return-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+          \ text\n\n"
+        image: python:3.9
+    exec-special-print-and-return:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - special_print_and_return
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef special_print_and_return(text: str, output_key: dsl.OutputPath(str)):\n\
+          \    print('Got the special state:', text)\n    with open(output_key, 'w')\
+          \ as f:\n        f.write(text)\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: outer-pipeline
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: print-and-return
+    tasks:
+      print-and-return:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-and-return-3
+        dependentTasks:
+        - roll-die-pipeline
+        inputs:
+          parameters:
+            text:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: roll-die-pipeline
+        taskInfo:
+          name: print-and-return
+      roll-die-pipeline:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-roll-die-pipeline
+        taskInfo:
+          name: roll-die-pipeline
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

@@ -1,0 +1,184 @@
+# PIPELINE DEFINITION
+# Name: split-datasets-and-return-first
+# Outputs:
+#    Output: system.Dataset
+components:
+  comp-dataset-splitter:
+    executorLabel: exec-dataset-splitter
+    inputDefinitions:
+      artifacts:
+        in_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        dataset1:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        dataset2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-make-dataset:
+    executorLabel: exec-make-dataset
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-splitter-pipeline:
+    dag:
+      outputs:
+        artifacts:
+          dataset1:
+            artifactSelectors:
+            - outputArtifactKey: dataset1
+              producerSubtask: dataset-splitter
+          dataset2:
+            artifactSelectors:
+            - outputArtifactKey: dataset1
+              producerSubtask: dataset-splitter
+      tasks:
+        dataset-splitter:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-dataset-splitter
+          inputs:
+            artifacts:
+              in_dataset:
+                componentInputArtifact: in_dataset
+          taskInfo:
+            name: dataset-splitter
+    inputDefinitions:
+      artifacts:
+        in_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        dataset1:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        dataset2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-dataset-splitter:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - dataset_splitter
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef dataset_splitter(\n    in_dataset: Dataset\n) -> NamedTuple(\n\
+          \        'outputs',\n        dataset1=Dataset,\n        dataset2=Dataset,\n\
+          ):\n\n    with open(in_dataset.path) as f:\n        in_data = f.read()\n\
+          \n    out_data1, out_data2 = in_data[:len(in_data) // 2], in_data[len(in_data)\
+          \ //\n                                                                2:]\n\
+          \n    dataset1 = Dataset(\n        uri=dsl.get_uri(suffix='dataset1'),\n\
+          \        metadata={'original_data': in_dataset.name},\n    )\n    with open(dataset1.path,\
+          \ 'w') as f:\n        f.write(out_data1)\n\n    dataset2 = Dataset(\n  \
+          \      uri=dsl.get_uri(suffix='dataset2'),\n        metadata={'original_data':\
+          \ in_dataset.name},\n    )\n    with open(dataset2.path, 'w') as f:\n  \
+          \      f.write(out_data2)\n\n    outputs = NamedTuple(\n        'outputs',\n\
+          \        dataset1=Dataset,\n        dataset2=Dataset,\n    )\n    return\
+          \ outputs(dataset1=dataset1, dataset2=dataset2)\n\n"
+        image: python:3.9
+    exec-make-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - make_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef make_dataset() -> Artifact:\n    artifact = Artifact(uri=dsl.get_uri('dataset'))\n\
+          \    with open(artifact.path, 'w') as f:\n        f.write('Hello, world')\n\
+          \    return artifact\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: split-datasets-and-return-first
+root:
+  dag:
+    outputs:
+      artifacts:
+        Output:
+          artifactSelectors:
+          - outputArtifactKey: dataset1
+            producerSubtask: splitter-pipeline
+    tasks:
+      make-dataset:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-make-dataset
+        taskInfo:
+          name: make-dataset
+      splitter-pipeline:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-splitter-pipeline
+        dependentTasks:
+        - make-dataset
+        inputs:
+          artifacts:
+            in_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: Output
+                producerTask: make-dataset
+        taskInfo:
+          name: splitter-pipeline
+  outputDefinitions:
+    artifacts:
+      Output:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

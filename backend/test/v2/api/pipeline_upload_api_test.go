@@ -17,6 +17,12 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/go-openapi/strfmt"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
@@ -26,8 +32,6 @@ import (
 	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"strconv"
-	"time"
 )
 
 // ####################################################################################################################################################################
@@ -37,8 +41,6 @@ import (
 const (
 	helloWorldPipelineFileName = "hello-world.yaml"
 	pipelineWithArgsFileName   = "arguments-parameters.yaml"
-	zipPipelineFileName        = "arguments.pipeline.zip"
-	tarPipelineFileName        = "tar-pipeline.tar.gz"
 )
 
 var pipelineGeneratedName string
@@ -46,6 +48,7 @@ var expectedPipeline *model.V2beta1Pipeline
 var createdPipelines []*model.V2beta1Pipeline
 var testStartTime strfmt.DateTime
 var uploadParams *upload_params.UploadPipelineParams
+var pipelineFilesRootDir = utils.GetPipelineFilesDir()
 
 // ####################################################################################################################################################################
 // ################################################################### SET AND TEARDOWN ################################################################################
@@ -80,28 +83,39 @@ var _ = AfterEach(func() {
 // ################################################################################################################
 
 var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload", S1.String()), func() {
-	var pipelineDir = "positive"
-	pipelineFiles := []string{helloWorldPipelineFileName, pipelineWithArgsFileName, zipPipelineFileName, tarPipelineFileName}
 
-	/* Positive Scenarios of uploading a pipeline file */
-	Context("Upload a pipeline and verify pipeline metadata after upload >", func() {
-		for _, pipelineFile := range pipelineFiles {
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), Label(SMOKE.String()), func() {
+	/* Critical Positive Scenarios of uploading a pipeline file */
+	Context("Upload a valid critical pipeline file and verify pipeline metadata after upload >", Label(SMOKE.String(), S1.String()), func() {
+		var pipelineDir = "valid/critical"
+		criticalPipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
+		for _, pipelineFile := range criticalPipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
 				uploadPipelineAndVerify(pipelineDir, pipelineFile, &pipelineGeneratedName)
 			})
 		}
 
-		It(fmt.Sprintf("Upload %s pipeline with custom name and description", helloWorldPipelineFileName), func() {
+		It(fmt.Sprintf("Upload %s pipeline file with custom name and description", helloWorldPipelineFileName), func() {
 			description := "Some pipeline description"
 			uploadParams.SetDescription(&description)
 			expectedPipeline.Description = description
 			uploadPipelineAndVerify(pipelineDir, helloWorldPipelineFileName, &pipelineGeneratedName)
 		})
 	})
+
+	/* Positive Scenarios of uploading a pipeline file */
+	Context("Upload a valid pipeline and verify pipeline metadata after upload >", func() {
+		var pipelineDir = "valid"
+		validPipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
+		for _, pipelineFile := range validPipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
+				uploadPipelineAndVerify(pipelineDir, pipelineFile, &pipelineGeneratedName)
+			})
+		}
+	})
 })
 
 var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "PipelineUpload", S1.String()), func() {
-	var pipelineDir = "positive"
+	var pipelineDir = "valid/critical"
 
 	/* Positive Scenarios of uploading a pipeline file */
 	Context("Upload a pipeline and upload the same pipeline to change version >", func() {
@@ -121,38 +135,28 @@ var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "Pipeline
 // ################################################################################################################
 
 var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload"), func() {
-	errorScenario := []struct {
-		pipelineFileName     string
-		expectedErrorMessage string
-	}{
-		{"empty_file.yaml", "Failed to upload pipeline"},
-		{"empty_zip.zip", "Failed to upload pipeline"},
-		{"invalid_yaml.yaml", "Failed to upload pipeline"},
-		{"no_name.yaml", "Failed to upload pipeline"},
-		{"wrong_format.png", "Failed to upload pipeline"},
-		{"invalid-tar.tar.gz", "Failed to upload pipeline"},
-		{"invalid-zip.zip", "Failed to upload pipeline"},
-	}
+	var pipelineDir = "invalid"
+	invalidPipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
 
 	/* Negative scenarios of uploading a pipeline  */
 	Context("Upload a failing pipeline and verify the error in the response >", func() {
 		It("Upload a pipeline twice and verify that it should fail the second time", func() {
-			var pipelineDir = "positive"
+			var pipelineDir = "valid/critical"
 			createdPipeline := uploadPipelineAndVerify(pipelineDir, helloWorldPipelineFileName, &pipelineGeneratedName)
 			uploadPipelineAndVerifyFailure(pipelineDir, helloWorldPipelineFileName, &(createdPipeline.DisplayName), "Failed to upload pipeline")
 		})
 
-		for _, scenario := range errorScenario {
-			It(fmt.Sprintf("Upload a %s pipeline and verify the failure", scenario.pipelineFileName), func() {
-				var pipelineDir = "negative"
-				uploadPipelineAndVerifyFailure(pipelineDir, scenario.pipelineFileName, &pipelineGeneratedName, scenario.expectedErrorMessage)
+		for _, fileName := range invalidPipelineFiles {
+			It(fmt.Sprintf("Upload a %s pipeline and verify the failure", fileName), func() {
+				var pipelineDir = "invalid"
+				uploadPipelineAndVerifyFailure(pipelineDir, fileName, &pipelineGeneratedName, "Failed to upload pipeline")
 			})
 		}
 	})
 })
 
 var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "PipelineUpload"), func() {
-	var pipelineDir = "positive"
+	var pipelineDir = "valid/critical"
 
 	/* Positive Scenarios of uploading a pipeline file */
 	Context("Upload a pipeline and try changing the version with a different metric >", func() {
@@ -198,18 +202,18 @@ func uploadPipelineAndChangePipelineVersion(pipelineDir string, pipelineFileName
 	parameters.SetName(&pipelineNameNew)
 
 	// Construct expected Pipeline Spec from the uploaded file
-	pipelineVersionFilePath := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileNameWhenChangingVersion)
-	jsonSpecFromFile := utils.JsonFromYAML(pipelineVersionFilePath)
+	pipelineVersionFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineFileNameWhenChangingVersion)
+	inputFileContent := utils.ReadYamlFile(pipelineVersionFilePath)
 
 	// Construct expected pipeline version object for comparison
 	expectedPipelineVersion.Description = descriptionNew
-	json.Unmarshal(jsonSpecFromFile, &expectedPipelineVersion.PipelineSpec)
+	expectedPipelineVersion.PipelineSpec = inputFileContent
 	expectedPipelineVersion.DisplayName = pipelineNameNew
 	uploadPipelineVersionAndVerify(pipelineDir, pipelineFileNameWhenChangingVersion, parameters, expectedPipelineVersion)
 }
 
 func uploadPipeline(pipelineDir string, pipelineFileName string, pipelineName *string) (*model.V2beta1Pipeline, error) {
-	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileName)
+	pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineFileName)
 	uploadParams.SetName(pipelineName)
 	expectedPipeline.DisplayName = *pipelineName
 	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
@@ -225,6 +229,27 @@ func uploadPipelineAndVerify(pipelineDir string, pipelineFileName string, pipeli
 	createdPipelineFromDB := utils.GetPipeline(pipelineClient, createdPipeline.PipelineID)
 	Expect(createdPipelineFromDB).To(Equal(*createdPipeline))
 	matcher.MatchPipelines(&createdPipelineFromDB, expectedPipeline)
+
+	// Validate the created pipeline spec (by API server) matches the input file
+	pipelineVersionFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineFileName)
+	validatePipelineSpecs := false
+	var expectedPipelineSpec map[string]interface{}
+	if strings.Contains(pipelineFileName, ".yaml") {
+		validatePipelineSpecs = true
+		expectedPipelineSpec = utils.ReadYamlFile(pipelineVersionFilePath).(map[string]interface{})
+	} else if strings.Contains(pipelineFileName, ".json") {
+		validatePipelineSpecs = true
+		specFromFile, err := os.ReadFile(pipelineVersionFilePath)
+		Expect(err).NotTo(HaveOccurred())
+		err = json.Unmarshal(specFromFile, &expectedPipelineSpec)
+		Expect(err).NotTo(HaveOccurred())
+	}
+	if validatePipelineSpecs {
+		logger.Log("Verifying that the generated pipeline spec matches the input yaml file")
+		versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+		actualPipelineSpec := versions[0].PipelineSpec
+		matcher.MatchMaps(actualPipelineSpec, expectedPipelineSpec, "Pipeline Spec")
+	}
 	return createdPipeline
 }
 
@@ -236,7 +261,7 @@ func uploadPipelineAndVerifyFailure(pipelineDir string, pipelineFileName string,
 }
 
 func uploadPipelineVersion(pipelineDir string, pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion, error) {
-	pipelineFile := fmt.Sprintf("../resources/pipelines/%s/%s", pipelineDir, pipelineFileName)
+	pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineFileName)
 	logger.Log("Uploading pipeline version for pipeline with id=%s, from file %s", *parameters.Pipelineid, pipelineFile)
 	return pipelineUploadClient.UploadPipelineVersion(pipelineFile, parameters)
 }

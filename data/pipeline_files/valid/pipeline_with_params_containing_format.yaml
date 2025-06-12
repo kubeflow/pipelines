@@ -1,0 +1,210 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-pipelineparam-containing-format
+# Inputs:
+#    name: str [Default: 'KFP']
+components:
+  comp-for-loop-2:
+    dag:
+      tasks:
+        print-op2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op2
+          inputs:
+            parameters:
+              pipelinechannel--name:
+                componentInputParameter: pipelinechannel--name
+              text1:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+              text2:
+                runtimeValue:
+                  constant: ' and {{$.inputs.parameters[''pipelinechannel--name'']}}.'
+          taskInfo:
+            name: print-op2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+        pipelinechannel--name:
+          parameterType: STRING
+  comp-print-op:
+    executorLabel: exec-print-op
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-op-2:
+    executorLabel: exec-print-op-2
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-op2:
+    executorLabel: exec-print-op2
+    inputDefinitions:
+      parameters:
+        text1:
+          parameterType: STRING
+        text2:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-print-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(text: str) -> str:\n    print(text)\n    return text\n\
+          \n"
+        image: python:3.9
+    exec-print-op-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(text: str) -> str:\n    print(text)\n    return text\n\
+          \n"
+        image: python:3.9
+    exec-print-op2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op2
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op2(text1: str, text2: str) -> str:\n    print(text1 +\
+          \ text2)\n    return text1 + text2\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-pipelineparam-containing-format
+root:
+  dag:
+    tasks:
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        inputs:
+          parameters:
+            pipelinechannel--name:
+              componentInputParameter: name
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '["1", "2"]'
+        taskInfo:
+          name: for-loop-2
+      print-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op
+        inputs:
+          parameters:
+            pipelinechannel--name:
+              componentInputParameter: name
+            text:
+              runtimeValue:
+                constant: Hello {{$.inputs.parameters['pipelinechannel--name']}}
+        taskInfo:
+          name: print-op
+      print-op-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op-2
+        dependentTasks:
+        - print-op
+        inputs:
+          parameters:
+            pipelinechannel--print-op-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: print-op
+            text:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--print-op-Output'']}},
+                  again.'
+        taskInfo:
+          name: print-op-2
+  inputDefinitions:
+    parameters:
+      name:
+        defaultValue: KFP
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

@@ -1,0 +1,84 @@
+# PIPELINE DEFINITION
+# Name: container-with-if-placeholder
+# Inputs:
+#    optional_input: str [Default: 'default']
+# Outputs:
+#    dataset: system.Dataset
+#    output_path: str
+components:
+  comp-container-with-if-placeholder:
+    executorLabel: exec-container-with-if-placeholder
+    inputDefinitions:
+      parameters:
+        optional_input:
+          defaultValue: default
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        output_path:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-container-with-if-placeholder:
+      container:
+        args:
+        - --output_path
+        - '{{$.outputs.parameters[''output_path''].output_file}}'
+        command:
+        - my_program
+        - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.inputs.parameters[''optional_input'']}}"],
+          "Else": ["bye"]}}'
+        - --dataset
+        - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.outputs.artifacts[''dataset''].uri}}"],
+          "Else": ["bye"]}}'
+        image: python:3.9
+pipelineInfo:
+  name: container-with-if-placeholder
+root:
+  dag:
+    outputs:
+      artifacts:
+        dataset:
+          artifactSelectors:
+          - outputArtifactKey: dataset
+            producerSubtask: container-with-if-placeholder
+      parameters:
+        output_path:
+          valueFromParameter:
+            outputParameterKey: output_path
+            producerSubtask: container-with-if-placeholder
+    tasks:
+      container-with-if-placeholder:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-container-with-if-placeholder
+        inputs:
+          parameters:
+            optional_input:
+              componentInputParameter: optional_input
+        taskInfo:
+          name: container-with-if-placeholder
+  inputDefinitions:
+    parameters:
+      optional_input:
+        defaultValue: default
+        isOptional: true
+        parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      dataset:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    parameters:
+      output_path:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

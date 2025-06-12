@@ -1,0 +1,70 @@
+# PIPELINE DEFINITION
+# Name: concat-message
+# Inputs:
+#    message1: str
+#    message2: str
+# Outputs:
+#    Output: str
+components:
+  comp-concat-message:
+    executorLabel: exec-concat-message
+    inputDefinitions:
+      parameters:
+        message1:
+          parameterType: STRING
+        message2:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-concat-message:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - concat_message
+        command:
+        - python3
+        - -m
+        - kfp.dsl.executor_main
+        image: kfp-image
+pipelineInfo:
+  name: concat-message
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: concat-message
+    tasks:
+      concat-message:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-concat-message
+        inputs:
+          parameters:
+            message1:
+              componentInputParameter: message1
+            message2:
+              componentInputParameter: message2
+        taskInfo:
+          name: concat-message
+  inputDefinitions:
+    parameters:
+      message1:
+        parameterType: STRING
+      message2:
+        parameterType: STRING
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

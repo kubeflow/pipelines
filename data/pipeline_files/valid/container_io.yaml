@@ -1,0 +1,60 @@
+# PIPELINE DEFINITION
+# Name: container-io
+# Inputs:
+#    text: str
+# Outputs:
+#    output_path: str
+components:
+  comp-container-io:
+    executorLabel: exec-container-io
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output_path:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-container-io:
+      container:
+        args:
+        - --output_path
+        - '{{$.outputs.parameters[''output_path''].output_file}}'
+        command:
+        - my_program
+        - '{{$.inputs.parameters[''text'']}}'
+        image: python:3.9
+pipelineInfo:
+  name: container-io
+root:
+  dag:
+    outputs:
+      parameters:
+        output_path:
+          valueFromParameter:
+            outputParameterKey: output_path
+            producerSubtask: container-io
+    tasks:
+      container-io:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-container-io
+        inputs:
+          parameters:
+            text:
+              componentInputParameter: text
+        taskInfo:
+          name: container-io
+  inputDefinitions:
+    parameters:
+      text:
+        parameterType: STRING
+  outputDefinitions:
+    parameters:
+      output_path:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

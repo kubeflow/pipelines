@@ -1,0 +1,66 @@
+# PIPELINE DEFINITION
+# Name: exit-comp
+# Inputs:
+#    status: PipelineTaskFinalStatus
+components:
+  comp-exit-comp:
+    executorLabel: exec-exit-comp
+    inputDefinitions:
+      parameters:
+        status:
+          isOptional: true
+          parameterType: TASK_FINAL_STATUS
+deploymentSpec:
+  executors:
+    exec-exit-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - exit_comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef exit_comp(status: dsl.PipelineTaskFinalStatus):\n    print(status)\n\
+          \n"
+        image: python:3.9
+pipelineInfo:
+  name: exit-comp
+root:
+  dag:
+    tasks:
+      exit-comp:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-exit-comp
+        inputs:
+          parameters:
+            status:
+              componentInputParameter: status
+        taskInfo:
+          name: exit-comp
+  inputDefinitions:
+    parameters:
+      status:
+        isOptional: true
+        parameterType: TASK_FINAL_STATUS
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

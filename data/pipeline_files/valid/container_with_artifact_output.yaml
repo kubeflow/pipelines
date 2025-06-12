@@ -1,0 +1,82 @@
+# PIPELINE DEFINITION
+# Name: container-with-artifact-output
+# Inputs:
+#    num_epochs: int
+# Outputs:
+#    model: system.Model
+#    model_config_path: str
+components:
+  comp-container-with-artifact-output:
+    executorLabel: exec-container-with-artifact-output
+    inputDefinitions:
+      parameters:
+        num_epochs:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        model_config_path:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-container-with-artifact-output:
+      container:
+        args:
+        - --epochs
+        - '{{$.inputs.parameters[''num_epochs'']}}'
+        - --model_path
+        - '{{$.outputs.artifacts[''model''].uri}}'
+        - --model_metadata
+        - '{{$.outputs.artifacts[''model''].metadata}}'
+        - --model_config_path
+        - '{{$.outputs.parameters[''model_config_path''].output_file}}'
+        command:
+        - sh
+        - run.sh
+        image: gcr.io/my-image
+pipelineInfo:
+  name: container-with-artifact-output
+root:
+  dag:
+    outputs:
+      artifacts:
+        model:
+          artifactSelectors:
+          - outputArtifactKey: model
+            producerSubtask: container-with-artifact-output
+      parameters:
+        model_config_path:
+          valueFromParameter:
+            outputParameterKey: model_config_path
+            producerSubtask: container-with-artifact-output
+    tasks:
+      container-with-artifact-output:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-container-with-artifact-output
+        inputs:
+          parameters:
+            num_epochs:
+              componentInputParameter: num_epochs
+        taskInfo:
+          name: container-with-artifact-output
+  inputDefinitions:
+    parameters:
+      num_epochs:
+        parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    artifacts:
+      model:
+        artifactType:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    parameters:
+      model_config_path:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

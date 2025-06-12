@@ -1,0 +1,267 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-placeholders
+components:
+  comp-print-op:
+    executorLabel: exec-print-op
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
+  comp-print-op-2:
+    executorLabel: exec-print-op-2
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
+  comp-print-op-3:
+    executorLabel: exec-print-op-3
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
+  comp-print-op-4:
+    executorLabel: exec-print-op-4
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
+  comp-print-op-5:
+    executorLabel: exec-print-op-5
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        value:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-print-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
+        image: python:3.9
+    exec-print-op-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
+        image: python:3.9
+    exec-print-op-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
+        image: python:3.9
+    exec-print-op-4:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
+        image: python:3.9
+    exec-print-op-5:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(msg: str, value: str):\n    print(msg, value)\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-placeholders
+root:
+  dag:
+    tasks:
+      print-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op
+        inputs:
+          parameters:
+            msg:
+              runtimeValue:
+                constant: 'job name:'
+            value:
+              runtimeValue:
+                constant: '{{$.pipeline_job_name}}'
+        taskInfo:
+          name: print-op
+      print-op-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op-2
+        inputs:
+          parameters:
+            msg:
+              runtimeValue:
+                constant: 'job resource name:'
+            value:
+              runtimeValue:
+                constant: '{{$.pipeline_job_resource_name}}'
+        taskInfo:
+          name: print-op-2
+      print-op-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op-3
+        inputs:
+          parameters:
+            msg:
+              runtimeValue:
+                constant: 'job id:'
+            value:
+              runtimeValue:
+                constant: '{{$.pipeline_job_uuid}}'
+        taskInfo:
+          name: print-op-3
+      print-op-4:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op-4
+        inputs:
+          parameters:
+            msg:
+              runtimeValue:
+                constant: 'task name:'
+            value:
+              runtimeValue:
+                constant: '{{$.pipeline_task_name}}'
+        taskInfo:
+          name: print-op-4
+      print-op-5:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-op-5
+        inputs:
+          parameters:
+            msg:
+              runtimeValue:
+                constant: 'task id:'
+            value:
+              runtimeValue:
+                constant: '{{$.pipeline_task_uuid}}'
+        taskInfo:
+          name: print-op-5
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

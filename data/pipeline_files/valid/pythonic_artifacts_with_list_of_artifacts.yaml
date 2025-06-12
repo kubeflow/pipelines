@@ -1,0 +1,187 @@
+# PIPELINE DEFINITION
+# Name: make-and-join-datasets
+# Inputs:
+#    texts: list [Default: ['Hello', ',', ' ', 'world!']]
+# Outputs:
+#    Output: system.Dataset
+components:
+  comp-for-loop-1:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--make-dataset-Output:
+            artifactSelectors:
+            - outputArtifactKey: Output
+              producerSubtask: make-dataset
+      tasks:
+        make-dataset:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-make-dataset
+          inputs:
+            parameters:
+              text:
+                componentInputParameter: pipelinechannel--texts-loop-item
+          taskInfo:
+            name: make-dataset
+    inputDefinitions:
+      parameters:
+        pipelinechannel--texts:
+          parameterType: LIST
+        pipelinechannel--texts-loop-item:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--make-dataset-Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-join-datasets:
+    executorLabel: exec-join-datasets
+    inputDefinitions:
+      artifacts:
+        datasets:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-make-dataset:
+    executorLabel: exec-make-dataset
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-join-datasets:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - join_datasets
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef join_datasets(datasets: List[Dataset]) -> Dataset:\n    texts\
+          \ = []\n    for dataset in datasets:\n        with open(dataset.path, 'r')\
+          \ as f:\n            texts.append(f.read())\n\n    return ''.join(texts)\n\
+          \n"
+        image: python:3.9
+    exec-make-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - make_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef make_dataset(text: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
+          \ metadata={'length': len(text)})\n    with open(dataset.path, 'w') as f:\n\
+          \        f.write(text)\n    return dataset\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: make-and-join-datasets
+root:
+  dag:
+    outputs:
+      artifacts:
+        Output:
+          artifactSelectors:
+          - outputArtifactKey: Output
+            producerSubtask: join-datasets
+    tasks:
+      for-loop-1:
+        componentRef:
+          name: comp-for-loop-1
+        inputs:
+          parameters:
+            pipelinechannel--texts:
+              componentInputParameter: texts
+        parameterIterator:
+          itemInput: pipelinechannel--texts-loop-item
+          items:
+            inputParameter: pipelinechannel--texts
+        taskInfo:
+          name: for-loop-1
+      join-datasets:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-join-datasets
+        dependentTasks:
+        - for-loop-1
+        inputs:
+          artifacts:
+            datasets:
+              taskOutputArtifact:
+                outputArtifactKey: pipelinechannel--make-dataset-Output
+                producerTask: for-loop-1
+        taskInfo:
+          name: join-datasets
+  inputDefinitions:
+    parameters:
+      texts:
+        defaultValue:
+        - Hello
+        - ','
+        - ' '
+        - world!
+        isOptional: true
+        parameterType: LIST
+  outputDefinitions:
+    artifacts:
+      Output:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0

@@ -1,0 +1,152 @@
+# PIPELINE DEFINITION
+# Name: add-pipeline
+# Inputs:
+#    a: int [Default: 2.0]
+#    b: int [Default: 5.0]
+components:
+  comp-add:
+    executorLabel: exec-add
+    inputDefinitions:
+      parameters:
+        op2:
+          parameterType: NUMBER_INTEGER
+        op_1:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        sum:
+          parameterType: NUMBER_INTEGER
+  comp-add-2:
+    executorLabel: exec-add-2
+    inputDefinitions:
+      parameters:
+        op2:
+          parameterType: NUMBER_INTEGER
+        op_1:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        sum:
+          parameterType: NUMBER_INTEGER
+  comp-add-3:
+    executorLabel: exec-add-3
+    inputDefinitions:
+      parameters:
+        op2:
+          parameterType: NUMBER_INTEGER
+        op_1:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        sum:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-add:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$(($0+$1))" | gsutil cp - "$2"
+
+          '
+        - '{{$.inputs.parameters[''op_1'']}}'
+        - '{{$.inputs.parameters[''op2'']}}'
+        - '{{$.outputs.parameters[''sum''].output_file}}'
+        image: google/cloud-sdk:latest
+    exec-add-2:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$(($0+$1))" | gsutil cp - "$2"
+
+          '
+        - '{{$.inputs.parameters[''op_1'']}}'
+        - '{{$.inputs.parameters[''op2'']}}'
+        - '{{$.outputs.parameters[''sum''].output_file}}'
+        image: google/cloud-sdk:latest
+    exec-add-3:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "$(($0+$1))" | gsutil cp - "$2"
+
+          '
+        - '{{$.inputs.parameters[''op_1'']}}'
+        - '{{$.inputs.parameters[''op2'']}}'
+        - '{{$.outputs.parameters[''sum''].output_file}}'
+        image: google/cloud-sdk:latest
+pipelineInfo:
+  name: add-pipeline
+root:
+  dag:
+    tasks:
+      add:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add
+        inputs:
+          parameters:
+            op2:
+              runtimeValue:
+                constant: 3.0
+            op_1:
+              componentInputParameter: a
+        taskInfo:
+          name: add
+      add-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-2
+        dependentTasks:
+        - add
+        inputs:
+          parameters:
+            op2:
+              componentInputParameter: b
+            op_1:
+              taskOutputParameter:
+                outputParameterKey: sum
+                producerTask: add
+        taskInfo:
+          name: add-2
+      add-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-3
+        dependentTasks:
+        - add-2
+        inputs:
+          parameters:
+            op2:
+              runtimeValue:
+                constant: 7.0
+            op_1:
+              taskOutputParameter:
+                outputParameterKey: sum
+                producerTask: add-2
+        taskInfo:
+          name: add-3
+  inputDefinitions:
+    parameters:
+      a:
+        defaultValue: 2.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      b:
+        defaultValue: 5.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.7.0
