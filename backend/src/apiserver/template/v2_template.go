@@ -399,7 +399,7 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 			// Verify the parameter type is correct
 			switch param.GetParameterType() {
 			case pipelinespec.ParameterType_PARAMETER_TYPE_ENUM_UNSPECIFIED:
-				return util.NewInvalidInputError(fmt.Sprintf("input parameter %s has unspecified type", name))
+				return util.NewInvalidInputError("%s", fmt.Sprintf("input parameter %s has unspecified type", name))
 			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
 				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
 					return util.NewInvalidInputError("input parameter %s requires type double or integer, "+
