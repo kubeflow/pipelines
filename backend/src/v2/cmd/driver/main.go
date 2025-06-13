@@ -203,6 +203,7 @@ func drive() (err error) {
 		options.RuntimeConfig = runtimeConfig
 		execution, driverErr = driver.RootDAG(ctx, options, client)
 	case DAG:
+		options.RuntimeConfig = runtimeConfig
 		execution, driverErr = driver.DAG(ctx, options, client)
 	case CONTAINER:
 		options.Container = containerSpec
