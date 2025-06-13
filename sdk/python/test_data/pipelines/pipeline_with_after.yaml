@@ -74,6 +74,7 @@ root:
                 constant: 1st task
         taskInfo:
           name: print-text
+          taskName: print-text
       print-text-2:
         cachingOptions:
           enableCache: true
@@ -88,6 +89,7 @@ root:
                 constant: 2nd task
         taskInfo:
           name: print-text-2
+          taskName: print-text-2
       print-text-3:
         cachingOptions:
           enableCache: true
@@ -103,5 +105,6 @@ root:
                 constant: 3rd task
         taskInfo:
           name: print-text-3
+          taskName: print-text-3
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

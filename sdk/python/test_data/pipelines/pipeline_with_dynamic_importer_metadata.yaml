@@ -94,7 +94,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -130,6 +130,7 @@ root:
               componentInputParameter: pipeline_input_artifact_uri
         taskInfo:
           name: importer
+          taskName: importer
       importer-2:
         cachingOptions:
           enableCache: true
@@ -152,6 +153,7 @@ root:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
         taskInfo:
           name: importer-2
+          taskName: importer-2
       make-name:
         cachingOptions:
           enableCache: true
@@ -164,6 +166,7 @@ root:
                 constant: a-different-name
         taskInfo:
           name: make-name
+          taskName: make-name
   inputDefinitions:
     parameters:
       int_input:
@@ -183,4 +186,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

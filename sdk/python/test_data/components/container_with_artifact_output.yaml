@@ -65,6 +65,7 @@ root:
               componentInputParameter: num_epochs
         taskInfo:
           name: container-with-artifact-output
+          taskName: container-with-artifact-output
   inputDefinitions:
     parameters:
       num_epochs:
@@ -79,4 +80,4 @@ root:
       model_config_path:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0
