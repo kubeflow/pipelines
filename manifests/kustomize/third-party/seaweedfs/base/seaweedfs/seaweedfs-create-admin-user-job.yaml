@@ -1,0 +1,68 @@
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: init-seaweedfs
+spec:
+  template:
+    metadata:
+      name: init-seaweedfs
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      restartPolicy: OnFailure
+      containers:
+      - name: init-seaweedfs
+        image: 'chrislusf/seaweedfs:3.85'
+        env:
+        - name: WEED_CLUSTER_DEFAULT
+          value: "sw"
+        - name: WEED_CLUSTER_SW_MASTER
+          value: "seaweedfs.kubeflow:9333"
+        envFrom:
+        - secretRef:
+            name: mlpipeline-minio-artifact
+        command:
+        - "/bin/sh"
+        - "-ec"
+        - |
+          wait_for_service() {
+            local url=$1
+            local max_attempts=60  # 5 minutes total (5s * 60)
+            local attempt=1
+          
+            echo "Waiting for service at $url..."
+            while [ $attempt -le $max_attempts ]; do
+              if wget -q --spider "$url" >/dev/null 2>&1; then
+                echo "Service at $url is up!"
+                return 0
+              fi
+              echo "Attempt $attempt: Service not ready yet, retrying in 5s..."
+              sleep 5
+              attempt=$((attempt + 1))
+            done
+            echo "Service at $url failed to become ready within 5 minutes"
+            exit 1
+          }
+          wait_for_service "http://minio-service.kubeflow:9000/status"
+          exec /bin/echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell
+          exec /bin/echo \
+          "s3.configure -user kubeflow-admin \
+                        -access_key $accesskey \
+                        -secret_key $secretkey \
+                        -actions Admin \
+                        -apply" |\
+          /usr/bin/weed shell
+        securityContext:  # Using restricted profile
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          # image defaults to root user
+          runAsUser: 1001
+          runAsGroup: 1001
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+      serviceAccountName: seaweedfs
