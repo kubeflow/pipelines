@@ -26,6 +26,7 @@ from kfp.cli import pipeline
 from kfp.cli import recurring_run
 from kfp.cli import run
 from kfp.cli.output import OutputFormat
+from kfp.cli import ui
 from kfp.cli.utils import aliased_plurals_group
 from kfp.cli.utils import parsing
 
@@ -34,7 +35,7 @@ COMMANDS = {
         run.run, recurring_run.recurring_run, experiment.experiment,
         pipeline.pipeline
     },
-    'no_client': {diagnose_me_cli.diagnose_me, component.component, dsl.dsl}
+    'no_client': {diagnose_me_cli.diagnose_me, component.component, dsl.dsl, ui.ui}
 }
 
 PROGRAM_NAME = 'kfp'
