@@ -1,2 +1,3 @@
 include requirements.in
 include kfp/registry/context/*.json
+recursive-include kfp/ui/static *
