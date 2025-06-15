@@ -727,8 +727,16 @@ def get_dependencies(
         upstream_task_names.update(
             {channel.task for channel in all_channels if channel.task})
         # dependent tasks is tasks on which .after was called and can only be the names of PipelineTasks, not TasksGroups
-        upstream_task_names.update(
-            {pipeline.tasks[after_task] for after_task in task.dependent_tasks})
+        for after_name in task.dependent_tasks:
+            if after_name in pipeline.tasks:
+                upstream = pipeline.tasks[after_name]
+            elif after_name in group_name_to_group:
+                upstream = group_name_to_group[after_name]
+            else:
+                raise ValueError(
+                    f"Compiler cannot find a task or group named '{after_name}'"
+                )
+            upstream_task_names.add(upstream)
 
         for upstream_task in upstream_task_names:
 
