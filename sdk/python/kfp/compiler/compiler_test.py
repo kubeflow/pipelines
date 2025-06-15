@@ -1288,6 +1288,129 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
 class TestCompileComponent(parameterized.TestCase):
 
+    def test_validate_component_funcs_and_vars(self):
+        """Test that validation catches unimported/undefined functions and closure variables (functions and non-functions)."""
+
+        import os
+
+        @dsl.component
+        def component_with_module_imported_outside():
+            # This should raise an error, as os is imported
+            # in the script (above), but not in the component
+            os.getcwd()
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Component component_with_module_imported_outside uses names that are neither defined nor imported in the function: \['os'\]"
+        ):
+            compiler.Compiler().compile(
+                pipeline_func=component_with_module_imported_outside,
+                package_path='/tmp/pipeline.yaml',
+                validate=True)
+
+        def outside_func():
+            pass
+
+        # disable yapf formatting to keep multiline component
+        # yapf: disable
+        @dsl.component(
+            packages_to_install='numpy'
+        ) # yapf: enable
+        def component_with_func_defined_outside():
+            outside_func()
+
+        # This should raise an error since outside_func is not imported or defined in component
+        with self.assertRaisesRegex(ValueError,
+                                    r"Component component_with_func_defined_outside uses names that are neither defined nor imported in the function: \['outside_func'\]"):
+            compiler.Compiler().compile(
+                pipeline_func=component_with_func_defined_outside,
+                package_path='/tmp/pipeline.yaml',
+                validate=True)
+
+        # disable yapf formatting to keep multiline component
+        # yapf: disable
+        @dsl.component(
+            base_image='python:3.11'
+        ) # yapf: enable
+        def component_with_defined_func():
+            def helper():
+                pass
+            helper()  # This function is defined in the component
+
+        # This should not raise an error
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=component_with_defined_func,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                validate=True)
+
+        @dsl.component
+        def component_with_imported_func():
+            import math
+            math.sqrt(4)  # This function is imported
+
+        # This should not raise an error
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=component_with_imported_func,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                validate=True)
+
+        # Test closure variable that is not a function
+        outside_var = 42
+        @dsl.component
+        def component_with_closure_var():
+            return outside_var
+        with self.assertRaisesRegex(ValueError,
+                                    r"Component component_with_closure_var uses names that are neither defined nor imported in the function: \['outside_var'\]"):
+            compiler.Compiler().compile(
+                pipeline_func=component_with_closure_var,
+                package_path='/tmp/pipeline.yaml',
+                validate=True)
+
+        # Test that validate=True works for a non-python (YAML-based) component
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=VALID_PRODUCER_COMPONENT_SAMPLE,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                validate=True)
+
+        # Test that validate=True works for a pipeline with a faulty component
+        @dsl.pipeline
+        def pipeline_with_faulty_component(input_var: str):
+            good_comp1 = component_with_imported_func()
+            good_comp2 = VALID_PRODUCER_COMPONENT_SAMPLE(input_param=input_var)
+            bad_comp1 = component_with_func_defined_outside().after(good_comp1)
+            good_comp3 = component_with_defined_func().after(bad_comp1)
+
+        # This should raise an error since component_with_func_defined_outside uses outside_func
+        with self.assertRaisesRegex(ValueError,
+                                    r"Component component_with_func_defined_outside uses names that are neither defined nor imported in the function: \['outside_func'\]"):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                compiler.Compiler().compile(
+                    pipeline_func=pipeline_with_faulty_component,
+                    package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                    validate=True)
+
+        # Test that validate=True works for a pipeline with a faulty component
+        # under a parallelFor loop
+        @dsl.pipeline
+        def pipeline_with_faulty_component(input_var: str):
+            good_comp1 = component_with_imported_func()
+            with dsl.ParallelFor([1,2,3]) as item:
+                good_comp2 = VALID_PRODUCER_COMPONENT_SAMPLE(input_param=input_var)
+                bad_comp1 = component_with_func_defined_outside().after(good_comp1)
+                good_comp3 = component_with_defined_func().after(bad_comp1)
+
+        # This should raise an error since component_with_func_defined_outside uses outside_func
+        with self.assertRaisesRegex(ValueError,
+                                    r"Component component_with_func_defined_outside uses names that are neither defined nor imported in the function: \['outside_func'\]"):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                compiler.Compiler().compile(
+                    pipeline_func=pipeline_with_faulty_component,
+                    package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+                    validate=True)
+
     @parameterized.parameters(['.json', '.yaml', '.yml'])
     def test_compile_component_simple(self, extension: str):
 
