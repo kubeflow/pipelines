@@ -173,7 +173,7 @@ class UIRequestHandler(BaseHTTPRequestHandler):
             if mime_type is None:
                 mime_type = 'application/octet-stream'
             else:
-                mime_type = mime_type.replace("\n", "").replace("\r", "")
+                mime_type = mime_type.replace('\n', '').replace('\r', '')
 
             with open(file_path, 'rb') as f:
                 content = f.read()
