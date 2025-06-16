@@ -283,7 +283,9 @@ def start_ui_server(host: str = 'localhost',
     handler_class = create_handler_class(api_server)
     server = HTTPServer((host, port), handler_class)
 
-    print(f'\033[92mStarting Kubeflow Pipelines UI server at http://{host}:{port} \x1b[0m')
+    print(
+        f'\033[92mStarting Kubeflow Pipelines UI server at http://{host}:{port} \x1b[0m'
+    )
     if os.environ.get('ML_PIPELINE_SERVICE_HOST'):
         print(f'API server: {api_server}')
     else:
