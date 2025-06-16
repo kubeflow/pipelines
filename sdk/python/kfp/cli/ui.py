@@ -11,6 +11,7 @@ from kfp.ui.server import start_ui_server
 )
 def ui(port, host, api_server):
     """Start the Kubeflow Pipelines UI server.
+
     The UI can operate in two modes:
     1. Remote mode: When --api-server is provided, pipeline runs are submitted to a remote KFP cluster
     2. Local mode: When --api-server is not provided, pipelines are executed locally using kfp.local
