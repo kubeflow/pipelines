@@ -19,9 +19,9 @@ def ui(port, host, api_server):
     2. Local mode: When --api-server is not provided, pipelines are executed locally using kfp.local
     """
     logging.warn(
-        "\033[91mThe local `kfp ui` is in early development and still considered alpha/experimental. \x1b[0m"
+        '\033[91mThe local `kfp ui` is in early development and still considered alpha/experimental. \x1b[0m'
     )
     logging.warn(
-        "\033[93mPlease report any bugs if you encounter them https://github.com/kubeflow/pipelines/issues/new?template=BUG_FRONTEND.md \033[93m"
+        '\033[93mPlease report any bugs if you encounter them https://github.com/kubeflow/pipelines/issues/new?template=BUG_FRONTEND.md \033[93m'
     )
     start_ui_server(host=host, port=port, api_server=api_server)
