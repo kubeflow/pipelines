@@ -35,7 +35,9 @@ COMMANDS = {
         run.run, recurring_run.recurring_run, experiment.experiment,
         pipeline.pipeline
     },
-    'no_client': {diagnose_me_cli.diagnose_me, component.component, dsl.dsl, ui.ui}
+    'no_client': {
+        diagnose_me_cli.diagnose_me, component.component, dsl.dsl, ui.ui
+    }
 }
 
 PROGRAM_NAME = 'kfp'

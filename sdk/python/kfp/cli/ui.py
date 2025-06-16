@@ -16,4 +16,3 @@ def ui(port, host, api_server):
     2. Local mode: When --api-server is not provided, pipelines are executed locally using kfp.local
     """
     start_ui_server(host=host, port=port, api_server=api_server)
-
