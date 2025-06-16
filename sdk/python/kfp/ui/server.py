@@ -1,7 +1,3 @@
-#
-#
-#
-
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 import json
@@ -163,7 +159,7 @@ class UIRequestHandler(BaseHTTPRequestHandler):
     def _serve_static_file(self, path: str):
         try:
             static_dir = pkg_resources.resource_filename('kfp.ui', 'static')
-            file_path = os.path.join(static_dir, path[1:])
+            file_path = os.path.normpath(os.path.join(static_dir, path[1:]))
 
             if not os.path.exists(file_path) or not os.path.isfile(file_path):
                 self._send_error_response(404, 'File not found')
@@ -176,6 +172,8 @@ class UIRequestHandler(BaseHTTPRequestHandler):
             mime_type, _ = mimetypes.guess_type(file_path)
             if mime_type is None:
                 mime_type = 'application/octet-stream'
+            else:
+                mime_type = mime_type.replace("\n", "").replace("\r", "")
 
             with open(file_path, 'rb') as f:
                 content = f.read()
