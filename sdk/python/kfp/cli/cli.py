@@ -25,8 +25,8 @@ from kfp.cli import experiment
 from kfp.cli import pipeline
 from kfp.cli import recurring_run
 from kfp.cli import run
-from kfp.cli.output import OutputFormat
 from kfp.cli import ui
+from kfp.cli.output import OutputFormat
 from kfp.cli.utils import aliased_plurals_group
 from kfp.cli.utils import parsing
 
