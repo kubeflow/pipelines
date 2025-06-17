@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+  namespace: kubeflow
+spec:
+  template:
+    spec:
+      containers:
+        - env:
+            - name: V2_DRIVER_IMAGE
+              value: ghcr.io/kubeflow/kfp-driver:master
+            - name: V2_LAUNCHER_IMAGE
+              value: ghcr.io/kubeflow/kfp-launcher:master
+          name: ml-pipeline-api-server
+      serviceAccountName: ml-pipeline
