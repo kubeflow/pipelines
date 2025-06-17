@@ -4,16 +4,8 @@ namespace: kubeflow
 
 resources:
 - seaweedfs/
-- ../../../apps/pipeline/upstream/env/cert-manager/platform-agnostic-multi-user
-configMapGenerator:
-- name: kubeflow-pipelines-profile-controller-code
-  behavior: replace
-  files:
-  - pipeline-profile-controller/sync.py
 patches:
 - path: minio-service-patch.yaml
-- path: pipeline-profile-controller/deployment.yaml
-- path: argo-workflow-controller/workflow-controller-configmap-patch.yaml
 - patch: |-
     apiVersion: apps/v1
     kind: Deployment

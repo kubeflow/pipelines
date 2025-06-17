@@ -9,8 +9,7 @@ resources:
 - ../../third-party/argo/installs/cluster
 - ../../third-party/mysql/base
 - ../../third-party/mysql/options/istio
-- ../../third-party/minio/base
-- ../../third-party/minio/options/istio
+- ../../third-party/seaweedfs/istio
 
 
 # !!! If you want to customize the namespace,

@@ -5,7 +5,7 @@ resources:
 - ../../base/installs/generic/postgres
 - ../../base/metadata/overlays/postgres
 - ../../third-party/argo/installs/namespace
-- ../../third-party/minio/base
+- ../../third-party/seaweedfs/base
 - ../../third-party/postgresql/base
 
 
