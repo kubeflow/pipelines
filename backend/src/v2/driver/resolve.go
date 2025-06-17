@@ -368,7 +368,7 @@ func resolveInputParameter(
 			case "{{$.pipeline_job_uuid}}":
 				v = structpb.NewStringValue(opts.RunID)
 			case "{{$.pipeline_task_name}}":
-				v = structpb.NewStringValue(opts.Task.GetTaskInfo().GetName())
+				v = structpb.NewStringValue(opts.Task.GetTaskInfo().GetTaskName())
 			case "{{$.pipeline_task_uuid}}":
 				v = structpb.NewStringValue(fmt.Sprintf("%d", opts.DAGExecutionID))
 			default:

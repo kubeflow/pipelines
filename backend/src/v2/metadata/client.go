@@ -132,6 +132,7 @@ func NewClient(serverAddress, serverPort string) (*Client, error) {
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
 	TaskName         string
+	DisplayName      string // optional, MLMD execution display name.
 	Name             string // optional, MLMD execution name. When provided, this needs to be unique among all MLMD executions.
 	ExecutionType    ExecutionType
 	NotTriggered     bool  // optional, not triggered executions will have CANCELED state.
@@ -559,8 +560,7 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	e := &pb.Execution{
 		TypeId: &typeID,
 		CustomProperties: map[string]*pb.Value{
-			// We should support overriding display name in the future, for now it defaults to task name.
-			keyDisplayName: StringValue(config.TaskName),
+			keyDisplayName: StringValue(config.DisplayName),
 			keyTaskName:    StringValue(config.TaskName),
 		},
 	}
