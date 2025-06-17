@@ -1,4 +1,33 @@
 # Revolutionizing Kubeflow Pipeline Testing: A 2025 Proposal
+
+<!-- TOC -->
+* [Revolutionizing Kubeflow Pipeline Testing: A 2025 Proposal](#revolutionizing-kubeflow-pipeline-testing-a-2025-proposal)
+  * [Summary](#summary)
+  * [Goals](#goals)
+  * [Non-Goals](#non-goals)
+* [Proposal](#proposal)
+  * [Current Testing Process](#current-testing-process)
+  * [Proposed Changes](#proposed-changes)
+  * [Testing Strategy](#testing-strategy)
+    * [Server API Tests](#server-api-tests)
+    * [SDK Tests](#sdk-tests)
+      * [Targeted Tests](#targeted-tests)
+        * [Compilation Tests](#compilation-tests)
+        * [API Tests](#api-tests)
+      * [Semi Exploratory Tests](#semi-exploratory-tests)
+      * [Full Exploratory Tests](#full-exploratory-tests)
+    * [End to End Tests](#end-to-end-tests)
+      * [Critical Regression Testing](#critical-regression-testing)
+      * [Full Regression Testing](#full-regression-testing)
+  * [Test Architecture Changes](#test-architecture-changes)
+    * [Test Code Architecture](#test-code-architecture)
+  * [Benefits of Proposed Changes](#benefits-of-proposed-changes)
+  * [Next Steps](#next-steps)
+  * [POC](#poc)
+      * [Server API Tests:](#server-api-tests-1)
+    * [SDK Compilation Tests:](#sdk-compilation-tests)
+<!-- TOC -->
+
 ## Summary
 To boost the release efficiency of the Kubeflow Pipelines project and increase confidence in our Pull Requests (PRs), we must prioritize tests that verify functional changes at the service/component level. We aim to enhance test coverage transparency, broaden coverage beyond basic positive scenarios, and implement multi-tiered testing throughout the Software Development Life Cycle (SDLC). We also need user-friendly test reports for quick coverage assessment and simplified debugging (eliminating the need to sift through log files). Our tests should be structured and grouped logically for easy understanding.
 
@@ -152,7 +181,7 @@ An ad hoc way for us to load the system
 Utilize Ginkgo for API tests, aligning with the primarily Go codebase. And a test should follow the following pattern:
 ![Test Code Architecture.png](Test%20Code%20Architecture.png)
 
-### Benefits of Proposed Changes
+## Benefits of Proposed Changes
 
 The proposed changes will result in the following benefits:
 
@@ -162,16 +191,16 @@ The proposed changes will result in the following benefits:
 * Enhanced team collaboration and communication.
 * Tests become self-documenting if we use Ginkgo
 
-### Next Steps
+## Next Steps
 We recommend the following next steps:
 
 * Conduct a detailed analysis of the proposed changes.
 * Develop an implementation plan with timelines and resources.
 * Begin pilot testing the new processes and architecture.
 
-### POC
+## POC
 #### Server API Tests:
 A POC of new test architecture using Ginkgo + Gomega and testing PipelineUpload API tests is available [here](https://github.com/kubeflow/pipelines/pull/11956)
 
-#### SDK Compilation Tests:
+### SDK Compilation Tests:
 [WIP] A simple POC for SDK compilation tests that uses dsl components as pytest parameters, [here](https://github.com/kubeflow/pipelines/pull/11983)
