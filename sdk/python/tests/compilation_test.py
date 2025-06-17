@@ -1,3 +1,5 @@
+from typing import Union
+
 import kfp
 from kfp import compiler
 from kfp.dsl import Output
@@ -7,6 +9,7 @@ from test_data.components import add_numbers
 from test_data.components import dict_input
 from test_data.components.containerized_python_component import concat_message
 from test_data.datamodels.node import Node
+from test_data.datamodels.node_tree import NodeTree
 import yaml
 
 
@@ -21,7 +24,7 @@ class TestPipelineCompilation:
              Node(data=(add_numbers.add_numbers, {
                  'a': 6,
                  'b': 4
-             })), 'add_numbers.yaml'),
+             })), '../../../data/pipeline_files/valid/add_numbers.yaml'),
             ('Add Numbers no input',
              'add_numbers_no_input', 'add_numbers_no_input.yaml',
              Node(data=add_numbers.add_numbers), 'add_numbers_no_input.yaml'),
@@ -46,7 +49,7 @@ class TestPipelineCompilation:
                          output_pipeline_file_name, node, expected_file):
 
         print('Compiling Pipeline')
-        if not node.next and type(node.data) != tuple:
+        if type(node) == Node and not node.next and type(node.data) != tuple:
             compiler.Compiler().compile(
                 pipeline_func=node.data,
                 pipeline_name=pipeline_name,
@@ -55,7 +58,7 @@ class TestPipelineCompilation:
 
             @pipeline(display_name=pipeline_display_name)
             def create_pipeline():
-                self.create_components(node=node)
+                self.create_components(component=node)
 
             compiler.Compiler().compile(
                 pipeline_func=create_pipeline,
@@ -74,15 +77,21 @@ class TestPipelineCompilation:
             display_name=pipeline_display_name,
             name=pipeline_name)
 
-    def create_components(self, node: Node):
-        current_node = node
-        comp_value = None
-        if type(current_node.data) == tuple:
-            comp_value = current_node.data[0](**current_node.data[1])
-            current_node = current_node.next
+    def create_single_component(self, node: Node):
+        if type(node.data) == tuple:
+            return node.data[0](**node.data[1])
         else:
-            component = current_node.data()
+            return node.data()
+
+    def create_components(self, component: Union[Node, NodeTree]):
+        current_node = component
         while current_node:
+            if type(current_node) == NodeTree:
+                for node in current_node.nodes:
+                    self.create_components(node)
+            comp_value = self.create_single_component(current_node)
+            if not current_node.next:
+                return
             current_data = current_node.data
             inputs: list = current_data.required_inputs
             if inputs:
@@ -99,8 +108,6 @@ class TestPipelineCompilation:
             else:
                 component = current_data()
             current_node = current_node.next
-
-    import yaml
 
     def read_yaml_file(self, filepath) -> dict:
         with open(filepath, 'r') as file:
