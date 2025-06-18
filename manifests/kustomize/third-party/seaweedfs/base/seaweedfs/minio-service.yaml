@@ -3,6 +3,9 @@ kind: Service
 metadata:
   name: minio-service
   namespace: kubeflow
+  labels:
+    app: seaweedfs
+    component: minio-compatibility
 spec:
   ports:
   - name: http

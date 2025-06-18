@@ -1,0 +1,112 @@
+name: KFP SeaweedFS Integration Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/e2e-seaweedfs-test.yml'
+      - 'manifests/kustomize/third-party/seaweedfs/**'
+      - 'test/seaweedfs/**'
+      - 'manifests/kustomize/env/**'
+      - '!**/*.md'
+
+jobs:
+  seaweedfs-integration-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
+    name: SeaweedFS Integration Tests - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster with SeaweedFS
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+        continue-on-error: true
+
+      - name: Deploy SeaweedFS
+        id: deploy-seaweedfs
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "Deploying SeaweedFS..."
+          kubectl apply -k manifests/kustomize/third-party/seaweedfs/base/
+          kubectl -n kubeflow wait --for=condition=available --timeout=600s deployment/seaweedfs
+          echo "SeaweedFS deployed successfully"
+        continue-on-error: true
+
+      - name: Initialize SeaweedFS
+        id: init-seaweedfs
+        if: ${{ steps.deploy-seaweedfs.outcome == 'success' }}
+        run: |
+          echo "Initializing SeaweedFS..."
+          kubectl -n kubeflow wait --for=condition=complete --timeout=300s job/init-seaweedfs
+          echo "SeaweedFS initialized successfully"
+        continue-on-error: true
+
+      - name: Create KF Profile
+        id: create-kf-profile
+        if: ${{ steps.init-seaweedfs.outcome == 'success' }}
+        run: |
+          echo "Creating KF Profile..."
+          kubectl apply -f test/seaweedfs/test-profiles.yaml
+          echo "KF Profile created successfully"
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.init-seaweedfs.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Test Pipeline V1 API with SeaweedFS
+        id: test-v1-api
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: |
+          pip3 install "kfp>=1.8.22,<2.0.0"
+          python3 test/seaweedfs/test_pipeline_v1_seaweedfs.py
+        continue-on-error: true
+
+      - name: Test Pipeline V2 API with SeaweedFS
+        id: test-v2-api
+        if: ${{ steps.test-v1-api.outcome == 'success' }}
+        run: |
+          pip3 install kfp==2.13.0
+          python3 test/seaweedfs/test_pipeline_v2_seaweedfs.py
+        continue-on-error: true
+
+      - name: Test SeaweedFS Namespace Isolation
+        id: test-namespace-isolation
+        if: ${{ steps.test-v2-api.outcome == 'success' }}
+        run: |
+          # Create test profiles
+          kubectl apply -f test/seaweedfs/test-profiles.yaml
+          # Wait for profile controller to create credentials
+          sleep 30
+          # Run namespace isolation test
+          bash test/seaweedfs/namespace_isolation_test.sh
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.deploy-seaweedfs.outcome != 'success' || steps.init-seaweedfs.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
+        run: |
+          echo "Collecting logs for troubleshooting..."
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp > /tmp/events.txt
+          kubectl describe pods -n kubeflow > /tmp/pod_descriptions.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-seaweedfs-tests-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/* 
