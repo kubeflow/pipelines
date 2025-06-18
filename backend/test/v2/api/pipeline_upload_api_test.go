@@ -82,10 +82,10 @@ var _ = AfterEach(func() {
 // ########################################################## POSITIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload", S1.String()), func() {
+var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload", S1), func() {
 
 	/* Critical Positive Scenarios of uploading a pipeline file */
-	Context("Upload a valid critical pipeline file and verify pipeline metadata after upload >", Label(SMOKE.String(), S1.String()), func() {
+	Context("Upload a valid critical pipeline file and verify pipeline metadata after upload >", Label(Smoke, S1), func() {
 		var pipelineDir = "valid/critical"
 		criticalPipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
 		for _, pipelineFile := range criticalPipelineFiles {
@@ -114,13 +114,13 @@ var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload",
 	})
 })
 
-var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "PipelineUpload", S1.String()), func() {
+var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "PipelineUpload", S1), func() {
 	var pipelineDir = "valid/critical"
 
 	/* Positive Scenarios of uploading a pipeline file */
 	Context("Upload a pipeline and upload the same pipeline to change version >", func() {
 		const pipelineFile = helloWorldPipelineFileName
-		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the same file", pipelineFile), Label(SMOKE.String()), func() {
+		It(fmt.Sprintf("Upload %s pipeline file and upload a new version with the same file", pipelineFile), Label(Smoke), func() {
 			uploadPipelineAndChangePipelineVersion(pipelineDir, pipelineFile, pipelineFile)
 		})
 		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the different file %s", pipelineFile, pipelineWithArgsFileName), func() {
@@ -134,7 +134,7 @@ var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "Pipeline
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload"), func() {
+var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload", S2, FullRegression), func() {
 	var pipelineDir = "invalid"
 	invalidPipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
 
@@ -155,7 +155,7 @@ var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "Pipeline
 	})
 })
 
-var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "PipelineUpload"), func() {
+var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "PipelineUpload", S2, FullRegression), func() {
 	var pipelineDir = "valid/critical"
 
 	/* Positive Scenarios of uploading a pipeline file */

@@ -13,7 +13,8 @@ deploymentSpec:
         - echo
         image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
-  displayName: echo
+  displayName: echo-displayname
+  name: echo-name
 root:
   dag:
     tasks:
