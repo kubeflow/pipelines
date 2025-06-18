@@ -129,8 +129,8 @@ class TestPipelineCompilation:
                     elif key == 'displayName':
                         pipeline_display_name = kwargs['name'] if kwargs[
                             'display_name'] is None else kwargs['display_name']
-                        expected['displayName'] = pipeline_display_name
+                        expected[key] = pipeline_display_name
                     elif key == 'name':
-                        expected['name'] = kwargs['name']
+                        expected[key] = kwargs['name']
                 assert value == actual[
                     key], f'Value for "{key}" is not the same'
