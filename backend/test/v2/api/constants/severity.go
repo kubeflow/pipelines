@@ -1,19 +1,9 @@
 package api
 
-type Severity int
+type Severity string
 
 const (
-	S1 Severity = iota
-	S2
-	S3
+	S1 string = "CRITICAL"
+	S2 string = "MEDIUM"
+	S3 string = "TRIVIAL"
 )
-
-var severityName = map[Severity]string{
-	S1: "CRITICAL",
-	S2: "MEDIUM",
-	S3: "TRIVIAL",
-}
-
-func (s Severity) String() string {
-	return severityName[s]
-}
