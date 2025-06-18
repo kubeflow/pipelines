@@ -33,37 +33,29 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
         continue-on-error: true
 
-      - name: Deploy SeaweedFS
-        id: deploy-seaweedfs
-        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-        run: |
-          echo "Deploying SeaweedFS..."
-          kubectl apply -k manifests/kustomize/third-party/seaweedfs/base/
-          kubectl -n kubeflow wait --for=condition=available --timeout=600s deployment/seaweedfs
-          echo "SeaweedFS deployed successfully"
-        continue-on-error: true
-
-      - name: Initialize SeaweedFS
-        id: init-seaweedfs
-        if: ${{ steps.deploy-seaweedfs.outcome == 'success' }}
-        run: |
-          echo "Initializing SeaweedFS..."
-          kubectl -n kubeflow wait --for=condition=complete --timeout=300s job/init-seaweedfs
-          echo "SeaweedFS initialized successfully"
-        continue-on-error: true
-
       - name: Create KF Profile
         id: create-kf-profile
-        if: ${{ steps.init-seaweedfs.outcome == 'success' }}
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         run: |
           echo "Creating KF Profile..."
           kubectl apply -f test/seaweedfs/test-profiles.yaml
           echo "KF Profile created successfully"
         continue-on-error: true
 
+      - name: Verify Pipeline Integration
+        id: verify-pipeline-integration
+        if: ${{ steps.create-kf-profile.outcome == 'success' }}
+        run: |
+          KF_PROFILE=kubeflow-user-example-com
+          if ! kubectl get secret mlpipeline-minio-artifact -n $KF_PROFILE > /dev/null 2>&1; then
+            echo "Error: Secret mlpipeline-minio-artifact not found in namespace $KF_PROFILE"
+            exit 1
+          fi
+          kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys[] as $k | "\($k): \(. | .[$k] | @base64d)"' | tr '\n' ' '
+
       - name: Forward API port
         id: forward-api-port
-        if: ${{ steps.init-seaweedfs.outcome == 'success' }}
+        if: ${{ steps.verify-pipeline-integration.outcome == 'success' }}
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
         continue-on-error: true
 
@@ -72,7 +64,9 @@ jobs:
         if: ${{ steps.forward-api-port.outcome == 'success' }}
         run: |
           pip3 install "kfp>=1.8.22,<2.0.0"
-          python3 test/seaweedfs/test_pipeline_v1_seaweedfs.py
+          KF_PROFILE=kubeflow-user-example-com
+          TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
+          python3 test/seaweedfs/test_pipeline_v1_seaweedfs.py "$TOKEN" "$KF_PROFILE"
         continue-on-error: true
 
       - name: Test Pipeline V2 API with SeaweedFS
@@ -80,23 +74,19 @@ jobs:
         if: ${{ steps.test-v1-api.outcome == 'success' }}
         run: |
           pip3 install kfp==2.13.0
+          KF_PROFILE=kubeflow-user-example-com
+          TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
           python3 test/seaweedfs/test_pipeline_v2_seaweedfs.py
         continue-on-error: true
 
       - name: Test SeaweedFS Namespace Isolation
         id: test-namespace-isolation
         if: ${{ steps.test-v2-api.outcome == 'success' }}
-        run: |
-          # Create test profiles
-          kubectl apply -f test/seaweedfs/test-profiles.yaml
-          # Wait for profile controller to create credentials
-          sleep 30
-          # Run namespace isolation test
-          bash test/seaweedfs/namespace_isolation_test.sh
+        run: ./test/seaweedfs/namespace_isolation_test.sh
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.deploy-seaweedfs.outcome != 'success' || steps.init-seaweedfs.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
         run: |
           echo "Collecting logs for troubleshooting..."
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
